@@ -1,8 +1,9 @@
 #lang scheme/unit
 
-(require "type-effect-convenience.ss" "type-rep.ss" 
-         "type-utils.ss" "union.ss" 
-         "signatures.ss" "utils.ss"
+(require "../utils/utils.ss")
+(require (rep type-rep)
+	 (private type-effect-convenience union type-utils)
+         "signatures.ss"
          scheme/list)
 
 (import)

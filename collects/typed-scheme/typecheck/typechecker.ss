@@ -1,6 +1,7 @@
 #lang scheme/base
 
-(require "unit-utils.ss"
+(require "../utils/utils.ss")
+(require (utils unit-utils)
          mzlib/trace
          (only-in scheme/unit provide-signature-elements)
          "signatures.ss" "tc-toplevel.ss"         

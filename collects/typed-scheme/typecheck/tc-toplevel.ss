@@ -1,26 +1,17 @@
 #lang scheme/unit
 
 
+(require (rename-in "../utils/utils.ss" [infer r:infer]))
 (require syntax/kerncase
          mzlib/etc
          scheme/match
          "signatures.ss"
          "tc-structs.ss"
-         "type-utils.ss"
-         "utils.ss" ;; doesn't need tests
-         "type-effect-convenience.ss" ;; maybe needs tests
-         "internal-forms.ss" ;; doesn't need tests
-         "type-env.ss" ;; maybe needs tests
-         "parse-type.ss" ;; has tests
-         "tc-utils.ss" ;; doesn't need tests
-         "type-annotation.ss" ;; has tests
-         "type-name-env.ss" ;; maybe needs tests
-         "init-envs.ss"
-         "mutated-vars.ss"
+         (private type-utils type-effect-convenience parse-type type-annotation mutated-vars type-contract)
+	 (env type-env init-envs type-name-env type-alias-env)
+	 (utils tc-utils)
+	 "provide-handling.ss"
          "def-binding.ss"
-         "provide-handling.ss"
-         "type-alias-env.ss"
-         "type-contract.ss"
          (for-template
           "internal-forms.ss"
           mzlib/contract

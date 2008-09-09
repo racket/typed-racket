@@ -1,7 +1,8 @@
 #lang scheme/base
+(require "../utils/utils.ss")
 
-(require "planet-requires.ss" "rep-utils.ss" "effect-rep.ss" "tc-utils.ss"
-         "free-variance.ss"
+(require (utils planet-requires tc-utils) 
+	 "rep-utils.ss" "effect-rep.ss" "free-variance.ss"
          mzlib/trace scheme/match
          (for-syntax scheme/base))
 

@@ -1,19 +1,13 @@
 #lang scheme/unit
 
+(require (only-in "../utils/utils.ss" debug in-syntax printf/log in-pairs rep utils private env [infer r:infer]))
 (require "signatures.ss"
-         "type-rep.ss"
-         "effect-rep.ss"
-         "tc-utils.ss"
-         "subtype.ss"
-         "infer.ss"
-         (only-in "utils.ss" debug in-syntax printf/log in-pairs)
-         "union.ss"
-         "type-utils.ss"
-         "type-effect-convenience.ss"
-         "type-effect-printer.ss"
-         "type-annotation.ss"
-         "resolve-type.ss"
-         "type-environments.ss"
+         (rep type-rep effect-rep)
+	 (utils tc-utils)
+	 (private subtype type-utils union type-effect-convenience type-effect-printer resolve-type
+		  type-annotation)
+         (r:infer infer)
+	 (env type-environments)
          (only-in srfi/1 alist-delete)
          (only-in scheme/private/class-internal make-object do-make-object)
          mzlib/trace mzlib/pretty syntax/kerncase scheme/match
@@ -21,7 +15,7 @@
          (for-template 
           "internal-forms.ss" scheme/base 
           (only-in scheme/private/class-internal make-object do-make-object)))
-(require "constraint-structs.ss")
+(require (r:infer constraint-structs))
 
 (import tc-expr^ tc-lambda^ tc-dots^)
 (export tc-app^)

@@ -1,18 +1,18 @@
 #lang scheme/base
+(require "../utils/utils.ss")
 
 (require mzlib/struct 
          mzlib/plt-match
          syntax/boundmap
-         "planet-requires.ss"
+         (utils planet-requires)
          "free-variance.ss"
-         "utils.ss"
          "interning.ss"
          mzlib/etc
          (for-syntax 
           scheme/base
           syntax/struct
           syntax/stx
-          "utils.ss"))
+          (utils utils)))
 
 (provide == dt de print-type* print-effect* Type Type? Effect Effect? defintern hash-id Type-seq Effect-seq)
 

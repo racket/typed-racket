@@ -1,15 +1,12 @@
 #lang scheme/unit
 
+(require (except-in "../utils/utils.ss" extend))
 (require syntax/kerncase
          scheme/match
          "signatures.ss"
-         "type-utils.ss"
-         "type-rep.ss" ;; doesn't need tests
-         "type-effect-convenience.ss" ;; maybe needs tests
-         "union.ss"
-         "subtype.ss" ;; has tests
-         "tc-utils.ss" ;; doesn't need tests
-         )
+         (private type-utils type-effect-convenience union subtype)
+	 (utils tc-utils)
+	 (rep type-rep))
 
 (import tc-if^ tc-lambda^ tc-app^ tc-let^ tc-expr^)
 (export check-subforms^)

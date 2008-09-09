@@ -1,12 +1,14 @@
 #lang scheme/unit
 
-(require "type-effect-convenience.ss" "type-rep.ss" "effect-rep.ss" "rep-utils.ss"
-         "free-variance.ss" 
-         (except-in "type-utils.ss" Dotted)
-         "union.ss" "tc-utils.ss" "type-name-env.ss"
-         "subtype.ss" "remove-intersect.ss" "signatures.ss" "utils.ss"
+(require (except-in "../utils/utils.ss"))
+(require (rep free-variance type-rep effect-rep rep-utils)
+	 (private type-effect-convenience union subtype remove-intersect)
+	 (utils tc-utils)
+	 (env type-name-env)
+         (except-in (private type-utils) Dotted)
          "constraint-structs.ss"
-         (only-in "type-environments.ss" lookup current-tvars)
+	 "signatures.ss"
+         (only-in (env type-environments) lookup current-tvars)
          scheme/match
          mzlib/etc
          mzlib/trace

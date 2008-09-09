@@ -1,20 +1,15 @@
 #lang scheme/unit
 
+(require (rename-in "../utils/utils.ss" [infer r:infer] [extend r:extend]))
 (require "signatures.ss"
          mzlib/trace
          scheme/list
-         (except-in "type-rep.ss" make-arr) ;; doesn't need tests
-         "type-effect-convenience.ss" ;; maybe needs tests
-         "type-environments.ss" ;; doesn't need tests
-         "lexical-env.ss" ;; maybe needs tests
-         "type-annotation.ss" ;; has tests
-         (except-in "utils.ss" extend)
-         "type-utils.ss"
-         "effect-rep.ss"
-         "tc-utils.ss"
-         "union.ss"
+         (except-in (rep type-rep effect-rep) make-arr) ;; doesn't need tests
+         (private type-effect-convenience type-annotation union type-utils)
+	 (env type-environments lexical-env)
+	 (utils tc-utils)
          mzlib/plt-match
-         (only-in "type-effect-convenience.ss" [make-arr* make-arr]))
+         (only-in (private type-effect-convenience) [make-arr* make-arr]))
 (require (for-template scheme/base "internal-forms.ss"))
 
 (import tc-expr^)

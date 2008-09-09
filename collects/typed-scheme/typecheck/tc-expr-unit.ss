@@ -1,21 +1,15 @@
 #lang scheme/unit
 
 
+(require (rename-in "../utils/utils.ss" [private r:private]))
 (require syntax/kerncase
          scheme/match
          "signatures.ss"
-         "type-utils.ss"
-         "utils.ss" ;; doesn't need tests
-         "type-rep.ss" ;; doesn't need tests
-         "type-effect-convenience.ss" ;; maybe needs tests
-         "union.ss"
-         "subtype.ss" ;; has tests
-         "parse-type.ss" ;; has tests
-         "tc-utils.ss" ;; doesn't need tests
-         "lexical-env.ss" ;; maybe needs tests
-         "type-annotation.ss" ;; has tests
-         "effect-rep.ss"
-         (only-in "type-environments.ss" lookup current-tvars extend-env)
+         (r:private type-utils type-effect-convenience union subtype parse-type type-annotation)
+         (rep type-rep effect-rep)
+         (utils tc-utils)
+         (env lexical-env)
+         (only-in (env type-environments) lookup current-tvars extend-env)
          scheme/private/class-internal
          (only-in srfi/1 split-at))
 

@@ -10,8 +10,9 @@
          initial-tvar-env
          with-dotted-env/extend)
 
+(require (prefix-in r: "../utils/utils.ss"))
 (require scheme/match
-         "tc-utils.ss")
+         (r:utils tc-utils))
 
 ;; eq? has the type of equal?, and l is an alist (with conses!)
 (define-struct env (eq? l))

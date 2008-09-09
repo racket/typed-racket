@@ -1,7 +1,8 @@
 #lang scheme/base
+(require "../utils/utils.ss")
 
 (require (for-syntax scheme/base)
-         "tc-utils.ss"
+         (utils tc-utils)
          mzlib/etc)
 
 ;; this file contains support for calculating the free variables/indexes of types

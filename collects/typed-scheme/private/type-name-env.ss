@@ -1,10 +1,9 @@
 #lang scheme/base
-(require "../utils/utils.ss")
 
 (require syntax/boundmap
          mzlib/trace
-         (utils tc-utils)
-         (private type-utils))
+         "tc-utils.ss"
+         "type-utils.ss")
 
 (provide register-type-name
          lookup-type-name

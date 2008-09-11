@@ -1,9 +1,7 @@
 #lang scheme/base
 
-(require (except-in "../utils/utils.ss" extend))
 (require syntax/boundmap
-         (utils tc-utils)
-	 (private type-utils))
+         "tc-utils.ss" "type-utils.ss")
 
 (provide register-type
          finish-register-type

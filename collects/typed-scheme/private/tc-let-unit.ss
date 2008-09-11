@@ -1,9 +1,14 @@
 #lang scheme/unit
 
-(require (rename-in "../utils/utils.ss" [infer r:infer]))
 (require "signatures.ss"
-         (private type-effect-convenience type-annotation parse-type type-utils)
-	 (env lexical-env type-alias-env type-env)
+         "type-effect-convenience.ss"
+         "lexical-env.ss"
+         "type-annotation.ss"
+         "type-alias-env.ss"
+         "type-env.ss"
+         "parse-type.ss"
+         "utils.ss"
+         "type-utils.ss"
          syntax/free-vars
          mzlib/trace
          scheme/match

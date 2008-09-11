@@ -1,8 +1,8 @@
 #lang scheme/unit
 
-(require "../utils/utils.ss")
-(require (rep type-rep)
-	 (private type-utils union remove-intersect subtype)
+(require "type-rep.ss" 
+         "type-utils.ss" "union.ss" 
+         "subtype.ss" "remove-intersect.ss" 
          "signatures.ss"
          scheme/match)
 

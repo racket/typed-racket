@@ -1,12 +1,15 @@
 #lang scheme/base
 
-(require (except-in "../utils/utils.ss" extend))
-(require (rep type-rep)
-	 (private type-effect-convenience
-		  type-utils parse-type
-		  union resolve-type)
-	 (env type-env type-environments type-name-env)
-	 (utils tc-utils)
+(require "type-rep.ss" ;; doesn't need tests
+         "type-effect-convenience.ss" ;; maybe needs tests
+         "type-env.ss" ;; maybe needs tests
+         "type-utils.ss"
+         "parse-type.ss" ;; has tests
+         "type-environments.ss" ;; doesn't need tests
+         "type-name-env.ss" ;; maybe needs tests
+         "union.ss"
+         "tc-utils.ss"
+         "resolve-type.ss"
          "def-binding.ss"
          syntax/kerncase
          syntax/struct

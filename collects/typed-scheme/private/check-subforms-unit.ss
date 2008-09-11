@@ -1,12 +1,15 @@
 #lang scheme/unit
 
-(require (except-in "../utils/utils.ss" extend))
 (require syntax/kerncase
          scheme/match
          "signatures.ss"
-         (private type-utils type-effect-convenience union subtype)
-	 (utils tc-utils)
-	 (rep type-rep))
+         "type-utils.ss"
+         "type-rep.ss" ;; doesn't need tests
+         "type-effect-convenience.ss" ;; maybe needs tests
+         "union.ss"
+         "subtype.ss" ;; has tests
+         "tc-utils.ss" ;; doesn't need tests
+         )
 
 (import tc-if^ tc-lambda^ tc-app^ tc-let^ tc-expr^)
 (export check-subforms^)
@@ -18,7 +21,7 @@
   (define body-ty #f)    
   (define (get-result-ty t)
     (match t
-      [(Function: (list (arr: _ rngs #f _ '() _ _) ...)) (apply Un rngs)]
+      [(Function: (list (arr: _ rngs #f _ _ _) ...)) (apply Un rngs)]
       [_ (tc-error "Internal error in get-result-ty: not a function type: ~n~a" t)]))
   (let loop ([form form])
     (parameterize ([current-orig-stx form])

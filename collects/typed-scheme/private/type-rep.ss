@@ -1,8 +1,7 @@
 #lang scheme/base
-(require "../utils/utils.ss")
 
-(require (utils planet-requires tc-utils) 
-	 "rep-utils.ss" "effect-rep.ss" "free-variance.ss"
+(require "planet-requires.ss" "rep-utils.ss" "effect-rep.ss" "tc-utils.ss"
+         "free-variance.ss"
          mzlib/trace scheme/match
          (for-syntax scheme/base))
 
@@ -91,27 +90,16 @@
                          pred-id
                          cert)])
 
-;; kw : keyword?
-;; ty : Type
-;; required? : Boolean
-(dt Keyword (kw ty required?)
-    [#:frees (free-vars* ty)
-             (free-idxs* ty)]
-    [#:fold-rhs (*Keyword kw (type-rec-id ty))])
-
 ;; dom : Listof[Type]
 ;; rng : Type
 ;; rest : Option[Type]
 ;; drest : Option[Cons[Type,Name or nat]]
-;; kws : Listof[Keyword]
 ;; rest and drest NOT both true
 ;; thn-eff : Effect
 ;; els-eff : Effect
 ;; arr is NOT a Type
-(dt arr (dom rng rest drest kws thn-eff els-eff)
-    [#:frees (combine-frees (append (map flip-variances (map free-vars* (append (if rest (list rest) null)
-                                                                                (map Keyword-ty kws)
-                                                                                dom)))
+(dt arr (dom rng rest drest thn-eff els-eff)
+    [#:frees (combine-frees (append (map flip-variances (map free-vars* (append (if rest (list rest) null) dom)))
                                     (match drest
                                       [(cons t (? symbol? bnd))
                                        (list (fix-bound (flip-variances (free-vars* t)) bnd))]
@@ -120,9 +108,7 @@
                                     (list (free-vars* rng))
                                     (map make-invariant
                                          (map free-vars* (append thn-eff els-eff)))))
-             (combine-frees (append (map flip-variances (map free-idxs* (append (if rest (list rest) null)
-                                                                                (map Keyword-ty kws)
-                                                                                dom)))
+             (combine-frees (append (map flip-variances (map free-idxs* (append (if rest (list rest) null) dom)))
                                     (match drest
                                       [(cons t (? number? bnd))
                                        (list (fix-bound (flip-variances (free-idxs* t)) bnd))]
@@ -135,8 +121,6 @@
                       (type-rec-id rng)
                       (and rest (type-rec-id rest))
                       (and drest (cons (type-rec-id (car drest)) (cdr drest)))
-                      (for/list ([kw kws])
-                        (cons (Keyword-kw kw) (type-rec-id (Keyword-ty kw)) (Keyword-require? kw)))
                       (map effect-rec-id thn-eff)
                       (map effect-rec-id els-eff))])
 
@@ -264,11 +248,9 @@
             (define cl (quasisyntax/loc src (#,pat #,(body-f rid erid))))
             cl)
           (syntax-case stx ()
-            [(tc rec-id ty clauses ...)
-             (syntax-case #'(clauses ...) ()
-               [([kw pats ... es] ...) #t]
-               [_ #f])
-             (syntax/loc stx (tc rec-id (lambda (e) (sub-eff rec-id e)) ty clauses ...))]
+            [(tc rec-id ty [kw pats ... es] ...)
+             #;(andmap (lambda (k) (keyword? (syntax-e k))) (syntax->list #'(kw ...)))
+             (syntax/loc stx (tc rec-id (lambda (e) (sub-eff rec-id e)) ty [kw pats ... es] ...))]
             [(tc rec-id e-rec-id ty clauses  ...)
              (begin 
                (map add-clause (syntax->list #'(clauses ...)))
@@ -314,7 +296,7 @@
        ;; necessary to avoid infinite loops
        [#:Union elems (*Union (remove-dups (sort (map sb elems) type<?)))]
        ;; functions 
-       [#:arr dom rng rest drest kws thn-eff els-eff
+       [#:arr dom rng rest drest thn-eff els-eff
               (*arr (map sb dom)
                     (sb rng)
                     (if rest (sb rest) #f)
@@ -322,8 +304,6 @@
                         (cons (sb (car drest))
                               (if (eq? (cdr drest) name) (+ count outer) (cdr drest)))
                         #f)
-                    (for/list ([kw kws])
-                      (cons (car kw) (sb (cdr kw))))
                     (map (lambda (e) (sub-eff sb e)) thn-eff)
                     (map (lambda (e) (sub-eff sb e)) els-eff))]
        [#:ValuesDots tys dty dbound
@@ -360,7 +340,7 @@
        ;; necessary to avoid infinite loops
        [#:Union elems (*Union (remove-dups (sort (map sb elems) type<?)))]
        ;; functions
-       [#:arr dom rng rest drest kws thn-eff els-eff
+       [#:arr dom rng rest drest thn-eff els-eff
               (*arr (map sb dom)
                     (sb rng)
                     (if rest (sb rest) #f)
@@ -368,8 +348,6 @@
                         (cons (sb (car drest))
                               (if (eqv? (cdr drest) (+ count outer)) (F-n image) (cdr drest)))
                         #f)
-                    (for/list ([kw kws])
-                      (cons (car kw) (sb (cdr kw))))
                     (map (lambda (e) (sub-eff sb e)) thn-eff)
                     (map (lambda (e) (sub-eff sb e)) els-eff))]
        [#:ValuesDots tys dty dbound
@@ -423,7 +401,7 @@
   (match t
     [(Poly: n scope)
      (unless (= (length names) n)
-       (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
+       (error "Wrong number of names"))
      (instantiate-many (map *F names) scope)]))
 
 ;; the 'smart' constructor
@@ -438,7 +416,7 @@
   (match t
     [(PolyDots: n scope)
      (unless (= (length names) n)
-       (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
+       (error "Wrong number of names"))
      (instantiate-many (map *F names) scope)]))
 
 (print-struct #t)

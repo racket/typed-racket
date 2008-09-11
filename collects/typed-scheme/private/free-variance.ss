@@ -1,8 +1,7 @@
 #lang scheme/base
-(require "../utils/utils.ss")
 
 (require (for-syntax scheme/base)
-         (utils tc-utils)
+         "tc-utils.ss"
          mzlib/etc)
 
 ;; this file contains support for calculating the free variables/indexes of types
@@ -28,8 +27,8 @@
 (define var-table (make-weak-hasheq))
 ;; maps Type to List[Cons[Symbol,Variance]]
 
-(define (free-idxs* t) (hash-ref index-table t (lambda _ (int-err "type ~a not in index-table" (syntax-e t)))))
-(define (free-vars* t) (hash-ref var-table t (lambda _ (int-err "type ~a not in var-table" (syntax-e t)))))
+(define (free-idxs* t) (hash-ref index-table t (lambda _ (error "type not in index-table" (syntax-e t)))))
+(define (free-vars* t) (hash-ref var-table t (lambda _ (error "type not in var-table" (syntax-e t)))))
 
 
 (define empty-hash-table (make-immutable-hasheq null))

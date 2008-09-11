@@ -2,7 +2,6 @@
 
 (require (for-syntax scheme/base)
          mzlib/plt-match
-	 scheme/require-syntax
          mzlib/struct)
 
 (provide with-syntax* syntax-map start-timing do-time reverse-begin printf/log
@@ -17,40 +16,7 @@
          in-list-forever
          extend
          debug
-         in-syntax
-	 ;; require macros
-	 rep utils typecheck infer env private)
-
-(define-syntax (define-requirer stx)
-  (syntax-case stx ()
-    [(_ nm)
-     #`(...
-	(define-require-syntax nm
-	  (lambda (stx)
-	    (syntax-case stx ()
-	      [(_ id ...)
-	       (andmap identifier? (syntax->list #'(id ...)))
-	       (with-syntax ([(id* ...) 
-                              (map (lambda (id) 
-                                     (datum->syntax 
-                                      id 
-                                      (string->symbol
-                                       (string-append 
-                                        "typed-scheme/"
-                                        #,(symbol->string (syntax-e #'nm))
-                                        "/" 
-                                        (symbol->string (syntax-e id))))
-                                      id id))
-                                   (syntax->list #'(id ...)))])
-			    (syntax/loc stx (combine-in id* ...)))]))))]))
-
-
-(define-requirer rep)
-(define-requirer infer)
-(define-requirer typecheck)
-(define-requirer utils)
-(define-requirer env)
-(define-requirer private)
+         in-syntax)
 
 (define-sequence-syntax in-syntax 
   (lambda () #'syntax->list)

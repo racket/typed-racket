@@ -1,8 +1,6 @@
 #lang scheme/unit
 
-(require (except-in "../utils/utils.ss" extend))
-(require "signatures.ss" "constraint-structs.ss"
-	 (utils tc-utils)
+(require "signatures.ss" "utils.ss" "tc-utils.ss" "constraint-structs.ss"
          scheme/match)
 
 (import constraints^)

@@ -1,18 +1,18 @@
 #lang scheme/base
-(require "../utils/utils.ss")
 
 (require mzlib/struct 
          mzlib/plt-match
          syntax/boundmap
-         (utils planet-requires)
+         "planet-requires.ss"
          "free-variance.ss"
+         "utils.ss"
          "interning.ss"
          mzlib/etc
          (for-syntax 
           scheme/base
           syntax/struct
           syntax/stx
-          (utils utils)))
+          "utils.ss"))
 
 (provide == dt de print-type* print-effect* Type Type? Effect Effect? defintern hash-id Type-seq Effect-seq)
 
@@ -150,9 +150,7 @@
                      (lambda (s)
                        (... 
                         (syntax-case s ()
-                          [(__ . fs) 
-                           (with-syntax ([flds** (syntax/loc s (_ . fs))])
-                             (quasisyntax/loc s (struct nm flds**)))]))))
+                          [(__ . fs) (quasisyntax/loc s (struct nm #, (syntax/loc #'fs (_ . fs))))]))))
                    (begin-for-syntax
                      (hash-set! ht-stx 'kw-stx (list #'ex #'flds bfs-fold-rhs #'#,stx)))
                    intern

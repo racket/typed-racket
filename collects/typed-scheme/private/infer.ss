@@ -1,10 +1,9 @@
 #lang scheme/base
 
-(require (except-in "../utils/utils.ss" infer))
 (require "infer-unit.ss" "constraints.ss" "dmap.ss" "signatures.ss"
          "restrict.ss" "promote-demote.ss"
          (only-in scheme/unit provide-signature-elements)
-         (utils unit-utils))
+         "unit-utils.ss")
          
 (provide-signature-elements restrict^ infer^)
 

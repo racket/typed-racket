@@ -1,16 +1,11 @@
 #lang scheme/base
 (provide (all-defined-out))
-(require "../utils/utils.ss")
 
-(require "type-env.ss" 
-	 "type-name-env.ss"
-	 (rep type-rep effect-rep)
-	 (for-template (rep type-rep effect-rep) 
-		       (private union)
-		       mzlib/pconvert mzlib/shared scheme/base)
-	 (private type-effect-convenience union)
-         "type-alias-env.ss"
-	 mzlib/pconvert scheme/match mzlib/shared)
+(require "type-env.ss" "type-rep.ss" "type-name-env.ss" "union.ss" "effect-rep.ss"
+         "type-effect-convenience.ss" "type-alias-env.ss"
+         "type-alias-env.ss")
+(require mzlib/pconvert scheme/match mzlib/shared
+         (for-template mzlib/pconvert mzlib/shared scheme/base "type-rep.ss" "union.ss" "effect-rep.ss"))    
 
 (define (initialize-type-name-env initial-type-names)
   (for-each (lambda (nm/ty) (register-resolved-type-alias (car nm/ty) (cadr nm/ty))) initial-type-names))

@@ -1,7 +1,6 @@
 #lang scheme/base
 
-(require (except-in "../utils/utils.ss" extend))
-(require (rep type-rep)
+(require "type-rep.ss"
          scheme/contract)
 
 ;; S, T types

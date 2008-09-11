@@ -1,15 +1,20 @@
 #lang scheme/unit
 
-(require (rename-in "../utils/utils.ss" [infer r:infer] [extend r:extend]))
 (require "signatures.ss"
          mzlib/trace
          scheme/list
-         (except-in (rep type-rep effect-rep) make-arr) ;; doesn't need tests
-         (private type-effect-convenience type-annotation union type-utils)
-	 (env type-environments lexical-env)
-	 (utils tc-utils)
+         (except-in "type-rep.ss" make-arr) ;; doesn't need tests
+         "type-effect-convenience.ss" ;; maybe needs tests
+         "type-environments.ss" ;; doesn't need tests
+         "lexical-env.ss" ;; maybe needs tests
+         "type-annotation.ss" ;; has tests
+         (except-in "utils.ss" extend)
+         "type-utils.ss"
+         "effect-rep.ss"
+         "tc-utils.ss"
+         "union.ss"
          mzlib/plt-match
-         (only-in (private type-effect-convenience) [make-arr* make-arr]))
+         (only-in "type-effect-convenience.ss" [make-arr* make-arr]))
 (require (for-template scheme/base "internal-forms.ss"))
 
 (import tc-expr^)
@@ -175,7 +180,7 @@
       (let loop ([expected expected])        
         (match expected          
           [(Mu: _ _) (loop (unfold expected))]
-          [(Function: (list (arr: argss rets rests drests '() _ _) ...)) 
+          [(Function: (list (arr: argss rets rests drests _ _) ...)) 
            (for ([args argss] [ret rets] [rest rests] [drest drests])
              (tc/lambda-clause/check (car (syntax->list formals)) (car (syntax->list bodies)) args ret rest drest))
            expected]

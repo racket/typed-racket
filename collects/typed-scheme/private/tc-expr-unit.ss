@@ -1,15 +1,21 @@
 #lang scheme/unit
 
 
-(require (rename-in "../utils/utils.ss" [private r:private]))
 (require syntax/kerncase
          scheme/match
          "signatures.ss"
-         (r:private type-utils type-effect-convenience union subtype parse-type type-annotation)
-         (rep type-rep effect-rep)
-         (utils tc-utils)
-         (env lexical-env)
-         (only-in (env type-environments) lookup current-tvars extend-env)
+         "type-utils.ss"
+         "utils.ss" ;; doesn't need tests
+         "type-rep.ss" ;; doesn't need tests
+         "type-effect-convenience.ss" ;; maybe needs tests
+         "union.ss"
+         "subtype.ss" ;; has tests
+         "parse-type.ss" ;; has tests
+         "tc-utils.ss" ;; doesn't need tests
+         "lexical-env.ss" ;; maybe needs tests
+         "type-annotation.ss" ;; has tests
+         "effect-rep.ss"
+         (only-in "type-environments.ss" lookup current-tvars extend-env)
          scheme/private/class-internal
          (only-in srfi/1 split-at))
 
@@ -35,7 +41,7 @@
     [(null? v) (-val null)]
     [(symbol? v) (-val v)]
     [(string? v) -String]
-    [(keyword? v) (-val v)]
+    [(keyword? v) -Keyword]
     [(bytes? v) -Bytes]
     [(list? v) (-Tuple (map tc-literal v))]
     [(vector? v) (make-Vector (types-of-literals (vector->list v)))]
@@ -95,8 +101,7 @@
 ;; typecheck an expression, but throw away the effect
 ;; tc-expr/t : Expr -> Type
 (define (tc-expr/t e) (match (tc-expr e)
-                        [(tc-result: t) t]
-			[t (int-err "tc-expr returned ~a, not a tc-result, for ~a" t (syntax->datum e))]))
+                        [(tc-result: t) t]))
 
 (define (tc-expr/check/t e t)
   (match (tc-expr/check e t)

@@ -1,9 +1,8 @@
 #lang scheme/unit
 
-(require (except-in "../utils/utils.ss" extend))
-(require (private type-effect-convenience type-utils union subtype)
-	 (rep type-rep)
-	 (utils tc-utils)
+(require "type-effect-convenience.ss" "type-rep.ss" 
+         "type-utils.ss" "union.ss" "tc-utils.ss" 
+         "subtype.ss" "utils.ss"
          "signatures.ss" "constraint-structs.ss"
          scheme/match)
 

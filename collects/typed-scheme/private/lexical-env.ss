@@ -1,12 +1,6 @@
 #lang scheme/base
 
-(require (except-in "../utils/utils.ss" extend))
-(require "type-environments.ss" 
-	 (utils tc-utils)
-	 "type-env.ss"
-	 (private mutated-vars)
-	 (private type-utils)
-	 (private type-effect-convenience))
+(require "type-environments.ss" "tc-utils.ss" "type-env.ss" "mutated-vars.ss" "type-utils.ss" "type-effect-convenience.ss")
 
 (provide (all-defined-out))
 

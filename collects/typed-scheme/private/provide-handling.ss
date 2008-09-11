@@ -1,12 +1,11 @@
 #lang scheme/base
 
-(require (except-in "../utils/utils.ss" extend))
 (require (only-in srfi/1/list s:member)
          syntax/kerncase 
          mzlib/trace
-         (private type-contract)
-         (rep type-rep)
-	 (utils tc-utils)
+         "type-contract.ss"
+         "type-rep.ss"
+         "tc-utils.ss"
          "def-binding.ss")
 
 (require (for-template scheme/base

@@ -1,8 +1,7 @@
 #lang scheme/base
 
-(require (except-in "../utils/utils.ss" extend))
 (require syntax/boundmap
-         (utils tc-utils)
+         "tc-utils.ss"
          mzlib/trace
          scheme/match)
 

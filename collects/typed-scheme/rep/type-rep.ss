@@ -150,11 +150,9 @@
          [rng (or/c Values? ValuesDots?)]
          [rest (or/c #f Type/c)] 
          [drest (or/c #f (cons/c Type/c (or/c natural-number/c symbol?)))]
-         [kws (listof Keyword?)]
-         ;; order is: fixed, rest/drest, keywords
-         [names (listof identifier?)])
+         [kws (listof Keyword?)])
     #:no-provide
-    [#:intern (list dom rng rest drest kws (map hash-id names))]
+    [#:intern (list dom rng rest drest kws)]
     [#:frees (combine-frees 
               (append (map (compose flip-variances free-vars*) 
                            (append (if rest (list rest) null)
@@ -183,8 +181,7 @@
                       (type-rec-id rng)
                       (and rest (type-rec-id rest))
                       (and drest (cons (type-rec-id (car drest)) (cdr drest)))
-                      (map type-rec-id kws)
-                      names)])
+                      (map type-rec-id kws))])
 
 ;; top-arr is the supertype of all function types
 (dt top-arr () [#:fold-rhs #:base])
@@ -201,7 +198,7 @@
 
 ;; name : symbol
 ;; parent : Struct
-;; flds : Listof[Type]
+;; flds : Listof[Cons[Type,Bool]] type and mutability
 ;; proc : Function Type
 ;; poly? : is this a polymorphic type?
 ;; pred-id : identifier for the predicate of the struct
@@ -209,22 +206,34 @@
 (dt Struct ([name symbol?] 
             [parent (or/c #f Struct? Name?)] 
             [flds (listof Type/c)]
+            #;
+            [flds (listof (cons/c Type/c boolean?))]
             [proc (or/c #f Function?)]
             [poly? boolean?] 
             [pred-id identifier?]
             [cert procedure?]
-            [acc-ids (listof identifier?)])
+            [acc-ids (listof identifier?)]
+            [maker-id identifier?])
     [#:intern (list name parent flds proc)]
-    [#:frees (combine-frees (map free-vars* (append (if proc (list proc) null) (if parent (list parent) null) flds)))
-             (combine-frees (map free-idxs* (append (if proc (list proc) null) (if parent (list parent) null) flds)))]
+    [#:frees (combine-frees (map free-vars* (append (if proc (list proc) null)
+                                                    (if parent (list parent) null) 
+                                                    
+                                                    flds #;(map car flds))))
+             (combine-frees (map free-idxs* (append (if proc (list proc) null)
+                                                    (if parent (list parent) null)
+                                                    flds #;(map car flds))))]
     [#:fold-rhs (*Struct name 
                          (and parent (type-rec-id parent))
                          (map type-rec-id flds)
+                         #;
+                         (for/list ([(t m?) (in-pairs (in-list flds))])
+                           (cons (type-rec-id t) m?))
                          (and proc (type-rec-id proc))
                          poly?
                          pred-id
                          cert
-                         acc-ids)]
+                         acc-ids
+                         maker-id)]
     [#:key #f])
 
 ;; A structure type descriptor
@@ -401,7 +410,7 @@
        ;; necessary to avoid infinite loops
        [#:Union elems (*Union (remove-dups (sort (map sb elems) type<?)))]
        ;; functions 
-       [#:arr dom rng rest drest kws names
+       [#:arr dom rng rest drest kws
               (*arr (map sb dom)
                     (sb rng)
                     (if rest (sb rest) #f)
@@ -447,7 +456,7 @@
        ;; necessary to avoid infinite loops
        [#:Union elems (*Union (remove-dups (sort (map sb elems) type<?)))]
        ;; functions
-       [#:arr dom rng rest drest kws names
+       [#:arr dom rng rest drest kws
               (*arr (map sb dom)
                     (sb rng)
                     (if rest (sb rest) #f)
@@ -455,8 +464,7 @@
                         (cons (sb (car drest))
                               (if (eqv? (cdr drest) (+ count outer)) (F-n image) (cdr drest)))
                         #f)
-                    (map sb kws)
-                    names)]
+                    (map sb kws))]
        [#:ValuesDots rs dty dbound
                      (*ValuesDots (map sb rs)
                                   (sb dty)

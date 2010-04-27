@@ -2,29 +2,29 @@
 
 (require (for-syntax scheme/base syntax/parse mzlib/etc scheme/match)
          scheme/require 
-         "base-env.ss" 
-	 "base-special-env.ss"
-	 "base-env-numeric.ss"
-	 "base-env-indexing-old.ss"
-	 "extra-procs.ss"
-         "prims.ss"
-         "base-types.ss"
-         scheme/contract/regions scheme/contract/base         
+         "base-env.rkt" 
+	 "base-special-env.rkt"
+	 "base-env-numeric.rkt"
+	 "base-env-indexing-old.rkt"
+	 "extra-procs.rkt"
+         "prims.rkt"
+         "base-types.rkt"
+         racket/contract/regions racket/contract/base
          (for-syntax 
-          "base-types-extra.ss"
+          "base-types-extra.rkt"
           unstable/debug
-          (path-up "env/type-name-env.ss"
-                   "env/type-alias-env.ss"
-                   "infer/infer-dummy.ss"
-                   "private/parse-type.ss"
-                   "private/type-contract.ss"
-                   "typecheck/typechecker.ss"
-                   "env/type-environments.ss" 
-                   "env/type-env.ss"
-                   "infer/infer.ss"
-                   "utils/tc-utils.ss"
-                   "types/utils.ss")
-          (except-in (path-up "utils/utils.ss" "types/convenience.ss" "types/abbrev.ss") infer ->)))
+          (path-up "env/type-name-env.rkt"
+                   "env/type-alias-env.rkt"
+                   "infer/infer-dummy.rkt"
+                   "private/parse-type.rkt"
+                   "private/type-contract.rkt"
+                   "typecheck/typechecker.rkt"
+                   "env/type-environments.rkt" 
+                   "env/type-env.rkt"
+                   "infer/infer.rkt"
+                   "utils/tc-utils.rkt"
+                   "types/utils.rkt")
+          (except-in (path-up "utils/utils.rkt" "types/convenience.rkt" "types/abbrev.rkt") infer ->)))
 
 (provide with-type)
 

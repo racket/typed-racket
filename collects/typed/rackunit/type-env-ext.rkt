@@ -1,17 +1,17 @@
 #lang scheme/base
 
 (require typed-scheme/utils/utils
-         (prefix-in ru: (combine-in racunit racunit/private/test-case racunit/private/check))
+         (prefix-in ru: (combine-in rackunit rackunit/private/test-case rackunit/private/check))
          (for-syntax
           scheme/base syntax/parse
           (utils tc-utils)
-          (env init-envs)          
+          (env init-envs)
           (except-in (rep filter-rep object-rep type-rep) make-arr)
           (types convenience union)
           (only-in (types convenience) [make-arr* make-arr])))
 
 (define-for-syntax unit-env
-  (make-env   
+  (make-env
    [ru:check-around
     (-poly (a) (-> (-> a) a))]
    ;; current-test-case-around

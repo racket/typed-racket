@@ -12,7 +12,7 @@
 
 ; 3.2
 (require/typed/provide
- racunit
+ rackunit
  [check (All (A B C)
              (case-lambda
                ((A B -> C) A B -> C)
@@ -62,11 +62,11 @@
 ; 3.2.1
 (require-typed-struct check-info
                       ([name : Symbol] [value : Any])
-                      racunit)
+                      rackunit)
 (define-type CheckInfo check-info)
 (provide (struct-out check-info) CheckInfo)
 (require/typed/provide
- racunit
+ rackunit
  [make-check-name (String -> CheckInfo)]
  [make-check-params ((Listof Any) -> CheckInfo)]
  [make-check-location ((List Any (Option Number) (Option Number) (Option Number) (Option Number)) -> CheckInfo)]
@@ -75,23 +75,23 @@
  [make-check-actual (Any -> CheckInfo)]
  [make-check-expected (Any -> CheckInfo)]
  [with-check-info* (All (A) ((Listof CheckInfo) (Thunk A) -> A))])
-(require (only-in racunit with-check-info))
+(require (only-in rackunit with-check-info))
 (provide with-check-info)
 
 ; 3.2.2
-(require (only-in racunit define-simple-check define-binary-check define-check fail-check))
+(require (only-in rackunit define-simple-check define-binary-check define-check fail-check))
 (provide define-simple-check define-binary-check define-check fail-check)
 
 ; 3.2.3
 (require/typed/provide
- racunit
+ rackunit
  [current-check-handler
   (Parameter (Any -> Any))]
  [current-check-around
   (Parameter ((Thunk Any) -> Any))])
 
 ; 3.3
-(require (prefix-in t: (except-in racunit struct:check-info struct:exn:test struct:exn:test:check struct:test-result struct:test-failure
+(require (prefix-in t: (except-in rackunit struct:check-info struct:exn:test struct:exn:test:check struct:test-result struct:test-failure
                                   struct:test-error struct:test-success)))
 (define-rewriter t:test-begin test-begin 
   [t:current-test-case-around current-test-case-around]
@@ -105,49 +105,49 @@
   [t:current-check-around current-check-around])
 (provide test-begin test-case)
 
-(require/opaque-type TestCase test-case? racunit)
+(require/opaque-type TestCase test-case? rackunit)
 (provide TestCase test-case?)
 
-(require (only-in racunit test-suite))
+(require (only-in rackunit test-suite))
 (provide test-suite)
-(require/opaque-type TestSuite test-suite? racunit)
+(require/opaque-type TestSuite test-suite? rackunit)
 (provide TestSuite test-suite?)
 
 (define-type Test (U TestCase TestSuite))
 (provide Test)
 
 (require/typed/provide
- racunit
+ rackunit
  [make-test-suite
   (case-lambda
     (String (Listof Test) -> TestSuite)
     ; XXX #:before #:after
     )])
 
-(require (only-in racunit define-test-suite define/provide-test-suite))
+(require (only-in rackunit define-test-suite define/provide-test-suite))
 (provide define-test-suite define/provide-test-suite)
 
 (require/typed/provide
- racunit
+ rackunit
  [current-test-name (Parameter (Option String))]
  [current-test-case-around (Parameter ((Thunk Any) -> Any))]
  [test-suite-test-case-around ((Thunk Any) -> Any)]
  [test-suite-check-around ((Thunk Any) -> Any)])
 
 ; 3.4
-(require (only-in racunit before after around delay-test))
+(require (only-in rackunit before after around delay-test))
 (provide before after around delay-test)
 
 ; 3.5
 ; XXX require/expose seems WRONG for typed/scheme
 
 ; 3.7
-(require-typed-struct (exn:test exn) () racunit)
-(require-typed-struct (exn:test:check exn:test) ([stack : (Listof CheckInfo)]) racunit)
-(require-typed-struct test-result ([test-case-name : (Option String)]) racunit)
-(require-typed-struct (test-failure test-result) ([result : Any]) racunit)
-(require-typed-struct (test-error test-result) ([result : Any]) racunit)
-(require-typed-struct (test-success test-result) ([result : Any]) racunit)
+(require-typed-struct (exn:test exn) () rackunit)
+(require-typed-struct (exn:test:check exn:test) ([stack : (Listof CheckInfo)]) rackunit)
+(require-typed-struct test-result ([test-case-name : (Option String)]) rackunit)
+(require-typed-struct (test-failure test-result) ([result : Any]) rackunit)
+(require-typed-struct (test-error test-result) ([result : Any]) rackunit)
+(require-typed-struct (test-success test-result) ([result : Any]) rackunit)
 (provide (struct-out exn:test) (struct-out exn:test:check)
          (struct-out test-result)
          (struct-out test-failure) (struct-out test-error) (struct-out test-success))
@@ -157,7 +157,7 @@
        (Listof (U A The-Tree))))
 
 (require/typed/provide
- racunit
+ rackunit
  [run-test-case 
   ((Option String) (Thunk Any) -> test-result)]
  [run-test

@@ -1,9 +1,9 @@
 #lang typed/scheme
-(require typed/racunit
+(require typed/rackunit
          typed/private/utils)
 
 (require/typed/provide
- racunit/gui
+ rackunit/gui
  [test/gui
   (Test * -> Any)]
  [make-gui-runner

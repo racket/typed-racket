@@ -1,12 +1,12 @@
 #lang typed/scheme
-(require typed/racunit
+(require typed/rackunit
          typed/private/utils)
 
 (define-type Verbosity
   (U 'quiet 'normal 'verbose))
 
 (require/typed/provide
- racunit/text-ui
+ rackunit/text-ui
  [run-tests
   (case-lambda
     (Test -> Natural)

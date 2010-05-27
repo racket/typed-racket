@@ -39,7 +39,8 @@ This file defines two sorts of primitives. All of them are provided into any mod
           (private internal)
 	  (except-in (utils utils tc-utils))
           (env type-name-env)
-          "type-contract.rkt"))
+          "type-contract.rkt"
+          "for-clauses.rkt"))
 
 (require (utils require-contract)
          "colon.rkt"
@@ -47,7 +48,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
          (except-in mzlib/contract ->)
          (only-in mzlib/contract [-> c->])
          mzlib/struct
-         "base-types.rkt"
+         "base-types-new.rkt"
          "base-types-extra.rkt")
 
 (define-for-syntax (ignore stx) (syntax-property stx 'typechecker:ignore #t))
@@ -79,7 +80,9 @@ This file defines two sorts of primitives. All of them are provided into any mod
              #:fail-unless (eq? 'opaque (syntax-e #'opaque)) #f
              #:with opt #'(#:name-exists)))
   (syntax-parse stx
-    [(_ lib (~or sc:simple-clause strc:struct-clause oc:opaque-clause) ...)
+    [(_ lib:expr (~or sc:simple-clause strc:struct-clause oc:opaque-clause) ...)
+     (unless (< 0 (length (syntax->list #'(sc ... strc ... oc ...))))
+       (raise-syntax-error #f "at least one specification is required" stx))
      #'(begin 
 	 (require/opaque-type oc.ty oc.pred lib . oc.opt) ...
 	 (require/typed sc.nm sc.ty lib) ... 
@@ -366,15 +369,39 @@ This file defines two sorts of primitives. All of them are provided into any mod
 (define-syntax (do: stx)
   (syntax-parse stx #:literals (:)
     [(_ : ty 
-        ((var:annotated-name init (~optional step:expr #:defaults ([step #'var]))) ...) 
-        (stop?:expr (~optional (~seq finish0:expr finish:expr ...) #:defaults ([finish0 #'(void)] [(finish 1) '()])))
+        ((var:annotated-name rest ...) ...) 
+        (stop?:expr ret ...)
         c:expr ...)
      (syntax/loc
          stx
-       (let: doloop : ty ([var.name : var.ty init] ...)
-         (if stop?
-             (begin finish0 finish ...)
-             (begin c ... (doloop step ...)))))]))
+       (ann (do ((var.ann-name rest ...) ...)
+                (stop? ret ...)
+              c ...)
+            ty))]))
+
+(define-for-syntax (define-for-variant name)
+  (lambda (stx)
+    (syntax-parse stx #:literals (:)
+      [(_ : ty
+          clauses
+          c:expr ...)
+       (convert-for-clauses name #'clauses #'(c ...) #'ty)])))
+(define-syntax (define-for-variants stx)
+  (syntax-parse stx
+    [(_ (name untyped-name) ...)
+     (quasisyntax/loc
+         stx
+       (begin (define-syntax name (define-for-variant #'untyped-name)) ...))]))
+(define-for-variants
+  (for: for)
+  (for/list: for/list)
+  (for/hash: for/hash)
+  (for/hasheq: for/hasheq)
+  (for/hasheqv: for/hasheqv)
+  (for/and: for/and)
+  (for/or: for/or)
+  (for/first: for/first)
+  (for/last: for/last))
 
 (define-syntax (provide: stx)
   (syntax-parse stx

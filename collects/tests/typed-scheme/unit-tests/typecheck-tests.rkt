@@ -611,7 +611,7 @@
            (do: : Number ((x : (Listof Number) x (cdr x))
                           (sum : Number 0 (+ sum (car x))))
                 ((null? x) sum)))
-         N]
+         #:ret (ret N (-FS -top -top) (make-NoObject))]
         
         [tc-e/t (if #f 1 'foo) (-val 'foo)]
         
@@ -794,6 +794,14 @@
         [tc-e (floor 1/2) -Integer]
         [tc-e (ceiling 1/2) -Integer]
         [tc-e (truncate 0.5) -Flonum]
+        [tc-e/t (ann (lambda (x) (lambda (x) x))
+                     (Integer -> (All (X) (X -> X))))
+                (t:-> -Integer (-poly (x) (t:-> x x)))]
+        [tc-e/t (lambda: ([x : Any])
+                         (or (eq? 'q x)
+                             (eq? 'r x)
+                             (eq? 's x)))
+                (make-pred-ty (t:Un (-val 'q) (-val 'r) (-val 's)))]
         )
   (test-suite
    "check-type tests"

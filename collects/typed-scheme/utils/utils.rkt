@@ -1,14 +1,14 @@
-#lang scheme/base
+#lang racket/base
 
 #|
 This file is for utilities that are of general interest, 
 at least theoretically.
 |#
 
-(require (for-syntax scheme/base syntax/parse scheme/string)
-         scheme/contract scheme/match scheme/require-syntax 
-	 scheme/provide-syntax mzlib/struct scheme/unit
-	 scheme/pretty mzlib/pconvert syntax/parse)
+(require (for-syntax racket/base syntax/parse racket/string)
+         racket/contract racket/require-syntax 
+	 racket/provide-syntax racket/unit
+	 racket/pretty mzlib/pconvert syntax/parse)
 
 ;; to move to unstable
 (provide reverse-begin list-update list-set)
@@ -19,14 +19,15 @@ at least theoretically.
  ;; timing
  start-timing do-time  
  ;; logging
- printf/log
+ printf/log show-input?
  ;; struct printing
  custom-printer define-struct/printer
  ;; provide macros
  rep utils typecheck infer env private types)
 
-(define optimize? (make-parameter #f))
+(define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? #f)
+(define show-input? (make-parameter #f))
 
 ;; fancy require syntax
 (define-syntax (define-requirer stx)
@@ -114,7 +115,7 @@ at least theoretically.
             (when (last-time)
               (error #f "Timing already started"))
             (last-time (current-process-milliseconds))
-            (printf "Starting ~a at ~a~n" msg (last-time)))])
+            (printf "Starting ~a at ~a\n" msg (last-time)))])
        (syntax-rules ()
          [(_ msg)
           (begin
@@ -124,7 +125,7 @@ at least theoretically.
                    [old (last-time)]
                    [diff (- t old)])
               (last-time t)
-              (printf "Timing ~a at ~a@~a~n" msg diff t)))]))
+              (printf "Timing ~a at ~a@~a\n" msg diff t)))]))
       (values (lambda _ #'(void)) (lambda _ #'(void)))))
 
 ;; custom printing

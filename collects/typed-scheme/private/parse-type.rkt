@@ -7,7 +7,7 @@
          syntax/stx (prefix-in c: scheme/contract)
          syntax/parse
          (env type-env-structs tvar-env type-name-env type-alias-env lexical-env index-env)         
-         scheme/match unstable/debug
+         racket/match unstable/debug
          (for-template scheme/base "colon.ss")
          ;; needed at this phase for tests
          (combine-in (prefix-in t: "base-types-extra.ss") "colon.ss")
@@ -24,7 +24,7 @@
 (define enable-mu-parsing (make-parameter #t))
 
 (define ((parse/id p) loc datum)
-  #;(printf "parse-type/id id : ~a~n ty: ~a~n" (syntax-object->datum loc) (syntax-object->datum stx))
+  #;(printf "parse-type/id id : ~a\n ty: ~a\n" (syntax-object->datum loc) (syntax-object->datum stx))
   (let* ([stx* (datum->syntax loc datum loc loc)])
     (p stx*)))
 
@@ -65,7 +65,7 @@
      (parse-type s)]))
 
 (define (parse-all-type stx parse-type)
-  ;(printf "parse-all-type: ~a ~n" (syntax->datum stx))
+  ;(printf "parse-all-type: ~a \n" (syntax->datum stx))
   (syntax-parse stx #:literals (t:All)
     [((~and kw t:All) (vars:id ... v:id dd:ddd) . t)
      (let* ([vars (map syntax-e (syntax->list #'(vars ...)))]
@@ -87,6 +87,13 @@
            #:attr Keyword (make-Keyword (syntax-e #'k) (parse-type #'t) #t))
   (pattern (~seq [k:keyword t:expr])
            #:attr Keyword (make-Keyword (syntax-e #'k) (parse-type #'t) #f)))
+
+(define-syntax-class non-keyword-ty
+  (pattern (k e:expr ...)
+           #:when (not (keyword? (syntax->datum #'k))))
+  (pattern t:expr
+           #:when (and (not (keyword? (syntax->datum #'t)))
+                       (not (syntax->list #'t)))))
 
 (define-syntax-class path-elem
   #:description "path element"
@@ -214,7 +221,7 @@
        (add-type-name-reference #'kw)
        ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
        (make-pred-ty (list (parse-type #'dom)) (parse-type #'rng) (attribute latent.type) 0 (attribute latent.path))]
-      [(dom:expr ... rest:expr ddd:star kws:keyword-tys ... (~and kw t:->) rng)
+      [(dom:non-keyword-ty ... rest:non-keyword-ty ddd:star kws:keyword-tys ... (~and kw t:->) rng)
        (add-type-name-reference #'kw)
        (make-Function
         (list (make-arr
@@ -222,7 +229,7 @@
                (parse-values-type #'rng)
                #:rest (parse-type #'rest)
                #:kws (attribute kws.Keyword))))]
-      [(dom:expr ... rest:expr :ddd/bound (~and kw t:->) rng)
+      [(dom:non-keyword-ty ... rest:non-keyword-ty :ddd/bound (~and kw t:->) rng)
        (add-type-name-reference #'kw)
        (let* ([bnd (syntax-e #'bound)])
          (unless (bound-index? bnd)
@@ -236,7 +243,7 @@
                           (extend-tvars (list bnd)
                             (parse-type #'rest))
                           bnd))))]
-      [(dom:expr ... rest:expr _:ddd (~and kw t:->) rng)
+      [(dom:non-keyword-ty ... rest:non-keyword-ty _:ddd (~and kw t:->) rng)
        (add-type-name-reference #'kw)
        (let ([var (infer-index stx)])
          (make-Function
@@ -251,7 +258,7 @@
       (->* (map parse-type (syntax->list #'(dom ...)))
            (parse-values-type #'rng))]     |#
       ;; use expr to rule out keywords
-      [(dom:expr ... kws:keyword-tys ... (~and kw t:->) rng)
+      [(dom:non-keyword-ty ... kws:keyword-tys ... (~and kw t:->) rng)
        (add-type-name-reference #'kw)
       (let ([doms (for/list ([d (syntax->list #'(dom ...))])
                     (parse-type d))])
@@ -275,13 +282,13 @@
          [(lookup-type-alias #'id parse-type (lambda () #f))
           =>
           (lambda (t)
-            ;(printf "found a type alias ~a~n" #'id)
+            ;(printf "found a type alias ~a\n" #'id)
             (add-type-name-reference #'id)
             t)]
          ;; if it's a type name, we just use the name
          [(lookup-type-name #'id (lambda () #f))
           (add-type-name-reference #'id)
-          ;(printf "found a type name ~a~n" #'id)
+          ;(printf "found a type name ~a\n" #'id)
           (make-Name #'id)]
          [(free-identifier=? #'id #'t:->)
           (tc-error/delayed "Incorrect use of -> type constructor")
@@ -311,7 +318,8 @@
            [(Name: n)
             (when (and (current-poly-struct) 
                        (free-identifier=? n (poly-name (current-poly-struct)))
-                       (not (andmap type-equal? args (poly-vars (current-poly-struct)))))
+                       (not (or (ormap Error? args)
+                                (andmap type-equal? args (poly-vars (current-poly-struct))))))
               (tc-error "Structure type constructor ~a applied to non-regular arguments ~a" rator args))
             (make-App rator args stx)]
            [(Poly: ns _)

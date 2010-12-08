@@ -1,24 +1,31 @@
 #lang s-exp "env-lang.rkt"
 
 (require
- racket/tcp
- racket
- racket/unsafe/ops
- racket/fixnum
- (only-in rnrs/lists-6 fold-left)
- '#%paramz
- "extra-procs.rkt"
- (only-in '#%kernel [apply kernel:apply])
+ 
+ 
+ (for-template 
+  (except-in racket -> ->* one-of/c)
+  racket/unsafe/ops
+  racket/tcp
+  racket/fixnum
+  racket/future
+  (only-in rnrs/lists-6 fold-left)
+  '#%paramz
+  "extra-procs.rkt"
+  (only-in '#%kernel [apply kernel:apply])
+  (only-in racket/private/pre-base new-apply-proc) 
+  scheme/promise scheme/system
+  racket/function
+  racket/mpair
+  racket/base
+  (only-in string-constants/private/only-once maybe-print-message)
+  (only-in mzscheme make-namespace)
+  (only-in racket/match/runtime match:error matchable? match-equality-test))
  (only-in racket/private/pre-base new-apply-proc)
- (for-syntax (only-in racket/private/pre-base new-apply-proc)
-             #;racket/string)
- scheme/promise scheme/system
- racket/mpair
- (only-in string-constants/private/only-once maybe-print-message)
- (only-in mzscheme make-namespace)
- (only-in racket/match/runtime match:error matchable? match-equality-test)
- (for-syntax (only-in (types abbrev) [-Number N] [-Boolean B] [-Symbol Sym])
-             (only-in (rep type-rep) make-HashtableTop make-MPairTop make-BoxTop make-ChannelTop make-VectorTop)))
+ (only-in (types abbrev) [-Number N] [-Boolean B] [-Symbol Sym])
+ (only-in (rep type-rep) make-HashtableTop make-MPairTop
+          make-BoxTop make-ChannelTop make-VectorTop
+          make-HeterogenousVector))
 
 [raise (Univ . -> . (Un))]
 [raise-syntax-error (cl->* 
@@ -200,10 +207,18 @@
 [newline (->opt [-Output-Port] -Void)]
 [not (-> Univ B)]
 [box (-poly (a) (a . -> . (-box a)))]
-[unbox (-poly (a) (cl->*                   
+[unbox (-poly (a) (cl->*
                    ((-box a) . -> . a)
                    ((make-BoxTop) . -> . Univ)))]
 [set-box! (-poly (a) ((-box a) a . -> . -Void))]
+[unsafe-unbox (-poly (a) (cl->*
+                          ((-box a) . -> . a)
+                          ((make-BoxTop) . -> . Univ)))]
+[unsafe-set-box! (-poly (a) ((-box a) a . -> . -Void))]
+[unsafe-unbox* (-poly (a) (cl->*
+                           ((-box a) . -> . a)
+                           ((make-BoxTop) . -> . Univ)))]
+[unsafe-set-box*! (-poly (a) ((-box a) a . -> . -Void))]
 [box? (make-pred-ty (make-BoxTop))]
 [cons? (make-pred-ty (-pair Univ Univ))]
 [pair? (make-pred-ty (-pair Univ Univ))]
@@ -301,6 +316,9 @@
 [thread-try-receive (-> Univ)]
 [thread-rewind-receive (-> (-lst Univ) -Void)]
 
+[future (-poly (A) ((-> A) . -> . (-future A)))]
+[touch (-poly (A) ((-future A) . -> . A))]
+
 [reverse (-poly (a) (-> (-lst a) (-lst a)))]
 [append (-poly (a) (->* (list) (-lst a) (-lst a)))]
 [length (-poly (a) (-> (-lst a) -NonnegativeFixnum))]
@@ -368,7 +386,7 @@
 [string-copy (-> -String -String)]
 [string->immutable-string (-> -String -String)]
 [string->path (-> -String -Path)]
-[file-exists? (-> -Pathlike B)]
+
 
 [build-path ((list -Pathlike*) -Pathlike* . ->* . -Path)]
 [with-input-from-file
@@ -472,7 +490,6 @@
 
 [match:error ((list) Univ . ->* . (Un))]
 
-[file-exists? (-Pathlike . -> . B)]
 [string->symbol (-String . -> . Sym)]
 [symbol->string (Sym . -> . -String)]
 [string->keyword (-String . -> . -Keyword)]
@@ -516,17 +533,27 @@
 [file-exists? (-> -Pathlike B)]
 [directory-list (cl-> [() (-lst -Path)]
                       [(-Path) (-lst -Path)])]
+[file-or-directory-modify-seconds
+ (cl->* (-Pathlike . -> . -Nat)
+        (-Pathlike (-val #f) . -> . -Nat)
+        (-Pathlike -Nat . -> . -Void)
+        (-Pathlike (-opt -Nat) (-> Univ) . -> . Univ))]
+
+[file-or-directory-permissions (-> -Pathlike (-lst (Un (-val 'read) (-val 'write) (-val 'execute))))]
+[file-or-directory-identity (->opt -Pathlike (Univ) -Nat)]
+[file-size (-> -Pathlike -Nat)]
+
 
 [hash? (make-pred-ty (make-HashtableTop))]
 [hash-eq? (-> (make-HashtableTop) B)]
 [hash-eqv? (-> (make-HashtableTop) B)]
 [hash-weak? (-> (make-HashtableTop) B)]
-[make-hash (-poly (a b) (-> (-HT a b)))]
-[make-hasheq (-poly (a b) (-> (-HT a b)))]
-[make-hasheqv (-poly (a b) (-> (-HT a b)))]
-[make-weak-hash (-poly (a b) (-> (-HT a b)))]
-[make-weak-hasheq (-poly (a b) (-> (-HT a b)))]
-[make-weak-hasheqv (-poly (a b) (-> (-HT a b)))]
+[make-hash (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]
+[make-hasheq (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]
+[make-hasheqv (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]
+[make-weak-hash (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]
+[make-weak-hasheq (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]
+[make-weak-hasheqv (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]
 [make-immutable-hash (-poly (a b) (-> (-lst (-pair a b)) (-HT a b)))]
 [make-immutable-hasheq (-poly (a b) (-> (-lst (-pair a b)) (-HT a b)))]
 [make-immutable-hasheqv (-poly (a b) (-> (-lst (-pair a b)) (-HT a b)))]
@@ -591,7 +618,8 @@
 [flush-output (->opt [-Output-Port] -Void)]
 [file-stream-buffer-mode (cl-> [(-Port) (Un (-val 'none) (-val 'line) (-val 'block) (-val #f))]
                                [(-Port (Un (-val 'none) (-val 'line) (-val 'block))) -Void])]
-[file-position (-> -Port -Nat)]
+[file-position (cl-> [(-Port) -Nat]
+                     [(-Port -Integer) -Void])]
 
 [force (-poly (a) (-> (-Promise a) a))]
 [regexp-replace*
@@ -625,6 +653,8 @@
 [exit (-> (Un))]
 
 [collect-garbage (-> -Void)]
+[current-memory-use (-> -Nat)]
+[dump-memory-stats (-> Univ)]
 
 [module->namespace (-> (-mu x (-lst (Un -Symbol -String -Nat x (-val #f)))) -Namespace)]
 [current-namespace (-Param -Namespace -Namespace)]
@@ -925,3 +955,71 @@
 [mlength (-poly (a) (-> (-mlst a) -NonnegativeFixnum))]
 [mreverse! (-poly (a) (-> (-mlst a) (-mlst a)))]
 [mappend (-poly (a) (->* (list) (-mlst a) (-mlst a)))]
+
+;; module names and loading
+[resolved-module-path? (make-pred-ty -Resolved-Module-Path)]
+[make-resolved-module-path (-> (Un -Symbol -Path) -Resolved-Module-Path)]
+[resolved-module-path-name (-> -Resolved-Module-Path (Un -Path -Symbol))]
+[module-path? (make-pred-ty -Module-Path)]
+[current-module-name-resolver (-Param (cl->* (-Resolved-Module-Path . -> . Univ)
+                                             ((Un -Module-Path -Path)
+                                              (-opt -Resolved-Module-Path)
+                                              (-opt (-Syntax Univ))
+                                              -Boolean
+                                              . -> . -Resolved-Module-Path))
+                                      (cl->* (-Resolved-Module-Path . -> . Univ)
+                                             ((Un -Module-Path -Path)
+                                              (-opt -Resolved-Module-Path)
+                                              (-opt (-Syntax Univ))
+                                              -Boolean
+                                              . -> . -Resolved-Module-Path)))]
+[current-module-declare-name (-Param (-opt -Resolved-Module-Path)
+                                     (-opt -Resolved-Module-Path))]
+[current-module-declare-source (-Param (-opt (Un -Symbol -Path))
+                                       (-opt (Un -Symbol -Path)))]
+[module-path-index? (make-pred-ty -Module-Path-Index)]
+[module-path-index-resolve (-> -Module-Path-Index -Resolved-Module-Path)]
+[module-path-index-split (-> -Module-Path-Index
+                             (-values
+                              (list (-opt -Module-Path)
+                                    (-opt (Un -Module-Path-Index
+                                              -Resolved-Module-Path)))))]
+[module-path-index-join (-> (-opt -Module-Path)
+                            (-opt (Un -Module-Path-Index -Resolved-Module-Path))
+                            -Module-Path-Index)]
+[compiled-module-expression? (make-pred-ty -Compiled-Module-Expression)]
+[module-compiled-name (-> -Compiled-Module-Expression -Symbol)]
+[module-compiled-imports (-> -Compiled-Module-Expression
+                             (-lst (-pair (-opt -Integer)
+                                          (-lst -Module-Path-Index))))]
+[module-compiled-exports
+ (-> -Compiled-Module-Expression
+     (-values
+      (list
+       (-lst (-pair (-opt -Integer)
+                    (-lst (-pair -Symbol
+                                 (-pair
+                                  (-lst
+                                   (Un -Module-Path-Index
+                                       (-pair -Module-Path-Index
+                                              (-pair (-opt -Integer)
+                                                     (-pair -Symbol
+                                                            (-pair (-opt -Integer)
+                                                                   (-val null)))))))
+                                  (-val null))))))
+       (-lst (-pair (-opt -Integer)
+                    (-lst (-pair -Symbol
+                                 (-pair
+                                  (-lst
+                                   (Un -Module-Path-Index
+                                       (-pair -Module-Path-Index
+                                              (-pair (-opt -Integer)
+                                                     (-pair -Symbol
+                                                            (-pair (-opt -Integer)
+                                                                   (-val null)))))))
+                                  (-val null)))))))))]
+[module-compiled-language-info
+ (-> -Compiled-Module-Expression
+     (-opt (make-HeterogenousVector (list -Module-Path -Symbol Univ))))]
+
+[compose (-poly (a b c) (-> (-> b c) (-> a b) (-> a c)))]

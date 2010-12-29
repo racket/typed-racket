@@ -1,30 +1,35 @@
 #lang scheme/base
 
-(require unstable/match scheme/match
+(require unstable/match racket/match
          racket/dict syntax/id-table unstable/syntax
-         (for-template scheme/base scheme/flonum scheme/fixnum scheme/unsafe/ops)
          "../utils/utils.rkt"
-         (types abbrev type-table utils subtype)
+         (for-template scheme/base)
+         (types type-table utils subtype)
          (rep type-rep))
 
-(provide log-optimization *log-optimizations?* *log-optimizatons-to-log-file?* *optimization-log-file*
+(provide log-optimization *log-optimizations?* *log-optimizatons-to-log-file?*
+         *optimization-log-file* *show-optimized-code*
          subtypeof? isoftype?
          mk-unsafe-tbl
          n-ary->binary
          unboxed-gensym reset-unboxed-gensym
          optimize)
 
-
-(define *log-optimizations?* #f)
+(define *log-optimizations?*
+  (member "--log-optimizations"
+          (vector->list (current-command-line-arguments))))
 (define *log-optimizatons-to-log-file?* #f)
 (define *optimization-log-file* "opt-log")
 (define (log-optimization kind stx)
   (if *log-optimizations?*
       (printf "~a line ~a col ~a - ~a - ~a\n"
-              (syntax-source stx) (syntax-line stx) (syntax-column stx)
+              (syntax-source-file-name stx)
+              (syntax-line stx) (syntax-column stx)
               (syntax->datum stx)
               kind)
       #t))
+;; if set to #t, the optimizer will dump its result to stdout before compilation
+(define *show-optimized-code* #f)
 
 ;; is the syntax object s's type a subtype of t?
 (define (subtypeof? s t)
@@ -49,12 +54,10 @@
 
 ;; to generate temporary symbols in a predictable manner
 ;; these identifiers are unique within a sequence of unboxed operations
-;; necessary to have predictable symbols to add in the hand-optimized versions
-;; of the optimizer tests (which check for equality of expanded code)
 (define *unboxed-gensym-counter* 0)
-(define (unboxed-gensym)
+(define (unboxed-gensym [name 'unboxed-gensym-])
   (set! *unboxed-gensym-counter* (add1 *unboxed-gensym-counter*))
-  (format-unique-id #'here "unboxed-gensym-~a" *unboxed-gensym-counter*))
+  (format-unique-id #'here "~a~a" name *unboxed-gensym-counter*))
 (define (reset-unboxed-gensym)
   (set! *unboxed-gensym-counter* 0))
 

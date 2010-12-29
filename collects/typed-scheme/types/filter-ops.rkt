@@ -5,10 +5,10 @@
          (utils tc-utils) (only-in (infer infer) restrict)
          "abbrev.rkt" (only-in scheme/contract current-blame-format [-> -->] listof)
 	 (types comparison printer union subtype utils remove-intersect)
-         scheme/list scheme/match scheme/promise
+         scheme/list racket/match scheme/promise
          (for-syntax syntax/parse scheme/base)
          unstable/debug syntax/id-table scheme/dict
-         scheme/trace
+         racket/trace
          (for-template scheme/base))
 
 (provide (all-defined-out))
@@ -95,6 +95,13 @@
                          p)
            (loop (cdr props) others)]
           [p (loop (cdr props) (cons p others))]))))
+
+
+(define (-imp p1 p2)
+  (match* (p1 p2)
+    [((Bot:) _) -top]
+    [((Top:) _) p2]
+    [(_ _) (make-ImpFilter p1 p2)]))
 
 (define (-or . args)
   (define mk

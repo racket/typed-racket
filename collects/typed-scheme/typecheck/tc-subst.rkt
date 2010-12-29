@@ -6,7 +6,7 @@
                     [->* -->*]
                     [one-of/c -one-of/c])
          (rep type-rep filter-rep rep-utils) scheme/list
-         scheme/contract scheme/match unstable/match unstable/debug
+         scheme/contract racket/match unstable/match unstable/debug
          (for-syntax scheme/base)
          "tc-metafunctions.rkt")
 
@@ -33,8 +33,8 @@
            [_ f]))
   (match fs
     [(FilterSet: f+ f-)
-     (combine (subst-filter (add-extra-filter f+) k o polarity)
-	      (subst-filter (add-extra-filter f-) k o polarity))]
+     (-FS (subst-filter (add-extra-filter f+) k o polarity)
+          (subst-filter (add-extra-filter f-) k o polarity))]
     [_ (-FS -top -top)]))
 
 (d/c (subst-type t k o polarity)

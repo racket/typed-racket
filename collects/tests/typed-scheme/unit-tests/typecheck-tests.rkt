@@ -3,10 +3,9 @@
 (require "test-utils.ss"
          (for-syntax scheme/base)
          (for-template scheme/base))
-(require (private base-env prims type-annotation 
-		  base-types-extra
-		  base-env-numeric
-		  base-env-indexing
+(require (private prims type-annotation 
+		  base-types-extra base-special-env
+		  base-env-indexing base-structs
                   parse-type)
 	 (typecheck typechecker)
 	 (rep type-rep filter-rep object-rep)
@@ -24,14 +23,19 @@
          (for-syntax (utils tc-utils)
                      (typecheck typechecker)
 	             (env global-env)
-	             (private base-env base-env-numeric
-			      base-env-indexing))
-         (for-template (private base-env base-types base-types-extra
-				base-env-numeric
+	             (private #;base-env #;base-env-numeric
+			      base-env-indexing base-special-env))
+         (for-template (private #;base-env base-types base-types-extra
+				#;base-env-numeric base-special-env
 				base-env-indexing))
          (for-syntax syntax/kerncase syntax/parse))
 
+(require (prefix-in b: (private base-env))
+         (prefix-in n: (private base-env-numeric)))
+
 (provide typecheck-tests g tc-expr/expand)
+
+(b:init) (n:init) (initialize-structs) (initialize-indexing)
 
 (define N -Number)
 (define B -Boolean)
@@ -142,6 +146,12 @@
          N]
         (tc-e/t (if (let ([y 12]) y) 3 4) -PositiveFixnum)
         (tc-e/t 3 -PositiveFixnum)
+        (tc-e/t 100 -PositiveFixnum)
+        (tc-e/t -100 -NegativeFixnum)
+        (tc-e/t 2147483647 -PositiveFixnum)
+        (tc-e/t -2147483647 -NegativeFixnum)
+        (tc-e/t 2147483648 -Pos)
+        (tc-e/t -2147483648 -Integer)
         (tc-e/t "foo" -String)
         (tc-e (+ 3 4) -Pos)
         [tc-e/t (lambda: () 3) (t:-> -PositiveFixnum : -true-lfilter)]
@@ -154,10 +164,10 @@
         [tc-e (void) -Void]
         [tc-e (void 3 4) -Void]
         [tc-e (void #t #f '(1 2 3)) -Void]
-        [tc-e/t #(3 4 5) (make-HeterogenousVector (list -Nat -Nat -Nat))]
+        [tc-e/t #(3 4 5) (make-HeterogenousVector (list -Integer -Integer -Integer))]
         [tc-e/t '(2 3 4) (-lst* -PositiveFixnum -PositiveFixnum -PositiveFixnum)]
         [tc-e/t '(2 3 #t) (-lst* -PositiveFixnum -PositiveFixnum (-val #t))]
-        [tc-e/t #(2 3 #t) (make-HeterogenousVector (list -Nat -Nat (-val #t)))]
+        [tc-e/t #(2 3 #t) (make-HeterogenousVector (list -Integer -Integer (-val #t)))]
         [tc-e/t '(#t #f) (-lst* (-val #t) (-val #f))]
         [tc-e/t (plambda: (a) ([l : (Listof a)]) (car l))
                 (make-Poly '(a) (t:-> (make-Listof (-v a)) (-v a)))]
@@ -640,6 +650,9 @@
                         (apply (plambda: (b ...) ([x : Number] . [y : Number ... b]) x)
                                1 w))
               (-polydots (a) ((list -String) (N a) . ->... . N))]
+        [tc-e/t (let ([f (plambda: (a ...) [w : a ... a] w)])
+                  (f 1 "hello" #\c))
+                (-pair -PositiveFixnum (-pair -String (-pair -Char (-val null))))]
         ;; instantiating non-dotted terms
         [tc-e/t (inst (plambda: (a) ([x : a]) x) Integer)
                 (make-Function (list (make-arr* (list -Integer) -Integer
@@ -826,6 +839,7 @@
          (make-pred-ty (-val eof))]
         [tc-e ((inst map Number (Pairof Number Number)) car (ann (list (cons 1 2) (cons 2 3) (cons 4 5)) (Listof (Pairof Number Number))))
               (-lst -Number)]
+        [tc-err (list (values 1 2))]
         )
   (test-suite
    "check-type tests"
@@ -847,9 +861,9 @@
    (tc-l -5.0 -Flonum)
    (tc-l -5.1 -Flonum)
    (tc-l 1+1i N)
-   (tc-l 1+1.0i -InexactComplex)
-   (tc-l 1.0+1i -InexactComplex)
-   (tc-l 1.0+1.1i -InexactComplex)
+   (tc-l 1+1.0i -FloatComplex)
+   (tc-l 1.0+1i -FloatComplex)
+   (tc-l 1.0+1.1i -FloatComplex)
    (tc-l #t (-val #t))
    (tc-l "foo" -String)
    (tc-l foo (-val 'foo))

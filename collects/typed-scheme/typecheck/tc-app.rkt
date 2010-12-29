@@ -5,7 +5,7 @@
          "tc-app-helper.rkt" "find-annotation.rkt" "tc-funapp.rkt"
          "tc-subst.rkt" (prefix-in c: racket/contract)
          syntax/parse racket/match racket/trace scheme/list 
-	 unstable/sequence unstable/debug
+	 unstable/sequence unstable/debug unstable/list
          ;; fixme - don't need to be bound in this phase - only to make tests work
          scheme/bool
          racket/unsafe/ops
@@ -137,13 +137,19 @@
               (match a
                 [(arr: dom rng rest #f ktys) (make-arr* dom rng #:rest rest)]))])
        (if (null? new-arities)
-           (tc-error/expr 
+           (domain-mismatches
+            (car (syntax-e form)) (cdr (syntax-e form))
+            arities doms rests drests rngs
+            (map tc-expr (syntax->list pos-args))
+            #f #f #:expected expected
             #:return (or expected (ret (Un)))
-            (string-append "No function domains matched in function application:\n"
-                           (domain-mismatches arities doms rests drests rngs (map tc-expr (syntax->list pos-args)) #f #f)))
-         (tc/funapp (car (syntax-e form)) kw-args
-                    (ret (make-Function new-arities))
-                    (map tc-expr (syntax->list pos-args)) expected)))]))
+            #:msg-thunk
+            (lambda (dom)
+              (string-append "No function domains matched in function application:\n"
+                             dom)))
+           (tc/funapp (car (syntax-e form)) kw-args
+                      (ret (make-Function new-arities))
+                      (map tc-expr (syntax->list pos-args)) expected)))]))
 
 (define (type->list t)
   (match t
@@ -173,7 +179,7 @@
          (for ([n names]
                #:when (not (memq n tnames)))
            (tc-error/delayed 
-            "unknown named argument ~a for class~nlegal named arguments are ~a"
+            "unknown named argument ~a for class\nlegal named arguments are ~a"
             n (stringify tnames)))
          (for-each (match-lambda
                      [(list tname tfty opt?)
@@ -195,7 +201,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; let loop
 
-(define (let-loop-check form lp actuals args body expected)
+(define (let-loop-check form lam lp actuals args body expected)
   (syntax-parse #`(#,args #,body #,actuals) 
     #:literals (#%plain-app if null? pair? null)
     [((val acc ...)
@@ -216,7 +222,7 @@
                   [t ann-ts])
          (tc-expr/check a (ret t)))
        ;; then check that the function typechecks with the inferred types
-       (tc/rec-lambda/check form args body lp ts expected)
+       (add-typeof-expr lam (tc/rec-lambda/check form args body lp ts expected))
        expected)]
     ;; special case `for/list'
     [((val acc ...)
@@ -234,7 +240,7 @@
                       [(tc-result1: (and t (Listof: _))) t]
                       [_ #f])
                     (generalize (-val '())))])
-       (tc/rec-lambda/check form args body lp (cons acc-ty ts) expected)
+       (add-typeof-expr lam (tc/rec-lambda/check form args body lp (cons acc-ty ts) expected))
        expected)]
     ;; special case when argument needs inference
     [(_ body* _)
@@ -246,7 +252,7 @@
                        (begin (check-below (tc-expr/t ac) infer-t)
                               infer-t)
                        (generalize (tc-expr/t ac)))))])
-       (tc/rec-lambda/check form args body lp ts expected)
+       (add-typeof-expr lam (tc/rec-lambda/check form args body lp ts expected))
        expected)]))
 
 
@@ -275,13 +281,15 @@
                 (tc-error/expr #:return (or expected (ret Univ)) "expected Parameter, but got ~a" t)
                 (loop (cddr args))]))))]
     ;; use the additional but normally ignored first argument to make-sequence to provide a better instantiation
-    [(#%plain-app (~var op (id-from 'make-sequence 'racket/private/for)) (~and quo ((~literal quote) (i:id))) arg:expr)
-     #:when (type-annotation #'i)     
+    [(#%plain-app (~var op (id-from 'make-sequence 'racket/private/for)) (~and quo ((~literal quote) (i:id ...))) arg:expr)
+     #:when (andmap type-annotation (syntax->list #'(i ...)))
      (match (single-value #'op)
          [(tc-result1: (and t Poly?))
           (tc-expr/check #'quo (ret Univ))
           (tc/funapp #'op #'(quo arg) 
-                     (ret (instantiate-poly t (list (type-annotation #'i))))
+                     (ret (instantiate-poly t (extend (list Univ Univ)
+                                                      (map type-annotation (syntax->list #'(i ...)))
+                                                      Univ)))
                      (list (ret Univ) (single-value #'arg))
                      expected)])]
     ;; unsafe struct operations
@@ -565,11 +573,11 @@
        [(tc-result1: t) (tc-error/expr #:return (ret (Un))
                                        "Cannot apply expression of type ~a, since it is not a function type" t)])]
     ;; even more special case for match
-    [(#%plain-app (letrec-values ([(lp) (#%plain-lambda args . body)]) lp*) . actuals)
+    [(#%plain-app (letrec-values ([(lp) (~and lam (#%plain-lambda args . body))]) lp*) . actuals)
      #:fail-unless expected #f 
      #:fail-unless (not (andmap type-annotation (syntax->list #'(lp . args)))) #f
      #:fail-unless (free-identifier=? #'lp #'lp*) #f
-     (let-loop-check form #'lp #'actuals #'args #'body expected)]
+     (let-loop-check form #'lam #'lp #'actuals #'args #'body expected)]
     ;; special cases for classes
     [(#%plain-app make-object cl . args)     
      (check-do-make-object #'cl #'args #'() #'())]
@@ -623,25 +631,25 @@
     ;; special case for `list'
     [(#%plain-app list . args)
      (begin
-       ;(printf "calling list: ~a ~a~n" (syntax->datum #'args) expected)
+       ;(printf "calling list: ~a ~a\n" (syntax->datum #'args) expected)
        (match expected
          [(tc-result1: (Mu: var (Union: (or 
                                          (list (Pair: elem-ty (F: var)) (Value: '()))
                                          (list (Value: '()) (Pair: elem-ty (F: var)))))))
-          ;(printf "special case 1 ~a~n" elem-ty)
+          ;(printf "special case 1 ~a\n" elem-ty)
           (for ([i (in-list (syntax->list #'args))])
                (tc-expr/check i (ret elem-ty)))
           expected]
          [(tc-result1: (app untuple (? (lambda (ts) (and ts (= (length (syntax->list #'args))
                                                                (length ts))))
                                        ts)))    
-          ;(printf "special case 2 ~a~n" ts)
+          ;(printf "special case 2 ~a\n" ts)
           (for ([ac (in-list (syntax->list #'args))]
                 [exp (in-list ts)])
                (tc-expr/check ac (ret exp)))
           expected]
          [_
-          ;(printf "not special case~n")
+          ;(printf "not special case\n")
           (let ([tys (map tc-expr/t (syntax->list #'args))])
             (ret (apply -lst* tys)))]))]
     ;; special case for `list*'
@@ -699,7 +707,7 @@
                                          dom)
                                       (Values: (list (Result: v (FilterSet: (Top:) (Top:)) (Empty:))))
                                       #f #f (list (Keyword: _ _ #f) ...)))))))
-          ;(printf "f dom: ~a ~a~n" (syntax->datum #'f) dom)
+          ;(printf "f dom: ~a ~a\n" (syntax->datum #'f) dom)
           (let ([arg-tys (map (lambda (a t) (tc-expr/check a (ret t))) 
                               (syntax->list #'args)
                               dom)])

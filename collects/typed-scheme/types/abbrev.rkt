@@ -3,16 +3,14 @@
 (require "../utils/utils.rkt")
 
 (require (rep type-rep object-rep filter-rep rep-utils)
-	 #;"printer.rkt" "utils.rkt" "resolve.rkt"
+         "resolve.rkt"
          (utils tc-utils)
-         scheme/list
-         scheme/match         
-         scheme/promise
-         scheme/flonum (except-in scheme/contract ->* ->)
-         unstable/syntax
-         (prefix-in c: scheme/contract)
-         (for-syntax scheme/base syntax/parse)
-	 (for-template scheme/base scheme/contract scheme/promise scheme/tcp scheme/flonum))
+         racket/list
+         racket/match         
+         (except-in racket/contract ->* ->)
+         (prefix-in c: racket/contract)
+         (for-syntax racket/base syntax/parse)
+	 (for-template racket/base racket/contract racket/promise racket/tcp racket/flonum))
 
 (provide (all-defined-out)
          (rename-out [make-Listof -lst]
@@ -29,6 +27,7 @@
 (define -box make-Box)
 (define -channel make-Channel)
 (define -vec make-Vector)
+(define -future make-Future)
 (define (-seq . args) (make-Sequence args))
 
 (define-syntax *Un
@@ -98,6 +97,7 @@
 (define -Boolean (make-Base 'Boolean #'boolean?))
 (define -Symbol (make-Base 'Symbol #'symbol?))
 (define -Void (make-Base 'Void #'void?))
+(define -Undefined (make-Base 'Undefined #'(lambda (x) (equal? (letrec ([y y]) y) x)))) ; initial value of letrec bindings
 (define -Bytes (make-Base 'Bytes #'bytes?))
 (define -Regexp (make-Base 'Regexp #'(and/c regexp? (not/c pregexp?) (not/c byte-regexp?))))
 (define -PRegexp (make-Base 'PRegexp #'(and/c pregexp? (not/c byte-pregexp?))))
@@ -107,6 +107,10 @@
 (define -Keyword (make-Base 'Keyword #'keyword?))
 (define -Char (make-Base 'Char #'char?))
 (define -Thread (make-Base 'Thread #'thread?))
+(define -Resolved-Module-Path (make-Base 'Resolved-Module-Path #'resolved-module-path?))
+(define -Module-Path (make-Base 'Module-Path #'module-path?))
+(define -Module-Path-Index (make-Base 'Module-Path-Index #'module-path-index?))
+(define -Compiled-Module-Expression (make-Base 'Compiled-Module-Expression #'compiled-module-expression?))
 (define -Prompt-Tag (make-Base 'Prompt-Tag #'continuation-prompt-tag?))
 (define -Cont-Mark-Set (make-Base 'Continuation-Mark-Set #'continuation-mark-set?))
 (define -Path (make-Base 'Path #'path?))
@@ -150,13 +154,20 @@
 ;; Numeric hierarchy
 (define -Number (make-Base 'Number #'number?))
 
-;; a complex number can't have an inexact imaginary part and an exact real part
-(define -InexactComplex (make-Base 'InexactComplex #'(and/c number? (lambda (x) (inexact-real? (imag-part x))))))
+(define -FloatComplex (make-Base 'Float-Complex
+                                 #'(and/c number?
+                                          (lambda (x)
+                                            (and (flonum? (imag-part x))
+                                                 (flonum? (real-part x)))))))
 
-(define -Flonum (make-Base 'Flonum #'inexact-real?))
-(define -NonnegativeFlonum (make-Base 'Nonnegative-Flonum #'(and/c inexact-real?
-                                                                   (or/c positive? zero?)
-                                                                   (lambda (x) (not (eq? x -0.0))))))
+;; default 64-bit floats
+(define -Flonum (make-Base 'Flonum #'flonum?))
+(define -NonnegativeFlonum (make-Base 'Nonnegative-Flonum
+                                      #'(and/c flonum?
+                                               (or/c positive? zero?)
+                                               (lambda (x) (not (eq? x -0.0))))))
+;; could be 32- or 64-bit floats
+(define -InexactReal (make-Base 'Inexact-Real #'inexact-real?))
 
 (define -ExactRational 
   (make-Base 'Exact-Rational #'(and/c number? rational? exact?)))
@@ -164,19 +175,21 @@
 (define -ExactPositiveInteger
   (make-Base 'Exact-Positive-Integer #'exact-positive-integer?))
 
+;; We're generating a reference to fixnum? rather than calling it, so
+;; we're safe from fixnum size issues on different platforms.
 (define -PositiveFixnum
-  (make-Base 'Positive-Fixnum #'(and/c number? fixnum? positive?)))
+  (make-Base 'Positive-Fixnum #'(and/c fixnum? positive?)))
 (define -NegativeFixnum
-  (make-Base 'Negative-Fixnum #'(and/c number? fixnum? negative?)))
+  (make-Base 'Negative-Fixnum #'(and/c fixnum? negative?)))
 
 (define -Zero (-val 0))
-(define -Real (*Un -Flonum -ExactRational))
+(define -Real (*Un -InexactReal -ExactRational))
 (define -Fixnum (*Un -PositiveFixnum -NegativeFixnum -Zero))
 (define -NonnegativeFixnum (*Un -PositiveFixnum -Zero))
 (define -ExactNonnegativeInteger (*Un -ExactPositiveInteger -Zero))
 (define -Nat -ExactNonnegativeInteger)
 
-(define -Byte -Integer)
+(define -Byte -NonnegativeFixnum)
 
 
 

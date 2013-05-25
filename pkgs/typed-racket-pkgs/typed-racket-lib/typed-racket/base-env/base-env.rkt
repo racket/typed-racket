@@ -7,7 +7,7 @@
   racket/tcp
   racket/fixnum
   racket/future
-  (only-in rnrs/lists-6 fold-left)
+  ;(only-in rnrs/lists-6 fold-left)
   '#%paramz
   "extra-procs.rkt"
   (only-in '#%kernel [apply kernel:apply] [reverse kernel:reverse])

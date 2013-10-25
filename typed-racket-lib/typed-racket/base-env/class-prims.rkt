@@ -7,6 +7,7 @@
          "colon.rkt"
          "../typecheck/internal-forms.rkt"
          "../private/class-literals.rkt"
+         "../utils/typed-method-property.rkt"
          (only-in "prims.rkt" [define tr:define])
          (for-syntax
           racket/base
@@ -169,7 +170,11 @@
         (set-tr-class-info-maybe-private!
          info
          (cons #'id (tr-class-info-maybe-private info)))
-        (tr:class:def-property #'class-exp #'id)]
+        (define new-def
+          (syntax/loc #'class-exp
+            (define-values (id)
+              (chaperone-procedure body #f prop:typed-method #t))))
+        (tr:class:def-property new-def #'id)]
        ;; private field definition
        [(define-values (id ...) . rst)
         (set-tr-class-info-private-fields!

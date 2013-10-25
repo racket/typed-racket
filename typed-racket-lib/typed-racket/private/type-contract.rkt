@@ -145,6 +145,7 @@
       typed-racket/utils/utils
       (for-syntax typed-racket/utils/utils)
       typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
+      typed-racket/utils/opaque-object
       typed-racket/utils/evt-contract
       unstable/contract racket/contract/parametric))
 
@@ -448,7 +449,8 @@
         [(Instance: (Class: _ _ fields methods _ _))
          (match-define (list (list field-names field-types) ...) fields)
          (match-define (list (list public-names public-types) ...) methods)
-         (object/sc (append (map (λ (n sc) (member-spec 'method n sc))
+         (object/sc (from-typed? typed-side)
+                    (append (map (λ (n sc) (member-spec 'method n sc))
                                  public-names (map t->sc/meth public-types))
                             (map (λ (n sc) (member-spec 'field n sc))
                                  field-names (map t->sc/both field-types))))]

@@ -12,7 +12,7 @@
          (submod typed-racket/private/type-contract test-exports)
          (only-in racket/contract contract)
          racket/match
-         (except-in racket/class private)
+         (except-in typed/racket/class private)
          rackunit)
 (provide tests)
 (gen-test-main)
@@ -64,6 +64,7 @@
     (namespace-require 'unstable/contract)
     (namespace-require 'typed-racket/utils/any-wrap)
     (namespace-require 'typed-racket/utils/evt-contract)
+    (namespace-require 'typed-racket/utils/opaque-object)
     (namespace-require '(submod typed-racket/private/type-contract predicates))
     (namespace-require 'typed/racket/class)
     (current-namespace)))
@@ -272,19 +273,13 @@
                           #:untyped
                           #:msg #rx"cannot put on a channel")
               ;; typed/untyped interaction with class/object contracts
-              (t-int/fail (-object #:field ([f -String]))
-                          (λ (o) (get-field g o))
-                          (new (class object% (super-new)
-                                 (field [f "f"] [g "g"])))
-                          #:typed
-                          #:msg #rx"does not have the requested field")
               (t-int/fail (-object #:method ([m (-> -String)]))
                           (λ (o) (send o n))
                           (new (class object% (super-new)
                                  (define/public (m) "m")
                                  (define/public (n) "n")))
                           #:typed
-                          #:msg #rx"no such method")
+                          #:msg #rx"cannot call uncontracted")
               (t-int (-class #:method ([m (-> -String)]))
                      (λ (s%) (class s% (super-new)
                                (define/public (n) "ok")))

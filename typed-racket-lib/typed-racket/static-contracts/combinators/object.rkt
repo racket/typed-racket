@@ -14,7 +14,7 @@
   (contract-out
     [struct member-spec ([modifier symbol?] [id symbol?] [sc static-contract?])]
     [object/sc ((listof object-member-spec?) . -> . static-contract?)]
-    [class/sc ((listof member-spec?) boolean? . -> . static-contract?)]
+    [class/sc (boolean? (listof member-spec?) . -> . static-contract?)]
     [instanceof/sc (static-contract? . -> . static-contract?)]))
 
 
@@ -100,8 +100,8 @@
 
 (define (object/sc specs)
   (object-combinator (member-seq specs)))
-(define (class/sc specs opaque)
-  (class-combinator (member-seq specs) opaque))
+(define (class/sc opaque? specs)
+  (class-combinator (member-seq specs) opaque?))
 (define (instanceof/sc class)
   (instanceof-combinator (list class)))
 
@@ -151,7 +151,7 @@
               vals))
     #`(let ([override-temp override-ctc] ...
             [pubment-temp pubment-ctc] ...)
-        (class/c #,@(if opaque (list '#:opaque) empty)
+        (class/c #,@(if opaque '(#:opaque #:ignore-local-member-names) null)
                  #,@(map (member-spec->form f) vals-rest)
                  [override-name override-temp] ...
                  (override [override-name override-temp] ...)

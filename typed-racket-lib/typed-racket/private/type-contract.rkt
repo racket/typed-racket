@@ -467,7 +467,8 @@
                                [type (in-list public-types)]
                                #:unless (memq name pubment-names))
              (values name type)))
-         (class/sc (append
+         (class/sc (from-untyped? typed-side)
+                   (append
                      (map (λ (n sc) (member-spec 'override n sc))
                           override-names (map t->sc/meth override-types))
                      (map (λ (n sc) (member-spec 'pubment n sc))
@@ -477,8 +478,7 @@
                      (map (λ (n sc) (member-spec 'init n sc))
                           init-names (map t->sc/neg init-types))
                      (map (λ (n sc) (member-spec 'field n sc))
-                          field-names (map t->sc/both field-types)))
-                   #f)]
+                          field-names (map t->sc/both field-types))))]
         [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred?)
          (cond
            [(dict-ref recursive-values nm #f)]

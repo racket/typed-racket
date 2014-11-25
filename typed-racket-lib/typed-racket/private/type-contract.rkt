@@ -334,15 +334,15 @@
         [(Name: name-id args #f)
          (cond [;; recursive references are looked up in a special table
                 ;; that's handled differently by sc instantiation
-                (lookup-name-sc name-id typed-side)]
+                (lookup-name-sc type typed-side)]
                [else
                 (define rv recursive-values)
                 (define resolved-name (resolve-once type))
-                (register-name-sc name-id
+                (register-name-sc type
                                   (λ () (loop resolved-name 'untyped rv))
                                   (λ () (loop resolved-name 'typed rv))
                                   (λ () (loop resolved-name 'both rv)))
-                (lookup-name-sc name-id typed-side)])]
+                (lookup-name-sc type typed-side)])]
         ;; Ordinary type applications or struct type names, just resolve
         [(or (App: _ _ _) (Name/struct:)) (t->sc (resolve-once type))]
         [(Univ:) (if (from-typed? typed-side) any-wrap/sc any/sc)]
@@ -431,10 +431,20 @@
                      n*s
                      (list untyped typed both)
                      (recursive-sc-use (if (from-typed? typed-side) typed-n* untyped-n*)))])]
-        [(Instance: (? Mu? t))
-         (t->sc (make-Instance (resolve-once t)))]
+        ;; Don't directly use the class static contract generated for Name,
+        ;; because that will get an #:opaque class contract. This will do the
+        ;; wrong thing for object types since it errors too eagerly.
         [(Instance: (? Name? t))
-         (instanceof/sc (t->sc t))]
+         #:when (Class? (resolve-once t))
+         (cond [(lookup-name-sc type typed-side)]
+               [else
+                (define rv recursive-values)
+                (define resolved (make-Instance (resolve-once t)))
+                (register-name-sc type
+                                  (λ () (loop resolved 'untyped rv))
+                                  (λ () (loop resolved 'typed rv))
+                                  (λ () (loop resolved 'both rv)))
+                (lookup-name-sc type typed-side)])]
         [(Instance: (Class: _ _ fields methods _ _))
          (match-define (list (list field-names field-types) ...) fields)
          (match-define (list (list public-names public-types) ...) methods)

@@ -24,7 +24,7 @@
 (define-tc/app-syntax-class (tc/app-lambda expected)
   #:literal-sets (kernel-literals)
   ;; let loop
-  (pattern ((letrec-values ([(lp) (~and lam (#%plain-lambda (args ...) . body))]) lp*) . actuals)
+  (pattern ((letrec-values ([(lp) (~and lam (#%plain-lambda (args ...) . body))]) lp*:id) . actuals)
     #:when expected
     #:when (not (andmap type-annotation (syntax->list #'(lp args ...))))
     #:when (free-identifier=? #'lp #'lp*)
@@ -59,7 +59,7 @@
   (syntax-parse #`(#,args #,body #,actuals)
     #:literal-sets (kernel-literals lambda-literals)
     [((val acc ...)
-      ((~and inner-body (if (#%plain-app (~or pair? null?) val*) thn els)))
+      ((~and inner-body (if (#%plain-app (~or pair? null?) val*:id) thn els)))
       (actual actuals ...))
      #:when
      (and (free-identifier=? #'val #'val*)

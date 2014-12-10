@@ -3350,6 +3350,10 @@
                  (ann (values a a) (Values Symbol Symbol)))
                (void))
              -Void]
+
+       [tc-e ((letrec ((loop (lambda: ([x : (Listof Integer)]) (cond ((null? (cdr x)) #t) (else #f))))) loop)
+              (list 1 2))
+             -Boolean]
         )
 
   (test-suite

@@ -12,7 +12,7 @@ install:
 - echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
 - raco pkg config catalogs >> catalog-config.txt
 - raco pkg config --set catalogs `cat catalog-config.txt`
-- raco pkg install typed-racket typed-racket-test
+- raco pkg install --deps search-auto typed-racket typed-racket-test
 
 script:
 - racket -l tests/typed-racket/run --all

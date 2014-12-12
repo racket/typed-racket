@@ -79,7 +79,7 @@
       [(_ e)
        (tc-toplevel/full stx #'e
          (λ (expanded type)
-           #`(display
+           #`(displayln
               #,(if (eq? type 'no-type)
                     "This form has no type (it does not produce a value)."
                     (pretty-format-type

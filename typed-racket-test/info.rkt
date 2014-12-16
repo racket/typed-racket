@@ -1,21 +1,26 @@
 #lang info
 
 (define collection 'use-pkg-name)
-(define deps '("typed-racket" "typed-racket-more" "typed-racket-compatibility"
-               "unstable" "unstable-2d"))
-(define build-deps '("racket-index"
-                     "scheme-lib"
+(define deps '("base"
+               "typed-racket"
+               "typed-racket-more"
+               "typed-racket-compatibility"
+               "unstable"
+               "unstable-2d"
+               "rackunit-lib"
+               "racket-index"
+               "pconvert-lib"
+               "compatibility-lib"
+               "unstable-flonum-lib"
+               "unstable-list-lib"))
+(define build-deps '("scheme-lib"
                      "base"
                      "racket-benchmarks"
-                     "compatibility-lib"
                      "rackunit-lib"
                      "compiler-lib"
                      "redex-lib"
                      "htdp-lib"
                      "sandbox-lib"
-                     "pconvert-lib"
-                     "unstable-flonum-lib"
-                     "unstable-list-lib"
                      "unstable"))
 (define update-implies '("typed-racket"))
 

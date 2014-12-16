@@ -10,7 +10,7 @@ END
 "9.09.0"
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (display (if (number? "eh")
              (+ 2.0 3.0)
              (+ 4.0 5.0)))

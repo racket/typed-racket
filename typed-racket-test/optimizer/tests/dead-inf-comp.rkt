@@ -97,7 +97,7 @@ END
 
 END
 #lang typed/racket/base
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (define: rat : Exact-Rational 2/3)
 

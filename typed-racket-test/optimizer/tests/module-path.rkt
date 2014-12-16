@@ -9,7 +9,7 @@ END
 
 END
 #lang typed/racket #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (if (module-path? "a") #t #f)
 (if (module-path? "\0") #t #f)
 (unless (module-path? 2) #f)

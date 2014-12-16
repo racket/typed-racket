@@ -28,7 +28,7 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (: r (Real -> Real))
 (define (r x) x)
 ;; warn when the extra precision gained by doing exact computations would

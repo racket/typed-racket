@@ -10,7 +10,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; originally from nucleic3
 ;; cond on substructs, branches were considered dead

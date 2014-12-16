@@ -10,6 +10,6 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (+ (expt 2 100) 1.0+2.0i)

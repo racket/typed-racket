@@ -15,7 +15,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; both boxed and unboxed uses, we unbox anyway
 ;; causes unnecessary boxing/unboxing if we take a boxed path when

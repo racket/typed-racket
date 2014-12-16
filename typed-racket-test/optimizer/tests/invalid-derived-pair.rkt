@@ -5,7 +5,7 @@ TR missed opt: invalid-derived-pair.rkt 5:2 (cadr x) -- car/cdr on a potentially
 END
 ""
 #lang typed/racket #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; can't optimize, the lists may not be long enough
 (: f ((Listof Integer) -> Integer))

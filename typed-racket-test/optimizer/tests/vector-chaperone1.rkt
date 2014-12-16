@@ -3,7 +3,7 @@
 END
 ""
 #lang racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (define v (vector 'b 'a))
 (provide v) 

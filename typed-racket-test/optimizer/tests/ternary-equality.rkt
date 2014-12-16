@@ -8,7 +8,7 @@ END
 END
 #lang typed/racket/base
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; PR 12479
 ;; was incorrectly optimized in the same way as fixnum bitwise-and and co

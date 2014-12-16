@@ -17,7 +17,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; top level
 (void (make-polar 1.0 1.0))

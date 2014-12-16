@@ -15,7 +15,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (: x (MPairof Integer Float))
 (define x (mcons 1 1.0))

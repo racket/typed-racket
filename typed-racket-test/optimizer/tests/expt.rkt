@@ -11,7 +11,7 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; PR 12526
 ;; result of expt was Float-Complex, and shouldn't have been

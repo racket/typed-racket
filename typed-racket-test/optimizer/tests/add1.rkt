@@ -17,7 +17,7 @@ END
 
 END
 #lang typed/racket #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (ann (add1 5) Fixnum)
 (add1 (ann 5 Fixnum))
 (ann (sub1 3) Fixnum)

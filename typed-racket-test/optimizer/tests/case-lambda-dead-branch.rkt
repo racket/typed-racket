@@ -5,7 +5,7 @@ TR opt: case-lambda-dead-branch.rkt 6:5 (x y) -- dead case-lambda branch
 END
 ""
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (: f (case-> (Symbol Symbol -> String)))
 (define f

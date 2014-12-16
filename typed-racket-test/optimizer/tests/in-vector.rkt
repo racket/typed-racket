@@ -6,6 +6,6 @@ END
 "123"
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (for: ((i : Integer (vector 1 2 3)))
       (display i))

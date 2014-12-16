@@ -11,7 +11,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (bitwise-not 4)
 (- (ann 2 Nonnegative-Fixnum))

@@ -37,7 +37,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (map (lambda: ((x : Float-Complex))
               (string-append (real->decimal-string (real-part x) 10)

@@ -18,7 +18,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (let ((t1 (+ 1.0+2.0i 2.0+4.0i))
       (t2 (+ 3.0+6.0i 4.0+8.0i)))

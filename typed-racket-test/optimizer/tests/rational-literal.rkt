@@ -7,6 +7,6 @@ END
 
 END
 #lang typed/racket #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 ;; rational literals should be promoted to floats at compile time
 (+ 3/4 1.2)

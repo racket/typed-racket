@@ -37,7 +37,7 @@ END
 
 END
 #lang typed/racket #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (caaar (cons (cons (cons 1 2) 3) 4))
 (caadr (cons 1 (cons (cons 2 3) 4)))

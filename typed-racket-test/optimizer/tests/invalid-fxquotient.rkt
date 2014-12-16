@@ -9,7 +9,7 @@ END
 END
 #lang typed/racket/base
 (require racket/fixnum)
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (define: fixnum-min : Nonpositive-Fixnum (assert (- (expt 2 30)) fixnum?))
 (define: q : Natural (quotient fixnum-min -1)) ; this can't be optimized safely

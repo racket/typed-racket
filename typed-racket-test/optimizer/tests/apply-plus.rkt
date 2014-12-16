@@ -11,7 +11,7 @@ END
 
 #lang typed/racket
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (apply + (map add1 (list 1 2 3)))
 (apply * (map add1 (list 1 2 3)))

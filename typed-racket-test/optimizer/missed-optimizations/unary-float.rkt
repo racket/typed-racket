@@ -15,7 +15,7 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (sin (ann 3.4 Real))
 (sin 3)

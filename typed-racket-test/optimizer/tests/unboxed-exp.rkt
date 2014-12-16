@@ -25,7 +25,7 @@ END
 END
 #lang typed/racket
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (: complex->decimal-string (Float-Complex -> String))
 (define (complex->decimal-string p)

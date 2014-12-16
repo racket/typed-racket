@@ -5,7 +5,7 @@ END
 ""
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (: f ((Vectorof Integer) -> Integer))
 (define (f x)
   (vector-ref x 0)) ; type is (Vectorof Integer), length is unknown, can't optimize

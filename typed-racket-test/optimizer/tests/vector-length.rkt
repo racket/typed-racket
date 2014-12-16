@@ -10,7 +10,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (vector-length (vector 1 2 3))
 (vector-length (ann (vector 4 5 6) (Vectorof Integer)))

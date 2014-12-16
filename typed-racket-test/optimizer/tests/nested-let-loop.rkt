@@ -33,7 +33,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (let: loop1 : Float-Complex
       ((x : (Listof Float-Complex)   '(1.0+2.0i 2.0+4.0i))

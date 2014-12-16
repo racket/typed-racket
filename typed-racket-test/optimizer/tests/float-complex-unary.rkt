@@ -27,7 +27,7 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (real-part (+ 1.0+2.0i (+ (* 3.0+4.0i 5.0+6.0i))))
 (real-part (+ 7.0+8.0i (* (+ 9.0+10.0i 11.0+12.0i))))

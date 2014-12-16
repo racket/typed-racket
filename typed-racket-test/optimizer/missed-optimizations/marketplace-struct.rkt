@@ -21,7 +21,7 @@ TR opt: marketplace-struct.rkt 133:35 (process-endpoints p) -- struct ref
 END
 ""
 #lang typed/racket/base
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; excerpt from marketplace
 ;; a struct constructor logging bug was causing this to fail

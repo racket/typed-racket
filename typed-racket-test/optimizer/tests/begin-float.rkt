@@ -11,7 +11,7 @@ END
 
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (begin (- 2.0 3.0)
        (* 2.0 3.0))

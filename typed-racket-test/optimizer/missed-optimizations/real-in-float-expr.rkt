@@ -19,7 +19,7 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (* (ann 3 Real) ; with type Real, typechecker must assume it could be exact 0
    2.3)

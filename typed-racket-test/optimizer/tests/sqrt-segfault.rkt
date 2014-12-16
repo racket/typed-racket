@@ -7,7 +7,7 @@ END
 ""
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; from the nbody-generic benchmark.
 ;; the result of sqrt was an Float-Complex, so float complex opts kicked

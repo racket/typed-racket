@@ -34,7 +34,7 @@ z
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 
 ;; Ensure that loop unboxing doesn't change order of effects

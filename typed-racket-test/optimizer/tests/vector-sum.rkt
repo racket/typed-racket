@@ -27,7 +27,7 @@ TR opt: vector-sum.rkt 9:0 (for ((i (in-range 1))) (for: ((i : Nonnegative-Fixnu
 END
 ""
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; micro-benchmark to measure the effectiveness of partial bounds checking
 ;; elimination

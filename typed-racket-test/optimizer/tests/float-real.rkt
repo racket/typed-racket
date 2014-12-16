@@ -16,7 +16,7 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 ;; reals within float expressions should be coerced when it's safe to do so
 (+ 2.3 (ann 3 Positive-Real)) ; safe
 (+ 2.3 (assert (* (ann 2 Integer) 3.2) positive?)) ; inner = unsafe, outer = unsafe

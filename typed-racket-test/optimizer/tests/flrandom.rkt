@@ -8,7 +8,7 @@ TR opt: flrandom.rkt 6:6 (flrandom (current-pseudo-random-generator)) -- float r
 END
 ""
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (require racket/flonum)
 (void (random)) ; yes

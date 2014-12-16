@@ -7,6 +7,6 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (vector-length (vector 1 2 3)) ; should not print the vector

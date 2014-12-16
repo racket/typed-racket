@@ -10,6 +10,6 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (bitwise-not (bitwise-not (length '(1 2 3))))

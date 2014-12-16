@@ -17,7 +17,7 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (<= 1.0 2.0 3.0)
 (<= 1.0 2.0 3) ; unsafe, last one is not a float

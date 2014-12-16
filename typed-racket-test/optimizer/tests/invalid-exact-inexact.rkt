@@ -8,5 +8,5 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (exact->inexact 1.0) ; not an integer, can't optimize

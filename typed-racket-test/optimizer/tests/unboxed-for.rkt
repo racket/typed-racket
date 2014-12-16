@@ -27,7 +27,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (for/fold: : Float-Complex   ((sum : Float-Complex   0.0+0.0i))
            ((i : Float-Complex   '(1.0+2.0i 2.0+4.0i)))

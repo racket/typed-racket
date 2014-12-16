@@ -9,6 +9,6 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (+ 2 (vector-length (ann (vector 1 2) (Vector Integer Integer))))

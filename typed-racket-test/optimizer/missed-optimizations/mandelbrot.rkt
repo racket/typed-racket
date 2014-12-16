@@ -25,7 +25,7 @@ END
 ""
 
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; from Matthew's talk at Mozilla
 ;; 2 things were blocking futures:

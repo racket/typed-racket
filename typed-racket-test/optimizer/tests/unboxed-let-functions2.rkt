@@ -19,7 +19,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; function with multiple complex args
 (let ((f (lambda: ((x :   Float-Complex) (y : Float-Complex))

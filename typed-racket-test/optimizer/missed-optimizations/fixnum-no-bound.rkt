@@ -17,7 +17,7 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (require racket/fixnum)
 (fx+ (ann 2 Fixnum) (ann 3 Fixnum))
 (fx- (ann 2 Fixnum) (ann 3 Fixnum))

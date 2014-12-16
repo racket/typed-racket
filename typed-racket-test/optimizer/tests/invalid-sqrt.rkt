@@ -8,5 +8,5 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (sqrt -2.0) ; not a nonnegative flonum, can't optimize

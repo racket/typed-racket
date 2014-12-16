@@ -7,6 +7,6 @@ END
 "-1.0"
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 (define a (begin (display (- 2.0 3.0))
                  (* 2.0 3.0)))

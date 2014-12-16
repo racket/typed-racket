@@ -11,7 +11,7 @@ TR missed opt: case-arrow.rkt 15:9 (/ (* (- max min) x) p) -- all args float-arg
 END
 ""
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 ;; Typechecking functions with case-> types causes the body to be typechecked
 ;; multiple times, which is fine, except that it used to cause the type table

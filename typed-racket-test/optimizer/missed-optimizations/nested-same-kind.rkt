@@ -29,7 +29,7 @@ END
 
 END
 #lang typed/racket
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 ;; when a single "bubble" causes missed optimizations to cascade, a single
 ;; close call should be reported, with the outermost expression being reported
 ;; but with the innermost flagged as the cause

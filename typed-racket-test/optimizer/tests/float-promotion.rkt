@@ -11,7 +11,7 @@ END
 END
 #lang typed/scheme
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (+ (assert (modulo 1 2) exact-positive-integer?) 2.0)
 (+ (expt 100 100) 2.0)

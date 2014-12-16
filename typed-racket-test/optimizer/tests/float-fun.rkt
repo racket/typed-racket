@@ -5,7 +5,7 @@ END
 ""
 #lang typed/racket
 #:optimize
-#reader tests/typed-racket/optimizer/reset-port
+#reader typed-racket-test/optimizer/reset-port
 
 (: f (Float -> Float))
 (define (f x)

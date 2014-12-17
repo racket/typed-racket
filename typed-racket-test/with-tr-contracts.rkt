@@ -6,5 +6,5 @@
 (current-namespace ns)
 (use-compiled-file-paths null)
 
-((dynamic-require 'tests/typed-racket/main 'go/text)
- (dynamic-require 'tests/typed-racket/main 'unit-tests))
+((dynamic-require 'typed-racket-test/main 'go/text)
+ (dynamic-require 'typed-racket-test/main 'unit-tests))

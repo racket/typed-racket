@@ -13,6 +13,7 @@
                   "types/kw-types.rkt"
                   "types/utils.rkt"
                   "types/resolve.rkt"
+                  "types/prefab.rkt"
                   "utils/utils.rkt"
                   "utils/tc-utils.rkt")
          (for-syntax racket/base syntax/parse))
@@ -406,6 +407,7 @@
     [(StructType: ty) `(Struct-Type ,(t->s ty))]
     [(StructTypeTop:) 'Struct-TypeTop]
     [(StructTop: (Struct: nm _ _ _ _ _)) `(Struct ,(syntax-e nm))]
+    [(Prefab: key fields) `(Prefab ,(abbreviate-prefab-key key) ,@fields)]
     [(BoxTop:) 'BoxTop]
     [(Weak-BoxTop:) 'Weak-BoxTop]
     [(ChannelTop:) 'ChannelTop]

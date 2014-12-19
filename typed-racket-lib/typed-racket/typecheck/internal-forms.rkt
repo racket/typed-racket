@@ -46,10 +46,11 @@
 ;;; Helpers
 
 (define-splicing-syntax-class dtsi-fields
- #:attributes (mutable type-only maker)
+ #:attributes (mutable prefab type-only maker)
  (pattern
   (~seq
     (~or (~optional (~and #:mutable (~bind (mutable #t))))
+         (~optional (~and #:prefab (~bind (prefab #t))))
          (~optional (~and #:type-only (~bind (type-only #t))))
          (~optional (~seq #:maker maker))) ...)))
 
@@ -59,11 +60,12 @@
 
 
 (define-syntax-class define-typed-struct-body
-  #:attributes (name mutable type-only maker nm (tvars 1) (fields 1) (types 1))
+  #:attributes (name mutable prefab type-only maker nm (tvars 1) (fields 1) (types 1))
   (pattern ((~optional (tvars:id ...) #:defaults (((tvars 1) null)))
             nm:struct-name ([fields:id : types:expr] ...) options:dtsi-fields)
            #:attr name #'nm.nm
            #:attr mutable (attribute options.mutable)
+           #:attr prefab (attribute options.prefab)
            #:attr type-only (attribute options.type-only)
            #:attr maker (or (attribute options.maker) #'nm.nm)))
 

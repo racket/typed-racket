@@ -347,4 +347,18 @@
    [FAIL
     (-class #:method ((m (-> -Nat))) #:augment ((m (-> -Nat))))
     (-class #:method ((m (-> -Nat))))]
+
+   ;; prefab structs
+   [(-prefab 'foo -String) (-prefab 'foo -String)]
+   [(-prefab 'foo -String) (-prefab 'foo (-opt -String))]
+   [(-prefab '(bar foo 1) -String -Symbol) (-prefab 'foo -String)]
+   [(-prefab '(bar foo 1) -String -Symbol) (-prefab 'foo (-opt -String))]
+   [FAIL
+    (-prefab '(foo #(0)) -String) (-prefab '(foo #(0)) (-opt -String))]
+   [(-prefab '(foo 1 #(0)) -String -Symbol)
+    (-prefab '(foo #(0)) -String)]
+   [(-prefab '(bar foo 1 #(0)) -String -Symbol)
+    (-prefab '(foo #(0)) -String)]
+   [FAIL
+    (-prefab '(foo #()) -String) (-prefab '(foo #(0)) (-opt -String))]
    ))

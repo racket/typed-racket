@@ -547,6 +547,12 @@
                         [else empty])])
              (% cset-meet proc-c (cgen/flds context flds flds*)))]
 
+          ;; two prefab structs with the same key
+          [((Prefab: k flds) (Prefab: k* flds*))
+           #:when (equal? k k*)
+           ;; FIXME: should account for mutable fields
+           (cgen/list context flds flds*)]
+
           ;; two struct names, need to resolve b/c one could be a parent
           [((Name: n _ #t) (Name: n* _ #t))
            (if (free-identifier=? n n*)

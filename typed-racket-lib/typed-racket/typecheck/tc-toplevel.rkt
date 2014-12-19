@@ -33,10 +33,17 @@
   (parameterize ([current-orig-stx form])
     (syntax-parse form
       [t:typed-struct
-       (tc/struct (attribute t.tvars) #'t.nm (syntax->list #'(t.fields ...)) (syntax->list #'(t.types ...))
-                  #:mutable (attribute t.mutable)
-                  #:maker (attribute t.maker)
-                  #:type-only (attribute t.type-only))]
+       (if (attribute t.prefab)
+           (tc/prefab (attribute t.tvars)
+                      #'t.nm
+                      (syntax->list #'(t.fields ...))
+                      (syntax->list #'(t.types ...))
+                      #:maker (attribute t.maker)
+                      #:mutable (attribute t.mutable))
+           (tc/struct (attribute t.tvars) #'t.nm (syntax->list #'(t.fields ...)) (syntax->list #'(t.types ...))
+                      #:mutable (attribute t.mutable)
+                      #:maker (attribute t.maker)
+                      #:type-only (attribute t.type-only)))]
       [t:typed-struct/exec
        (tc/struct null #'t.nm (syntax->list #'(t.fields ...)) (syntax->list #'(t.types ...))
                   #:proc-ty #'t.proc-type)])))

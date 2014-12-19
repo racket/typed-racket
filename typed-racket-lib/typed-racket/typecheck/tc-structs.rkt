@@ -6,7 +6,7 @@
          (prefix-in c: (contract-req))
          (rep type-rep object-rep free-variance)
          (private parse-type syntax-properties)
-         (types abbrev utils resolve substitute struct-table)
+         (types abbrev utils resolve substitute struct-table prefab)
          (env global-env type-name-env type-alias-env tvar-env)
          (utils tc-utils)
          (typecheck def-binding internal-forms)
@@ -14,7 +14,9 @@
 
 (require-for-cond-contract racket/struct-info)
 
-(provide tc/struct name-of-struct d-s
+(provide tc/struct
+         tc/prefab
+         name-of-struct d-s
          refine-struct-variance!
          register-parsed-struct-sty!
          register-parsed-struct-bindings!)
@@ -24,7 +26,7 @@
   (pattern (name:id par:id))
   (pattern name:id #:attr par #f))
 
-;; sty : Struct?
+;; sty : (U Struct? Prefab?)
 ;; names : Listof[Identifier]
 ;; desc : struct-desc
 ;; struct-info : struct-info?
@@ -119,14 +121,14 @@
 ;; identifier listof[identifier] type listof[fld] listof[Type] boolean ->
 ;;  (values Type listof[Type] listof[Type])
 (define/cond-contract (register-sty! sty names desc)
-  (c:-> Struct? struct-names? struct-desc? void?)
+  (c:-> (c:or/c Struct? Prefab?) struct-names? struct-desc? void?)
 
   ;; a type alias needs to be registered here too, to ensure
   ;; that parse-type will map the identifier to this Name type
   (define type-name (struct-names-type-name names))
   (register-resolved-type-alias
    type-name
-   (make-Name type-name #f #t))
+   (make-Name type-name (struct-desc-tvars desc) (Struct? sty)))
   (register-type-name type-name
                       (make-Poly (struct-desc-tvars desc) sty)))
 
@@ -135,7 +137,7 @@
 
 ;; Register the approriate types to the struct bindings.
 (define/cond-contract (register-struct-bindings! sty names desc si)
-  (c:-> Struct? struct-names? struct-desc? (c:or/c #f struct-info?) (c:listof binding?))
+  (c:-> (c:or/c Struct? Prefab?) struct-names? struct-desc? (c:or/c #f struct-info?) (c:listof binding?))
 
 
   (define tvars (struct-desc-tvars desc))
@@ -169,6 +171,7 @@
      (make-def-binding (struct-names-struct-type names) (make-StructType sty))
      (make-def-binding (struct-names-predicate names)
                        (make-pred-ty (if (not covariant?)
+                                         ;; FIXME: does this make sense with prefabs?
                                          (make-StructTop sty)
                                          (subst-all (make-simple-substitution
                                                      tvars (map (const Univ) tvars)) poly-base))))
@@ -225,8 +228,16 @@
 (define (refine-struct-variance! parsed-structs)
   (define stys (map parsed-struct-sty parsed-structs))
   (define tvarss (map (compose struct-desc-tvars parsed-struct-desc) parsed-structs))
-  (define names (map Struct-name stys))
+  (define names
+    (for/list ([parsed-struct (in-list parsed-structs)])
+      (struct-names-type-name (parsed-struct-names parsed-struct))))
   (refine-variance! names stys tvarss))
+
+;; get-struct-name : (U Struct Prefab) -> Symbol
+;; Extract the struct name from a Struct type or Prefab type
+(define (get-struct-name sty)
+  (cond [(Struct? sty) (Struct-name sty)]
+        [(Prefab? sty) (car (Prefab-key sty))]))
 
 ;; check and register types for a define struct
 ;; tc/struct : Listof[identifier] (U identifier (list identifier identifier))
@@ -272,6 +283,49 @@
 
   (parsed-struct sty names desc (struct-info-property nm/par) type-only))
 
+;; check and register types for a prefab struct
+(define (tc/prefab vars nm/par fld-names tys
+                   #:maker [maker #f]
+                   #:mutable [mutable #f])
+  (define-values (name parent-prefab)
+    (syntax-parse nm/par
+      [v:parent
+       (cond [(attribute v.par)
+              (define parent0 (parse-type #'v.par))
+              (define parent
+                (let loop ([parent parent0])
+                  (cond [(Name? parent) (loop (resolve-name parent))]
+                        [(Prefab? parent) parent]
+                        [else
+                         (tc-error #'v.par
+                                   "parent type not a valid prefab struct")])))
+              (values #'v.name parent)]
+             [else
+              (values #'v.name #f)])]))
+  (define tvars (map syntax-e vars))
+  (define new-tvars (map make-F tvars))
+  (define types
+    (extend-tvars tvars
+      (parameterize ([current-poly-struct `#s(poly ,name ,new-tvars)])
+        (map parse-type tys))))
+  (define-values (parent-key parent-fields)
+    (match parent-prefab
+      [#f (values null null)]
+      [(Prefab: parent-key parent-fields)
+       (values parent-key parent-fields)]))
+  (define key-prefix
+    (if mutable
+        (list (syntax-e name)
+              (length fld-names)
+              (build-vector (length fld-names) values))
+        (list (syntax-e name))))
+  (define key
+    (normalize-prefab-key (append key-prefix parent-key)
+                          (+ (length fld-names) (length parent-fields))))
+  (define names (get-struct-names name fld-names maker))
+  (define desc (struct-desc parent-fields types tvars mutable #f))
+  (parsed-struct (make-Prefab key (append parent-fields types))
+                 names desc (struct-info-property nm/par) #f))
 
 ;; register a struct type
 ;; convenience function for built-in structs

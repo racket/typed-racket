@@ -3525,6 +3525,24 @@
        ;; PR 14889
        [tc-err (ann (vector-ref (ann (vector "hi") (Vectorof String)) 0) Symbol)
                #:msg #rx"Polymorphic function.*could not be applied"]
+
+       [tc-e (let ()
+               (foo-x (foo "foo"))
+               (foo-x #s(foo "foo"))
+               (foo-x #s((foo 1 (0 #f) #()) "foo"))
+               (foo-x #s((bar foo 1 (0 #f) #()) "foo" 'bar))
+               (foo-x #s((baz bar 1 foo 1 (0 #f) #()) "foo" 'bar 'baz)))
+             -String
+             #:extend-env ([foo (t:-> -String (-prefab 'foo -String))]
+                           [foo-x (t:-> (-prefab 'foo -String) -String)])]
+       [tc-err (begin (foo-x "foo")
+                      (error "foo"))
+               #:extend-env ([foo-x (t:-> (-prefab 'foo -String) -String)])
+               #:msg #rx"expected: \\(Prefab.*given: String"]
+       [tc-err (begin (foo-x #s(bar "bar"))
+                      (error "foo"))
+               #:extend-env ([foo-x (t:-> (-prefab 'foo -String) -String)])
+               #:msg #rx"expected: \\(Prefab foo.*given: \\(Prefab bar"]
        )
 
   (test-suite
@@ -3580,5 +3598,16 @@
          #:expected (-mu X (-pair (-vec (t:Un (-val ':a) X)) (t:Un (-val ':b) X)))]
    [tc-l/err #(1 2) #:expected (make-HeterogeneousVector (list -Number -Symbol))
                     #:msg #rx"expected: Symbol"]
+   [tc-l #s(foo "a" a)
+         (-prefab 'foo -String (-val 'a))]
+   [tc-l #s((foo 2 (0 #f) #()) "a" a)
+         (-prefab 'foo -String (-val 'a))]
+   [tc-l #s((foo bar 1) "a" a)
+         (-prefab '(foo bar 1) -String (-val 'a))]
+   [tc-l #s((foo bar 1 baz 1) "a" a)
+         (-prefab '(foo bar 1 baz 1) -String (-val 'a))]
+   [tc-l #s(foo "a")
+         (-prefab 'foo (-opt -String))
+         #:expected (-prefab 'foo (-opt -String))]
    )
   ))

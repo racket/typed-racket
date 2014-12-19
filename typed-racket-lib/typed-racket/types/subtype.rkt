@@ -5,7 +5,7 @@
          (rep type-rep filter-rep object-rep rep-utils)
          (utils tc-utils early-return)
          (types utils resolve base-abbrev match-expanders
-                numeric-tower substitute current-seen)
+                numeric-tower substitute current-seen prefab)
          (for-syntax racket/base syntax/parse unstable/sequence))
 
 (lazy-require
@@ -554,6 +554,10 @@
          ;; subtyping on structs follows the declared hierarchy
          [((Struct: nm (? Type/c? parent) _ _ _ _) other)
           (subtype* A0 parent other)]
+         [((Prefab: k1 ss) (Prefab: k2 ts))
+          (and (prefab-key-subtype? k1 k2)
+               (and (>= (length ss) (length ts))
+                    (subtypes* A0 (take ss (length ts)) ts)))]
          ;; subtyping on values is pointwise, except special case for Bottom
          [((Values: (list (Result: (== -Bottom) _ _))) _)
           A0]

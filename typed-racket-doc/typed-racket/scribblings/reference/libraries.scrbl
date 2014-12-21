@@ -78,6 +78,7 @@ The following libraries are included with Typed Racket in the
 @defmodule/incl[typed/rackunit]
 @defmodule/incl[typed/srfi/14]
 @defmodule/incl[typed/syntax/stx]
+@defmodule/incl[typed/json]
 
 Other libraries included in the main distribution that are either
 written in Typed Racket or have adapter modules that are typed:

@@ -6,7 +6,7 @@
          (private type-annotation parse-type syntax-properties)
          (env lexical-env type-alias-helper mvar-env
               global-env scoped-tvar-env)
-         (rep filter-rep)
+         (rep filter-rep object-rep)
          syntax/free-vars
          (typecheck signatures tc-metafunctions tc-subst internal-forms tc-envops)
          (utils tarjan)
@@ -43,33 +43,43 @@
    . -> .
    tc-results/c)
   (with-cond-contract t/p ([expected-types (listof (listof Type/c))]
+                           [objs           (listof (listof Object?))]
                            [props          (listof (listof Filter?))])
-    (define-values (expected-types props)
-      (for/lists (e p)
+    (define-values (expected-types objs props)
+      (for/lists (e o p)
         ([e-r   (in-list expected-results)]
          [names (in-list namess)])
         (match e-r
           [(list (tc-result: e-ts (FilterSet: fs+ fs-) os) ...)
            (values e-ts
+                   os
                    (apply append
                           (for/list ([n (in-list names)]
                                      [t (in-list e-ts)]
                                      [f+ (in-list fs+)]
-                                     [f- (in-list fs-)])
+                                     [f- (in-list fs-)]
+                                     [o (in-list os)])
                             (cond
                               [(not (overlap t (-val #f)))
                                (list f+)]
                               [(is-var-mutated? n)
                                (list)]
-                              [else
-                               (list (-imp (-not-filter (-val #f) n) f+)
-                                     (-imp (-filter (-val #f) n) f-))]))))]
+                              ;; n is being bound to an expression w/ object o
+                              ;; we don't need any new info, aliasing and the
+                              ;; lexical environment will have the needed info
+                              [(Path? o) (list)]
+                              ;; n is being bound to an expression w/o an object
+                              ;; so remember n in our propositions
+                              [else (list (-or (-and (-not-filter (-val #f) n) f+)
+                                               (-and (-filter (-val #f) n) f-)))]))))]
           [(list (tc-result: e-ts (NoFilter:) _) ...)
            (values e-ts null)]))))
   ;; extend the lexical environment for checking the body
-  (with-lexical-env/extend
+  ;; with types and potential aliases
+  (with-lexical-env/extend-types+aliases
     (append* namess)
     (append* expected-types)
+    (append* objs)
     (replace-names
       (get-names+objects namess expected-results)
       (with-lexical-env/extend-props
@@ -223,9 +233,11 @@
              (get-type/infer names expr
                              (lambda (e) (tc-expr/maybe-expected/t e names))
                              tc-expr/check))
-           (with-lexical-env/extend names ts
-             (replace-names (map list names os)
-               (loop (cdr clauses))))])))
+           (with-lexical-env/extend-types 
+            names 
+            ts
+            (replace-names (map list names os)
+                           (loop (cdr clauses))))])))
 
 ;; this is so match can provide us with a syntax property to
 ;; say that this binding is only called in tail position

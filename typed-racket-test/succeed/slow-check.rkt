@@ -19,29 +19,27 @@
                             (match x
                               [(list _ (list (list (? number? x) y (? number? xs) ys))) 1]
                               [_ 2])]))
-
-; typechecking this will be fast after implications are removed
-;
-;                       (: filters-more (-> Boolean Boolean Boolean Boolean Boolean 
-;                                           Boolean Boolean Boolean Boolean Natural))
-;                       (define (filters-more inc1? inc2? inc3? a-min? 
-;                                             a-max? b-min? b-max? c-min? c-max?)
-;                         (let-values ([(a-min? a-max?)  (if inc1? 
-;                                                            (values a-min? a-max?) 
-;                                                            (values a-max? a-min?))]
-;                                      [(b-min? b-max?)  (if inc2? 
-;                                                            (values b-min? b-max?) 
-;                                                            (values b-max? b-min?))]
-;                                      [(c-min? c-max?)  (if inc3? 
-;                                                            (values c-min? c-max?) 
-;                                                            (values c-max? c-min?))])
-;                           (cond [a-min?  0]
-;                                 [b-min?  1]
-;                                 [a-max?  2]
-;                                 [b-max?  3]
-;                                 [c-min?  4]
-;                                 [c-max?  5]
-;                                 [else    6])))
+                       
+                       (: filters-more (-> Boolean Boolean Boolean Boolean Boolean 
+                                           Boolean Boolean Boolean Boolean Natural))
+                       (define (filters-more inc1? inc2? inc3? a-min? 
+                                             a-max? b-min? b-max? c-min? c-max?)
+                         (let-values ([(a-min? a-max?)  (if inc1? 
+                                                            (values a-min? a-max?) 
+                                                            (values a-max? a-min?))]
+                                      [(b-min? b-max?)  (if inc2? 
+                                                            (values b-min? b-max?) 
+                                                            (values b-max? b-min?))]
+                                      [(c-min? c-max?)  (if inc3? 
+                                                            (values c-min? c-max?) 
+                                                            (values c-max? c-min?))])
+                           (cond [a-min?  0]
+                                 [b-min?  1]
+                                 [a-max?  2]
+                                 [b-max?  3]
+                                 [c-min?  4]
+                                 [c-max?  5]
+                                 [else    6])))
                        
                        (: bar : Any → Any)
                        (define (bar s)

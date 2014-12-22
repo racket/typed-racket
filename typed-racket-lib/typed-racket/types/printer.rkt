@@ -130,8 +130,9 @@
     [(CarPE:) 'car]
     [(CdrPE:) 'cdr]
     [(ForcePE:) 'force]
-    [(StructPE: t i) `(,(pathelem->sexp t) ,i)]
-    [else `(Unknown Path Element: ,(struct->vector pathelem))]))
+    [(StructPE: t i) `(,(type->sexp t)-,i)]
+    [(SyntaxPE:) 'syntax]
+    [else `(Invalid Path-Element: ,(struct->vector pathelem))]))
 
 ;; object->sexp : Object -> S-expression
 ;; Print an Object (see object-rep.rkt) to the given port

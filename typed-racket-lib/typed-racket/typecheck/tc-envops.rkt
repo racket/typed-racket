@@ -16,48 +16,54 @@
                     [one-of/c -one-of/c])
          (typecheck tc-metafunctions))
 
-(provide
-  with-lexical-env/extend-props)
+(provide with-lexical-env/extend-props)
+
 
 (define/cond-contract (update t ft pos? lo)
   (Type/c Type/c boolean? (listof PathElem?) . -> . Type/c)
+  ;; build-type: build a type while propogating bottom
+  (define (build-type constructor . args)
+    (if (memf Bottom? args) -Bottom (apply constructor args)))
   (match* ((resolve t) lo)
     ;; pair ops
     [((Pair: t s) (list rst ... (CarPE:)))
-     (-pair (update t ft pos? rst) s)]
+     (build-type -pair (update t ft pos? rst) s)]
     [((Pair: t s) (list rst ... (CdrPE:)))
-     (-pair t (update s ft pos? rst))]
+     (build-type -pair t (update s ft pos? rst))]
 
     ;; syntax ops
     [((Syntax: t) (list rst ... (SyntaxPE:)))
-     (-Syntax (update t ft pos? rst))]
+     (build-type -Syntax (update t ft pos? rst))]
 
     ;; promise op
     [((Promise: t) (list rst ... (ForcePE:)))
-     (-Promise (update t ft pos? rst))]
+     (build-type -Promise (update t ft pos? rst))]
 
     ;; struct ops
     [((Struct: nm par flds proc poly pred)
       (list rst ... (StructPE: (? (lambda (s) (subtype t s)) s) idx)))
-     (make-Struct nm par
-                  (list-update flds idx (match-lambda
-                                          [(fld: e acc-id #f)
-                                           (make-fld (update e ft pos? rst) acc-id #f)]
-                                          [_ (int-err "update on mutable struct field")]))
-                  proc poly pred)]
+     ;; note: this updates fields regardless of whether or not they are
+     ;; a polymorphic field. Because subtyping is nominal and accessor 
+     ;; functions do not reflect this, this behavior is unobservable
+     ;; except when an a variable aliases the field in a let binding
+     (build-type make-Struct nm par
+                 (list-update flds idx (match-lambda
+                                         [(fld: e acc-id #f)
+                                          (make-fld (update e ft pos? rst) acc-id #f)]
+                                         [_ (int-err "update on mutable struct field")]))
+                 proc poly pred)]
 
     ;; otherwise
-    [(t (list))
+    [(t '())
      (if pos?
          (restrict t ft)
          (remove t ft))]
     [((Union: ts) lo)
-     (apply Un (map (lambda (t) (update t ft pos? lo)) ts))]
+     (apply Un (map (λ (t) (update t ft pos? lo)) ts))]
     [(t* lo)
      ;; This likely comes up with (-lst t) and we need to improve the system to make sure this case
      ;; dosen't happen
-     #;
-     (int-err "update along ill-typed path: ~a ~a ~a" t t* lo)
+     ;;(int-err "update along ill-typed path: ~a ~a ~a" t t* lo)
      t]))
 
 ;; Returns #f if anything becomes (U)

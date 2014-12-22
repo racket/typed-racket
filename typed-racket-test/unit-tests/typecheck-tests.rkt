@@ -273,6 +273,7 @@
   racket/future
   racket/list
   racket/math
+  racket/match
   racket/path
   racket/place
   racket/port
@@ -319,7 +320,6 @@
          (-FS (-not-filter (-val #f) var)
               (-filter (-val #f) var))
          (make-Path null var))))
-
 
 (define tests
   (test-suite
@@ -3354,7 +3354,77 @@
        [tc-e ((letrec ((loop (lambda: ([x : (Listof Integer)]) (cond ((null? (cdr x)) #t) (else #f))))) loop)
               (list 1 2))
              -Boolean]
-        )
+       
+       ;; bottom propogation from cons
+       [tc-e (let ()
+               (: f ((U (Listof Number) (Listof String)) -> (Listof Number)))
+               (define f (λ (l) (cond
+                                  [(empty? l) '()]
+                                  [(number? (car l)) l]
+                                  [else (map string-length l)])))
+               (void))
+             -Void]
+       
+       ;; aliasing unit tests
+       [tc-e (let ()
+               (: foo (-> Any Number))
+               (define foo 
+                 (λ (x)
+                   (let ([y x])
+                     (if (number? y)
+                         x
+                         42))))
+               (void))
+             -Void]
+       
+       [tc-e (let ()
+               (: foo (-> Any Number))
+               (define foo
+                 (λ (x)
+                   (match x
+                     [(? number?) x]
+                     [`(_ . (_ . ,(? number?))) (cddr x)]
+                     [`(_ . (_ . ,(? pair? p))) 
+                      (if (number? (caddr x))
+                          (car p)
+                          41)]
+                     [_ 42])))
+               (void))
+             -Void]
+       
+       ;; tests looking up path-types into unions
+       [tc-e (let ()
+               (: foo ((U (Pairof Number Number) (Pairof Number String)) -> Number))
+               (define foo (λ (p)
+                             (let ([x (car p)])
+                               x)))
+               (void))
+             -Void]
+       
+       ;; tests looking up path-types into polymorphic functions
+       [tc-e (let ()
+               (: poly-foo (All (α β) (U (Pairof Number α) (Pairof Number β)) -> Number))
+               (define poly-foo (λ (p) (let ([x (car p)])
+                                         x)))
+               (void))
+             -Void]
+       
+       [tc-e (let ()
+               (: poly-foo (All (α β) ((U (Pairof Number α) (Pairof Number β)) -> (U α β))))
+               (define poly-foo (λ (p)
+                                  (let ([x (cdr p)])
+                                    x)))
+               (void))
+             -Void]
+       
+       [tc-e (let ()
+               (: poly-foo-dots (All (α ... β) (U (Pairof Number α) (Pairof Number β)) -> Number))
+               (define poly-foo-dots (λ (p)
+                                       (let ([x (car p)])
+                                         (car p))))
+               (void))
+             -Void]
+       )
 
   (test-suite
    "tc-literal tests"

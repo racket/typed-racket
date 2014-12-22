@@ -157,3 +157,39 @@ interactions, which may include mutations. It is possible to work
 around this by moving the variable inside of a module or into a local
 binding form like @racket[let].
 
+@section{@racket[let]-aliasing}
+
+Typed Racket is able to reason about some cases when variables introduced 
+by let-expressions alias other values (e.g. when they alias non-mutated identifiers, 
+@racket[car]/@racket[cdr]/@racket[struct] accesses into immutable values, etc...). 
+This allows programs which explicitly rely on occurrence typing and aliasing to 
+typecheck:
+
+@racketblock+eval[#:eval the-eval
+(: f (Any -> Number))
+(define (f x) 
+  (let ([y x])
+    (cond
+      [(number? y) x]
+      [(and (pair? y) 
+            (number? (car y)))
+       (car x)]
+      [else 42])))
+]
+
+It also allows the typechecker to check programs which use macros 
+that heavily rely on let-bindings internally (such as @racket[match]):
+
+@racketblock+eval[#:eval the-eval
+(: g (Any -> Number))
+(define (g x) 
+  (match x
+    [(? number?) x]
+    [`(_ . (_ . ,(? number?))) (cddr x)]
+    [`(_ . (_ . ,(? pair? p))) 
+     (if (number? (caddr x))
+         (car p)
+         41)]
+    [_ 42]))    
+]
+

@@ -7,7 +7,7 @@
          "check-below.rkt" "../types/kw-types.rkt"
          (types utils abbrev union subtype type-table filter-ops remove-intersect resolve generalize)
          (private-in syntax-properties)
-         (rep type-rep filter-rep)
+         (rep type-rep filter-rep object-rep)
          (only-in (infer infer) restrict)
          (utils tc-utils)
          (env lexical-env)
@@ -41,8 +41,16 @@
   (--> identifier? full-tc-results/c)
   (define rename-id (contract-rename-id-property id))
   (define id* (or rename-id id))
-  (define ty (lookup-type/lexical id*))
-  (define obj (-id-path id*))
+  ;; see if id* is an alias for an object
+  ;; if not (-id-path id*) is returned
+  (define obj (lookup-alias/lexical id*))
+  (define-values (alias-path alias-id)
+    (match obj
+      [(Path: p x) (values p x)]
+      [(Empty:) (values (list) id*)]))
+  ;; calculate the type, resolving aliasing and paths if necessary
+  (define ty (path-type alias-path (lookup-type/lexical alias-id)))
+  
   (ret ty
        (if (overlap ty (-val #f))
            (-FS (-not-filter (-val #f) obj) (-filter (-val #f) obj))

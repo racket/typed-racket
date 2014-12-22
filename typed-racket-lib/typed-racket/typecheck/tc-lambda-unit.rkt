@@ -81,7 +81,7 @@
   (make-arr*
     arg-types
     (abstract-results
-      (with-lexical-env/extend
+      (with-lexical-env/extend-types
         (append rest-names arg-names)
         (append rest-types arg-types)
         (tc-body/check body expected))
@@ -507,8 +507,9 @@
 (define (tc/rec-lambda/check formals* body name args return)
   (define formals (syntax->list formals*))
   (define ft (t:->* args (tc-results->values return)))
-  (with-lexical-env/extend
-   (cons name formals) (cons ft args)
+  (with-lexical-env/extend-types
+   (cons name formals) 
+   (cons ft args)
    (values
      (replace-names (map (λ (f) (list f -empty-obj)) (cons name formals)) (ret ft))
      (replace-names (map (λ (f) (list f -empty-obj)) (cons name formals)) (tc-body/check body return)))))

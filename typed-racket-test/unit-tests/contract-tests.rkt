@@ -160,6 +160,12 @@
               (t/fail (-> (-polydots (a) (->... (list) (a a) -Symbol)) Univ)
                       "cannot generate contract for variable arity polymorphic type")
 
+              ;; PR 14894 - FIXME: the polydots case may be possible for typed functions
+              (t/fail (-polydots (a) (->... (list) (a a) (make-ValuesDots null a 'a)))
+                      "dotted return values")
+              (t/fail (-> ManyUniv)
+                      "unknown return values")
+
               (t/fail
                 (make-Function
                   (list (make-arr* (list) -Boolean #:kws (list (make-Keyword '#:key Univ #f)))

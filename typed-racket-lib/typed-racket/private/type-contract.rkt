@@ -586,7 +586,13 @@
             (if (from-untyped? typed-side)
                 (fail #:reason (~a "cannot generate contract for function type"
                                    " with filters or objects."))
-                (convert-arr a))]))
+                (convert-arr a))]
+           [(arr: dom (? ValuesDots?) rst drst kws)
+            (fail #:reason (~a "cannot generate contract for function type"
+                               " with dotted return values"))]
+           [(arr: dom (? AnyValues?) rst drst kws)
+            (fail #:reason (~a "cannot generate contract for function type"
+                               " with unknown return values"))]))
        (define arities
          (for/list ([t arrs])
            (match t

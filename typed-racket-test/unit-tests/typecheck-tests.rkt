@@ -3424,6 +3424,10 @@
                                          (car p))))
                (void))
              -Void]
+
+       ;; PR 14889
+       [tc-err (ann (vector-ref (ann (vector "hi") (Vectorof String)) 0) Symbol)
+               #:msg #rx"Polymorphic function.*could not be applied"]
        )
 
   (test-suite

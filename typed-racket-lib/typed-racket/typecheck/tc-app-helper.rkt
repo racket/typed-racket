@@ -4,7 +4,7 @@
          racket/match unstable/list unstable/sequence racket/set racket/list
          (only-in srfi/1 unzip4) (only-in racket/list make-list)
          (contract-req)
-         (typecheck check-below tc-subst)
+         (typecheck check-below tc-subst tc-metafunctions)
          (utils tc-utils)
          (rep type-rep filter-rep)
          (except-in (types utils abbrev subtype)
@@ -158,7 +158,15 @@
                          (values pdoms prngs prests pdrests))])
          ;; only use `tc/funapp1` if `tail-ty` was *not* provided
          ;; since it either won't error correctly or produces a poor error
-         (cond [(and (not tail-ty) (= (length pdoms) 1))
+         (cond [(and (not tail-ty)
+                     (= (length pdoms) 1)
+                     ;; The correctness of selecting this case depends on the
+                     ;; domain selection being consistent with the expected
+                     ;; type. Since possible-domains only checks this in restrictive
+                     ;; mode, do the check here. Note that using restrictive mode
+                     ;; above results in poor error messages (see PR 14731).
+                     (or (not expected)
+                         (subtype (car rngs) (tc-results->values expected))))
                 ;; if we narrowed down the possible cases to a single one, have
                 ;; tc/funapp1 generate a better error message
                 (tc/funapp1 f-stx args-stx

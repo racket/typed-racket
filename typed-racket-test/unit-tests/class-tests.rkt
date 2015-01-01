@@ -1683,4 +1683,14 @@
                (super-new)
                (override* [n (lambda () 5)])))
            (send (new c%) n))
-         -Integer]))
+         -Integer]
+   ;; PR 14904
+   [tc-e (class object%
+           (super-new)
+           (: foo (All (X) (-> X X)))
+           (define/public foo (tr:lambda #:forall (A) ([x : A]) x)))
+         (-class #:method [(foo (-poly (a) (t:-> a a)))])]
+   [tc-e (class object%
+           (super-new)
+           (define/public foo (case-lambda [(str) (void)] [(sym size) (void)])))
+         (-class #:method [(foo (cl->* (t:-> Univ Univ -Void) (t:-> Univ -Void)))])]))

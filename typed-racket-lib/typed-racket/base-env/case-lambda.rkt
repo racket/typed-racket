@@ -28,12 +28,10 @@
   (syntax-parse stx
     [(_ vars:maybe-lambda-type-vars
         [formals:case-lambda-formals . body] ...)
-     (quasisyntax/loc stx
-       (#%expression
-        #,(plambda-property
-           (syntax/loc stx
-             (case-lambda [formals.form . body] ...))
-           (attribute vars.type-vars))))]))
+     (plambda-property
+      (syntax/loc stx
+        (case-lambda [formals.form . body] ...))
+      (attribute vars.type-vars))]))
 
 (define-syntax (pcase-lambda: stx)
   (syntax-parse stx

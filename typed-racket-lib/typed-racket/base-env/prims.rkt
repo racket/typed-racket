@@ -1158,9 +1158,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
            (opt-lambda-property d (attribute formals.opt-property))))
      ;; attach a plambda property if necessary
      (if (attribute vars.type-vars)
-         (quasisyntax/loc stx
-           (#%expression
-            #,(plambda-property d/prop (attribute vars.type-vars))))
+         (plambda-property d/prop (attribute vars.type-vars))
          d/prop)]))
 
 ;; for backwards compatibility, note that this only accepts formals

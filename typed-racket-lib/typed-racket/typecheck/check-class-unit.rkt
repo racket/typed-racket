@@ -860,7 +860,7 @@
            (define expected (ret method-type))
            (register-method-ids meth self-type method-type)
            (do-timestamp (format "started checking method ~a" external-name))
-           (tc-expr/check (add-kw-property meth) expected)
+           (tc-expr/check (add-lambda-properties meth) expected)
            (do-timestamp (format "finished method ~a" external-name))
            (cons (list external-name pre-method-type) checked)]
           ;; Only try to type-check if these names are in the
@@ -872,7 +872,7 @@
            ;;        because TR can't recognize that the expansion is a kw
            ;;        function (unlike the expected case).
            (register-method-ids meth self-type #f)
-           (define type (tc-expr/t (add-kw-property meth)))
+           (define type (tc-expr/t (add-lambda-properties meth)))
            (do-timestamp (format "finished method ~a" external-name))
            (cons (list external-name
                        (method->function type))
@@ -893,12 +893,12 @@
              (function->method pre-method-type self-type))
            (define expected (ret method-type))
            (register-method-ids stx self-type method-type)
-           (tc-expr/check (add-kw-property stx) expected)]
+           (tc-expr/check (add-lambda-properties stx) expected)]
           ;; not private, then ignore since it's irrelevant
           [(not private?) (void)]
           [else
            (register-method-ids stx self-type #f)
-           (tc-expr/t (add-kw-property stx))])))
+           (tc-expr/t (add-lambda-properties stx))])))
 
 ;; check-field-set!s : Syntax Dict<Symbol, Symbol> Dict<Symbol, Type> -> Void
 ;; Check that fields are initialized to the correct type
@@ -1455,30 +1455,25 @@
     [_ (int-err "register-method-ids: internal error")]))
 
 ;; Syntax -> Syntax
-;; If the method syntax is for a keyword method, then propagate the keyword
-;; property further into the syntax object.
-(define (add-kw-property stx)
+;; Propagate all syntax properties on the outer expansion of the
+;; lambda to the core lambda that TR looks at
+(define (add-lambda-properties stx)
   (syntax-parse stx
     #:literal-sets (kernel-literals)
-    [(~and (let-values ([(meth-name:id) core]) m)
-           kw:kw-lambda^)
-      (quasisyntax/loc stx
-        (let-values ([(meth-name)
-                      #,(kw-lambda-property
-                        (syntax/loc stx core)
-                        (attribute kw.value))])
-          m))]
-    [(~and (let-values ([(meth-name:id) core]) m)
-           opt:opt-lambda^)
-     (match-define (list required optional) (attribute opt.value))
+    [(let-values ([(meth-name:id) core]) m)
+     (define opt-prop (opt-lambda-property stx))
+     (define datum (syntax-e #'core))
+     ;; the important bit is the last argument for copying properties
+     (define with-props (datum->syntax #'core datum stx stx))
+     ;; the opt-lambda-property needs adjustment for `this`
+     (define with-opt
+       (if opt-prop
+           (opt-lambda-property
+            with-props
+            (list (add1 (car opt-prop)) (cadr opt-prop)))
+           with-props))
      (quasisyntax/loc stx
-       (let-values ([(meth-name)
-                     #,(opt-lambda-property
-                        (syntax/loc stx core)
-                        (list (add1 required) ; for `this` argument
-                              optional))])
-         m))]
-    [_ stx]))
+       (let-values ([(meth-name) #,with-opt]) m))]))
 
 ;; Set<Symbol> Set<Symbol> String -> Void
 ;; check that all the required names are actually present

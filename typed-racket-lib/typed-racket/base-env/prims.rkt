@@ -1168,9 +1168,9 @@ This file defines two sorts of primitives. All of them are provided into any mod
   (syntax-parse stx #:literals (:)
     [(define: (nm:id . formals:annotated-formals) (~describe "return type annotation" (~seq : ret-ty)) body ...)
      (with-syntax ([arrty (syntax/loc stx (formals.arg-ty ... -> ret-ty))])
-       (syntax/loc stx
+       (quasisyntax/loc stx
          (-define nm : arrty
-           (-lambda formals body ...))))]
+           #,(syntax/loc stx (-lambda formals body ...)))))]
     [(define: nm:id ~! (~describe ":" :) (~describe "type" ty) body)
      (syntax/loc stx (-define nm : ty body))]
     [(define: tvars:type-variables nm:id : ty body)
@@ -1197,9 +1197,9 @@ This file defines two sorts of primitives. All of them are provided into any mod
          (define nm body)))]
     [(-define (nm:id . formals:annotated-formals) : ret-ty body ...)
      (with-syntax ([arrty (syntax/loc stx (formals.arg-ty ... -> ret-ty))])
-       (syntax/loc stx
+       (quasisyntax/loc stx
          (-define nm : arrty
-           (-lambda formals body ...))))]
+           #,(syntax/loc stx (-lambda formals body ...)))))]
     ;; bug 14702: the below should generate a `:` annotation when possible
     ;; currently, the above special case does the right thing for non-curried lambdas
     [(-define vars:maybe-lambda-type-vars
@@ -1221,7 +1221,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
        (syntax-parse rhs
          #:literals (-lambda)
          [(-lambda formals . others)
-          (template (-lambda (?@ . vars) formals . others))]
+          (template/loc stx (-lambda (?@ . vars) formals . others))]
          [_ rhs]))
      (quasisyntax/loc stx (define #,defined-id #,rhs*))]))
 

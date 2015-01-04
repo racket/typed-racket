@@ -82,8 +82,8 @@
    [make-dc (-> (Instance Bitmap-DC%))]
    [ok? (-> Boolean)]
    [save-file (case->
-               ((U Path-String Output-Port) (U 'png 'jpeg 'xbm 'xpm 'bmp) -> Boolean)
-               ((U Path-String Output-Port) (U 'png 'jpeg 'xbm 'xpm 'bmp) Natural -> Boolean))]
+               ((U Path-String Output-Port) (U 'png 'jpeg 'xbm 'xpm 'bmp) [#:unscaled? Any] -> Boolean)
+               ((U Path-String Output-Port) (U 'png 'jpeg 'xbm 'xpm 'bmp) Natural [#:unscaled? Any] -> Boolean))]
    [set-argb-pixels
     (case-> (Real Real
                   Exact-Nonnegative-Integer Exact-Nonnegative-Integer

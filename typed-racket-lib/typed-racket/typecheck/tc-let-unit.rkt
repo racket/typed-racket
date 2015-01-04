@@ -52,7 +52,7 @@
         (match e-r
           [(list (tc-result: e-ts (FilterSet: fs+ fs-) os) ...)
            (values e-ts
-                   os
+                   (map (λ (o n) (if (is-var-mutated? n) -empty-obj o)) os names)
                    (apply append
                           (for/list ([n (in-list names)]
                                      [t (in-list e-ts)]

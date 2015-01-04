@@ -3392,6 +3392,16 @@
                (void))
              -Void]
        
+       [tc-err (let ()
+                 (: foo (-> Any Number))
+                 (define foo
+                   (λ (x) (let ([x* x])
+                            (begin
+                              (set! x* "sneaky string")
+                              (if (number? x)
+                                  x*
+                                  42))))))]
+       
        ;; tests looking up path-types into unions
        [tc-e (let ()
                (: foo ((U (Pairof Number Number) (Pairof Number String)) -> Number))

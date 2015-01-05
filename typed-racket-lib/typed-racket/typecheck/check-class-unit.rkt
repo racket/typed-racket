@@ -953,14 +953,27 @@
                   (#%plain-app local-setter:id obj2:id y:id)))))
        #:when (free-identifier=? #'x #'y)
        #:when (free-identifier=? #'obj1 #'obj2)
-       ;; Remove wcm for checking since TR can't handle these cases
-       (define simplified
-         (syntax/loc form
-           (let-values (((obj1) self))
-             (let-values (((x) init-val))
-               (#%plain-app local-setter obj2 y)))))
-       (tc-expr simplified)]
+       ;; Only check init-val, trust that the rest is well-formed.
+       ;; Extracting the field type from the setter and using
+       ;; tc-expr/check propagates expected types better than
+       ;; checking the whole expression. It's also hard to extract
+       ;; the field type from a table since we don't know which
+       ;; field this setter corresponds to (except via the local
+       ;; binding name in the `let-values` which doesn't seem
+       ;; very reliable).
+       (define type (setter->type #'local-setter))
+       (tc-expr/check #'init-val (ret type))]
       [_ (void)])))
+
+;; setter->type : Id -> Type
+;; Determine the field type based on its private setter name
+;; (assumption: the type environment maps this name already)
+(define (setter->type id)
+  (define f-type (lookup-type/lexical id))
+  (match f-type
+    [(Function: (list (arr: (list _ type) _ _ _ _)))
+     type]
+    [#f (int-err "setter->type ~a" (syntax-e id))]))
 
 ;; check-init-arg : Id Type Syntax -> Void
 ;; Check the initialization of an init arg variable against the

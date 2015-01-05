@@ -529,7 +529,7 @@
                (: f (-> String))
                (define (f) 'bad))
              (error "foo"))
-           #:msg #rx"type mismatch.*expected: \\(-> String\\)"]
+           #:msg #rx"type mismatch.*expected: String"]
    ;; multiple names in define-values private fields
    [tc-e (class object%
            (super-new)
@@ -1693,4 +1693,11 @@
    [tc-e (class object%
            (super-new)
            (define/public foo (case-lambda [(str) (void)] [(sym size) (void)])))
-         (-class #:method [(foo (cl->* (t:-> Univ Univ -Void) (t:-> Univ -Void)))])]))
+         (-class #:method [(foo (cl->* (t:-> Univ Univ -Void) (t:-> Univ -Void)))])]
+   ;; PR 14911
+   [tc-e (class object%
+           (super-new)
+           (: bar (-> String String))
+           (define bar (lambda (x) x))
+           (bar "foo"))
+         (-class)]))

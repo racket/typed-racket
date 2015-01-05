@@ -459,7 +459,6 @@
   (do-timestamp "checked other top-level exprs")
   (with-lexical-env/extend-types lexical-names/top-level lexical-types/top-level
     (check-field-set!s (hash-ref parse-info 'initializer-body)
-                       local-field-table
                        inits))
   (do-timestamp "checked field initializers")
   (define checked-method-types
@@ -900,11 +899,11 @@
            (register-method-ids stx self-type #f)
            (tc-expr/t (add-lambda-properties stx))])))
 
-;; check-field-set!s : Syntax Dict<Symbol, Symbol> Dict<Symbol, Type> -> Void
+;; check-field-set!s : Syntax Dict<Symbol, Type> -> Void
 ;; Check that fields are initialized to the correct type
 ;; FIXME: use syntax classes for matching and clearly separate the handling
 ;;        of field initialization and set! uses
-(define (check-field-set!s stx local-field-table inits)
+(define (check-field-set!s stx inits)
   (for ([form (syntax->list stx)])
     (syntax-parse form
       #:literal-sets (kernel-literals)

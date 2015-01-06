@@ -34,8 +34,7 @@
        (match (list t1 t2)
          [(list-no-order (Univ:) _) #t]
          [(list-no-order (F: _) _) #t]
-         [(list (Opaque: _) _) #t]
-         [(list-no-order _ (Opaque: _)) #t]
+         [(list-no-order (Opaque: _) _) #t]
          [(list (Name/simple: n) (Name/simple: n*))
           (or (free-identifier=? n n*)
               (overlap (resolve-once t1) (resolve-once t2)))]

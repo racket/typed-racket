@@ -1997,6 +1997,23 @@
         [tc-e (sequence-add-between (inst empty-sequence Integer) 'foo)
               (-seq (t:Un -Int (-val 'foo)))]
         [tc-e (let ()
+                (: foo ((Sequenceof Integer) -> (Sequenceof Any)))
+                (define foo
+                  (λ (x)
+                    (cond 
+                      [(boolean? x) (void)]
+                      [(symbol? x) (void)]
+                      [(char? x) (void)]
+                      [(void? x) (void)]
+                      [(string? x) x]
+                      [(integer? x) x]
+                      [(list? x) x]
+                      [(input-port? x) x]
+                      [(set? x) x]
+                      [else 42])))
+                (void))
+              -Void]
+        [tc-e (let ()
                 (define: x : Any (vector 1 2 3))
                 (if (vector? x) (vector-ref x 0) #f))
               Univ]
@@ -2321,6 +2338,19 @@
                (place-channel-put c1 "a"))
              -Void]
        [tc-e (place-message-allowed? 'msg) -Boolean]
+       
+       [tc-e (let ()
+               (: bar ((Evtof Any) -> (Evtof Any)))
+               (define bar
+                 (λ (x)
+                   (cond 
+                     [(boolean? x) "nope"]
+                     [(symbol? x) "nope"]
+                     [(char? x) "nope"]
+                     [(void? x) "nope"]
+                     [(evt? x) x])))
+               (void))
+             -Void]
 
        ;; fxvectors & flvectors
        [tc-e (let ()

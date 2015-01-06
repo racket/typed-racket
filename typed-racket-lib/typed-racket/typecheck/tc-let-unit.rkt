@@ -6,7 +6,7 @@
          (private type-annotation parse-type syntax-properties)
          (env lexical-env type-alias-helper mvar-env
               global-env scoped-tvar-env)
-         (rep filter-rep object-rep)
+         (rep filter-rep object-rep type-rep)
          syntax/free-vars
          (typecheck signatures tc-metafunctions tc-subst internal-forms tc-envops)
          (utils tarjan)
@@ -52,7 +52,7 @@
         (match e-r
           [(list (tc-result: e-ts (FilterSet: fs+ fs-) os) ...)
            (values e-ts
-                   (map (λ (o n) (if (is-var-mutated? n) -empty-obj o)) os names)
+                   (map (λ (o n t) (if (or (is-var-mutated? n) (F? t)) -empty-obj o)) os names e-ts)
                    (apply append
                           (for/list ([n (in-list names)]
                                      [t (in-list e-ts)]
@@ -64,12 +64,12 @@
                                (list f+)]
                               [(is-var-mutated? n)
                                (list)]
-                              ;; n is being bound to an expression w/ object o
-                              ;; we don't need any new info, aliasing and the
-                              ;; lexical environment will have the needed info
-                              [(Path? o) (list)]
-                              ;; n is being bound to an expression w/o an object
-                              ;; so remember n in our propositions
+                              ;; n is being bound to an expression w/ object o, no new info 
+                              ;; is required due to aliasing (note: we currently do not
+                              ;; alias objects typed as type variables)
+                              [(and (Path? o) (not (F? t))) (list)]
+                              ;; n is being bound to an expression w/o an object (or whose
+                              ;; type is a type variable) so create props about n
                               [else (list (-or (-and (-not-filter (-val #f) n) f+)
                                                (-and (-filter (-val #f) n) f-)))]))))]
           [(list (tc-result: e-ts (NoFilter:) _) ...)

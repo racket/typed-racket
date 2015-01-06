@@ -51,9 +51,9 @@
       
       ;; resolve resolvable types if we haven't already done so
       [((? needs-resolving?) _) #:when (not (set-member? resolved (cons t1 t2)))
-                                (restrict* (resolve-once t1) t2 pref (set-add resolved (cons t1 t2)))]
+                                (restrict* (resolve t1) t2 pref (set-add resolved (cons t1 t2)))]
       [(_ (? needs-resolving?)) #:when (not (set-member? resolved (cons t1 t2)))
-                                (restrict* t1 (resolve-once t2) pref (set-add resolved (cons t1 t2)))]
+                                (restrict* t1 (resolve t2) pref (set-add resolved (cons t1 t2)))]
       
       ;; we don't actually want this - want something that's a part of t1
       [(_ _) #:when (subtype t2 t1)

@@ -1957,7 +1957,7 @@
                      (Boolean -> #t))
                 (t:-> -Boolean (-val #t))]
 
-        [tc-e (sequence? 'foo)
+        [tc-e (sequence? (ann 'foo Any))
               -Boolean]
         [tc-err (stop-before (inst empty-sequence Symbol) zero?)]
         [tc-e (stop-before (inst empty-sequence Integer) zero?)
@@ -3401,6 +3401,19 @@
                               (if (number? x)
                                   x*
                                   42))))))]
+       
+       ;; ensure let-aliasing doesn't cause problems w/ type variable types
+       [tc-e (let ()
+               (: foo (All (A) (-> A (Tuple Number A))))
+               (define foo
+                 (λ (x)
+                   (let ([x* x])
+                     (cond
+                       [(number? x*) (list x* x)]
+                       [(number? x) (list x x*)]
+                       [else (list 42 x*)]))))
+               (void))
+             -Void]
        
        ;; tests looking up path-types into unions
        [tc-e (let ()

@@ -93,11 +93,12 @@
   [t:check-around check-around]
   [t:current-check-handler current-check-handler]
   [t:current-check-around current-check-around])
-(define-rewriter t:test-case test-case
-  [t:current-test-case-around current-test-case-around]
-  [t:check-around check-around]
-  [t:current-check-handler current-check-handler]
-  [t:current-check-around current-check-around])
+
+(define-syntax-rule (test-case name expr ...)
+  (parameterize
+      ([current-test-name (ann name String)])
+    (test-begin expr ...)))
+
 (provide test-begin test-case)
 
 (require/opaque-type TestCase test-case? rackunit)

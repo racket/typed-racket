@@ -1,7 +1,8 @@
 #lang typed/racket
 (require typed/private/utils
          typed/private/rewriter
-         "type-env-ext.rkt")
+         "type-env-ext.rkt"
+         (for-syntax syntax/parse))
 
 (define-type check-ish-ty
   (case-lambda
@@ -104,12 +105,97 @@
 (require/opaque-type TestCase test-case? rackunit)
 (provide TestCase test-case?)
 
+(require/typed
+ rackunit/private/monad
+ [#:opaque monad monad?])
+(define-type Seed (Option monad))
 
+(define-type test-suite-handler-down
+  (rackunit-test-suite (Option String) (Thunk Any) (Thunk Any) Seed -> Seed))
+(define-type test-suite-handler-up
+  (rackunit-test-suite (Option String) (Thunk Any) (Thunk Any) Seed Seed -> Seed))
+(define-type test-suite-handler-here
+  (rackunit-test-case (Option String) (Thunk Any) Seed -> Seed))
 
-(require (only-in rackunit test-suite))
+(require/typed
+ rackunit
+ [#:struct rackunit-test-case ([name : (Option String)] [action : (Thunk Any)])
+           #:constructor-name make-rackunit-test-case]
+ [#:struct rackunit-test-suite
+           ([name : String]
+            [tests : (test-suite-handler-down
+                      test-suite-handler-up
+                      test-suite-handler-here
+                      Seed -> Seed)]
+            [before : (Thunk Any)]
+            [after : (Thunk Any)])
+           #:constructor-name make-rackunit-test-suite])
+(require/typed
+ rackunit/private/test-suite
+ [apply-test-suite (rackunit-test-suite
+                    test-suite-handler-down
+                    test-suite-handler-up
+                    test-suite-handler-here
+                    Seed -> Seed)])
+
+(define current-seed : (Parameter Seed)
+  (make-parameter #f))
+
+(: test-suite-test-case-around (test-suite-handler-here -> ((Thunk Any) -> Any)))
+(define (test-suite-test-case-around fhere)
+  (lambda (thunk)
+    (let* ([name (current-test-name)]
+           [test (make-rackunit-test-case name thunk)]
+           [seed (current-seed)])
+      (current-seed (fhere test name thunk seed)))))
+
+(: test-suite-check-around (test-suite-handler-here -> ((Thunk Any) -> Any)))
+(define (test-suite-check-around fhere)
+  (lambda (thunk)
+    (let* ([name #f]
+           [test (make-rackunit-test-case name thunk)]
+           [seed (current-seed)])
+      (current-seed (fhere test name thunk seed)))))
+
+(define-syntax (test-suite stx)
+  (syntax-parse stx
+    [(_ name:expr
+        (~or (~seq #:before before:expr) (~seq))
+        (~or (~seq #:after after:expr) (~seq))
+        test:expr ...)
+     (with-syntax ([before (if (attribute before) #'before #'void)]
+                   [after (if (attribute after) #'after #'void)])
+       #'(let ([tests
+                : (test-suite-handler-down
+                   test-suite-handler-up
+                   test-suite-handler-here
+                   Seed -> Seed)
+                (lambda (fdown fup fhere seed)
+                  (define (run/inner [x : Any]) : Any
+                    (cond [(rackunit-test-suite? x)
+                           (current-seed
+                            (apply-test-suite x fdown fup fhere (current-seed)))]
+                          [(list? x)
+                           (for-each run/inner x)]
+                          [else
+                           (void)]))
+                  (parameterize
+                      ([current-seed seed]
+                       [current-test-case-around (test-suite-test-case-around fhere)]
+                       [current-check-around (test-suite-check-around fhere)])
+                    (let ([t : Any test])
+                      (run/inner t))
+                    ...
+                    (current-seed)))])
+           (make-rackunit-test-suite
+            (ann name : String)
+            tests
+            (ann before : (Thunk Any))
+            (ann after : (Thunk Any)))))]))
 (provide test-suite)
-(require/opaque-type TestSuite test-suite? rackunit)
-(provide TestSuite test-suite?)
+
+(define-type TestSuite rackunit-test-suite)
+(provide TestSuite (rename-out [rackunit-test-suite? test-suite?]))
 
 (define-type Test (U TestCase TestSuite))
 (provide Test)
@@ -117,10 +203,7 @@
 (require/typed/provide
  rackunit
  [make-test-suite
-  (case-lambda
-    (String (Listof Test) -> TestSuite)
-    ; XXX #:before #:after
-    )])
+  (String (Listof (U TestCase TestSuite)) [#:before (Thunk Any)] [#:after (Thunk Any)] -> TestSuite)])
 
 (require (only-in rackunit define-test-suite define/provide-test-suite))
 (provide define-test-suite define/provide-test-suite)
@@ -128,9 +211,7 @@
 (require/typed/provide
  rackunit
  [current-test-name (Parameter (Option String))]
- [current-test-case-around (Parameter ((Thunk Any) -> Any))]
- [test-suite-test-case-around ((Thunk Any) -> Any)]
- [test-suite-check-around ((Thunk Any) -> Any)])
+ [current-test-case-around (Parameter ((Thunk Any) -> Any))])
 
 ; 3.4
 (require (only-in rackunit before after around delay-test))

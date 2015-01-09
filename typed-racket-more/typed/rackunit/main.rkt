@@ -1,5 +1,6 @@
 #lang typed/racket
-(require typed/private/utils
+(require typed/racket/class
+         typed/private/utils
          typed/private/rewriter
          "type-env-ext.rkt"
          (for-syntax syntax/parse))
@@ -108,7 +109,7 @@
 (require/typed
  rackunit/private/monad
  [#:opaque monad monad?])
-(define-type Seed (Option monad))
+(define-type Seed (U #f monad (Object)))
 
 (define-type test-suite-handler-down
   (rackunit-test-suite (Option String) (Thunk Any) (Thunk Any) Seed -> Seed))

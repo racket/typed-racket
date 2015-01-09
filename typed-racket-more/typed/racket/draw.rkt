@@ -17,7 +17,6 @@
           racket/draw/private/ps-setup
           racket/draw/private/record-dc
           racket/draw/private/region
-          (for-syntax (only-in (rep type-rep) make-Instance))
           (only-in typed/racket/base -> U)
           "private/gui-types.rkt"
           (for-syntax (submod "private/gui-types.rkt" #%type-decl)))
@@ -95,7 +94,7 @@
  [get-family-builtin-face (-> -Font-Family -String)]
  [make-bitmap
   (->optkey -PosInt -PosInt [Univ] #:backing-scale -Real #f
-            (make-Instance (parse-type #'Bitmap%)))]
+            (-inst (parse-type #'Bitmap%)))]
  [make-brush
   (->key #:color (Un -String (-inst -Color%)) #f
          #:style -Brush-Style #f
@@ -140,14 +139,14 @@
   (->key -Integer -Integer #:backing-scale -Real #f (-inst -Bitmap%))]
  [read-bitmap
   (->optkey (Un -Pathlike -Input-Port)
-            [-LoadFileKind (Un (make-Instance (parse-type #'Color%)) (-val #f)) Univ]
+            [-LoadFileKind (Un (-inst (parse-type #'Color%)) (-val #f)) Univ]
             #:backing-scale -Real #f
             #:try-@2x? Univ #f
-            (make-Instance (parse-type #'Bitmap%)))]
+            (-inst (parse-type #'Bitmap%)))]
  [recorded-datum->procedure
   (-> Univ (-> (-inst (parse-type #'DC<%>)) -Void))]
- [the-brush-list (make-Instance (parse-type #'Brush-List%))]
- [the-color-database (make-Instance (parse-type #'Color-Database<%>))]
- [the-font-list (make-Instance (parse-type #'Font-List%))]
+ [the-brush-list (-inst (parse-type #'Brush-List%))]
+ [the-color-database (-inst (parse-type #'Color-Database<%>))]
+ [the-font-list (-inst (parse-type #'Font-List%))]
  ; font-name-directory
- [the-pen-list (make-Instance (parse-type #'Pen-List%))])
+ [the-pen-list (-inst (parse-type #'Pen-List%))])

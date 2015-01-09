@@ -142,7 +142,8 @@
 (define current-seed : (Parameter Seed)
   (make-parameter #f))
 
-(: test-suite-test-case-around (test-suite-handler-here -> ((Thunk Any) -> Any)))
+; taken directly from rackunit/private/test-suite
+(: test-suite-test-case-around (test-suite-handler-here -> ((Thunk Any) -> Void)))
 (define (test-suite-test-case-around fhere)
   (lambda (thunk)
     (let* ([name (current-test-name)]
@@ -150,7 +151,8 @@
            [seed (current-seed)])
       (current-seed (fhere test name thunk seed)))))
 
-(: test-suite-check-around (test-suite-handler-here -> ((Thunk Any) -> Any)))
+; taken directly from rackunit/private/test-suite
+(: test-suite-check-around (test-suite-handler-here -> ((Thunk Any) -> Void)))
 (define (test-suite-check-around fhere)
   (lambda (thunk)
     (let* ([name #f]
@@ -158,6 +160,7 @@
            [seed (current-seed)])
       (current-seed (fhere test name thunk seed)))))
 
+; adapted from rackunit/private/test-suite
 (define-syntax (test-suite stx)
   (syntax-parse stx
     [(_ name:expr

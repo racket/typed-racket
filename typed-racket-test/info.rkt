@@ -26,7 +26,7 @@
 
 (define pkg-desc "tests for \"typed-racket\"")
 
-(define pkg-authors '(samth stamourv))
+(define pkg-authors '(samth stamourv endobson asumu))
 
 (define version "1.1")
 

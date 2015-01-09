@@ -490,8 +490,8 @@
 ;; invariant: all clauses are sorted by the key name
 (def-type Row ([inits (listof (list/c symbol? Type/c boolean?))]
                [fields (listof (list/c symbol? Type/c))]
-               [methods (listof (list/c symbol? Function?))]
-               [augments (listof (list/c symbol? Function?))]
+               [methods (listof (list/c symbol? Type/c))]
+               [augments (listof (list/c symbol? Type/c))]
                [init-rest (or/c Type/c #f)])
   #:no-provide
   [#:frees (λ (f) (combine-frees
@@ -973,8 +973,8 @@
   (-> (or/c F? B? Row? #f)
       (listof (list/c symbol? Type/c boolean?))
       (listof (list/c symbol? Type/c))
-      (listof (list/c symbol? Function?))
-      (listof (list/c symbol? Function?))
+      (listof (list/c symbol? Type/c))
+      (listof (list/c symbol? Type/c))
       (or/c Type/c #f)
       Class?)
   (*Class row-var (Row* inits fields methods augments init-rest)))

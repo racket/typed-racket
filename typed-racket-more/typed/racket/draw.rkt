@@ -14,6 +14,7 @@
           racket/draw/private/gl-context
           racket/draw/private/gradient
           racket/draw/private/pen
+          racket/draw/private/ps-setup
           racket/draw/private/record-dc
           racket/draw/private/region
           (for-syntax (only-in (rep type-rep) make-Instance))
@@ -53,6 +54,7 @@
           Pen-Cap-Style
           Pen-Join-Style
           Point%
+          PS-Setup%
           Radial-Gradient%
           Region%))
 
@@ -82,10 +84,11 @@
  [gl-config% (parse-type #'GL-Config%)]
  [linear-gradient% (parse-type #'Linear-Gradient%)]
  [pen% (parse-type #'Pen%)]
+ [ps-setup% (parse-type #'PS-Setup%)]
  [radial-gradient% (parse-type #'Radial-Gradient%)]
  [region% (parse-type #'Region%)]
  ;; 26 Drawing Functions
- ; current-ps-setup
+ [current-ps-setup (-Param (-inst (parse-type #'PS-Setup%)))]
  [get-face-list (->optkey [(one-of/c 'mono 'all)]
                           #:all-variants? Univ #f
                           (-lst -String))]

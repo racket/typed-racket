@@ -59,9 +59,11 @@
 (define -Promise make-Promise)
 (define -set make-Set)
 (define -vec make-Vector)
+(define (-vec* . ts) (make-HeterogeneousVector ts))
 (define -future make-Future)
 (define -evt make-Evt)
 (define -weak-box make-Weak-Box)
+(define -inst make-Instance)
 
 (define (-seq . args) (make-Sequence args))
 

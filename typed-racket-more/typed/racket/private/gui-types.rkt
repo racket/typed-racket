@@ -317,6 +317,7 @@
          [resume-flush (-> Void)]
          [rotate (Real -> Void)]
          [scale (Real Real -> Void)]
+         [set-alignment-scale (-> Real Void)]
          [set-alpha (Nonnegative-Real -> Void)]
          [set-background ((U (Instance Color%) String) -> Void)]
          [set-brush (case->

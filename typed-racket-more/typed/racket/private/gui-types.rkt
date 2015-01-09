@@ -21,6 +21,7 @@
          DC<%>
          Font%
          Font-List%
+         Font-Name-Directory<%>
          GL-Config%
          GL-Context<%>
          Linear-Gradient%
@@ -532,6 +533,21 @@
          [screen-glyph-exists?
           (case-> (Char -> Boolean)
                   (Char Any -> Boolean))]))
+
+(define-type Font-Name-Directory<%>
+  (Class [find-family-default-font-id (-> Font-Family Integer)]
+         [find-or-create-font-id (-> String Font-Family Integer)]
+         [get-face-name (-> Integer (Option String))]
+         [get-family (-> Integer Font-Family)]
+         [get-font-id (-> String Font-Family Integer)]
+         [get-post-script-name
+          (-> Integer Font-Weight Font-Style (Option String))]
+         [get-screen-name
+          (-> Integer Font-Weight Font-Style (Option String))]
+         [set-post-script-name
+          (-> Integer Font-Weight Font-Style String Void)]
+         [set-screen-name
+          (-> Integer Font-Weight Font-Style String Void)]))
 
 ;; racket/gui
 

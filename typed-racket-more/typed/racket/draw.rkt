@@ -34,6 +34,7 @@
           Font-Weight
           Font-Smoothing
           Font-Hinting
+          Font-Name-Directory<%>
           Bitmap%
           Bitmap-DC%
           Brush-Style
@@ -148,5 +149,5 @@
  [the-brush-list (-inst (parse-type #'Brush-List%))]
  [the-color-database (-inst (parse-type #'Color-Database<%>))]
  [the-font-list (-inst (parse-type #'Font-List%))]
- ; font-name-directory
+ [the-font-name-directory (-inst (parse-type #'Font-Name-Directory<%>))]
  [the-pen-list (-inst (parse-type #'Pen-List%))])

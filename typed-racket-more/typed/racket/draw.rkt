@@ -108,7 +108,7 @@
                                        -Real -Real -Real -Real -Real))
                           #f
          #:immutable? Univ #f
-         (-inst (parse-type #'Bitmap%)))]
+         (-inst (parse-type #'Brush%)))]
  [make-color
   (->optkey -Byte -Byte -Byte
             [-Real]

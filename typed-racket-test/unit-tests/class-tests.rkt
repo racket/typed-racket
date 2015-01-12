@@ -730,7 +730,6 @@
              (m "foo"))
            #:ret (ret (-class #:method ([m (t:-> -Integer -Integer)])))]
    ;; test that keyword methods type-check
-   ;; FIXME: send with keywords does not work yet
    [tc-e (let ()
            (: c% (Class [n (Integer #:foo Integer -> Integer)]))
            (define c%
@@ -738,8 +737,19 @@
                (super-new)
                (define/public (n x #:foo foo)
                  (+ foo x))))
-           (void))
-         -Void]
+           (send (new c%) n 0 #:foo 1))
+         -Integer]
+   ;; fails, bad kw argument
+   [tc-err (let ()
+             (: c% (Class [n (Integer #:foo Integer -> Integer)]))
+             (define c%
+               (class object%
+                 (super-new)
+                 (define/public (n x #:foo foo)
+                   (+ foo x))))
+             (send (new c%) n 0 #:foo "foo")
+             (error "foo"))
+           #:msg #rx"expected Integer.*got String"]
    ;; test instance subtyping
    [tc-e (let ()
            (define c%

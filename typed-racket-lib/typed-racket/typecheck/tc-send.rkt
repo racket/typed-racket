@@ -4,15 +4,22 @@
 
 (require "../utils/utils.rkt"
          racket/match syntax/stx
+         syntax/parse
+         (env lexical-env)
          (typecheck signatures tc-funapp tc-metafunctions)
          (types base-abbrev resolve utils type-table)
          (rep type-rep)
-         (utils tc-utils))
+         (utils tc-utils)
+         (for-template racket/base))
 
 (import tc-expr^)
 (export tc-send^)
 
-(define (tc/send form rcvr method args [expected #f])
+(define (tc/send form app
+                 rcvr-var rcvr
+                 method-var method
+                 arg-vars args
+                 [expected #f])
   ;; do-check : Type/c -> tc-results/c
   (define (do-check rcvr-type)
     (match rcvr-type
@@ -28,7 +35,9 @@
                          "method name" s
                          "object type" obj
                          #:return -Bottom)]))
-          (tc/funapp rcvr args ftype (stx-map tc-expr args) expected)]
+          (define vars  (list* rcvr-var method-var (syntax->list arg-vars)))
+          (define types (list* rcvr-type ftype (stx-map tc-expr/t args)))
+          (tc/send-internal vars types app expected)]
          [_ (int-err "non-symbol methods not supported by Typed Racket: ~a"
                      rcvr-type)])]
       ;; union of objects, check pointwise and union the results
@@ -43,3 +52,27 @@
   (define final-ret (do-check (tc-expr/t rcvr)))
   (add-typeof-expr form final-ret)
   final-ret)
+
+;; tc/send-internal : (Listof Id) (Listof Type) Syntax (Option TC-Result)
+;;                    -> TC-Result
+;; Handles typechecking the actual application inside the method send
+;; expansion. Most of the work is done by tc/app via tc-expr.
+(define (tc/send-internal vars types app-stx expected)
+  (syntax-parse app-stx
+    #:literal-sets (kernel-literals)
+    #:literals (list)
+    [(#%plain-app meth obj arg ...)
+     (with-lexical-env/extend-types vars types
+       (tc-expr/check #'(#%plain-app meth arg ...)
+                      expected))]
+    [(let-values ([(arg-var) arg] ...)
+       (#%plain-app (#%plain-app cpce s-kp meth kpe kws num)
+                    kws2 kw-args
+                    obj pos-arg ...))
+     (with-lexical-env/extend-types vars types
+       (tc-expr/check
+        #'(let-values ([(arg-var) arg] ...)
+            (#%plain-app (#%plain-app cpce s-kp meth kpe kws num)
+                         kws2 kw-args
+                         pos-arg ...))
+        expected))]))

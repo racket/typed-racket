@@ -47,22 +47,18 @@
 
   (syntax-parse stx
     [(require/contract nm:renameable hidden:id cnt lib)
-     #`(begin (define-syntax nm.nm
+     #`(begin (require (only-in lib [nm.orig-nm nm.orig-nm-r]))
+              (define-syntax nm.nm
                 (make-rename-transformer
                  (syntax-property (syntax-property (quote-syntax hidden)
                                                    'not-free-identifier=? #t)
                                   'not-provide-all-defined #t)))
+
               (define-ignored hidden
-                (let ()
-                  ;; Use `local-require` in order to use this internal
-                  ;; definition context instead of defining at the top-level.
-                  ;; This avoids top-level hopelessness to do with
-                  ;; `local-expand` and definitions.
-                  (local-require (only-in lib [nm.orig-nm nm.orig-nm-r]))
-                  (contract cnt
-                            (get-alternate nm.orig-nm-r)
-                            '(interface for #,(syntax->datum #'nm.nm))
-                            (current-contract-region)
-                            (quote nm.nm)
-                            (quote-srcloc nm.nm)))))]))
+                (contract cnt
+                          (get-alternate nm.orig-nm-r)
+                          '(interface for #,(syntax->datum #'nm.nm))
+                          (current-contract-region)
+                          (quote nm.nm)
+                          (quote-srcloc nm.nm))))]))
 

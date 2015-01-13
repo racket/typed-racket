@@ -12,6 +12,7 @@
                "typed-racket-lib"
                "gui-lib"
                "pict-lib"
+               "racket-index"
                "sandbox-lib"))
 
 (define pkg-desc "Types for various libraries")

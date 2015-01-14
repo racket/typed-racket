@@ -6,7 +6,8 @@
          (only-in (types abbrev) (-> t:->) [->* t:->*])
          (private type-annotation parse-type syntax-properties)
          (env lexical-env type-alias-helper mvar-env
-              global-env scoped-tvar-env)
+              global-env scoped-tvar-env 
+              signature-env signature-helper)
          (rep filter-rep object-rep type-rep)
          syntax/free-vars
          (typecheck signatures tc-metafunctions tc-subst internal-forms tc-envops)
@@ -37,7 +38,9 @@
 ;; Checks that the body has the expected type when names are bound to the types spcified by results.
 ;; The exprs are also typechecked by using expr->type.
 ;; TODO: make this function sane.
-(define/cond-contract (do-check expr->type namess expected-results exprs body expected)
+;; The `check-thunk` argument serves the same purpose as in tc/letrec-values
+(define/cond-contract (do-check expr->type namess expected-results exprs body expected 
+                                [check-thunk void])
   ((syntax? tc-results/c . -> . any/c)
    (listof (listof identifier?)) (listof (listof tc-result?))
    (listof syntax?) syntax? (or/c #f tc-results/c)
@@ -94,6 +97,9 @@
           (match results
             [(list (tc-result: ts fs os) ...)
              (expr->type expr (ret ts fs os))]))
+        ;; Perform additional context-dependent checking that needs to be done
+        ;; in the context of the letrec body
+        (check-thunk)
         ;; typecheck the body
         (tc-body/check body (and expected (erase-filter expected)))))))
 
@@ -107,15 +113,23 @@
 (define (regsiter-aliases-and-declarations names exprs)
   ;; Collect the declarations, which are represented as expressions.
   ;; We put them back into definitions to reuse the existing machinery
-  (define-values (type-aliases declarations)
-    (for/fold ([aliases '()] [declarations '()])
+  (define-values (type-aliases declarations signature-forms)
+    (for/fold ([aliases '()] [declarations '()] [signature-forms '()])
               ([body (in-list exprs)])
       (syntax-parse #`(define-values () #,body)
         [t:type-alias
-         (values (cons #'t aliases) declarations)]
+         (values (cons #'t aliases) declarations signature-forms)]
         [t:type-declaration
-         (values aliases (cons (list #'t.id #'t.type) declarations))]
-        [_ (values aliases declarations)])))
+         (values aliases (cons (list #'t.id #'t.type) declarations) signature-forms)]
+        [t:typed-define-signature
+           (values aliases declarations (cons #'t signature-forms))]
+        [_ (values aliases declarations signature-forms)])))
+
+  ;; add signature names to the signature environment, deferring type parsing
+  ;; until after aliases are registered to allow mutually recursive references
+  ;; between signatures and type aliases
+  (for/list ([sig-form (in-list (reverse signature-forms))])
+    (parse-and-register-signature! sig-form))
 
   (define-values (alias-names alias-map) (get-type-alias-info type-aliases))
   (register-all-type-aliases alias-names alias-map)
@@ -130,14 +144,22 @@
   (for ([n (in-list names)] [b (in-list exprs)])
     (syntax-case n ()
       [(var) (add-scoped-tvars b (lookup-scoped-tvars #'var))]
-      [_ (void)])))
+      [_ (void)]))
 
-(define (tc/letrec-values namess exprs body [expected #f])
+  ;; Finalize signatures, by parsing member types
+  (finalize-signatures!))
+
+;; The `thunk` argument is run only for its side effects 
+;; It is used to perform additional context-dependent checking
+;; within the context of a letrec body.
+;; For example, it is used to typecheck units and ensure that exported
+;; variables are exported at the correct types
+(define (tc/letrec-values namess exprs body [expected #f] [check-thunk void])
   (let* ([names (stx-map syntax->list namess)]
          [orig-flat-names (apply append names)]
          [exprs (syntax->list exprs)])
     (regsiter-aliases-and-declarations names exprs)
-
+    
     ;; First look at the clauses that do not bind the letrec names
     (define all-clauses
       (for/list ([name-lst names] [expr exprs])
@@ -153,19 +175,21 @@
 
     ;; Check those and then check the rest in the extended environment
     (check-non-recursive-clauses
-      ordered-clauses
-      (lambda ()
-        (cond
-          ;; after everything, check the body expressions
-          [(null? remaining-names)
-           (tc-body/check body (and expected (erase-filter expected)))]
-          [else
-           (define flat-names (apply append remaining-names))
-           (do-check tc-expr/check
-                     remaining-names
-                     ;; types the user gave.
-                     (map (λ (l) (map tc-result (map get-type l))) remaining-names)
-                     remaining-exprs body expected)])))))
+     ordered-clauses
+     (lambda ()
+       (cond
+         ;; after everything, check the body expressions
+         [(null? remaining-names)
+          (check-thunk)
+          (tc-body/check body (and expected (erase-filter expected)))]
+         [else
+          (define flat-names (apply append remaining-names))
+          (do-check tc-expr/check
+                    remaining-names
+                    ;; types the user gave.
+                    (map (λ (l) (map tc-result (map get-type l))) remaining-names)
+                    remaining-exprs body expected
+                    check-thunk)])))))
 
 ;; An lr-clause is a
 ;;   (lr-clause (Listof Identifier) Syntax)

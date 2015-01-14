@@ -6,7 +6,7 @@
 
 (require "simple.rkt" "structural.rkt"
          (for-template racket/base racket/list racket/set racket/promise
-                       racket/class racket/async-channel))
+                       racket/class racket/unit racket/async-channel))
 (provide (all-defined-out))
 
 (define identifier?/sc (flat/sc #'identifier?))
@@ -34,5 +34,6 @@
 (define continuation-mark-key?/sc (flat/sc #'continuation-mark-key?))
 
 (define class?/sc (flat/sc #'class?))
+(define unit?/sc (flat/sc #'unit?))
 
 (define struct-type?/sc (flat/sc #'struct-type?))

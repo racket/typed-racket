@@ -246,7 +246,19 @@
               (t (-class #:method ([m (-polydots (x) (->... (list) (x x) -Void))])))
               (t (-class #:method ([m (-polyrow (x) (list null null null null)
                                         (-> (-class #:row (-v x)) -Void))])))
-
+              
+              ;; units
+              ;; These tests do not have sufficient coverage because more
+              ;; coverage requires a proper set up of the signature environment.
+              ;; Further coverage of unit contract compilations occurs in
+              ;; integration tests.
+              (t-sc (-unit null null null (-values (list -Integer)))
+                    (unit/sc null null null (list integer/sc)))
+              (t-sc (-unit null null null (-values (list -Integer -Number)))
+                    (unit/sc null null null (list integer/sc number/sc)))
+              (t-sc (-unit null null null (-values (list)))
+                    (unit/sc null null null null))
+                            
               ;; typed/untyped interaction tests
               (t-int (-poly (a) (-> a a))
                      (λ (f) (f 1))

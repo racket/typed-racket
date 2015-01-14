@@ -19,13 +19,15 @@
 
 (provide require/opaque-type require-typed-struct-legacy require-typed-struct
          require/typed-legacy require/typed require/typed/provide
-         require-typed-struct/provide cast make-predicate define-predicate)
+         require-typed-struct/provide cast make-predicate define-predicate
+         require-typed-signature)
 
 (module forms racket/base
   (require (for-syntax racket/lazy-require racket/base))
   (begin-for-syntax 
     (lazy-require [(submod "..")
-                   (require/opaque-type 
+                   (require/opaque-type
+                    require-typed-signature
                     require-typed-struct-legacy
                     require-typed-struct
                     require/typed-legacy require/typed require/typed/provide
@@ -36,7 +38,8 @@
        (with-syntax ([(names ...) (generate-temporaries #'(id ...))])
          #'(begin (provide (rename-out [names id] ...))
                   (define-syntax (names stx) (id stx)) ...))]))
-  (def require/opaque-type 
+  (def require/opaque-type
+        require-typed-signature
         require-typed-struct-legacy
         require-typed-struct
         require/typed-legacy require/typed require/typed/provide
@@ -121,6 +124,11 @@
               (~var constructor (opt-constructor legacy #'nm.nm))]
              #:with (constructor-parts ...) #'constructor.value))
 
+  (define-syntax-class signature-clause
+    #:literals (:)
+    #:attributes (sig-name [var 1] [type 1])
+    (pattern [#:signature sig-name:id ([var:id : type] ...)]))
+
   (define-syntax-class opaque-clause
     ;#:literals (opaque)
     #:attributes (ty pred opt)
@@ -135,6 +143,8 @@
      #`(require/opaque-type oc.ty oc.pred #,lib . oc.opt))
    (pattern (~var strc (struct-clause legacy)) #:attr spec
      #`(require-typed-struct strc.nm (strc.body ...) strc.constructor-parts ... #,lib))
+   (pattern sig:signature-clause #:attr spec
+     #`(require-typed-signature sig.sig-name (sig.var ...) (sig.type ...) #,lib))
    (pattern sc:simple-clause #:attr spec
      #`(require/typed #:internal sc.nm sc.ty #,lib)))
 
@@ -442,3 +452,18 @@
                            [sel (nm -> ty)]) ...)))]))
 
   (values (rts #t) (rts #f))))
+
+(define (require-typed-signature stx)
+  (syntax-parse stx
+    #:literals (:)
+    [(_ sig-name:id (var ...) (type ...) lib)
+     (quasisyntax/loc stx
+       (begin
+         (require (only-in lib sig-name))
+         #,(internal (quasisyntax/loc stx
+                       (define-signature-internal sig-name
+                         #:parent-signature #f
+                         ([var type] ...)
+                         ;; infer parent relationships using the static information
+                         ;; bound to this signature
+                         #:check? #t)))))]))

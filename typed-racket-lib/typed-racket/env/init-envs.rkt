@@ -8,11 +8,12 @@
          "type-name-env.rkt"
          "type-alias-env.rkt"
          "mvar-env.rkt"
+         "signature-env.rkt"
          (rename-in racket/private/sort [sort raw-sort])
          (rep type-rep object-rep filter-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
          (types abbrev union)
-         racket/dict racket/list
+         racket/dict racket/list racket/promise
          mzlib/pconvert racket/match)
 
 (provide ;; convenience form for defining an initial environment
@@ -26,7 +27,8 @@
          tvariance-env-init-code
          talias-env-init-code
          env-init-code
-         mvar-env-init-code)
+         mvar-env-init-code
+         signature-env-init-code)
 
 (define-syntax (define-initial-env stx)
   (syntax-parse stx
@@ -118,6 +120,16 @@
               (set-box! cache-box
                         (dict-set (unbox cache-box) v (list name class-type))))
             (if cache-box name class-type)])]
+    [(Signature: name extends mapping)
+     (define (serialize-mapping m)
+       (map (lambda (id/ty) 
+              (define id (car id/ty))
+              (define ty (force (cdr id/ty)))
+              `(cons (quote-syntax ,id) ,(sub ty)))
+            m))
+     `(make-Signature (quote-syntax ,name)
+                      (quote-syntax ,extends)
+                      (list ,@(serialize-mapping mapping)))]
     [(arr: dom rng rest drest kws)
      `(make-arr ,(sub dom) ,(sub rng) ,(sub rest) ,(sub drest) ,(sub kws))]
     [(TypeFilter: t p)
@@ -184,3 +196,8 @@
   (make-init-code
     (λ (f) (dict-map mvar-env f))
     (lambda (id v) (and v #`(register-mutated-var #'#,id)))))
+
+(define (signature-env-init-code)
+  (make-init-code
+   signature-env-map
+   (lambda (id sig) #`(register-signature! #'#,id #,(quote-type sig)))))

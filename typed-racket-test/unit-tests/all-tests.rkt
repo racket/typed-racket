@@ -44,4 +44,5 @@
   "rep-tests.rkt"
   "prims-tests.rkt"
   "tooltip-tests.rkt"
-  "prefab-tests.rkt")
+  "prefab-tests.rkt"
+  "typed-units-tests.rkt")

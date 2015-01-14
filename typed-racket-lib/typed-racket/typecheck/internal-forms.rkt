@@ -28,11 +28,15 @@
   typed-require/struct
   predicate-assertion
   type-declaration
+  typed-define-signature
+  typed-define-values/invoke-unit
   typecheck-failure
 
   type-alias?
   typed-struct?
-  typed-struct/exec?)
+  typed-struct/exec?
+  typed-define-signature?
+  typed-define-values/invoke-unit?)
 
 (module forms racket/base
   (require (for-syntax racket/base))
@@ -56,7 +60,9 @@
                   assert-predicate-internal
                   declare-refinement-internal
                   :-internal
-                  typecheck-fail-internal))
+                  typecheck-fail-internal
+                  define-signature-internal
+                  define-values/invoke-unit-internal))
 
 (require (submod "." forms) (submod "." forms literal-set))
 
@@ -87,6 +93,11 @@
            #:attr prefab (attribute options.prefab)
            #:attr type-only (attribute options.type-only)
            #:attr maker (or (attribute options.maker) #'nm.nm)))
+
+(define-syntax-class dviu-import/export
+  (pattern (sig-id:id member-id:id ...)
+           #:with sig #'sig-id
+           #:with members #'(member-id ...)))
 
 ;;; Internal form syntax matching
 
@@ -140,7 +151,21 @@
   [predicate-assertion
     (assert-predicate-internal type predicate)]
   [type-declaration
-    (:-internal id:identifier type)])
+    (:-internal id:identifier type)]
+  ;; the check field indicates whether this signature is being 
+  ;; required from an untyped context in which case the super
+  ;; value is ignored and information about parent signatures
+  ;; is inferred from static information bound to the signature
+  ;; identifier
+  [typed-define-signature
+   (define-signature-internal name super (binding ...) check)]
+  ;; This should be a decent initial attempt at making
+  ;; define-values/invoke-unit work, the unit-expr is
+  ;; unnecessary at this point since it will be handled
+  ;; when expressions are typechecked
+  [typed-define-values/invoke-unit
+   (define-values/invoke-unit-internal (import:dviu-import/export ...)
+                                       (export:dviu-import/export ...))])
 
 ;; Define separately outside of `define-internal-classes` since this form
 ;; is meant to appear in expression positions, so it doesn't make sense to use

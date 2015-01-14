@@ -507,6 +507,14 @@
     [(Instance: t) `(Instance ,(t->s t))] ; for cases like Error
     [(ClassTop:) 'ClassTop]
     [(? Class?) (class->sexp type)]
+    [(Unit: (list imports ...) (list exports ...) (list init-depends ...) body)
+     `(Unit
+       (import ,@(map t->s imports))
+       (export ,@(map t->s exports))
+       (init-depend ,@(map t->s init-depends))
+       ,(t->s body))]
+    [(Signature: name extends mapping)
+     (syntax->datum name)]
     [(Result: t (or (NoFilter:) (FilterSet: (Top:) (Top:))) (or (NoObject:) (Empty:))) (type->sexp t)]
     [(Result: t fs (Empty:)) `(,(type->sexp t) : ,(filter->sexp fs))]
     [(Result: t fs lo) `(,(type->sexp t) : ,(filter->sexp fs) : ,(object->sexp lo))]

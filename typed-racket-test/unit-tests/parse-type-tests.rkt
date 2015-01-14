@@ -21,6 +21,7 @@
          (only-in (base-env case-lambda) case-lambda)
          (prefix-in un: (only-in racket/class init init-field field augment))
          (only-in typed/racket/class init init-field field augment)
+         (only-in racket/unit import export init-depend)
 
          rackunit)
 
@@ -372,6 +373,19 @@
            ((Class #:row-var r (init y)) -> (Class #:row-var r)))]
    [FAIL (All (r #:row (init x y z) (field f) m n)
            ((Class #:row-var r a b c) -> (Class #:row-var r)))]
+   
+   ;; parsing tests for Unit types
+   [(Unit (import) (export) (init-depend) String)
+    (make-Unit null null null (-values (list -String)))]
+   [(Unit (import) (export) String)
+    (make-Unit null null null (-values (list -String)))]
+   [(Unit (import) (export) (init-depend))
+    (make-Unit null null null (-values (list -Void)))]
+   [(Unit (import) (export))
+    (make-Unit null null null (-values (list -Void)))]
+   [FAIL (Unit (export) String)]
+   [FAIL (Unit (import) String)]
+   [FAIL (Unit (init-depend) String)]
    ))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

@@ -74,5 +74,12 @@
   (tr:class:local-table tr:class:local-table)
   (tr:class:name-table tr:class:name-table)
   (tr:class:def tr:class:def)
-  )
+  (tr:unit tr:unit #:mark)
+  (tr:unit:index-table tr:unit:index-table)
+  (tr:unit:body-exp-def-type tr:unit:body-exp-def-type)
+  (tr:unit:invoke tr:unit:invoke #:mark)
+  (tr:unit:invoke:expr tr:unit:invoke:expr)
+  (tr:unit:compound tr:unit:compound)
+  (tr:unit:compound:expr tr:unit:compound:expr)
+  (tr:unit:from-context tr:unit:from-context))
 

@@ -70,4 +70,7 @@
     (t/sc (-mu a (-box a)))
     (t/sc (-mu sexp (Un -Null -Symbol (-pair sexp sexp) (-vec sexp) (-box sexp))))
     (t/sc (-mu a (-> a a)))
-    (t/sc (-seq -Symbol))))
+    (t/sc (-seq -Symbol))
+    (t/sc (-unit null null null (-values (list -String))))
+    (t/sc (-unit null null null (-values (list -Symbol -String))))
+    (t/fail (-unit null null null ManyUniv))))

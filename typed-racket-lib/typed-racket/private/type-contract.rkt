@@ -396,6 +396,7 @@
         [(Prompt-TagTop:) (only-untyped prompt-tag?/sc)]
         [(Continuation-Mark-KeyTop:) (only-untyped continuation-mark-key?/sc)]
         [(ClassTop:) (only-untyped class?/sc)]
+        [(UnitTop:) (only-untyped unit?/sc)]
         [(StructTypeTop:) (struct-type/sc null)]
         ;; TODO Figure out how this should work
         ;[(StructTop: s) (struct-top/sc s)]
@@ -514,6 +515,25 @@
          (if seal/sc
              (and/sc seal/sc sc-for-class)
              sc-for-class)]
+        [(Unit: imports exports init-depends results)
+         (define (traverse sigs)
+           (for/list ([sig (in-list sigs)])
+             (define mapping 
+               (map
+                (match-lambda 
+                  [(cons id type) (cons id (t->sc type))])
+                (Signature-mapping sig)))
+             (signature-spec (Signature-name sig) (map car mapping) (map cdr mapping))))
+         
+         (define imports-specs (traverse imports))
+         (define exports-specs (traverse exports))
+         (define init-depends-ids (map Signature-name init-depends))
+         (match results
+           [(? AnyValues?)
+            (fail #:reason (~a "cannot generate contract for unit type"
+                               " with unknown return values"))]
+           [(Values: (list (Result: rngs _ _) ...))
+            (unit/sc imports-specs exports-specs init-depends-ids (map t->sc rngs))])]
         [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred?)
          (cond
            [(dict-ref recursive-values nm #f)]

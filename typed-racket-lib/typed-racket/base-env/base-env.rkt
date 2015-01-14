@@ -25,6 +25,7 @@
  (only-in (types numeric-tower) [-Number N])
  (only-in (rep type-rep)
           make-ClassTop
+          make-UnitTop
           make-Name
           make-ValuesDots
           make-MPairTop
@@ -1158,6 +1159,9 @@
 [field-names (-> (-object) (-lst -Symbol))]
 [object-info (-> (-object) (-values (list (Un (make-ClassTop) (-val #f)) -Boolean)))]
 ;; TODO: class-info (is this sound to allow?)
+
+;; Section 7.8 (Unit Utilities)
+[unit? (make-pred-ty (make-UnitTop))]
 
 ;; Section 9.1
 [exn:misc:match? (-> Univ B)]

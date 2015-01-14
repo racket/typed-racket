@@ -555,6 +555,37 @@
 ;; cls : Class
 (def-type Instance ([cls Type/c]) [#:key 'instance])
 
+;; interp:
+;; name is the id of the signature
+;; extends is the extended signature or #f
+;; mapping maps variables in a signature to their types
+;; This is not a type because signatures are not values
+(def-type Signature ([name identifier?]
+                     [extends (or/c Signature? #f)]
+                     [mapping (listof (cons/c identifier? Type/c))])
+  ;; TODO: is this correct?
+  [#:frees (lambda (f) null)]
+  [#:fold-rhs (*Signature name extends mapping)])
+
+;; The supertype of all units, ie values recognized by the
+;; predicate unit?
+(def-type UnitTop () [#:fold-rhs #:base] [#:key 'unit])
+
+;; interp: imports is the list of imported signatures
+;;         exports is the list of exported signatures
+;;         init-depends is the list of init-depend signatures
+;;         result is the type of the body of the unit
+(def-type Unit ([imports (listof Signature?)]
+                [exports (listof Signature?)]
+                [init-depends (listof Signature?)]
+                [result SomeValues/c])
+  ;; TODO: is this correct?
+  [#:frees (lambda (f) (f result))]
+  [#:fold-rhs (*Unit (map type-rec-id imports)
+                     (map type-rec-id exports)
+                     (map type-rec-id init-depends)
+                     (type-rec-id result))])
+
 ;; sequences
 ;; includes lists, vectors, etc
 ;; tys : sequence produces this set of values at each step

@@ -68,6 +68,8 @@
 (define -inst make-Instance)
 (define (-prefab key . types)
   (make-Prefab (normalize-prefab-key key (length types)) types))
+(define -unit make-Unit)
+(define -signature make-Signature)
 
 (define (-seq . args) (make-Sequence args))
 

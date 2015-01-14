@@ -137,7 +137,10 @@
     (check-prints-as? (cl->* (->opt -Pathlike [-String] -Void)
                              (->optkey Univ [-String] #:rest -String #:x -String #t -Void))
                       (string-append "(case-> (->* (Path-String) (String) Void) "
-                                     "(->* (Any #:x String) (String) #:rest String Void))")))
+                                     "(->* (Any #:x String) (String) #:rest String Void))"))
+    (check-prints-as? (make-Unit null null null -String)
+                      "(Unit (import) (export) (init-depend) String)")
+    (check-prints-as? (make-UnitTop) "UnitTop"))
    (test-suite
     "Pretty printing tests"
     (check-pretty-prints-as? (-val 3) "3")

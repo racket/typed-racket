@@ -9,10 +9,13 @@
          (private parse-type type-annotation syntax-properties type-contract)
          (env global-env init-envs type-name-env type-alias-env
               lexical-env env-req mvar-env scoped-tvar-env
-              type-alias-helper)
+              type-alias-helper signature-env signature-helper)
          (utils tc-utils redirect-contract)
          "provide-handling.rkt" "def-binding.rkt" "tc-structs.rkt"
          "typechecker.rkt" "internal-forms.rkt"
+         (typecheck provide-handling def-binding tc-structs
+                    typechecker internal-forms 
+                    check-below)
          syntax/location
          racket/format
          (for-template
@@ -115,6 +118,15 @@
       [(define-values (lifted) expr)
        #:when (contract-lifted-property #'expr)
        (list)]
+      
+      ;; handle top-level define-values/invoke-unit
+      [dviu:typed-define-values/invoke-unit
+       (for ([export-sig (in-list (syntax->list #'(dviu.export.sig ...)))]
+             [export-ids (in-list (syntax->list #'(dviu.export.members ...)))])
+         (for ([id (in-list (syntax->list  export-ids))]
+               [ty (in-list (map cdr (signature->bindings export-sig)))])
+           (register-type-if-undefined id ty)))
+       (list)]
 
       ;; values definitions
       [(define-values (var ...) expr)
@@ -210,7 +222,23 @@
       ;; need to special case this to avoid errors at top-level
       [stx:tr:class^
        (tc-expr #'stx)]
-
+      [stx:tr:unit^
+       (tc-expr #'stx)]
+      [stx:tr:unit:invoke^
+       (tc-expr #'stx)]
+      [stx:tr:unit:compound^
+       (tc-expr #'stx)]
+      [stx:tr:unit:from-context^
+       (tc-expr #'stx)]
+      ;; This may not make sense since define-values/invoke-unit isn't really an expression
+      [dviu:typed-define-values/invoke-unit
+       (for ([import-sig (in-list (syntax->list #'(dviu.import.sig ...)))]
+             [import-ids (in-list (syntax->list #'(dviu.import.members ...)))])
+         (for ([member (in-list (syntax->list  import-ids))]
+               [expected-type (in-list (map cdr (signature->bindings import-sig)))])
+           (define lexical-type (lookup-type/lexical member))
+           (check-below lexical-type expected-type)))
+       'no-type]
       ;; these forms we have been instructed to ignore
       [stx:ignore^
        'no-type]
@@ -289,14 +317,15 @@
 (define (type-check forms0)
   (define forms (syntax->list forms0))
   (do-time "before form splitting")
-  (define-values (type-aliases struct-defs stx-defs0 val-defs0 provs)
+  (define-values (type-aliases struct-defs stx-defs0 val-defs0 provs signature-defs)
     (filter-multiple
      forms
      type-alias? 
      (lambda (e) (or (typed-struct? e) (typed-struct/exec? e)))
      parse-syntax-def
      parse-def
-     provide?))
+     provide?
+     typed-define-signature?))
   (do-time "Form splitting done")
 
   (define-values (type-alias-names type-alias-map)
@@ -314,6 +343,12 @@
 
   (register-all-type-aliases type-alias-names type-alias-map)
 
+  ;; Register signatures once all type aliases and struct types
+  ;; have been added to the type table
+  (for ([sig-form signature-defs])
+    (define-values (name sig) (parse-signature sig-form))
+    (register-signature! name sig))
+  
   (do-time "starting struct handling")
   ;; Parse and register the structure types
   (define parsed-structs
@@ -323,6 +358,7 @@
       parsed))
 
   (refine-struct-variance! parsed-structs)
+
 
   ;; register the bindings of the structs
   (define struct-bindings (map register-parsed-struct-bindings! parsed-structs))
@@ -427,6 +463,7 @@
                 #,(tname-env-init-code)
                 #,(tvariance-env-init-code)
                 #,(mvar-env-init-code mvar-env)
+                #,(signature-env-init-code)
                 #,(make-struct-table-code)
                 #,@(for/list ([a (in-list aliases)])
                      (match-define (list from to) a)
@@ -447,7 +484,7 @@
             ;; appropriate-phase `require` statically in a module
             ;; that's non-dynamically depended on by
             ;; `typed/racket`. That makes for confusing non-local
-            ;; dependencies, though, so we do it here. 
+            ;; dependencies, though, so we do it here.
             (require typed-racket/utils/redirect-contract)
             ;; We need a submodule for a for-syntax use of
             ;; `define-runtime-module-path`:

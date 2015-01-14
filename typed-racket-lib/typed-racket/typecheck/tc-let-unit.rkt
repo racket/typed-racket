@@ -4,9 +4,11 @@
          (except-in (types utils abbrev filter-ops remove-intersect type-table)
                     -> ->* one-of/c)
          (only-in (types abbrev) (-> t:->) [->* t:->*])
+         (types units)
          (private type-annotation parse-type syntax-properties)
          (env lexical-env type-alias-helper mvar-env
-              global-env scoped-tvar-env)
+              global-env scoped-tvar-env 
+              signature-env signature-helper)
          (rep filter-rep object-rep type-rep)
          syntax/free-vars
          (typecheck signatures tc-metafunctions tc-subst internal-forms tc-envops)
@@ -37,7 +39,9 @@
 ;; Checks that the body has the expected type when names are bound to the types spcified by results.
 ;; The exprs are also typechecked by using expr->type.
 ;; TODO: make this function sane.
-(define/cond-contract (do-check expr->type namess expected-results exprs body expected)
+;; The `check-thunk` argument serves the same purpose as in tc/letrec-values
+(define/cond-contract (do-check expr->type namess expected-results exprs body expected 
+                                [check-thunk void])
   ((syntax? tc-results/c . -> . any/c)
    (listof (listof identifier?)) (listof (listof tc-result?))
    (listof syntax?) syntax? (or/c #f tc-results/c)
@@ -94,6 +98,8 @@
           (match results
             [(list (tc-result: ts fs os) ...)
              (expr->type expr (ret ts fs os))]))
+        ;; call the check-thunk argument
+        (check-thunk)
         ;; typecheck the body
         (tc-body/check body (and expected (erase-filter expected)))))))
 
@@ -107,19 +113,32 @@
 (define (regsiter-aliases-and-declarations names exprs)
   ;; Collect the declarations, which are represented as expressions.
   ;; We put them back into definitions to reuse the existing machinery
-  (define-values (type-aliases declarations)
-    (for/fold ([aliases '()] [declarations '()])
+  (define-values (type-aliases declarations signature-forms)
+    (for/fold ([aliases '()] [declarations '()] [signature-forms '()])
               ([body (in-list exprs)])
       (syntax-parse #`(define-values () #,body)
         [t:type-alias
-         (values (cons #'t aliases) declarations)]
+         (values (cons #'t aliases) declarations signature-forms)]
         [t:type-declaration
-         (values aliases (cons (list #'t.id #'t.type) declarations))]
-        [_ (values aliases declarations)])))
+         (values aliases (cons (list #'t.id #'t.type) declarations) signature-forms)]
+        [t:typed-define-signature
+           (values aliases declarations (cons #'t signature-forms))]
+        [_ (values aliases declarations signature-forms)])))
 
   (define-values (alias-names alias-map) (get-type-alias-info type-aliases))
   (register-all-type-aliases alias-names alias-map)
 
+  ;; add local signature definitions to the signature environment
+  ;; the list must be traversed in reverse order to make sure
+  ;; sub-signatures can reference their parents
+  ;; TODO: Should signatures be registered before or after aliases?
+  (define signatures
+    (for/list ([sig-form (in-list (reverse signature-forms))])
+      (define-values (name signature)
+        (parse-signature sig-form))
+      (register-signature! name signature)
+      signature))
+  
   (for ([declaration declarations])
     (match-define (list id type) declaration)
     (register-type-if-undefined id (parse-type type))
@@ -130,14 +149,19 @@
   (for ([n (in-list names)] [b (in-list exprs)])
     (syntax-case n ()
       [(var) (add-scoped-tvars b (lookup-scoped-tvars #'var))]
-      [_ (void)])))
+      [_ (void)]))
+  ;; return signatures to ensure they do not escape a let body
+  signatures)
 
-(define (tc/letrec-values namess exprs body [expected #f])
+;; The `thunk` argument is run only for its side effects 
+;; It is needed to typecheck units, and ensure that exported
+;; variables are exported with the correct types
+(define (tc/letrec-values namess exprs body [expected #f] [check-thunk void])
   (let* ([names (stx-map syntax->list namess)]
          [orig-flat-names (apply append names)]
          [exprs (syntax->list exprs)])
-    (regsiter-aliases-and-declarations names exprs)
-
+    (define signatures (regsiter-aliases-and-declarations names exprs))
+    
     ;; First look at the clauses that do not bind the letrec names
     (define all-clauses
       (for/list ([name-lst names] [expr exprs])
@@ -152,12 +176,15 @@
         (values name expr)))
 
     ;; Check those and then check the rest in the extended environment
-    (check-non-recursive-clauses
-      ordered-clauses
-      (lambda ()
-        (cond
+    ;; define result to traverse the result type for escaping signatures
+    (define letrec-result
+      (check-non-recursive-clauses
+       ordered-clauses
+       (lambda ()
+         (cond
           ;; after everything, check the body expressions
           [(null? remaining-names)
+           (check-thunk)
            (tc-body/check body (and expected (erase-filter expected)))]
           [else
            (define flat-names (apply append remaining-names))
@@ -165,7 +192,16 @@
                      remaining-names
                      ;; types the user gave.
                      (map (λ (l) (map tc-result (map get-type l))) remaining-names)
-                     remaining-exprs body expected)])))))
+                     remaining-exprs body expected
+                     check-thunk)]))))
+
+    (unless (empty? signatures)
+      (define (check type) (signatures-escape? signatures type))
+      (match letrec-result
+        [(tc-results: tps) (map check tps)]
+        [else (void)]))
+
+    letrec-result))
 
 ;; An lr-clause is a
 ;;   (lr-clause (Listof Identifier) Syntax)

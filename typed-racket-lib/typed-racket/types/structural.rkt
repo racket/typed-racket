@@ -33,6 +33,7 @@
      [ChannelTop ()]
      [Async-ChannelTop ()]
      [ClassTop ()]
+     [UnitTop ()]
      [Continuation-Mark-KeyTop ()]
      [Error ()]
      [HashtableTop ()]

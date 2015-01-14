@@ -246,7 +246,15 @@
               (t (-class #:method ([m (-polydots (x) (->... (list) (x x) -Void))])))
               (t (-class #:method ([m (-polyrow (x) (list null null null null)
                                         (-> (-class #:row (-v x)) -Void))])))
-
+              
+              ;; units
+              (t-sc (-unit null null null (-values (list -Integer)))
+                    (unit/sc null null null (list integer/sc)))
+              (t-sc (-unit null null null (-values (list -Integer -Number)))
+                    (unit/sc null null null (list integer/sc number/sc)))
+              (t-sc (-unit null null null (-values (list)))
+                    (unit/sc null null null null))
+                            
               ;; typed/untyped interaction tests
               (t-int (-poly (a) (-> a a))
                      (λ (f) (f 1))

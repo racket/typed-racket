@@ -29,7 +29,12 @@
   ([cond-contracted tc-literal (->* (syntax?) ((or/c Type/c #f)) Type/c)]))
 
 (define-signature tc-send^
-  ([cond-contracted tc/send ((syntax? syntax? syntax? syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]))
+  ([cond-contracted tc/send ((syntax? syntax?
+                              identifier? syntax?
+                              identifier? syntax?
+                              syntax? syntax?)
+                             ((or/c tc-results/c #f))
+                             . ->* . full-tc-results/c)]))
 
 (define-signature tc-expression^
   ([cond-contracted tc/#%expression ((syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]))

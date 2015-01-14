@@ -5,7 +5,8 @@
          racket/match (prefix-in - (contract-req))
          "signatures.rkt"
          "check-below.rkt" "../types/kw-types.rkt"
-         (types utils abbrev union subtype type-table filter-ops remove-intersect resolve generalize)
+         (types utils abbrev union subtype type-table path-type
+                filter-ops remove-intersect resolve generalize)
          (private-in syntax-properties)
          (rep type-rep filter-rep object-rep)
          (only-in (infer infer) restrict)

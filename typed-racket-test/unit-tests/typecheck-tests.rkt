@@ -289,7 +289,7 @@
   (except-in typed-racket/utils/utils private)
   ;; Needed for bindings of types and TR primitives in expressions
   (except-in (base-env extra-procs prims base-types base-types-extra)
-    define lambda λ case-lambda)
+    define lambda λ case-lambda for/set for*/set)
   ;; For tests that rely on kw/opt properties
   (prefix-in tr: (only-in (base-env prims) define lambda λ case-lambda))
   ;; Needed for the `let-name` syntax class before

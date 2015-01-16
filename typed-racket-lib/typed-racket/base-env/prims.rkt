@@ -66,6 +66,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
                      [for/first: for/first]
                      [for/last: for/last]
                      [for/fold: for/fold]
+                     [for/set: for/set]
                      [for*: for*]
                      [for*/list: for*/list]
                      [for*/lists: for*/lists]
@@ -80,6 +81,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
                      [for*/first: for*/first]
                      [for*/last: for*/last]
                      [for*/fold: for*/fold]
+                     [for*/set: for*/set]
                      [-do do]
                      [-do do:]
                      [with-handlers: with-handlers]
@@ -105,6 +107,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
          "base-types-extra.rkt"
          "case-lambda.rkt"
          'struct-extraction
+         racket/set
          racket/flonum ; for for/flvector and for*/flvector
          racket/extflonum ; for for/extflvector and for*/extflvector
          (for-label (only-in "base-types-extra.rkt" Values)
@@ -1047,6 +1050,8 @@ This file defines two sorts of primitives. All of them are provided into any mod
               ...))]))
 (define-for/acc:-variants
   (for/sum: for/fold: for/sum #f + 0 #%expression)
+  (for/set: for/fold: for/set #f set-add (set) #%expression)
+  (for*/set: for*/fold: for*/set #t set-add (set) #%expression)
   (for*/sum: for*/fold: for*/sum #t + 0 #%expression)
   (for*/list: for*/fold: for*/list #t (lambda (x y) (cons y x)) null reverse)
   (for/product: for/fold: for/product #f * 1 #%expression)

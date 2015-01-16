@@ -237,6 +237,7 @@ variants.
 @defform[(for/last type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/sum type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/product type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for/set type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/list type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/hash type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/hasheq type-ann-maybe (for-clause ...) expr ...+)]
@@ -250,6 +251,7 @@ variants.
 @defform[(for*/last type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/sum type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/product type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for*/set type-ann-maybe (for-clause ...) expr ...+)]
 ]]{
 These behave like their non-annotated counterparts, with the exception
 that @racket[#:when] clauses can only appear as the last

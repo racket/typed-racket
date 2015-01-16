@@ -351,6 +351,7 @@
         [(Box: t) (box/sc (t->sc/both t))]
         [(Pair: t1 t2)
          (cons/sc (t->sc t1) (t->sc t2))]
+        [(Async-Channel: t) (async-channel/sc (t->sc t))]
         [(Promise: t)
          (promise/sc (t->sc t))]
         [(Opaque: p?)

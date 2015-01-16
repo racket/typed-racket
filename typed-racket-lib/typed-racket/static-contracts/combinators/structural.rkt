@@ -12,9 +12,11 @@
          (for-template racket/base
                        racket/contract/base
                        racket/set
+                       racket/async-channel
                        unstable/contract
                        "../../utils/evt-contract.rkt")
-         racket/contract)
+         racket/contract
+         racket/async-channel)
 
 
 (begin-for-syntax
@@ -158,4 +160,5 @@
   ((sequence/sc . (#:covariant)) sequence/c #:impersonator)
   ((channel/sc . (#:invariant)) channel/c #:chaperone)
   ((continuation-mark-key/sc (#:invariant)) continuation-mark-key/c #:chaperone)
-  ((evt/sc (#:covariant)) tr:evt/c #:chaperone))
+  ((evt/sc (#:covariant)) tr:evt/c #:chaperone)
+  ((async-channel/sc (#:invariant)) async-channel/c #:chaperone))

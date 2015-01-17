@@ -46,16 +46,15 @@
      ;; a polymorphic field. Because subtyping is nominal and accessor 
      ;; functions do not reflect this, this behavior is unobservable
      ;; except when an a variable aliases the field in a let binding
-     (let/ec abort
-       (make-Struct nm par
-                    (list-update flds idx (match-lambda
-                                            [(fld: e acc-id #f)
-                                             (let ([ft* (update e ft pos? rst)])
-                                               (if (Bottom? ft*)
-                                                   (abort ft*)
-                                                   (make-fld ft* acc-id #f)))]
-                                            [_ (int-err "update on mutable struct field")]))
-                    proc poly pred))]
+     (let*-values ([(lhs rhs) (split-at flds idx)]
+                   [(ty* acc-id) (match rhs
+                                   [(cons (fld: ty acc-id #f) _)
+                                    (values (update ty ft pos? rst) acc-id)]
+                                   [_ (int-err "update on mutable struct field")])]) 
+       (cond 
+        [(Bottom? ty*) ty*]
+        [else (let ([flds* (append lhs (cons (make-fld ty* acc-id #f) (cdr rhs)))])
+                (make-Struct nm par flds* proc poly pred))]))]]
 
     ;; otherwise
     [(t '())

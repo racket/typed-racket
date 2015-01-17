@@ -54,7 +54,7 @@
        (cond 
         [(Bottom? ty*) ty*]
         [else (let ([flds* (append lhs (cons (make-fld ty* acc-id #f) (cdr rhs)))])
-                (make-Struct nm par flds* proc poly pred))]))]]
+                (make-Struct nm par flds* proc poly pred))]))]
 
     ;; otherwise
     [(t '())

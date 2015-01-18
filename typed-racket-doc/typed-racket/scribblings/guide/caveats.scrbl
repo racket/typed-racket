@@ -90,6 +90,13 @@ of type precision at use sites:
   (object-name #rx"a regexp")
 ]
 
+Use of @racket[define-predicate] also involves contract generation, and
+so some types cannot have predicates generated for them. The following
+illustrates a type for which a predicate can't be generated:
+
+@interaction[#:eval the-eval
+  (define-predicate p? (All (A) (Listof A)))]
+
 @section{Unsupported features}
 
 Units are not currently supported at all in Typed Racket, but they

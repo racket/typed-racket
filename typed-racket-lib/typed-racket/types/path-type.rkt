@@ -9,6 +9,8 @@
          (types subtype resolve union)
          (except-in (types utils abbrev kw-types) -> ->* one-of/c))
 
+(require-for-cond-contract (rep rep-utils))
+
 (provide/cond-contract
  [path-type ((listof PathElem?) Type/c . -> . Type/c)])
 

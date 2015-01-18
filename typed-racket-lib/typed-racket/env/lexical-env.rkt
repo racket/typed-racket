@@ -16,6 +16,8 @@
          (typecheck renamer)
          (except-in (types utils abbrev kw-types) -> ->* one-of/c))
 
+(require-for-cond-contract (rep object-rep))
+
 (provide lexical-env 
          with-lexical-env 
          with-lexical-env/extend-types

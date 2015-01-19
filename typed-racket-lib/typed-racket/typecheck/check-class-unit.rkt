@@ -1353,7 +1353,11 @@
       (define (update-dict type)
         (define entry (list type))
         (dict-set type-dict external entry))
-      (assign-type name expected annotation-table update-dict default-type)))
+      ;; only use the default type if the super-type doesn't already
+      ;; have an entry, e.g., for overrides
+      (define default (or (car (dict-ref type-dict external (list #f)))
+                          default-type))
+      (assign-type name expected annotation-table update-dict default)))
 
   (define-values (expected-inits expected-fields
                   expected-publics expected-augments

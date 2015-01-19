@@ -65,6 +65,9 @@
          [(list-no-order (Value: (? simple-datum?))
                          (or (? Struct?) (? StructTop?) (? Function?)))
           #f]
+         [(list-no-order (Value: (not (? hash?)))
+                         (or (? Hashtable?) (? HashtableTop?)))
+          #f]
          [(list (Struct: n _ flds _ _ _)
                 (Struct: n* _ flds* _ _ _)) 
           #:when (free-identifier=? n n*)

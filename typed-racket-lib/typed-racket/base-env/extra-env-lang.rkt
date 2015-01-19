@@ -9,11 +9,8 @@
 (require "../utils/utils.rkt"
          (for-syntax (private parse-type))
          (for-syntax racket/base
-                     racket/syntax
                      syntax/parse
-                     syntax/struct
                      syntax/stx)
-         (types abbrev numeric-tower union filter-ops)
          (for-syntax (types abbrev numeric-tower union filter-ops)))
 
 (provide type-environment

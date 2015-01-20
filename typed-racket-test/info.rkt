@@ -49,6 +49,7 @@
     "xfail"
     "optimizer" ;; FIXME: should be improved by stamourv
     "tr-random-testing.rkt" ;; Requires recompiling all of redex when rebuilding TR tests
+    "gui/succeed"
     ))
 
 (define test-omit-paths '("fail"

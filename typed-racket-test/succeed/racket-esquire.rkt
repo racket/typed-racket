@@ -88,7 +88,9 @@
 (define repl-display-canvas
   (make-object editor-canvas% frame))
 (send repl-display-canvas set-editor repl-editor)
-(send frame show #t)
+
+;; Disable showing the frame for the TR tests
+;(send frame show #t)
 
 ;; User space initialization
 

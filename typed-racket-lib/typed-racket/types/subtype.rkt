@@ -656,7 +656,9 @@
                (equal-clause? fields fields*)
                (equal-clause? methods methods*)
                (equal-clause? augments augments*)
-               (sub init-rest init-rest*))]
+               (or (and init-rest init-rest*
+                        (sub init-rest init-rest*))
+                   (and (not init-rest) (not init-rest*))))]
          ;; otherwise, not a subtype
          [(_ _) #f])))
      (when (null? A)

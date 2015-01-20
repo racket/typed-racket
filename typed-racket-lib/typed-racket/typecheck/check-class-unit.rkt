@@ -489,8 +489,6 @@
    super-field-names
    super-method-names
    super-augment-names)
-  (when expected
-    (check-below final-class-type expected))
   (define class-type-parameters (hash-ref parse-info 'type-parameters))
   (do-timestamp "done")
   (if (null? class-type-parameters)
@@ -568,35 +566,6 @@
          optional-external
          remaining-super-inits
          super-field-names super-method-names super-augment-names)
-  (when expected
-   (match-define (Class: _ inits fields methods augments _) expected)
-   (define exp-init-names (dict-keys inits))
-   (define exp-field-names (dict-keys fields))
-   (define exp-method-names (dict-keys methods))
-   (define exp-augment-names (dict-keys augments))
-   (define exp-optional-inits
-     (for/set ([(name val) (in-dict inits)]
-               #:when (cadr val))
-              name))
-   (check-same (set-union (hash-ref parse-info 'init-names)
-                          (dict-keys remaining-super-inits))
-               exp-init-names
-               "initialization argument")
-   (check-same (set-union (hash-ref parse-info 'public-names)
-                          (hash-ref parse-info 'pubment-names)
-                          super-method-names)
-               exp-method-names
-               "public method")
-   (check-same (set-union (hash-ref parse-info 'field-names)
-                          super-field-names)
-               exp-field-names
-               "public field")
-   (check-same (set-union (hash-ref parse-info 'augmentable-names)
-                          super-augment-names)
-               exp-augment-names
-               "public augmentable method")
-   (check-same optional-external exp-optional-inits
-               "optional init argument"))
   (check-exists super-method-names (hash-ref parse-info 'override-names)
                 "overridable method")
   (check-exists super-augment-names (hash-ref parse-info 'augment-names)

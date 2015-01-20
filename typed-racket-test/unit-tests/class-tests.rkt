@@ -236,7 +236,7 @@
                           (define/public (m) 0)))
              (void))
            #:ret (ret -Void)
-           #:msg #rx"public method that should be absent.*method: m"]
+           #:msg #rx"method `m' that is not in expected type"]
    ;; same as previous
    [tc-err (let ()
              (: c% (Class [m (Integer -> Integer)]))
@@ -245,7 +245,7 @@
                           (define/public (n) 0)))
              (void))
            #:ret (ret -Void)
-           #:msg #rx"public method that should be absent.*method: n"]
+           #:msg #rx"method `n' that is not in expected type"]
    ;; fails, too many inits
    [tc-err (let ()
              (: c% (Class))
@@ -253,7 +253,7 @@
                           (init x)))
              (void))
            #:ret (ret -Void)
-           #:msg #rx"initialization argument that should be absent.*argument: x"]
+           #:msg #rx"init `x' that is not in expected type"]
    ;; fails, init should be optional but is mandatory
    [tc-err (let ()
              (: c% (Class (init [str String #:optional])))
@@ -261,7 +261,7 @@
                           (init str)))
              (void))
            #:ret (ret -Void)
-           #:msg #rx"missing a required optional init argument.*argument: str"]
+           #:msg #rx"expected: optional init `str'.*given: mandatory init `str'"]
    ;; fails, too many fields
    [tc-err (let ()
              (: c% (Class (field [str String])))
@@ -269,7 +269,7 @@
                           (field [str "foo"] [x 0])))
              (void))
            #:ret (ret -Void)
-           #:msg #rx"has a public field that should be absent.*public field: x"]
+           #:msg #rx"field `x' that is not in expected type"]
    ;; test that an init with no annotation still type-checks
    ;; (though it will have the Any type)
    [tc-e (let () (class object% (super-new) (init x)) (void)) -Void]
@@ -314,7 +314,7 @@
 
              (mixin arg-class%))
            #:ret (ret (-class #:method ([m (t:-> -Integer)] [n (t:-> -String)])))
-           #:msg #rx"missing a required public method.*missing public method: n"]
+           #:msg #rx"lacks expected method `n'"]
    ;; Fail, bad mixin argument
    [tc-err (let ()
              (: mixin ((Class [m (-> Symbol)])
@@ -335,7 +335,7 @@
              (mixin arg-class%)
              (void))
            #:ret (ret -Void)
-           #:msg #rx"expected: \\(Class \\(m \\(-> Symbol\\)\\)\\)"]
+           #:msg #rx"lacks expected method `m'"]
    ;; classes that don't use define/public directly
    [tc-e (let ()
            (: c% (Class [m (Number -> String)]))
@@ -592,7 +592,7 @@
                           (init [x 0])))
              (void))
            #:ret (ret -Void)
-           #:msg #rx"has a optional init argument that should be absent"]
+           #:msg #rx"expected: mandatory init `x'.*given: optional init `x'"]
    ;; fails, mandatory init not provided
    [tc-err (let ()
              (define d% (class object% (super-new)
@@ -766,7 +766,22 @@
              (define x (new (class object% (super-new) (define/public (m) "m"))))
              (ann x (Object [n (-> String)]))
              (error "foo"))
-           #:msg #rx"expected: .*n.*given:.*m.*"]
+           #:msg #rx"lacks expected method `n'"]
+   [tc-err (let ()
+             (define x (new (class object% (super-new))))
+             (ann x (Object (field [x String])))
+             (error "foo"))
+           #:msg #rx"lacks expected field `x'"]
+   [tc-err (let ()
+             (define x (new (class object% (super-new) (define/public (m) "m"))))
+             (ann x (Object [m (-> Symbol)]))
+             (error "foo"))
+           #:msg #rx"expected: \\(-> Symbol\\).*given: \\(-> String"]
+   [tc-err (let ()
+             (define x (new (class object% (super-new) (field [x : Symbol 'x]))))
+             (ann x (Object (field [x String])))
+             (error "foo"))
+           #:msg #rx"expected: String.*given: Symbol"]
    ;; test use of `this` in field default
    [tc-e (let ()
            (class object%
@@ -1017,7 +1032,7 @@
              (mixin object%))
            #:ret (ret (-class #:row (make-Row null null null null #f)
                               #:field ([x Univ])))
-           #:msg (regexp-quote "expected: (Class (field (x Any)))")]
+           #:msg #rx"lacks expected field `x'"]
    ;; mixin application succeeds
    [tc-e (let ()
            (: f (All (A #:row (field x))
@@ -1373,7 +1388,7 @@
                           (field [x : Symbol 'a])))
              (void))
            #:ret (ret -Void)
-           #:msg #rx"expected: \\(Class \\(field \\(x String"]
+           #:msg #rx"expected: String.*given: Symbol"]
    ;; fails, but make sure it's not an internal error
    [tc-err (class object% (super-new)
              (define/pubment (foo x) 0)
@@ -1602,7 +1617,7 @@
                           (super-new)
                           (define/public (bar) (void))))
              (error "foo"))
-           #:msg "type mismatch.*required public method"]
+           #:msg "lacks expected method `foo'"]
    [tc-e (let ()
            (define-type-alias A% (Class (init [y Symbol])))
            (define-type-alias B% (Class #:implements/inits A% (init [x String])))
@@ -1642,7 +1657,7 @@
                           (super-new)
                           (init y x)))
              (error "foo"))
-           #:msg "type mismatch"]
+           #:msg #rx"initialization argument order.*expected: \\(x y\\).*given: \\(y x\\)"]
    ;; PR 14669 (next two)
    [tc-e (let ()
            (define-type-alias A (Class [m (-> Any)]))
@@ -1710,4 +1725,71 @@
            (: bar (-> String String))
            (define bar (lambda (x) x))
            (bar "foo"))
-         (-class)]))
+         (-class)]
+   ;; The next several tests are for check-below error messages for checking
+   ;; expected types that are Class types
+   [tc-err (let ()
+             (: f (All (X #:row) (-> (Class #:row-var X) (Class #:row-var X))))
+             (define (f cls) (class object% (super-new)))
+             (error "foo"))
+           #:msg #rx"expected: Class with row variable `X.*given: Class with no row variable"]
+   [tc-err (let ()
+             (: f (All (X #:row) (-> (Class #:row-var X) (Class))))
+             (define (f cls) cls)
+             (error "foo"))
+           #:msg #rx"expected: Class with no row variable.*given: Class with row variable `X"]
+   [tc-err (let ()
+             (ann (class object% (super-new))
+                  (Class (init [x String])))
+             (error "foo"))
+           #:msg #rx"lacks expected init `x'"]
+   [tc-err (let ()
+             (ann (class object% (super-new))
+                  (Class (field [x String])))
+             (error "foo"))
+           #:msg #rx"lacks expected field `x'"]
+   [tc-err (let ()
+             (ann (class object% (super-new))
+                  (Class [m (-> String)]))
+             (error "foo"))
+           #:msg #rx"lacks expected method `m'"]
+   [tc-err (let ()
+             (ann (class object% (super-new) (init [x : Symbol]))
+                  (Class (init [x String])))
+             (error "foo"))
+           #:msg #rx"expected: String.*given: Symbol"]
+   [tc-err (let ()
+             (ann (class object% (super-new) (init [x : String "x"]))
+                  (Class (init [x String])))
+             (error "foo"))
+           #:msg #rx"expected: mandatory init `x'.*given: optional init `x'"]
+   [tc-err (let ()
+             (ann (class object% (super-new) (init [x : String]))
+                  (Class (init [x String #:optional])))
+             (error "foo"))
+           #:msg #rx"expected: optional init `x'.*given: mandatory init `x'"]
+   [tc-err (let ()
+             (ann (class object% (super-new) (field [x : Symbol 'x]))
+                  (Class (field [x String])))
+             (error "foo"))
+           #:msg #rx"expected: String.*given: Symbol"]
+   [tc-err (let ()
+             (define c% (class object% (super-new) (define/public (m) (void))))
+             (ann c% (Class [m (-> String)]))
+             (error "foo"))
+           #:msg #rx"expected: \\(-> String\\).*given: \\(-> Void\\)"]
+   [tc-err (let ()
+             (ann (class object% (super-new) (init-rest [rst : (Listof String)]))
+                  (Class))
+             (error "foo"))
+           #:msg #rx"expected: Class with no init-rest type.*given: Class with init-rest type"]
+   [tc-err (let ()
+             (ann (class object% (super-new))
+                  (Class [init-rest (Listof Void)]))
+             (error "foo"))
+           #:msg #rx"expected: Class with init-rest type.*given: Class with no init-rest type"]
+   [tc-err (let ()
+             (ann (class object% (super-new) (init-rest [rst : (Listof String)]))
+                  (Class (init-rest (Listof Void))))
+             (error "foo"))
+           #:msg #rx"expected: \\(Listof Void\\).*given: \\(Listof String\\)"]))

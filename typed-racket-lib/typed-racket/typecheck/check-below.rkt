@@ -6,7 +6,7 @@
          (types utils union subtype filter-ops abbrev)
          (utils tc-utils)
          (rep type-rep object-rep filter-rep)
-         (only-in (types printer) pretty-format-type))
+         (typecheck error-message))
 
 (provide/cond-contract
  [check-below (-->i ([s (-or/c Type/c full-tc-results/c)]
@@ -15,10 +15,9 @@
  [cond-check-below (-->i ([s (-or/c Type/c full-tc-results/c)]
                           [t (s) (-or/c #f (if (Type/c? s) Type/c tc-results/c))])
                          [_ (s) (-or/c #f (if (Type/c? s) Type/c full-tc-results/c))])]
- [fix-results (--> tc-results/c full-tc-results/c)]
- [type-mismatch (-->* ((-or/c Type/c string?) (-or/c Type/c string?))
-                      ((-or/c string? #f))
-                      -any)])
+ [fix-results (--> tc-results/c full-tc-results/c)])
+
+(provide type-mismatch)
 
 (define (print-object o)
   (match o
@@ -29,14 +28,6 @@
 ;; else behave as check-below
 (define (cond-check-below tr1 expected)
   (if expected (check-below tr1 expected) tr1))
-
-;; type-mismatch : Any Any [String] -> Void
-;; Type errors with "type mismatch", arguments may be types or other things
-;; like the length of a list of types
-(define (type-mismatch t1 t2 [more #f])
-  (define t1* (if (Type/c? t1) (pretty-format-type t1 #:indent 12) t1))
-  (define t2* (if (Type/c? t2) (pretty-format-type t2 #:indent 9) t2))
-  (tc-error/fields "type mismatch" #:more more "expected" t1* "given" t2* #:delayed? #t))
 
 ;; value-mismatch : tc-results/c tc-results/c -> void?
 ;; Helper to print messages of the form
@@ -53,25 +44,6 @@
   (type-mismatch
     (value-string expected) (value-string actual)
     "mismatch in number of values"))
-
-;; expected-but-got : (U Type String) (U Type String) -> Void
-;;
-;; Helper to print messages of the form
-;;   "Expected a, but got b"
-;;
-;; Also handles cases like two type variables that
-;; have the same name.
-(define (expected-but-got t1 t2)
-  (match* (t1 t2)
-    [((F: s1) (F: s2))
-     (=> fail)
-     (unless (string=? (symbol->string s1) (symbol->string s2))
-       (fail))
-     ;; FIXME: this case could have a better error message that, say,
-     ;;        prints the binding locations of each type variable.
-     (type-mismatch (format "`~a'" t1) (format "a different `~a'" t2)
-                    "type variables bound in different scopes")]
-    [(_ _) (type-mismatch t1 t2)]))
 
 ;; fix-filter: FilterSet [FilterSet] -> FilterSet
 ;; Turns NoFilter into the actual filter; leaves other filters alone.

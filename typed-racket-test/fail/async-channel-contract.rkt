@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"could not convert type to a contract.*Async-Channelof")
+(exn-pred #rx"expected: Integer.*given: \"not an integer\"")
 #lang racket/load
 
 ;; Test typed-untyped interaction with channels
@@ -13,7 +13,7 @@
     (thread (λ () (async-channel-put ch (box 3)))))
   (provide putter ch))
 
-(require 'typed)
+(require 'typed racket/async-channel)
 (putter)
 (set-box! (async-channel-get ch) "not an integer")
 

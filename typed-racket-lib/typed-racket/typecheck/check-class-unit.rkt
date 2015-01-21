@@ -22,7 +22,7 @@
                        (private class-literals)
                        (typecheck internal-forms)))
 
-(import tc-if^ tc-lambda^ tc-app^ tc-let^ tc-expr^)
+(import tc-expr^)
 (export check-class^)
 
 ;; A super-init-stxs is a

@@ -53,10 +53,8 @@
                     "type variables bound in different scopes")]
     [((? Class?) (? Class?))
      (class-mismatch r1 r2)]
-    [((Instance: c1) (Instance: c2))
-     (define r1 (resolve c1))
-     (define r2 (resolve c2))
-     (class-mismatch r1 r2 #t)]
+    [((Instance: (app resolve (? Class? c1))) (Instance: (app resolve (? Class? c2))))
+     (class-mismatch c1 c2 #t)]
     ;; Don't call this with resolved types since we may want to print
     ;; the type alias name instead of the actual type
     [(_ _) (type-mismatch t1 t2)]))

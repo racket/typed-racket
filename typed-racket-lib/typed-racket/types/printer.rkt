@@ -498,6 +498,7 @@
     [(Syntax: t) `(Syntaxof ,(t->s t))]
     [(Instance: (and (? has-name?) cls)) `(Instance ,(t->s cls))]
     [(Instance: (? Class? cls)) (class->sexp cls #:object? #t)]
+    [(Instance: t) `(Instance ,(t->s t))] ; for cases like Error
     [(ClassTop:) 'ClassTop]
     [(? Class?) (class->sexp type)]
     [(Result: t (or (NoFilter:) (FilterSet: (Top:) (Top:))) (or (NoObject:) (Empty:))) (type->sexp t)]

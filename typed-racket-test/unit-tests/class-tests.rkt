@@ -1792,4 +1792,12 @@
              (ann (class object% (super-new) (init-rest [rst : (Listof String)]))
                   (Class (init-rest (Listof Void))))
              (error "foo"))
-           #:msg #rx"expected: \\(Listof Void\\).*given: \\(Listof String\\)"]))
+           #:msg #rx"expected: \\(Listof Void\\).*given: \\(Listof String\\)"]
+   ;; PR 14942
+   [tc-err (let ()
+             (: x (Instance BadAlias))
+             (define x (error "foo"))
+             (: y (Object (field [x Any])))
+             (define y x)
+             (error "foo"))
+           #:msg "parse error in type"]))

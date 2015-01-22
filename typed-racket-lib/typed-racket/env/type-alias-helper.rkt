@@ -13,7 +13,7 @@
          racket/list
          racket/match
          syntax/id-table
-         syntax/kerncase
+         syntax/parse
          (for-template
           (typecheck internal-forms)
           racket/base))
@@ -231,12 +231,11 @@
 ;; Syntax -> Syntax Syntax Syntax Option<Integer>
 ;; Parse a type alias internal declaration
 (define (parse-type-alias form)
-  (kernel-syntax-case* form #f
-    (define-type-alias-internal values)
-    [(define-values ()
-       (begin (quote-syntax (define-type-alias-internal nm ty args))
-              (#%plain-app values)))
-     (values #'nm #'ty (syntax-e #'args))]
+  (syntax-parse form
+    #:literal-sets (kernel-literals)
+    #:literals (values)
+    [t:type-alias
+     (values #'t.name #'t.type (syntax-e #'t.args))]
     ;; this version is for `let`-like bodies
     [(begin (quote-syntax (define-type-alias-internal nm ty args))
             (#%plain-app values))

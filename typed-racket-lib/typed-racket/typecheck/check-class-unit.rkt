@@ -12,7 +12,7 @@
          syntax/stx
          "signatures.rkt"
          (private parse-type syntax-properties)
-         (env lexical-env tvar-env global-env)
+         (env lexical-env tvar-env global-env type-alias-helper)
          (types utils abbrev union subtype resolve generalize)
          (typecheck check-below internal-forms)
          (utils tc-utils)
@@ -337,6 +337,14 @@
   (define make-methods-stx (hash-ref parse-info 'make-methods))
   (define top-level-exprs
     (trawl-for-property make-methods-stx tr:class:top-level-property))
+
+  ;; Set up type aliases before any types get parsed
+  (define type-aliases
+    (filter (syntax-parser [t:type-alias #t] [_ #f])
+            (syntax->list (hash-ref parse-info 'initializer-body))))
+
+  (define-values (alias-names alias-map) (get-type-alias-info type-aliases))
+  (register-all-type-aliases alias-names alias-map)
 
   ;; Filter top level expressions into several groups, each processed
   ;; into appropriate data structures

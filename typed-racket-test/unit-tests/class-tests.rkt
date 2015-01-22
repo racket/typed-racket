@@ -1800,4 +1800,38 @@
              (: y (Object (field [x Any])))
              (define y x)
              (error "foo"))
-           #:msg "parse error in type"]))
+           #:msg "parse error in type"]
+   ;; Test type aliases inside class bodies
+   [tc-e (class object%
+           (super-new)
+           (define-type-alias X String)
+           (: x X)
+           (define x "foo"))
+         (-class)]
+   [tc-e (class object%
+           (super-new)
+           (define-type-alias (F X) (Listof X))
+           (: x (F String))
+           (define x (list "foo")))
+         (-class)]
+   [tc-err (let ()
+             (class object%
+               (super-new)
+               (define-type-alias X String)
+               (: x X)
+               (define x "foo"))
+             (: x2 X)
+             (define x2 "bar")
+             (error "foo"))
+           #:msg "type name `X' is unbound"]
+   [tc-e (let ()
+           (class object%
+             (super-new)
+             (define-type-alias X String)
+             (: x X)
+             (define x "foo"))
+           (define-type-alias X Symbol)
+           (: x2 X)
+           (define x2 'bar)
+           (void))
+         -Void]))

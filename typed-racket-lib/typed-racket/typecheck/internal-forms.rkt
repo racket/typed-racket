@@ -75,7 +75,10 @@
 (define-syntax-class internal^
    #:attributes (value)
    #:literal-sets (kernel-literals internal-form-literals)
-   (pattern (define-values () (begin (quote-syntax value:expr) (#%plain-app values)))))
+   (pattern (define-values () (begin (quote-syntax value:expr) (#%plain-app values))))
+   ;; for use in forms like classes that transform definitions
+   (pattern (let-values ([() (begin (quote-syntax value:expr) (#%plain-app values))])
+              (#%plain-app void))))
 
 (define-syntax (define-internal-classes stx)
   (define-syntax-class clause

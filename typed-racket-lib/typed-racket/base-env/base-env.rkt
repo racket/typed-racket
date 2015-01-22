@@ -462,13 +462,9 @@
 
 ;; Section 4.9 (Pairs and Lists)
 [car   (-poly (a b)
-              (cl->*
-               (->acc (list (-pair a b)) a (list -car))
-               (->* (list (-lst a)) a)))]
+              (->acc (list (Un -Null (-pair a b))) a (list -car)))]
 [cdr   (-poly (a b)
-              (cl->*
-               (->acc (list (-pair a b)) b (list -cdr))
-               (->* (list (-lst a)) (-lst a))))]
+              (->acc (list (Un -Null (-pair a b))) b (list -cdr)))]
 
 ;; these type signatures do not cover all valid uses of these pair accessors
 [caar (-poly (a b c)
@@ -482,11 +478,10 @@
                     [-> (-pair (-lst a) b) (-lst a)]
                     [-> (-lst (-lst a)) (-lst a)]))]
 [cadr (-poly (a b c)
-             (cl->* [->acc (list (-pair a (-pair b c))) b (list -car -cdr)]
-                    [-> (-lst a) a]))]
+             [->acc (list (Un -Null (-pair a (Un -Null (-pair b c))))) b (list -car -cdr)])]
 [cddr  (-poly (a b c)
               (cl->* [->acc (list (-pair a (-pair b c))) c (list -cdr -cdr)]
-                     [-> (-lst a) (-lst a)]))]
+                     [->acc (list (-lst a)) (-lst a) (list -cdr -cdr)]))]
 
 [caaar (-poly (a b c d)
               (cl->* [->acc (list (-pair (-pair (-pair a b) c) d)) a (list -car -car -car)]

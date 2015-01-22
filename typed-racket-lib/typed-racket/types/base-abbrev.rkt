@@ -232,8 +232,9 @@
 (define (simple-> doms rng)
   (->* doms rng))
 
-(define (->acc dom rng path)
+(define (->acc dom rng path #:rest [rest #f])
   (make-Function (list (make-arr* dom rng
+                                  #:rest rest
                                   #:filters (-FS (-not-filter (-val #f) (make-Path path (list 0 0)))
                                                  (-filter (-val #f) (make-Path path (list 0 0))))
                                   #:object (make-Path path (list 0 0))))))

@@ -521,6 +521,11 @@
           ;; constrain b1 to be below T, but don't mention the new vars
           [((Poly: v1 b1) T) (cgen (context-add context #:bounds v1) b1 T)]
 
+          ;; Mu's just get unfolded
+          ;; We unfold S first so that unions are handled in S before T
+          [((? Mu? s) t) (cg (unfold s) t)]
+          [(s (? Mu? t)) (cg s (unfold t))]
+
           ;; constrain *each* element of es to be below T, and then combine the constraints
           [((Union: es) T)
            (define cs (for/list/fail ([e (in-list es)]) (cg e T)))
@@ -609,11 +614,6 @@
            (cgen/list context (list k v) (list k* v*))]
           [((Set: t) (Sequence: (list t*)))
            (cg t t*)]
-
-          ;; Mu's just get unfolded
-          ;; We unfold S first so that unions are handled in S before T
-          [((? Mu? s) t) (cg (unfold s) t)]
-          [(s (? Mu? t)) (cg s (unfold t))]
 
           ;; resolve applications
           [((App: _ _ _) _)

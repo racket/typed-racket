@@ -494,9 +494,7 @@
         [tc-e (range 0.0 4/2 0.5) (-lst -Flonum)]
         [tc-e/t '(#t #f) (-lst* (-val #t) (-val #f))]
         [tc-e/t (plambda: (a) ([l : (Listof a)]) (car l))
-                (make-Poly '(a) (t:-> (make-Listof (-v a)) (-v a)))]
-        [tc-e/t (plambda: (a) ([l : (Listof a)]) (car l))
-                (make-Poly '(a) (t:-> (make-Listof (-v a)) (-v a)))]
+                (-poly (a) (->acc (list (-lst a)) a (list -car)))]
         [tc-e/t (case-lambda: [([a : Number] [b : Number]) (+ a b)]) (t:-> -Number -Number -Number)]
         [tc-e/t (tr:case-lambda [([a : Number] [b : Number]) (+ a b)])
                 (t:-> -Number -Number -Number)]
@@ -557,17 +555,34 @@
                             [(null? x) 1]))
               -One]
         [tc-e/t (lambda: ([x : Number] . [y : Number *]) (car y))
-                (->* (list -Number) -Number -Number)]
-        [tc-e ((lambda: ([x : Number] . [y : Number *]) (car y)) 3) -Number]
-        [tc-e ((lambda: ([x : Number] . [y : Number *]) (car y)) 3 4 5) -Number]
-        [tc-e ((lambda: ([x : Number] . [y : Number *]) (car y)) 3 4) -Number]
-        [tc-e (apply (lambda: ([x : Number] . [y : Number *]) (car y)) 3 '(4)) -Number]
-        [tc-e (apply (lambda: ([x : Number] . [y : Number *]) (car y)) 3 '(4 6 7)) -Number]
-        [tc-e (apply (lambda: ([x : Number] . [y : Number *]) (car y)) 3 '()) -Number]
+                (->* (list -Number) -Number -Number
+                     : (-FS (-not-filter (-val #f) (make-Path (list -car) (list 0 1)))
+                            (-filter (-val #f) (make-Path (list -car) (list 0 1))))
+                     : (make-Path (list -car) (list 0 1)))]
+        [tc-e ((lambda: ([x : Number] . [y : Number *]) (car y)) 3)
+              -Number
+              #:expected (ret -Number)]
+        [tc-e ((lambda: ([x : Number] . [y : Number *]) (car y)) 3 4 5)
+              -Number
+              #:expected (ret -Number)]
+        [tc-e ((lambda: ([x : Number] . [y : Number *]) (car y)) 3 4)
+              -Number
+              #:expected (ret -Number)]
+        [tc-e (apply (lambda: ([x : Number] . [y : Number *]) (car y)) 3 '(4))
+              -Number]
+        [tc-e (apply (lambda: ([x : Number] . [y : Number *]) (car y)) 3 '(4 6 7))
+              -Number]
+        [tc-e (apply (lambda: ([x : Number] . [y : Number *]) (car y)) 3 '())
+              -Number]
 
         [tc-e/t (lambda: ([x : Number] . [y : Boolean *]) (car y))
-                (->* (list -Number) -Boolean -Boolean)]
-        [tc-e ((lambda: ([x : Number] . [y : Boolean *]) (car y)) 3) -Boolean]
+                (->* (list -Number) -Boolean -Boolean
+                     : (-FS (-not-filter (-val #f) (make-Path (list -car) (list 0 1)))
+                            (-filter (-val #f) (make-Path (list -car) (list 0 1))))
+                     : (make-Path (list -car) (list 0 1)))]
+        [tc-e ((lambda: ([x : Number] . [y : Boolean *]) (car y)) 3)
+              -Boolean
+              #:expected (ret -Boolean)]
         [tc-e (apply (lambda: ([x : Number] . [y : Boolean *]) (car y)) 3 '(#f)) -Boolean]
         [tc-e (lambda args (void)) #:ret (ret (t:-> -String -Void) -true-filter)
                                    #:expected (ret (t:-> -String -Void) -true-filter)]
@@ -3481,7 +3496,37 @@
        ;; PR 14889
        [tc-err (ann (vector-ref (ann (vector "hi") (Vectorof String)) 0) Symbol)
                #:msg #rx"Polymorphic function.*could not be applied"]
-       )
+
+       ;; Car/Cdr paths for Listof type
+       [tc-e (let ()
+               (: x (Listof (U #f String)))
+               (define x (list "foo"))
+               (if (car x) (string-append (car x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (U #f String)))
+               (define x (list "foo" "bar"))
+               (if (cadr x) (string-append (cadr x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (U #f String)))
+               (define x (list "foo" "bar"))
+               (let ([y x])
+                 (if (cadr y) (string-append (cadr x)) "")))
+             -String]
+       [tc-err (let ()
+                 (: x (Listof (U #f String)))
+                 (define x (list "foo" "bar"))
+                 (if (cadr x) (string-append (car x)) "")
+                 (error "foo"))
+               #:msg #rx"could not be applied"]
+       [tc-err (let ()
+                 (: x (Listof (U #f String)))
+                 (define x (list "foo" "bar"))
+                 (set! x (list #f))
+                 (if (cadr x) (string-append (car x)) "")
+                 (error "foo"))
+               #:msg #rx"could not be applied"])
 
   (test-suite
    "tc-literal tests"

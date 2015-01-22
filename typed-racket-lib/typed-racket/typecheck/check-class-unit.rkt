@@ -12,11 +12,11 @@
          syntax/stx
          "signatures.rkt"
          (private parse-type syntax-properties)
-         (env lexical-env tvar-env global-env type-alias-helper)
+         (env lexical-env tvar-env global-env type-alias-helper mvar-env)
          (types utils abbrev union subtype resolve generalize)
          (typecheck check-below internal-forms)
-         (utils tc-utils)
-         (rep type-rep)
+         (utils tc-utils mutated-vars)
+         (rep object-rep type-rep)
          (for-syntax racket/base)
          (for-template racket/base
                        (private class-literals)
@@ -260,6 +260,21 @@
                      stx-bindings
                      ([(meth-name) meth1.form] ...)
                      meth2.form)))
+
+;; For detecting field mutations for occurrence typing
+(define-syntax-class (field-assignment local-table)
+  #:literal-sets (kernel-literals)
+  #:attributes (sub name)
+  (pattern (begin (quote ((~datum declare-field-assignment) field-name:id))
+                  sub)
+           ;; Mutation tracking needs to look at the *accessor* name
+           ;; since the predicate check happens on a read. But the accessor
+           ;; is not in the mutation expression, so we need to look up the
+           ;; corresponding identifier.
+           #:attr maybe-accessor
+                  (dict-ref local-table (syntax-e #'field-name) #f)
+           #:when (attribute maybe-accessor)
+           #:with name (car (attribute maybe-accessor))))
 
 ;; Syntax Option<TCResults> -> TCResults
 ;; Type-check a class form by trawling its innards
@@ -522,6 +537,20 @@
   (synthesize-private-field-types private-field-stxs
                                   local-private-field-table
                                   private-field-types)
+
+  ;; Detect mutation of private fields for occurrence typing
+  (for ([stx (in-sequences
+              (in-list (stx->list (hash-ref parse-info 'initializer-body)))
+              (in-list method-stxs))]
+        ;; Avoid counting the local table, which has dummy mutations that the
+        ;; typed class macro inserted only for analysis.
+        #:when (not (tr:class:local-table-property stx)))
+    (find-mutated-vars stx
+                       mvar-env
+                       (syntax-parser
+                        [(~var f (field-assignment local-private-field-table))
+                         (list #'f.sub #'f.name)]
+                        [_ #f])))
 
   ;; start type-checking elements in the body
   (define-values (lexical-names lexical-types
@@ -801,12 +830,9 @@
      augments #:inner? #t))
 
   ;; construct field accessor types
-  (define (make-field-types field-names type-map #:private? [private? #f])
+  (define (make-field-types field-names type-map)
     (for/lists (_1 _2) ([f (in-set field-names)])
-      (define external
-        (if private?
-            f
-            (dict-ref internal-external-mapping f)))
+      (define external (dict-ref internal-external-mapping f))
       (define maybe-type (dict-ref type-map external #f))
       (values
        (-> (make-Univ) (or (and maybe-type (car maybe-type))
@@ -815,12 +841,31 @@
                            -Bottom)
            -Void))))
 
+  (define (make-private-field-types field-names getter-ids type-map)
+    (for/lists (_1 _2) ([field-name (in-set field-names)]
+                        [getter-id (in-list getter-ids)])
+      (define maybe-type (dict-ref type-map field-name #f))
+      (values
+       (make-Function
+        ;; This case is more complicated than for public fields because private
+        ;; fields support occurrence typing. The object is set as the field's
+        ;; accessor id, so that *its* range type is refined for occurrence typing.
+        (list (make-arr* (list (make-Univ))
+                         (or (and maybe-type (car maybe-type))
+                             (make-Univ))
+                         #:filters -no-filter
+                         #:object
+                         (make-Path (list (make-FieldPE)) getter-id))))
+       (-> (make-Univ) (or (and maybe-type (car maybe-type))
+                           -Bottom)
+           -Void))))
+
   (define-values (field-get-types field-set-types)
     (make-field-types (hash-ref parse-info 'field-internals) fields))
   (define-values (private-field-get-types private-field-set-types)
-    (make-field-types (hash-ref parse-info 'private-fields)
-                      private-field-types
-                      #:private? #t))
+    (make-private-field-types (hash-ref parse-info 'private-fields)
+                              localized-private-field-get-names
+                              private-field-types))
   (define-values (inherit-field-get-types inherit-field-set-types)
     (make-field-types (hash-ref parse-info 'inherit-field-internals)
                       super-fields))

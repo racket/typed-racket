@@ -57,6 +57,11 @@
     [((PolyDots: _ body-t) _) (path-type path body-t resolved)]
     [((PolyRow: _ _ body-t) _) (path-type path body-t resolved)]
     
+    ;; for private fields in classes
+    [((Function: (list (arr: doms (Values: (list (Result: rng _ _))) _ _ _)))
+      (list rst ... (FieldPE:)))
+     (path-type rst rng)]
+
     ;; types which need resolving
     [((? needs-resolving?) _) #:when (not (set-member? resolved t))
      (path-type path (resolve-once t) (set-add resolved t))]

@@ -5,8 +5,10 @@
 ;; find and add to mapping all the set!'ed variables in form
 ;; if the supplied mapping is mutable, mutates it
 ;; default is immutability
-;; syntax [table] -> table
-(define (find-mutated-vars form [tbl (make-immutable-free-id-table)])
+;; syntax [table] [pred] -> table
+(define (find-mutated-vars form
+                           [tbl (make-immutable-free-id-table)]
+                           [pred #f])
   (define add (if (dict-mutable? tbl)
                   (lambda (t i) (dict-set! t i #t) t)
                   (lambda (t i) (dict-set t i #t))))
@@ -17,8 +19,18 @@
         (loop stx tbl)))
     (syntax-parse stx
       #:literal-sets (kernel-literals)
+      ;; let us care about custom syntax classes
+      [form
+       #:when pred
+       #:attr result (pred #'form)
+       #:when (attribute result)
+       (define-values (sub name)
+         (values (car (attribute result))
+                 (cadr (attribute result))))
+       (add (loop sub tbl) name)]
       ;; what we care about: set!
       [(set! v e)
+       #:when (not pred)
        (add (loop #'e tbl) #'v)]
       ;; forms with expression subforms
       [(define-values (var ...) expr)

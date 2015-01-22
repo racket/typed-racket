@@ -16,6 +16,7 @@
 (def-pathelem StructPE ([t Type?] [idx natural-number/c])
   [#:frees (λ (f) (f t))]
   [#:fold-rhs (*StructPE (type-rec-id t) idx)])
+(def-pathelem FieldPE () [#:fold-rhs #:base])
 
 (def-object Empty () [#:fold-rhs #:base])
 

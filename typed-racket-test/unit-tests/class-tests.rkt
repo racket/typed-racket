@@ -1932,4 +1932,72 @@
                (define/public (m [x : Symbol 'y])
                  (symbol->string x) (void))))
            (send (new c%) m))
-         -Void]))
+         -Void]
+   ;; Next several tests are for occurrence typing on private fields
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (: x (U String #f))
+               (define x "foo")
+               (: m (-> String))
+               (define/public (m)
+                 (if (string? x) (string-append x "bar") "baz"))))
+           (send (new c%) m))
+         -String]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (: x (List (U String #f)))
+               (define x (list "foo"))
+               (: m (-> String))
+               (define/public (m)
+                 (if (string? (car x)) ; car path
+                     (string-append (car x) "bar")
+                     "baz"))))
+           (send (new c%) m))
+         -String]
+   [tc-e (class object%
+           (super-new)
+           (: x (Option String))
+           (define x "foo")
+           ;; let-aliasing + occ. typing on fields
+           (let ([y x]) (if (string? y) (string-append x) "")))
+         (-class)]
+   [tc-err (let ()
+             (define c%
+               (class object%
+                 (super-new)
+                 (: x (U String #f))
+                 (define x "foo")
+                 (set! x #f) ; prevents occ. typing
+                 (: m (-> String))
+                 (define/public (m)
+                   (if (string? x) (string-append x "bar") "baz"))))
+             (error "foo"))
+           #:msg #rx"expected: String.*given: \\(U False String\\)"]
+   [tc-err (let ()
+             (define c%
+               (class object%
+                 (super-new)
+                 (: x (U String #f))
+                 (define x "foo")
+                 (field [f (begin (set! x #f) "hello")])
+                 (: m (-> String))
+                 (define/public (m)
+                   (if (string? x) (string-append x "bar") "baz"))))
+             (error "foo"))
+           #:msg #rx"expected: String.*given: \\(U False String\\)"]
+   [tc-err (let ()
+             (define c%
+               (class object%
+                 (super-new)
+                 (: x (U String #f))
+                 (define x "foo")
+                 (define/public (n) (set! x #f))
+                 (: m (-> String))
+                 (define/public (m)
+                   (if (string? x) (string-append x "bar") "baz"))))
+             (error "foo"))
+           #:msg #rx"expected: String.*given: \\(U False String\\)"]))

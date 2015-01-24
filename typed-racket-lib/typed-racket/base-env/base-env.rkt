@@ -872,8 +872,16 @@
                           (a b a b . -> . (-HT a b))
                           (a b a b a b . -> . (-HT a b))
                           (a b a b a b a b . -> . (-HT a b))))]
-[hasheqv (-poly (a b) (-> (-HT a b)))]
-[hasheq (-poly (a b) (-> (-HT a b)))]
+[hasheqv (-poly (a b) (cl->* (-> (-HT a b))
+                             (a b . -> . (-HT a b))
+                             (a b a b . -> . (-HT a b))
+                             (a b a b a b . -> . (-HT a b))
+                             (a b a b a b a b . -> . (-HT a b))))]
+[hasheq (-poly (a b) (cl->* (-> (-HT a b))
+                            (a b . -> . (-HT a b))
+                            (a b a b . -> . (-HT a b))
+                            (a b a b a b . -> . (-HT a b))
+                            (a b a b a b a b . -> . (-HT a b))))]
 [make-hash (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]
 [make-hasheq (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]
 [make-hasheqv (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]

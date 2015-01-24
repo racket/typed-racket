@@ -867,8 +867,11 @@
 [hash-eqv? (-> -HashTop B)]
 [hash-equal? (-> -HashTop B)]
 [hash-weak? (-> -HashTop B)]
-;; not a very useful type, but better than nothing
-[hash (-poly (a b) (-> (-HT a b)))]
+[hash (-poly (a b) (cl->* (-> (-HT a b))
+                          (a b . -> . (-HT a b))
+                          (a b a b . -> . (-HT a b))
+                          (a b a b a b . -> . (-HT a b))
+                          (a b a b a b a b . -> . (-HT a b))))]
 [hasheqv (-poly (a b) (-> (-HT a b)))]
 [hasheq (-poly (a b) (-> (-HT a b)))]
 [make-hash (-poly (a b) (->opt [(-lst (-pair a b))] (-HT a b)))]

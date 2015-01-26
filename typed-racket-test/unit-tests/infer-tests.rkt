@@ -257,6 +257,16 @@
       #:vars '(a)
       #:result [(-seq (-v a)) (-seq (-val 'b))]]
 
+    ;; Related to PR 14947
+    [infer-t
+     (-lst (-opt -String))
+     (Un -Null (-pair (-v a) (-v b)))
+     #:vars '(a b)]
+    [infer-t
+     (-lst (-opt -String))
+     (Un -Null (-pair (-v a) (Un -Null (-pair (-v b) (-v c)))))
+     #:vars '(a b c)]
+
     ;; Currently Broken
     ;(infer-t (make-ListDots -Symbol 'b) (-pair -Symbol (-lst -Symbol)) #:indices '(b))
     [i2-t (-v a) N ('a N)]

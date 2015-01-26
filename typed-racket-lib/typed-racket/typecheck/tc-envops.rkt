@@ -31,12 +31,6 @@
     [((Pair: t s) (list rst ... (CdrPE:)))
      (build-type -pair t (update s ft pos? rst))]
 
-    ;; listof and car/cdr
-    [((and ts (Listof: t)) (list rst ... (CarPE:)))
-     (build-type -pair (update t ft pos? rst) ts)]
-    [((and ts (Listof: t)) (list rst ... (CdrPE:)))
-     (build-type -pair t (update ts ft pos? rst))]
-
     ;; syntax ops
     [((Syntax: t) (list rst ... (SyntaxPE:)))
      (build-type -Syntax (update t ft pos? rst))]

@@ -16,6 +16,7 @@
  racket/format
  racket/dict
  unstable/list
+ syntax/flatten-begin
  (only-in (types abbrev) -Bottom)
  (static-contracts instantiate optimize structures combinators)
  ;; TODO make this from contract-req
@@ -133,10 +134,13 @@
                                         #,(syntax-position orig-id)
                                         #,(syntax-span orig-id))))])]))
 
+;; The below requires are needed since they provide identifiers that
+;; may appear in the residual program.
+
+;; TODO: It would be better to have individual contracts specify which
+;; modules should be required, but for now this is just all of them.
 (define extra-requires
   #'(require
-      ;; the below requires are needed since they provide identifiers
-      ;; that may appear in the residual program
       (submod typed-racket/private/type-contract predicates)
       typed-racket/utils/utils
       (for-syntax typed-racket/utils/utils)
@@ -144,7 +148,10 @@
       typed-racket/utils/evt-contract
       unstable/contract racket/contract/parametric))
 
-;; should the above requires be included in the output?
+;; Should the above requires be included in the output?
+;;   This box is only used for contracts generated for `require/typed`
+;;   and `cast`, contracts for `provides go into the `#%contract-defs`
+;;   submodule, which always has the above `require`s.
 (define include-extra-requires? (box #f))
 
 (define (change-contract-fixups forms)
@@ -157,15 +164,26 @@
          (begin (set-box! include-extra-requires? #t)
                 (generate-contract-def e ctc-cache sc-cache))))))
 
-(define (change-provide-fixups forms)
-  (define ctc-cache (make-hash))
-  (define sc-cache (make-hash))
+;; TODO: These are probably all in a specific place, which could avoid
+;;       the big traversal
+(define (change-provide-fixups forms  [ctc-cache (make-hash)] [sc-cache (make-hash)])
   (with-new-name-tables
    (for/list ([form (in-list forms)])
-     (cond [(contract-def/provide-property form)
-            (set-box! include-extra-requires? #t)
-            (generate-contract-def/provide form ctc-cache sc-cache)]
-           [else form]))))
+     (syntax-parse form #:literal-sets (kernel-literals)
+       [_
+        #:when (contract-def/provide-property form)
+        (generate-contract-def/provide form ctc-cache sc-cache)]
+       [(module* name #f forms ...)
+        (quasisyntax/loc form
+          (module* name #f 
+            #,@(change-provide-fixups (syntax->list #'(forms ...))
+                                      ctc-cache sc-cache)))]
+       [((~literal #%plain-module-begin) forms ...)
+        (quasisyntax/loc form
+          (#%plain-module-begin
+           #,@(change-provide-fixups (flatten-all-begins #'(begin forms ...))
+                                     ctc-cache sc-cache)))]
+       [_ form]))))
 
 ;; To avoid misspellings
 (define impersonator-sym 'impersonator)
@@ -233,9 +251,6 @@
      fail
      kind
      #:cache cache)))
-
-
-
 
 (define any-wrap/sc (chaperone/sc #'any-wrap/c))
 

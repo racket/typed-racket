@@ -6,13 +6,13 @@
          (prefix-in c: (contract-req))
          (rep type-rep)
          (types utils abbrev type-table struct-table)
-         (private parse-type type-annotation syntax-properties)
+         (private parse-type type-annotation syntax-properties type-contract)
          (env global-env init-envs type-name-env type-alias-env
               lexical-env env-req mvar-env scoped-tvar-env
               type-alias-helper)
-         (utils tc-utils)
-         (typecheck provide-handling def-binding tc-structs
-                    typechecker internal-forms)
+         (utils tc-utils redirect-contract)
+         "provide-handling.rkt" "def-binding.rkt" "tc-structs.rkt"
+         "typechecker.rkt" "internal-forms.rkt"
          syntax/location
          racket/format
          (for-template
@@ -269,6 +269,15 @@
     [(define-syntaxes (nm ...) . rest) (syntax->list #'(nm ...))]
     [_ #f]))
 
+(define-syntax-class unknown-provide-form
+  (pattern
+   (~and name
+         (~or (~datum protect) (~datum for-syntax) (~datum for-label) (~datum for-meta)
+              (~datum struct) (~datum all-from) (~datum all-from-except)
+              (~datum all-defined) (~datum all-defined-except)
+              (~datum prefix-all-defined) (~datum prefix-all-defined-except)
+              (~datum expand)))))
+
 ;; actually do the work on a module
 ;; produces prelude and post-lude syntax objects
 ;; syntax-list -> (values syntax syntax)
@@ -322,6 +331,10 @@
   (define defs (append *defs (apply append (map tc-toplevel/pass1.5 forms))))
   (do-time "Finished pass1")
   ;; separate the definitions into structures we'll handle for provides
+  ;; def-tbl : hash[id, binding]
+  ;;    the id is the name defined by the binding
+  ;; XXX: why is it ever possible that we get duplicates here?
+  ;;      iow, why isn't `merge-def-binding` always `error`?
   (define def-tbl
     (for/fold ([h (make-immutable-free-id-table)])
       ([def (in-list defs)])
@@ -333,8 +346,7 @@
           [(not other-def) def]
           [(plain-stx-binding? def) other-def]
           [(plain-stx-binding? other-def) def]
-          [else
-            (int-err "Two conflicting definitions: ~a ~a" def other-def)]))
+          [else (int-err "Two conflicting definitions: ~a ~a" def other-def)]))
       (dict-update h (binding-name def) merge-def-bindings #f)))
   (do-time "computed def-tbl")
   ;; typecheck the expressions and the rhss of defintions
@@ -350,63 +362,130 @@
                (list (syntax-property #'(void) 'mouse-over-tooltips (type-table->tooltips))))
   ;; report delayed errors
   (report-all-errors)
+  ;; provide-tbl : hash[id, listof[id]]
+  ;; maps internal names to all the names they're provided as
+  ;; XXX: should the external names be symbols instead of identifiers?
   (define provide-tbl
     (for/fold ([h (make-immutable-free-id-table)]) ([p (in-list provs)])
-      (define-syntax-class unknown-provide-form
-        (pattern
-         (~and name
-               (~or (~datum protect) (~datum for-syntax) (~datum for-label) (~datum for-meta)
-                    (~datum struct) (~datum all-from) (~datum all-from-except)
-                    (~datum all-defined) (~datum all-defined-except)
-                    (~datum prefix-all-defined) (~datum prefix-all-defined-except)
-                    (~datum expand)))))
       (syntax-parse p #:literal-sets (kernel-literals)
         [(#%provide form ...)
          (for/fold ([h h]) ([f (in-syntax #'(form ...))])
-           (parameterize ([current-orig-stx f])
-             (syntax-parse f
-               [i:id
-                (dict-update h #'i (lambda (tail) (cons #'i tail)) '())]
-               [((~datum rename) in out)
-                (dict-update h #'in (lambda (tail) (cons #'out tail)) '())]
-               [(name:unknown-provide-form . _)
-                (tc-error "provide: ~a not supported by Typed Racket" (syntax-e #'name.name))]
-               [_ (int-err "unknown provide form")])))]
+           (syntax-parse f
+             [i:id
+              (dict-update h #'i (lambda (tail) (cons #'i tail)) '())]
+             [((~datum rename) in out)
+              (dict-update h #'in (lambda (tail) (cons #'out tail)) '())]
+             [(name:unknown-provide-form . _)
+              (parameterize ([current-orig-stx f])
+                (tc-error "provide: ~a not supported by Typed Racket" (syntax-e #'name.name)))]
+             [_ (parameterize ([current-orig-stx f])
+                  (int-err "unknown provide form"))]))]
         [_ (int-err "non-provide form! ~a" (syntax->datum p))])))
   ;; compute the new provides
   (define-values (new-stx/pre new-stx/post)
     (with-syntax*
-     ([the-variable-reference (generate-temporary #'blame)])
-     (define-values (code aliasess)
-       (generate-prov def-tbl provide-tbl #'the-variable-reference))
-     (define aliases (apply append aliasess))
-     (define/with-syntax (new-provs ...) code)
-     (values
-      #`(begin
-          (begin-for-syntax
-            (module* #%type-decl #f
-	      (#%plain-module-begin ;; avoid top-level printing and config
-	       (require typed-racket/types/numeric-tower typed-racket/env/type-name-env
-			typed-racket/env/global-env typed-racket/env/type-alias-env
-			typed-racket/types/struct-table typed-racket/types/abbrev
-			(rename-in racket/private/sort [sort raw-sort]))
-	       #,(env-init-code)
-	       #,(talias-env-init-code)
-	       #,(tname-env-init-code)
-	       #,(tvariance-env-init-code)
-	       #,(mvar-env-init-code mvar-env)
-	       #,(make-struct-table-code)
-               #,@(for/list ([a (in-list aliases)])
-                    (match a
-                      [(list from to)
-                       #`(add-alias (quote-syntax #,from) (quote-syntax #,to))])))))
-	  (begin-for-syntax (add-mod! (variable-reference->module-path-index
-				       (#%variable-reference)))))
-      #`(begin
-          #,(if (null? (syntax-e #'(new-provs ...)))
-                #'(begin)
-                #'(define the-variable-reference (quote-module-name)))
-          new-provs ...))))
+        ([the-variable-reference (generate-temporary #'blame)]
+         [mk-redirect (generate-temporary #'make-redirect)])
+      (define-values (defs export-defs provs aliasess)
+        (generate-prov def-tbl provide-tbl #'the-variable-reference #'mk-redirect))
+      (define aliases (apply append aliasess))
+      (define/with-syntax (new-defs ...) defs)
+      (define/with-syntax (new-export-defs ...) export-defs)
+      (define/with-syntax (new-provs ...) provs)
+      (values
+       #`(begin
+           ;; This syntax-time submodule records all the types for all
+           ;; definitions in this module, as well as type alias
+           ;; definitions, structure defintions, variance information,
+           ;; etc. It is `dynamic-require`d by the typechecker for any
+           ;; typed module that (transitively) depends on this
+           ;; module. We keep this in a submodule and use
+           ;; `dynamic-require` so that we don't load any of this code
+           ;; (and in particular all of its dependencies on the type
+           ;; checker) when just running a typed module.
+           (begin-for-syntax
+             (module* #%type-decl #f
+               (#%plain-module-begin ;; avoid top-level printing and config
+                (require typed-racket/types/numeric-tower typed-racket/env/type-name-env
+                         typed-racket/env/global-env typed-racket/env/type-alias-env
+                         typed-racket/types/struct-table typed-racket/types/abbrev
+                         (rename-in racket/private/sort [sort raw-sort]))
+                #,(env-init-code)
+                #,(talias-env-init-code)
+                #,(tname-env-init-code)
+                #,(tvariance-env-init-code)
+                #,(mvar-env-init-code mvar-env)
+                #,(make-struct-table-code)
+                #,@(for/list ([a (in-list aliases)])
+                     (match-define (list from to) a)
+                     #`(add-alias (quote-syntax #,from) (quote-syntax #,to))))))
+           (begin-for-syntax (add-mod! (variable-reference->module-path-index
+                                        (#%variable-reference)))))
+       #`(begin
+           ;; FIXME: share this variable reference with the one below
+           (define the-variable-reference (quote-module-name))
+           ;; Here we construct the redirector for the #%contract-defs
+           ;; submodule. The `mk-redirect` identifier is also used in
+           ;; the `new-export-defs`.
+           (begin-for-syntax
+            ;; We explicitly insert a `require` here since this module
+            ;; is `lazy-require`d and thus just doing a `require`
+            ;; outside wouldn't actually make the module
+            ;; available. The alternative would be to add an
+            ;; appropriate-phase `require` statically in a module
+            ;; that's non-dynamically depended on by
+            ;; `typed/racket`. That makes for confusing non-local
+            ;; dependencies, though, so we do it here. 
+            (require typed-racket/utils/redirect-contract)
+            (define mk-redirect
+              (make-make-redirect-to-contract (#%variable-reference))))
+
+           ;; This submodule contains all the definitions of
+           ;; contracted identifiers. For an exported definition like
+           ;;    (define f : T e)
+           ;; we generate the following defintions that go in the
+           ;; submodule:
+           ;;    (define con ,(type->contract T))
+           ;;    (define f* (contract con 'pos 'neg f))
+           ;;    (provide (rename-out [f* f]))
+           ;; This is the `new-defs ...`.
+           ;; The `extra-requires` which go in the submodule are used
+           ;; (potentially) in the implementation of the contracts.
+           ;;
+           ;; The reason to construct this submodule is to avoid
+           ;; loading the contracts (or the `racket/contract` library
+           ;; itself) at the runtime of typed modules that don't need
+           ;; them. This is similar to the reason for the
+           ;; `#%type-decl` submodule. 
+           (module* #%contract-defs #f 
+             (#%plain-module-begin
+              #,extra-requires
+              new-defs ...))
+
+           ;; Now we create definitions that are actually provided
+           ;; from the module itself. There are two levels of
+           ;; indirection here (see the implementation in
+           ;; provide-handling.rkt).
+           ;;
+           ;; First, we generate a macro that expands to a
+           ;; `local-require` of the contracted identifier in the
+           ;; #%contract-defs submodule:
+           ;;    (define-syntax con-f (mk-redirect f))
+           ;;
+           ;; Then, we define a macro that is a rename-transformer for
+           ;; either the original `f` or `con-f`.
+           ;;    (define-syntax export-f (renamer f con-f))
+           ;;
+           ;; Note that we can't combine any of these indirections,
+           ;; because it's important for `export-f` to be a
+           ;; rename-transformer (making things like
+           ;; `syntax-local-value` work right), but `con-f` can't be,
+           ;; since it expands to a `local-require`.
+           new-export-defs ...
+
+           ;; Finally, we do the export:
+           ;;    (provide (rename-out [export-f f]))
+           new-provs ...))))
   (do-time "finished provide generation")
   (values new-stx/pre new-stx/post))
 

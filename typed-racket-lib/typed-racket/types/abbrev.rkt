@@ -74,6 +74,11 @@
 
 (define (-ne-lst t) (-pair t (-lst t)))
 
+;; Like lst* but each pair may be Null instead
+(define (-lst** #:tail [tail -Null] . args)
+  (for/fold ([tl tail]) ([a (in-list (reverse args))])
+    (Un -Null (-pair a tl))))
+
 ;; Convenient constructor for Values
 ;; (wraps arg types with Result)
 (define/cond-contract (-values args)

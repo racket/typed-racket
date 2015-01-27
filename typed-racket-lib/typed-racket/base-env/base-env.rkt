@@ -2533,7 +2533,7 @@
 [directory-exists? (-> -Pathlike B)]
 [make-directory (-> -Pathlike -Void)]
 [delete-directory (-> -Pathlike -Void)]
-[directory-list (->opt [-Pathlike] (-lst -Path))]
+[directory-list (->optkey [-Pathlike] #:build? Univ #f (-lst -Path))]
 [filesystem-root-list (-> (-lst -Path))]
 
 ;; Section 15.2.4

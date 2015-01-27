@@ -266,6 +266,16 @@
      (-lst (-opt -String))
      (Un -Null (-pair (-v a) (Un -Null (-pair (-v b) (-v c)))))
      #:vars '(a b c)]
+    [infer-t
+     (-lst (-v X))
+     (make-ListDots (-v A) 'B)
+     #:vars '(X)
+     #:indices '(B)]
+    [infer-t
+     (Un -Null (-pair (-v X) (-lst (-v Y))))
+     (make-ListDots (-v A) 'B)
+     #:vars '(X Y)
+     #:indices '(B)]
 
     ;; Currently Broken
     ;(infer-t (make-ListDots -Symbol 'b) (-pair -Symbol (-lst -Symbol)) #:indices '(b))

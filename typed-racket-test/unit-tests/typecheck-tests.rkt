@@ -3514,6 +3514,68 @@
                (let ([y x])
                  (if (cadr y) (string-append (cadr x)) "")))
              -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (U #f String))))
+               (define x (list (list "foo")))
+               (if (caar x) (string-append (caar x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (Listof (U #f String)))))
+               (define x (list (list (list "foo"))))
+               (if (caaar x) (string-append (caaar x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (U #f String))))
+               (define x (list (list "foo" "bar")))
+               (if (cadar x) (string-append (cadar x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (U #f String))))
+               (define x (list (list "foo") (list "bar")))
+               (if (caadr x) (string-append (caadr x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (U #f String)))
+               (define x (list "foo" "bar" "baz"))
+               (if (caddr x) (string-append (caddr x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (Listof (Listof (U #f String))))))
+               (define x (list (list (list (list "foo")))))
+               (if (caaaar x) (string-append (caaaar x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (Listof (U #f String)))))
+               (define x (list (list (list "foo" "bar"))))
+               (if (cadaar x) (string-append (cadaar x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (Listof (U #f String)))))
+               (define x (list (list (list "foo") (list "bar"))))
+               (if (caadar x) (string-append (caadar x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (U #f String))))
+               (define x (list (list "foo" "bar" "baz")))
+               (if (caddar x) (string-append (caddar x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (Listof (U #f String)))))
+               (define x (list (list (list "foo"))
+                               (list (list "bar"))))
+               (if (caaadr x) (string-append (caaadr x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (Listof (U #f String))))
+               (define x (list (list) (list)
+                               (list "foo")))
+               (if (cadadr x) (string-append (cadadr x)) ""))
+             -String]
+       [tc-e (let ()
+               (: x (Listof (U #f String)))
+               (define x (list "foo" "bar" "baz" "quux"))
+               (if (cadddr x) (string-append (cadddr x)) ""))
+             -String]
        [tc-err (let ()
                  (: x (Listof (U #f String)))
                  (define x (list "foo" "bar"))

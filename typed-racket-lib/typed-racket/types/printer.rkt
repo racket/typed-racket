@@ -6,7 +6,7 @@
 (require racket/require racket/match unstable/sequence racket/string racket/promise
          racket/pretty
          racket/list
-         (prefix-in s: srfi/1)
+         racket/set
          (path-up "rep/type-rep.rkt" "rep/filter-rep.rkt" "rep/object-rep.rkt"
                   "rep/rep-utils.rkt" "types/subtype.rkt"
                   "types/match-expanders.rkt"
@@ -161,14 +161,16 @@
                 [_ #f]))
             (force (current-type-names))))
   ;; names and the sets themselves (not the union types)
-  ;; we use srfi/1 lsets as sets, to use custom type equality.
+  ;; note that racket/set supports lists with equal?, which in
+  ;; the case of Types will be type-equal?
   (define candidates
     (map (match-lambda [(cons name (Union: elts)) (cons name elts)])
          valid-names))
   ;; some types in the union may not be coverable by the candidates
   ;; (e.g. type variables, etc.)
   (define-values (uncoverable coverable)
-    (apply s:lset-diff+intersection type-equal? elems (map cdr candidates)))
+    (values (apply set-subtract elems (map cdr candidates))
+            (set-intersect elems (apply set-union null (map cdr candidates)))))
   ;; set cover, greedy algorithm, ~lg n approximation
   (let loop ([to-cover   coverable]
              [candidates candidates]
@@ -179,11 +181,13 @@
            ;; only union types can flow here, and any of those could be expanded
            (set-box! (current-print-unexpanded)
                      (append coverage-names (unbox (current-print-unexpanded))))
-           (values coverage-names uncoverable)] ; we want the names
+           ;; reverse here to retain the old ordering from when srfi/1 was
+           ;; used to process the list sets
+           (values coverage-names (reverse uncoverable))] ; we want the names
           [else
            ;; pick the candidate that covers the most uncovered types
            (define (covers-how-many? c)
-             (length (s:lset-intersection type-equal? (cdr c) to-cover)))
+             (length (set-intersect (cdr c) to-cover)))
            (define-values (next _)
              (for/fold ([next      (car candidates)]
                         [max-cover (covers-how-many? (car candidates))])
@@ -192,7 +196,7 @@
                  (if (> how-many? max-cover)
                      (values c how-many?)
                      (values next max-cover)))))
-           (loop (s:lset-difference type-equal? to-cover (cdr next))
+           (loop (set-subtract to-cover (cdr next))
                  (remove next candidates)
                  (cons next coverage))])))
 

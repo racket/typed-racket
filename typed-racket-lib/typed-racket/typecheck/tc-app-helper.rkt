@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
          racket/match unstable/list unstable/sequence racket/set racket/list
-         (only-in srfi/1 unzip4) (only-in racket/list make-list)
+         (only-in racket/list make-list)
          (contract-req)
          (typecheck check-below tc-subst tc-metafunctions)
          (utils tc-utils)
@@ -323,7 +323,9 @@
              (cons p parts-res)))
 
          (call-with-values
-             (lambda () (unzip4 (reverse parts-res)))
+           (λ ()
+             (for/lists (_1 _2 _3 _4) ([xs (in-list (reverse parts-res))])
+               (values (car xs) (cadr xs) (caddr xs) (cadddr xs))))
            list)]))
 
 ;; Wrapper over possible-domains that works on types.

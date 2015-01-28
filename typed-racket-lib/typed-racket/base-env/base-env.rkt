@@ -2829,7 +2829,7 @@
                       (-Integer Univ . -> . -Date))]
 [current-seconds (-> -Integer)]
 [current-milliseconds (-> -Fixnum)]
-[current-inexact-milliseconds (-> -Real)]
+[current-inexact-milliseconds (-> -Flonum)]
 [current-gc-milliseconds (-> -Fixnum)]
 [current-process-milliseconds
  (->opt [(Un (-val #f) (-val 'subprocesses) -Thread)] -Fixnum)]

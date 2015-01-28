@@ -1815,6 +1815,7 @@
               (make-Evt -String))
         (tc-e (sync (replace-evt always-evt (lambda (x) 3)))
               (-mu x (make-Evt x)))
+        (tc-e (current-inexact-milliseconds) -Flonum)
         (tc-e (sync (replace-evt always-evt (lambda (x)
                                               (alarm-evt (+ (current-inexact-milliseconds) 1000)))))
               (-mu x (make-Evt x)))

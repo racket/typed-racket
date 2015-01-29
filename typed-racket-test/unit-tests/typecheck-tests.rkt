@@ -1551,6 +1551,8 @@
 
         (tc-e (directory-list) (-lst -Path))
         (tc-e (directory-list "tmp") (-lst -Path))
+        (tc-e (directory-list #:build? #f) (-lst -Path))
+        (tc-e (directory-list "tmp" #:build? "yes") (-lst -Path))
         (tc-e (filesystem-root-list) (-lst -Path))
 
 

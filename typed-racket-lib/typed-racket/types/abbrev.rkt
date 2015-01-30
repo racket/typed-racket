@@ -115,8 +115,9 @@
 (define/decl -Pattern (Un -Bytes -Regexp -Byte-Regexp -String))
 (define/decl -Keyword (make-Base 'Keyword #'keyword? keyword?))
 (define/decl -Thread (make-Base 'Thread #'thread? thread?))
+(define/decl -Path (make-Base 'Path #'path? path?))
 (define/decl -Module-Path
-  (Un -Symbol -String
+  (Un -Symbol -String -Path
       (-lst* (-val 'quote) -Symbol)
       (-lst* (-val 'lib) -String)
       (-lst* (-val 'file) -String)
@@ -139,7 +140,6 @@
 	     (conjoin  compiled-expression? (negate compiled-module-expression?))))
 (define/decl -Compiled-Expression (Un -Compiled-Module-Expression -Compiled-Non-Module-Expression))
 (define/decl -Cont-Mark-Set (make-Base 'Continuation-Mark-Set #'continuation-mark-set? continuation-mark-set?))
-(define/decl -Path (make-Base 'Path #'path? path?))
 (define/decl -OtherSystemPath
   (make-Base 'OtherSystemPath
 	     #'(and/c path-for-some-system? (not/c path?))

@@ -1730,6 +1730,11 @@
               #:ret (ret -Boolean -true-filter))
         (tc-e (let: ((e : Compiled-Expression (compile #'(module + racket 2))))
                 (compiled-module-expression? e)) -Boolean)
+        
+        ;Dynamic Require
+        (tc-e (dynamic-require "module/path" #f) -Void)
+        (tc-e (dynamic-require 'module/path #f) -Void)
+        (tc-e (dynamic-require (string->path "module/path") #f) -Void)
 
         ;Impersonator Property
         (tc-e (make-impersonator-property 'prop)

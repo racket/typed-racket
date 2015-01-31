@@ -128,6 +128,7 @@
 
    ;; more sequences
    [tc-e (sequence-ref (in-directory) 0) -Path]
+   [tc-e (sequence-ref (in-directory "foo" (λ (p) #t)) 0) -Path]
    [tc-e (in-mlist (ann (mcons 'a null) (MListof 'a))) (-seq (-val 'a))]
    [tc-e (in-producer (λ () 'hi)) (-seq (-val 'hi))]
    [tc-e (in-producer (λ: ([x : String]) 'hi) symbol? "foo")

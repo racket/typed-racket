@@ -81,6 +81,8 @@
     (match (single-value #'struct)
       [(tc-result1: (and struct-t (app resolve (Struct: _ _ (list (fld: flds _ _) ...) _ _ _))))
        (tc/hetero-ref #'index flds struct-t "struct")]
+      [(tc-result1: (and struct-t (app resolve (Prefab: _ (list flds ...)))))
+       (tc/hetero-ref #'index flds struct-t "prefab struct")]
       [s-ty (tc/app-regular #'form expected)]))
   ;; vector-ref on het vectors
   (pattern (~and form ((~or vector-ref unsafe-vector-ref unsafe-vector*-ref) vec:expr index:expr))

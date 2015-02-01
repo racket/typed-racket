@@ -34,3 +34,6 @@
 (poly-x (poly "foo"))
 (poly-x (poly 3))
 (poly-x #s(poly "foo"))
+
+;; Test match (indirectly tests unsafe-struct-ref)
+(match (foo 'x) [(foo s) s])

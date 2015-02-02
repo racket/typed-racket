@@ -1436,6 +1436,14 @@
 [would-be-future (-poly (A) ((-> A) . -> . (-future A)))]
 [processor-count (-> -PosInt)]
 
+;; Section 11.4.2 (Future Semaphores)
+[make-fsemaphore (-> -Nat -FSemaphore)]
+[fsemaphore? (make-pred-ty -FSemaphore)]
+[fsemaphore-post (-> -FSemaphore -Void)]
+[fsemaphore-wait (-> -FSemaphore -Void)]
+[fsemaphore-try-wait? (-> -FSemaphore B)]
+[fsemaphore-count (-> -FSemaphore -Nat)]
+
 ;; Section 11.5 (Places)
 [place-enabled? (-> -Boolean)]
 [place? (make-pred-ty -Place)]

@@ -1855,6 +1855,13 @@
                                      'not-a-failure-thunk
                                      "x")]
 
+        ;; Future Semaphores
+        [tc-e (make-fsemaphore 5) -FSemaphore]
+        [tc-e (fsemaphore-count (make-fsemaphore 5)) -Nat]
+        [tc-e (let: ((s : FSemaphore (make-fsemaphore 3)))
+                      (fsemaphore-post s))
+              -Void]
+
         ;Random Numbers
         (tc-e (make-pseudo-random-generator) -Pseudo-Random-Generator)
         (tc-e (let: ((pg : Pseudo-Random-Generator (make-pseudo-random-generator)))

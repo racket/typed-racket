@@ -32,6 +32,7 @@
            (only-in racket/flonum flvector?)
            (only-in racket/extflonum extflvector?)
            (only-in racket/fixnum fxvector?)
+           (only-in racket/future fsemaphore?)
            (only-in '#%place place? place-channel?))
          (only-in racket/pretty pretty-print-style-table?)
          (only-in racket/udp udp?)
@@ -39,6 +40,7 @@
          (only-in racket/flonum flvector?)
          (only-in racket/extflonum extflvector?)
          (only-in racket/fixnum fxvector?)
+         (only-in racket/future fsemaphore?)
          (only-in '#%place place? place-channel?))
 
 (provide (except-out (all-defined-out) make-Base)
@@ -222,6 +224,7 @@
 (define/decl -Impersonator-Property
   (make-Base 'Impersonator-Property #'impersonator-property? impersonator-property?))
 (define/decl -Semaphore (make-Base 'Semaphore #'semaphore? semaphore?))
+(define/decl -FSemaphore (make-Base 'FSemaphore #'fsemaphore? fsemaphore?))
 (define/decl -Bytes-Converter (make-Base 'Bytes-Converter #'bytes-converter? bytes-converter?))
 (define/decl -Pseudo-Random-Generator
   (make-Base 'Pseudo-Random-Generator #'pseudo-random-generator? pseudo-random-generator?))

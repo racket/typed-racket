@@ -149,6 +149,7 @@
 [Thread-Group -Thread-Group]
 [Impersonator-Property -Impersonator-Property]
 [Semaphore -Semaphore]
+[FSemaphore -FSemaphore]
 [Bytes-Converter -Bytes-Converter]
 [Pseudo-Random-Generator -Pseudo-Random-Generator]
 [Logger -Logger]

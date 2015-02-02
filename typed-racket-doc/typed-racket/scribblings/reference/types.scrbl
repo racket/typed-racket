@@ -261,6 +261,7 @@ These are not part of the numeric tower.
 @defidform[Place]
 @defidform[Place-Channel]
 @defidform[Semaphore]
+@defidform[FSemaphore]
 @defidform[Will-Executor]
 @defidform[Pseudo-Random-Generator]
 )]{

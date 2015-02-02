@@ -69,6 +69,7 @@
             (Real Real
                   Exact-Nonnegative-Integer Exact-Nonnegative-Integer
                   Bytes Any Any -> Void))]
+   [get-backing-scale (-> Real)]
    [get-depth (-> Exact-Nonnegative-Integer)]
    [get-handle (-> Any)]
    [get-height (-> Exact-Positive-Integer)]
@@ -697,15 +698,28 @@
 
 (define-type Top-Level-Window<%>
   (Class #:implements Area-Container-Window<%>
+         [can-close? (-> Boolean)]
          (augment [can-close? (-> Boolean)])
          [can-exit? (-> Boolean)]
+         [center (-> (U 'horizontal 'vertical 'both) Void)]
+         [get-edit-target-object
+          (-> (Option (U (Instance Window<%>) (Instance Editor<%>))))]
+         [get-edit-target-window (-> (Option (Instance Window<%>)))]
          [get-eventspace (-> Any)] ; FIXME: Eventspace type
+         [get-focus-object
+          (-> (Option (U (Instance Window<%>) (Instance Editor<%>))))]
+         [get-focus-window (-> (Option (Instance Window<%>)))]
          [move (Integer Integer -> Void)]
          [on-activate (Any -> Void)]
+         [on-close (-> Void)]
          (augment [on-close (-> Void)])
          [on-exit (-> Void)]
          [on-message (Any -> Void)]
+         [display-changed (-> Any)]
          (augment [display-changed (-> Any)])
+         [on-traverse-char (-> (Instance Key-Event%) Boolean)]
+         [on-system-menu-char (-> (Instance Key-Event%) Boolean)]
+         [resize (-> Integer Integer Void)]
          [set-icon
           (case->
            ((Instance Bitmap%) -> Void)

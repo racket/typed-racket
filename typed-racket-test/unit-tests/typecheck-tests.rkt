@@ -1840,6 +1840,20 @@
         (tc-e (make-semaphore) -Semaphore)
         (tc-e (let: ((s : Semaphore (make-semaphore 3)))
                       (semaphore-post s)) -Void)
+        [tc-e (call-with-semaphore (make-semaphore)
+                                   (lambda: ([x : String]) (void))
+                                   (lambda: () "x")
+                                   "a")
+              (t:Un -String -Void)]
+        [tc-err (call-with-semaphore (make-semaphore)
+                                     (lambda: ([x : String]) (void)))]
+        [tc-err (call-with-semaphore (make-semaphore)
+                                     (lambda: ([x : String]) (void))
+                                     #f 'x)]
+        [tc-err (call-with-semaphore (make-semaphore)
+                                     (lambda: ([x : String]) (void))
+                                     'not-a-failure-thunk
+                                     "x")]
 
         ;Random Numbers
         (tc-e (make-pseudo-random-generator) -Pseudo-Random-Generator)

@@ -1390,8 +1390,18 @@
 [semaphore-wait/enable-break (-> -Semaphore -Void)]
 [semaphore-peek-evt (-> -Semaphore (-mu x (-evt x)))]
 [semaphore-peek-evt? (asym-pred Univ B (-FS (-filter (-mu x (-evt x)) 0) -top))]
-;[call-with-semaphore ???]
-;[call-with-semaphore/enable-break ???]
+[call-with-semaphore
+ (-polydots (b a)
+   (cl->* (->... (list -Semaphore (->... '() [a a] b))
+                 [a a] b)
+          (->... (list -Semaphore (->... '() [a a] b) (-opt (-> b)))
+                 [a a] b)))]
+[call-with-semaphore/enable-break
+ (-polydots (b a)
+   (cl->* (->... (list -Semaphore (->... '() [a a] b))
+                 [a a] b)
+          (->... (list -Semaphore (->... '() [a a] b) (-opt (-> b)))
+                 [a a] b)))]
 
 ;; Section 11.3.1 (Thread Cells)
 [thread-cell? (make-pred-ty (make-ThreadCellTop))]

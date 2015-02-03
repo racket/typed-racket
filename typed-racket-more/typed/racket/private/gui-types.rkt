@@ -610,7 +610,10 @@
 (define-type Area<%>
   (Class [get-graphical-min-size (-> (Values Natural Natural))]
          [get-parent (-> (Option (Instance Area-Container<%>)))]
-         [get-top-level-window (-> (U (Instance Frame%) (Instance Dialog%)))]
+         ;; The documentation says this returns a frame% or dialog%,
+         ;; but giving it that type doesn't work for contract generation
+         ;; because it creates an `or/c` of two class contracts.
+         [get-top-level-window (-> (Instance Top-Level-Window<%>))]
          [min-width (case-> (-> Integer)
                             (Integer -> Void))]
          [min-height (case-> (-> Integer)

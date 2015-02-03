@@ -448,11 +448,14 @@
        (Class #:row-var r #:implements Frame:Basic<%>)))
 
 (define-type Frame:Focus-Table<%>
-  (Class #:implements Frame%))
+  (Class #:implements Top-Level-Window<%>))
 
+;; The documentation claims this should be applied to frames, but
+;; the implementation and its uses in practice (such as in DrRacket)
+;; apply it to other top level windows like dialog% instances.
 (define-type Frame:Focus-Table-Mixin
   (All (r #:row)
-       (Class #:row-var r #:implements Frame%)
+       (Class #:row-var r #:implements Top-Level-Window<%>)
        ->
        (Class #:row-var r #:implements Frame:Focus-Table<%>)))
 
@@ -1513,7 +1516,7 @@
            [Boolean
             (U 'high 'low)
             (U 'rectangle 'ellipse 'hollow-ellipse 'dot)
-            #:adjust-on-insert/delete Boolean
+            #:adjust-on-insert/delete? Boolean
             #:key Any]
            . ->* . ; FIXME: result type depends on `adjust-on-insert/delete`
            (U Void (-> Void)))]

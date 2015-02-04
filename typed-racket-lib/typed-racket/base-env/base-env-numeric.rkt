@@ -1286,9 +1286,9 @@
     ;; reals
     (map unop real-types)
     (varop -NonNegReal) ; (* +inf.0 0.0) -> +nan.0
-    (-> -NegReal -NegReal -NonNegReal)
-    (commutative-binop -NegReal -PosReal -NonPosReal)
-    (-> -NegReal -NegReal -NegReal -NonPosReal)
+    (-> -NonPosReal -NonPosReal -NonNegReal)
+    (commutative-binop -NonPosReal -NonNegReal -NonPosReal)
+    (-> -NonPosReal -NonPosReal -NonPosReal -NonPosReal)
     (varop -Real)
     ;; complexes
     (commutative-case -FloatComplex (Un -InexactComplex -InexactReal -PosRat -NegRat) -FloatComplex)
@@ -1432,8 +1432,6 @@
     (-> -NegFlonum -NegFlonum -NegFlonum -NonPosFlonum)
     ;; limited flonum contagion rules
     ;; (/ 0 <float>) is exact 0 (i.e. not a float)
-    (-> -PosFlonum -PosReal -NonNegFlonum)
-    (-> -PosReal -PosFlonum -NonNegFlonum)
     (commutative-case -PosFlonum -PosReal -NonNegFlonum)
     (->* (list (Un -PosReal -NegReal -Flonum) -Flonum) -Flonum -Flonum)
     (->* (list -Flonum) -Real -Flonum) ; if any argument after the first is exact 0, not a problem
@@ -1452,12 +1450,12 @@
     (commutative-case -InexactReal (Un -PosRat -NegRat -InexactReal) -InexactReal)
     (varop-1+ -InexactReal)
     ;; reals
-    (varop-1+ -PosReal -NonNegReal)
-    (-> -NegReal -NonPosReal)
-    (-> -NegReal -NegReal -NonNegReal)
-    (-> -NegReal -PosReal -NonPosReal)
-    (-> -PosReal -NegReal -NonPosReal)
-    (-> -NegReal -NegReal -NegReal -NonPosReal)
+    (varop-1+ -NonNegReal -NonNegReal)
+    (-> -NonPosReal -NonPosReal)
+    (-> -NonPosReal -NonPosReal -NonNegReal)
+    (-> -NonPosReal -NonNegReal -NonPosReal)
+    (-> -NonNegReal -NonPosReal -NonPosReal)
+    (-> -NonPosReal -NonPosReal -NonPosReal -NonPosReal)
     (varop-1+ -Real)
     ;; complexes
     (varop-1+ -FloatComplex)

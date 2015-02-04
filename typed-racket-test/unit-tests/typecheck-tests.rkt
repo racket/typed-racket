@@ -367,6 +367,7 @@
         (tc-e (- -24.3) -PosFlonum)
         (tc-e/t 34.2f0 -PosSingleFlonum)
         (tc-e/t -34.2f0 -NegSingleFlonum)
+        (tc-e (/ (ann 0 Nonnegative-Real) (ann 1 Nonnegative-Real)) -NonNegReal)
 
         (tc-e (- (ann 1000 Index) 1) -Fixnum)
         (tc-e (- (ann 1000 Positive-Index) 1) -Index)

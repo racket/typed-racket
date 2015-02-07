@@ -177,6 +177,90 @@
                          (#%plain-app values))])
              (#%plain-app void))))
 
+;; This syntax class matches the method-procedure non-terminal from
+;; grammar for class* in section 6.2 of the Racket Reference. It is
+;; used to register types for unannotated variables and copy syntax
+;; properties to the right place.
+;;
+;; The method variables need to be annotated because forms like
+;;
+;;   (let ([x (lambda (y) ...)]) x)
+;;
+;; are not checkable even if there is an expected type for the whole
+;; let form. This is because TR doesn't implement synthesis for bare
+;; lambda terms.
+(define-syntax-class (core-method add-props
+                                  register/method
+                                  register/self)
+  #:literal-sets (kernel-literals)
+  #:attributes (form)
+  (pattern (#%plain-lambda (self . params) . rst)
+           #:do [(register/self #'self)]
+           ;; this is needed for properties such as the plambda property
+           ;; for type variables
+           #:with form (add-props this-syntax))
+  (pattern (case-lambda [(self x ...) body] ...)
+           #:do [(for ([self (in-list (syntax->list #'(self ...)))])
+                   (register/self self))]
+           #:with form (add-props this-syntax))
+  ;; Special case for keyword lambdas because properties need to be transferred
+  ;; differently for those. We can't typecheck keyword methods that come from
+  ;; non-TR sources (like an untyped macro) but that's the same as normal TR.
+  (pattern (~and (let-values ([(meth-name) kw-core]) meth-name-2:id)
+                 kw:kw-lambda^)
+           #:do [(register/method #'meth-name)]
+           #:with props-core
+                  (kw-lambda-property #'kw-core (attribute kw.value))
+           #:with form #'(let-values ([(meth-name) props-core])
+                           meth-name-2))
+  (pattern (~and (let-values ([(meth-name) opt-core]) meth-name-2:id)
+                 opt:opt-lambda^)
+           ;; it's only an interesting opt-lambda expansion if the number
+           ;; of optional arguments is greater than zero
+           #:when (> (cadr (attribute opt.value)) 0)
+           #:do [(register/method #'meth-name)]
+           #:with props-core
+                  (let* ([prop-val (attribute opt.value)]
+                         [mand (add1 (car prop-val))]
+                         [opt  (cadr prop-val)])
+                    (opt-lambda-property #'opt-core (list mand opt)))
+           #:with form #'(let-values ([(meth-name) props-core])
+                           meth-name-2))
+  (pattern ((~and head (~or let-values letrec-values))
+              ([(meth-name:id) meth] ...)
+              meth-name-2:id)
+           #:declare meth (core-method add-props register/method register/self)
+           #:do [(register/method #'meth-name-2)]
+           #:with form
+                  #'(head ([(meth-name) meth.form] ...)
+                      meth-name-2))
+  (pattern ((~and head (~or let-values letrec-values))
+            ([(meth-name) meth1] ...)
+            meth2)
+           #:declare meth1 (core-method add-props register/method register/self)
+           #:declare meth2 (core-method add-props register/method register/self)
+           #:with form
+                  #'(head ([(meth-name) meth1.form] ...) meth2.form))
+  ;; The syntax variants have two lists of bindings
+  (pattern (letrec-syntaxes+values stx-bindings ([(meth-name:id) meth] ...)
+             meth-name-2:id)
+           #:declare meth (core-method add-props register/method register/self)
+           #:do [(register/method #'meth-name-2)]
+           #:with form
+                  #'(letrec-syntaxes+values
+                     stx-bindings
+                     ([(meth-name) meth.form] ...)
+                     meth-name-2))
+  (pattern (letrec-syntaxes+values stx-bindings ([(meth-name) meth1] ...)
+             meth2)
+           #:declare meth1 (core-method add-props register/method register/self)
+           #:declare meth2 (core-method add-props register/method register/self)
+           #:with form
+                  #'(letrec-syntaxes+values
+                     stx-bindings
+                     ([(meth-name) meth1.form] ...)
+                     meth2.form)))
+
 ;; Syntax Option<TCResults> -> TCResults
 ;; Type-check a class form by trawling its innards
 ;;
@@ -834,9 +918,10 @@
            (define method-type
              (function->method pre-method-type self-type))
            (define expected (ret method-type))
-           (register-method-ids meth self-type method-type)
+           (define xformed-meth
+             (process-method-syntax meth self-type method-type))
            (do-timestamp (format "started checking method ~a" external-name))
-           (tc-expr/check (add-lambda-properties meth) expected)
+           (tc-expr/check xformed-meth expected)
            (do-timestamp (format "finished method ~a" external-name))
            (cons (list external-name pre-method-type) checked)]
           ;; Only try to type-check if these names are in the
@@ -847,8 +932,9 @@
            ;; FIXME: this case doesn't work very well yet for keyword methods
            ;;        because TR can't recognize that the expansion is a kw
            ;;        function (unlike the expected case).
-           (register-method-ids meth self-type #f)
-           (define type (tc-expr/t (add-lambda-properties meth)))
+           (define xformed-meth
+             (process-method-syntax meth self-type #f))
+           (define type (tc-expr/t xformed-meth))
            (do-timestamp (format "finished method ~a" external-name))
            (cons (list external-name
                        (method->function type))
@@ -868,13 +954,15 @@
            (define method-type
              (function->method pre-method-type self-type))
            (define expected (ret method-type))
-           (register-method-ids stx self-type method-type)
-           (tc-expr/check (add-lambda-properties stx) expected)]
+           (define xformed-stx
+             (process-method-syntax stx self-type method-type))
+           (tc-expr/check xformed-stx expected)]
           ;; not private, then ignore since it's irrelevant
           [(not private?) (void)]
           [else
-           (register-method-ids stx self-type #f)
-           (tc-expr/t (add-lambda-properties stx))])))
+           (define xformed-stx
+             (process-method-syntax stx self-type #f))
+           (tc-expr/t xformed-stx)])))
 
 ;; check-field-set!s : Syntax Dict<Symbol, Type> -> Void
 ;; Check that fields are initialized to the correct type
@@ -1414,59 +1502,30 @@
      (make-PolyRow ns constraints (method->function type))]
     [_ (tc-error/expr #:return -Bottom "expected a function type for method")]))
 
-;; register-method-ids : Syntax (Option Type) -> Void
-;; Register types for identifiers in a method that don't come with types
-(define (register-method-ids stx self-type method-type)
-  (define (do-register self-param meth-name)
-    (when method-type
-      (register-type meth-name method-type))
-    (register-type self-param self-type))
-  (syntax-parse stx
-    #:literals (let-values #%plain-lambda case-lambda)
-    [(let-values ([(meth-name:id)
-                   (#%plain-lambda (self-param:id . params)
-                     body ...)])
-       m)
-     (do-register #'self-param #'meth-name)]
-    [(~and (let-values ([(meth-name:id)
-                         (let-values (((core:id)
-                                       (#%plain-lambda params
-                                                       core-body ...)))
-                           method-body ...)])
-             m)
-           (~or kw:kw-lambda^ opt:opt-lambda^))
-     (do-register #'self-param #'meth-name)]
-    ;; case-lambda methods
-    [(let-values ([(meth-name:id)
-                   (case-lambda
-                     [(self x ...) body] ...)])
-       m)
-     (when method-type
-       (register-type #'meth-name method-type))
-     (for ([self-param (in-list (syntax->list #'(self ...)))])
-       (register-type self-param self-type))]
-    [_ (int-err "register-method-ids: internal error")]))
+;; process-method-syntax : Syntax (Option Type) -> Syntax
+;; Register types for identifiers in a method that don't come with types and
+;; propagate syntax properties as needed
+(define (process-method-syntax stx self-type method-type)
+  ;; this helper function transfers the properties from the outer transformed
+  ;; method syntax to the core lambda
+  (define (add-props core)
+    (define datum (syntax-e core))
+    ;; the important bit is the last argument for copying properties
+    (datum->syntax core datum stx stx))
 
-;; Syntax -> Syntax
-;; Propagate all syntax properties on the outer expansion of the
-;; lambda to the core lambda that TR looks at
-(define (add-lambda-properties stx)
+  ;; the opt-lambda-property needs adjustment for `this`
+  (define (register/method meth-name)
+    (when method-type
+      (register-type meth-name method-type)))
+  (define (register/self self-name)
+    (register-type self-name self-type))
+
   (syntax-parse stx
     #:literal-sets (kernel-literals)
-    [(let-values ([(meth-name:id) core]) m)
-     (define opt-prop (opt-lambda-property stx))
-     (define datum (syntax-e #'core))
-     ;; the important bit is the last argument for copying properties
-     (define with-props (datum->syntax #'core datum stx stx))
-     ;; the opt-lambda-property needs adjustment for `this`
-     (define with-opt
-       (if opt-prop
-           (opt-lambda-property
-            with-props
-            (list (add1 (car opt-prop)) (cadr opt-prop)))
-           with-props))
-     (quasisyntax/loc stx
-       (let-values ([(meth-name) #,with-opt]) m))]))
+    [(~var meth (core-method add-props register/method register/self))
+     #'meth.form]
+    [_ (int-err "process-method-syntax: unexpected syntax ~a"
+                (syntax->datum stx))]))
 
 ;; Set<Symbol> Set<Symbol> String -> Void
 ;; check that all the required names are actually present

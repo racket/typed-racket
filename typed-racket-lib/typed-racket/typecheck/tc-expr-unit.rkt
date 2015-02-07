@@ -42,15 +42,10 @@
   (--> identifier? full-tc-results/c)
   (define rename-id (contract-rename-id-property id))
   (define id* (or rename-id id))
+  (define ty (lookup-type/lexical id*))
   ;; see if id* is an alias for an object
   ;; if not (-id-path id*) is returned
-  (define obj (lookup-alias/lexical id*))
-  (define-values (alias-path alias-id)
-    (match obj
-      [(Path: p x) (values p x)]
-      [(Empty:) (values (list) id*)]))
-  ;; calculate the type, resolving aliasing and paths if necessary
-  (define ty (path-type alias-path (lookup-type/lexical alias-id)))
+  (define obj (resolve-alias/lexical id*))
   
   (ret ty
        (if (overlap ty (-val #f))
@@ -114,7 +109,6 @@
 (define/cond-contract (tc-expr/check/internal form expected)
   (--> syntax? (-or/c tc-results/c #f) full-tc-results/c)
   (parameterize ([current-orig-stx form])
-    ;(printf "form: ~a\n" (syntax-object->datum form))
     ;; the argument must be syntax
     (unless (syntax? form)
       (int-err "bad form input to tc-expr: ~a" form))
@@ -181,7 +175,8 @@
       ;; application
       [(#%plain-app . _) (tc/app form expected)]
       ;; #%expression
-      [(#%expression e) (tc/#%expression form expected)]
+      [(#%expression e) 
+       (tc/#%expression form expected)]
       ;; syntax
       ;; for now, we ignore the rhs of macros
       [(letrec-syntaxes+values stxs vals . body)

@@ -83,7 +83,7 @@
 ;;                   (Results Results -> Result)
 ;;                   (Type Results -> Type)
 ;;                   (Type Type -> Type))
-(define (check-below tr1 expected)
+(define (check-below tr1 expected #:env [env #f] #:obj [obj #f])
   (define (filter-set-better? f1 f2)
     (match* (f1 f2)
       [(f f) #t]
@@ -200,7 +200,7 @@
      (fix-results expected)]
 
     [((? Type/c? t1) (? Type/c? t2))
-     (unless (subtype t1 t2)
+     (unless (subtype t1 t2 #:env env #:obj obj)
        (expected-but-got t2 t1))
      expected]
     [((tc-results: ts fs os dty dbound) (tc-results: ts* fs* os* dty* dbound*))

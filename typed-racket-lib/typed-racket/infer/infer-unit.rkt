@@ -373,7 +373,7 @@
   (context? arr? arr? . -> . (or/c #f cset?))
 
   (match* (s-arr t-arr)
-    [((arr: ss s s-rest s-drest s-kws) (arr: ts t t-rest t-drest t-kws))
+    [((arr: ss s s-rest s-drest s-kws s-dep?) (arr: ts t t-rest t-drest t-kws t-dep?)) ;; TODO(AMK)
      (define (rest->end rest drest)
        (cond
          [rest (uniform-end rest)]

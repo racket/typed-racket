@@ -3,7 +3,7 @@
 (require "../utils/utils.rkt"
          (rep type-rep rep-utils)
          (types union subtype resolve utils)
-         racket/match)
+         racket/match racket/unsafe/ops)
 
 (provide (rename-out [*remove remove]) overlap)
 
@@ -19,11 +19,38 @@
       (void? v)
       (eof-object? v)))
 
+;; tracks previously seen types for overlap,
+;; prevents infinite recursion (similar to 
+;; subtyping's approach)
+(define memory (make-parameter null))
+
+(define (remember t1-seq t2-seq A)
+  (if (< t1-seq t2-seq)
+      `((,t1-seq . ,t2-seq) . ,A)
+      `((,t2-seq . ,t1-seq) . ,A)))
+
+(define (seen? t1-seq t2-seq A)
+  (if (< t1-seq t2-seq)
+      (for/or ([pr (in-list A)])
+        (and (eq? (unsafe-car pr) t1-seq)
+             (eq? (unsafe-cdr pr) t2-seq)))
+      (for/or ([pr (in-list A)])
+        (and (eq? (unsafe-cdr pr) t1-seq)
+             (eq? (unsafe-car pr) t2-seq)))))
 
 (define (overlap t1 t2)
-  (let ([ks (Type-key t1)] [kt (Type-key t2)])
+  (overlap* (memory) t1 t2))
+
+;; uses a store (A) to prevent infinite recursion (a la subtyping)
+(define (overlap* A t1 t2)
+  (let* ([t1s (unsafe-Rep-seq t1)]
+         [t2s (unsafe-Rep-seq t2)]
+         [ks (Type-key t1)]
+         [kt (Type-key t2)]
+         [A* (remember t1s t2s A)])
     (cond
-      [(type-equal? t1 t2) #t]
+      [(type-equal? t1 t2) A*]
+      [(seen? t1s t2s A) A]
       [(and (symbol? ks) (symbol? kt) (not (eq? ks kt))) #f]
       [(and (symbol? ks) (pair? kt) (not (memq ks kt))) #f]
       [(and (symbol? kt) (pair? ks) (not (memq kt ks))) #f]
@@ -32,36 +59,48 @@
        #f]
       [else
        (match (list t1 t2)
-         [(list-no-order (Univ:) _) #t]
-         [(list-no-order (F: _) _) #t]
-         [(list-no-order (Opaque: _) _) #t]
+         [(list-no-order (Univ:) _) A*]
+         [(list-no-order (F: _) _) A*]
+         [(list-no-order (Opaque: _) _) A*]
          [(list (Name/simple: n) (Name/simple: n*))
-          (or (free-identifier=? n n*)
-              (overlap (resolve-once t1) (resolve-once t2)))]
+          (or (and (free-identifier=? n n*) A*)
+              (overlap* A* (resolve-once t1) (resolve-once t2)))]
          [(list-no-order t (? Name? s))
-           (overlap t (resolve-once s))]
-         [(list-no-order (? Mu? t) s) (overlap (unfold t) s)]
-         [(list-no-order (Refinement: t _) s) (overlap t s)]
+          (overlap* A* t (resolve-once s))]
+         [(list-no-order (? Mu? t) s) (overlap* A* (unfold t) s)]
+         [(list-no-order (Refinement: t _) s) (overlap* A* t s)]
          [(list-no-order (Union: ts) s)
-          (ormap (lambda (t*) (overlap t* s)) ts)]
-         [(list-no-order (? Poly?) _) #t] ;; conservative
-         [(list (Base: s1 _ _ _) (Base: s2 _ _ _)) (or (subtype t1 t2) (subtype t2 t1))]
-         [(list-no-order (? Base? t) (? Value? s)) (subtype t s)] ;; conservative
-         [(list (Syntax: t) (Syntax: t*)) (overlap t t*)]
+          (let loop ([ts ts] [A* A*]) 
+            (match ts
+              [(list) #f]
+              [(cons t* ts*)
+               (or (overlap* A* t* s)
+                   (loop ts* (remember (unsafe-Rep-seq t*) 
+                                       (unsafe-Rep-seq s) 
+                                       A*)))]))]
+         [(list-no-order (? Poly?) _) A*] ;; conservative
+         [(list (Base: s1 _ _ _) (Base: s2 _ _ _)) 
+          (parameterize ([memory A*]) 
+            (and (or (subtype t1 t2) (subtype t2 t1)) A*))]
+         [(list-no-order (? Base? t) (? Value? s))
+          (parameterize ([memory A*])
+            (and (subtype s t) A*))] ;; conservative
+         [(list (Syntax: t) (Syntax: t*)) (overlap* A* t t*)]
          [(list-no-order (Syntax: _) _) #f]
          [(list-no-order (Base: _ _ _ _) _) #f]
-         [(list-no-order (Value: (? pair?)) (Pair: _ _)) #t]
-         [(list (Pair: a b) (Pair: a* b*)) (and (overlap a a*)
-                                                (overlap b b*))]
+         [(list-no-order (Value: (? pair?)) (Pair: _ _)) A*]
+         [(list (Pair: a b) (Pair: a* b*)) 
+          (let ([A* (overlap* A* a a*)])
+            (and A* (overlap* A* b b*)))]
          ;; lots of things are sequences, but not values where sequence? produces #f
-         [(list-no-order (Sequence: _) (Value: v)) (sequence? v)]
-         [(list-no-order (Sequence: _) _) #t]
+         [(list-no-order (Sequence: _) (Value: v)) (and (sequence? v) A*)]
+         [(list-no-order (Sequence: _) _) A*]
          ;; Values where evt? produces #f cannot be Evt
-         [(list-no-order (Evt: _) (Value: v)) (evt? v)]
+         [(list-no-order (Evt: _) (Value: v)) (and (evt? v) A*)]
          [(list-no-order (Pair: _ _) _) #f]
          [(list (Value: (? simple-datum? v1))
                 (Value: (? simple-datum? v2)))
-          (equal? v1 v2)]
+          (and (equal? v1 v2) A*)]
          [(list-no-order (Value: (? simple-datum?))
                          (or (? Struct?) (? StructTop?) (? Function?)))
           #f]
@@ -71,13 +110,18 @@
          [(list (Struct: n _ flds _ _ _)
                 (Struct: n* _ flds* _ _ _)) 
           #:when (free-identifier=? n n*)
-          (for/and ([f (in-list flds)] [f* (in-list flds*)])
-            (match* (f f*)
-              [((fld: t _ _) (fld: t* _ _)) (overlap t t*)]))]
+          (let loop ([flds flds] [flds* flds*] [A* A*]) 
+            (match* (flds flds*)
+              [((list) (list)) #f]
+              [((cons f fs) (cons f* fs*))
+               (match* (f f*)
+                 [((fld: t _ _) (fld: t* _ _)) 
+                  (let ([A* (overlap* A* t t*)])
+                    (and A* (loop fs fs* A*)))])]))]
          [(list (Struct: n #f _ _ _ _)
                 (StructTop: (Struct: n* #f _ _ _ _))) 
           #:when (free-identifier=? n n*)
-          #t]
+          A*]
          ;; n and n* must be different, so there's no overlap
          [(list (Struct: n #f flds _ _ _)
                 (Struct: n* #f flds* _ _ _))
@@ -87,8 +131,9 @@
           #f]
          [(list (and t1 (Struct: _ _ _ _ _ _))
                 (and t2 (Struct: _ _ _ _ _ _)))
-          (or (subtype t1 t2) (subtype t2 t1))]
-         [else #t])])))
+          (parameterize ([memory A*]) 
+            (and (or (subtype t1 t2) (subtype t2 t1)) A*))]
+         [else A*])])))
 
 
 ;(trace overlap)

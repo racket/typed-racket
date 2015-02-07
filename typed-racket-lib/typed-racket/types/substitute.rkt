@@ -48,7 +48,7 @@
                  target
                  [#:Union tys (apply Un (map sb tys))]
                  [#:F name (hash-ref subst name target)]
-                 [#:arr dom rng rest drest kws
+                 [#:arr dom rng rest drest kws dep-rng?
                         (cond
                           [(and (pair? drest)
                                 (ormap (λ (name)
@@ -64,7 +64,8 @@
                                      (sb rng)
                                      (and rest (sb rest))
                                      (and drest (cons (sb (car drest)) (cdr drest)))
-                                     (map sb kws))])]
+                                     (map sb kws)
+                                     dep-rng?)])]
                  [#:ValuesDots types dty dbound
                                (cond
                                  [(ormap (lambda (x) (and (equal? dbound x) (not (bound-tvar? x)))) names) =>
@@ -113,7 +114,7 @@
                                            (for/list ([img (in-list images)])
                                              (-result (substitute img name expanded)))))))
                                    (make-ValuesDots (map sb types) (sb dty) dbound))]
-                 [#:arr dom rng rest drest kws
+                 [#:arr dom rng rest drest kws dep-rng?
                         (if (and (pair? drest)
                                  (eq? name (cdr drest)))
                             (make-arr (append
@@ -124,12 +125,14 @@
                                       (sb rng)
                                       rimage
                                       #f
-                                      (map sb kws))
+                                      (map sb kws)
+                                      dep-rng?)
                             (make-arr (map sb dom)
                                       (sb rng)
                                       (and rest (sb rest))
                                       (and drest (cons (sb (car drest)) (cdr drest)))
-                                      (map sb kws)))])
+                                      (map sb kws)
+                                      dep-rng?))])
       target))
 
 ;; implements curly brace substitution from the formalism, with the addition
@@ -156,7 +159,7 @@
                       (if (eq? name* name)
                           image
                           target)]
-                 [#:arr dom rng rest drest kws
+                 [#:arr dom rng rest drest kws dep-rng?
                         (let ([extra-types (if (and drest (eq? name (cdr drest))) pre-image null)])
                           (make-arr (append (map sb dom) extra-types)
                                     (sb rng)
@@ -164,7 +167,8 @@
                                     (and drest
                                          (cons (substitute image (cdr drest) (sb (car drest)))
                                                (if (eq? name (cdr drest)) image-bound (cdr drest))))
-                                    (map sb kws)))])
+                                    (map sb kws)
+                                    dep-rng?))])
        target))
 
 ;; substitute many variables

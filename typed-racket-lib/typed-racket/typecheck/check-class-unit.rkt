@@ -14,7 +14,7 @@
          (private parse-type syntax-properties)
          (env lexical-env tvar-env global-env type-alias-helper)
          (types utils abbrev union subtype resolve generalize)
-         (typecheck check-below internal-forms)
+         (typecheck check-below internal-forms tc-envops)
          (utils tc-utils)
          (rep type-rep)
          (for-syntax racket/base)
@@ -458,31 +458,32 @@
                                local-private-table private-method-types
                                self-type))
   (do-timestamp "built local tables")
-  (with-lexical-env/extend-types lexical-names/top-level lexical-types/top-level
+  ;; TODO(amk) add support for non-naive extension for classes (should be easy, no?)
+  (with-lexical-env/naive-extend-types lexical-names/top-level lexical-types/top-level
     (check-super-new super-new super-inits super-init-rest))
   (do-timestamp "checked super-new")
-  (with-lexical-env/extend-types lexical-names/top-level lexical-types/top-level
+  (with-lexical-env/naive-extend-types lexical-names/top-level lexical-types/top-level
     (for ([stx other-top-level-exprs])
       (tc-expr stx)))
   (do-timestamp "checked other top-level exprs")
-  (with-lexical-env/extend-types lexical-names/top-level lexical-types/top-level
+  (with-lexical-env/naive-extend-types lexical-names/top-level lexical-types/top-level
     (check-field-set!s (hash-ref parse-info 'initializer-body)
                        inits))
   (do-timestamp "checked field initializers")
   (define checked-method-types
-    (with-lexical-env/extend-types lexical-names lexical-types
+    (with-lexical-env/naive-extend-types lexical-names lexical-types
       (check-methods (append (hash-ref parse-info 'pubment-names)
                              (hash-ref parse-info 'overridable-names))
                      internal-external-mapping method-stxs
                      methods self-type)))
   (do-timestamp "checked methods")
   (define checked-augment-types
-    (with-lexical-env/extend-types lexical-names lexical-types
+    (with-lexical-env/naive-extend-types lexical-names lexical-types
       (check-methods (hash-ref parse-info 'augment-names)
                      internal-external-mapping method-stxs
                      augments self-type)))
   (do-timestamp "checked augments")
-  (with-lexical-env/extend-types lexical-names lexical-types
+  (with-lexical-env/naive-extend-types lexical-names lexical-types
     (check-private-methods method-stxs (hash-ref parse-info 'private-names)
                            private-method-types self-type))
   (do-timestamp "checked privates")
@@ -947,7 +948,7 @@
 (define (setter->type id)
   (define f-type (lookup-type/lexical id))
   (match f-type
-    [(Function: (list (arr: (list _ type) _ _ _ _)))
+    [(Function: (list (arr: (list _ type) _ _ _ _ _)))
      type]
     [#f (int-err "setter->type ~a" (syntax-e id))]))
 
@@ -964,7 +965,7 @@
              (tc-expr/check/t init-val (ret (->* null init-type))))
            (match type
              [(Function: (list (arr: _ (Values: (list (Result: result _ _)))
-                                     _ _ _)))
+                                     _ _ _ _)))
               (check-below result init-type)]
              [_ (int-err "unexpected init value ~a"
                          (syntax->datum init-val))])]
@@ -1385,8 +1386,8 @@
     [(Function: (list arrs ...))
      (define fixed-arrs
        (for/list ([arr arrs])
-         (match-define (arr: doms rng rest drest kws) arr)
-         (make-arr (cons self-type doms) rng rest drest kws)))
+         (match-define (arr: doms rng rest drest kws dep?) arr)
+         (make-arr (cons self-type doms) rng rest drest kws dep?)))
      (make-Function fixed-arrs)]
     [(Poly-names: ns body)
      (make-Poly ns (function->method body self-type))]
@@ -1403,8 +1404,8 @@
     [(Function: (list arrs ...))
      (define fixed-arrs
        (for/list ([arr arrs])
-         (match-define (arr: doms rng rest drest kws) arr)
-         (make-arr (cdr doms) rng rest drest kws)))
+         (match-define (arr: doms rng rest drest kws dep?) arr)
+         (make-arr (cdr doms) rng rest drest kws dep?)))
      (make-Function fixed-arrs)]
     [(Poly-names: ns body)
      (make-Poly ns (method->function body))]

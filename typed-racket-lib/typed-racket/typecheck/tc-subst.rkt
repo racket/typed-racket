@@ -9,7 +9,7 @@
          (except-in (types abbrev utils filter-ops) -> ->* one-of/c)
          (rep type-rep object-rep filter-rep rep-utils))
 
-(provide add-scope)
+(provide add-scope subst-type subst-filter subst-object)
 
 (provide/cond-contract
   [values->tc-results (->* (SomeValues/c (listof Object?)) ((listof Type/c)) full-tc-results/c)]
@@ -79,18 +79,26 @@
 (define/cond-contract (subst-type t k o polarity)
   (-> Type/c name-ref/c Object? boolean? Type/c)
   (define (st t) (subst-type t k o polarity))
-  (define/cond-contract (sf fs) (FilterSet? . -> . FilterSet?) (subst-filter-set fs k o polarity))
-  (type-case (#:Type st
-              #:Filter sf
-              #:Object (lambda (f) (subst-object f k o polarity)))
-              t
-              [#:arr dom rng rest drest kws
-                     (let* ([st* (λ (t) (subst-type t (add-scope k) (add-scope/object o) polarity))])
-                       (make-arr (map st dom)
-                                 (st* rng)
-                                 (and rest (st rest))
-                                 (and drest (cons (st (car drest)) (cdr drest)))
-                                 (map st kws)))]))
+  (define/cond-contract (sf fs) ((or/c Filter/c FilterSet?) . -> . (or/c Filter/c FilterSet?)) 
+    (if (FilterSet? fs) 
+        (subst-filter-set fs k o polarity)
+        (subst-filter fs k o polarity))) ;this seems wrong???
+  ;(define/cond-contract (sf f) (Filter/c . -> . Filter/c) (subst-filter f k o polarity))
+  (type-case (#:Type st #:Filter sf #:Object (λ (f) (subst-object f k o polarity)))
+    t
+    [#:arr dom rng rest drest kws dep?
+           (let ([st* (λ (t) (subst-type t (add-scope k) (add-scope/object o) polarity))])
+             (make-arr (map st dom)
+                       (st* rng)
+                       (and rest (st rest))
+                       (and drest (cons (st (car drest)) (cdr drest)))
+                       (map st kws)
+                       dep?))]
+    [#:InstdRef type prop
+           (let ([st* (λ (t) (subst-type t (add-scope k) (add-scope/object o) polarity))]
+                 [sf* (λ (f) (subst-filter f (add-scope k) (add-scope/object o) polarity))])
+             (make-InstdRef (st* type)
+                            (sf* prop)))]))
 
 ;; add-scope : name-ref/c -> name-ref/c
 ;; Add a scope to an index name-ref
@@ -137,7 +145,7 @@
           (maker
             (subst-type t k o polarity)
             (-acc-path p o))])]
-      [(index-free-in? k t) (if polarity -top -bot)]
+      ;[(index-free-in? k t) (if polarity -top -bot)]
       [else f]))
 
   (match f
@@ -153,7 +161,7 @@
      (tf-matcher t p i -not-filter)]))
 
 ;; Determine if the object k occurs free in the given type
-(define (index-free-in? k type)
+(define (index-free-in? k a)
   (let/ec
    return
    (define (for-object o)
@@ -164,19 +172,32 @@
                               (return #t)
                               o)]))
    (define (for-type t)
-     (type-case (#:Type for-type
-                 #:Object for-object)
-                t
-                [#:arr dom rng rest drest kws
-                       (let* ([st* (if (pair? k)
-                                       (lambda (t) (index-free-in? (add-scope k) t))
-                                       for-type)])
-                         (for-each for-type dom)
-                         (st* rng)
-                         (and rest (for-type rest))
-                         (and drest (for-type (car drest)))
-                         (for-each for-type kws)
-                         ;; dummy return value
-                         (make-arr* null Univ))]))
-   (for-type type)
+     (type-case (#:Type for-type #:Object for-object #:Filter for-filter)
+       t
+       [#:arr dom rng rest drest kws dep?
+              (let* ([st* (if (pair? k)
+                              (λ (t) (index-free-in? (add-scope k) t))
+                              for-type)])
+                (for-each for-type dom)
+                (st* rng)
+                (and rest (for-type rest))
+                (and drest (for-type (car drest)))
+                (for-each for-type kws)
+                ;; dummy return value
+                (make-arr* null Univ #:dep? dep?))]
+       [#:InstdRef type prop
+              (let* ([st* (if (pair? k)
+                              (λ (t) (index-free-in? (add-scope k) t))
+                              for-type)]
+                     [sf* (if (pair? k)
+                              (λ (f) (index-free-in? (add-scope k) f))
+                              for-filter)])
+                (st* type)
+                (sf* prop))]))
+    (define (for-filter f)
+      (filter-case (#:Type for-type #:Object for-object #:Filter for-filter)
+                   f))
+   (if (Type? a)
+       (for-type a)
+       (for-filter a))
     #f))

@@ -4,7 +4,7 @@
          syntax/id-table
          (except-in "../utils/utils.rkt" env)
          (contract-req)
-         (rep object-rep))
+         (rep object-rep type-rep rep-utils))
 
 (require-for-cond-contract (rep type-rep filter-rep))
 
@@ -20,67 +20,62 @@
 
 (provide/cond-contract
   [env? predicate/c]
-  [extend (env? identifier? Type/c . -> . env?)]
-  [extend/values (env? (listof identifier?) (listof Type/c) . -> . env?)]
-  [lookup (env? identifier? (identifier? . -> . any) . -> . any)]
+  [raw-lookup-type (env? identifier? (identifier? . -> . any) . -> . any)]
   [env-props (env? . -> . (listof Filter/c))]
   [replace-props (env? (listof Filter/c) . -> . env?)]
-  [empty-prop-env env?]
-  [extend+alias/values (env? (listof identifier?) (listof Type/c) (listof Object?) . -> . env?)]
-  [lookup-alias (env? identifier? (identifier? . -> . (or/c #f Object?)) . -> . (or/c #f Object?))])
+  [empty-env env?]
+  [raw-lookup-alias (env? identifier? (identifier? . -> . (or/c #f Object?)) . -> . (or/c #f Object?))]
+  [env-extract-props (env? . -> . (values env? (listof Filter/c)))]
+  [naive-extend/type (env? identifier? Type? . -> . env?)]
+  [naive-extend/types (env? (listof (cons/c identifier? (and/c Type?
+                                                               (not/c Bottom?)))) 
+                            . -> . env?)]
+  [extend/aliases (env? (listof (cons/c identifier? (and/c Object?
+                                                           (not/c Empty?)))) 
+                        . -> . env?)])
 
-(define empty-prop-env
+
+(define empty-env
   (env
     (make-immutable-free-id-table)
     null
     (make-immutable-free-id-table)))
+
+(define (env-extract-props e)
+  (match-let ([(env tys fs als) e])
+    (values (env tys (list) als) fs)))
 
 
 (define (replace-props e props)
   (match-let ([(env tys _ als) e])
     (env tys props als)))
 
-(define (lookup e key fail)
+(define (raw-lookup-type e key fail)
   (match-let ([(env tys _ _) e])
     (free-id-table-ref tys key (λ () (fail key)))))
 
-
-;; extend that works on single arguments
-(define (extend e k v)
-  (extend/values e (list k) (list v)))
-
-;; extends an environment with types (no aliases)
-(define (extend/values e ks vs)
-  (match-let* ([(env tys ps als) e]
-               [tys* (for/fold ([tys tys]) ([k (in-list ks)] [v (in-list vs)])
-                       (free-id-table-set tys k v))])
-    (env tys* ps als)))
-
-;; extends an environment with types and aliases
-(define (extend+alias/values e ids ts os)
-  (match-let*-values 
-   ([((env tys ps als)) e]
-    [(tys* als*) (for/fold ([tys tys]
-                            [als als]) 
-                           ([id (in-list ids)] 
-                            [t (in-list ts)]
-                            [o (in-list os)])
-                   (match o
-                     ;; no alias, so just record the type as usual
-                     [(Empty:)
-                      (values (free-id-table-set tys id t) als)]
-                     ;; id is aliased to an identifier
-                     [(Path: '() id*)
-                      ;; record the alias relation *and* type of that alias id
-                      (values (free-id-table-set tys id* t) 
-                              (free-id-table-set als id o))]
-                     ;; id is aliased to an object with a non-empty path
-                     [(Path: p x)
-                      ;; just record the alias
-                      (values tys (free-id-table-set als id o))]))])
-   (env tys* ps als*)))
-
-(define (lookup-alias e key fail)
+(define (raw-lookup-alias e key fail)
   (match-let ([(env _ _ als) e])
     (free-id-table-ref als key (λ () (fail key)))))
 
+
+;; extend that works on single arguments
+(define (naive-extend/type e id type)
+  (naive-extend/types e (list (cons id type))))
+
+;; extends an environment with types (no aliases)
+;; DOES NOT FLATTEN NESTED REFINEMENT TYPE PROPS
+(define (naive-extend/types e ids/types)
+  (match-let* ([(env tys ps als) e]
+               [tys* (for/fold ([tys tys]) 
+                               ([id/ty (in-list ids/types)])
+                       (free-id-table-set tys (car id/ty) (cdr id/ty)))])
+    (env tys* ps als)))
+
+;; extends an environment with aliases
+(define (extend/aliases e ids/aliases)
+  (match-let* ([(env tys ps als) e]
+               [als* (for/fold ([als als]) 
+                               ([id/obj (in-list ids/aliases)])
+                       (free-id-table-set als (car id/obj) (cdr id/obj)))])
+    (env tys ps als*)))

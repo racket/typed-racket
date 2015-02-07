@@ -5,7 +5,12 @@
 ;;
 ;; See "Logical Types for Untyped Languages" pg.3
 
-(require "rep-utils.rkt" "free-variance.rkt" "filter-rep.rkt" "../utils/utils.rkt" (contract-req))
+(require "rep-utils.rkt" 
+         "free-variance.rkt" 
+         "filter-rep.rkt" 
+         "../utils/utils.rkt" 
+         racket/match
+         (contract-req))
 (provide object-equal?)
 
 (def-pathelem CarPE () [#:fold-rhs #:base])
@@ -37,3 +42,4 @@
   [#:frees (λ (f) (combine-frees (map f p)))]
   [#:fold-rhs (*LPath (map pathelem-rec-id p) idx)])
 |#
+

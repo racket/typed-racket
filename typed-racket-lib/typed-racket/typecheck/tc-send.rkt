@@ -6,7 +6,7 @@
          racket/match syntax/stx
          syntax/parse
          (env lexical-env)
-         (typecheck signatures tc-funapp tc-metafunctions)
+         (typecheck signatures tc-funapp tc-metafunctions tc-envops)
          (types base-abbrev resolve utils type-table)
          (rep type-rep)
          (utils tc-utils)
@@ -63,6 +63,7 @@
     #:literals (list)
     [(#%plain-app meth obj arg ...)
      (with-lexical-env/extend-types vars types
+                                    #:unreachable (ret -Bottom)
        (tc-expr/check #'(#%plain-app meth arg ...)
                       expected))]
     [(let-values ([(arg-var) arg] ...)
@@ -70,6 +71,7 @@
                     kws2 kw-args
                     obj pos-arg ...))
      (with-lexical-env/extend-types vars types
+                                    #:unreachable (ret -Bottom)
        (tc-expr/check
         #'(let-values ([(arg-var) arg] ...)
             (#%plain-app (#%plain-app cpce s-kp meth kpe kws num)

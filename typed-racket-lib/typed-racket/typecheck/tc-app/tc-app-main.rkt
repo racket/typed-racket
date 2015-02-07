@@ -3,7 +3,7 @@
 (require "../../utils/utils.rkt"
          "signatures.rkt"
          "utils.rkt"
-         syntax/parse racket/match 
+         syntax/parse racket/match racket/function
          syntax/parse/experimental/reflect
          (typecheck signatures tc-funapp)
          (types utils)
@@ -51,7 +51,7 @@
   (match arr
     [(arr: domain
            (Values: (list (Result: v (FilterSet: (Top:) (Top:)) (Empty:)) ...))
-           rest #f (list (Keyword: _ _ #f) ...))
+           rest #f (list (Keyword: _ _ #f) ...) dep?)
      (cond
        [(< (length domain) (length args)) rest]
        [(= (length domain) (length args)) #t]
@@ -61,7 +61,7 @@
 (define (has-filter? arr)
   (match arr
     [(arr: _ (Values: (list (Result: v (FilterSet: (Top:) (Top:)) (Empty:)) ...))
-           _ _ (list (Keyword: _ _ #f) ...)) #f]
+           _ _ (list (Keyword: _ _ #f) ...) dep?) #f]
     [else #t]))
 
 
@@ -78,16 +78,22 @@
 
        (define arg-tys
          (match f-ty
+           ;; TODO(AMK) support multi-arr functions w/ dependent types
+           [(Function: (list (arr: doms rng rest drest kws #t)))
+            (define arg-ts (map (curryr tc-expr/check? #f) args*))
+            (define arg-ts* (map (λ (t a dom-t) (or t (tc-expr/check a dom-t))) 
+                                 arg-ts args* doms))
+            arg-ts*]
            [(Function: (? has-drest/filter?))
             (map single-value args*)]
            [(Function:
-              (app matching-arities
-                (list (arr: doms ranges rests drests _) ..1)))
+             (app matching-arities
+                  (list (arr: doms ranges rests drests _ _) ..1)))
             (define matching-domains
               (in-values-sequence
-                (apply in-parallel
-                  (for/list ((dom (in-list doms)) (rest (in-list rests)))
-                    (in-sequences (in-list dom) (in-cycle (in-value rest)))))))
+               (apply in-parallel
+                      (for/list ((dom (in-list doms)) (rest (in-list rests)))
+                        (in-sequences (in-list dom) (in-cycle (in-value rest)))))))
             (for/list ([a (in-list args*)] [types matching-domains])
               (match-define (cons t ts) types)
               (if (for/and ((t2 (in-list ts))) (equal? t t2))

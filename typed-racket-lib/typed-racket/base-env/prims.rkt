@@ -99,7 +99,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
 (require "../utils/require-contract.rkt"
          "colon.rkt"
          "../typecheck/internal-forms.rkt"
-         (rename-in racket/contract/base [-> c->] [->* c->*] [case-> c:case->])
+         (rename-in racket/contract/base [-> c->] [->* c->*] [case-> c:case->] [->i c->i])
          ;; contracted bindings to replace built-in ones
          "base-contracted.rkt"
          "top-interaction.rkt"

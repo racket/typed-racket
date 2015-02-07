@@ -22,7 +22,8 @@
                  rng
                  #:kws kw-t
                  #:rest rest
-                 #:drest drest)))
+                 #:drest drest
+                 #:dep? #f)))
   ;; the kw function protocol passes rest args as an explicit list
   (define rest-type (if rest (-lst rest) empty))
   (define ts 
@@ -100,24 +101,25 @@
          (for/and ([k1 (in-list a)] [k2 (in-list b)])
            (type-equal? k1 k2))))
   (match* (a b)
-    [((arr: args result rest drest kws)
-      (arr: args* result* rest* drest* kws*))
+    [((arr: args result rest drest kws dep?)
+      (arr: args* result* rest* drest* kws* dep?*))
      (and (< (length args) (length args*))
           (rest-equal? rest rest*)
           (drest-equal? drest drest*)
           (type-equal? result result*)
           (kw-equal? kws kws*)
           (for/and ([p (in-list args)] [p* (in-list args*)])
-            (type-equal? p p*)))]))
+            (type-equal? p p*))
+          (equal? dep? dep?*))]))
 
 (define (arity-length a)
   (match a
-    [(arr: args result rest drest kws) (length args)]))
+    [(arr: args result rest drest kws dep?) (length args)]))
 
 
 (define (arg-diff a1 a2)
   (match a2
-    [(arr: args _ _ _ _) (drop args (arity-length a1))]))
+    [(arr: args _ _ _ _ _) (drop args (arity-length a1))]))
 
 (define (find-prefixes l)
   (define l* (sort l < #:key arity-length))
@@ -155,7 +157,7 @@
   (define fns
     (for/set ([(k v) (in-dict table)])
       (match k
-        [(arr: mand rng rest drest kws)
+        [(arr: mand rng rest drest kws dep?)
          (define kws* (if actual-kws
                           (handle-extra-or-missing-kws kws actual-kws)
                           kws))
@@ -207,7 +209,7 @@
   (match ft
     [(Function: arrs)
      (cond [(= (length arrs) 1) ; no optional args (either kw or not)
-            (match-define (arr: doms rng _ _ _) (car arrs))
+            (match-define (arr: doms rng _ _ _ _) (car arrs))
             (define kw-length
               (- (length doms) (+ non-kw-argc (if rest? 1 0))))
             (define-values (kw-args other-args) (split-at doms kw-length))
@@ -221,13 +223,14 @@
              (list (make-arr* (take other-args non-kw-argc)
                               (erase-filter/Values rng)
                               #:kws actual-kws
-                              #:rest rest-type)))]
+                              #:rest rest-type
+                              #:dep? #f)))]
            [(and (even? (length arrs)) ; had optional args
                  (>= (length arrs) 2))
             ;; assumption: only one arr is needed, since the types for
             ;; the actual domain are the same (the difference is in the
             ;; second type for the optional keyword protocol)
-            (match-define (arr: doms rng _ _ _) (car arrs))
+            (match-define (arr: doms rng _ _ _ _) (car arrs))
             (define kw-length
               (- (length doms) (+ non-kw-argc (if rest? 1 0))))
             (define kw-args (take doms kw-length))
@@ -243,7 +246,8 @@
                (make-arr* (append mand-args (take opt-types to-take))
                           (erase-filter/Values rng)
                           #:kws actual-kws
-                          #:rest rest-type)))]
+                          #:rest rest-type
+                          #:dep? #f)))]
            [else (int-err "unsupported arrs in keyword function type")])]
     [_ (int-err "unsupported keyword function type")]))
 
@@ -258,7 +262,7 @@
     (match f-type
       [(AnyPoly-names: _ _ (Function: arrs)) arrs]))
   (for/and ([arr (in-list arrs)])
-    (match-define (arr: _ _ _ _ kws) arr)
+    (match-define (arr: _ _ _ _ kws _) arr)
     (define-values (mand-kw-types opt-kw-types) (partition-kws kws))
     (define mand-kws (map Keyword-kw mand-kw-types))
     (define opt-kws (map Keyword-kw opt-kw-types))
@@ -310,7 +314,7 @@
 
 (define ((opt-convert-arr required-pos optional-pos) arr)
   (match arr
-    [(arr: args result #f #f '())
+    [(arr: args result #f #f '() dep?)
      (define num-args (length args))
      (and (>= num-args required-pos)
           (<= num-args (+ required-pos optional-pos))
@@ -327,8 +331,9 @@
                       result
                       #f
                       #f
-                      '())))]
-    [(arr: args result _ _ _) #f]))
+                      '()
+                      dep?)))]
+    [(arr: args result _ _ _ _) #f]))
 
 (define (opt-convert ft required-pos optional-pos)
   (let/ec exit
@@ -373,7 +378,7 @@
   (match ft
     [(Function: arrs)
      (cond [(and (even? (length arrs)) (>= (length arrs) 2))
-            (match-define (arr: doms rng _ _ _) (car arrs))
+            (match-define (arr: doms rng _ _ _ _) (car arrs))
             (define-values (mand-args opt-and-rest-args)
               (split-at doms mand-argc))
             (define rest-type
@@ -383,7 +388,8 @@
              (for/list ([to-take (in-range (add1 (length opt-types)))])
                (make-arr* (append mand-args (take opt-types to-take))
                           rng
-                          #:rest rest-type)))]
+                          #:rest rest-type
+                          #:dep? #f)))]
            [else (int-err "unsupported arrs in keyword function type")])]
     [_ (int-err "unsupported keyword function type")]))
 

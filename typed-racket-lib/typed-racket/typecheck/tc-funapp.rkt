@@ -3,10 +3,11 @@
 (require (rename-in "../utils/utils.rkt" [infer r:infer])
          racket/match
          (prefix-in c: (contract-req))
-         (env tvar-env)
+         (env tvar-env lexical-env)
          (for-syntax syntax/parse racket/base)
          (types utils subtype resolve abbrev
                 substitute classes)
+         (logic type-update)
          (typecheck tc-metafunctions tc-app-helper)
          (rep type-rep)
          (r:infer infer))
@@ -34,18 +35,19 @@
                         #:name (and (identifier? f-stx) f-stx)
                         #:expected expected))))]))
 
-(define (tc/funapp f-stx args-stx f-type args-res expected)
+(define (tc/funapp f-stx args-stx f-type* args-res expected)
   (match-define (list (tc-result1: argtys) ...) args-res)
+  (define f-type (update-function/arg-types argtys f-type*))
   (match f-type
     ;; we special-case this (no case-lambda) for improved error messages
     ;; tc/funapp1 currently cannot handle drest arities
-    [(Function: (list (and a (arr: _ _ _ #f _))))
+    [(Function: (list (and a (arr: _ _ _ #f _ dep?))))
      (tc/funapp1 f-stx args-stx a args-res expected)]
-    [(Function/arrs: doms rngs rests (and drests #f) kws #:arrs arrs)
+    [(Function/arrs: doms rngs rests (and drests #f) kws deps? #:arrs arrs)
      (or
       ;; find the first function where the argument types match
       (for/first ([dom (in-list doms)] [rng (in-list rngs)] [rest (in-list rests)] [a (in-list arrs)]
-                  #:when (subtypes/varargs argtys dom rest))
+                  #:when (subtypes/varargs argtys dom rest)) ;; TODO(AMK)? subtypes/varargs needs deps?
         ;; then typecheck here
         ;; we call the separate function so that we get the appropriate
         ;; filters/objects
@@ -60,7 +62,7 @@
                       dom))))]
     ;; any kind of dotted polymorphic function without mandatory keyword args
     [(PolyDots: (list fixed-vars ... dotted-var)
-       (Function/arrs: doms rngs rests drests (list (Keyword: _ _ #f) ...) #:arrs arrs))
+       (Function/arrs: doms rngs rests drests (list (Keyword: _ _ #f) ...) deps? #:arrs arrs))
      (handle-clauses
       (doms rngs rests drests arrs) f-stx args-stx
       ;; only try inference if the argument lengths are appropriate
@@ -87,7 +89,7 @@
       f-type args-res expected)]
     ;; regular polymorphic functions without dotted rest, 
     ;; we do not choose any instantiations with mandatory keyword arguments
-    [(Poly: vars (Function/arrs: doms rngs rests #f (list (Keyword: _ _ kw?) ...) #:arrs arrs))
+    [(Poly: vars (Function/arrs: doms rngs rests #f (list (Keyword: _ _ kw?) ...) deps? #:arrs arrs))
      (handle-clauses
       (doms rngs rests kw? arrs) f-stx args-stx
       ;; only try inference if the argument lengths are appropriate
@@ -104,7 +106,7 @@
     ;; Row polymorphism. For now we do really dumb inference that only works
     ;; in very restricted cases, but is probably enough for most cases in
     ;; the Racket codebase. Eventually this should be extended.
-    [(PolyRow: vars constraints (and f-ty (Function/arrs: doms _ _ #f _)))
+    [(PolyRow: vars constraints (and f-ty (Function/arrs: doms _ _ #f _ _)))
      (define (fail)
        (poly-fail f-stx args-stx f-type args-res
                   #:name (and (identifier? f-stx) f-stx)

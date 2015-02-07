@@ -10,6 +10,7 @@
 (provide/cond-contract
   [-and (c:->* () #:rest (c:listof Filter/c) Filter/c)]
   [-or (c:->* () #:rest (c:listof Filter/c) Filter/c)]
+  [-simple-or (c:->* () #:rest (c:listof Filter/c) Filter/c)]
   [-imp (c:-> Filter/c Filter/c Filter/c)]
   [implied-atomic? (c:-> Filter/c Filter/c boolean?)]
   [complementary? (c:-> Filter/c Filter/c boolean?)]
@@ -31,6 +32,8 @@
      (subtype t1 t2)]
     [((NotTypeFilter: t2 p) (TypeFilter: t1 p))
      (subtype t1 t2)]
+    [((TypeFilter: t1 p) (TypeFilter: t2 p))
+     (not (overlap t1 t2))]
     [((Bot:) _) #t]
     [(_ (Bot:)) #t]
     [(_ _) #f]))
@@ -141,6 +144,57 @@
     [(_ (Bot:)) (invert-filter p1)]
     [(_ _) (make-ImpFilter p1 p2)]))
 
+(define (-simple-or . args)
+  (define mk
+    (case-lambda [() -bot]
+                 [(f) f]
+                 [fs (make-OrFilter (sort fs filter<?))]))
+  (define (distribute args)
+    (define-values (ands others) (partition AndFilter? args))
+    (match ands
+      ['() (apply mk others)]
+      [(cons (AndFilter: elems) ands-rest)
+       (apply -and (for/list ([a (in-list elems)])
+                     (apply -or a (append ands-rest others))))]))
+  (let loop ([fs args] [result null])
+    (match fs
+      [(list) (distribute result)]
+      [(cons f fs*)
+       (match f
+         [(Top:) f]
+         [(OrFilter: disjs) (loop (append disjs fs*) result)]
+         [(Bot:) (loop fs* result)]
+         [_ (cond 
+              ;; check for complements of 'f' in the rest of 'fs'
+              [(for/or ([f* (in-list fs*)])
+                 (complementary? f* f))
+               -top]
+              ;; check for complements or stronger statements 
+              ;; than 'f' in 'result'
+              [(let*-values 
+                   ([(f-seq) (Rep-seq f)]
+                    [(_ res) (for/fold ([stop? #f]
+                                        [ret-thunk #f])
+                                       ([f* (in-list result)])
+                               #:break stop?
+                               (cond
+                                 ;; if there is a complement of 'f'
+                                 ;; stop processing, return -top
+                                 [(complementary? f f*)
+                                  (values #t (λ () -top))]
+                                 ;; if 'f' implies something in 'result'
+                                 ;; continue in case there is a complement
+                                 ;; but save the fact that we'll not include 'f'
+                                 [(and (not ret-thunk)
+                                       (or (= (Rep-seq f*) f-seq)
+                                           (implied-atomic? f* f)))
+                                  (values #f (λ () (loop fs* result)))]
+                                 ;; no issues with 'f' yet, continue
+                                 [else (values #f ret-thunk)]))])
+                 res) => (λ (thunk) (thunk))]
+              [else
+               (loop fs* (cons f result))])])])))
+
 (define (-or . args)
   (define mk
     (case-lambda [() -bot]
@@ -148,28 +202,49 @@
                  [fs (make-OrFilter (sort fs filter<?))]))
   (define (distribute args)
     (define-values (ands others) (partition AndFilter? args))
-    (if (null? ands)
-        (apply mk others)
-        (match-let ([(AndFilter: elems) (car ands)])
-          (apply -and (for/list ([a (in-list elems)])
-                        (apply -or a (append (cdr ands) others)))))))
+    (match ands
+      ['() (apply mk others)]
+      [(cons (AndFilter: elems) ands-rest)
+       (apply -and (for/list ([a (in-list elems)])
+                     (apply -or a (append ands-rest others))))]))
   (let loop ([fs args] [result null])
-    (if (null? fs)
-        (distribute (compact result #t))
-        (match (car fs)
-          [(and t (Top:)) t]
-          [(OrFilter: fs*) (loop (append fs* (cdr fs)) result)]
-          [(Bot:) (loop (cdr fs) result)]
-          [t
-           (cond [(for/or ([f (in-list (append (cdr fs) result))])
-                    (complementary? f t))
-                  -top]
-                 [(let ([t-seq (Rep-seq t)])
-                    (for/or ([f (in-list result)])
-                      (or (= (Rep-seq f) t-seq) (implied-atomic? f t))))
-                  (loop (cdr fs) result)]
-                 [else
-                  (loop (cdr fs) (cons t result))])]))))
+    (match fs
+      [(list) (distribute (compact result #t))]
+      [(cons f fs*)
+       (match f
+         [(Top:) f]
+         [(OrFilter: disjs) (loop (append disjs fs*) result)]
+         [(Bot:) (loop fs* result)]
+         [_ (cond 
+              ;; check for complements of 'f' in the rest of 'fs'
+              [(for/or ([f* (in-list fs*)])
+                 (complementary? f* f))
+               -top]
+              ;; check for complements or stronger statements 
+              ;; than 'f' in 'result'
+              [(let*-values 
+                   ([(f-seq) (Rep-seq f)]
+                    [(_ res) (for/fold ([stop? #f]
+                                        [ret-thunk #f])
+                                       ([f* (in-list result)])
+                               #:break stop?
+                               (cond
+                                 ;; if there is a complement of 'f'
+                                 ;; stop processing, return -top
+                                 [(complementary? f f*)
+                                  (values #t (λ () -top))]
+                                 ;; if 'f' implies something in 'result'
+                                 ;; continue in case there is a complement
+                                 ;; but save the fact that we'll not include 'f'
+                                 [(and (not ret-thunk)
+                                       (or (= (Rep-seq f*) f-seq)
+                                           (implied-atomic? f* f)))
+                                  (values #f (λ () (loop fs* result)))]
+                                 ;; no issues with 'f' yet, continue
+                                 [else (values #f ret-thunk)]))])
+                 res) => (λ (thunk) (thunk))]
+              [else
+               (loop fs* (cons f result))])])])))
 
 (define (-and . args)
   (define mk
@@ -188,22 +263,40 @@
                (flatten-ands (remove-duplicates args eq? #:key Rep-seq))))
   (define-values (type-filters not-type-filters)
     (partition TypeFilter? filters))
-  (let loop ([fs (append type-filters not-type-filters other-args)] [result null])
-    (if (null? fs)
-        (apply mk (compact result #f))
-        (match (car fs)
-          [(and t (Bot:)) t]
-          [(Top:) (loop (cdr fs) result)]
-          [t (cond [(for/or ([f (in-list (append (cdr fs) result))])
-                      (contradictory? f t))
-                    -bot]
-                   [(let ([t-seq (Rep-seq t)])
-                      (for/or ([f (in-list result)])
-                        (or (= (Rep-seq f) t-seq)
-                            (implied-atomic? t f))))
-                    (loop (cdr fs) result)]
-                   [else
-                    (loop (cdr fs) (cons t result))])]))))
+  (let loop ([fs (append type-filters not-type-filters other-args)] 
+             [result null])
+    (match fs
+      [(list) (apply mk (compact result #f))]
+      [(cons f fs*)
+       (match f
+         [(and t (Bot:))
+          t]
+         [(Top:) (loop fs* result)]
+         [t (cond 
+              ;; check for contraditions with 'f' in the rest of 'fs'
+              [(for/or ([f (in-list fs*)])
+                 (contradictory? f t))
+               -bot]
+              ;; check for contradictions or stronger statements 
+              ;; than 'f' in 'result'
+              [(let ([t-seq (Rep-seq t)])
+                 (let inner-loop ([l result]
+                                  [thunk #f])
+                   (match l
+                     [(list) thunk]
+                     [(cons f l*) 
+                      (cond
+                        [(contradictory? f t) 
+                         -bot]
+                        [(and (not thunk)
+                              (or (= (Rep-seq f) t-seq)
+                                  (implied-atomic? t f)))
+                         (inner-loop l* (λ () (loop fs* result)))]
+                        [else (inner-loop l* thunk)])])))
+               => (λ (thunk) (thunk))]
+              ;; 'f' must be new info (as far as we care to check),
+              ;; continue w/ 'f' in the result
+              [else (loop fs* (cons t result))])])])))
 
 ;; add-unconditional-prop: tc-results? Filter/c? -> tc-results?
 ;; Ands the given proposition to the filters in the tc-results.
@@ -228,7 +321,7 @@
 ;; we learn this about its arguments (like fx primitives, or car/cdr, etc.)
 (define (add-unconditional-filter-all-args arr type)
   (match arr
-    [(Function: (list (arr: dom rng rest drest kws)))
+    [(Function: (list (arr: dom rng rest drest kws dep?)))
      (match rng
        [(Values: (list (Result: tp (FilterSet: -true-filter -false-filter) op)))
         (let ([new-filters (apply -and (build-list (length dom)
@@ -242,7 +335,7 @@
                                   (-FS (-and -true-filter new-filters)
                                        (-and -false-filter new-filters))
                                   op)))
-                  rest drest kws))))])]))
+                  rest drest kws dep?))))])]))
 
 ;; tc-results/c -> tc-results/c
 (define (erase-filter tc)

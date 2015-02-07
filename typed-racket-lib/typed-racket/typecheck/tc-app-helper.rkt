@@ -6,6 +6,9 @@
          (contract-req)
          (typecheck check-below tc-subst tc-metafunctions)
          (utils tc-utils)
+         (env lexical-env)
+         (logic type-update)
+         (only-in (env type-env-structs) empty-env)
          (rep type-rep filter-rep)
          (except-in (types utils abbrev subtype)
                     -> ->* one-of/c))
@@ -17,10 +20,9 @@
     ((syntax? stx-list? arr? (listof tc-results/c) (or/c #f tc-results/c))
      (#:check boolean?)
      . ->* . full-tc-results/c)])
-(define (tc/funapp1 f-stx args-stx ftype0 argtys expected #:check [check? #t])
+(define (tc/funapp1 f-stx args-stx ftype0 argtys expected #:check [check? #t] #:env [env #f])
   (match* (ftype0 argtys)
-    ;; we check that all kw args are optional
-    [((arr: dom rng rest #f (and kws (list (Keyword: _ _ #f) ...)))
+    [((arr: dom rng rest #f (and kws (list (Keyword: _ _ #f) ...)) dep?)
       (list (tc-result1: t-a phi-a o-a) ...))
 
      (when check?
@@ -49,7 +51,8 @@
                           [oa (in-sequence-forever (in-list o-a) -empty-obj)]
                           [ta (in-sequence-forever (in-list t-a) Univ)])
                          (values oa ta))])
-           (values->tc-results rng o-a t-a)))]
+         (values->tc-results rng o-a t-a)))]
+    
     ;; this case should only match if the function type has mandatory keywords
     ;; but no keywords were provided in the application
     [((arr: _ _ _ _
@@ -59,14 +62,15 @@
                      (match keyword
                        [(Keyword: kw _ #t) kw]
                        [_ #f])))
-                 (? values req-kw))) _)
+                 (? values req-kw))
+            _) _)
      (when check?
        (tc-error/fields "could not apply function"
                         #:more "a required keyword was not supplied"
                         "missing keyword" req-kw))]
-    [((arr: _ _ _ drest '()) _)
+    [((arr: _ _ _ drest '() _) _)
      (int-err "funapp with drest args ~a ~a NYI" drest argtys)]
-    [((arr: _ _ _ _ kws) _)
+    [((arr: _ _ _ _ kws _) _)
      (int-err "funapp with keyword args ~a NYI" kws)]))
 
 
@@ -149,7 +153,7 @@
      (define nl+spc (if expected "\n       " "\n         "))
      ;; we restrict the domains shown in the error messages to those that
      ;; are useful
-     (match-let ([(list pdoms prngs prests pdrests) (possible-domains doms rests drests rngs expected)])
+     (match-let ([(list pdoms prngs prests pdrests) (possible-domains doms rests drests rngs expected)]) ;; TODO(AMK) where is dep?s
        ;; if we somehow eliminate all the cases (bogus expected type) fall back to showing the
        ;; extra cases
        (let-values ([(pdoms rngs rests drests)
@@ -171,7 +175,7 @@
                 ;; tc/funapp1 generate a better error message
                 (tc/funapp1 f-stx args-stx
                             (make-arr (car pdoms) (car rngs)
-                                      (car rests) (car drests) null)
+                                      (car rests) (car drests) null #f) ;; TODO(AMK)
                             arg-tys expected)
                 return]
                [else
@@ -222,7 +226,7 @@
 ;; of domains that would *satisfy* the expected type, e.g. for the :query-type
 ;; forms.
 ;; TODO separating pruning and collapsing into separate functions may be nicer
-(define (possible-domains doms rests drests rngs expected [permissive? #t])
+(define (possible-domains doms rests drests rngs expected [permissive? #t]) ;; TODO(AMK) dep?s
 
   ;; is fun-ty subsumed by a function type in others?
   (define (is-subsumed-in? fun-ty others)
@@ -242,7 +246,7 @@
         (eq? expected-ty #t) ; expected is tc-anyresults, anything is fine
         (and expected-ty ; not some unknown expected tc-result
              (match fun-ty
-               [(Function: (list (arr: _ rng _ _ _)))
+               [(Function: (list (arr: _ rng _ _ _ _)))
                 (let ([rng (match rng
                              [(Values: (list (Result: t _ _)))
                               t]
@@ -263,7 +267,10 @@
                [(ValuesDots: (list (Result: t _ _) ...) _ _)
                 (-values t)])
               rngs)
-         rests drests (make-list (length doms) null)))
+         rests 
+         drests 
+         (make-list (length doms) null)
+         (make-list (length doms) #f)))
 
   ;; iterate in lock step over the function types we analyze and the parts
   ;; that we will need to print the error message, to make sure we throw
@@ -294,10 +301,10 @@
   ;; function types with a return type of any then test for subtyping
   (define fun-tys-ret-any
     (map (match-lambda
-          [(Function: (list (arr: dom _ rest drest _)))
+          [(Function: (list (arr: dom _ rest drest _ dep?)))
            (make-Function (list (make-arr dom
                                           (-values (list Univ))
-                                          rest drest null)))])
+                                          rest drest null dep?)))])
          candidates))
 
   ;; Heuristic: often, the last case in the definition (first at this
@@ -334,7 +341,7 @@
 (define (cleanup-type t [expected #f] [permissive? #t])
   (match t
     ;; function type, prune if possible.
-    [(Function/arrs: doms rngs rests drests kws)
+    [(Function/arrs: doms rngs rests drests kws dep?s)
      (match-let ([(list pdoms rngs rests drests)
                   (possible-domains doms rests drests rngs
                                     (and expected (ret expected))
@@ -346,7 +353,7 @@
            t
            ;; pruning helped, return pruned type
            (make-Function (map make-arr
-                               pdoms rngs rests drests (make-list (length pdoms) null)))))]
+                               pdoms rngs rests drests (make-list (length pdoms) null) (make-list (length pdoms) #f)))))]
     ;; not a function type. keep as is.
     [_ t]))
 
@@ -359,13 +366,13 @@
   (match t
     [(or (Poly-names:
           msg-vars
-          (Function/arrs: msg-doms msg-rngs msg-rests msg-drests (list (Keyword: _ _ #f) ...)))
+          (Function/arrs: msg-doms msg-rngs msg-rests msg-drests (list (Keyword: _ _ #f) ...) dep?s))
          (PolyDots-names:
           msg-vars
-          (Function/arrs: msg-doms msg-rngs msg-rests msg-drests (list (Keyword: _ _ #f) ...)))
+          (Function/arrs: msg-doms msg-rngs msg-rests msg-drests (list (Keyword: _ _ #f) ...) dep?s))
          (PolyRow-names:
           msg-vars _
-          (Function/arrs: msg-doms msg-rngs msg-rests msg-drests (list (Keyword: _ _ #f) ...))))
+          (Function/arrs: msg-doms msg-rngs msg-rests msg-drests (list (Keyword: _ _ #f) ...) dep?s)))
      (let ([fcn-string (name->function-str name)])
        (if (and (andmap null? msg-doms)
                 (null? argtypes))
@@ -383,9 +390,9 @@
                                                                (list->seteq msg-vars)))
                                                  (string-append "Type Variables: " (stringify msg-vars) "\n")
                                                  ""))))))]
-    [(or (Poly-names: msg-vars (Function/arrs: msg-doms msg-rngs msg-rests msg-drests kws))
-         (PolyDots-names: msg-vars (Function/arrs: msg-doms msg-rngs msg-rests msg-drests kws))
-         (PolyRow-names: msg-vars _ (Function/arrs: msg-doms msg-rngs msg-rests msg-drests kws)))
+    [(or (Poly-names: msg-vars (Function/arrs: msg-doms msg-rngs msg-rests msg-drests kws dep?s))
+         (PolyDots-names: msg-vars (Function/arrs: msg-doms msg-rngs msg-rests msg-drests kws dep?s))
+         (PolyRow-names: msg-vars _ (Function/arrs: msg-doms msg-rngs msg-rests msg-drests kws dep?s)))
      (let ([fcn-string (if name
                            (format "function with keywords ~a" (syntax->datum name))
                            "function with keywords")])

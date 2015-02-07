@@ -89,9 +89,9 @@
  (and (> (length arrs) 1)
       ;; No polydots
       (for/and ([arr (in-list arrs)])
-        (match arr [(arr: _ _ _ drest _) (not drest)]))
+        (match arr [(arr: _ _ _ drest _ _) (not drest)]))
       ;; Keyword args, range and rest specs all the same.
-      (let* ([xs (map (match-lambda [(arr: _ rng rest-spec _ kws)
+      (let* ([xs (map (match-lambda [(arr: _ rng rest-spec _ kws dep-rng?)
                                 (list rng rest-spec kws)])
                       arrs)]
              [first-x (first xs)])
@@ -103,7 +103,7 @@
                                [ok-so-far?  #t])
                               ([arr (in-list (rest arrs))])
                       (match arr
-                        [(arr: dom _ _ _ _)
+                        [(arr: dom _ _ _ _ _)
                          (define ldom         (length dom))
                          (define lpositionals (length positionals))
                          (values dom

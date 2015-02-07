@@ -9,7 +9,7 @@
 (require (utils tc-utils)
          "rep-utils.rkt" "object-rep.rkt" "filter-rep.rkt" "free-variance.rkt"
          racket/match racket/list
-         racket/contract
+         racket/contract racket/function
          racket/lazy-require
          (for-syntax racket/base syntax/parse))
 
@@ -20,7 +20,7 @@
          Type-seq
          Mu-unsafe: Poly-unsafe:
          PolyDots-unsafe:
-         Mu? Poly? PolyDots? PolyRow?
+         Mu? Poly? PolyDots? PolyRow? Ref?
          Filter? Object?
          Type/c Type/c?
          Values/c SomeValues/c
@@ -37,17 +37,27 @@
                      [Class* make-Class]
                      [Row* make-Row]
                      [Mu:* Mu:]
+                     [Ref:* Ref:]
+                     [Ref: InstdRef:]
+                     [*Ref make-InstdRef]
                      [Poly:* Poly:]
                      [PolyDots:* PolyDots:]
                      [PolyRow:* PolyRow:]
                      [Mu* make-Mu]
+                     [Ref* make-Ref]
                      [Poly* make-Poly]
                      [PolyDots* make-PolyDots]
                      [PolyRow* make-PolyRow]
                      [Mu-body* Mu-body]
+                     [Ref-type* Ref-type]
+                     [Ref-prop* Ref-prop]
                      [Poly-body* Poly-body]
                      [PolyDots-body* PolyDots-body]
-                     [PolyRow-body* PolyRow-body]))
+                     [PolyRow-body* PolyRow-body])
+         instantiate-idents ;; TODO(AMK)?
+         instantiate-many
+         abstract-idents
+         abstract-ident)
 
 
 ;; Ugly hack - should use units
@@ -60,7 +70,6 @@
 (define Type/c?
    (λ (e)
      (and (Type? e)
-          (not (Scope? e))
           (not (arr? e))
           (not (fld? e))
           (not (Values? e))
@@ -73,7 +82,6 @@
 (define Values/c?
    (λ (e)
      (and (Type? e)
-          (not (Scope? e))
           (not (arr? e))
           (not (fld? e))
           (not (ValuesDots? e))
@@ -86,23 +94,13 @@
     [(Union: (list)) #t]
     [else #f]))
 
+
+
 ;; Name = Symbol
 
 ;; Type is defined in rep-utils.rkt
 
-;; t must be a Type
-(def-type Scope ([t (or/c Type/c Scope?)]) [#:key (Type-key t)])
-
-(define (scope-depth k)
-  (flat-named-contract
-   (format "Scope of depth ~a" k)
-   (lambda (sc)
-     (define (f k sc)
-       (cond [(= 0 k) (Type/c? sc)]
-             [(not (Scope? sc)) #f]
-             [else (f (sub1 k) (Scope-t sc))]))
-     (f k sc))))
-
+  
 ;; this is ONLY used when a type error ocurrs
 (def-type Error () [#:frees #f] [#:fold-rhs #:base])
 
@@ -236,48 +234,43 @@
                [(Keyword) 'keyword]
                [else #f]))])
 
-;; body is a Scope
-(def-type Mu ([body (scope-depth 1)]) #:no-provide [#:frees (λ (f) (f body))]
-  [#:fold-rhs (*Mu (*Scope (type-rec-id (Scope-t body))))]
+
+(def-type Mu ([body Type/c]) #:no-provide [#:frees (λ (f) (f body))]
+  [#:fold-rhs (*Mu (type-rec-id body))]
   [#:key (Type-key body)])
 
+
 ;; n is how many variables are bound here
-;; body is a Scope
 (def-type Poly (n body) #:no-provide
   [#:contract (->i ([n natural-number/c]
-                    [body (n) (scope-depth n)])
+                    [body Type/c])
                    (#:syntax [stx (or/c #f syntax?)])
                    [result Poly?])]
   [#:frees (λ (f) (f body))]
-  [#:fold-rhs (let ([body* (remove-scopes n body)])
-                (*Poly n (add-scopes n (type-rec-id body*))))]
+  [#:fold-rhs (*Poly n (type-rec-id body))]
   [#:key (Type-key body)])
 
 ;; n is how many variables are bound here
 ;; there are n-1 'normal' vars and 1 ... var
-;; body is a Scope
 (def-type PolyDots (n body) #:no-provide
   [#:contract (->i ([n natural-number/c]
-                    [body (n) (scope-depth n)])
+                    [body Type/c])
                    (#:syntax [stx (or/c #f syntax?)])
                    [result PolyDots?])]
   [#:key (Type-key body)]
   [#:frees (λ (f) (f body))]
-  [#:fold-rhs (let ([body* (remove-scopes n body)])
-                (*PolyDots n (add-scopes n (type-rec-id body*))))])
+  [#:fold-rhs (*PolyDots n (type-rec-id body))])
 
 ;; interp. A row polymorphic function type
 ;; constraints are row absence constraints, represented
 ;; as a set for each of init, field, methods
 (def-type PolyRow (constraints body) #:no-provide
   [#:contract (->i ([constraints (list/c list? list? list? list?)]
-                    [body (scope-depth 1)])
+                    [body Type/c])
                    (#:syntax [stx (or/c #f syntax?)])
                    [result PolyRow?])]
   [#:frees (λ (f) (f body))]
-  [#:fold-rhs (let ([body* (remove-scopes 1 body)])
-                (*PolyRow constraints
-                          (add-scopes 1 (type-rec-id body*))))]
+  [#:fold-rhs (*PolyRow constraints (type-rec-id body))]
   [#:key (Type-key body)])
 
 ;; pred : identifier
@@ -322,10 +315,12 @@
                [rng SomeValues/c]
                [rest (or/c #f Type/c)]
                [drest (or/c #f (cons/c Type/c (or/c natural-number/c symbol?)))]
-               [kws (listof Keyword?)])
+               [kws (listof Keyword?)]
+               [dep? boolean?])
   [#:intern (list (map Rep-seq dom) (Rep-seq rng) (and rest (Rep-seq rest))
                   (and drest (cons (Rep-seq (car drest)) (cdr drest)))
-                  (map Rep-seq kws))]
+                  (map Rep-seq kws)
+                  dep?)]
   [#:frees (combine-frees
             (append (map (compose flip-variances free-vars*)
                          (append (if rest (list rest) null)
@@ -355,7 +350,8 @@
                     (type-rec-id rng)
                     (and rest (type-rec-id rest))
                     (and drest (cons (type-rec-id (car drest)) (cdr drest)))
-                    (map type-rec-id kws))])
+                    (map type-rec-id kws)
+                    dep?)])
 
 ;; arities : Listof[arr]
 (def-type Function ([arities (listof arr?)])
@@ -585,23 +581,12 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (add-scopes n t)
-  (if (zero? n) t
-      (add-scopes (sub1 n) (*Scope t))))
-
-(define (remove-scopes n sc)
-  (if (zero? n)
-      sc
-      (match sc
-        [(Scope: sc*) (remove-scopes (sub1 n) sc*)]
-        [_ (int-err "Tried to remove too many scopes: ~a" sc)])))
-
 
 (define ((sub-f st) e)
   (filter-case (#:Type st
                 #:Filter (sub-f st)
-                #:PathElem (sub-pe st))
-               e))
+                #:Object (sub-o st))
+                e))
 
 
 (define ((sub-o st) e)
@@ -612,7 +597,7 @@
 
 (define ((sub-pe st) e)
   (pathelem-case (#:Type st
-                         #:PathElem (sub-pe st))
+                  #:PathElem (sub-pe st))
                  e))
 
 (define ((sub-t st) e)
@@ -621,9 +606,9 @@
               e))
 
 
-;; abstract-many : Names Type -> Scope^n
+;; abstract-types : Names Type -> Type
 ;; where n is the length of names
-(define (abstract-many names ty)
+(define (abstract-types names ty)
   ;; mapping : dict[Type -> Natural]
   (define (nameTo mapping type)
     (let loop ([outer 0] [ty type])
@@ -644,7 +629,7 @@
        ;; necessary to avoid infinite loops
        [#:Union elems (*Union (remove-dups (sort (map sb elems) type<?)))]
        ;; functions
-       [#:arr dom rng rest drest kws
+       [#:arr dom rng rest drest kws dep?
               (*arr (map sb dom)
                     (sb rng)
                     (if rest (sb rest) #f)
@@ -653,7 +638,8 @@
                               (let ([c (cdr drest)])
                                  (transform c values c)))
                         #f)
-                    (map sb kws))]
+                    (map sb kws)
+                    dep?)]
        [#:ValuesDots rs dty dbound
               (*ValuesDots (map sb rs)
                            (sb dty)
@@ -661,27 +647,21 @@
        [#:ListDots dty dbound
                    (*ListDots (sb dty)
                               (transform dbound values dbound))]
-       [#:Mu (Scope: body) (*Mu (*Scope (loop (add1 outer) body)))]
-       [#:PolyRow constraints body*
-                  (let ([body (remove-scopes 1 body*)])
-                    (*PolyRow constraints
-                              (add-scopes 1 (loop (+ 1 outer) body))))]
-       [#:PolyDots n body*
-                   (let ([body (remove-scopes n body*)])
-                     (*PolyDots n (add-scopes n (loop (+ n outer) body))))]
-       [#:Poly n body*
-               (let ([body (remove-scopes n body*)])
-                 (*Poly n (add-scopes n (loop (+ n outer) body))))])))
+       [#:Mu body (*Mu (loop (add1 outer) body))]
+       [#:PolyRow constraints body
+        (*PolyRow constraints (loop (add1 outer) body))]
+       [#:PolyDots n body
+        (*PolyDots n (loop (+ n outer) body))]
+       [#:Poly n body
+               (*Poly n (loop (+ n outer) body))])))
   (define n (length names))
   (define mapping (for/list ([nm (in-list names)]
                              [i (in-range n 0 -1)])
                     (cons nm (sub1 i))))
-  (add-scopes n (nameTo mapping ty)))
+  (nameTo mapping ty))
 
-;; instantiate-many : List[Type] Scope^n -> Type
-;; where n is the length of types
-;; all of the types MUST be Fs
-(define (instantiate-many images sc)
+;; instantiate-types : List[F] Type -> Type
+(define (instantiate-types images t)
   ;; mapping : dict[Natural -> Type]
   (define (replace mapping type)
     (let loop ([outer 0] [ty type])
@@ -702,7 +682,7 @@
        ;; necessary to avoid infinite loops
        [#:Union elems (*Union (remove-dups (sort (map sb elems) type<?)))]
        ;; functions
-       [#:arr dom rng rest drest kws
+       [#:arr dom rng rest drest kws dep?
               (*arr (map sb dom)
                     (sb rng)
                     (if rest (sb rest) #f)
@@ -710,7 +690,8 @@
                         (cons (sb (car drest))
                               (transform (cdr drest) F-n (cdr drest)))
                         #f)
-                    (map sb kws))]
+                    (map sb kws)
+                    dep?)]
        [#:ValuesDots rs dty dbound
                      (*ValuesDots (map sb rs)
                                   (sb dty)
@@ -718,39 +699,32 @@
        [#:ListDots dty dbound
                    (*ListDots (sb dty)
                               (transform dbound F-n dbound))]
-       [#:Mu (Scope: body) (*Mu (*Scope (loop (add1 outer) body)))]
-       [#:PolyRow constraints body*
-                  (let ([body (remove-scopes 1 body*)])
-                    (*PolyRow constraints (add-scopes 1 (loop (+ 1 outer) body))))]
-       [#:PolyDots n body*
-                   (let ([body (remove-scopes n body*)])
-                     (*PolyDots n (add-scopes n (loop (+ n outer) body))))]
-       [#:Poly n body*
-               (let ([body (remove-scopes n body*)])
-                 (*Poly n (add-scopes n (loop (+ n outer) body))))])))
+       [#:Mu body (*Mu (loop (add1 outer) body))]
+       [#:PolyDots n body (*PolyDots n (loop (+ n outer) body))]
+       [#:Poly n body (*Poly n (loop (+ n outer) body))])))
   (define n (length images))
   (define mapping (for/list ([img (in-list images)]
                              [i (in-range n 0 -1)])
                     (cons (sub1 i) img)))
-  (replace mapping (remove-scopes n sc)))
+  (replace mapping t))
 
-(define (abstract name ty)
-  (abstract-many (list name) ty))
+(define (abstract-type name ty)
+  (abstract-types (list name) ty))
 
-(define (instantiate type sc)
-  (instantiate-many (list type) sc))
+(define (instantiate-type type sc)
+  (instantiate-types (list type) sc))
 
 ;; the 'smart' constructor
 (define (Mu* name body)
-  (let ([v (*Mu (abstract name body))])
+  (let ([v (*Mu (abstract-type name body))])
     (hash-set! name-table v name)
     v))
 
 ;; the 'smart' destructor
 (define (Mu-body* name t)
   (match t
-    [(Mu: scope)
-     (instantiate (*F name) scope)]))
+    [(Mu: body)
+     (instantiate-type (*F name) body)]))
 
 ;; the 'smart' constructor
 ;;
@@ -766,32 +740,32 @@
 ;;
 (define (Poly* names body #:original-names [orig names])
   (if (null? names) body
-      (let ([v (*Poly (length names) (abstract-many names body))])
+      (let ([v (*Poly (length names) (abstract-types names body))])
         (hash-set! name-table v orig)
         v)))
 
 ;; the 'smart' destructor
 (define (Poly-body* names t)
   (match t
-    [(Poly: n scope)
+    [(Poly: n body)
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-many (map *F names) scope)]))
+     (instantiate-types (map *F names) body)]))
 
 ;; the 'smart' constructor
 (define (PolyDots* names body)
   (if (null? names) body
-      (let ([v (*PolyDots (length names) (abstract-many names body))])
+      (let ([v (*PolyDots (length names) (abstract-types names body))])
         (hash-set! name-table v names)
         v)))
 
 ;; the 'smart' destructor
 (define (PolyDots-body* names t)
   (match t
-    [(PolyDots: n scope)
+    [(PolyDots: n body)
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-many (map *F names) scope)]))
+     (instantiate-types (map *F names) body)]))
 
 ;; Constructor and destructor for row polymorphism
 ;;
@@ -800,21 +774,21 @@
 ;; a time. This may change in the future.
 ;;
 (define (PolyRow* names constraints body #:original-names [orig names])
-  (let ([v (*PolyRow constraints (abstract-many names body))])
+  (let ([v (*PolyRow constraints (abstract-types names body))])
     (hash-set! name-table v orig)
     v))
 
 (define (PolyRow-body* names t)
   (match t
-    [(PolyRow: constraints scope)
-     (instantiate-many (map *F names) scope)]))
+    [(PolyRow: constraints body)
+     (instantiate-types (map *F names) body)]))
 
 (print-struct #t)
 
 (define-match-expander Mu-unsafe:
   (lambda (stx)
     (syntax-case stx ()
-      [(_ bp) #'(? Mu? (app (lambda (t) (Scope-t (Mu-body t))) bp))])))
+      [(_ bp) #'(? Mu? (app (lambda (t) (Mu-body t)) bp))])))
 
 (define-match-expander Poly-unsafe:
   (lambda (stx)
@@ -1042,3 +1016,133 @@
     (syntax-parse stx
       [(_) #'(Name: _ _ #t)]
       [(_ name-pat) #'(Name: name-pat _ #t)])))
+
+(def-type Ref ([type Type/c]
+               [prop Filter/c]) #:no-provide
+  [#:frees (λ (f) (combine-frees (list (f type) 
+                                       (f prop))))] ;; TODO(AMK) remove id??
+  [#:fold-rhs (*Ref (type-rec-id type) (filter-rec-id prop))])
+
+;; the 'smart' constructor
+;; identifier -> Type/c -> Filter/c -> Type/c
+(define (Ref* id type prop)
+  (*Ref (abstract-ident id type) (abstract-ident id prop)))
+
+;; the 'smart' destructor
+;; identifier -> Ref? -> Type/c
+(define (Ref-type* id r)
+  (match-let ([(Ref: t _) r])
+    (instantiate-ident id t)))
+
+;; identifier -> Ref? -> Filter/c
+(define (Ref-prop* id r)
+  (match-let ([(Ref: _ p) r])
+    (instantiate-ident id p)))
+
+(define-match-expander Ref:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ x t p)
+       #'(? Ref?
+            (app (lambda (ref) (let ([id (datum->syntax #f (gensym))])
+                                 (list id (Ref-type* id ref) (Ref-prop* id ref))))
+                 (list x t p)))])))
+
+(define (abstract-ident id a)
+  (abstract-idents (list id) a))
+
+;; abstracts identifiers to De Bruijn indices (i.e. (list nat nat))
+;; listof identifiers -> (or/c Type/c Filter/c) -> (or/c Type/c Filter/c)
+(define (abstract-idents ids a)
+  (define n (length ids))
+  (define mapping (for/list ([id (in-list ids)]
+                             [i (in-range n 0 -1)])
+                    ;; id, level-0 index
+                    (cons id (sub1 i))))
+  (define (transform name current-lvl)
+    (cond
+      ;; if there is a DeBruijn for this id, use it!
+      [(and (identifier? name)
+            (assf (curry free-identifier=? name) mapping))
+       => (match-lambda [(cons _ idx) (list current-lvl idx)])]
+      [else name]))
+  
+  (transform-idents transform a))
+
+(define (instantiate-ident id a)
+  (instantiate-idents (list id) a))
+
+;; instantiate-idents : (listof idents) (or/c Type/c Filter/c) -> (or/c Type/c Filter/c)
+;; is the list backwards??? TODO(AMK) answer that
+(define (instantiate-idents ids a)
+  (define n (length ids))
+  (define mapping (for/list ([id (in-list ids)]
+                             [i (in-range n 0 -1)])
+                    (cons (sub1 i) id)))
+  (define (transform name current-lvl)
+      (match name
+        ;; DeBruijn case
+        [(list name-lvl name-index) #:when (= current-lvl name-lvl)
+         (let ([pr (assv name-index mapping)])
+           ;; if there is a id for this DeBruijn, use it!
+           (if pr (cdr pr) name))]
+        ;; identifier case
+        [_ name]))
+  
+  (define val (transform-idents transform a))
+  val)
+
+
+(define (transform-idents transform target)
+  (define ((do-type lvl) ty) 
+    (type-case
+     (#:Type (do-type lvl) #:Filter (do-filter lvl) #:Object (do-obj lvl))
+     ty
+     [#:arr dom rng rest drest kws dep?
+      (let ([lvl* (add1 lvl)])
+        (*arr (map (do-type lvl*) dom)
+              ;; add a level for the rng
+              ((do-type lvl*) rng)
+              (if rest ((do-type lvl*) rest) #f)
+              (if drest
+                  (cons ((do-type lvl*) (car drest))
+                        (let ([c (cdr drest)])
+                          (transform c lvl*))) ;; ?
+                  #f)
+              (map (do-type lvl*) kws)
+              dep?))]
+     [#:Ref type prop
+      (let ([lvl* (add1 lvl)])
+        (*Ref ((do-type lvl*) type)
+              ((do-filter lvl*) prop)))]))
+  
+  (define ((do-filter lvl) f)
+    (filter-case (#:Type (do-type lvl)
+                  #:Filter (do-filter lvl)
+                  #:Object (do-obj lvl))
+                 f))
+  
+  (define ((do-obj lvl) o)
+    (object-case (#:Type (do-type lvl)
+                  #:Object (do-obj lvl)
+                  #:PathElem (do-pe lvl))
+                 o
+                 [#:Path π name (make-Path π (transform name lvl))]))
+  
+  (define ((do-pe lvl) pe)
+    (pathelem-case (#:Type (do-type lvl)
+                    #:PathElem (do-pe lvl))
+                   pe))
+  (cond
+    [(Type? target) ((do-type 0) target)]
+    [(Filter? target) ((do-filter 0) target)]
+    [else (int-err "unsupported transform-idents argument ~a" target)]))
+
+
+(define ((instantiate-many ids) . ts)
+  (define inst (curry instantiate-idents ids))
+  (define (inst* a)
+    (if (list? a)
+        (map inst a)
+        (inst a)))
+  (apply values (map inst* ts)))

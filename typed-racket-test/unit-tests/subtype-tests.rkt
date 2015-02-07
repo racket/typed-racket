@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "test-utils.rkt"
-         (types subtype numeric-tower union utils abbrev)
+         (types subtype numeric-tower union utils abbrev filter-ops)
          (rep type-rep)
          (env init-envs type-env-structs)
          rackunit
@@ -347,4 +347,73 @@
    [FAIL
     (-class #:method ((m (-> -Nat))) #:augment ((m (-> -Nat))))
     (-class #:method ((m (-> -Nat))))]
+   
+   
+   
+   ;; Simple Refinement Types
+   [-Nat (-ref y -Nat -top)]
+   [(-ref a -Nat -top) -Nat]
+   [(-ref b Univ -bot) -Nat]
+   [(-ref c Univ (-filter -Nat c)) 
+    (-ref d Univ (-filter -Nat d))]
+   [(-ref e Univ (-filter -Nat e)) 
+    (-ref f Univ (-or (-filter -String f)
+                      (-filter -Nat f)))]
+   [(-ref g Univ (-filter (-ref q -Nat (-filter -Nat q)) g)) 
+    (-ref h Univ (-or (-filter -String h)
+                      (-filter -Nat h)))]
+   [(-ref i Univ (-or (-filter -String i)
+                      (-filter -Nat i))) 
+    (-ref j Univ (-or (-filter -Nat j)
+                      (-filter -String j)))]
+   [FAIL
+    (-ref m Univ (-or (-filter -Symbol m)
+                      (-filter -String m)))
+    (-ref n Univ (-filter -String n))]
+   [FAIL
+    (-ref k Univ (-or (-filter -Symbol k)
+                      (-filter -String k)
+                      (-filter -Nat k)))
+    (-ref l Univ (-or (-filter -Nat l)
+                      (-filter -String l)))]
+   
+   ;; Function Refinement Types
+   [(~> [a : (Un -Nat -String)] 
+        (-ref x Univ (-or (-and (-filter -String a) (-filter -String x))
+                          (-and (-filter -Nat a) (-filter -Nat x)))))
+    (~> [b : (Un -Nat -String)] 
+        (-ref y Univ (-or (-and (-filter -String b) (-filter -String y))
+                          (-and (-filter -Nat b) (-filter -Nat y)))))]
+
+   [(~> [c : (Un -Nat -String)] 
+        (-ref y Univ (-or (-and (-filter -String c) (-filter -String y))
+                          (-and (-filter -Nat c) (-filter -Nat y)))))
+    (~> [d : (Un -Nat -String)] 
+        (-ref q Univ (-filter
+                      (-ref z 
+                            (Un -Nat -String) 
+                            (-and (-filter (Un -Nat -String) z)
+                                  (-or (-and (-not-filter -Nat z) (-filter -String d))
+                                       (-and (-not-filter -String z) (-filter -Nat d)))))
+                      q)))]
+   
+   [(~> [e : (Un -Nat -String)]
+        [f : (-ref f Univ (-or (-and (-filter -String e) (-filter -String f))
+                               (-and (-filter -Nat e) (-filter -Nat f))))]
+        (-ref x Univ (-or (-and (-filter -String e) (-filter -String f) (-filter -String x))
+                          (-and (-filter -Nat e) (-filter -Nat f) (-filter -Nat x)))))
+    
+    (~> [y : -Nat] 
+        [z : -Nat]
+        -Nat)]
+   [FAIL
+    (~> [g : (Un -Nat -String)]
+        [b : (-ref b Univ (-or (-and (-filter -String g) (-filter -String b))
+                               (-and (-filter -Nat g) (-filter -Nat b))))]
+        (-ref x Univ (-or (-and (-filter -String g) (-filter -String b) (-filter -String x))
+                          (-and (-filter -Nat g) (-filter -Nat b) (-filter -Nat x)))))
+    
+    (~> [y : (Un -Nat -String)] 
+        [z : -Nat]
+        -Nat)]
    ))

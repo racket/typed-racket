@@ -45,7 +45,7 @@
   (define (failure)
     (match f-ty
       [(tc-result1:
-         (and t (AnyPoly-names: _ _ (Function: (list (arr: doms rngs rests drests (list (Keyword: _ _ #f) ...)) ..1)))))
+         (and t (AnyPoly-names: _ _ (Function: (list (arr: doms rngs rests drests (list (Keyword: _ _ #f) ...) deps?) ..1)))))
        (domain-mismatches f args t doms rests drests rngs arg-tres full-tail-ty #f
                           #:msg-thunk (lambda (dom)
                                         (string-append
@@ -54,7 +54,7 @@
 
   (match f-ty
     ;; apply of a simple function or polymorphic function
-    [(tc-result1: (AnyPoly: vars dotted-vars (Function: (list (arr: doms rngs rests drests (list (Keyword: _ _ #f) ...)) ..1))))
+    [(tc-result1: (AnyPoly: vars dotted-vars (Function: (list (arr: doms rngs rests drests (list (Keyword: _ _ #f) ...) deps?) ..1))))
      (or
        (for/or ([domain (in-list doms)]
                 [range (in-list rngs)]

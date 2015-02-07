@@ -62,19 +62,19 @@
     [(? Rep? (app (lambda (v) (hash-ref predefined-type-table (Rep-seq v) #f)) (? values id))) id]
     [(Listof: elem-ty)
      `(-lst ,(sub elem-ty))]
-    [(Function: (list (arr: dom (Values: (list (Result: t (FilterSet: (Top:) (Top:)) (Empty:)))) #f #f '())))
+    [(Function: (list (arr: dom (Values: (list (Result: t (FilterSet: (Top:) (Top:)) (Empty:)))) #f #f '() dep?))) ;; TODO(AMK)
      `(simple-> (list ,@(map sub dom)) ,(sub t))]
     [(Function: (list (arr: dom (Values: (list (Result: t (FilterSet: (TypeFilter: ft pth)
                                                                       (NotTypeFilter: ft pth))
                                                         (Empty:))))
-                            #f #f '())))
+                            #f #f '() dep?)))
      `(make-pred-ty (list ,@(map sub dom)) ,(sub t) ,(sub ft) ,(sub pth))]
     [(Function: (list (arr: dom (Values: (list (Result: t (FilterSet: (NotTypeFilter: (== -False)
                                                                                       (Path: pth (list 0 0)))
                                                                       (TypeFilter: (== -False)
                                                                                    (Path: pth (list 0 0))))
                                                         (Path: pth (list 0 0)))))
-                            #f #f '())))
+                            #f #f '() dep?)))
      `(->acc (list ,@(map sub dom)) ,(sub t) ,(sub pth))]
     [(Result: t (FilterSet: (Top:) (Top:)) (Empty:)) `(-result ,(sub t))]
     [(Union: elems) (split-union elems)]
@@ -121,8 +121,8 @@
               (set-box! cache-box
                         (dict-set (unbox cache-box) v (list name class-type))))
             (if cache-box name class-type)])]
-    [(arr: dom rng rest drest kws)
-     `(make-arr ,(sub dom) ,(sub rng) ,(sub rest) ,(sub drest) ,(sub kws))]
+    [(arr: dom rng rest drest kws dep?)
+     `(make-arr ,(sub dom) ,(sub rng) ,(sub rest) ,(sub drest) ,(sub kws) ,dep?)]
     [(TypeFilter: t p)
      `(make-TypeFilter ,(sub t) ,(sub p))]
     [(NotTypeFilter: t p)

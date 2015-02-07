@@ -17,7 +17,9 @@ at least theoretically.
  ;; logging
  show-input?
  ;; provide macros
- rep utils typecheck infer env private types static-contracts)
+ rep utils typecheck infer env private types static-contracts
+ ;; general id generation
+ genids genid)
 
 (define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
@@ -83,6 +85,7 @@ at least theoretically.
 (define-requirer typecheck typecheck-out)
 (define-requirer utils utils-out)
 (define-requirer env env-out)
+(define-requirer logic logic-out)
 (define-requirer private private-out)
 (define-requirer types types-out)
 (define-requirer optimizer optimizer-out)
@@ -200,3 +203,10 @@ at least theoretically.
                       (self-ctor-transformer (struct-info-self-ctor-id ins) stx))
           #:property prop:struct-info (λ (x) (extract-struct-info (struct-info-self-ctor-info x))))
   struct-info-self-ctor))
+
+(define (genids n [sym 'id])
+  (for/list ([i (in-range n)])
+    (genid sym)))
+
+(define (genid [sym 'id])
+  (datum->syntax #f (gensym sym)))

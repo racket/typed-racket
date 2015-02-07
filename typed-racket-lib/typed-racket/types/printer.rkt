@@ -204,7 +204,7 @@
 ;; Convert an arr (see type-rep.rkt) to its printable form
 (define (arr->sexp arr)
   (match arr
-    [(arr: dom rng rest drest kws)
+    [(arr: dom rng rest drest kws dep?)
      (append
       (list '->)
       (map type->sexp dom)
@@ -262,8 +262,8 @@
   ;; see type-contract.rkt, which does something similar and this code
   ;; was stolen from/inspired by/etc.
   (match* ((first arrs) (last arrs))
-    [((arr: first-dom rng rst _ kws)
-      (arr: last-dom _ _ _ _))
+    [((arr: first-dom rng rst _ kws dep?)
+      (arr: last-dom _ _ _ _ _))
      (define-values (mand-kws opt-kws) (partition-kws kws))
      (define opt-doms (drop last-dom (length first-dom)))
      `(->*
@@ -442,7 +442,7 @@
      (parameterize ([current-print-type-fuel
                      (sub1 (current-print-type-fuel))])
        (case-lambda->sexp type))]
-    [(arr: _ _ _ _ _) `(arr ,(arr->sexp type))]
+    [(arr: _ _ _ _ _ _) `(arr ,(arr->sexp type))]
     [(Vector: e) `(Vectorof ,(t->s e))]
     [(HeterogeneousVector: e) `(Vector ,@(map t->s e))]
     [(Box: e) `(Boxof ,(t->s e))]
@@ -511,6 +511,7 @@
     [(MPair: s t) `(MPairof ,(t->s s) ,(t->s t))]
     [(Refinement: parent p?)
      `(Refinement ,(t->s parent) ,(syntax-e p?))]
+    [(Ref: z t p) `(,(syntax->datum z) : ,(type->sexp t) where ,(filter->sexp p))]
     [(Sequence: ts)
      `(Sequenceof ,@(map t->s ts))]
     [(Error:) 'Error]

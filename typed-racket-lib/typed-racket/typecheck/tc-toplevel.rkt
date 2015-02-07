@@ -70,7 +70,7 @@
       ;; FIXME - this sucks and should die
       [t:type-refinement
        (match (lookup-type/lexical #'t.predicate)
-              [(and t (Function: (list (arr: (list dom) (Values: (list (Result: rng _ _))) #f #f '()))))
+              [(and t (Function: (list (arr: (list dom) (Values: (list (Result: rng _ _))) #f #f '() dep?))))
                (let ([new-t (make-pred-ty (list dom)
                                           rng
                                           (make-Refinement dom #'t.predicate))])

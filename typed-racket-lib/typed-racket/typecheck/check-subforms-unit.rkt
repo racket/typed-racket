@@ -45,10 +45,10 @@
   (define (get-range-result stx t filter-type)
     (let loop ((t t))
       (match t
-        [(Function: (list _ ... (arr: (list arg1) _ _ #f (list (Keyword: _ _ #f) ...)) _ ...))
+        [(Function: (list _ ... (arr: (list arg1) _ _ #f (list (Keyword: _ _ #f) ...) deps?) _ ...))
          #:when (subtype filter-type arg1)
          (tc/funapp #'here #'(here) t (list (ret arg1)) #f)]
-        [(Function: (list _ ... (arr: '() _ (? values rest) #f (list (Keyword: _ _ #f) ...)) _ ...))
+        [(Function: (list _ ... (arr: '() _ (? values rest) #f (list (Keyword: _ _ #f) ...) deps?) _ ...))
          #:when (subtype filter-type rest)
          (tc/funapp #'here #'(here) t (list (ret rest)) #f)]
         [(? needs-resolving? t)

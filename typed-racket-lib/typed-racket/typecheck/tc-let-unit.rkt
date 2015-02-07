@@ -33,6 +33,50 @@
         [(list (tc-result: _ _ os) ...)
          (map list names os)]))))
 
+(define/cond-contract (flatten-let-binding-info namess expected-results)
+  (-> (listof (listof identifier?))
+      (listof (listof tc-result?))
+      (values (listof (listof Type/c))
+              (listof (listof Object?))
+              (listof (listof Filter?))))
+
+  (define-values (typess aliased-objss propss)
+    (for/lists (e o p)
+      ([e-r   (in-list expected-results)]
+       [names (in-list namess)])
+      (match e-r
+        [(list (tc-result: e-ts (FilterSet: fs+ fs-) os) ...)
+         ;; we don't alias mutated identifiers or objects
+         ;; whose type is a polymorphic variable
+         (define aliased-objects (for/list ([o (in-list os)]
+                                            [name (in-list names)]
+                                            [t (in-list e-ts)])
+                                   (if (or (is-var-mutated? name) (F? t)) 
+                                       -empty-obj 
+                                       o)))
+         (define props 
+           (for/list ([n (in-list names)]
+                      [t (in-list e-ts)]
+                      [f+ (in-list fs+)]
+                      [f- (in-list fs-)]
+                      [o (in-list aliased-objects)])
+             (cond
+               [(not (overlap t (-val #f))) f+]
+               ;; n is an alias for o - we don't need to generate any
+               ;; props to specifically tell us about n
+               [(not (Empty? o)) -top]
+               ;; n is not aliasing an object -- create props that relate
+               ;; n to its type and true/false props
+               [else (-or (-and (-not-filter (-val #f) n) f+)
+                          (-and (-filter (-val #f) n) f-))])))
+         ;; todo apply-append to props!!!!!!!!!!
+         
+         (values e-ts aliased-objects props)]
+        [(list (tc-result: e-ts (NoFilter:) _) ...)
+         (values e-ts (make-list (length e-ts) -empty-obj) empty)])))
+  
+  (values typess aliased-objss propss))
+
 ;; Checks that the body has the expected type when names are bound to the types spcified by results.
 ;; The exprs are also typechecked by using expr->type.
 ;; TODO: make this function sane.
@@ -42,55 +86,24 @@
    (listof syntax?) syntax? (or/c #f tc-results/c)
    . -> .
    tc-results/c)
-  (with-cond-contract t/p ([expected-types (listof (listof Type/c))]
-                           [objs           (listof (listof Object?))]
-                           [props          (listof (listof Filter?))])
-    (define-values (expected-types objs props)
-      (for/lists (e o p)
-        ([e-r   (in-list expected-results)]
-         [names (in-list namess)])
-        (match e-r
-          [(list (tc-result: e-ts (FilterSet: fs+ fs-) os) ...)
-           (values e-ts
-                   (map (λ (o n t) (if (or (is-var-mutated? n) (F? t)) -empty-obj o)) os names e-ts)
-                   (apply append
-                          (for/list ([n (in-list names)]
-                                     [t (in-list e-ts)]
-                                     [f+ (in-list fs+)]
-                                     [f- (in-list fs-)]
-                                     [o (in-list os)])
-                            (cond
-                              [(not (overlap t (-val #f)))
-                               (list f+)]
-                              [(is-var-mutated? n)
-                               (list)]
-                              ;; n is being bound to an expression w/ object o, no new info 
-                              ;; is required due to aliasing (note: we currently do not
-                              ;; alias objects typed as type variables)
-                              [(and (Path? o) (not (F? t))) (list)]
-                              ;; n is being bound to an expression w/o an object (or whose
-                              ;; type is a type variable) so create props about n
-                              [else (list (-or (-and (-not-filter (-val #f) n) f+)
-                                               (-and (-filter (-val #f) n) f-)))]))))]
-          [(list (tc-result: e-ts (NoFilter:) _) ...)
-           (values e-ts null)]))))
+  
+  (define-values (expected-typess objss propss)
+    (flatten-let-binding-info namess expected-results))
   ;; extend the lexical environment for checking the body
   ;; with types and potential aliases
-  (with-lexical-env/extend-types+aliases
+  (with-lexical-env/extend-types+aliases+props
     (append* namess)
-    (append* expected-types)
-    (append* objs)
+    (append* expected-typess)
+    (append* objss)
+    (apply append propss)
+    #:unreachable (ret -Bottom)
     (replace-names
-      (get-names+objects namess expected-results)
-      (with-lexical-env/extend-props
-        (apply append props)
-        ;; type-check the rhs exprs
-        (for ([expr (in-list exprs)] [results (in-list expected-results)])
-          (match results
-            [(list (tc-result: ts fs os) ...)
-             (expr->type expr (ret ts fs os))]))
-        ;; typecheck the body
-        (tc-body/check body (and expected (erase-filter expected)))))))
+     (get-names+objects namess expected-results)
+     (begin (for ([expr (in-list exprs)] [results (in-list expected-results)])
+              (match results
+                [(list (tc-result: ts fs os) ...)
+                 (expr->type expr (ret ts fs os))]))
+            (tc-body/check body (and expected (erase-filter expected)))))))
 
 (define (tc-expr/maybe-expected/t e names)
   (syntax-parse names
@@ -143,20 +156,22 @@
         (values name expr)))
 
     ;; Check those and then check the rest in the extended environment
-    (check-non-recursive-clauses
-      ordered-clauses
-      (lambda ()
-        (cond
-          ;; after everything, check the body expressions
-          [(null? remaining-names)
-           (tc-body/check body (and expected (erase-filter expected)))]
-          [else
-           (define flat-names (apply append remaining-names))
-           (do-check tc-expr/check
-                     remaining-names
-                     ;; types the user gave.
-                     (map (λ (l) (map tc-result (map get-type l))) remaining-names)
-                     remaining-exprs body expected)])))))
+    (let/ec exit
+      (check-non-recursive-clauses
+       ordered-clauses
+       (lambda ()
+         (cond
+           ;; after everything, check the body expressions
+           [(null? remaining-names)
+            (tc-body/check body (and expected (erase-filter expected)))]
+           [else
+            (define flat-names (apply append remaining-names))
+            (do-check tc-expr/check
+                      remaining-names
+                      ;; types the user gave.
+                      (map (λ (l) (map tc-result (map get-type l))) remaining-names)
+                      remaining-exprs body expected)]))
+       exit))))
 
 ;; An lr-clause is a
 ;;   (lr-clause (Listof Identifier) Syntax)
@@ -224,7 +239,7 @@
 ;; check-non-recursive-clauses : (Listof lr-clause) (-> tc-results) -> tc-results
 ;; Given a list of non-recursive clauses, check the clauses in order then call k
 ;; in the built up environment.
-(define (check-non-recursive-clauses clauses k)
+(define (check-non-recursive-clauses clauses k exit)
   (let loop ([clauses clauses])
     (cond [(null? clauses) (k)]
           [else
@@ -233,9 +248,10 @@
              (get-type/infer names expr
                              (lambda (e) (tc-expr/maybe-expected/t e names))
                              tc-expr/check))
-           (with-lexical-env/extend-types 
+           (with-lexical-env/extend-types
             names 
             ts
+            #:unreachable (exit (ret -Bottom))
             (replace-names (map list names os)
                            (loop (cdr clauses))))])))
 

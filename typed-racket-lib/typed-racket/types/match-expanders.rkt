@@ -92,8 +92,8 @@
 (define-match-expander Function/arrs:
   (lambda (stx)
     (syntax-parse stx
-      [(_ doms rngs rests drests kws (~optional (~seq #:arrs arrs) #:defaults ([arrs #'_])))
-       #'(Function: (and arrs (list (arr: doms rngs rests drests kws) (... ...))))])))
+      [(_ doms rngs rests drests kws deps? (~optional (~seq #:arrs arrs) #:defaults ([arrs #'_])))
+       #'(Function: (and arrs (list (arr: doms rngs rests drests kws deps?) (... ...))))])))
 
 ;; A match expander for matching the filter on a predicate. This assumes a standard
 ;; predicate type of the shape (-> Any Any : SomeType)
@@ -101,4 +101,4 @@
   (λ (stx)
     (syntax-parse stx
       [(_ fs)
-       #'(Function: (list (arr: (list _) (Values: (list (Result: _ fs _))) _ _ _)))])))
+       #'(Function: (list (arr: (list _) (Values: (list (Result: _ fs _))) _ _ _ _)))])))

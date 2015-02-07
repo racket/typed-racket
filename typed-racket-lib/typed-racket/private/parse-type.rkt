@@ -86,6 +86,7 @@
 (define-literal-syntax-class #:for-label pred)
 (define-literal-syntax-class #:for-label ->)
 (define-literal-syntax-class #:for-label ->*)
+(define-literal-syntax-class #:for-label ->i)
 (define-literal-syntax-class #:for-label case->^ (case-> case-lambda))
 (define-literal-syntax-class #:for-label Rec)
 (define-literal-syntax-class #:for-label U)
@@ -99,6 +100,7 @@
 (define-literal-syntax-class #:for-label values)
 (define-literal-syntax-class #:for-label Top)
 (define-literal-syntax-class #:for-label Bot)
+(define-literal-syntax-class #:for-label where)
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
@@ -246,9 +248,9 @@
            #:attr prop (-not-filter (parse-type #'t) (-acc-path (attribute pe.pe) (attribute o.obj))))
   (pattern (:! t:expr)
            #:attr prop (-not-filter (parse-type #'t) 0))
-  (pattern (and (~var p (prop doms)) ...)
+  (pattern ((~datum and) (~var p (prop doms)) ...)
            #:attr prop (apply -and (attribute p.prop)))
-  (pattern (or (~var p (prop doms)) ...)
+  (pattern ((~datum or) (~var p (prop doms)) ...)
            #:attr prop (apply -or (attribute p.prop)))
   (pattern ((~literal implies) (~var p1 (prop doms)) (~var p2 (prop doms)))
            #:attr prop (-imp (attribute p1.prop) (attribute p2.prop)))
@@ -300,6 +302,24 @@
            #:attr negative (apply -and (attribute p-.prop))
            #:attr object (or (attribute o.object) -empty-obj)))
 
+
+(define-splicing-syntax-class proposition
+  #:description "proposition"
+  #:attributes (prop)
+  (pattern :Top^ #:attr prop -top)
+  (pattern :Bot^ #:attr prop -bot)
+  (pattern (t:expr :@ ~! pe:path-elem ... q:id)
+           #:attr prop (-filter (parse-type #'t) (-acc-path (attribute pe.pe) 
+                                                            (-id-path #'q))))
+  (pattern (:! t:expr :@ ~! pe:path-elem ... q:id)
+           #:attr prop (-not-filter (parse-type #'t) (-acc-path (attribute pe.pe) 
+                                                                (-id-path #'q))))
+  (pattern ((~datum and) ps:proposition ...)
+           #:attr prop (apply -and (attribute ps.prop)))
+  (pattern ((~datum or) ps:proposition ...)
+           #:attr prop (apply -simple-or (attribute ps.prop))))
+
+
 (define (parse-types stx-list)
   (stx-map parse-type stx-list))
 
@@ -320,13 +340,16 @@
       [(fst . rst)
        #:fail-unless (not (syntax->list #'rst)) #f
        (-pair (parse-type #'fst) (parse-type #'rst))]
+      [(x:id :colon^ t:non-keyword-ty (:where^ ps:proposition ...))
+       (-iref (abstract-ident #'x (parse-type #'t)) 
+              (abstract-ident #'x (apply -and (attribute ps.prop))))]
       [(:Class^ e ...)
        (parse-class-type stx)]
       [(:Object^ e ...)
        (parse-object-type stx)]
       [(:Refinement^ p?:id)
        (match (lookup-type/lexical #'p?)
-         [(and t (Function: (list (arr: (list dom) _ #f #f '()))))
+         [(and t (Function: (list (arr: (list dom) _ #f #f '() dep?))))
           (make-Refinement dom #'p?)]
          [t (parse-error "expected a predicate for argument to Refinement"
                          "given" t)])]
@@ -481,6 +504,40 @@
                    doms
                    (parse-values-type #'rng)
                    #:kws (map force (attribute kws.Keyword)))))))]
+      ;;TODO(AMK) better syntax support
+      [(:->i^ ~! [x:id :colon^ dom:non-keyword-ty] rng:non-keyword-ty)
+       ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
+       (with-arity 1
+                   (make-Function 
+                    (list (make-arr (list (parse-type #'dom)) 
+                                     (abstract-ident #'x (parse-type #'rng))
+                                     #:dep? #t))))]
+      
+      [(:->i^ ~! 
+              [x:id :colon^ domx:non-keyword-ty] 
+              [y:id :colon^ domy:non-keyword-ty] 
+              rng:non-keyword-ty)
+       ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
+       (with-arity 2
+                   (make-Function 
+                    (list (make-arr (list (abstract-idents (list #'x #'y) (parse-type #'domx)) 
+                                          (abstract-idents (list #'x #'y) (parse-type #'domy)))
+                                    (abstract-idents (list #'x #'y) (parse-type #'rng))
+                                     #:dep? #t))))]
+      
+      [(:->i^ ~! 
+              [x:id :colon^ domx:non-keyword-ty] 
+              [y:id :colon^ domy:non-keyword-ty] 
+              [z:id :colon^ domz:non-keyword-ty] 
+              rng:non-keyword-ty)
+       ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
+       (with-arity 3
+                   (make-Function 
+                    (list (make-arr (list (abstract-ident (list #'x #'y #'z) (parse-type #'domx)) 
+                                           (abstract-ident (list #'x #'y #'z) (parse-type #'domy))
+                                           (abstract-ident (list #'x #'y #'z) (parse-type #'domz)))
+                                     (abstract-idents (list #'x #'y #'z) (parse-type #'rng))
+                                     #:dep? #t))))]
       ;; This case needs to be at the end because it uses cut points to give good error messages.
       [(~or (:->^ ~! dom:non-keyword-ty ... rng:expr
              :colon^ (~var latent (full-latent (syntax->list #'(dom ...)))))
@@ -505,6 +562,9 @@
                                           (attribute opt.kws)))))]
       [:->^
        (parse-error #:delayed? #t "incorrect use of -> type constructor")
+       Err]
+      [:->i^
+       (parse-error #:delayed? #t "incorrect use of ->i type constructor")
        Err]
       [id:identifier
        (cond

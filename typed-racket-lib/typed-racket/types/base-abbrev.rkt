@@ -8,7 +8,7 @@
 (require "../utils/utils.rkt"
          (rep type-rep filter-rep object-rep rep-utils)
          (env mvar-env)
-         racket/match racket/list (prefix-in c: (contract-req))
+         racket/match racket/list racket/function (prefix-in c: (contract-req))
          (for-syntax racket/base syntax/parse racket/list)
          ;; For contract predicates
          (for-template racket/base))
@@ -177,18 +177,20 @@
 ;; Function types
 (define/cond-contract (make-arr* dom rng
                                  #:rest [rest #f] #:drest [drest #f] #:kws [kws null]
-                                 #:filters [filters -top-filter] #:object [obj -empty-obj])
+                                 #:filters [filters -top-filter] #:object [obj -empty-obj]
+                                 #:dep? [dep? #f])
   (c:->* ((c:listof Type/c) (c:or/c SomeValues/c Type/c))
          (#:rest (c:or/c #f Type/c)
           #:drest (c:or/c #f (c:cons/c Type/c symbol?))
           #:kws (c:listof Keyword?)
           #:filters FilterSet?
-          #:object Object?)
+          #:object Object?
+          #:dep? boolean?)
          arr?)
   (make-arr dom (if (Type/c? rng)
                     (make-Values (list (-result rng filters obj)))
                     rng)
-            rest drest (sort #:key Keyword-kw kws keyword<?)))
+            rest drest (sort #:key Keyword-kw kws keyword<?) dep?))
 
 (define-syntax (->* stx)
   (define-syntax-class c
@@ -206,6 +208,37 @@
      #'(make-Function (list (make-arr* dom rng #:rest rst #:filters filters)))]
     [(_ dom rst rng _:c filters : object)
      #'(make-Function (list (make-arr* dom rng #:rest rst #:filters filters #:object object)))]))
+
+
+;; TODO(AMK) add support for things like [x y z : Integer]
+(define-syntax ~>
+  (syntax-rules (:)
+    [(_ [x : xdom] rng)
+     (let ([x #`#,(gensym 'x)]
+           [xdom* xdom]) 
+       (make-Function (list (make-arr* (list xdom*) 
+                                       (abstract-idents (list x) rng)
+                                       #:dep? #t))))]
+    [(_ [x : xdom] [y : ydom] rng)
+     (let ([x #`#,(gensym 'x)]
+           [xdom* xdom]) 
+       (let ([y #`#,(gensym 'y)]
+             [ydom* ydom])
+         (make-Function 
+          (list (make-arr* (map (curry abstract-idents (list x y)) (list xdom* ydom*)) 
+                           (abstract-idents (list x y) rng)
+                           #:dep? #t)))))]
+    [(_ [x : xdom] [y : ydom] [z : zdom] rng)
+     (let ([x #`#,(gensym 'x)]
+           [xdom* xdom]) 
+       (let ([y #`#,(gensym 'y)]
+             [ydom* ydom])
+         (let ([z #`#,(gensym 'z)]
+               [zdom* zdom])
+           (make-Function 
+            (list (make-arr* (map (curry abstract-idents (list x y z)) (list xdom* ydom* zdom*)) 
+                             (abstract-idents (list x y z) rng)
+                             #:dep? #t))))))]))
 
 (define-syntax (-> stx)
   (define-syntax-class c
@@ -314,4 +347,13 @@
     [(_ (var) consts ty)
      (let ([var (-v var)])
        (make-PolyRow (list 'var) consts ty))]))
+
+(define-syntax -ref
+  (syntax-rules ()
+    [(_ x t p) (let ([x #`#,(gensym 'x)])
+                 (make-Ref x t p))]))
+
+(define-syntax -iref
+  (syntax-rules ()
+    [(_ t p) (make-InstdRef t p)]))
 

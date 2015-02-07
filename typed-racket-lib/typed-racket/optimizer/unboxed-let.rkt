@@ -130,7 +130,8 @@
               [(tc-result1: (Function: (list (arr: doms rngs
                                                    (and rests #f)
                                                    (and drests #f)
-                                                   (and kws '())))))
+                                                   (and kws '())
+                                                   dep?))))
                doms]
               [_ #f]))]
     #:when doms

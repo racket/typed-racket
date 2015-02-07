@@ -41,7 +41,7 @@
     (match (tc-expr #'fn)
       [(tc-result1:
         (Poly: vars
-               (Function: (list (and ar (arr: dom rng (and rest #f) (and drest #f) kw-formals))))))
+               (Function: (list (and ar (arr: dom rng (and rest #f) (and drest #f) kw-formals dep?))))))
        (=> fail)
        (unless (set-empty? (fv/list kw-formals))
          (fail))
@@ -56,13 +56,14 @@
        (tc-keywords #'(#%plain-app . form) arities (type->list (tc-expr/t #'kws))
                     #'kw-arg-list #'pos-args expected)]
       [(tc-result1: (Poly: _ (Function: _)))
+       ;(error 'tc/app-keywords "what! ~a\n\n" (tc-expr #'fn))
        (tc-error/expr "Inference for polymorphic keyword functions not supported")]
       [(tc-result1: t)
        (tc-error/expr "Cannot apply expression of type ~a, since it is not a function type" t)])))
 
 (define (tc-keywords/internal arity kws kw-args error?)
   (match arity
-    [(arr: dom rng rest #f ktys)
+    [(arr: dom rng rest #f ktys dep?)
      ;; assumes that everything is in sorted order
      (let loop ([actual-kws kws]
                 [actuals (stx-map tc-expr/t kw-args)]
@@ -102,18 +103,18 @@
 
 (define (tc-keywords form arities kws kw-args pos-args expected)
   (match arities
-    [(list (and a (arr: dom rng rest #f ktys)))
+    [(list (and a (arr: dom rng rest #f ktys dep?)))
      (tc-keywords/internal a kws kw-args #t)
      (tc/funapp (car (syntax-e form)) kw-args
                 (->* dom rest rng)
                 (stx-map tc-expr pos-args) expected)]
-    [(list (and a (arr: doms rngs rests (and drests #f) ktyss)) ...)
+    [(list (and a (arr: doms rngs rests (and drests #f) ktyss deps?)) ...)
      (let ([new-arities
             (for/list ([a (in-list arities)]
                        ;; find all the arities where the keywords match
                        #:when (tc-keywords/internal a kws kw-args #f))
               (match a
-                [(arr: dom rng rest #f ktys) (make-arr* dom rng #:rest rest)]))])
+                [(arr: dom rng rest #f ktys dep?) (make-arr* dom rng #:rest rest #:dep? dep?)]))])
        (if (null? new-arities)
            (domain-mismatches
             (car (syntax-e form)) (cdr (syntax-e form))

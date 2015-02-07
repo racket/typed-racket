@@ -359,7 +359,7 @@
         [(Continuation-Mark-Keyof: t)
          (continuation-mark-key/sc (t->sc t))]
         ;; TODO: this is not quite right for case->
-        [(Prompt-Tagof: s (Function: (list (arr: (list ts ...) _ _ _ _))))
+        [(Prompt-Tagof: s (Function: (list (arr: (list ts ...) _ _ _ _ _))))
          (prompt-tag/sc (map t->sc ts) (t->sc s))]
         ;; TODO
         [(F: v)
@@ -539,8 +539,8 @@
       ;; TODO sufficient condition, but may not be necessary
       [(has-optional-args? arrs)
        (match* ((first arrs) (last arrs))
-         [((arr: first-dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst #f kws)
-           (arr: last-dom _ _ _ _)) ; all but dom is the same for all
+         [((arr: first-dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst #f kws dep?)
+           (arr: last-dom _ _ _ _ _)) ; all but dom is the same for all
           (define mand-args (map t->sc/neg first-dom))
           (define opt-args (map t->sc/neg (drop last-dom (length first-dom))))
           (define-values (mand-kws opt-kws)
@@ -554,7 +554,7 @@
        (define ((f case->) a)
          (define (convert-arr arr)
            (match arr
-             [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws)
+             [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws dep?)
               (let-values ([(mand-kws opt-kws) (partition-kws kws)])
                 ;; Garr, I hate case->!
                 (when (and (not (empty? kws)) case->)
@@ -577,27 +577,27 @@
                     (map t->sc rngs))))]))
          (match a
            ;; functions with no filters or objects
-           [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws)
+           [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws dep?)
             (convert-arr a)]
            ;; Functions that don't return
-           [(arr: dom (Values: (list (Result: (== -Bottom) _ _) ...)) rst drst kws)
+           [(arr: dom (Values: (list (Result: (== -Bottom) _ _) ...)) rst drst kws dep?)
             (convert-arr a)]
            ;; functions with filters or objects
-           [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws)
+           [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws dep?)
             (if (from-untyped? typed-side)
                 (fail #:reason (~a "cannot generate contract for function type"
                                    " with filters or objects."))
                 (convert-arr a))]
-           [(arr: dom (? ValuesDots?) rst drst kws)
+           [(arr: dom (? ValuesDots?) rst drst kws dep?)
             (fail #:reason (~a "cannot generate contract for function type"
                                " with dotted return values"))]
-           [(arr: dom (? AnyValues?) rst drst kws)
+           [(arr: dom (? AnyValues?) rst drst kws dep?)
             (fail #:reason (~a "cannot generate contract for function type"
                                " with unknown return values"))]))
        (define arities
          (for/list ([t arrs])
            (match t
-             [(arr: dom _ _ _ _) (length dom)])))
+             [(arr: dom _ _ _ _ _) (length dom)])))
        (define maybe-dup (check-duplicate arities))
        (when maybe-dup
          (fail #:reason (~a "function type has two cases of arity " maybe-dup)))

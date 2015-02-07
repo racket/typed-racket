@@ -33,22 +33,30 @@
     [(tc-results: ts fs os dty dbound)
      (make-ValuesDots (map -result ts fs os) dty dbound)]))
 
-(define/cond-contract (resolve atoms prop)
+(define/cond-contract (resolve derived prop)
   ((listof Filter/c)
    Filter/c
    . -> .
    Filter/c)
   (for/fold ([prop prop])
-    ([a (in-list atoms)])
+    ([a (in-list derived)])
     (match prop
       [(AndFilter: ps)
        (let loop ([ps ps] [result null])
-         (if (null? ps)
-             (apply -and result)
-             (let ([p (car ps)])
-               (cond [(contradictory? a p) -bot]
-                     [(implied-atomic? p a) (loop (cdr ps) result)]
-                     [else (loop (cdr ps) (cons p result))]))))]
+         (match ps
+           [(list) (apply -and result)]
+           [(cons p ps*)
+            (cond [(contradictory? a p) -bot]
+                  [(implied-atomic? p a) (loop ps* result)]
+                  [else (loop ps* (cons p result))])]))]
+      [(OrFilter: ps)
+       (let loop ([ps ps] [result null])
+         (match ps
+           [(list) (apply -or result)]
+           [(cons p ps)
+            (cond [(contradictory? a p) (loop ps result)]
+                  [(implied-atomic? p a) -top]
+                  [else (loop ps (cons p result))])]))]
       [_ prop])))
 
 (define (flatten-props ps)
@@ -62,41 +70,25 @@
   ((listof Filter/c) (listof Filter/c) (-> none/c)
    . -> .
    (values (listof (or/c ImpFilter? OrFilter?)) (listof (or/c TypeFilter? NotTypeFilter?))))
-  (define (atomic-prop? p) (or (TypeFilter? p) (NotTypeFilter? p)))
-  (define-values (new-atoms new-formulas) (partition atomic-prop? (flatten-props new-props)))
+  
+  (define-values (new-atoms new-formulas) 
+    (partition (λ (p) (or (TypeFilter? p) (NotTypeFilter? p))) 
+               (flatten-props new-props)))
+  
   (let loop ([derived-formulas null]
              [derived-atoms new-atoms]
              [worklist (append old-props new-formulas)])
-    (if (null? worklist)
-        (values derived-formulas derived-atoms)
-        (let* ([p (car worklist)]
-               [p (resolve derived-atoms p)])
-          (match p
-            [(ImpFilter: a c)
-             (if (for/or ([p (in-list (append derived-formulas derived-atoms))])
-                   (implied-atomic? a p))
-                 (loop derived-formulas derived-atoms (cons c (cdr worklist)))
-                 (loop (cons p derived-formulas) derived-atoms (cdr worklist)))]
-            [(OrFilter: ps)
-             (let ([new-or
-                    (let or-loop ([ps ps] [result null])
-                      (cond
-                        [(null? ps) (apply -or result)]
-                        [(for/or ([other-p (in-list (append derived-formulas derived-atoms))])
-                           (contradictory? (car ps) other-p))
-                         (or-loop (cdr ps) result)]
-                        [(for/or ([other-p (in-list derived-atoms)])
-                           (implied-atomic? (car ps) other-p))
-                         -top]
-                        [else (or-loop (cdr ps) (cons (car ps) result))]))])
-               (if (OrFilter? new-or)
-                   (loop (cons new-or derived-formulas) derived-atoms (cdr worklist))
-                   (loop derived-formulas derived-atoms (cons new-or (cdr worklist)))))]
-            [(or (? TypeFilter?) (? NotTypeFilter?)) (loop derived-formulas (cons p derived-atoms) (cdr worklist))]
-
-            [(AndFilter: ps) (loop derived-formulas derived-atoms (append ps (cdr worklist)))]
-            [(Top:) (loop derived-formulas derived-atoms (cdr worklist))]
-            [(Bot:) (exit)])))))
+    (match worklist
+      [(list) (values derived-formulas derived-atoms)]
+      [(cons next-prop ps)
+       (match (resolve (append derived-atoms derived-formulas) next-prop)
+         [(? OrFilter? p)
+          (loop (cons p derived-formulas) derived-atoms ps)]
+         [(or (? TypeFilter? a) (? NotTypeFilter? a)) 
+          (loop derived-formulas (cons a derived-atoms) ps)]
+         [(AndFilter: and-ps) (loop derived-formulas derived-atoms (append and-ps ps))]
+         [(Top:) (loop derived-formulas derived-atoms ps)]
+         [(Bot:) (exit)])])))
 
 
 (define (unconditional-prop res)

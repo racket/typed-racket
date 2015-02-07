@@ -41,7 +41,7 @@
     ;; Returns the changed arr or #f if there is no arr above it
     (define (arr-change arr)
       (match arr
-        [(arr: dom rng rest drest kws)
+        [(arr: dom rng rest drest kws dep?)
          (cond
            [(apply V-in? V (get-filters rng))
             #f]
@@ -50,13 +50,15 @@
                       (co rng)
                       (contra (car drest))
                       #f
-                      (map contra kws))]
+                      (map contra kws)
+                      dep?)] ;; TODO(AMK)
            [else
             (make-arr (map contra dom)
                       (co rng)
                       (and rest (contra rest))
                       (and drest (cons (contra (car drest)) (cdr drest)))
-                      (map contra kws))])]))
+                      (map contra kws)
+                      dep?)])]))
 
     (match T
       [(F: name) (if (memq name V) (if change Univ -Bottom) T)]

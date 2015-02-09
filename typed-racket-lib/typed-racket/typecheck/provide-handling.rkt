@@ -185,9 +185,7 @@
     (define-values (defs export-def id alias) (mk internal-id))
     (define provide-forms
       (for/list ([external-id (in-list external-ids)])
-        (if (free-identifier=? id external-id)
-            id
-            #`(rename-out [#,id #,external-id]))))
+        #`(rename-out [#,id #,external-id])))
     (values #`(begin #,defs)
             export-def
             #`(provide #,@provide-forms)

@@ -218,38 +218,31 @@
  [current-test-case-around (Parameter ((Thunk Any) -> Any))])
 
 ; 3.3.1.1
-(provide test-check test-pred test-equal? test-eq? test-eqv? test-=
-         test-true test-false test-not-false test-exn test-not-exn)
+(define-syntax-rule (def-test [tst (ch args ...)] ...)
+  (begin (provide tst ...)
+         (define-syntax-rule (tst name args ...)
+           (test-case name (ch args ...))) ...))
 
-(define-syntax-rule (test-check name operator v1 v2)
-  (test-case name (check operator v1 v2)))
-(define-syntax-rule (test-pred name pred v)
-  (test-case name (check-pred pred v)))
-(define-syntax-rule (test-equal? name v1 v2)
-  (test-case name (check-equal? v1 v2)))
-(define-syntax-rule (test-eq? name v1 v2)
-  (test-case name (check-eq? v1 v2)))
-(define-syntax-rule (test-eqv? name v1 v2)
-  (test-case name (check-eqv? v1 v2)))
-(define-syntax-rule (test-= name v1 v2 epsilon)
-  (test-case name (check-= v1 v2 epsilon)))
-(define-syntax-rule (test-true name v)
-  (test-case name (check-true v)))
-(define-syntax-rule (test-false name v)
-  (test-case name (check-false v)))
-(define-syntax-rule (test-not-false name v)
-  (test-case name (check-not-false v)))
-(define-syntax-rule (test-exn name pred thunk)
-  (test-case name (check-exn pred thunk)))
-(define-syntax-rule (test-not-exn name thunk)
-  (test-case name (check-not-exn thunk)))
+(def-test
+  [test-check (check op v1 v2)]
+  (test-pred (check-pred pred v))
+  (test-equal? (check-equal? v1 v2))
+  (test-eq? (check-eq? v1 v2))
+  (test-eqv? (check-eqv? v1 v2))
+  (test-= (check-= v1 v2 epsilon))
+  (test-true (check-true v))
+  (test-false (check-false v))
+  (test-not-false (check-not-false v))
+  (test-exn (check-exn pred thunk))
+  (test-not-exn (check-not-exn thunk)))
+
 
 ; 3.4
 (require (only-in rackunit before after around delay-test))
 (provide before after around delay-test)
 
 ; 3.5
-; XXX require/expose seems WRONG for typed/scheme
+; XXX require/expose seems WRONG for typed/racket
 
 ; 3.7
 (require-typed-struct (exn:test exn) () rackunit)

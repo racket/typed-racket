@@ -284,5 +284,15 @@
            (raise (exn:fail:constraint-failure
                     (format "Violated constraint: ~a" reason)
                     (current-continuation-marks)
-                    reason)))]))]))
+                    reason)))]
+         [(contract-restrict (kind-max d _) rec constraints)
+          (raise (exn:fail:constraint-failure
+                  (format "Violated constraint: ~a" "too many ids")
+                  (current-continuation-marks)
+                  (~a d)))]))]
+    [(contract-restrict (kind-max d _) rec constraints)
+     (raise (exn:fail:constraint-failure
+                    (format "Violated constraint: ~a" "too many ids")
+                    (current-continuation-marks)
+                    (~a d)))]))
 

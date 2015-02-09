@@ -217,6 +217,33 @@
  [current-test-name (Parameter (Option String))]
  [current-test-case-around (Parameter ((Thunk Any) -> Any))])
 
+; 3.3.1.1
+(provide test-check test-pred test-equal? test-eq? test-eqv? test-=
+         test-true test-false test-not-false test-exn test-not-exn)
+
+(define-syntax-rule (test-check name operator v1 v2)
+  (test-case name (check operator v1 v2)))
+(define-syntax-rule (test-pred name pred v)
+  (test-case name (check-pred pred v)))
+(define-syntax-rule (test-equal? name v1 v2)
+  (test-case name (check-equal? v1 v2)))
+(define-syntax-rule (test-eq? name v1 v2)
+  (test-case name (check-eq? v1 v2)))
+(define-syntax-rule (test-eqv? name v1 v2)
+  (test-case name (check-eqv? v1 v2)))
+(define-syntax-rule (test-= name v1 v2 epsilon)
+  (test-case name (check-= v1 v2 epsilon)))
+(define-syntax-rule (test-true name v)
+  (test-case name (check-true v)))
+(define-syntax-rule (test-false name v)
+  (test-case name (check-false v)))
+(define-syntax-rule (test-not-false name v)
+  (test-case name (check-not-false v)))
+(define-syntax-rule (test-exn name pred thunk)
+  (test-case name (check-exn pred thunk)))
+(define-syntax-rule (test-not-exn name thunk)
+  (test-case name (check-not-exn thunk)))
+
 ; 3.4
 (require (only-in rackunit before after around delay-test))
 (provide before after around delay-test)

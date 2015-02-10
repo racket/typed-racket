@@ -76,6 +76,8 @@
    #:attributes (value)
    #:literal-sets (kernel-literals internal-form-literals)
    (pattern (define-values () (begin (quote-syntax value:expr) (#%plain-app values))))
+   ;; handles form that splicing-syntax-parameterize expands to
+   (pattern (define-values () (letrec-syntaxes+values _ () (quote-syntax value:expr) (#%plain-app values))))
    ;; for use in forms like classes that transform definitions
    (pattern (let-values ([() (begin (quote-syntax value:expr) (#%plain-app values))])
               (#%plain-app void))))

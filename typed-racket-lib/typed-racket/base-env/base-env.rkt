@@ -2934,10 +2934,15 @@
 
 ;; Section 18.2 (Libraries and Collections)
 [find-library-collection-paths (->opt [(-lst -Pathlike) (-lst -Pathlike)] (-lst -Path))]
+[find-library-collection-links (-> (-lst (-opt -Path)))]
 [collection-file-path (->* (list -Pathlike) -Pathlike -Path)]
 [collection-path (->* (list) -Pathlike -Path)]
 [current-library-collection-paths (-Param (-lst -Path) (-lst -Path))]
+[current-library-collection-links
+ (-Param (-lst (-opt (Un -Pathlike (-HT (-opt -Symbol) (-lst -Pathlike)))))
+         (-lst (-opt (Un -Path (-HT (-opt -Symbol) (-lst -Path))))))]
 [use-user-specific-search-paths (-Param Univ B)]
+[use-collection-link-paths (-Param Univ B)]
 
 ;; Typed Racket Reference
 ;; Section 4

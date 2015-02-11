@@ -26,7 +26,7 @@
   (pattern name:id #:attr par #f))
 
 ;; sty : (U Struct? Prefab?)
-;; names : Listof[Identifier]
+;; names : struct-names
 ;; desc : struct-desc
 ;; struct-info : struct-info?
 ;; type-only : Boolean

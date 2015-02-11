@@ -5,34 +5,44 @@
 (require "../utils/utils.rkt")
 
 (require syntax/id-table
+         (contract-req)
          (env type-alias-env)
          (utils tc-utils)
          (rep type-rep free-variance)
          (types utils))
 
-(provide register-type-name
-         lookup-type-name
-         register-type-names
-         add-alias
-         type-name-env-map
-
-         register-type-variance!
-         lookup-type-variance
-         type-variance-env-map
-         add-constant-variance!
-         refine-variance!)
+(provide/cond-contract [register-type-name
+                        (->* (identifier?) (Type/c) any)]
+                       [register-type-names
+                        (-> (listof identifier?) (listof Type/c) any)]
+                       [add-alias (-> identifier? identifier? any)]
+                       [type-name-env-map
+                        (-> (-> identifier? Type/c any) any)]
+                       [type-variance-env-map
+                        (-> (-> identifier? variance? any) any)]
+                       [lookup-type-name
+                        (->* (identifier?) (procedure?) (or/c #t Type/c))]
+                       [register-type-variance!
+                        (-> identifier? (listof variance?) any)]
+                       [lookup-type-variance
+                        (-> identifier? (listof variance?))]
+                       [add-constant-variance!
+                        (-> identifier? (or/c #f (listof identifier?)) any)]
+                       [refine-variance!
+                        (-> (listof identifier?)
+                            (listof Type/c)
+                            (listof (or/c #f (listof symbol?)))
+                            any)])
 
 ;; a mapping from id -> type (where id is the name of the type)
 (define the-mapping
   (make-free-id-table))
 
 ;; add a name to the mapping
-;; identifier Type -> void
 (define (register-type-name id [type #t])
   (free-id-table-set! the-mapping id type))
 
 ;; add a bunch of names to the mapping
-;; listof[identifier] listof[type] -> void
 (define (register-type-names ids types)
   (for-each register-type-name ids types))
 
@@ -62,7 +72,6 @@
   (make-free-id-table))
 
 ;; add a name to the mapping
-;; identifier Type -> void
 (define (register-type-variance! id variance)
   (free-id-table-set! variance-mapping id variance))
 
@@ -76,7 +85,6 @@
 (define (type-variance-env-map f)
   (free-id-table-map variance-mapping f))
 
-;; Listof<Type> Listof<Option<Listof<Type-Var>>> -> Void
 ;; Refines the variance of a type in the name environment
 (define (refine-variance! names types tvarss)
   (let loop ()
@@ -95,7 +103,6 @@
             (equal? variance old-variance)])))
     (unless sames? (loop))))
 
-;; Id Option<Listof<Type-Var>> -> Void
 ;; Initialize variance of the given id to Constant for all type vars
 (define (add-constant-variance! name vars)
   (unless (or (not vars) (null? vars))

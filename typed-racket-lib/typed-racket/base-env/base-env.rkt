@@ -2936,7 +2936,7 @@
 [find-library-collection-paths (->opt [(-lst -Pathlike) (-lst -Pathlike)] (-lst -Path))]
 [collection-file-path (->* (list -Pathlike) -Pathlike -Path)]
 [collection-path (->* (list) -Pathlike -Path)]
-[current-library-collection-paths (-Param -Path -Path)]
+[current-library-collection-paths (-Param (-lst -Path) (-lst -Path))]
 [use-user-specific-search-paths (-Param Univ B)]
 
 ;; Typed Racket Reference

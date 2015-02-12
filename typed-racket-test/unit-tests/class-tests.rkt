@@ -1965,39 +1965,42 @@
            ;; let-aliasing + occ. typing on fields
            (let ([y x]) (if (string? y) (string-append x) "")))
          (-class)]
+   ;; Failure tests for occurrence typing on private fields. The types
+   ;; are obfuscated a bit to prevent interference from type aliases in
+   ;; another test.
    [tc-err (let ()
              (define c%
                (class object%
                  (super-new)
-                 (: x (U String #f))
+                 (: x (U String 'obfuscate))
                  (define x "foo")
-                 (set! x #f) ; prevents occ. typing
+                 (set! x 'obfuscate) ; prevents occ. typing
                  (: m (-> String))
                  (define/public (m)
                    (if (string? x) (string-append x "bar") "baz"))))
              (error "foo"))
-           #:msg #rx"expected: String.*given: \\(U False String\\)"]
+           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]
    [tc-err (let ()
              (define c%
                (class object%
                  (super-new)
-                 (: x (U String #f))
+                 (: x (U String 'obfuscate))
                  (define x "foo")
-                 (field [f (begin (set! x #f) "hello")])
+                 (field [f (begin (set! x 'obfuscate) "hello")])
                  (: m (-> String))
                  (define/public (m)
                    (if (string? x) (string-append x "bar") "baz"))))
              (error "foo"))
-           #:msg #rx"expected: String.*given: \\(U False String\\)"]
+           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]
    [tc-err (let ()
              (define c%
                (class object%
                  (super-new)
-                 (: x (U String #f))
+                 (: x (U String 'obfuscate))
                  (define x "foo")
-                 (define/public (n) (set! x #f))
+                 (define/public (n) (set! x 'obfuscate))
                  (: m (-> String))
                  (define/public (m)
                    (if (string? x) (string-append x "bar") "baz"))))
              (error "foo"))
-           #:msg #rx"expected: String.*given: \\(U False String\\)"]))
+           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]))

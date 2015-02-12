@@ -804,7 +804,7 @@
     (for/list ([m (in-set method-names)])
       (define external (dict-ref internal-external-mapping m))
       (define maybe-type (dict-ref type-map external #f))
-      (->* (list (make-Univ))
+      (->* (list Univ)
            (cond [(and maybe-type
                        (not (equal? (car maybe-type) top-func))
                        (not inner?))
@@ -813,7 +813,7 @@
                        (not (equal? (car maybe-type) top-func)))
                   (Un (-val #f)
                       (function->method (car maybe-type) self-type))]
-                 [else (make-Univ)]))))
+                 [else Univ]))))
 
   (define method-types
     (make-method-types (hash-ref parse-info 'method-internals) methods))
@@ -835,10 +835,8 @@
       (define external (dict-ref internal-external-mapping f))
       (define maybe-type (dict-ref type-map external #f))
       (values
-       (-> (make-Univ) (or (and maybe-type (car maybe-type))
-                           (make-Univ)))
-       (-> (make-Univ) (or (and maybe-type (car maybe-type))
-                           -Bottom)
+       (-> Univ (or (and maybe-type (car maybe-type)) Univ))
+       (-> Univ (or (and maybe-type (car maybe-type)) -Bottom)
            -Void))))
 
   (define (make-private-field-types field-names getter-ids type-map)
@@ -850,14 +848,13 @@
         ;; This case is more complicated than for public fields because private
         ;; fields support occurrence typing. The object is set as the field's
         ;; accessor id, so that *its* range type is refined for occurrence typing.
-        (list (make-arr* (list (make-Univ))
+        (list (make-arr* (list Univ)
                          (or (and maybe-type (car maybe-type))
-                             (make-Univ))
+                             Univ)
                          #:filters -no-filter
                          #:object
                          (make-Path (list (make-FieldPE)) getter-id))))
-       (-> (make-Univ) (or (and maybe-type (car maybe-type))
-                           -Bottom)
+       (-> Univ (or (and maybe-type (car maybe-type)) -Bottom)
            -Void))))
 
   (define-values (field-get-types field-set-types)
@@ -878,7 +875,7 @@
       (or (and maybe-type
                (not (equal? maybe-type top-func))
                (function->method maybe-type self-type))
-          (make-Univ))))
+          Univ)))
 
   (define private-method-types
     (make-private-like-types (hash-ref parse-info 'private-names)
@@ -942,7 +939,7 @@
           (append all-types
                   init-types
                   init-rest-type
-                  (list self-type (make-Univ)))))
+                  (list self-type Univ))))
 
 ;; check-methods : Listof<Symbol> Listof<Syntax> Dict<Symbol, Symbol> Dict Type
 ;;                 -> Dict<Symbol, Type>

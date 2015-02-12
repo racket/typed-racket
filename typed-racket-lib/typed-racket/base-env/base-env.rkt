@@ -2305,14 +2305,14 @@
   (-poly (a)
    (cl->* (-> mod (Un (one-of/c #f 0) -Void) -Void)
           (-> mod (Un (one-of/c #f 0) -Void) (-> a) (Un -Void a))
-          (->opt mod Sym [(-> Univ)] ManyUniv))))]
+          (->opt mod Sym [(-> Univ)] Univ))))]
 
 [dynamic-require-for-syntax
  (let ((mod (Un -Module-Path -Resolved-Module-Path -Module-Path-Index)))
   (-poly (a)
    (cl->* (-> mod (-val #f) -Void)
           (-> mod (-val #f) (-> a) (Un -Void a))
-          (->opt mod Sym [(-> Univ)] ManyUniv))))]
+          (->opt mod Sym [(-> Univ)] Univ))))]
 
 [module-declared?
  (->opt (Un -Module-Path -Resolved-Module-Path -Module-Path-Index)

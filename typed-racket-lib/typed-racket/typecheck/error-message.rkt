@@ -44,9 +44,7 @@
   (define r2 (resolve t2))
   (match* (r1 r2)
     [((F: s1) (F: s2))
-     (=> fail)
-     (unless (string=? (symbol->string s1) (symbol->string s2))
-       (fail))
+     #:when (string=? (symbol->string s1) (symbol->string s2))
      ;; FIXME: this case could have a better error message that, say,
      ;;        prints the binding locations of each type variable.
      (type-mismatch (format "`~a'" t1) (format "a different `~a'" t2)

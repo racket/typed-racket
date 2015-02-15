@@ -90,8 +90,8 @@
     (register-type-name
      id
      (if args
-         (make-Poly (map syntax-e args) (make-Value (gensym)))
-         (make-Value (gensym))))
+         (make-Poly (map syntax-e args) -Alias-Placeholder)
+         -Alias-Placeholder))
     (values id (list id type-stx args))))
 
 ;; register-all-type-aliases : Listof<Id> Dict<Id, TypeAliasInfo> -> Void

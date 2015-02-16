@@ -189,20 +189,17 @@
 ;; are not checkable even if there is an expected type for the whole
 ;; let form. This is because TR doesn't implement synthesis for bare
 ;; lambda terms.
-(define-syntax-class (core-method add-props
-                                  register/method
+(define-syntax-class (core-method register/method
                                   register/self)
   #:literal-sets (kernel-literals)
   #:attributes (form)
   (pattern (#%plain-lambda (self . params) . rst)
            #:do [(register/self #'self)]
-           ;; this is needed for properties such as the plambda property
-           ;; for type variables
-           #:with form (add-props this-syntax))
+           #:with form this-syntax)
   (pattern (case-lambda [(self x ...) body] ...)
            #:do [(for ([self (in-list (syntax->list #'(self ...)))])
                    (register/self self))]
-           #:with form (add-props this-syntax))
+           #:with form this-syntax)
   ;; Special case for keyword lambdas because properties need to be transferred
   ;; differently for those. We can't typecheck keyword methods that come from
   ;; non-TR sources (like an untyped macro) but that's the same as normal TR.
@@ -211,7 +208,11 @@
            #:do [(register/method #'meth-name)]
            #:with props-core
                   (kw-lambda-property #'kw-core (attribute kw.value))
-           #:with form #'(let-values ([(meth-name) props-core])
+           #:with plam-core
+                  (cond [(plambda-property this-syntax)
+                         => (λ (plam) (plambda-property #'props-core plam))]
+                        [else #'props-core])
+           #:with form #'(let-values ([(meth-name) plam-core])
                            meth-name-2))
   (pattern (~and (let-values ([(meth-name) opt-core]) meth-name-2:id)
                  opt:opt-lambda^)
@@ -224,27 +225,36 @@
                          [mand (add1 (car prop-val))]
                          [opt  (cadr prop-val)])
                     (opt-lambda-property #'opt-core (list mand opt)))
-           #:with form #'(let-values ([(meth-name) props-core])
+           #:with plam-core
+                  (cond [(plambda-property this-syntax)
+                         => (λ (plam) (plambda-property #'props-core plam))]
+                        [else #'props-core])
+           #:with form #'(let-values ([(meth-name) plam-core])
                            meth-name-2))
   (pattern ((~and head (~or let-values letrec-values))
               ([(meth-name:id) meth] ...)
               meth-name-2:id)
-           #:declare meth (core-method add-props register/method register/self)
+           #:declare meth (core-method register/method register/self)
            #:do [(register/method #'meth-name-2)]
+           #:with (plam-meth ...)
+                  (for/list ([meth (in-list (syntax->list #'(meth.form ...)))])
+                    (cond [(plambda-property this-syntax)
+                           => (λ (plam) (plambda-property meth plam))]
+                          [else meth]))
            #:with form
-                  #'(head ([(meth-name) meth.form] ...)
+                  #'(head ([(meth-name) plam-meth] ...)
                       meth-name-2))
   (pattern ((~and head (~or let-values letrec-values))
             ([(meth-name) meth1] ...)
             meth2)
-           #:declare meth1 (core-method add-props register/method register/self)
-           #:declare meth2 (core-method add-props register/method register/self)
+           #:declare meth1 (core-method register/method register/self)
+           #:declare meth2 (core-method register/method register/self)
            #:with form
                   #'(head ([(meth-name) meth1.form] ...) meth2.form))
   ;; The syntax variants have two lists of bindings
   (pattern (letrec-syntaxes+values stx-bindings ([(meth-name:id) meth] ...)
              meth-name-2:id)
-           #:declare meth (core-method add-props register/method register/self)
+           #:declare meth (core-method register/method register/self)
            #:do [(register/method #'meth-name-2)]
            #:with form
                   #'(letrec-syntaxes+values
@@ -253,8 +263,8 @@
                      meth-name-2))
   (pattern (letrec-syntaxes+values stx-bindings ([(meth-name) meth1] ...)
              meth2)
-           #:declare meth1 (core-method add-props register/method register/self)
-           #:declare meth2 (core-method add-props register/method register/self)
+           #:declare meth1 (core-method register/method register/self)
+           #:declare meth2 (core-method register/method register/self)
            #:with form
                   #'(letrec-syntaxes+values
                      stx-bindings
@@ -1547,14 +1557,7 @@
 ;; Register types for identifiers in a method that don't come with types and
 ;; propagate syntax properties as needed
 (define (process-method-syntax stx self-type method-type)
-  ;; this helper function transfers the properties from the outer transformed
-  ;; method syntax to the core lambda
-  (define (add-props core)
-    (define datum (syntax-e core))
-    ;; the important bit is the last argument for copying properties
-    (datum->syntax core datum stx stx))
 
-  ;; the opt-lambda-property needs adjustment for `this`
   (define (register/method meth-name)
     (when method-type
       (register-type meth-name method-type)))
@@ -1563,7 +1566,7 @@
 
   (syntax-parse stx
     #:literal-sets (kernel-literals)
-    [(~var meth (core-method add-props register/method register/self))
+    [(~var meth (core-method register/method register/self))
      #'meth.form]
     [_ (int-err "process-method-syntax: unexpected syntax ~a"
                 (syntax->datum stx))]))

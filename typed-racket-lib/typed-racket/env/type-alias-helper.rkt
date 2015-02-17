@@ -84,15 +84,24 @@
     ;; Register type alias names with a dummy value so that it's in
     ;; scope for the registration later.
     ;;
-    ;; The `(make-Value (gensym))` expression is used to make sure
+    ;; The `(make-placeholder-type id)` expression is used to make sure
     ;; that unions don't collapse the aliases too soon.
     (register-resolved-type-alias id Err)
     (register-type-name
      id
      (if args
-         (make-Poly (map syntax-e args) -Alias-Placeholder)
-         -Alias-Placeholder))
+         (make-Poly (map syntax-e args) (make-placeholder-type id))
+         (make-placeholder-type id)))
     (values id (list id type-stx args))))
+
+;; Identifier -> Type
+;; Construct a fresh placeholder type
+(define (make-placeholder-type id)
+  (make-Base ;; the uninterned symbol here ensures that no two type
+             ;; aliases get the same placeholder type
+             (string->uninterned-symbol (symbol->string (syntax-e id)))
+             #'(int-err "Encountered unresolved alias placeholder")
+             (lambda _ #f) #f))
 
 ;; register-all-type-aliases : Listof<Id> Dict<Id, TypeAliasInfo> -> Void
 ;;
@@ -199,7 +208,10 @@
   ;; reverse order of that to avoid unbound type aliases.
   (for ([id (in-list acyclic-singletons)])
     (define type-stx (car (dict-ref type-alias-map id)))
-    (register-resolved-type-alias id (parse-type type-stx)))
+    (register-resolved-type-alias id (parse-type type-stx))
+    ;; unregister the type name to prevent TR from serializing useless
+    ;; placeholder names
+    (remove-type-name id))
 
   ;; Clear the resolver cache of Name types from this block
   (define (reset-resolver-cache!) (resolver-cache-remove! name-types))

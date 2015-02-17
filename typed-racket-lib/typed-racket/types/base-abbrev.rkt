@@ -6,7 +6,6 @@
 ;; extends it with more types and type abbreviations.
 
 (require "../utils/utils.rkt"
-         "../utils/tc-utils.rkt"
          (rep type-rep filter-rep object-rep rep-utils)
          (env mvar-env)
          racket/match racket/list (prefix-in c: (contract-req))
@@ -52,11 +51,6 @@
 ;; Needed for evt checking in subtype.rkt
 (define/decl -Symbol (make-Base 'Symbol #'symbol? symbol? #f))
 (define/decl -String (make-Base 'String #'string? string? #f))
-
-;; Used by type-alias-helper.rkt for recursive alias placeholder values
-(define/decl -Alias-Placeholder (make-Base 'Alias-Placeholder
-                                           #'(int-err "Encountered unresolved alias placeholder")
-                                           (lambda _ #f) #f))
 
 ;; Void is needed for Params
 (define/decl -Void (make-Base 'Void #'void? void? #f))

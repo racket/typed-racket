@@ -11,7 +11,6 @@
          (types utils))
 
 (provide register-type-name
-         remove-type-name
          lookup-type-name
          register-type-names
          add-alias
@@ -36,10 +35,6 @@
 ;; listof[identifier] listof[type] -> void
 (define (register-type-names ids types)
   (for-each register-type-name ids types))
-
-;; remove a name from the mapping
-(define (remove-type-name id)
-  (free-id-table-remove! the-mapping id))
 
 ;; given an identifier, return the type associated with it
 ;; optional argument is failure continuation - default calls lookup-fail

@@ -83,15 +83,7 @@
     (define-values (id type-stx args) (parse-type-alias type-alias))
     ;; Register type alias names with a dummy value so that it's in
     ;; scope for the registration later.
-    ;;
-    ;; The `(make-placeholder-type id)` expression is used to make sure
-    ;; that unions don't collapse the aliases too soon.
     (register-resolved-type-alias id Err)
-    (register-type-name
-     id
-     (if args
-         (make-Poly (map syntax-e args) (make-placeholder-type id))
-         (make-placeholder-type id)))
     (values id (list id type-stx args))))
 
 ;; Identifier -> Type
@@ -199,6 +191,17 @@
       (match-define (list _ args) record)
       (define name-type (make-Name id args #f))
       (register-resolved-type-alias id name-type)
+      ;; The `(make-placeholder-type id)` expression is used to make sure
+      ;; that unions don't collapse the aliases too soon. This is a dummy
+      ;; value that's used until the real type is found in the pass below.
+      ;;
+      ;; A type name should not be registered for non-recursive aliases
+      ;; because dummy values will leak due to environment serialization.
+      (register-type-name
+       id
+       (if args
+           (make-Poly (map syntax-e args) (make-placeholder-type id))
+           (make-placeholder-type id)))
       name-type))
 
   ;; Register non-recursive type aliases
@@ -208,10 +211,7 @@
   ;; reverse order of that to avoid unbound type aliases.
   (for ([id (in-list acyclic-singletons)])
     (define type-stx (car (dict-ref type-alias-map id)))
-    (register-resolved-type-alias id (parse-type type-stx))
-    ;; unregister the type name to prevent TR from serializing useless
-    ;; placeholder names
-    (remove-type-name id))
+    (register-resolved-type-alias id (parse-type type-stx)))
 
   ;; Clear the resolver cache of Name types from this block
   (define (reset-resolver-cache!) (resolver-cache-remove! name-types))

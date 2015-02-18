@@ -232,11 +232,11 @@
 (define (simple-> doms rng)
   (->* doms rng))
 
-(define (->acc dom rng path)
+(define (->acc dom rng path #:var [var (list 0 0)])
   (make-Function (list (make-arr* dom rng
-                                  #:filters (-FS (-not-filter (-val #f) (make-Path path (list 0 0)))
-                                                 (-filter (-val #f) (make-Path path (list 0 0))))
-                                  #:object (make-Path path (list 0 0))))))
+                                  #:filters (-FS (-not-filter (-val #f) (make-Path path var))
+                                                 (-filter (-val #f) (make-Path path var)))
+                                  #:object (make-Path path var)))))
 
 (define (cl->* . args)
   (define (funty-arities f)

@@ -1949,6 +1949,18 @@
            (define c%
              (class object%
                (super-new)
+               (: x (U String #f))
+               (define x "foo")
+               (: m (-> String))
+               (define/public (m)
+                 ;; ensure just x works
+                 (if x (string-append x "bar") "baz"))))
+           (send (new c%) m))
+         -String]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
                (: x (List (U String #f)))
                (define x (list "foo"))
                (: m (-> String))
@@ -1964,6 +1976,12 @@
            (define x "foo")
            ;; let-aliasing + occ. typing on fields
            (let ([y x]) (if (string? y) (string-append x) "")))
+         (-class)]
+   [tc-e (class object%
+           (super-new)
+           (: x (Option String))
+           (define x "foo")
+           (let ([y x]) (if y (string-append x) "")))
          (-class)]
    ;; Failure tests for occurrence typing on private fields. The types
    ;; are obfuscated a bit to prevent interference from type aliases in

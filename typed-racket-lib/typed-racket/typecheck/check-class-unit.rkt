@@ -854,15 +854,14 @@
                         [getter-id (in-list getter-ids)])
       (define maybe-type (dict-ref type-map field-name #f))
       (values
-       (make-Function
-        ;; This case is more complicated than for public fields because private
-        ;; fields support occurrence typing. The object is set as the field's
-        ;; accessor id, so that *its* range type is refined for occurrence typing.
-        (list (make-arr* (list Univ)
-                         (or (and maybe-type (car maybe-type))
-                             Univ)
-                         #:object
-                         (make-Path (list (make-FieldPE)) getter-id))))
+       ;; This case is more complicated than for public fields because private
+       ;; fields support occurrence typing. The object is set as the field's
+       ;; accessor id, so that *its* range type is refined for occurrence typing.
+       (->acc (list Univ)
+              (or (and maybe-type (car maybe-type))
+                  Univ)
+              (list (make-FieldPE))
+              #:var getter-id)
        (-> Univ (or (and maybe-type (car maybe-type)) -Bottom)
            -Void))))
 

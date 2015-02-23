@@ -822,7 +822,8 @@
                [y (Option Integer) #:optional]
                [style (Listof (U 'no-resize-border 'no-caption
                                  'no-system-menu 'hide-menu-bar
-                                 'toolbar-button 'float 'metal))
+                                 'toolbar-button 'float 'metal
+                                 'fullscreen-button 'fullscreen-aux))
                       #:optional]
                [enabled Any #:optional]
                [border Natural #:optional]
@@ -835,9 +836,11 @@
                [stretchable-width Any #:optional]
                [stretchable-height Any #:optional])
          [create-status-line (-> Void)]
+         [fullscreen (-> Any Void)]
          [get-menu-bar (-> (Option (Instance Menu-Bar%)))]
          [has-status-line? (-> Boolean)]
          [iconize (Any -> Void)]
+         [is-fullscreened? (-> Boolean)]
          [is-iconized? (-> Boolean)]
          [is-maximized? (-> Boolean)]
          [maximize (Any -> Void)]

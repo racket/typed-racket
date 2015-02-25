@@ -522,7 +522,28 @@
 (define-type Font-Hinting (U 'aligned 'unaligned))
 
 (define-type Font%
-  (Class [get-face (-> (Option String))]
+  (Class (init-rest (U Null
+                       (List Real Font-Family)
+                       (List Real Font-Family Font-Style)
+                       (List Real Font-Family Font-Style Font-Weight)
+                       (List Real Font-Family Font-Style Font-Weight Any)
+                       (List Real Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing)
+                       (List Real Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing Any)
+                       (List Real Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing Any Font-Hinting)
+                       (List Real String Font-Family)
+                       (List Real String Font-Family Font-Style)
+                       (List Real String Font-Family Font-Style Font-Weight)
+                       (List Real String Font-Family Font-Style Font-Weight Any)
+                       (List Real String Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing)
+                       (List Real String Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing Any)
+                       (List Real String Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing Any Font-Hinting)))
+         [get-face (-> (Option String))]
          [get-family (-> Font-Family)]
          [get-hinting (-> Font-Hinting)]
          [get-point-size (-> Positive-Integer)]

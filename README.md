@@ -1,6 +1,6 @@
 # Typed Racket
 
-[![Build Status](https://travis-ci.org/racket/typed-racket)](https://travis-ci.org/racket/typed-racket)
+[![Build Status](https://travis-ci.org/racket/typed-racket.svg?branch=master)](https://travis-ci.org/racket/typed-racket)
 
 Typed Racket is Racket's gradually-typed sister language which lets you add
 statically-checked type annotations to your programs. For more information,

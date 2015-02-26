@@ -184,16 +184,16 @@
 
   ;; Set up vertices for Tarjan's algorithm, where each letrec-values
   ;; clause is a vertex but mapped in the table for each of the clause names
-  (define vertices (make-bound-id-table))
+  (define vertices (make-free-id-table))
   (for ([clause other-clauses])
     (match-define (lr-clause names expr) clause)
     (define relevant-free-vars
       (for/list ([var (in-list (free-vars expr))]
-                 #:when (member var flat-names bound-identifier=?))
+                 #:when (member var flat-names free-identifier=?))
         var))
     (define vertex (make-vertex clause relevant-free-vars))
     (for ([name (in-list names)])
-      (bound-id-table-set! vertices name vertex)))
+      (free-id-table-set! vertices name vertex)))
 
   (define components (tarjan vertices))
 
@@ -201,7 +201,7 @@
   (define (no-self-cycle? vertex)
     (match-define (lr-clause names _) (vertex-data vertex))
     (for/and ([id (in-list names)])
-      (andmap (λ (id2) (not (bound-identifier=? id id2)))
+      (andmap (λ (id2) (not (free-identifier=? id id2)))
               (vertex-adjacent vertex))))
 
   ;; The components with only one entry are non-recursive if they also

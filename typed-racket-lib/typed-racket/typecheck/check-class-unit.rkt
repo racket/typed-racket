@@ -61,7 +61,7 @@
 (define-syntax-class internal-class-data
   #:literal-sets (kernel-literals)
   #:literals (class-internal values)
-  (pattern (let-values ([() (begin (quote-syntax
+  (pattern (let-values ([() (begin (quote
                                     (class-internal
                                      (#:forall type-parameter:id ...)
                                      (#:all-inits all-init-names:id ...)
@@ -173,7 +173,7 @@
   #:literals (values void :-internal)
   #:attributes (name type)
   (pattern (let-values
-             ([() (begin (quote-syntax (:-internal name:id type:expr))
+             ([() (begin (quote (:-internal name:id type:expr))
                          (#%plain-app values))])
              (#%plain-app void))))
 
@@ -659,7 +659,7 @@
            (hash-set! annotations name type))
          other-exprs]
         ;; FIXME: use internal-forms for this instead
-        [(quote-syntax (:-augment name-stx:id type-stx))
+        [(quote (:-augment name-stx:id type-stx))
          (define name (syntax-e #'name-stx))
          (define type (parse-type #'type-stx))
          (unless (check-duplicate-member augment-annotations name type)

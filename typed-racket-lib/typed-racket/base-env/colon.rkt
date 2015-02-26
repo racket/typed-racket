@@ -44,7 +44,7 @@
                      "Declaration for `~a' provided, but `~a' has no definition"
                      (syntax-e #'i)
                      (syntax-e #'i)))
-     (syntax-property (syntax/loc stx (begin (quote-syntax (:-internal i ty))
+     (syntax-property (syntax/loc stx (begin (quote (:-internal i ty))
                                              (#%plain-app values)))
                       'disappeared-use #'i)]
     [(_ orig-stx _ i:id x ...)

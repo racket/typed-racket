@@ -75,11 +75,11 @@
 (define-syntax-class internal^
    #:attributes (value)
    #:literal-sets (kernel-literals internal-form-literals)
-   (pattern (define-values () (begin (quote-syntax value:expr) (#%plain-app values))))
+   (pattern (define-values () (begin (quote value:expr) (#%plain-app values))))
    ;; handles form that splicing-syntax-parameterize expands to
-   (pattern (define-values () (letrec-syntaxes+values _ () (quote-syntax value:expr) (#%plain-app values))))
+   (pattern (define-values () (letrec-syntaxes+values _ () (quote value:expr) (#%plain-app values))))
    ;; for use in forms like classes that transform definitions
-   (pattern (let-values ([() (begin (quote-syntax value:expr) (#%plain-app values))])
+   (pattern (let-values ([() (begin (quote value:expr) (#%plain-app values))])
               (#%plain-app void))))
 
 (define-syntax (define-internal-classes stx)
@@ -125,7 +125,7 @@
 ;; the `define-values` protocol used for other internal forms.
 (define-syntax-class typecheck-failure
   #:literal-sets (kernel-literals internal-literals)
-  (pattern (quote-syntax (typecheck-fail-internal stx message:str var))))
+  (pattern (quote (typecheck-fail-internal stx message:str var))))
 
 ;;; Internal form creation
 (begin-for-syntax
@@ -133,5 +133,5 @@
     (quasisyntax/loc stx
       (define-values ()
         (begin
-          (quote-syntax #,stx)
+          (quote #,stx)
           (#%plain-app values))))))

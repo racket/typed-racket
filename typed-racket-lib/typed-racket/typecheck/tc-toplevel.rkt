@@ -437,8 +437,19 @@
             ;; `typed/racket`. That makes for confusing non-local
             ;; dependencies, though, so we do it here. 
             (require typed-racket/utils/redirect-contract)
+            ;; We need a submodule for a for-syntax use of
+            ;; `define-runtime-module-path`:
+            (module #%contract-defs-reference racket/base
+              (require racket/runtime-path
+                       (for-syntax racket/base))
+              (define-runtime-module-path-index contract-defs-submod
+                '(submod ".." #%contract-defs))
+              (provide contract-defs-submod))
+            (require (submod "." #%contract-defs-reference))
+            ;; Create the redirection funtion using a reference to
+            ;; the submodule that is friendly to `raco exe`:
             (define mk-redirect
-              (make-make-redirect-to-contract (#%variable-reference))))
+              (make-make-redirect-to-contract contract-defs-submod)))
 
            ;; This submodule contains all the definitions of
            ;; contracted identifiers. For an exported definition like

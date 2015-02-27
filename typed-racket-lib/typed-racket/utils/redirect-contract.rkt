@@ -23,15 +23,12 @@
 ;; This code was originally written by mflatt for the plai-typed
 ;; language, and then slightly adapted for TR by samth.
 
-(define ((make-make-redirect-to-contract varref) id)
+(define ((make-make-redirect-to-contract contract-defs-submod-modidx) id)
   (define (redirect stx)
     (cond
      [(identifier? stx)
       (with-syntax ([mp (collapse-module-path-index
-                           (module-path-index-join
-                            '(submod "." #%contract-defs)
-                            (variable-reference->module-path-index
-                             varref)))]
+                         contract-defs-submod-modidx)]
                     [i (datum->syntax id (syntax-e id) stx stx)])
         #`(let ()
             (local-require (only-in mp [#,(datum->syntax #'mp (syntax-e #'i)) i]))

@@ -183,7 +183,7 @@
           (begin
             #,(tr:class:top-level-property
                (tr:class:type-annotation-property
-                #'(quote-syntax (:-augment name augment-type)) #t) #t)
+                #'(quote (:-augment name augment-type)) #t) #t)
             #,(tr:class:top-level-property
                (tr:class:type-annotation-property
                 (syntax/loc #'class-exp (: name type)) #t) #t)))]

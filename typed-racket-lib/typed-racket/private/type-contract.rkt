@@ -402,6 +402,8 @@
          (t->sc/poly type fail typed-side recursive-values t->sc)]
         [(? PolyDots?)
          (t->sc/polydots type fail typed-side recursive-values t->sc)]
+        [(? PolyRow?)
+         (t->sc/polyrow type fail typed-side recursive-values t->sc)]
 
         [(Mu: n b)
          (match-define (and n*s (list untyped-n* typed-n* both-n*)) (generate-temporaries (list n n n)))
@@ -602,6 +604,8 @@
      (t->sc/poly type fail typed-side recursive-values rec)]
     [(? PolyDots?)
      (t->sc/polydots type fail typed-side recursive-values rec)]
+    [(? PolyRow?)
+     (t->sc/polyrow type fail typed-side recursive-values rec)]
     [(? Function?)
      (t->sc/function type fail typed-side recursive-values loop #t)]
     [_ (fail #:reason "invalid method type")]))
@@ -644,6 +648,16 @@
         (t->sc b #:recursive-values recursive-values))
       ;; in negative position, cannot generate for polydots yet
       (fail #:reason "cannot generate contract for variable arity polymorphic type")))
+
+;; Generate a contract for a row-polymorphic function type
+(define (t->sc/polyrow type fail typed-side recursive-values t->sc)
+  (match-define (PolyRow: vs constraints body) type)
+  (if (not (from-untyped? typed-side))
+      (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
+                                (hash-set rv v (same any/sc)))))
+        (t->sc body #:recursive-values recursive-values))
+      ;; FIXME: needs sealing contracts, disabled for now
+      (fail #:reason "cannot generate contract for row polymorphic type")))
 
 ;; Predicate that checks for an App type with a recursive
 ;; Name type in application position

@@ -144,6 +144,10 @@
               (t (-polydots (a) -Symbol))
               (t (-polydots (a) (->... (list) (a a) -Symbol)))
 
+              (t (-polyrow (a) (list null null null null) -Symbol))
+              (t (-polyrow (a) (list null null null null)
+                   (-> (-class #:row (-v a)) (-class #:row (-v a)))))
+
               (t (-mu x (-Syntax x)))
               (t (-> (-> Univ -Bottom : -bot-filter) -Bottom : -bot-filter))
               (t (-poly (A B) (-> A B (Un A B))))
@@ -217,6 +221,8 @@
                               #f))
               (t (-class #:method ([m (-poly (x) (-> x x))])))
               (t (-class #:method ([m (-polydots (x) (->... (list) (x x) -Void))])))
+              (t (-class #:method ([m (-polyrow (x) (list null null null null)
+                                        (-> (-class #:row (-v x)) -Void))])))
 
               ;; typed/untyped interaction tests
               (t-int (-poly (a) (-> a a))

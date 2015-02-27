@@ -215,6 +215,8 @@
                                     (member-spec 'init 'y integer/sc)
                                     (member-spec 'field 'y integer/sc))
                               #f))
+              (t (-class #:method ([m (-poly (x) (-> x x))])))
+              (t (-class #:method ([m (-polydots (x) (->... (list) (x x) -Void))])))
 
               ;; typed/untyped interaction tests
               (t-int (-poly (a) (-> a a))

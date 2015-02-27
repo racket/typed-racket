@@ -302,8 +302,8 @@
         (loop t (flip-side typed-side) recursive-values))
       (define (t->sc/both t #:recursive-values (recursive-values recursive-values))
         (loop t 'both recursive-values))
-      (define (t->sc/method t) (t->sc/function t fail typed-side recursive-values loop #t))
       (define (t->sc/fun t) (t->sc/function t fail typed-side recursive-values loop #f))
+      (define (t->sc/meth t) (t->sc/method t fail typed-side recursive-values loop))
 
       (define (only-untyped sc)
         (if (from-typed? typed-side)
@@ -398,39 +398,10 @@
         ;[(StructTop: s) (struct-top/sc s)]
 
 
-        [(Poly: vs b)
-         (if (not (from-untyped? typed-side))
-             ;; in positive position, no checking needed for the variables
-             (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
-                                       (hash-set rv v (same any/sc)))))
-               (t->sc b #:recursive-values recursive-values))
-             ;; in negative position, use parametric contracts.
-             (match-let ([(Poly-names: vs-nm b) type])
-               (define function-type?
-                 (let loop ([ty b])
-                   (match (resolve ty)
-                     [(Function: _) #t]
-                     [(Union: elems) (andmap loop elems)]
-                     [(Poly: _ body) (loop body)]
-                     [(PolyDots: _ body) (loop body)]
-                     [_ #f])))
-               (unless function-type?
-                 (fail #:reason "cannot generate contract for non-function polymorphic type"))
-               (let ((temporaries (generate-temporaries vs-nm)))
-                 (define rv (for/fold ((rv recursive-values)) ((temp temporaries)
-                                                               (v-nm vs-nm))
-                              (hash-set rv v-nm (same (parametric-var/sc temp)))))
-                 (parameterize ([bound-names (append (bound-names) vs-nm)])
-                   (parametric->/sc temporaries
-                     (t->sc b #:recursive-values rv))))))]
-        [(PolyDots: (list vs ... dotted-v) b)
-         (if (not (from-untyped? typed-side))
-             ;; in positive position, no checking needed for the variables
-             (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
-                                       (hash-set rv v (same any/sc)))))
-               (t->sc b #:recursive-values recursive-values))
-             ;; in negative position, use parametric contracts.
-             (fail #:reason "cannot generate contract for variable arity polymorphic type"))]
+        [(? Poly?)
+         (t->sc/poly type fail typed-side recursive-values t->sc)]
+        [(? PolyDots?)
+         (t->sc/polydots type fail typed-side recursive-values t->sc)]
 
         [(Mu: n b)
          (match-define (and n*s (list untyped-n* typed-n* both-n*)) (generate-temporaries (list n n n)))
@@ -466,7 +437,7 @@
          (match-define (list (list field-names field-types) ...) fields)
          (match-define (list (list public-names public-types) ...) methods)
          (object/sc (append (map (λ (n sc) (member-spec 'method n sc))
-                                 public-names (map t->sc/method public-types))
+                                 public-names (map t->sc/meth public-types))
                             (map (λ (n sc) (member-spec 'field n sc))
                                  field-names (map t->sc/both field-types))))]
         [(Class: _ inits fields publics augments _)
@@ -486,11 +457,11 @@
              (values name type)))
          (class/sc (append
                      (map (λ (n sc) (member-spec 'override n sc))
-                          override-names (map t->sc/method override-types))
+                          override-names (map t->sc/meth override-types))
                      (map (λ (n sc) (member-spec 'pubment n sc))
-                          pubment-names (map t->sc/method pubment-types))
+                          pubment-names (map t->sc/meth pubment-types))
                      (map (λ (n sc) (member-spec 'augment n sc))
-                          augment-names (map t->sc/method augment-types))
+                          augment-names (map t->sc/meth augment-types))
                      (map (λ (n sc) (member-spec 'init n sc))
                           init-names (map t->sc/neg init-types))
                      (map (λ (n sc) (member-spec 'field n sc))
@@ -619,6 +590,60 @@
        (if (= (length arrs) 1)
            ((f #f) (first arrs))
            (case->/sc (map (f #t) arrs)))])]))
+
+;; Generate a contract for a object/class method clause
+;; Precondition: type is a valid method type
+(define (t->sc/method type fail typed-side recursive-values loop)
+  ;; helper for mutually recursive calls in Poly cases
+  (define (rec body #:recursive-values rv)
+    (t->sc/method body fail typed-side rv loop))
+  (match type
+    [(? Poly?)
+     (t->sc/poly type fail typed-side recursive-values rec)]
+    [(? PolyDots?)
+     (t->sc/polydots type fail typed-side recursive-values rec)]
+    [(? Function?)
+     (t->sc/function type fail typed-side recursive-values loop #t)]
+    [_ (fail #:reason "invalid method type")]))
+
+;; Generate a contract for a polymorphic function type
+(define (t->sc/poly type fail typed-side recursive-values t->sc)
+  (match-define (Poly: vs b) type)
+  (if (not (from-untyped? typed-side))
+      ;; in positive position, no checking needed for the variables
+      (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
+                                (hash-set rv v (same any/sc)))))
+        (t->sc b #:recursive-values recursive-values))
+      ;; in negative position, use parametric contracts.
+      (match-let ([(Poly-names: vs-nm b) type])
+        (define function-type?
+          (let loop ([ty b])
+            (match (resolve ty)
+              [(Function: _) #t]
+              [(Union: elems) (andmap loop elems)]
+              [(Poly: _ body) (loop body)]
+              [(PolyDots: _ body) (loop body)]
+              [_ #f])))
+        (unless function-type?
+          (fail #:reason "cannot generate contract for non-function polymorphic type"))
+        (let ((temporaries (generate-temporaries vs-nm)))
+          (define rv (for/fold ((rv recursive-values)) ((temp temporaries)
+                                                        (v-nm vs-nm))
+                       (hash-set rv v-nm (same (parametric-var/sc temp)))))
+          (parameterize ([bound-names (append (bound-names) vs-nm)])
+            (parametric->/sc temporaries
+              (t->sc b #:recursive-values rv)))))))
+
+;; Generate a contract for a variable-arity polymorphic function type
+(define (t->sc/polydots type fail typed-side recursive-values t->sc)
+  (match-define (PolyDots: (list vs ... dotted-v) b) type)
+  (if (not (from-untyped? typed-side))
+      ;; in positive position, no checking needed for the variables
+      (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
+                                (hash-set rv v (same any/sc)))))
+        (t->sc b #:recursive-values recursive-values))
+      ;; in negative position, cannot generate for polydots yet
+      (fail #:reason "cannot generate contract for variable arity polymorphic type")))
 
 ;; Predicate that checks for an App type with a recursive
 ;; Name type in application position

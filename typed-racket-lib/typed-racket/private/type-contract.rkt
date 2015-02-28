@@ -462,7 +462,7 @@
                           override-names (map t->sc/meth override-types))
                      (map (λ (n sc) (member-spec 'pubment n sc))
                           pubment-names (map t->sc/meth pubment-types))
-                     (map (λ (n sc) (member-spec 'augment n sc))
+                     (map (λ (n sc) (member-spec 'inner n sc))
                           augment-names (map t->sc/meth augment-types))
                      (map (λ (n sc) (member-spec 'init n sc))
                           init-names (map t->sc/neg init-types))

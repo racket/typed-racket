@@ -114,7 +114,7 @@
          (if sc #`(#,id #,(f sc)) id))
        (match modifier
          ['method id/ctc]
-         ['augment #`(augment #,id/ctc)]
+         ['inner #`(inner #,id/ctc)]
          ['init #`(init #,id/ctc)]
          ['field #`(field #,id/ctc)]))]))
 
@@ -158,6 +158,7 @@
                  (super [override-name override-temp] ...)
                  (inherit [override-name override-temp] ...)
                  [pubment-name pubment-temp] ...
+                 (augment [pubment-name pubment-temp] ...)
                  (inherit [pubment-name pubment-temp] ...)))]))
 (define (instance/sc->contract v f)
   (match v

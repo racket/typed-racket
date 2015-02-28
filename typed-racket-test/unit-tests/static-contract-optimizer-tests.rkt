@@ -285,14 +285,14 @@
       #:neg (object/sc #f (list (member-spec 'field 'x list?/sc))))
 
     (check-optimize
-      (class/sc #t (list (member-spec 'field 'x (listof/sc any/sc))))
-      #:pos (class/sc #t (list (member-spec 'field 'x list?/sc)))
-      #:neg (class/sc #t (list (member-spec 'field 'x list?/sc))))
+      (class/sc #t (list (member-spec 'field 'x (listof/sc any/sc))) null)
+      #:pos (class/sc #t (list (member-spec 'field 'x list?/sc)) null)
+      #:neg (class/sc #t (list (member-spec 'field 'x list?/sc)) null))
 
     (check-optimize
-      (class/sc #f (list (member-spec 'field 'x (listof/sc any/sc))))
-      #:pos (class/sc #f (list (member-spec 'field 'x list?/sc)))
-      #:neg (class/sc #f (list (member-spec 'field 'x list?/sc))))
+      (class/sc #f (list (member-spec 'field 'x (listof/sc any/sc))) null)
+      #:pos (class/sc #f (list (member-spec 'field 'x list?/sc)) null)
+      #:neg (class/sc #f (list (member-spec 'field 'x list?/sc)) null))
 
     (check-optimize
       (recursive-sc (list foo-id bar-id)

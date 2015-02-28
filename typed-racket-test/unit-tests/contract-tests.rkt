@@ -211,20 +211,23 @@
               (t-sc (Un (-lst Univ) -Number) (or/sc number/sc (listof/sc any-wrap/sc)))
 
               ;; classes
-              (t-sc (-class) (class/sc #f null))
+              (t-sc (-class) (class/sc #f null null))
               (t-sc (-class #:init ([x -Number #f] [y -Number #f]))
                     (class/sc #f
                               (list (member-spec 'init 'x number/sc)
-                                    (member-spec 'init 'y number/sc))))
+                                    (member-spec 'init 'y number/sc))
+                              null))
               (t-sc (-class #:init ([x -Number #f] [y -Number #t]))
                     (class/sc #f
                               (list (member-spec 'init 'x number/sc)
-                                    (member-spec 'init 'y number/sc))))
+                                    (member-spec 'init 'y number/sc))
+                              null))
               (t-sc (-class #:init ([x -Number #f]) #:init-field ([y -Integer #f]))
                     (class/sc #f
                               (list (member-spec 'init 'x number/sc)
                                     (member-spec 'init 'y integer/sc)
-                                    (member-spec 'field 'y integer/sc))))
+                                    (member-spec 'field 'y integer/sc))
+                              null))
               (t (-class #:method ([m (-poly (x) (-> x x))])))
               (t (-class #:method ([m (-polydots (x) (->... (list) (x x) -Void))])))
               (t (-class #:method ([m (-polyrow (x) (list null null null null)

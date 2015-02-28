@@ -7,7 +7,7 @@
  syntax/parse
  (rep type-rep filter-rep object-rep)
  (utils tc-utils)
- (env type-name-env)
+ (env type-name-env row-constraint-env)
  (rep rep-utils)
  (types resolve union utils printer)
  (prefix-in t: (types abbrev numeric-tower))
@@ -454,7 +454,7 @@
                                  public-names (map t->sc/meth public-types))
                             (map (λ (n sc) (member-spec 'field n sc))
                                  field-names (map t->sc/both field-types))))]
-        [(Class: _ inits fields publics augments _)
+        [(Class: row-var inits fields publics augments _)
          (match-define (list (list init-names init-types _) ...) inits)
          (match-define (list (list field-names field-types) ...) fields)
          (match-define (list (list public-names public-types) ...) publics)
@@ -469,7 +469,19 @@
                                [type (in-list public-types)]
                                #:unless (memq name pubment-names))
              (values name type)))
-         (class/sc (from-untyped? typed-side)
+         ;; we need to generate absent clauses for non-opaque class contracts
+         ;; that occur inside of a mixin type
+         (define absents
+           (cond [(F? row-var)
+                  (define constraints (lookup-row-constraints (F-n row-var)))
+                  ;; the constraints with no corresponding type/contract need
+                  ;; to be absent
+                  (append (remove* field-names (cadr constraints))
+                          (remove* public-names (caddr constraints)))]
+                 [else null]))
+         (class/sc ;; only enforce opaqueness if there's no row variable
+                   ;; and we are importing from untyped
+                   (and (from-untyped? typed-side) (not row-var))
                    (append
                      (map (λ (n sc) (member-spec 'override n sc))
                           override-names (map t->sc/meth override-types))
@@ -480,7 +492,8 @@
                      (map (λ (n sc) (member-spec 'init n sc))
                           init-names (map t->sc/neg init-types))
                      (map (λ (n sc) (member-spec 'field n sc))
-                          field-names (map t->sc/both field-types))))]
+                          field-names (map t->sc/both field-types)))
+                   absents)]
         [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred?)
          (cond
            [(dict-ref recursive-values nm #f)]
@@ -667,7 +680,8 @@
   (if (not (from-untyped? typed-side))
       (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
                                 (hash-set rv v (same any/sc)))))
-        (t->sc body #:recursive-values recursive-values))
+        (extend-row-constraints vs (list constraints)
+          (t->sc body #:recursive-values recursive-values)))
       ;; FIXME: needs sealing contracts, disabled for now
       (fail #:reason "cannot generate contract for row polymorphic type")))
 

@@ -16,7 +16,7 @@
   (contract-out
     [struct member-spec ([modifier symbol?] [id symbol?] [sc static-contract?])]
     [object/sc (boolean? (listof object-member-spec?) . -> . static-contract?)]
-    [class/sc (boolean? (listof member-spec?) . -> . static-contract?)]
+    [class/sc (boolean? (listof member-spec?) (listof symbol?) . -> . static-contract?)]
     [instanceof/sc (static-contract? . -> . static-contract?)]))
 
 
@@ -41,17 +41,17 @@
      (define (sc->constraints v f)
        (merge-restricts* 'impersonator (map f (member-seq->list (combinator-args v)))))])
 
-(struct class-combinator combinator (opaque)
+(struct class-combinator combinator (opaque absents)
   #:transparent
   #:property prop:combinator-name "class/sc"
   #:methods gen:sc
     [(define (sc-map v f)
        (match v
-         [(class-combinator args opaque)
-          (class-combinator (member-seq-sc-map f args) opaque)]))
+         [(class-combinator args opaque absents)
+          (class-combinator (member-seq-sc-map f args) opaque absents)]))
      (define (sc-traverse v f)
        (match v
-         [(class-combinator args opaque)
+         [(class-combinator args opaque absents)
           (member-seq-sc-map f args)
           (void)]))
      (define (sc->contract v f)
@@ -103,8 +103,8 @@
 
 (define (object/sc opaque? specs)
   (object-combinator (member-seq specs) opaque?))
-(define (class/sc opaque? specs)
-  (class-combinator (member-seq specs) opaque?))
+(define (class/sc opaque? specs absents)
+  (class-combinator (member-seq specs) opaque? absents))
 (define (instanceof/sc class)
   (instanceof-combinator (list class)))
 
@@ -137,7 +137,7 @@
        #,@(map (member-spec->form f) vals))]))
 (define (class/sc->contract v f) 
   (match v
-   [(class-combinator (member-seq vals) opaque)
+   [(class-combinator (member-seq vals) opaque absents)
     (define-values (override-names override-ctcs)
       (spec->id/ctc f 'override vals))
     (define-values (pubment-names pubment-ctcs)
@@ -165,7 +165,8 @@
                  (inherit [override-name override-temp] ...)
                  [pubment-name pubment-temp] ...
                  (augment [pubment-name pubment-temp] ...)
-                 (inherit [pubment-name pubment-temp] ...)))]))
+                 (inherit [pubment-name pubment-temp] ...)
+                 (absent #,@absents)))]))
 (define (instance/sc->contract v f)
   (match v
    [(instanceof-combinator (list class))

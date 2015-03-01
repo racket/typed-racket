@@ -72,8 +72,9 @@
                               ;; type is a type variable) so create props about n
                               [else (list (-or (-and (-not-filter (-val #f) n) f+)
                                                (-and (-filter (-val #f) n) f-)))]))))]
+          ;; amk: does this case ever occur?
           [(list (tc-result: e-ts (NoFilter:) _) ...)
-           (values e-ts null)]))))
+           (values e-ts (make-list (length e-ts) -empty-obj) null)]))))
   ;; extend the lexical environment for checking the body
   ;; with types and potential aliases
   (with-lexical-env/extend-types+aliases

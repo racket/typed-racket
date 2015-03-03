@@ -114,6 +114,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
                     (only-in racket/base values))
          (for-syntax
           racket/lazy-require
+          syntax/location
           syntax/parse
           syntax/parse/experimental/template
           syntax/stx
@@ -316,7 +317,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
                        'cast
                        'typed-world
                        val
-                       (quote-syntax #,stx)))
+                       (quote-srcloc #,stx)))
                     'feature-profile:TR-dynamic-check #t))
              #'ty)))
 

@@ -420,8 +420,8 @@
                      (match-define (list from to) a)
                      #`(add-alias (quote-syntax #,from) (quote-syntax #,to))))))
            (begin-for-syntax (add-mod! (variable-reference->module-path-index
-                                        (#%variable-reference)))))
-       #`(begin
+                                        (#%variable-reference))))
+
            ;; FIXME: share this variable reference with the one below
            (define the-variable-reference (quote-module-name))
            ;; Here we construct the redirector for the #%contract-defs
@@ -471,8 +471,8 @@
            (module* #%contract-defs #f 
              (#%plain-module-begin
               #,extra-requires
-              new-defs ...))
-
+              new-defs ...)))
+       #`(begin
            ;; Now we create definitions that are actually provided
            ;; from the module itself. There are two levels of
            ;; indirection here (see the implementation in

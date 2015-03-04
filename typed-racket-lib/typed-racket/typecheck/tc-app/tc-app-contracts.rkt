@@ -18,7 +18,7 @@
 (define-tc/app-syntax-class (tc/app-contracts expected)
   (pattern (ctc-id:id blame e ...)
     ;; check that this is an application from the contract system
-    #:when (contract-rename-id-property #'ctc-id)
+    #:when (contract-neg-party-property #'ctc-id)
     (check-contract #'ctc-id #'(e ...) expected)))
 
 ;; Assume that the contracted thing is of the same type the type

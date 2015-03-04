@@ -46,7 +46,7 @@
           (ormap (lambda (t*) (overlap t* s)) ts)]
          [(list-no-order (? Poly?) _) #t] ;; conservative
          [(list (Base: s1 _ _ _) (Base: s2 _ _ _)) (or (subtype t1 t2) (subtype t2 t1))]
-         [(list-no-order (? Base? t) (? Value? s)) (subtype t s)] ;; conservative
+         [(list-no-order (? Base? t) (? Value? s)) (subtype s t)] ;; conservative
          [(list (Syntax: t) (Syntax: t*)) (overlap t t*)]
          [(list-no-order (Syntax: _) _) #f]
          [(list-no-order (Base: _ _ _ _) _) #f]

@@ -439,26 +439,29 @@ This file defines two sorts of primitives. All of them are provided into any mod
            (~and (~seq (~optional (~seq : ret-ty))
                        (bs:optionally-annotated-binding ...) body ...)
                  (~seq rest ...)))
-     (quasisyntax/loc stx
-       (#,(syntax-parse #'(rest ...)
-            #:literals (:)
-            [(: ret-ty (bs:annotated-binding ...) . body)
-             (quasisyntax/loc stx
-               (-letrec ([nm : (bs.ty ... -> ret-ty)
-                             #,(quasisyntax/loc stx
-                                 (lambda (bs.ann-name ...) . #,(syntax/loc stx body)))])
-                        #,(quasisyntax/loc stx nm)))]
-            [(: ret-ty (bs:optionally-annotated-binding ...) body ... bod)
-             (quasisyntax/loc stx
-               (letrec ([nm #,(quasisyntax/loc stx
-                                (lambda (bs.ann-name ...) body ... (ann #,(syntax/loc stx bod) ret-ty)))])
-                 #,(quasisyntax/loc stx nm)))]
-            [((bs:optionally-annotated-binding ...) . body)
-             (quasisyntax/loc stx
-               (letrec ([nm #,(quasisyntax/loc stx
-                                (lambda (bs.ann-name ...) . #,(syntax/loc stx body)))])
-                 #,(quasisyntax/loc stx nm)))])
-        bs.rhs ...))]
+     (syntax-parse #'(rest ...)
+       #:literals (:)
+       [(: ret-ty (bs:annotated-binding ...) . body)
+        (quasisyntax/loc stx
+          ((-letrec ([nm : (bs.ty ... -> ret-ty)
+                         #,(quasisyntax/loc stx
+                             (lambda (bs.ann-name ...) . #,(syntax/loc stx body)))])
+                    #,(quasisyntax/loc stx nm))
+           bs.rhs ...))]
+       [(: ret-ty (bs:optionally-annotated-binding ...) body ... bod)
+        (quasisyntax/loc stx
+          (ann
+           ((letrec ([nm #,(quasisyntax/loc stx
+                             (lambda (bs.ann-name ...) body ... (ann #,(syntax/loc stx bod) ret-ty)))])
+              #,(quasisyntax/loc stx nm))
+            bs.rhs ...)
+           ret-ty))]
+       [((bs:optionally-annotated-binding ...) . body)
+        (quasisyntax/loc stx
+          ((letrec ([nm #,(quasisyntax/loc stx
+                            (lambda (bs.ann-name ...) . #,(syntax/loc stx body)))])
+             #,(quasisyntax/loc stx nm))
+           bs.rhs ...))])]
     [(-let vars:lambda-type-vars
            ([bn:optionally-annotated-name e] ...)
            . rest)

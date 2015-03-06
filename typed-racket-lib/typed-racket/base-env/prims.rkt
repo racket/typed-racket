@@ -316,7 +316,11 @@ This file defines two sorts of primitives. All of them are provided into any mod
                        'cast
                        'typed-world
                        val
-                       (quote-syntax #,stx)))
+                       (srcloc #,(syntax-source stx)
+                               #,(syntax-line stx)
+                               #,(syntax-column stx)
+                               #,(syntax-position stx)
+                               #,(syntax-span stx))))
                     'feature-profile:TR-dynamic-check #t))
              #'ty)))
 

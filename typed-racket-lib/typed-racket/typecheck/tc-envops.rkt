@@ -122,12 +122,12 @@
     (pattern (~seq #:unreachable form:expr))
     (pattern (~seq) #:with form #'(begin)))
   (syntax-parse stx
-    [(_ ps:expr u:unreachable? body ...)
+    [(_ ps:expr u:unreachable? . bodies)
      #'(let*-values ([(new-env atoms) (env+props (lexical-env) ps)])
          (if new-env
              (with-lexical-env new-env
                (add-unconditional-prop 
-                (let () body ...) 
+                (let () . bodies) 
                 (apply -and (append atoms (env-props new-env)))))
              ;; unreachable, bail out
              (let ()
@@ -142,7 +142,7 @@
   (define-splicing-syntax-class unreachable?
     (pattern (~seq #:unreachable form:expr)))
   (syntax-parse stx
-    [(_ ids:expr types:expr u:unreachable? body ...)
+    [(_ ids:expr types:expr u:unreachable? . bodies)
      #'(let ()
          (define-values (ids/ts* pss) 
            (for/lists (ids/ts ps) 
@@ -150,18 +150,20 @@
              (let-values ([(t* ps) (extract-props-from-type id t)])
                (values (cons id t*) ps))))
          (cond
-           [(for/or ([id/t (in-list ids/ts*)]) (type-equal? (cdr id/t) -Bottom))
+           [(for/or ([id/t (in-list ids/ts*)]) 
+              (type-equal? (cdr id/t) -Bottom))
             ;; unreachable, bail out
             u.form]
            [else
-            (let*-values ([(ps) (apply append pss)]
-                          [(new-env atoms) (env+props (naive-extend/types (lexical-env) ids/ts*)
-                                                      ps)]
-                          [(new-env) (and new-env (replace-props new-env (append atoms (env-props new-env))))])
+            (let*-values 
+                ([(ps) (apply append pss)]
+                 [(new-env atoms) (env+props (naive-extend/types (lexical-env) ids/ts*)
+                                             ps)]
+                 [(new-env) (and new-env (replace-props new-env (append atoms (env-props new-env))))])
               (if new-env
                   (with-lexical-env 
                    new-env
-                   (let () body ...))
+                   (let () . bodies))
                   ;; unreachable, bail out
                   u.form))]))]))
 
@@ -174,7 +176,7 @@
   (define-splicing-syntax-class unreachable?
     (pattern (~seq #:unreachable form:expr)))
   (syntax-parse stx
-    [(_ ids:expr types:expr aliases:expr ps:expr u:unreachable? body ...)
+    [(_ ids:expr types:expr aliases:expr ps:expr u:unreachable? . bodies)
      #'(let*-values 
            ([(ids/ts* ids/als pss)
              (for/fold ([ids/ts null] [ids/als null] [pss null]) 
@@ -211,7 +213,7 @@
                                  (replace-props new-env 
                                                 (append atoms (env-props new-env))))])
               (if new-env
-                  (with-lexical-env new-env (let () body ...))
+                  (with-lexical-env new-env (let () . bodies))
                   ;; unreachable, bail out
                   (let () u.form)))]))]))
 

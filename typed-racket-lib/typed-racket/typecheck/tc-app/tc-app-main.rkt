@@ -81,8 +81,10 @@
            ;; TODO(AMK) support multi-arr functions w/ dependent types
            [(Function: (list (arr: doms rng rest drest kws #t)))
             (define arg-ts (map (curryr tc-expr/check? #f) args*))
-            (define arg-ts* (map (λ (t a dom-t) (or t (tc-expr/check a dom-t))) 
-                                 arg-ts args* doms))
+            (define arg-ts* (for/list ([t (in-list arg-ts)]
+                                       [a (in-list args*)]
+                                       [dom-t (in-list doms)])
+                              (or t (tc-expr/check a dom-t))))
             arg-ts*]
            [(Function: (? has-drest/filter?))
             (map single-value args*)]

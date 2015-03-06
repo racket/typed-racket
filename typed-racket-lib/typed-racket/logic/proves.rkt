@@ -48,14 +48,14 @@
         (listof Filter/c))
   (match goal
   
-    [(Bot:) `(,goal)]
+    [(Bot:) (list goal)]
     
-    [(Top:) '()]
+    [(Top:) null]
     
     [(or (? TypeFilter?) (? NotTypeFilter?))
      (if (witnesses A env obj goal)
-         '()
-         `(,goal))]
+         null
+         (list goal))]
     
     [(AndFilter: fs) 
      (let* ([fs* (apply append (map (curry logical-reduce A env obj) fs))]
@@ -68,7 +68,7 @@
      (let* ([fs* (map (λ (f) (apply -and (logical-reduce A env obj f))) fs)]
             [f* (apply -or fs*)])
        (if (Top? f*)
-           (list)
+           null
            (list f*)))]
     [_ (int-err "invalid goal: ~a" goal)]))
 

@@ -4,7 +4,7 @@
          (except-in racket/contract ->* -> one-of/c)
          (prefix-in c: (contract-req))
          (rep type-rep filter-rep object-rep rep-utils)
-         (types utils base-abbrev abbrev filter-ops)
+         (types utils abbrev filter-ops)
          (utils tc-utils))
 
 (lazy-require
@@ -86,21 +86,21 @@
                             ty)]
      
      [#:Pair t1 t2 (if obj
-                       (-pair ((sift-t (ObjCar obj)) t1)
-                              ((sift-t (ObjCdr obj)) t2))
+                       (-pair ((sift-t (-car-of obj)) t1)
+                              ((sift-t (-cdr-of obj)) t2))
                        ty)]
      
      [#:MPair t1 t2 (if obj
-                        (-mpair ((sift-t (ObjCar obj)) t1)
-                                ((sift-t (ObjCdr obj)) t2))
+                        (-mpair ((sift-t (-car-of obj)) t1)
+                                ((sift-t (-cdr-of obj)) t2))
                         ty)]
      ;;TODO(amk) support these
      #;[#:Syntax t (if obj
-                     (-syntax ((sift-t (ObjSyntax obj)) t))
+                     (-syntax ((sift-t (-syntax-of obj)) t))
                      ty)]
      
      #;[#:Promise t (if obj
-                      (-promise ((sift-t (ObjForce obj)) t))
+                      (-promise ((sift-t (-force-of obj)) t))
                       ty)]
      ;; TODO(amk) recurse into each struct field w/ approp path?
      #;[#:Struct ]))
@@ -131,26 +131,3 @@
   (match o 
     [(Path: _ x) (list? x)]
     [_ #f]))
-
-;; TODO(amk) I can't figure out a place to put these functions where
-;; they're accessible everywhere they need to be and don't have
-;; issues where things like 'make-CarPE' aren't defined yet
-(define (ObjCar p) p
-  (match p
-    [(Path: lpe x) (make-Path (cons (make-CarPE) lpe) x)]
-    [_ p]))
-
-(define (ObjCdr p) p
-  (match p
-    [(Path: lpe x) (make-Path (cons (make-CdrPE) lpe) x)]
-    [_ p]))
-
-(define (ObjSyntax p)
-  (match p
-    [(Path: lpe x) (make-Path (cons (make-SyntaxPE) lpe) x)]
-    [_ p]))
-
-(define (ObjForce p)
-  (match p
-    [(Path: lpe x) (make-Path (cons (make-ForcePE) lpe) x)]
-    [_ p]))

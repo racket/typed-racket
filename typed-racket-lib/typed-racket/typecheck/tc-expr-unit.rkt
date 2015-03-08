@@ -129,7 +129,10 @@
       [(quote val)
        (match expected
          [(tc-result1: t)
-          (ret (tc-literal #'val t) -true-filter)]
+          (let ([datum (syntax->datum #'val)])
+            (if #f ;(exact-integer? datum)
+                (ret (tc-literal #'val t) -true-filter (-int-obj datum))
+                (ret (tc-literal #'val t) -true-filter)))]
          [_
           (ret (tc-literal #'val) -true-filter)])]
       ;; syntax

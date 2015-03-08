@@ -51,9 +51,12 @@
     (cond
       [(type-equal? t1 t2) A*]
       [(seen? t1s t2s A) A]
-      [(and (symbol? ks) (symbol? kt) (not (eq? ks kt))) #f]
-      [(and (symbol? ks) (pair? kt) (not (memq ks kt))) #f]
-      [(and (symbol? kt) (pair? ks) (not (memq kt ks))) #f]
+      [(and (symbol? ks) (symbol? kt) (not (eq? ks kt))) 
+       #f]
+      [(and (symbol? ks) (pair? kt) (not (memq ks kt))) 
+       #f]
+      [(and (symbol? kt) (pair? ks) (not (memq kt ks))) 
+       #f]
       [(and (pair? ks) (pair? kt)
             (for/and ([i (in-list ks)]) (not (memq i kt))))
        #f]
@@ -67,33 +70,38 @@
               (overlap* A* (resolve-once t1) (resolve-once t2)))]
          [(list-no-order t (? Name? s))
           (overlap* A* t (resolve-once s))]
-         [(list-no-order (? Mu? t) s) (overlap* A* (unfold t) s)]
+         [(list-no-order (? Mu? t) s) 
+          (overlap* A* (unfold t) s)]
          [(list-no-order (Refinement: t _) s) (overlap* A* t s)]
          [(list-no-order (Union: ts) s)
           (let loop ([ts ts] [A* A*]) 
-            (match ts
-              [(list) #f]
-              [(cons t* ts*)
-               (or (overlap* A* t* s)
-                   (loop ts* (remember (unsafe-Rep-seq t*) 
-                                       (unsafe-Rep-seq s) 
-                                       A*)))]))]
+             (match ts
+               [(list) #f]
+               [(cons t* ts*)
+                (or (overlap* A* t* s)
+                    (loop ts* (remember (unsafe-Rep-seq t*) 
+                                        (unsafe-Rep-seq s) 
+                                        A*)))]))]
          [(list-no-order (? Poly?) _) A*] ;; conservative
          [(list (Base: s1 _ _ _) (Base: s2 _ _ _)) 
           (parameterize ([memory A*]) 
             (and (or (subtype t1 t2) (subtype t2 t1)) A*))]
-         [(list-no-order (? Base? t) (? Value? s))
+         [(list-no-order (? Value? s) (? Base? t))
           (parameterize ([memory A*])
             (and (subtype s t) A*))] ;; conservative
-         [(list (Syntax: t) (Syntax: t*)) (overlap* A* t t*)]
-         [(list-no-order (Syntax: _) _) #f]
-         [(list-no-order (Base: _ _ _ _) _) #f]
+         [(list (Syntax: t) (Syntax: t*)) 
+          (overlap* A* t t*)]
+         [(list-no-order (Syntax: _) _) 
+          #f]
+         [(list-no-order (Base: _ _ _ _) _) 
+          #f]
          [(list-no-order (Value: (? pair?)) (Pair: _ _)) A*]
          [(list (Pair: a b) (Pair: a* b*)) 
           (let ([A* (overlap* A* a a*)])
             (and A* (overlap* A* b b*)))]
          ;; lots of things are sequences, but not values where sequence? produces #f
-         [(list-no-order (Sequence: _) (Value: v)) (and (sequence? v) A*)]
+         [(list-no-order (Sequence: _) (Value: v)) 
+          (and (sequence? v) A*)]
          [(list-no-order (Sequence: _) _) A*]
          ;; Values where evt? produces #f cannot be Evt
          [(list-no-order (Evt: _) (Value: v)) (and (evt? v) A*)]
@@ -112,12 +120,12 @@
           #:when (free-identifier=? n n*)
           (let loop ([flds flds] [flds* flds*] [A* A*]) 
             (match* (flds flds*)
-              [((list) (list)) #f]
+              [((list) (list)) A*]
               [((cons f fs) (cons f* fs*))
                (match* (f f*)
                  [((fld: t _ _) (fld: t* _ _)) 
                   (let ([A* (overlap* A* t t*)])
-                    (and A* (loop fs fs* A*)))])]))]
+                    (loop fs fs* A*))])]))]
          [(list (Struct: n #f _ _ _ _)
                 (StructTop: (Struct: n* #f _ _ _ _))) 
           #:when (free-identifier=? n n*)
@@ -131,8 +139,7 @@
           #f]
          [(list (and t1 (Struct: _ _ _ _ _ _))
                 (and t2 (Struct: _ _ _ _ _ _)))
-          (parameterize ([memory A*]) 
-            (and (or (subtype t1 t2) (subtype t2 t1)) A*))]
+          (and (or (subtype t1 t2) (subtype t2 t1)) A*)]
          [else A*])])))
 
 

@@ -76,6 +76,37 @@
 
 (define (-ne-lst t) (-pair t (-lst t)))
 
+;; Convenient Object constructors
+;;******************************************************************************
+;; Constructors for Objects
+(define/cond-contract (-int-obj n)
+  (c:-> exact-integer? LExp?)
+  (make-LExp n null null))
+
+(define/cond-contract (-car-of p)
+  (c:-> (c:or/c Object? #f) (c:or/c Object? #f))
+  (match p
+    [(Path: lpe x) (make-Path (cons -car lpe) x)]
+    [_ p]))
+
+(define/cond-contract (-cdr-of p)
+  (c:-> (c:or/c Object? #f) (c:or/c Object? #f))
+  (match p
+    [(Path: lpe x) (make-Path (cons -cdr lpe) x)]
+    [_ p]))
+
+(define/cond-contract (-syntax-of p)
+  (c:-> (c:or/c Object? #f) (c:or/c Object? #f))
+  (match p
+    [(Path: lpe x) (make-Path (cons -syntax-e lpe) x)]
+    [_ p]))
+
+(define/cond-contract (-force-of p)
+  (c:-> (c:or/c Object? #f) (c:or/c Object? #f))
+  (match p
+    [(Path: lpe x) (make-Path (cons -force lpe) x)]
+    [_ p]))
+
 ;; Convenient constructor for Values
 ;; (wraps arg types with Result)
 (define/cond-contract (-values args)

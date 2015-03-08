@@ -17,32 +17,13 @@
   ("../logic/proves.rkt" (proves))
   ("../logic/prop-ops.rkt" (extract-props-from-type))
   ("../typecheck/tc-envops.rkt" (env-extend-types))
+  ("../types/abbrev.rkt" (-car-of -cdr-of))
   ; TODO(AMK) subst should not be in typecheck
   ("../typecheck/tc-subst.rkt" (subst-type subst-filter))
   ("filter-ops.rkt" (-and)))
 
 
 (define subtype-cache (make-hash))
-
-(define (ObjCar p) p
-  (match p
-    [(Path: lpe x) (make-Path (cons (make-CarPE) lpe) x)]
-    [_ p]))
-
-(define (ObjCdr p) p
-  (match p
-    [(Path: lpe x) (make-Path (cons (make-CdrPE) lpe) x)]
-    [_ p]))
-
-(define (ObjSyntax p)
-  (match p
-    [(Path: lpe x) (make-Path (cons (make-SyntaxPE) lpe) x)]
-    [_ p]))
-
-(define (ObjForce p)
-  (match p
-    [(Path: lpe x) (make-Path (cons (make-ForcePE) lpe) x)]
-    [_ p]))
 
 
 (define-syntax-rule (handle-failure e)
@@ -407,8 +388,8 @@
          [((Pair: t1 t2) (Sequence: (list t*)))
           (subtype-seq 
            A0 
-           (subtype* t1 t*  env (ObjCar obj)) 
-           (subtype* t2 (-lst t*) env (ObjCdr obj)))]
+           (subtype* t1 t*  env (-car-of obj)) 
+           (subtype* t2 (-lst t*) env (-cdr-of obj)))]
          [((MListof: t) (Sequence: (list t*)))
           (subtype* A0 t t* env obj)]
          ;; To check that mutable pair is a sequence we check that the cdr
@@ -416,9 +397,9 @@
          [((MPair: t1 t2) (Sequence: (list t*)))
           (subtype-seq 
            A0
-           (subtype* t1 t* env (ObjCar obj))
-           (subtype* t2 (simple-Un -Null (make-MPairTop)) env (ObjCdr obj))
-           (subtype* t2 t env (ObjCdr obj)))]
+           (subtype* t1 t* env (-car-of obj))
+           (subtype* t2 (simple-Un -Null (make-MPairTop)) env (-cdr-of obj))
+           (subtype* t2 t env (-cdr-of obj)))]
          ;; Note: this next case previously used the List: match expander, but
          ;;       using that would cause an infinite loop in certain cases
          ;;       (i.e., Struct types, see PR 14364) because the expander
@@ -492,8 +473,8 @@
          [((Pair: a d) (Pair: a* d*))
           (subtype-seq 
            A0
-           (subtype* a a* env (ObjCar obj))
-           (subtype* d d* env (ObjCdr obj)))]
+           (subtype* a a* env (-car-of obj))
+           (subtype* d d* env (-cdr-of obj)))]
          ;; recur structurally on dotted lists, assuming same bounds
          [((ListDots: s-dty dbound) (ListDots: t-dty dbound*))
           (and (eq? dbound dbound*)
@@ -661,8 +642,8 @@
               #f)]
          [((MPair: s1 s2) (MPair: t1 t2))
           (subtype-seq A0
-                       (type-equiv? s1 t1 env (ObjCar obj))
-                       (type-equiv? s2 t2 env (ObjCdr obj)))]
+                       (type-equiv? s1 t1 env (-car-of obj))
+                       (type-equiv? s2 t2 env (-cdr-of obj)))]
          [((MPair: _ _) (MPairTop:)) A0]
          [((Hashtable: s1 s2) (Hashtable: t1 t2))
           (subtype-seq A0

@@ -126,8 +126,8 @@
   (make-Path null (list depth arg)))
 (define (-acc-path path-elems o)
   (match o
-    [(Empty:) -empty-obj]
-    [(Path: p o) (make-Path (append path-elems p) o)]))
+    [(Path: p o) (make-Path (append path-elems p) o)]
+    [_ o]))
 
 (define/cond-contract (-FS + -)
   (c:-> Filter/c Filter/c FilterSet?)

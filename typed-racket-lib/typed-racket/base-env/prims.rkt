@@ -110,11 +110,11 @@ This file defines two sorts of primitives. All of them are provided into any mod
          racket/set
          racket/flonum ; for for/flvector and for*/flvector
          racket/extflonum ; for for/extflvector and for*/extflvector
+         syntax/location
          (for-label (only-in "base-types-extra.rkt" Values)
                     (only-in racket/base values))
          (for-syntax
           racket/lazy-require
-          syntax/location
           syntax/parse
           syntax/parse/experimental/template
           syntax/stx

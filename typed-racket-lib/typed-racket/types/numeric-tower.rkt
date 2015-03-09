@@ -22,7 +22,10 @@
          -ExactNumber -ExactComplex -FloatComplex -SingleFlonumComplex -InexactComplex -Number
          (rename-out (-Int -Integer))
          -ExtFlonumPosZero -ExtFlonumNegZero -ExtFlonumZero -ExtFlonumNan
-         -PosExtFlonum -NonNegExtFlonum -NegExtFlonum -NonPosExtFlonum -ExtFlonum)
+         -PosExtFlonum -NonNegExtFlonum -NegExtFlonum -NonPosExtFlonum -ExtFlonum
+         integer-type)
+
+(define (integer-type) -Int)
 
 ;; all the types defined here are numeric (except 80-bit flonums)
 (define (make-Base name contract predicate)

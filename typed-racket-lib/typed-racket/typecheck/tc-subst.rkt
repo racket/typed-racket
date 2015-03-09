@@ -7,7 +7,7 @@
          racket/match racket/list
          (contract-req)
          (except-in (types abbrev utils filter-ops) -> ->* one-of/c)
-         (rep type-rep object-rep filter-rep rep-utils))
+         (rep type-rep object-rep filter-rep rep-utils object-ops))
 
 (provide add-scope subst-type subst-filter subst-object)
 
@@ -112,7 +112,8 @@
 (define (add-scope/object obj)
   (match obj
     [(Empty:) -empty-obj]
-    [(Path: p nm) (make-Path p (add-scope nm))]))
+    [(Path: p nm) (make-Path p (add-scope nm))]
+    [(? LExp? l) (LExp-map add-scope/object l)]))
 
 ;; Substitution of objects into objects
 ;; This is o [o'/x] from the paper
@@ -128,7 +129,8 @@
            ;; the result is not from an annotation, so it isn't a NoObject
            [(NoObject:) -empty-obj]
            [(Path: p* i*) (make-Path (append p p*) i*)])
-         t)]))
+         t)]
+    [(? LExp? l) (LExp-map (λ (p) (subst-object p k o polarity)) l)]))
 
 ;; Substitution of objects into a filter in a filter set
 ;; This is ψ+ [o/x] and ψ- [o/x]
@@ -143,11 +145,11 @@
           (if polarity -top -bot)]
          [_
           (maker
-            (subst-type t k o polarity)
-            (-acc-path p o))])]
+           (subst-type t k o polarity)
+           (-acc-path p o))])]
       ;[(index-free-in? k t) (if polarity -top -bot)]
       [else f]))
-
+  
   (match f
     [(ImpFilter: ant consq)
      (-imp (subst-filter ant k o (not polarity)) (ap consq))]
@@ -158,7 +160,19 @@
     [(TypeFilter: t (Path: p i))
      (tf-matcher t p i -filter)]
     [(NotTypeFilter: t (Path: p i))
-     (tf-matcher t p i -not-filter)]))
+     (tf-matcher t p i -not-filter)]
+    [(or (TypeFilter: t (? LExp? l)))
+     (let ([l* (LExp-map (λ (p) (subst-object p k o polarity)) l)])
+       (if (Empty? l*)
+           (if polarity -top -bot)
+           (-filter (subst-type t k o polarity)
+                    l*)))]
+    [(or (NotTypeFilter: t (? LExp? l)))
+     (let ([l* (LExp-map (λ (p) (subst-object p k o polarity)) l)])
+       (if (Empty? l*)
+           (if polarity -top -bot)
+           (-not-filter (subst-type t k o polarity)
+                        l*)))]))
 
 ;; Determine if the object k occurs free in the given type
 (define (index-free-in? k a)

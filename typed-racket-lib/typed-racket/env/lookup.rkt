@@ -5,7 +5,7 @@
          (except-in racket/contract ->* -> )
          (env type-env-structs global-env mvar-env)
          (utils tc-utils)
-         (rep object-rep rep-utils)
+         (rep object-rep rep-utils object-ops)
          (only-in (rep type-rep) Type/c)
          (typecheck renamer)
          (prefix-in c: (contract-req))
@@ -14,23 +14,35 @@
 
 (lazy-require 
  ("../types/kw-types.rkt" (kw-convert))
- ("../types/path-type.rkt" (path-type)))
+ ("../types/numeric-tower.rkt" (integer-type))
+ ("../types/path-type.rkt" (path-type))
+ ("../typecheck/typechecker.rkt" (tc-literal)))
 
 (provide lookup-id-type lookup-obj-type resolve-id-alias)
 
 (define/cond-contract (lookup-id-type id env #:fail [fail #f])
   (c:->* (identifier? env?) (#:fail (c:or/c #f (c:-> any/c (c:or/c Type/c #f))))
          (c:or/c Type/c #f))
-  (define obj (resolve-id-alias id env))
-  (define-values (alias-path alias-id)
-    (match obj
-      [(Path: p x) (values p x)]
-      [_ (values (list) id)]))
   
-  (define ty (env-struct-lookup alias-id env #:fail fail))
-  ;; calculate the type, resolving aliasing and paths if necessary
+  ;; resolve any alias, lookup/calculate type
+  (define-values (π* id* id*-ty)
+    (match (resolve-id-alias id env)
+      [(Path: π x)
+       (let ([x-ty (env-struct-lookup x env #:fail fail)])
+         (values π x x-ty))]
+      [(? LExp? l)
+       (cond
+         [(constant-LExp? l) 
+          => (λ (c) (values null l (tc-literal (datum->syntax #f c))))]
+         ;; TODO(amk) might be able to leverage more info about the LExp here?
+         [else (values null l (integer-type))])]
+      [(Empty:) (values null id (env-struct-lookup id env #:fail fail))]))
+  
+  
   (cond
-    [ty (path-type alias-path ty)]
+    [id*-ty (if (null? π*) 
+            id*-ty 
+            (path-type π* id*-ty))]
     [fail (fail id)]
     [else (lookup-fail id)]))
 
@@ -44,6 +56,9 @@
          [ty (path-type π ty)]
          [fail (fail o)]
          [else (lookup-fail o)]))]
+    ;; TODO(amk) maybe something else here more specific
+    ;; for what LExp it is? I dunno
+    [(? LExp?) (integer-type)]
     [_ #:when fail (fail o)]
     [_ (lookup-fail o)]))
 

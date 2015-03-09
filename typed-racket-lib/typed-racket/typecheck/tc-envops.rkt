@@ -8,7 +8,8 @@
          (infer-in infer)
          (rep type-rep filter-rep object-rep rep-utils)
          (utils tc-utils)
-         (types tc-result resolve subtype remove-intersect union filter-ops)
+         (types tc-result resolve subtype remove-intersect union filter-ops
+                numeric-tower)
          (env type-env-structs lexical-env)
          (logic prop-ops)
          (rename-in (types abbrev)
@@ -110,6 +111,14 @@
                (exit))
              new-t)
            x Γ)]
+         [(TypeFilter: ft (? LExp? l))
+          (if (subtype ft -Integer #:obj l)
+              Γ
+              (exit))]
+         [(NotTypeFilter: ft (? LExp? l))
+          (if (subtype -Integer ft #:obj l)
+              (exit)
+              Γ)]
          [_ Γ]))
      atoms)))
 
@@ -195,8 +204,9 @@
                     (values `((,id* . ,t*) . ,ids/ts) 
                             `((,id . ,o) . ,ids/als)
                             (cons ps* pss))]
-                   [(Path: π id*) 
-                    (values ids/ts 
+                   ;; standard aliasing, just record the type and the alias
+                   [(or (? Path? o) (? LExp? o)) 
+                    (values ids/ts
                             `((,id . ,o) . ,ids/als)
                             (cons ps* pss))])))])
          (cond

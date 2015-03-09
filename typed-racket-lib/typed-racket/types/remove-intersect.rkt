@@ -3,9 +3,10 @@
 (require "../utils/utils.rkt"
          (rep type-rep rep-utils)
          (types union subtype resolve utils)
+         (only-in (types numeric-tower) -Int)
          racket/match racket/unsafe/ops)
 
-(provide (rename-out [*remove remove]) overlap)
+(provide (rename-out [*remove remove]) overlap integer-overlap?)
 
 (define (simple-datum? v)
   (or (null? v)
@@ -37,6 +38,14 @@
       (for/or ([pr (in-list A)])
         (and (eq? (unsafe-cdr pr) t1-seq)
              (eq? (unsafe-car pr) t2-seq)))))
+
+;; this function may eventually prove to be not useful,
+;; but for now it acts as a nice boolean for claims
+;; that an LExp has some type t. If t overlaps with
+;; Integer, fine, maybe it is of type t. If not,
+;; boom! we know it's a contradiction
+(define (integer-overlap? t)
+  (overlap t -Int))
 
 (define (overlap t1 t2)
   (overlap* (memory) t1 t2))

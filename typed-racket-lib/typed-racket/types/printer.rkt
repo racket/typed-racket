@@ -8,7 +8,7 @@
          racket/list
          racket/set
          (path-up "rep/type-rep.rkt" "rep/filter-rep.rkt" "rep/object-rep.rkt"
-                  "rep/rep-utils.rkt" "types/subtype.rkt"
+                  "rep/object-ops.rkt" "rep/rep-utils.rkt" "types/subtype.rkt"
                   "types/match-expanders.rkt"
                   "types/kw-types.rkt"
                   "types/utils.rkt"
@@ -113,8 +113,12 @@
     [(NoFilter:) '-]
     [(NotTypeFilter: type (Path: path nm))
      `(! ,(type->sexp type) @ ,@(path->sexps path) ,(name-ref->sexp nm))]
+    [(NotTypeFilter: type (? LExp? l))
+     `(! ,(type->sexp type) @ ,(object->sexp l))]
     [(TypeFilter: type (Path: path nm))
      `(,(type->sexp type) @ ,@(path->sexps path) ,(name-ref->sexp nm))]
+    [(TypeFilter: type (? LExp? l))
+     `(,(type->sexp type) @ ,(object->sexp l))]
     [(Bot:) 'Bot]
     [(Top:) 'Top]
     [(ImpFilter: a c)
@@ -132,6 +136,7 @@
     [(ForcePE:) 'force]
     [(StructPE: t i) `(,(type->sexp t)-,i)]
     [(SyntaxPE:) 'syntax]
+    [(LengthPE:) 'length]
     [else `(Invalid Path-Element: ,(struct->vector pathelem))]))
 
 ;; object->sexp : Object -> S-expression
@@ -141,6 +146,16 @@
     [(NoObject:) '-]
     [(Empty:) '-]
     [(Path: pes i) (append (map pathelem->sexp pes) (list i))]
+    [(LExp: ps) (let ([const (LExp-const object)]
+                      [ps* (for/list ([p (in-list ps)])
+                             (let ([c (LExp-coeff object p)])
+                               (cond 
+                                 [(= 1 c) (object->sexp p)]
+                                 [else `(* ,c ,(object->sexp p))])))])
+                  (cond
+                    [(null? ps) const]
+                    [(zero? const) (cons '+ ps*)]
+                    [else (cons '+ (cons const ps*))]))]
     [else `(Unknown Object: ,(struct->vector object))]))
 
 ;; cover-union : Type LSet<Type> -> Listof<Symbol> Listof<Type>

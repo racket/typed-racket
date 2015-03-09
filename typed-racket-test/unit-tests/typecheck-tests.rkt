@@ -85,7 +85,7 @@
              [(not (equal? rf gf))
               " The filters don't match."]
              [(not (equal? ro go))
-              " They objects don't match."])]
+              " The objects don't match."])]
           [(_ _) ""]))
 
       (raise (cross-phase-failure
@@ -842,7 +842,7 @@
                   (lambda: ([x : Any]) (if (p? x) x 12)))
                 (t:-> Univ Univ : (-FS  (-not-filter (-val #f) 0) (-filter (-val #f) 0))
                                 : (make-Path null '(0 0)))]
-        [tc-e/t (let* ([z (ann 1 : Any)]
+        [tc-e/t (let* ([z : Any (ann 1 : Any)]
                        [p? (lambda: ([x : Any]) (not (number? z)))])
                   (lambda: ([x : Any]) (if (p? x) (ann (add1 7) Any) 12)))
                 (t:-> Univ Univ)]
@@ -868,7 +868,7 @@
         [tc-err ((plambda: (a) ([x : (a -> a)] [y : a]) (x y)) 5)]
         [tc-err ((plambda: (a) ([x : a] [y : a]) x) 5)]
         [tc-err (ann 5 : String)
-          #:ret (ret -String -true-filter)]
+          #:ret (ret -String -true-filter (-int-obj 5))]
 
         ;; these don't work because the type annotation gets lost in marshalling
         #|
@@ -1222,7 +1222,7 @@
                 (-poly (a) (a . t:-> . a))]
         [tc-e (apply values (list 1 2 3)) #:ret (ret (list -One -PosByte -PosByte))]
 
-        [tc-e/t (ann (if #t 3 "foo") Integer) -Integer]
+        [tc-e (ann (if #t 3 "foo") Integer) #:ret (ret -Integer -true-filter (-int-obj 3))]
 
         [tc-e/t (plambda: (a ...) ([x : Number] . [y : a ... a])
                           (andmap null? (map list y)))
@@ -2880,7 +2880,7 @@
          #:expected (ret (-val 'x) -no-filter -no-obj)]
 
        [tc-err (if (random) (values 1 2) 3)
-         #:ret (ret (-val 3) -true-filter)
+         #:ret (ret (-val 3) -true-filter (-int-obj 3))
          #:expected (ret (-val 3) -no-filter -no-obj)]
 
        [tc-err

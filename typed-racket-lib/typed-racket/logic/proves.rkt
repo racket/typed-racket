@@ -14,13 +14,14 @@
  ("../types/remove-intersect.rkt" (overlap))
  ("../types/path-type.rkt" (path-type))
  ("../types/filter-ops.rkt" (-and -or))
+ ("../types/numeric-tower.rkt" (integer-type))
  ("../typecheck/tc-envops.rkt" (update))
  ("../types/subtype.rkt" (subtype)))
 
 (provide proves witnesses update-env/type)
 
 (define/cond-contract (proves A env obj new-props goal)
-  (c:-> any/c env? Path? (listof Filter/c) Filter/c
+  (c:-> any/c env? (or/c LExp? Path?) (listof Filter/c) Filter/c
         any/c)
   (let/ec exit*
     (define (exit) (exit* A))
@@ -44,7 +45,7 @@
 ;; only proves based on type-env lookups
 ;; A env obj goal -> filter w/ proven facts removed
 (define/cond-contract (logical-reduce A env obj goal)
-  (c:-> any/c env? Path? Filter/c
+  (c:-> any/c env? (or/c LExp? Path?) Filter/c
         (listof Filter/c))
   (match goal
   
@@ -74,7 +75,7 @@
 
 
 (define/cond-contract (full-proves A env obj assumptions goal)
-  (c:-> any/c env? Path? (listof Filter/c) Filter/c
+  (c:-> any/c env? (or/c LExp? Path?) (listof Filter/c) Filter/c
         boolean?)
   (match assumptions
     ['() (empty? (logical-reduce A env obj goal))]
@@ -109,15 +110,22 @@
 
 
 (define/cond-contract (witnesses A env obj goal)
-  (c:-> any/c env? Path? (or/c TypeFilter? NotTypeFilter?)
+  (c:-> any/c env? (or/c LExp? Path?) (or/c TypeFilter? NotTypeFilter?)
         any/c)
   (match goal
-    [(TypeFilter: ft (Path: π x)) 
+    [(TypeFilter: ft (Path: π x))
      (let ([ty (lookup-id-type x env #:fail (λ (_) Univ))])
        (subtype (path-type π ty) ft #:A A #:env env #:obj obj))]
     [(NotTypeFilter: ft (Path: π x))
      (let ([ty (lookup-id-type x env #:fail (λ (_) Univ))]) 
        (not (overlap (path-type π ty) ft)))]
+    
+    ;;TODO(amk) These should take into account the ranges
+    ;; implied by the integer numeric-type when possible
+    [(TypeFilter: ft (? LExp? l))
+     (subtype ft (integer-type) #:A A #:env env #:obj obj)]
+    [(NotTypeFilter: ft (? LExp? l))
+     (not (overlap (integer-type) ft))]
     [_ (int-err "invalid witnesses goal ~a" goal)]))
 
 

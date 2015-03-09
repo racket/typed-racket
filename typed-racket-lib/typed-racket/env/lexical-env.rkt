@@ -24,7 +24,7 @@
 (provide/cond-contract
  [lookup-type/lexical ((identifier?) (env? #:fail (or/c #f (-> any/c (or/c Type/c #f)))) 
                                      . ->* . (or/c Type/c #f))]
- [resolve-alias/lexical ((identifier?) (env?) . ->* . (or/c Path? Empty?))])
+ [resolve-alias/lexical ((identifier?) (env?) . ->* . (or/c LExp? Path? Empty?))])
 
 ;; the current lexical environment
 (define lexical-env (make-parameter empty-env))

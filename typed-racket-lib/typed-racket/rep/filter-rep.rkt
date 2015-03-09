@@ -6,7 +6,7 @@
 
 ;; TODO use something other than lazy-require.
 (lazy-require ["type-rep.rkt" (Type/c Univ? Bottom?)]
-              ["object-rep.rkt" (Path?)])
+              ["object-rep.rkt" (Path? LExp?)])
 
 (provide Filter/c FilterSet/c name-ref/c hash-name filter-equal?)
 
@@ -32,12 +32,12 @@
 (def-filter Bot () [#:fold-rhs #:base])
 (def-filter Top () [#:fold-rhs #:base])
 
-(def-filter TypeFilter ([t (and/c Type/c (not/c Univ?) (not/c Bottom?))] [p Path?])
+(def-filter TypeFilter ([t (and/c Type/c (not/c Univ?) (not/c Bottom?))] [p (or/c LExp? Path?)])
   [#:intern (list (Rep-seq t) (Rep-seq p))]
   [#:frees (λ (f) (combine-frees (map f (list t p))))]
   [#:fold-rhs (*TypeFilter (type-rec-id t) (object-rec-id p))])
 
-(def-filter NotTypeFilter ([t (and/c Type/c (not/c Univ?) (not/c Bottom?))] [p Path?])
+(def-filter NotTypeFilter ([t (and/c Type/c (not/c Univ?) (not/c Bottom?))] [p (or/c LExp? Path?)])
   [#:intern (list (Rep-seq t) (Rep-seq p))]
   [#:frees (λ (f) (combine-frees (map f (list t p))))]
   [#:fold-rhs (*NotTypeFilter (type-rec-id t) (object-rec-id p))])

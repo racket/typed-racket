@@ -9,6 +9,7 @@
          (rep type-rep filter-rep object-rep rep-utils)
          (env mvar-env)
          racket/match racket/list racket/function (prefix-in c: (contract-req))
+         racket/lazy-require
          (for-syntax racket/base syntax/parse racket/list)
          ;; For contract predicates
          (for-template racket/base))
@@ -16,6 +17,9 @@
 (provide (all-defined-out)
          (rename-out [make-Listof -lst]
                      [make-MListof -mlst]))
+
+(lazy-require
+ ("remove-intersect.rkt" (integer-overlap?)))
 
 ;; This table maps types (or really, the sequence number of the type)
 ;; to identifiers that are those types. This allows us to avoid
@@ -148,6 +152,10 @@
     [(Empty? o) -top]
     [(equal? Univ t) -top]
     [(equal? -Bottom t) -bot]
+    ;; TODO(amk) this could be different / smarter...
+    [(LExp? o) (if (integer-overlap? t)
+                   -top
+                   -bot)]
     [else (make-TypeFilter t o)]))
 
 

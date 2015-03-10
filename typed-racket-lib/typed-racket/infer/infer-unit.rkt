@@ -552,7 +552,7 @@
            #:when (and (prefab-key-subtype? k k*)
                        (>= (length ss) (length ts)))
            (% cset-meet*
-              (for/list/fail ([s (in-list (take ss (length ts)))]
+              (for/list/fail ([s (in-list ss)]
                               [t (in-list ts)]
                               [mut? (in-list (prefab-key->field-mutability k*))])
                 (if mut?

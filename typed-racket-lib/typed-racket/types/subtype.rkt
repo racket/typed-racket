@@ -558,7 +558,7 @@
           (and (prefab-key-subtype? k1 k2)
                (and (>= (length ss) (length ts))
                     (for/fold ([A A0])
-                              ([s (in-list (take ss (length ts)))]
+                              ([s (in-list ss)]
                                [t (in-list ts)]
                                [mut? (in-list (prefab-key->field-mutability k2))]
                                #:break (not A))

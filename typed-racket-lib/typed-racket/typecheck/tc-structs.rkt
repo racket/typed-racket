@@ -233,12 +233,6 @@
       (struct-names-type-name (parsed-struct-names parsed-struct))))
   (refine-variance! names stys tvarss))
 
-;; get-struct-name : (U Struct Prefab) -> Symbol
-;; Extract the struct name from a Struct type or Prefab type
-(define (get-struct-name sty)
-  (cond [(Struct? sty) (Struct-name sty)]
-        [(Prefab? sty) (car (Prefab-key sty))]))
-
 ;; check and register types for a define struct
 ;; tc/struct : Listof[identifier] (U identifier (list identifier identifier))
 ;;             Listof[identifier] Listof[syntax]

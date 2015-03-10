@@ -73,12 +73,10 @@
 ;; a struct with this key should have
 (define (prefab-key->field-count key)
   (let loop ([key key] [count 0])
-    (if (null? key)
-        count
-        (loop (cddddr key)
-              (+ (cadr key)
-                 (car (caddr key))
-                 count)))))
+    (cond [(null? key) count]
+          [else
+           (match-define (list _ len (list auto-len _) _ rst ...) key)
+           (loop rst (+ len auto-len count))])))
 
 ;; Convert a prefab key to a shortened version
 (define (abbreviate-prefab-key key)

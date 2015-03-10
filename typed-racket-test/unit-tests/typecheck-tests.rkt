@@ -96,6 +96,10 @@
   ;; test: syntax? tc-results? [(option/c tc-results?)]
   ;;       [(listof (list id type))] -> void?
   ;; Checks that the expression typechecks using the expected type to the golden result.
+  ;;
+  ;; The new-mapping argument (here and in subsequent functions) is used to extend the
+  ;; lexical type environment in the test case with additional bindings. Its use is to
+  ;; simulate forms that are difficult to put in unit tests, like `struct`.
   (define (test expr golden (expected #f) (new-mapping '()))
     (test/proc expr (lambda (_) golden) expected new-mapping))
 

@@ -283,6 +283,9 @@
 
   (parsed-struct sty names desc (struct-info-property nm/par) type-only))
 
+;; tc/prefab : (Listof identifier) (U identifier (list identifier identifier))
+;;             (Listof identifier) (Listof syntax)
+;;             -> Void
 ;; check and register types for a prefab struct
 (define (tc/prefab vars nm/par fld-names tys
                    #:maker [maker #f]

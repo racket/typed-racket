@@ -15,7 +15,6 @@
 (require-for-cond-contract racket/struct-info)
 
 (provide tc/struct
-         tc/prefab
          name-of-struct d-s
          refine-struct-variance!
          register-parsed-struct-sty!
@@ -57,9 +56,9 @@
 
 
 ;; parse name field of struct, determining whether a parent struct was specified
-;; syntax -> (values identifier Option[Name] Option[Struct])
-(define/cond-contract (parse-parent nm/par)
-  (c:-> syntax? (values identifier? (c:or/c Name? #f) (c:or/c Mu? Poly? Struct? #f)))
+;; syntax any -> (values identifier Option[Name] Option[Struct])
+(define/cond-contract (parse-parent nm/par prefab?)
+  (c:-> syntax? (values identifier? (c:or/c Name? #f) (c:or/c Mu? Poly? Struct? Prefab? #f)))
   (syntax-parse nm/par
     [v:parent
       (if (attribute v.par)
@@ -68,7 +67,8 @@
                  [parent (let loop ((parent parent0))
                                (cond
                                  ((Name? parent) (loop (resolve-name parent)))
-                                 ((or (Poly? parent) (Mu? parent) (Struct? parent))
+                                 ((or (Poly? parent) (Mu? parent)
+                                      (if prefab? (Prefab? parent) (Struct? parent)))
                                   parent)
                                  (else
                                   (tc-error/stx #'v.par "parent type not a valid structure name: ~a"
@@ -247,9 +247,10 @@
                    #:proc-ty [proc-ty #f]
                    #:maker [maker #f]
                    #:mutable [mutable #f]
-                   #:type-only [type-only #f])
+                   #:type-only [type-only #f]
+                   #:prefab? [prefab? #f])
   ;; parent field types can't actually be determined here
-  (define-values (nm parent-name parent) (parse-parent nm/par))
+  (define-values (nm parent-name parent) (parse-parent nm/par prefab?))
   ;; create type variables for the new type parameters
   (define tvars (map syntax-e vars))
   (define new-tvars (map make-F tvars))
@@ -273,62 +274,35 @@
   ;; that the outside world will see
   ;; then register it
   (define names (get-struct-names nm fld-names maker))
-  (define desc (struct-desc
-                 (map fld-t (get-flds concrete-parent))
-                 types
-                 tvars
-                 mutable
-                 (and proc-ty (parse-type proc-ty))))
-  (define sty (mk/inner-struct-type names desc concrete-parent))
 
-  (parsed-struct sty names desc (struct-info-property nm/par) type-only))
+  (cond [prefab?
+         (define-values (parent-key parent-fields)
+           (match concrete-parent
+             [#f (values null null)]
+             [(Prefab: parent-key parent-fields)
+              (values parent-key parent-fields)]))
+         (define key-prefix
+           (if mutable
+               (list (syntax-e nm)
+                     (length fld-names)
+                     (build-vector (length fld-names) values))
+               (list (syntax-e nm))))
+         (define key
+           (normalize-prefab-key (append key-prefix parent-key)
+                                 (+ (length fld-names) (length parent-fields))))
+         (define desc (struct-desc parent-fields types tvars mutable #f))
+         (parsed-struct (make-Prefab key (append parent-fields types))
+                        names desc (struct-info-property nm/par) #f)]
+        [else
+         (define desc (struct-desc
+                        (map fld-t (get-flds concrete-parent))
+                        types
+                        tvars
+                        mutable
+                        (and proc-ty (parse-type proc-ty))))
+         (define sty (mk/inner-struct-type names desc concrete-parent))
 
-;; tc/prefab : (Listof identifier) (U identifier (list identifier identifier))
-;;             (Listof identifier) (Listof syntax)
-;;             -> Void
-;; check and register types for a prefab struct
-(define (tc/prefab vars nm/par fld-names tys
-                   #:maker [maker #f]
-                   #:mutable [mutable #f])
-  (define-values (name parent-prefab)
-    (syntax-parse nm/par
-      [v:parent
-       (cond [(attribute v.par)
-              (define parent0 (parse-type #'v.par))
-              (define parent
-                (let loop ([parent parent0])
-                  (cond [(Name? parent) (loop (resolve-name parent))]
-                        [(Prefab? parent) parent]
-                        [else
-                         (tc-error #'v.par
-                                   "parent type not a valid prefab struct")])))
-              (values #'v.name parent)]
-             [else
-              (values #'v.name #f)])]))
-  (define tvars (map syntax-e vars))
-  (define new-tvars (map make-F tvars))
-  (define types
-    (extend-tvars tvars
-      (parameterize ([current-poly-struct `#s(poly ,name ,new-tvars)])
-        (map parse-type tys))))
-  (define-values (parent-key parent-fields)
-    (match parent-prefab
-      [#f (values null null)]
-      [(Prefab: parent-key parent-fields)
-       (values parent-key parent-fields)]))
-  (define key-prefix
-    (if mutable
-        (list (syntax-e name)
-              (length fld-names)
-              (build-vector (length fld-names) values))
-        (list (syntax-e name))))
-  (define key
-    (normalize-prefab-key (append key-prefix parent-key)
-                          (+ (length fld-names) (length parent-fields))))
-  (define names (get-struct-names name fld-names maker))
-  (define desc (struct-desc parent-fields types tvars mutable #f))
-  (parsed-struct (make-Prefab key (append parent-fields types))
-                 names desc (struct-info-property nm/par) #f))
+         (parsed-struct sty names desc (struct-info-property nm/par) type-only)]))
 
 ;; register a struct type
 ;; convenience function for built-in structs

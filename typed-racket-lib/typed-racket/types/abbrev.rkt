@@ -14,7 +14,7 @@
          (prefix-in c: (contract-req))
          (rename-in (rep type-rep filter-rep object-rep)
                     [make-Base make-Base*])
-         (types union numeric-tower)
+         (types union numeric-tower prefab)
          ;; Using this form so all-from-out works
          "base-abbrev.rkt" "match-expanders.rkt"
 
@@ -66,6 +66,8 @@
 (define -evt make-Evt)
 (define -weak-box make-Weak-Box)
 (define -inst make-Instance)
+(define (-prefab key . types)
+  (make-Prefab (normalize-prefab-key key (length types)) types))
 
 (define (-seq . args) (make-Sequence args))
 

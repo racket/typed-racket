@@ -39,7 +39,7 @@
     (for-template (only-in typed-racket/typed-racket do-standard-inits))
     (typecheck typechecker check-below)
     (utils mutated-vars tc-utils)
-    (env mvar-env))
+    (env lexical-env mvar-env))
   (provide
     test-literal test-literal/fail
     test test/proc test/fail)
@@ -93,25 +93,35 @@
                #:expected golden
                (string-append base-message extra-message1 extra-message2)))))
 
-  ;; test: syntax? tc-results? [(option/c tc-results?)] -> void?
+  ;; test: syntax? tc-results? [(option/c tc-results?)]
+  ;;       [(listof (list id type))] -> void?
   ;; Checks that the expression typechecks using the expected type to the golden result.
-  (define (test expr golden (expected #f))
-    (test/proc expr (lambda (_) golden) expected))
+  ;;
+  ;; The new-mapping argument (here and in subsequent functions) is used to extend the
+  ;; lexical type environment in the test case with additional bindings. Its use is to
+  ;; simulate forms that are difficult to put in unit tests, like `struct`.
+  (define (test expr golden (expected #f) (new-mapping '()))
+    (test/proc expr (lambda (_) golden) expected new-mapping))
 
-  ;; test/proc: syntax? (syntax? -> tc-results?) [(option/c tc-results?)] -> void?
+  ;; test/proc: syntax? (syntax? -> tc-results?) [(option/c tc-results?)]
+  ;;            [(listof (list id type))] -> void?
   ;; Checks that the expression typechecks to golden result. The golden result is computed by applying
   ;; the golden function to the expanded syntax of the expression.
-  (define (test/proc expr golden-fun (expected #f))
+  (define (test/proc expr golden-fun (expected #f) (new-mapping '()))
     (define expanded-expr (tr-expand expr))
-    (define result (tc expanded-expr expected))
+    (define result (with-lexical-env/extend-types
+                     (map car new-mapping)
+                     (map cadr new-mapping)
+                     (tc expanded-expr expected)))
     (define golden (golden-fun expanded-expr))
     (check-tc-results result golden #:name "tc-expr"))
 
 
-  ;; test/fail syntax? tc-results? (or/c string? regexp?) (option/c tc-results?) -> void?
+  ;; test/fail syntax? tc-results? (or/c string? regexp?) (option/c tc-results?)
+  ;;           [(listof (list id type))] -> void?
   ;; Checks that the expression doesn't typecheck using the expected type, returns the golden type,
   ;; and raises an error message matching the golden message
-  (define (test/fail code golden message expected)
+  (define (test/fail code golden message expected (new-mapping '()))
     (dynamic-wind
       void
       (λ ()
@@ -125,7 +135,10 @@
                                         "tc-expr raised the wrong error message")))))])
           (define result
             (parameterize ([delay-errors? #t])
-              (tc (tr-expand code) expected)))
+              (with-lexical-env/extend-types
+                (map car new-mapping)
+                (map cadr new-mapping)
+                (tc (tr-expand code) expected))))
           (check-tc-results result golden #:name "tc-expr")
           (report-first-error)
           (raise (cross-phase-failure
@@ -195,6 +208,11 @@
     (pattern (~seq #:expected v:expr))
     (pattern (~seq) #:attr v #'#f))
 
+  (define-splicing-syntax-class extend-env
+    (pattern (~seq #:extend-env ([name:id type:expr] ...))
+             #:with v #'(list (list (quote-syntax name) type) ...))
+    (pattern (~seq) #:attr v #''()))
+
   ;; for specifying the error message in a test
   (define-splicing-syntax-class expected-msg
     (pattern (~seq #:msg v:expr))
@@ -222,10 +240,10 @@
      (quasisyntax/loc stx
        (test-phase1 code
          (test/proc (quote-syntax code) p)))]
-    [(_ code:expr return:return ex:expected)
+    [(_ code:expr return:return ex:expected env:extend-env)
      (quasisyntax/loc stx
        (test-phase1 code
-         (test (quote-syntax code) return.v ex.v)))]))
+         (test (quote-syntax code) return.v ex.v env.v)))]))
 
 (define-syntax (tc-e/t stx)
   (syntax-parse stx
@@ -243,10 +261,10 @@
 ;; check that typechecking this expression fails
 (define-syntax (tc-err stx)
   (syntax-parse stx
-    [(_ code:expr ret:err-return ex:expected msg:expected-msg)
+    [(_ code:expr ret:err-return ex:expected env:extend-env msg:expected-msg)
      (quasisyntax/loc stx
         (test-phase1 #,(syntax/loc #'code (FAIL code))
-           (test/fail (quote-syntax code) ret.v msg.v ex.v)))]))
+           (test/fail (quote-syntax code) ret.v msg.v ex.v env.v)))]))
 
 (define-syntax (tc-l/err stx)
   (syntax-parse stx
@@ -3511,6 +3529,24 @@
        ;; PR 14889
        [tc-err (ann (vector-ref (ann (vector "hi") (Vectorof String)) 0) Symbol)
                #:msg #rx"Polymorphic function.*could not be applied"]
+
+       [tc-e (let ()
+               (foo-x (foo "foo"))
+               (foo-x #s(foo "foo"))
+               (foo-x #s((foo 1 (0 #f) #()) "foo"))
+               (foo-x #s((bar foo 1 (0 #f) #()) "foo" 'bar))
+               (foo-x #s((baz bar 1 foo 1 (0 #f) #()) "foo" 'bar 'baz)))
+             -String
+             #:extend-env ([foo (t:-> -String (-prefab 'foo -String))]
+                           [foo-x (t:-> (-prefab 'foo -String) -String)])]
+       [tc-err (begin (foo-x "foo")
+                      (error "foo"))
+               #:extend-env ([foo-x (t:-> (-prefab 'foo -String) -String)])
+               #:msg #rx"expected: \\(Prefab.*given: String"]
+       [tc-err (begin (foo-x #s(bar "bar"))
+                      (error "foo"))
+               #:extend-env ([foo-x (t:-> (-prefab 'foo -String) -String)])
+               #:msg #rx"expected: \\(Prefab foo.*given: \\(Prefab bar"]
        )
 
   (test-suite
@@ -3566,5 +3602,16 @@
          #:expected (-mu X (-pair (-vec (t:Un (-val ':a) X)) (t:Un (-val ':b) X)))]
    [tc-l/err #(1 2) #:expected (make-HeterogeneousVector (list -Number -Symbol))
                     #:msg #rx"expected: Symbol"]
+   [tc-l #s(foo "a" a)
+         (-prefab 'foo -String (-val 'a))]
+   [tc-l #s((foo 2 (0 #f) #()) "a" a)
+         (-prefab 'foo -String (-val 'a))]
+   [tc-l #s((foo bar 1) "a" a)
+         (-prefab '(foo bar 1) -String (-val 'a))]
+   [tc-l #s((foo bar 1 baz 1) "a" a)
+         (-prefab '(foo bar 1 baz 1) -String (-val 'a))]
+   [tc-l #s(foo "a")
+         (-prefab 'foo (-opt -String))
+         #:expected (-prefab 'foo (-opt -String))]
    )
   ))

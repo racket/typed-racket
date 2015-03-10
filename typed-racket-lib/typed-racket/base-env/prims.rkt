@@ -605,9 +605,10 @@ This file defines two sorts of primitives. All of them are provided into any mod
 
   (define-splicing-syntax-class struct-options
     #:description "typed structure type options"
-    #:attributes (guard mutable? transparent? [prop 1] [prop-val 1])
+    #:attributes (guard mutable? transparent? prefab? [prop 1] [prop-val 1])
     (pattern (~seq (~or (~optional (~seq (~and #:mutable mutable?)))
                         (~optional (~seq (~and #:transparent transparent?)))
+                        (~optional (~seq (~and #:prefab prefab?)))
                         ;; FIXME: unsound, but relied on in core libraries
                         ;; #:guard ought to be supportable with some work
                         ;; #:property is harder
@@ -651,14 +652,16 @@ This file defines two sorts of primitives. All of them are provided into any mod
      (syntax-parse stx
        [(_ vars:maybe-type-vars nm:struct-name/new (fs:fld-spec ...)
            opts:struct-options)
-        (let ([mutable? (if (attribute opts.mutable?) #'(#:mutable) #'())])
+        (let ([mutable? (if (attribute opts.mutable?) #'(#:mutable) #'())]
+              [prefab?  (if (attribute opts.prefab?) #'(#:prefab) #'())])
           (with-syntax ([d-s (ignore (quasisyntax/loc stx
                                        (struct #,@(attribute nm.new-spec) (fs.fld ...)
                                                . opts)))]
                         [dtsi (quasisyntax/loc stx
                                 (dtsi* (vars.vars ...)
                                        nm.old-spec (fs.form ...)
-                                       #,@mutable?))])
+                                       #,@mutable?
+                                       #,@prefab?))])
             ;; see comment above
             (if (eq? (syntax-local-context) 'top-level)
                 #'(begin (eval (quote-syntax d-s))

@@ -402,9 +402,18 @@
   ;; This should eventually be based on understanding of struct properties.
   [#:key '(struct procedure)])
 
+;; Represents prefab structs
+;; key  : prefab key encoding mutability, auto-fields, etc.
+;; flds : the types of all of the prefab fields
+(def-type Prefab ([key prefab-key?]
+                  [flds (listof Type/c)])
+  [#:frees (λ (f) (combine-frees (map f flds)))]
+  [#:fold-rhs (*Prefab key (map type-rec-id flds))]
+  [#:key 'prefab])
+
 ;; A structure type descriptor
 (def-type StructTypeTop () [#:fold-rhs #:base] [#:key 'struct-type])
-(def-type StructType ([s (or/c F? B? Struct?)]) [#:key 'struct-type])
+(def-type StructType ([s (or/c F? B? Struct? Prefab?)]) [#:key 'struct-type])
 
 ;; the supertype of all of these values
 (def-type BoxTop () [#:fold-rhs #:base] [#:key 'box])

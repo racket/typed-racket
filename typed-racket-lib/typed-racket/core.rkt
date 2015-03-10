@@ -113,7 +113,8 @@
                        (cond [(andmap equal? tgs tcs) ""]
                              [indented?
                               (format "\n[more precisely: ~a]"
-                                      (pretty-format-type (make-Values tcs) #:indent 17))]
+                                      (pretty-format-type (make-Values (map -result tcs))
+                                                          #:indent 17))]
                              [else (format " [more precisely: ~a]" (cons 'Values tcs))])
                        ;; did any get pruned?
                        (cond [(andmap equal? t tcs) ""]

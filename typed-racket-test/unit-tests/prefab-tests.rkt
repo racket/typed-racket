@@ -77,4 +77,14 @@
   (check-true (prefab-key-subtype? '(foo 1 (0 #f) #() bar 1 (0 #f) #())
                                    '(bar 1 (0 #f) #())))
   (check-false (prefab-key-subtype? '(foo 1 (0 #f) #())
-                                    '(bar 1 (0 #f) #())))))
+                                    '(bar 1 (0 #f) #())))
+
+  (check-equal? (prefab-key->field-mutability
+                 '(foo 1 (0 #f) #() bar 1 (0 #f) #()))
+                (list #f #f))
+  (check-equal? (prefab-key->field-mutability
+                 '(foo 2 (0 #f) #(0) bar 3 (0 #f) #(1)))
+                (list #f #t #f #t #f))
+  (check-equal? (prefab-key->field-mutability
+                 '(foo 2 (0 #f) #(0) bar 3 (0 #f) #(1) baz 1 (0 #f) #(0)))
+                (list #t #f #t #f #t #f))))

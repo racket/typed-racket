@@ -14,7 +14,9 @@
                        [abbreviate-prefab-key
                         (-> prefab-key? prefab-key?)]
                        [prefab-key-subtype?
-                        (-> prefab-key? prefab-key? any)])
+                        (-> prefab-key? prefab-key? any)]
+                       [prefab-key->field-mutability
+                        (-> prefab-key? (listof boolean?))])
 
 ;; Convert a prefab key to its expanded version
 (define (normalize-prefab-key key field-length)
@@ -110,3 +112,16 @@
 (define (suffix? l1 l2)
   (for/or ([n (in-range (add1 (length l2)))])
     (equal? (drop l2 n) l1)))
+
+;; Returns a list of flags indicating the mutability of prefab struct types
+;; in order from parent to the children (#t is mutable, #f is not)
+;; Precondition: the key is fully expanded
+(define (prefab-key->field-mutability key)
+  (let loop ([key key])
+    (cond [(null? key) null]
+          [else
+           (match-define (list sym len auto mut parents ...) key)
+           (define mut-list (vector->list mut))
+           (append (loop parents)
+                   (for/list ([idx (in-range len)])
+                     (and (member idx mut-list) #t)))])))

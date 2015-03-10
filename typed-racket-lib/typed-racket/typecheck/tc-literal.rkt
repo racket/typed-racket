@@ -133,7 +133,7 @@
 (define (tc-prefab struct-inst expected)
   (define expected-ts
     (match (and expected (resolve expected))
-      [(Prefab: _ ts) (in-list ts)]
+      [(Prefab: _ ts) (in-sequence-forever (in-list ts) #f)]
       [_ (in-cycle (in-value #f))]))
   (define key (prefab-struct-key struct-inst))
   (define struct-vec (struct->vector struct-inst))

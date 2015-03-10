@@ -557,7 +557,17 @@
          [((Prefab: k1 ss) (Prefab: k2 ts))
           (and (prefab-key-subtype? k1 k2)
                (and (>= (length ss) (length ts))
-                    (subtypes* A0 (take ss (length ts)) ts)))]
+                    (for/fold ([A A0])
+                              ([s (in-list (take ss (length ts)))]
+                               [t (in-list ts)]
+                               [mut? (in-list (prefab-key->field-mutability k2))]
+                               #:break (not A))
+                      (and A
+                           (if mut?
+                               (subtype-seq A
+                                            (subtype* t s)
+                                            (subtype* s t))
+                               (subtype* A s t))))))]
          ;; subtyping on values is pointwise, except special case for Bottom
          [((Values: (list (Result: (== -Bottom) _ _))) _)
           A0]

@@ -13,7 +13,7 @@
            (utils tc-utils)
            (rep free-variance type-rep filter-rep object-rep rep-utils)
            (types utils abbrev numeric-tower union subtype resolve
-                  substitute generalize)
+                  substitute generalize prefab)
            (env index-env tvar-env))
           make-env -> ->* one-of/c)
          "constraint-structs.rkt"
@@ -548,10 +548,16 @@
              (% cset-meet proc-c (cgen/flds context flds flds*)))]
 
           ;; two prefab structs with the same key
-          [((Prefab: k flds) (Prefab: k* flds*))
-           #:when (equal? k k*)
-           ;; FIXME: should account for mutable fields
-           (cgen/list context flds flds*)]
+          [((Prefab: k ss) (Prefab: k* ts))
+           #:when (and (prefab-key-subtype? k k*)
+                       (>= (length ss) (length ts)))
+           (% cset-meet*
+              (for/list/fail ([s (in-list (take ss (length ts)))]
+                              [t (in-list ts)]
+                              [mut? (in-list (prefab-key->field-mutability k*))])
+                (if mut?
+                    (cgen/inv context s t)
+                    (cgen context s t))))]
 
           ;; two struct names, need to resolve b/c one could be a parent
           [((Name: n _ #t) (Name: n* _ #t))

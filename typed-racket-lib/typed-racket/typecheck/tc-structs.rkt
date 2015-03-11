@@ -56,9 +56,8 @@
 
 
 ;; parse name field of struct, determining whether a parent struct was specified
-;; syntax any -> (values identifier Option[Name] Option[Struct])
 (define/cond-contract (parse-parent nm/par prefab?)
-  (c:-> syntax? (values identifier? (c:or/c Name? #f) (c:or/c Mu? Poly? Struct? Prefab? #f)))
+  (c:-> syntax? c:any/c (values identifier? (c:or/c Name? #f) (c:or/c Mu? Poly? Struct? Prefab? #f)))
   (syntax-parse nm/par
     [v:parent
       (if (attribute v.par)

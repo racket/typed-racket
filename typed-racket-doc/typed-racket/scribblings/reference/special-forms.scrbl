@@ -377,7 +377,7 @@ those functions.
 (struct maybe-type-vars name-spec ([f : t] ...) options ...)
 ([maybe-type-vars code:blank (v ...)]
  [name-spec name (code:line name parent)]
- [options #:transparent #:mutable])]{
+ [options #:transparent #:mutable #:prefab])]{
  Defines a @rtech{structure} with the name @racket[name], where the
  fields @racket[f] have types @racket[t], similar to the behavior of @|struct-id|
  from @racketmodname[racket/base].
@@ -390,7 +390,12 @@ parent type is instantiated with a prefix of the type variables matching the
 amount it needs.
 
 Options provided have the same meaning as for the @|struct-id| form
-from @racketmodname[racket/base].}
+from @racketmodname[racket/base].
+
+A prefab structure type declaration will bind the given @racket[name] to a
+@racket[Prefab] type. Unlike in @racketmodname[racket/base], a non-prefab
+structure type cannot extend a prefab structure type.
+}
 
 
 @defform/subs[

@@ -382,12 +382,23 @@ those functions.
  fields @racket[f] have types @racket[t], similar to the behavior of @|struct-id|
  from @racketmodname[racket/base].
   When @racket[parent] is present, the
-structure is a substructure of @racket[parent].  When
-@racket[maybe-type-vars] is present, the structure is polymorphic in the type
+structure is a substructure of @racket[parent].
+
+@ex[
+  (struct camelia-sinensis ([age : Integer]))
+  (struct camelia-sinensis-assamica camelia-sinensis ())
+]
+
+When @racket[maybe-type-vars] is present, the structure is polymorphic in the type
  variables @racket[v]. If @racket[parent] is also a polymorphic struct, then
 there must be at least as many type variables as in the parent type, and the
 parent type is instantiated with a prefix of the type variables matching the
 amount it needs.
+
+@ex[
+  (struct (X Y) 2-tuple ([first : X] [second : Y]))
+  (struct (X Y Z) 3-tuple 2-tuple ([first : X] [second : Y] [third :  Z]))
+]
 
 Options provided have the same meaning as for the @|struct-id| form
 from @racketmodname[racket/base].
@@ -395,6 +406,12 @@ from @racketmodname[racket/base].
 A prefab structure type declaration will bind the given @racket[name] to a
 @racket[Prefab] type. Unlike in @racketmodname[racket/base], a non-prefab
 structure type cannot extend a prefab structure type.
+
+@ex[
+  (struct a-prefab ([x : String]) #:prefab)
+  (:type a-prefab)
+  (struct not-allowed a-prefab ())
+]
 }
 
 

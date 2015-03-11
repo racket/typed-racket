@@ -25,12 +25,14 @@
         any/c)
   (let/ec exit*
     (define (exit) (exit* A))
-    (define-values (compound-props atoms) 
-      (combine-props (apply append (map flatten-nested-props new-props)) 
-                     (env-props env) 
-                     exit))
+    (define-values (compound-props atoms sli*) 
+      (let* ([sli (env-SLI env)]
+             [envprops (if sli (cons sli (env-props env)) (env-props env))])
+        (combine-props (apply append (map flatten-nested-props new-props)) 
+                       envprops
+                       exit)))
     (define env* 
-      (for/fold ([Γ (replace-props env '())]) ([f (in-list atoms)])
+      (for/fold ([Γ (replace-SLI (replace-props env '()) sli*)]) ([f (in-list atoms)])
         (match f
           [(or (TypeFilter: t obj) (NotTypeFilter: t obj))
            (update-env/type Γ obj t (TypeFilter? f) exit)]
@@ -58,7 +60,13 @@
          null
          (list goal))]
     
-    [(AndFilter: fs) 
+    [(? SLI? s)
+     (if (and (env-SLI env) 
+              (SLI-implies? (env-SLI env) s))
+         null
+         (list goal))]
+    
+    [(AndFilter: fs)
      (let* ([fs* (apply append (map (curry logical-reduce A env obj) fs))]
             [f* (apply -and fs*)])
        (if (Top? f*)
@@ -92,6 +100,16 @@
         (or (not env*)
             (full-proves A env* obj ps goal*))]
        
+       [(? SLI? s)
+        (define sli* (SLI-join s (env-SLI env)))
+        (define env* (cond
+                       [(SLI-satisfiable? sli*) 
+                        (replace-SLI env sli*)]
+                       [else #f]))
+        (define goal* (and env* (apply -and (logical-reduce A env* obj goal))))
+        (or (not env*)
+            (full-proves A env* obj ps goal*))]
+       
        [(AndFilter: fs) (full-proves A env obj (append fs ps) goal)]
        
        ;; potential but unavoidable(?) performance ouch
@@ -101,13 +119,6 @@
     [_ (int-err "invalid assumption list: ~a" assumptions)]))
 
 ;; TODO(AMK) usage of ¬Type properties is still not complete
-
-
-;; TODO proves will not consider aliasing
-;; but... should it? who should? either the 
-;; sight generating props to prove,
-;; or we have to here
-
 
 (define/cond-contract (witnesses A env obj goal)
   (c:-> any/c env? (or/c LExp? Path?) (or/c TypeFilter? NotTypeFilter?)
@@ -133,7 +144,7 @@
 ;; TODO(AMK) 
 ;; there are more complex refinement cases to consider such as 
 ;; 1. what about updating refinements that cannot be deconstructed? (i.e. nested
-;;    inside other types?)
+;;    inside other types inside of unions?)
 (define/cond-contract (update-env/type env obj type positive? bottom-k)
   (c:-> env? Object? Type/c boolean? procedure?
         (c:or/c env? #f))

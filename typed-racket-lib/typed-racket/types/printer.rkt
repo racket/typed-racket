@@ -125,6 +125,12 @@
      `(ImpFilter ,(filter->sexp a) ,(filter->sexp c))]
     [(AndFilter: a) `(AndFilter ,@(map filter->sexp a))]
     [(OrFilter: a) `(OrFilter ,@(map filter->sexp a))]
+    [(? SLI? s) 
+     (define curried-sexp-lookup
+       (λ (ps) (let ([h (for/hash ([p (in-list ps)])
+                          (values (Rep-seq p) p))])
+                 (λ (pseq) (object->sexp (hash-ref h pseq))))))
+     (SLI->sexp s curried-sexp-lookup)]
     [else `(Unknown Filter: ,(struct->vector filt))]))
 
 ;; pathelem->sexp : PathElem -> S-expression

@@ -97,11 +97,12 @@
 (define (env+props env fs)
   (let/ec exit*
     (define (exit) (exit* #f empty))
-    (define-values (props atoms) (combine-props (apply append (map flatten-nested-props fs)) 
-                                                (env-props env)
-                                                exit))
+    (define-values (props atoms sli) 
+      (combine-props (apply append (map flatten-nested-props fs)) 
+                     (env-props env)
+                     exit))
     (values
-     (for/fold ([Γ (replace-props env props)]) ([f (in-list atoms)])
+     (for/fold ([Γ (replace-SLI (replace-props env props) sli)]) ([f (in-list atoms)])
        (match f
          [(or (TypeFilter: ft (Path: lo x)) (NotTypeFilter: ft (Path: lo x)))
           (update-type/lexical

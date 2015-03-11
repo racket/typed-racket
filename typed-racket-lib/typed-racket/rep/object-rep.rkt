@@ -11,9 +11,10 @@
          "../utils/utils.rkt" 
          (except-in racket/contract one-of/c)
          racket/match
+         racket/set
          (contract-req)
          fme
-         (for-syntax racket/base syntax/parse))
+         (for-syntax racket/base))
 
 (provide object-equal?
          LExp?
@@ -22,6 +23,8 @@
          LExp-paths
          LExp-multiply
          LExp-add
+         union-Path-lists
+         stop-right-there-do-not-use-to-make-sli
          (rename-out [LExp:* LExp:]
                      [LExp* make-LExp]))
 
@@ -46,10 +49,16 @@
   #:no-provide
   [#:intern exp]
   [#:frees (λ (f) (combine-frees (map f paths)))]
-  [#:fold-rhs (let ([c (lexp-const exp)]
-                    [paths* (map object-rec-id paths)]
-                    [coeffs (map (λ (p) (lexp-coeff exp p)) paths)])
-                (LExp* c coeffs paths*))])
+  [#:fold-rhs 
+   (let-values ([(paths* new-paths) 
+                 (for/fold ([paths* null]
+                            [new-paths (hash)])
+                           ([p (in-list paths)])
+                   (let ([p* (object-rec-id p)])
+                     (values (cons p* paths*)
+                             (hash-set new-paths (Rep-seq p) (Rep-seq p*)))))])
+     (*LExp (lexp-var-map (λ (p) (hash-ref new-paths (Rep-seq p))) exp)
+            paths*))])
 
 
 ;; represents no info about the object of this expression
@@ -130,15 +139,39 @@
         [else (make-LExp e* ps*)]))))
 
 
-(define (union-Path-lists ps1 ps2)
-  (match ps1
-    [(list) ps2]
-    [(cons p ps)
-     (let ([p-seq (Rep-seq p)])
+;; creates an SLI given a list of pairs
+;; (cons/c LExp? LExp?) each of which
+;; represent LExp <= LExp
+;; INTENDED FOR USE BY filter-rep.rkt!
+(define/cond-contract (stop-right-there-do-not-use-to-make-sli ineqs)
+  (-> (listof (cons/c LExp? LExp?)) (values sli? (listof Path?)))
+  (define-values (sli sli-ps)
+    (for/fold ([sli (set)]
+               [sli-ps null])
+              ([lte/gte (in-list ineqs)])
+      (match-let ([(cons (LExp: e-lhs ps-lhs)
+                         (LExp: e-rhs ps-rhs)) lte/gte])
+        (values (set-add sli (leq e-lhs e-rhs))
+                (cons ps-lhs (cons ps-rhs sli-ps))))))
+  
+  (values sli (apply union-Path-lists sli-ps)))
+
+
+(define (union-Path-lists . pss)
+  (let loop ([remainder (if (null? pss) pss (cdr pss))]
+             [acc-l (if (null? pss) null (car pss))]
+             [unique-paths (if (null? pss) #f (list->set (car pss)))])
+    (match remainder
+      [(list) acc-l]
+      [(cons (list) more-pss) 
+       (loop more-pss acc-l unique-paths)]
+      [(cons (cons p ps) more-pss)
+       (define p-seq (Rep-seq p))
        (cond
-         [(for/or ([p* (in-list ps2)]) 
-            (equal? p-seq (Rep-seq p*)))
-          (union-Path-lists ps ps2)]
-         [else
-          (union-Path-lists ps (cons p ps2))]))]))
+         [(set-member? unique-paths p-seq)
+          (loop (cons ps more-pss) acc-l unique-paths)]
+         [else 
+          (loop (cons ps more-pss) 
+                (cons p acc-l)
+                (set-add unique-paths p-seq))])])))
 

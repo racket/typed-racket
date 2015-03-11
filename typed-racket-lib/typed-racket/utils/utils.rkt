@@ -22,7 +22,7 @@ at least theoretically.
  genids genid)
 
 (define optimize? (make-parameter #t))
-(define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
+(define-for-syntax enable-contracts? (and #;(getenv "PLT_TR_CONTRACTS") #t))
 
 (define-syntax do-contract-req
   (if enable-contracts?

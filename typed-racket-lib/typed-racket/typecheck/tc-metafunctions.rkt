@@ -69,25 +69,37 @@
 (define/cond-contract (combine-props new-props old-props exit)
   ((listof Filter/c) (listof Filter/c) (-> none/c)
    . -> .
-   (values (listof (or/c ImpFilter? OrFilter?)) (listof (or/c TypeFilter? NotTypeFilter?))))
+   (values (listof (or/c ImpFilter? OrFilter?)) 
+           (listof (or/c TypeFilter? NotTypeFilter?))
+           (or/c SLI? #f)))
   
   (define-values (new-atoms new-formulas) 
-    (partition (λ (p) (or (TypeFilter? p) (NotTypeFilter? p))) 
+    (partition (λ (p) (or (TypeFilter? p) 
+                          (NotTypeFilter? p))) 
                (flatten-props new-props)))
   
   (let loop ([derived-formulas null]
              [derived-atoms new-atoms]
-             [worklist (append old-props new-formulas)])
+             [worklist (append old-props new-formulas)]
+             [sli #f])
     (match worklist
-      [(list) (values derived-formulas derived-atoms)]
+      [(list) (cond
+                [(not sli) (values derived-formulas derived-atoms #f)]
+                [(SLI-satisfiable? sli) 
+                 (values derived-formulas derived-atoms sli)]
+                [else (exit)])]
       [(cons next-prop ps)
        (match (resolve (append derived-atoms derived-formulas) next-prop)
-         [(? OrFilter? p)
-          (loop (cons p derived-formulas) derived-atoms ps)]
          [(or (? TypeFilter? a) (? NotTypeFilter? a)) 
-          (loop derived-formulas (cons a derived-atoms) ps)]
-         [(AndFilter: and-ps) (loop derived-formulas derived-atoms (append and-ps ps))]
-         [(Top:) (loop derived-formulas derived-atoms ps)]
+          (loop derived-formulas (cons a derived-atoms) ps sli)]
+         [(? SLI? s) (loop derived-formulas
+                           derived-atoms
+                           ps
+                           (if sli (SLI-join s sli) s))]
+         [(? OrFilter? p)
+          (loop (cons p derived-formulas) derived-atoms ps sli)]
+         [(AndFilter: and-ps) (loop derived-formulas derived-atoms (append and-ps ps) sli)]
+         [(Top:) (loop derived-formulas derived-atoms ps sli)]
          [(Bot:) (exit)])])))
 
 

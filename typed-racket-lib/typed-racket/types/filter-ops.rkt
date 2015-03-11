@@ -21,7 +21,8 @@
   [name-ref=? (c:-> name-ref/c name-ref/c boolean?)])
 
 (define (atomic-filter? p)
-  (or (TypeFilter? p) (NotTypeFilter? p)
+  (or (TypeFilter? p) 
+      (NotTypeFilter? p)
       (Top? p) (Bot? p)))
 
 ;; contradictory: Filter/c Filter/c -> boolean?
@@ -36,6 +37,8 @@
      (not (overlap t1 t2))]
     [((Bot:) _) #t]
     [(_ (Bot:)) #t]
+    [((? SLI? s1) (? SLI? s2))
+     (not (SLI-satisfiable? (SLI-join s1 s2)))]
     [(_ _) #f]))
 
 ;; complementary: Filter/c Filter/c -> boolean?
@@ -47,6 +50,8 @@
     [((NotTypeFilter: t2 p) (TypeFilter: t1 p))
      (subtype t2 t1)]
     [((Top:) (Top:)) #t]
+    ;; TODO(amk) I'm not sure if this is worth the cost?
+    ;; [((? SLI? s1) (? SLI? s2)) (complementary-SLIs? s1 s2)]
     [(_ _) #f]))
 
 (define (name-ref=? a b)
@@ -77,6 +82,8 @@
      (subtype t2 t1)]
     [((NotTypeFilter: t1 p) (TypeFilter: t2 p))
      (not (overlap t1 t2))]
+    [((? SLI? Q) (? SLI? P))
+     (SLI-implies? P Q)]
     [(_ _) #f]))
 
 (define (hash-name-ref i)
@@ -104,9 +111,9 @@
   (for ([prop (in-list atomics)])
     (match prop
       [(TypeFilter: t1 p)
-       ((if or? union-update restrict-update) tf-map t1 p) ]
+       ((if or? union-update restrict-update) tf-map t1 p)]
       [(NotTypeFilter: t1 p)
-       ((if or? restrict-update union-update) ntf-map t1 p) ]))
+       ((if or? restrict-update union-update) ntf-map t1 p)]))
   (define raw-results
     (append others
             (for/list ([(k v) (in-hash tf-map)]) (-filter v k))
@@ -141,7 +148,8 @@
     [((Bot:) _) -top]
     [(_ (Top:)) -top]
     [((Top:) _) p2]
-    [(_ (Bot:)) (invert-filter p1)]
+    [(_ (Bot:)) #:when (not (SLI? p1))
+     (invert-filter p1)]
     [(_ _) (make-ImpFilter p1 p2)]))
 
 (define (-simple-or . args)
@@ -207,7 +215,9 @@
       [(cons (AndFilter: elems) ands-rest)
        (apply -and (for/list ([a (in-list elems)])
                      (apply -or a (append ands-rest others))))]))
-  (let loop ([fs args] [result null])
+  (let loop ([fs args] 
+             [sli #f]
+             [result null])
     (match fs
       [(list) (distribute (compact result #t))]
       [(cons f fs*)
@@ -263,15 +273,25 @@
                (flatten-ands (remove-duplicates args eq? #:key Rep-seq))))
   (define-values (type-filters not-type-filters)
     (partition TypeFilter? filters))
-  (let loop ([fs (append type-filters not-type-filters other-args)] 
+  (let loop ([fs (append type-filters not-type-filters SLIs other-args)]
+             [sli #f]
              [result null])
     (match fs
-      [(list) (apply mk (compact result #f))]
+      [(list) (apply mk (if sli
+                            (cons sli (compact result #f))
+                            (compact result #f)))]
       [(cons f fs*)
        (match f
          [(and t (Bot:))
           t]
-         [(Top:) (loop fs* result)]
+         [(Top:) (loop fs* sli result)]
+         [(? SLI? s) 
+          (let ([sli* (if sli (SLI-join s sli) s)])
+            (cond
+              [(SLI-trivially-valid? sli*) 
+               (loop fs* #f result)]
+             [(SLI-satisfiable? sli*) (loop fs* sli* result)]
+             [else -bot]))]
          [t (cond 
               ;; check for contraditions with 'f' in the rest of 'fs'
               [(for/or ([f (in-list fs*)])
@@ -291,12 +311,12 @@
                         [(and (not thunk)
                               (or (= (Rep-seq f) t-seq)
                                   (implied-atomic? t f)))
-                         (inner-loop l* (λ () (loop fs* result)))]
+                         (inner-loop l* (λ () (loop fs* sli result)))]
                         [else (inner-loop l* thunk)])])))
                => (λ (thunk) (thunk))]
               ;; 'f' must be new info (as far as we care to check),
               ;; continue w/ 'f' in the result
-              [else (loop fs* (cons t result))])])])))
+              [else (loop fs* sli (cons t result))])])])))
 
 ;; add-unconditional-prop: tc-results? Filter/c? -> tc-results?
 ;; Ands the given proposition to the filters in the tc-results.

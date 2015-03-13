@@ -125,12 +125,7 @@
      `(ImpFilter ,(filter->sexp a) ,(filter->sexp c))]
     [(AndFilter: a) `(AndFilter ,@(map filter->sexp a))]
     [(OrFilter: a) `(OrFilter ,@(map filter->sexp a))]
-    [(? SLI? s) 
-     (define curried-sexp-lookup
-       (λ (ps) (let ([h (for/hash ([p (in-list ps)])
-                          (values (Rep-seq p) p))])
-                 (λ (pseq) (object->sexp (hash-ref h pseq))))))
-     (SLI->sexp s curried-sexp-lookup)]
+    [(? SLI? s) (SLI->sexp s object->sexp)]
     [else `(Unknown Filter: ,(struct->vector filt))]))
 
 ;; pathelem->sexp : PathElem -> S-expression
@@ -152,16 +147,7 @@
     [(NoObject:) '-]
     [(Empty:) '-]
     [(Path: pes i) (append (map pathelem->sexp pes) (list i))]
-    [(LExp: ps) (let ([const (LExp-const object)]
-                      [ps* (for/list ([p (in-list ps)])
-                             (let ([c (LExp-coeff object p)])
-                               (cond 
-                                 [(= 1 c) (object->sexp p)]
-                                 [else `(* ,c ,(object->sexp p))])))])
-                  (cond
-                    [(null? ps) const]
-                    [(zero? const) (cons '+ ps*)]
-                    [else (cons '+ (cons const ps*))]))]
+    [(? LExp? l) (LExp->sexp l object->sexp)]
     [else `(Unknown Object: ,(struct->vector object))]))
 
 ;; cover-union : Type LSet<Type> -> Listof<Symbol> Listof<Type>

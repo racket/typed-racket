@@ -17,8 +17,8 @@
        (test-case (~a '(new + existing = expected))
          (define success
            (let/ec exit
-             (define-values (res-formulas res-props) (combine-props new existing exit))
-             #,(syntax/loc stx (check-equal? (append res-formulas res-props) expected))
+             (define-values (res-formulas res-props res-SLIs) (combine-props new existing exit))
+             #,(syntax/loc stx (check-equal? (append res-formulas res-props res-SLIs) expected))
              #t))
          #,(syntax/loc stx (check-equal? success box-v))))]))
 

@@ -25,14 +25,13 @@
         any/c)
   (let/ec exit*
     (define (exit) (exit* A))
-    (define-values (compound-props atoms sli*) 
-      (let* ([sli (env-SLI env)]
-             [envprops (if sli (cons sli (env-props env)) (env-props env))])
-        (combine-props (apply append (map flatten-nested-props new-props)) 
-                       envprops
-                       exit)))
+    (define-values (compound-props atoms slis)
+      (combine-props (apply append (map flatten-nested-props new-props)) 
+                     (append (env-SLIs env) (env-props env))
+                     exit))
     (define env* 
-      (for/fold ([Γ (replace-SLI (replace-props env '()) sli*)]) ([f (in-list atoms)])
+      (for/fold ([Γ (replace-SLIs (replace-props env '()) slis)]) 
+                ([f (in-list atoms)])
         (match f
           [(or (TypeFilter: t obj) (NotTypeFilter: t obj))
            (update-env/type Γ obj t (TypeFilter? f) exit)]
@@ -61,8 +60,7 @@
          (list goal))]
     
     [(? SLI? s)
-     (if (and (env-SLI env) 
-              (SLI-implies? (env-SLI env) s))
+     (if (SLIs-imply? (env-SLIs env) s)
          null
          (list goal))]
     
@@ -101,11 +99,8 @@
             (full-proves A env* obj ps goal*))]
        
        [(? SLI? s)
-        (define sli* (SLI-join s (env-SLI env)))
-        (define env* (cond
-                       [(SLI-satisfiable? sli*) 
-                        (replace-SLI env sli*)]
-                       [else #f]))
+        (define slis* (add-SLI s (env-SLIs env)))
+        (define env* (if (Bot? slis*) #f (replace-SLIs env slis*)))
         (define goal* (and env* (apply -and (logical-reduce A env* obj goal))))
         (or (not env*)
             (full-proves A env* obj ps goal*))]

@@ -6,7 +6,7 @@
          (prefix-in c: (contract-req))
          (utils tc-utils)
          (logic proves)
-         (env lookup lexical-env)
+         (env lookup lexical-env type-env-structs)
          (rep type-rep object-rep filter-rep rep-utils)
          (except-in "../types/abbrev.rkt" one-of/c))
 
@@ -41,7 +41,13 @@
                       [(and ty (subtype t ty #:env env #:obj o)) -bot]
                       [else f]))]
                  [#:AndFilter fs (apply -and (map do-filter fs))]
-                 [#:OrFilter fs (apply -or (map do-filter fs))]))
+                 [#:OrFilter fs (apply -or (map do-filter fs))]
+                 [#:SLI sli 
+                        (let ([env-slis (env-SLIs env)])
+                          (cond
+                            [(SLIs-imply? env-slis sli) -top]
+                            [(Bot? (add-SLI sli env-slis)) -bot]
+                            [else sli]))]))
   
   (define (do-obj o)
     (object-case (#:Type do-type
@@ -58,7 +64,7 @@
 
 
 (define (update-function/arg-types arg-tys f-type)
-  ;; TODO support polymorphic functions?
+  ;; TODO support polymorphic functions
   ;; e.g. match-define: no matching clause for (All (a) (-> (Listof a) Index))
   ;; if match-define (Function: (list (arr: domss rngs rests drests kwss dep?s) ...))
   (match f-type

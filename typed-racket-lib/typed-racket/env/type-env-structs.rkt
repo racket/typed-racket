@@ -13,7 +13,7 @@
 (define-struct/cond-contract env ([types immutable-free-id-table?] 
                                   [props (listof Filter/c)]
                                   [aliases immutable-free-id-table?]
-                                  [sli (or/c #f SLI?)])
+                                  [SLIs (listof SLI?)])
   #:transparent
   #:property prop:custom-write
   (lambda (e prt mode)
@@ -23,8 +23,9 @@
   [env? predicate/c]
   [raw-lookup-type (env? identifier? (identifier? . -> . any) . -> . any)]
   [env-props (env? . -> . (listof Filter/c))]
-  [env-SLI (env? . -> . (or/c #f SLI?))]
+  [env-SLIs (env? . -> . (listof SLI?))]
   [replace-props (env? (listof Filter/c) . -> . env?)]
+  [replace-SLIs (env? (listof SLI?) . -> . env?)]
   [empty-env env?]
   [raw-lookup-alias (env? identifier? (identifier? . -> . (or/c #f Object?)) . -> . (or/c #f Object?))]
   [env-extract-props (env? . -> . (values env? (listof Filter/c)))]
@@ -34,20 +35,15 @@
                             . -> . env?)]
   [extend/aliases (env? (listof (cons/c identifier? (and/c Object?
                                                            (not/c Empty?)))) 
-                        . -> . env?)]
-  [env-SLI-satisfiable? (env? . -> . boolean?)])
+                        . -> . env?)])
 
 
 (define empty-env
   (env
-    (make-immutable-free-id-table)
-    null
-    (make-immutable-free-id-table)
-    #f))
-
-(define (env-SLI e)
-  (match-let ([(env _ _ _ sli) e])
-    sli))
+   (make-immutable-free-id-table)
+   null
+   (make-immutable-free-id-table)
+   null))
 
 (define (env-extract-props e)
   (match-let ([(env tys fs als sli) e])
@@ -57,9 +53,9 @@
   (match-let ([(env tys _ als sli) e])
     (env tys props als sli)))
 
-(define (replace-SLI e sli)
+(define (replace-SLIs e slis)
   (match-let ([(env tys props als _) e])
-    (env tys props als sli)))
+    (env tys props als slis)))
 
 (define (raw-lookup-type e key fail)
   (match-let ([(env tys _ _ _) e])

@@ -81,7 +81,7 @@
 ;; Constructors for Objects
 (define/cond-contract (-int-obj n)
   (c:-> exact-integer? LExp?)
-  (make-LExp n null null))
+  (make-LExp (list n)))
 
 (define/cond-contract (-car-of p)
   (c:-> (c:or/c Object? #f) (c:or/c Object? #f))

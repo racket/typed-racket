@@ -317,7 +317,7 @@
   (pattern ((~datum and) ps:proposition ...)
            #:attr prop (apply -and (attribute ps.prop)))
   (pattern ((~datum or) ps:proposition ...)
-           #:attr prop (apply -simple-or (attribute ps.prop))))
+           #:attr prop (apply -or (attribute ps.prop))))
 
 
 (define (parse-types stx-list)

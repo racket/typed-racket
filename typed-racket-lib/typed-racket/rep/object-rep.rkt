@@ -10,23 +10,30 @@
          "filter-rep.rkt" 
          "../utils/utils.rkt" 
          (except-in racket/contract one-of/c)
-         racket/match
-         racket/set
+         racket/match racket/dict
          (contract-req)
-         fme
          (for-syntax racket/base))
 
 (provide object-equal?
          LExp?
-         LExp-coeff
+         LExp-path-map
          LExp-const
+         LExp-set-const
+         LExp-coeffs
+         LExp-set-coeff
          LExp-paths
+         LExp-minus
+         LExp-plus
+         LExp-add1
+         LExp-simple?
+         constant-LExp?
+         LExp-scale
          LExp-multiply
-         LExp-add
-         union-Path-lists
-         stop-right-there-do-not-use-to-make-sli
+         LExp-has-var?
+         LExp->sexp
          (rename-out [LExp:* LExp:]
-                     [LExp* make-LExp]))
+                     [list->LExp make-LExp]
+                     [LExp-terms* LExp-terms]))
 
 (def-pathelem CarPE () [#:fold-rhs #:base])
 (def-pathelem CdrPE () [#:fold-rhs #:base])
@@ -45,21 +52,6 @@
   [#:frees (λ (f) (combine-frees (map f p)))]
   [#:fold-rhs (*Path (map pathelem-rec-id p) v)])
 
-(def-object LExp ([exp lexp?] [paths (listof Path?)])
-  #:no-provide
-  [#:intern exp]
-  [#:frees (λ (f) (combine-frees (map f paths)))]
-  [#:fold-rhs 
-   (let-values ([(paths* new-paths) 
-                 (for/fold ([paths* null]
-                            [new-paths (hash)])
-                           ([p (in-list paths)])
-                   (let ([p* (object-rec-id p)])
-                     (values (cons p* paths*)
-                             (hash-set new-paths (Rep-seq p) (Rep-seq p*)))))])
-     (*LExp (lexp-var-map (λ (p) (hash-ref new-paths (Rep-seq p))) exp)
-            paths*))])
-
 
 ;; represents no info about the object of this expression
 ;; should only be used for parsing type annotations and expected types
@@ -67,111 +59,226 @@
 
 (define (object-equal? o1 o2) (= (Rep-seq o1) (Rep-seq o2)))
 
-#|
-(dlo LEmpty () [#:fold-rhs #:base])
+(define empty-hash (hash))
 
-(dlo LPath ([p (listof PathElem?)] [idx index/c])
-  [#:frees (λ (f) (combine-frees (map f p)))]
-  [#:fold-rhs (*LPath (map pathelem-rec-id p) idx)])
-|#
 
-;; LExp ops
-;;******************************************************************************
-;; LExp functions that need access to raw lexp? 
-;; (the outside world only can access the paths
-;;  and use functions defined here)
-(define (LExp* const coeffs paths)
-  (let ([coeffs/paths (for/list ([c (in-list coeffs)]
-                                 [p (in-list paths)])
-                        (list c (Rep-seq p)))])
-    (*LExp (list->lexp (cons const coeffs/paths))
-           paths)))
+;; *****************************************************************************
+;; Linear Expressions and related operations
+(define-custom-hash-types path-hash
+  #:key? Path?
+  object-equal?
+  Rep-seq)
+(define empty-path-table (make-immutable-path-hash))
 
-(define/cond-contract (LExp-coeff l p)
-  (-> LExp? Path? exact-integer?)
-  (match l
-    [(LExp: e _) (lexp-coeff e (Rep-seq p))]))
+(def-object LExp ([const exact-integer?] 
+                  [terms immutable-path-hash?])
+  #:no-provide
+  [#:intern (list const terms)]
+  [#:frees (λ (f) (combine-frees (map f (dict-keys terms))))]
+  [#:fold-rhs ;; warning - this returns Empty if any subterm is converted to Empty
+   (LExp-path-map object-rec-id (*LExp const terms))])
 
-(define/cond-contract (LExp-const l)
-  (-> LExp? exact-integer?)
-  (match l
-    [(LExp: e _) (lexp-const e)]))
+;; LExp-path-map
+;; applies f to each Path p in the terms
+;; + forall p, if (f p) returns Empty for any p, Empty is returned
+;; + forall p, if (f p) returns a LExp, it is multiplied by the
+;;    coefficient of p and added to the LExp
+;; + forall p, if (f p) = some Path, we just swap p and (f p) basically
+(define/cond-contract (LExp-path-map f lexp)
+  (-> (-> Path? Object?) LExp? 
+      (or/c LExp? Empty?))
+  (define terms (LExp-terms* lexp))
+  (let/ec exit
+    (for/fold ([lexp* lexp])
+              ([p/c (in-dict-pairs terms)])
+      (match-define (cons orig-p orig-c) p/c)
+      (let ([new-o (f orig-p)])
+        (match new-o
+          [(Empty:) (exit new-o)]
+          [(? Path? p*) 
+           (if (object-equal? orig-p p*)
+               lexp*
+               (LExp-set-coeff (LExp-set-coeff lexp* orig-p 0) 
+                               orig-p
+                               0))]
+          [(? LExp? l) (LExp-plus (LExp-set-coeff lexp* orig-p 0) 
+                                  (LExp-scale l orig-c))])))))
+
+
+;; internal setter for coefficients of Paths
+;; doesn't let any elements with a coefficient of 0
+;; take up space in the dict
+(define/cond-contract (table-set-coeff h path i)
+  (-> immutable-path-hash? Path? exact-integer?
+      immutable-path-hash?)
+  (if (= 0 i)
+      (dict-remove h path)
+      (dict-set h path i)))
+
+;; internal getter for coefficients, defaults to 0 if
+;; not found (as expected mathematically)
+(define/cond-contract (table-get-coeff h path)
+  (-> immutable-path-hash? Path? exact-integer?)
+  (dict-ref h path 0))
+
+;; constructor for LExps
+(define/cond-contract (list->LExp terms)
+  (-> (listof (or/c exact-integer? (list/c exact-integer? Path?))) 
+      LExp?)
+  (define coef car)
+  (define var cadr)
+  (let loop ([c 0]
+             [h empty-path-table]
+             [terms terms])
+    (match terms
+      [`() (*LExp c h)]
+      [`((,a ,p) . ,terms*) 
+       (loop c 
+             (table-set-coeff h p (+ a (table-get-coeff h p)))
+             terms*)]
+      [`(,a . ,terms*) 
+       (loop (+ a c) h terms*)])))
+
+(define/cond-contract (LExp-set-const l c)
+  (-> LExp? exact-integer? LExp?)
+  (*LExp c (LExp-terms l)))
+
+;; returns the coefficients from this LExp
+;; (e.g. (LExp-coeffs (3x + 4y + z + 42)) 
+;;   produces '(1 3 4))
+(define/cond-contract (LExp-coeffs l)
+  (-> LExp? (listof exact-integer?))
+  (dict-values (LExp-terms l)))
+
+(define/cond-contract (LExp-set-coeff l x cx)
+  (-> LExp? Path? exact-integer? LExp?)
+  (match-let ([(LExp: c terms) l])
+    (*LExp c (table-set-coeff terms x cx))))
+
+;; returns the terms from this LExp as cons pairs
+;; of the form  (cons Variable Coefficient)
+;; (e.g. (LExp-terms (3x + 4y + z + 42)) 
+;;   produces '((x . 3) (y . 4) (z . 1)))
+(define/cond-contract (LExp-terms* l)
+  (-> LExp? (listof (cons/c Path? exact-integer?)))
+  (dict->list (LExp-terms l)))
+
+;; returns the Paths acting as the variables
+;; in this linear expression
+;; (e.g. (LExp-paths (3x + 4y + z + 42)) 
+;;   produces '(x y z))
+(define/cond-contract (LExp-paths l)
+  (-> LExp? (listof Path?))
+  (dict-keys (LExp-terms l)))
+
+
+;; LExp subtraction and addition helper
+(define/cond-contract (terms-plus/minus terms1 terms2 plus?)
+  (-> immutable-path-hash? immutable-path-hash? boolean?
+      immutable-path-hash?)
+  (define +/- (if plus? + -))
+  (for/fold ([terms terms1])
+            ([p2 (in-list (dict-keys terms2))])
+    (define p2-const 
+      (+/- (table-get-coeff terms1 p2)
+           (table-get-coeff terms2 p2)))
+    (table-set-coeff terms p2 p2-const)))
+
+;; l1 - l2
+(define/cond-contract (LExp-minus l1 l2)
+  (-> LExp? LExp? LExp?)
+  (match-let ([(LExp: c1 terms1) l1]
+              [(LExp: c2 terms2) l2])
+    (*LExp (- c1 c2)
+           (terms-plus/minus terms1 terms2 #f))))
+
+;; l1 + l2
+(define/cond-contract (LExp-plus l1 l2)
+  (-> LExp? LExp? LExp?)
+  (match-let ([(LExp: c1 terms1) l1]
+              [(LExp: c2 terms2) l2])
+    (*LExp (+ c1 c2)
+           (terms-plus/minus terms1 terms2 #t))))
+
+
+;; LExp-add1
+(define/cond-contract (LExp-add1 l)
+  (-> LExp? LExp?)
+  (match-define (LExp: c terms) l)
+  (*LExp (add1 c) terms))
+
+;; constant-LExp?
+;; returns #f if this LExp contains non-zero variables
+;; else returns the constant value of the LExp
+(define/cond-contract (constant-LExp? l)
+  (-> LExp? (or/c #f exact-integer?))
+  (match-define (LExp: c terms) l)
+  (and (dict-empty? terms)
+       c))
+
+
+;; LExp-scale
+;; multiplies all scalars in the LExp l by n
+(define/cond-contract (LExp-scale l n)
+  (-> LExp? exact-integer? LExp?)
+  (match-define (LExp: c terms) l)
+  (cond 
+    [(zero? n)
+     (*LExp 0 empty-path-table)]
+    [(= 1 n) l]
+    [else
+     (*LExp (* n c)
+            (for/fold ([h empty-path-table])
+                      ([p/c (in-hash-pairs terms)])
+              (match-define (cons p c) p/c)
+              (table-set-coeff h p (* n c))))]))
+
+(define/cond-contract (LExp-has-var? l x)
+  (-> LExp? Path? boolean?)
+  (not (zero? (table-get-coeff (LExp-terms l) x))))
 
 (define-match-expander LExp:*
   (lambda (stx)
     (syntax-case stx ()
-      [(_ ps) #'(? LExp? (app LExp-paths ps))])))
+      [(_ c ps/cs) 
+       #'(? LExp? (app (λ (l) (list (LExp-const l)
+                                    (LExp-terms* l))) 
+                       (list c ps/cs)))])))
 
-(define/cond-contract (scale-LExp l c)
-  (-> LExp? exact-integer? LExp?)
-  (match-let ([(LExp: e ps) l])
-    (let ([e* (lexp-scale e c)])
-      (if (lexp-zero? e*)
-          (make-LExp e* null)
-          (make-LExp e* ps)))))
-
+;; l1 * l2
+;; however, if the product is not a LExp
+;; then Empty is returned
 (define/cond-contract (LExp-multiply l1 l2)
-  (-> LExp? LExp? Object?)
+  (-> LExp? LExp? (or/c LExp? Empty?))
   (cond
-    [(lexp-constant? l1) 
-     => (λ (const) (scale-LExp l2 const))]
-    [(lexp-constant? l2) 
-     => (λ (const) (scale-LExp l1 const))]
+    [(constant-LExp? l1) 
+     => (λ (const) (LExp-scale l2 const))]
+    [(constant-LExp? l2)
+     => (λ (const) (LExp-scale l1 const))]
     [else -empty-obj]))
 
-(define (LExp-add l1 l2)
-  (-> LExp? LExp? (or/c LExp? Path?))
-  (match-let ([(LExp: e1 ps1) l1]
-              [(LExp: e2 ps2) l2])
-    (let* ([e* (lexp-plus e1 e2)]
-           [ps1* (filter (λ (p) (not (zero? (lexp-coeff e* (Rep-seq p))))) 
-                         ps1)]
-           [ps2* (filter (λ (p) (not (zero? (lexp-coeff e* (Rep-seq p))))) 
-                         ps2)]
-           [ps* (union-Path-lists ps1* ps2*)])
-      (cond
-        ;; if the linear expression is equivalent to just a Path, then just
-        ;; return that Path
-        [(and (= 1 (length ps*))
-              (= 1 (lexp-coeff e* (Rep-seq (car ps*))))
-              (zero? (lexp-const e*)))
-         (car ps*)]
-        [else (make-LExp e* ps*)]))))
+; lexp-simple?
+; IF the lexp (exp) contains only 1 variable and its coefficient
+; is 1 and furthermore (= 0 (lexp-const exp)) then that variable
+; THEN that variable is returned
+; ELSE it returns #f
+(define/cond-contract (LExp-simple? exp)
+  (-> LExp? (or/c #f Path?))
+  (match (LExp-terms* exp)
+    [(list (cons x 1)) 
+     (and (zero? (LExp-const exp))
+          x)]
+    [_ #f]))
 
-
-;; creates an SLI given a list of pairs
-;; (cons/c LExp? LExp?) each of which
-;; represent LExp <= LExp
-;; INTENDED FOR USE BY filter-rep.rkt!
-(define/cond-contract (stop-right-there-do-not-use-to-make-sli ineqs)
-  (-> (listof (cons/c LExp? LExp?)) (values sli? (listof Path?)))
-  (define-values (sli sli-ps)
-    (for/fold ([sli (set)]
-               [sli-ps null])
-              ([lte/gte (in-list ineqs)])
-      (match-let ([(cons (LExp: e-lhs ps-lhs)
-                         (LExp: e-rhs ps-rhs)) lte/gte])
-        (values (set-add sli (leq e-lhs e-rhs))
-                (cons ps-lhs (cons ps-rhs sli-ps))))))
-  
-  (values sli (apply union-Path-lists sli-ps)))
-
-
-(define (union-Path-lists . pss)
-  (let loop ([remainder (if (null? pss) pss (cdr pss))]
-             [acc-l (if (null? pss) null (car pss))]
-             [unique-paths (if (null? pss) #f (list->set (car pss)))])
-    (match remainder
-      [(list) acc-l]
-      [(cons (list) more-pss) 
-       (loop more-pss acc-l unique-paths)]
-      [(cons (cons p ps) more-pss)
-       (define p-seq (Rep-seq p))
-       (cond
-         [(set-member? unique-paths p-seq)
-          (loop (cons ps more-pss) acc-l unique-paths)]
-         [else 
-          (loop (cons ps more-pss) 
-                (cons p acc-l)
-                (set-add unique-paths p-seq))])])))
-
+(define (LExp->sexp l Path->sexp)
+  (match-define (LExp: c terms) l)
+  (cond
+    [(hash-empty? terms) c]
+    [else
+     (define terms*
+       (for/list ([x/c (in-dict-pairs terms)])
+         (match-define (cons x coeff) x/c)
+         (cond
+           [(= 1 coeff) (Path->sexp x)]
+           [else `(* ,coeff ,(Path->sexp x))])))
+     (cons '+ (if (zero? c) terms* (cons c terms*)))]))

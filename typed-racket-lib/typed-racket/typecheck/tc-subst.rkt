@@ -113,12 +113,13 @@
   (match obj
     [(Empty:) -empty-obj]
     [(Path: p nm) (make-Path p (add-scope nm))]
-    [(? LExp? l) (LExp-map add-scope/object l)]))
+    [(? LExp? l) (LExp-path-map add-scope/object l)]))
 
 ;; Substitution of objects into objects
 ;; This is o [o'/x] from the paper
 (define/cond-contract (subst-object t k o polarity)
   (-> Object? name-ref/c Object? boolean? Object?)
+  (define (sub-o o*) (subst-object o* k o polarity))
   (match t
     [(NoObject:) t]
     [(Empty:) t]
@@ -130,88 +131,82 @@
            [(NoObject:) -empty-obj]
            [(Path: p* i*) (make-Path (append p p*) i*)])
          t)]
-    [(? LExp? l) (LExp-map (λ (p) (subst-object p k o polarity)) l)]))
+    [(? LExp? l) (LExp-path-map sub-o l)]))
 
 ;; Substitution of objects into a filter in a filter set
 ;; This is ψ+ [o/x] and ψ- [o/x]
 (define/cond-contract (subst-filter f k o polarity)
   (-> Filter/c name-ref/c Object? boolean? Filter/c)
-  (define (ap f) (subst-filter f k o polarity))
-  (define (tf-matcher t p i maker)
-    (cond
-      [(name-ref=? i k)
-       (match o
-         [(Empty:)
-          (if polarity -top -bot)]
-         [_
-          (maker
-           (subst-type t k o polarity)
-           (-acc-path p o))])]
-      ;[(index-free-in? k t) (if polarity -top -bot)]
-      [else f]))
+  (define (sub-f f) (subst-filter f k o polarity))
+  (define (sub-o o*) (subst-object o* k o polarity))
   
   (match f
     [(ImpFilter: ant consq)
-     (-imp (subst-filter ant k o (not polarity)) (ap consq))]
-    [(AndFilter: fs) (apply -and (map ap fs))]
-    [(OrFilter: fs) (apply -or (map ap fs))]
+     (-imp (subst-filter ant k o (not polarity)) (sub-f consq))]
+    [(AndFilter: fs) (apply -and (map sub-f fs))]
+    [(OrFilter: fs) (apply -or (map sub-f fs))]
+    [(? SLI? s) (SLI-path-map sub-o s)]
     [(Bot:) -bot]
     [(Top:) -top]
-    [(TypeFilter: t (Path: p i))
-     (tf-matcher t p i -filter)]
-    [(NotTypeFilter: t (Path: p i))
-     (tf-matcher t p i -not-filter)]
-    [(or (TypeFilter: t (? LExp? l)))
-     (let ([l* (LExp-map (λ (p) (subst-object p k o polarity)) l)])
+    [(or (TypeFilter: t (Path: p i))
+         (NotTypeFilter: t (Path: p i)))
+     (define maker (if (TypeFilter? f) -filter -not-filter))
+     (cond
+       [(name-ref=? i k)
+        (match o
+          [(Empty:) (if polarity -top -bot)]
+          [_ (maker
+              (subst-type t k o polarity)
+              (-acc-path p o))])]
+       ;[(index-free-in? k t) (if polarity -top -bot)]
+       [else f])]
+    [(or (TypeFilter: t (? LExp? l))
+         (NotTypeFilter: t (? LExp? l)))
+     (define maker (if (TypeFilter? f) -filter -not-filter))
+     (let ([l* (LExp-path-map sub-o l)])
        (if (Empty? l*)
            (if polarity -top -bot)
-           (-filter (subst-type t k o polarity)
-                    l*)))]
-    [(or (NotTypeFilter: t (? LExp? l)))
-     (let ([l* (LExp-map (λ (p) (subst-object p k o polarity)) l)])
-       (if (Empty? l*)
-           (if polarity -top -bot)
-           (-not-filter (subst-type t k o polarity)
-                        l*)))]))
+           (maker (subst-type t k o polarity)
+                  l*)))]))
 
 ;; Determine if the object k occurs free in the given type
-(define (index-free-in? k a)
-  (let/ec
-   return
-   (define (for-object o)
-     (object-case (#:Type for-type)
-                  o
-                  [#:Path p i
-                          (if (name-ref=? i k)
-                              (return #t)
-                              o)]))
-   (define (for-type t)
-     (type-case (#:Type for-type #:Object for-object #:Filter for-filter)
-       t
-       [#:arr dom rng rest drest kws dep?
-              (let* ([st* (if (pair? k)
-                              (λ (t) (index-free-in? (add-scope k) t))
-                              for-type)])
-                (for-each for-type dom)
-                (st* rng)
-                (and rest (for-type rest))
-                (and drest (for-type (car drest)))
-                (for-each for-type kws)
-                ;; dummy return value
-                (make-arr* null Univ #:dep? dep?))]
-       [#:InstdRef type prop
-              (let* ([st* (if (pair? k)
-                              (λ (t) (index-free-in? (add-scope k) t))
-                              for-type)]
-                     [sf* (if (pair? k)
-                              (λ (f) (index-free-in? (add-scope k) f))
-                              for-filter)])
-                (st* type)
-                (sf* prop))]))
-    (define (for-filter f)
-      (filter-case (#:Type for-type #:Object for-object #:Filter for-filter)
-                   f))
-   (if (Type? a)
-       (for-type a)
-       (for-filter a))
-    #f))
+;(define (index-free-in? k a)
+;  (let/ec
+;   return
+;   (define (for-object o)
+;     (object-case (#:Type for-type)
+;                  o
+;                  [#:Path p i
+;                          (if (name-ref=? i k)
+;                              (return #t)
+;                              o)]))
+;   (define (for-type t)
+;     (type-case (#:Type for-type #:Object for-object #:Filter for-filter)
+;       t
+;       [#:arr dom rng rest drest kws dep?
+;              (let* ([st* (if (pair? k)
+;                              (λ (t) (index-free-in? (add-scope k) t))
+;                              for-type)])
+;                (for-each for-type dom)
+;                (st* rng)
+;                (and rest (for-type rest))
+;                (and drest (for-type (car drest)))
+;                (for-each for-type kws)
+;                ;; dummy return value
+;                (make-arr* null Univ #:dep? dep?))]
+;       [#:InstdRef type prop
+;              (let* ([st* (if (pair? k)
+;                              (λ (t) (index-free-in? (add-scope k) t))
+;                              for-type)]
+;                     [sf* (if (pair? k)
+;                              (λ (f) (index-free-in? (add-scope k) f))
+;                              for-filter)])
+;                (st* type)
+;                (sf* prop))]))
+;    (define (for-filter f)
+;      (filter-case (#:Type for-type #:Object for-object #:Filter for-filter)
+;                   f))
+;   (if (Type? a)
+;       (for-type a)
+;       (for-filter a))
+;    #f))

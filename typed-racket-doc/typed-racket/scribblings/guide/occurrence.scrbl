@@ -169,20 +169,26 @@ typecheck:
 (: f (Any -> Number))
 (define (f x) 
   (let ([y x])
+    (if (number? y) 
+        x
+        42)))
+                         
+(: g ((Pairof Any Any) -> Number))
+(define (g x) 
+  (let ([y (car x)]
+        [z (cdr x)])
     (cond
-      [(number? y) x]
-      [(and (pair? y) 
-            (number? (car y)))
-       (car x)]
+      [(number? y) (car x)]
+      [(number? (cdr x)) z]
       [else 42])))
 ]
 
-It also allows the typechecker to check programs which use macros 
+This allows the typechecker to check programs which use macros 
 that heavily rely on let-bindings internally (such as @racket[match]):
 
 @racketblock+eval[#:eval the-eval
-(: g (Any -> Number))
-(define (g x) 
+(: h (Any -> Number))
+(define (h x) 
   (match x
     [(? number?) x]
     [`(_ . (_ . ,(? number?))) (cddr x)]
@@ -190,6 +196,9 @@ that heavily rely on let-bindings internally (such as @racket[match]):
      (if (number? (caddr x))
          (car p)
          41)]
-    [_ 42]))    
-]
-
+    [_ 42]))
+] 
+ 
+Currently @racket[let]-aliasing is not supported when the type of a term
+being aliased is a type variable. @racket[let]-aliasing can be prevented 
+by adding an explicit type annotation to the variable being bound.

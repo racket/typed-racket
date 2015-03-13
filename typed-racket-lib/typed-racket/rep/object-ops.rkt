@@ -8,65 +8,10 @@
          fme)
 
 (provide -obj+
-         -obj*
-         LExp-map
-         constant-LExp?)
+         -obj*)
 
 ;; cannot lazy require since it's not a function =(
 (define -empty-obj (make-Empty))
-
-;;******************************************************************************
-;; LExp Functions
-
-;; applies f to each Path p in l
-;; for any Path p in l, if (f p) = Empty 
-;; then Empty is returned
-(define/cond-contract (LExp-map f l)
-  (-> (-> Path? Object?) LExp? Object?)
-  (match-define (LExp: ps) l)
-  (define-values (empty? coeffs paths* new-lexps) 
-    (for/fold ([empty? #f]
-               [coeffs null]
-               [paths null]
-               [new-lexps null])
-              ([p (in-list ps)])
-      (let ([p* (f p)])
-        (cond
-          ;; this is empty or we've prev had empty,
-          ;; just continue to failure
-          [(or empty?
-               (Empty? p*))
-           (values #t null null null)]
-          ;; result of (f p*) was a path
-          ;; just grab the old coeff
-          [(Path? p*) 
-           (values #f 
-                   (cons (LExp-coeff l p) coeffs)
-                   (cons p* paths)
-                   new-lexps)]
-          ;; the substitution produced a linear expression
-          ;; scale it with the old coeff and add it to the
-          ;; list of new-lexps
-          [(LExp? p*)
-           (values #f
-                   coeffs
-                   paths
-                   (cons (LExp-scale p* (LExp-coeff l p)) new-lexps))]
-          [else (int-error "unknown obj ~a" p*)]))))
-  
-  (let* ([lexp* (if contains-empty?
-                    -empty-obj
-                    (make-LExp (LExp-const l) coeffs paths*))])
-    (if (Empty? lexp*)
-        lexp*
-        (apply -obj+ lexp* new-lexps))))
-
-(define/cond-contract (constant-LExp? l)
-  (-> LExp? (or/c #f exact-integer?))
-  (cond
-    [(null? (LExp-paths l)) (LExp-const l)]
-    [else #f]))
-
 
 ;;******************************************************************************
 ;; Mathematical operations for Objects (potentially producing LExps)
@@ -83,10 +28,10 @@
   (match (list o1 o2)
     [(list-no-order (? Empty? o) _) o]
     [(list (? Path?) (? Path?))
-     (LExp-multiply (make-LExp 0 (list 1) (list o1))
-                     (make-LExp 0 (list 1) (list o2)))]
+     (LExp-multiply (make-LExp (list 0 (list 1 o1)))
+                     (make-LExp (list 0 (list 1 o2))))]
     [(list-no-order (? LExp? l) (? Path? p))
-     (LExp-multiply l (make-LExp 0 (list 1) (list p)))]
+     (LExp-multiply l (make-LExp (list 0 (list 1 p))))]
     [(list (? LExp?) (? LExp?))
      (LExp-multiply o1 o2)]))
 
@@ -104,8 +49,8 @@
   (match (list o1 o2)
     [(list-no-order (? Empty? o) _) o]
     [(list (? Path?) (? Path?))
-     (make-LExp 0 (list 1 1) (list o1 o2))]
+     (make-LExp (list (list 1 o1) (list 1 o2)))]
     [(list-no-order (? LExp? l) (? Path? p))
-     (LExp-add l (make-LExp 0 (list 1) (list p)))]
+     (LExp-plus l (make-LExp (list 1) (list p)))]
     [(list (? LExp?) (? LExp?))
-     (LExp-add o1 o2)]))
+     (LExp-plus o1 o2)]))

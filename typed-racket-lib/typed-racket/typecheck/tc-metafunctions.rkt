@@ -71,7 +71,7 @@
    . -> .
    (values (listof (or/c ImpFilter? OrFilter?)) 
            (listof (or/c TypeFilter? NotTypeFilter?))
-           (or/c SLI? #f)))
+           (listof SLI?)))
   
   (define-values (new-atoms new-formulas) 
     (partition (λ (p) (or (TypeFilter? p) 
@@ -81,25 +81,24 @@
   (let loop ([derived-formulas null]
              [derived-atoms new-atoms]
              [worklist (append old-props new-formulas)]
-             [sli #f])
+             [slis null])
     (match worklist
-      [(list) (cond
-                [(not sli) (values derived-formulas derived-atoms #f)]
-                [(SLI-satisfiable? sli) 
-                 (values derived-formulas derived-atoms sli)]
-                [else (exit)])]
+      [(list) (values derived-formulas derived-atoms slis)]
       [(cons next-prop ps)
        (match (resolve (append derived-atoms derived-formulas) next-prop)
          [(or (? TypeFilter? a) (? NotTypeFilter? a)) 
-          (loop derived-formulas (cons a derived-atoms) ps sli)]
-         [(? SLI? s) (loop derived-formulas
-                           derived-atoms
-                           ps
-                           (if sli (SLI-join s sli) s))]
+          (loop derived-formulas (cons a derived-atoms) ps slis)]
+         [(? SLI? s) (let ([slis* (add-SLI s slis)])
+                       (if (Bot? slis*)
+                           (exit)
+                           (loop derived-formulas
+                                 derived-atoms
+                                 ps
+                                 slis*)))]
          [(? OrFilter? p)
-          (loop (cons p derived-formulas) derived-atoms ps sli)]
-         [(AndFilter: and-ps) (loop derived-formulas derived-atoms (append and-ps ps) sli)]
-         [(Top:) (loop derived-formulas derived-atoms ps sli)]
+          (loop (cons p derived-formulas) derived-atoms ps slis)]
+         [(AndFilter: and-ps) (loop derived-formulas derived-atoms (append and-ps ps) slis)]
+         [(Top:) (loop derived-formulas derived-atoms ps slis)]
          [(Bot:) (exit)])])))
 
 

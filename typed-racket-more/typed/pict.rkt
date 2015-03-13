@@ -166,15 +166,17 @@
 
  [pin-over
   (cl->*
-    (-> -pict -Real -Real -pict)
+    (-> -pict -Real -Real -pict -pict)
     (-> -pict -pict-path
         (-> -pict -pict-path (-values (list -Real -Real)))
+        -pict
         -pict))]
  [pin-under
   (cl->*
-    (-> -pict -Real -Real -pict)
+    (-> -pict -Real -Real -pict -pict)
     (-> -pict -pict
         (-> -pict -pict (-values (list -Real -Real)))
+        -pict
         -pict))]
 
  [table

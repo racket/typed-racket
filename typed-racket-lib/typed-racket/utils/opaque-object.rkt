@@ -40,6 +40,7 @@
 (define ((object/c-opaque-proj ctc) blame)
   (λ (obj)
     (match-define (base-object/c-opaque
+                   base-ctc
                    methods method-ctcs
                    fields field-ctcs)
                   ctc)
@@ -67,9 +68,14 @@
     (((contract-projection guard/c) blame) obj)))
 
 (struct base-object/c-opaque
-  (method-names method-ctcs field-names field-ctcs)
+  (obj/c ; keep a copy of the normal object/c for first-order checks
+   method-names method-ctcs field-names field-ctcs)
   #:property prop:contract
   (build-contract-property
+   #:first-order (λ (ctc)
+                   (define obj/c (base-object/c-opaque-obj/c ctc))
+                   (λ (val)
+                     (contract-first-order-passes? obj/c val)))
    #:projection object/c-opaque-proj))
 
 (begin-for-syntax
@@ -90,11 +96,13 @@
   (syntax-parse stx
    [(_ ?clause:object/c-clause ...)
     (syntax/loc stx
-      (base-object/c-opaque
-       (append ?clause.method-names ...)
-       (append ?clause.method-ctcs ...)
-       (append ?clause.field-names ...)
-       (append ?clause.field-ctcs ...)))]))
+      (let ([names  (append ?clause.method-names ...)]
+            [ctcs   (append ?clause.method-ctcs ...)]
+            [fnames (append ?clause.field-names ...)]
+            [fctcs  (append ?clause.field-ctcs ...)])
+        (base-object/c-opaque
+         (dynamic-object/c names ctcs fnames fctcs)
+         names ctcs fnames fctcs)))]))
 
 ;; This contract combinator prevents the method call if the target
 ;; method is typed (assuming that the caller is untyped or the receiving

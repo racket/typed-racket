@@ -100,6 +100,7 @@
          (begin-for-syntax
           (module* #%type-decl #f
                    (#%plain-module-begin ;; avoid top-level printing and config
+                    (#%declare #:empty-namespace) ;; avoid binding info from here
                     (require typed-racket/types/numeric-tower typed-racket/env/type-name-env
                              typed-racket/env/global-env typed-racket/env/type-alias-env
                              typed-racket/types/struct-table typed-racket/types/abbrev

@@ -407,6 +407,7 @@
            (begin-for-syntax
              (module* #%type-decl #f
                (#%plain-module-begin ;; avoid top-level printing and config
+                (#%declare #:empty-namespace) ;; avoid binding info from here
                 (require typed-racket/types/numeric-tower typed-racket/env/type-name-env
                          typed-racket/env/global-env typed-racket/env/type-alias-env
                          typed-racket/types/struct-table typed-racket/types/abbrev
@@ -469,8 +470,9 @@
            ;; itself) at the runtime of typed modules that don't need
            ;; them. This is similar to the reason for the
            ;; `#%type-decl` submodule. 
-           (module* #%contract-defs #f 
+           (module* #%contract-defs #f
              (#%plain-module-begin
+              (#%declare #:empty-namespace) ;; avoid binding info from here
               #,extra-requires
               new-defs ...)))
        #`(begin

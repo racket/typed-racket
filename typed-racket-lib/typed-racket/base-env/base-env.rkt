@@ -87,7 +87,7 @@
 [real->floating-point-bytes (->opt -Real (one-of/c  4 8) [Univ -Bytes -Nat] -Bytes)]
 [system-big-endian? (-> B)]
 
-[order-of-magnitude (-> -PosReal -Int)]
+[order-of-magnitude (cl-> [(-PosInt) -Nat] [(-PosReal) -Int])]
 
 ;; Section 4.2.5.3 (ExtFlonum-Bytes Conversions)
 [floating-point-bytes->extfl (->opt -Bytes [Univ -Nat -Nat] -ExtFlonum)]

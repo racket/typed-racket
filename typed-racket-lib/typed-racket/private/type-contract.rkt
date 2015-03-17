@@ -534,6 +534,31 @@
     (loop t typed-side recursive-values))
   (define (t->sc/neg t #:recursive-values (recursive-values recursive-values))
     (loop t (flip-side typed-side) recursive-values))
+
+  ;; handle-range : Arr (-> Static-Contact) -> Static-Contract
+  ;; Match the range of an arr and determine if a contract can be generated
+  ;; and call the given thunk or raise an error
+  (define (handle-range arr convert-arr)
+    (match arr
+      ;; functions with no filters or objects
+      [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws)
+       (convert-arr)]
+      ;; Functions that don't return
+      [(arr: dom (Values: (list (Result: (== -Bottom) _ _) ...)) rst drst kws)
+       (convert-arr)]
+      ;; functions with filters or objects
+      [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws)
+       (if (from-untyped? typed-side)
+           (fail #:reason (~a "cannot generate contract for function type"
+                              " with filters or objects."))
+           (convert-arr))]
+      [(arr: dom (? ValuesDots?) rst drst kws)
+       (fail #:reason (~a "cannot generate contract for function type"
+                          " with dotted return values"))]
+      [(arr: dom (? AnyValues?) rst drst kws)
+       (fail #:reason (~a "cannot generate contract for function type"
+                          " with unknown return values"))]))
+
   (match f
     [(Function: arrs)
      ;; Try to generate a single `->*' contract if possible.
@@ -551,18 +576,24 @@
       ;;  2 and 6, which is wrong.
       ;; TODO sufficient condition, but may not be necessary
       [(has-optional-args? arrs)
-       (match* ((first arrs) (last arrs))
-         [((arr: first-dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst #f kws)
-           (arr: last-dom _ _ _ _)) ; all but dom is the same for all
-          (define mand-args (map t->sc/neg first-dom))
-          (define opt-args (map t->sc/neg (drop last-dom (length first-dom))))
-          (define-values (mand-kws opt-kws)
-            (let*-values ([(mand-kws opt-kws) (partition-kws kws)])
-              (values (map conv mand-kws)
-                      (map conv opt-kws))))
-          (define range (map t->sc rngs))
-          (define rest (and rst (listof/sc (t->sc/neg rst))))
-          (function/sc (process-dom mand-args) opt-args mand-kws opt-kws rest range)])]
+       (define first-arr (first arrs))
+       (define last-arr (last arrs))
+       (define (convert-arr)
+         (match-define (arr: first-dom (Values: (list (Result: rngs _ _) ...))
+                             rst _ kws)
+                       first-arr)
+         ;; all but dom is the same for all arrs
+         (match-define (arr: last-dom _ _ _ _) last-arr)
+         (define mand-args (map t->sc/neg first-dom))
+         (define opt-args (map t->sc/neg (drop last-dom (length first-dom))))
+         (define-values (mand-kws opt-kws)
+           (let*-values ([(mand-kws opt-kws) (partition-kws kws)])
+             (values (map conv mand-kws)
+                     (map conv opt-kws))))
+         (define range (map t->sc rngs))
+         (define rest (and rst (listof/sc (t->sc/neg rst))))
+         (function/sc (process-dom mand-args) opt-args mand-kws opt-kws rest range))
+       (handle-range first-arr convert-arr)]
       [else
        (define ((f case->) a)
          (define (convert-arr arr)
@@ -588,25 +619,7 @@
                                                       #:recursive-values
                                                         (hash-set recursive-values (cdr drst) (same any/sc))))))
                     (map t->sc rngs))))]))
-         (match a
-           ;; functions with no filters or objects
-           [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws)
-            (convert-arr a)]
-           ;; Functions that don't return
-           [(arr: dom (Values: (list (Result: (== -Bottom) _ _) ...)) rst drst kws)
-            (convert-arr a)]
-           ;; functions with filters or objects
-           [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws)
-            (if (from-untyped? typed-side)
-                (fail #:reason (~a "cannot generate contract for function type"
-                                   " with filters or objects."))
-                (convert-arr a))]
-           [(arr: dom (? ValuesDots?) rst drst kws)
-            (fail #:reason (~a "cannot generate contract for function type"
-                               " with dotted return values"))]
-           [(arr: dom (? AnyValues?) rst drst kws)
-            (fail #:reason (~a "cannot generate contract for function type"
-                               " with unknown return values"))]))
+         (handle-range a (λ () (convert-arr a))))
        (define arities
          (for/list ([t arrs])
            (match t

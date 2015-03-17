@@ -178,6 +178,18 @@
               (t/fail (-> ManyUniv)
                       "unknown return values")
 
+              ;; Github Issue #50
+              (t (cl->* (-> -String -Bottom) (-> -String -Symbol -Bottom)))
+              (t (make-Function
+                  (list (make-arr* (list -String) -Boolean
+                                   #:kws (list (make-Keyword '#:key Univ #t))
+                                   #:filters (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
+                        (make-arr* (list -String Univ) -Boolean
+                                   #:kws (list (make-Keyword '#:key Univ #t))
+                                   #:filters (-FS (-filter -Symbol 0) (-not-filter -Symbol 0))))))
+              (t/fail (cl->* (-> -String ManyUniv) (-> -String Univ ManyUniv))
+                      "unknown return values")
+
               (t/fail
                 (make-Function
                   (list (make-arr* (list) -Boolean #:kws (list (make-Keyword '#:key Univ #f)))

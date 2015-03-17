@@ -51,7 +51,9 @@
          (let/ec exit
            (let ([contract (type->contract v (λ (#:reason [reason #f])
                                                 (exit (or reason "No reason given"))))])
-             (with-check-info (('contract (syntax->datum contract)))
+             (match-define (list ctc-defs ctc) contract)
+             (define ctc-data (map syntax->datum (append ctc-defs (list ctc))))
+             (with-check-info (('contract ctc-data))
                (fail-check "type could be converted to contract")))))
        (unless (regexp-match? expected-reason reason)
          (with-check-info (('reason reason))

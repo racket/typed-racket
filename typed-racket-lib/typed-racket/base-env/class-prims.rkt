@@ -5,7 +5,6 @@
 (require (prefix-in untyped: racket/class)
          "class-clauses.rkt"
          "colon.rkt"
-         "../typecheck/internal-forms.rkt"
          "../private/class-literals.rkt"
          "../utils/typed-method-property.rkt"
          (only-in "prims.rkt" [define tr:define])
@@ -18,6 +17,7 @@
           syntax/kerncase
           syntax/parse
           syntax/stx
+          "../typecheck/internal-forms.rkt"
           "annotate-classes.rkt"
           "../private/syntax-properties.rkt"
           "../utils/disarm.rkt"

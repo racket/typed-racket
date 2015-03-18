@@ -1,13 +1,25 @@
 #lang racket/base
 
+;; This module defined both Typed Racket-internal forms (such as
+;; `define-type-alias-internal`, which is part of the expansion of
+;; `define-type`) as well as syntax classes that recognize them and
+;; functions that create them. 
+
+;; Since the forms themselves are needed by all Typed Racket programs,
+;; they are defined in a `forms` submodule that does _not_ depend on
+;; this module itself. That module has a `literal-set` submodule that
+;; defines a literal set for use with `syntax/parse`. The further
+;; submodule is again to avoid dependency.
+
 (require
   syntax/parse
   (for-syntax racket/base racket/syntax
               syntax/parse syntax/parse/experimental/template)
-  (for-label racket/base))
+  (for-label racket/base) ;; used for identifier comparison only
+  (for-template racket/base))
 
 (provide
-  (for-syntax internal)
+  internal
 
   type-alias
   type-refinement
@@ -23,23 +35,31 @@
   typed-struct?
   typed-struct/exec?)
 
-;; Forms
-(define-syntax-rule (internal-forms set-name nms ...)
-  (begin
-    (provide nms ... set-name)
-    (define-literal-set set-name (nms ...))
-    (define-syntax (nms stx) (raise-syntax-error 'typecheck "Internal typechecker form used out of context" stx)) ...))
+(module forms racket/base
+  (require (for-syntax racket/base))
+  ;; Forms
+  (define-syntax-rule (internal-forms set-name nms ...)
+    (begin
+      (provide nms ...)
+      (module* literal-set #f
+        (require syntax/parse)
+        (provide set-name)
+        (define-literal-set set-name (nms ...)))
+      (define-syntax (nms stx)
+        (raise-syntax-error 'typecheck "Internal typechecker form used out of context" stx)) ...))
+  
+  (internal-forms internal-literals
+                  require/typed-internal
+                  define-type-alias-internal
+                  define-type-internal
+                  define-typed-struct-internal
+                  define-typed-struct/exec-internal
+                  assert-predicate-internal
+                  declare-refinement-internal
+                  :-internal
+                  typecheck-fail-internal))
 
-(internal-forms internal-literals
- require/typed-internal
- define-type-alias-internal
- define-type-internal
- define-typed-struct-internal
- define-typed-struct/exec-internal
- assert-predicate-internal
- declare-refinement-internal
- :-internal
- typecheck-fail-internal)
+(require (submod "." forms) (submod "." forms literal-set))
 
 
 
@@ -130,10 +150,9 @@
   (pattern (quote (typecheck-fail-internal stx message:str var))))
 
 ;;; Internal form creation
-(begin-for-syntax
-  (define (internal stx)
-    (quasisyntax/loc stx
-      (define-values ()
-        (begin
-          (quote #,stx)
-          (#%plain-app values))))))
+(define (internal stx)
+  (quasisyntax/loc stx
+    (define-values ()
+      (begin
+        (quote #,stx)
+        (#%plain-app values)))))

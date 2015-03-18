@@ -1,6 +1,7 @@
 #lang s-exp "type-env-lang.rkt"
 
-(require "../types/abbrev.rkt" "../types/union.rkt" "../types/numeric-tower.rkt" "../rep/type-rep.rkt")
+(require "../types/abbrev.rkt" "../types/union.rkt"
+         "../types/numeric-tower.rkt" "../rep/type-rep.rkt")
 
 [Complex -Number]
 [Number -Number]

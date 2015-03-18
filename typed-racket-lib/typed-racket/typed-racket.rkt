@@ -3,7 +3,13 @@
 (require
  (for-syntax racket/base racket/lazy-require
              "standard-inits.rkt")
- (for-syntax "utils/timing.rkt")) ;; only for timing/debugging
+ ;; these need to be available to the generated code
+ "typecheck/renamer.rkt"
+ (for-syntax (submod "base-env/prims-contract.rkt" self-ctor))
+ (for-syntax "utils/struct-extraction.rkt")
+ (for-syntax "typecheck/renamer.rkt")
+ ;; only for timing/debugging
+ (for-syntax "utils/timing.rkt"))
 
 (provide (rename-out [module-begin #%module-begin]
                      [top-interaction #%top-interaction])

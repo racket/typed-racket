@@ -4,7 +4,7 @@
                      "../private/parse-classes.rkt"
                      "../utils/disappeared-use.rkt"
                      (only-in "../utils/tc-utils.rkt" tc-error/stx))
-         "../typecheck/internal-forms.rkt"
+         (submod "../typecheck/internal-forms.rkt" forms)
          (prefix-in t: "base-types-extra.rkt"))
 
 (provide :)

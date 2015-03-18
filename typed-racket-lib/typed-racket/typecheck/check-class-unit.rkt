@@ -19,8 +19,8 @@
          (rep object-rep type-rep)
          (for-syntax racket/base)
          (for-template racket/base
+                       (submod "internal-forms.rkt" forms)
                        (private class-literals)
-                       (typecheck internal-forms)
                        (utils typed-method-property)))
 
 (import tc-expr^)

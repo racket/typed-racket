@@ -1,7 +1,6 @@
 #lang racket/base
 
-(require
-  (for-syntax racket/base racket/lazy-require syntax/parse))
+(require (for-syntax racket/base racket/lazy-require syntax/parse))
 
 (begin-for-syntax
   (lazy-require [(submod "." implementation)

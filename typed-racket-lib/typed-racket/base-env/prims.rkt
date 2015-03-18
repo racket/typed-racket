@@ -2,19 +2,24 @@
 
 #|
 
-This file defines two sorts of primitives. All of them are provided into any module using the typed racket language.
+This file defines two sorts of primitives. All of them are provided into any module using
+the typed racket language.
 
 1. macros for defining type annotated code.
    this includes: lambda:, define:, etc
-   potentially, these macros should be replacements for the mzscheme ones in the user program
+   potentially, these macros should be replacements for the Racket ones in the user program
    however, it's nice to be able to use both when the sugar is more limited
    for example: (define ((f x) y) (+ x y))
+
+   Some of these are provided even in `typed/racket/base` where the corresponding
+   untyped version is not provided by `racket/base` (such as `for/set`).
 
 2. macros for defining 'magic' code
    examples: define-typed-struct, require/typed
    these expand into (ignored) mzscheme code, and declarations that a typechecker understands
-   in order to protect the declarations, they are wrapped in `#%app void' so that local-expand of the module body
-   will not expand them on the first pass of the macro expander (when the stop list is ignored)
+   in order to protect the declarations, they are wrapped in `#%app void' so that local-expand
+   of the module body will not expand them on the first pass of the macro expander (when the
+   stop list is ignored)
 
 3. contracted versions of built-in racket values such as parameters and prompt tags
    that are defined in "base-contracted.rkt"
@@ -1178,7 +1183,8 @@ This file defines two sorts of primitives. All of them are provided into any mod
 ;; than -define
 (define-syntax (define: stx)
   (syntax-parse stx #:literals (:)
-    [(define: (nm:id . formals:annotated-formals) (~describe "return type annotation" (~seq : ret-ty)) body ...)
+    [(define: (nm:id . formals:annotated-formals)
+       (~describe "return type annotation" (~seq : ret-ty)) body ...)
      (with-syntax ([arrty (syntax/loc stx (formals.arg-ty ... -> ret-ty))])
        (quasisyntax/loc stx
          (-define nm : arrty
@@ -1322,7 +1328,13 @@ This file defines two sorts of primitives. All of them are provided into any mod
                                     (set! vs new-vs)]
                  [else  (unsafe-vector-set! vs i v)])
            (set! i (unsafe-fx+ i 1)))
-         (vector-copy vs 0 i)))]))
+         (cond 
+          [(= i (vector-length vs)) vs]
+          ;; We inline `vector-copy` to avoid a dependency.
+          ;; The vector-ref here ensures that we have a well-typed initial element.
+          [else (define new-vs (ann (make-vector i (vector-ref vs 0)) T))
+                (vector-copy! new-vs 1 vs 1 i)
+                new-vs])))]))
 
 (define-for-syntax (base-for/vector: stx for:)
   (syntax-parse stx #:literals (:)
@@ -1389,13 +1401,17 @@ This file defines two sorts of primitives. All of them are provided into any mod
          (flvector-copy xs 0 i)))]))
 
 (define-syntax-rule (for/flvector: e ...)
-  (base-for/flvector: for: Flonum flvector make-flvector unsafe-flvector-ref unsafe-flvector-set! flvector-copy e ...))
+  (base-for/flvector: for: Flonum flvector make-flvector
+                      unsafe-flvector-ref unsafe-flvector-set! flvector-copy e ...))
 
 (define-syntax-rule (for*/flvector: e ...)
-  (base-for/flvector: for*: Flonum flvector make-flvector unsafe-flvector-ref unsafe-flvector-set! flvector-copy e ...))
+  (base-for/flvector: for*: Flonum flvector make-flvector
+                      unsafe-flvector-ref unsafe-flvector-set! flvector-copy e ...))
 
 (define-syntax-rule (for/extflvector: e ...)
-  (base-for/flvector: for: ExtFlonum extflvector make-extflvector unsafe-extflvector-ref unsafe-extflvector-set! extflvector-copy e ...))
+  (base-for/flvector: for: ExtFlonum extflvector make-extflvector unsafe-extflvector-ref
+                      unsafe-extflvector-set! extflvector-copy e ...))
 
 (define-syntax-rule (for*/extflvector: e ...)
-  (base-for/flvector: for*: ExtFlonum extflvector make-extflvector unsafe-extflvector-ref unsafe-extflvector-set! extflvector-copy e ...))
+  (base-for/flvector: for*: ExtFlonum extflvector make-extflvector unsafe-extflvector-ref
+                      unsafe-extflvector-set! extflvector-copy e ...))

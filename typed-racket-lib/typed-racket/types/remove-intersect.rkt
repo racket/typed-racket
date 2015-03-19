@@ -58,14 +58,12 @@
          [kt (Type-key t2)]
          [A* (remember t1s t2s A)])
     (cond
+      [(or (Bottom? t1) (Bottom? t2)) #f]
       [(type-equal? t1 t2) A*]
       [(seen? t1s t2s A) A]
-      [(and (symbol? ks) (symbol? kt) (not (eq? ks kt))) 
-       #f]
-      [(and (symbol? ks) (pair? kt) (not (memq ks kt))) 
-       #f]
-      [(and (symbol? kt) (pair? ks) (not (memq kt ks))) 
-       #f]
+      [(and (symbol? ks) (symbol? kt) (not (eq? ks kt))) #f]
+      [(and (symbol? ks) (pair? kt) (not (memq ks kt))) #f]
+      [(and (symbol? kt) (pair? ks) (not (memq kt ks))) #f]
       [(and (pair? ks) (pair? kt)
             (for/and ([i (in-list ks)]) (not (memq i kt))))
        #f]

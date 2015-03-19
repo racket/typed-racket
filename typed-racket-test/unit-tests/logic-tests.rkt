@@ -15,7 +15,7 @@
   (for/and ([goal (in-list goals)])
       (simple-proves assumptions goal)))
 
-(define-syntax-rule (SLI-imp-w/and assumptions goals)
+(define-syntax-rule (SLI-imp/and assumptions goals)
   (simple-proves assumptions (apply -and goals)))
 
 (define (id sym)
@@ -127,6 +127,20 @@
      (simple-proves (list (-and P ¬Q)) 
                     (¬ (-imp P Q)))
      "Conditional Negation2"))
+   
+   (test-suite
+    "Simple Invalid Implications"
+    (check-false
+     (simple-proves (list (-or P Q R) ¬Q)
+                    R))
+    (check-false
+     (simple-proves (list P Q R)
+                    (-and P ¬P)))
+    (check-false
+     (simple-proves (list (-filter -Nat (id 'x))
+                          (-not-filter -NegInt (id 'x))
+                          (-filter -Number (id 'x)))
+                    (-filter -NegInt (id 'x)))))
    
    (test-suite 
     "Misc Proofs"
@@ -346,142 +360,5 @@
                                       (-id-lexp (1 x) (1 r) (1 q))))
                           (-sli (-leq (-id-lexp (1 t))
                                       (-id-lexp))))))
-   
-   #;(test-suite
-      "SLI proofs w/ -and"
-      
-      ;; 4 <= 3 is false
-      (check-false (SLI-imp-w/and (-sli)
-                                  (-sli (-leq (-id-lexp 4)
-                                              (-id-lexp 3)))))
-      ;; P and ~P --> false
-      (check-not-false (SLI-imp-w/and (-sli (-leq (-id-lexp) (-id-lexp (1 a)))
-                                            (leq-negate (-leq (-id-lexp) (-id-lexp (1 a)))))
-                                      (-sli (-leq (-id-lexp 4)
-                                                  (-id-lexp 3)))))
-      
-      
-      ;; x + y <= z; 0 <= y; 0 <= x --> x <= z /\ y <= z
-      (check-not-false (SLI-imp-w/and (-sli (-leq (-id-lexp (1 x) (1 y))
-                                                  (-id-lexp (1 z)))
-                                            (-leq (-id-lexp)
-                                                  (-id-lexp (1 y)))
-                                            (-leq (-id-lexp)
-                                                  (-id-lexp (1 x))))
-                                      (-sli (-leq (-id-lexp (1 x))
-                                                  (-id-lexp (1 z)))
-                                            (-leq (-id-lexp (1 y))
-                                                  (-id-lexp (1 z))))))
-      
-      ;; x + y <= z; 0 <= y; 0 <= x -/-> x <= z /\ y <= q
-      (check-false (SLI-imp-w/and (-sli (-leq (-id-lexp (1 x) (1 y))
-                                              (-id-lexp (1 z)))
-                                        (-leq (-id-lexp)
-                                              (-id-lexp (1 y)))
-                                        (-leq (-id-lexp)
-                                              (-id-lexp (1 x))))
-                                  (-sli (-leq (-id-lexp (1 x))
-                                              (-id-lexp (1 z)))
-                                        (-leq (-id-lexp (1 y))
-                                              (-id-lexp (1 q))))))
-      
-      ;; 7x <= 29 --> x <= 4
-      (check-not-false (SLI-imp-w/and (-sli (-leq (-id-lexp (7 x))
-                                                  (-id-lexp 29)))
-                                      (-sli (-leq (-id-lexp (1 x))
-                                                  (-id-lexp 4)))))
-      ;; 7x <= 28 --> x <= 4
-      (check-not-false (SLI-imp-w/and (-sli (-leq (-id-lexp (7 x))
-                                                  (-id-lexp 28)))
-                                      (-sli (-leq (-id-lexp (1 x))
-                                                  (-id-lexp 4)))))
-      ;; 7x <= 28 does not --> x <= 3
-      (check-false (SLI-imp-w/and (-sli (-leq (-id-lexp (7 x))
-                                              (-id-lexp 28)))
-                                  (-sli (-leq (-id-lexp (1 x))
-                                              (-id-lexp 3)))))
-      
-      
-      ;; 7x <= 27 --> x <= 3
-      (check-not-false (SLI-imp-w/and (-sli (-leq (-id-lexp (7 x))
-                                                  (-id-lexp 27)))
-                                      (-sli (-leq (-id-lexp (1 x))
-                                                  (-id-lexp 3)))))
-      
-      ;; 4x+3y+9z+20q-100r + 42 <= 4x+3y+9z+20q+100r; 
-      ;; x <= y + z; 
-      ;; 29r <= x + y + z + q; 
-      ;; 0 <= x;  
-      ;; 0 <= x + y + z; 
-      ;; 0 <= x + z; 
-      ;; x <= z
-      ;; z + 1 <= t
-      ;; 0 <= x + y;
-      ;; 0 <= x + r;
-      ;; 0 <= x + r + q;
-      ;; -->
-      ;; 0 <= t
-      (check-not-false (SLI-imp-w/and (-sli (-leq (-id-lexp (4 x) (3 y) (9 z) (20 q) (-100 r) 42)
-                                                  (-id-lexp (4 x) (3 y) (9 z) (20 q) (100 r)))
-                                            (-leq (-id-lexp (1 x))
-                                                  (-id-lexp (1 y) (1 z)))
-                                            (-leq (-id-lexp (29 r))
-                                                  (-id-lexp (1 x) (1 y) (1 z) (1 q)))
-                                            (-leq (-id-lexp)
-                                                  (-id-lexp (1 x)))
-                                            (-leq (-id-lexp)
-                                                  (-id-lexp (1 x) (1 y) (1 z)))
-                                            (-leq (-id-lexp)
-                                                  (-id-lexp (1 x) (1 z)))
-                                            (-leq (-id-lexp (1 x))
-                                                  (-id-lexp (1 z)))
-                                            (-leq (-id-lexp (1 z) 1)
-                                                  (-id-lexp (1 t)))
-                                            (-leq (-id-lexp)
-                                                  (-id-lexp (1 x) (1 y)))
-                                            (-leq (-id-lexp)
-                                                  (-id-lexp (1 x) (1 r)))
-                                            (-leq (-id-lexp)
-                                                  (-id-lexp (1 x) (1 r) (1 q))))
-                                      (-sli (-leq (-id-lexp)
-                                                  (-id-lexp (1 t))))))
-      
-      ;; 4x+3y+9z+20q-100r + 42 <= 4x+3y+9z+20q+100r; 
-      ;; x <= y + z; 
-      ;; 29r <= x + y + z + q; 
-      ;; 0 <= x;  
-      ;; 0 <= x + y + z; 
-      ;; 0 <= x + z; 
-      ;; x <= z
-      ;; z + 1 <= t
-      ;; 0 <= x + y;
-      ;; 0 <= x + r;
-      ;; 0 <= x + r + q;
-      ;; -/->
-      ;; t <= 0
-      (check-false (SLI-imp-w/and (-sli (-leq (-id-lexp (4 x) (3 y) (9 z) (20 q) (-100 r) 42)
-                                              (-id-lexp (4 x) (3 y) (9 z) (20 q) (100 r)))
-                                        (-leq (-id-lexp (1 x))
-                                              (-id-lexp (1 y) (1 z)))
-                                        (-leq (-id-lexp (29 r))
-                                              (-id-lexp (1 x) (1 y) (1 z) (1 q)))
-                                        (-leq (-id-lexp)
-                                              (-id-lexp (1 x)))
-                                        (-leq (-id-lexp)
-                                              (-id-lexp (1 x) (1 y) (1 z)))
-                                        (-leq (-id-lexp)
-                                              (-id-lexp (1 x) (1 z)))
-                                        (-leq (-id-lexp (1 x))
-                                              (-id-lexp (1 z)))
-                                        (-leq (-id-lexp (1 z) 1)
-                                              (-id-lexp (1 t)))
-                                        (-leq (-id-lexp)
-                                              (-id-lexp (1 x) (1 y)))
-                                        (-leq (-id-lexp)
-                                              (-id-lexp (1 x) (1 r)))
-                                        (-leq (-id-lexp)
-                                              (-id-lexp (1 x) (1 r) (1 q))))
-                                  (-sli (-leq (-id-lexp (1 t))
-                                              (-id-lexp))))))
    
    ))

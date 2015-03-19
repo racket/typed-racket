@@ -3512,6 +3512,37 @@
        [tc-err (ann (vector-ref (ann (vector "hi") (Vectorof String)) 0) Symbol)
                #:msg #rx"Polymorphic function.*could not be applied"]
        
+       ;; better tracking negative facts about types
+       [tc-e
+        (let () 
+          (: foo (Any -> Number))  
+          (define foo (λ (x) (cond
+                               [(not (string? x))
+                                (cond 
+                                  [(string? x) "dead code"]
+                                  [else 42])]
+                               [else 42])))
+          
+          (: bar (Any -> Number))  
+          (define bar (λ (x) (cond
+                               [(and (pair? x)
+                                     (not (string? (car x))))
+                                (cond 
+                                  [(string? (car x)) "dead code"]
+                                  [else 42])]
+                               [else 42])))
+          
+          (: baz (Any -> Number))  
+          (define baz (λ (x) (cond
+                               [(and (pair? x)
+                                     (not (string? (cdr x))))
+                                (cond 
+                                  [(string? (cdr x)) "dead code"]
+                                  [else 42])]
+                               [else 42])))
+          (void))
+        -Void]
+       
        ;; basic dependent typing checks
        [tc-e 
         (let ()

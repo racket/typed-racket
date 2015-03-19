@@ -49,7 +49,6 @@
 (define/cond-contract (lookup-id-not-type id env #:fail [fail #f])
   (c:->* (identifier? env?) (#:fail (c:or/c #f (c:-> any/c (c:or/c Type/c #f))))
          (c:or/c Type/c #f))
-  
   ;; resolve any alias, lookup/calculate type
   (define-values (π* id* id*-not-ty)
     (match (resolve-id-alias id env)
@@ -60,11 +59,10 @@
        (values null id #f)]
       [(Empty:) (values null id (raw-lookup-not-type env id fail))]))
   
-  
   (cond
     [id*-not-ty (if (null? π*)
                     id*-not-ty 
-                    (path-type π* id*-not-ty))]
+                    (path-type π* id*-not-ty))] ;; TODO(amk) correct?
     [fail (fail id)]
     [else -Bottom]))
 
@@ -75,7 +73,7 @@
     [(Path: π (? identifier? x))
      (let ([ty (lookup-id-not-type x env #:fail fail)])
        (cond 
-         [ty (path-type π ty)]
+         [ty (path-type π ty)] ;; TODO(amk) correct????
          [fail (fail o)]
          [else -Bottom]))]
     ;; ignore LExps specifics?

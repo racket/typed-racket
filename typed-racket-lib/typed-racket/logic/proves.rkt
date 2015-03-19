@@ -12,7 +12,7 @@
 
 (lazy-require
  ("../types/remove-intersect.rkt" (overlap))
- ("../types/path-type.rkt" (path-type))
+ ("../types/path-type.rkt" (path-type unpath-type))
  ("../types/filter-ops.rkt" (-and -or))
  ("../types/numeric-tower.rkt" (integer-type))
  ("../typecheck/tc-envops.rkt" (update))
@@ -20,6 +20,8 @@
  ("../types/union.rkt" (Un)))
 
 (provide proves witnesses update-env/atom simple-proves)
+
+(define Bottom (Un))
 
 (define (simple-proves axioms goal)
   (proves null empty-env axioms goal))
@@ -125,10 +127,11 @@
        (subtype (path-type π ty) ft #:A A #:env env #:obj o))]
     
     [(NotTypeFilter: ft (and o (Path: π x)))
-     (let ([ty (lookup-id-type x env #:fail (λ (_) Univ))]
-           [not-ty (lookup-id-not-type x env #:fail (λ (_) -Bottom))])
-       (or (subtype ft (path-type π not-ty #:fail-type -Bottom) #:A A #:env env #:obj o)
-           (not (overlap (path-type π ty) ft))))]
+     (let ([x-ty+ (lookup-id-type x env #:fail (λ (_) Univ))]
+           [x-ty- (lookup-id-not-type x env #:fail (λ (_) Bottom))]
+           [goal-x-ty- (path-type π ft)])
+       (or (subtype goal-x-ty- x-ty- #:A A #:env env #:obj o)
+           (not (overlap x-ty+ goal-x-ty-))))]
     
     ;;TODO(amk) These should take into account the ranges
     ;; implied by the integer numeric-type when possible
@@ -140,48 +143,74 @@
 
 
 
+;; remove from the negative type info types that are impossible
+;; based on the current positive facts in the environment
+(define/cond-contract (update-negative-type ty+ ty-)
+  (c:-> Type? Type? Type?)
+  (match ty-
+    [(Union: ts)
+     (apply Un (filter (curry overlap ty+) ts))]
+    [else (if (overlap ty+ ty-)
+              ty-
+              Bottom)]))
+
+(define/cond-contract (update-env/type+ A env t o contradiction)
+  (c:-> any/c env? Type? Object? (c:or/c #f procedure?)
+        (c:or/c env? #f))
+  (match o
+    [(Path: π x)
+     (define x-ty+ (lookup-id-type x env #:fail (λ (_) Univ)))
+     (define x-ty- (lookup-id-not-type x env #:fail (λ (_) Bottom)))
+     (define new-x-ty+ (update (update x-ty+ t #t π) x-ty- #f π))
+     (define new-x-ty- (update-negative-type new-x-ty+ x-ty-))
+     (cond
+       [(Bottom? new-x-ty+)
+        (contradiction)]
+       [(type-equal? new-x-ty- Univ) 
+        (contradiction)]
+       [else (naive-extend/not-type (naive-extend/type env x new-x-ty+) x new-x-ty-)])]
+    [(? LExp?)
+     ;; TODO(amk) maybe do something more complex here with LExp and SLI info?
+     (if (not (overlap (integer-type) t))
+         (contradiction)
+         env)]))
+
+(define/cond-contract (update-env/type- A env t o contradiction)
+  (c:-> any/c env? Type? Object? (c:or/c #f procedure?)
+        (c:or/c env? #f))
+  (match o
+    [(Path: π x)
+     (define x-ty+ (lookup-id-type x env #:fail (λ (_) Univ)))
+     (define new-x-ty+ (update x-ty+ t #f π))
+     (define x-ty- (lookup-id-not-type x env #:fail (λ (_) Bottom)))
+     (define new-neg-ty-info (unpath-type π t Bottom))
+     (define new-x-ty- (update-negative-type new-x-ty+ (Un x-ty- new-neg-ty-info)))
+     (cond
+       [(Bottom? new-x-ty+)
+        (contradiction)]
+       [(type-equal? new-x-ty- Univ)
+        (contradiction)]
+       [else
+        (naive-extend/not-type (naive-extend/type env x new-x-ty+) x new-x-ty-)])]
+    [(? LExp?)
+     ;; TODO(amk) maybe do something more complex here with LExp and SLI info?
+     (if (subtype (integer-type) t #:A A #:env env #:obj o)
+         (contradiction)
+         env)]))
+
 ;; TODO(AMK) 
 ;; there are more complex refinement cases to consider such as 
 ;; 1. what about updating refinements that cannot be deconstructed? (i.e. nested
 ;;    inside other types inside of unions?)
-(define/cond-contract (update-env/atom A env prop [bottom-k #f])
+(define/cond-contract (update-env/atom A env prop [contradiction #f])
   (c:-> any/c env? atomic-prop? (c:or/c #f procedure?)
         (c:or/c env? #f))
-  
-  (define (contradiction) (and bottom-k (bottom-k)))
   
   (match prop
     [(? Top?) env]
     [(? Bot?) (contradiction)]
     [(TypeFilter: t o)
-     (match o
-       [(Path: π x) 
-        (define old-ty (lookup-id-type x env #:fail (λ (_) Univ)))
-        (define not-ty (lookup-id-not-type x env #:fail (λ (_) -Bottom)))
-        (define new-ty (update (update old-ty t #t π) not-ty #f π))
-        (cond
-          [(type-equal? new-ty -Bottom)
-           (contradiction)]
-          [(type-equal? new-ty old-ty) env]
-          [else (naive-extend/type env x new-ty)])]
-       [(? LExp?)
-        ;; TODO(amk) maybe do something more complex here with LExp and SLI info?
-        (if (not (overlap (integer-type) t))
-            (contradiction)
-            env)])]
+     (update-env/type+ A env t o (λ () (and contradiction (contradiction))))]
     [(NotTypeFilter: t o)
-     (match o
-       [(Path: π x) 
-        (define old-not-ty (lookup-id-not-type x env #:fail (λ (_) -Bottom)))
-        (define new-not-ty (Un old-not-ty t))
-        (cond
-          [(type-equal? new-not-ty Univ)
-           (contradiction)]
-          [(type-equal? new-not-ty old-not-ty) env]
-          [else (naive-extend/not-type env x new-not-ty)])]
-       [(? LExp?)
-        ;; TODO(amk) maybe do something more complex here with LExp and SLI info?
-        (if (subtype (integer-type) t #:A A #:env env #:obj o)
-            (contradiction)
-            env)])]
+     (update-env/type- A env t o (λ () (and contradiction (contradiction))))]
     [_ (int-err "invalid update-env prop: ~a" prop)]))

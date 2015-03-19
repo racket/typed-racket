@@ -157,7 +157,8 @@
      (match o
        [(Path: π x) 
         (define old-ty (lookup-id-type x env #:fail (λ (_) Univ)))
-        (define new-ty (update old-ty t #t π))
+        (define not-ty (lookup-id-not-type x env #:fail (λ (_) -Bottom)))
+        (define new-ty (update (update old-ty t #t π) not-ty #f π))
         (cond
           [(type-equal? new-ty -Bottom)
            (contradiction)]

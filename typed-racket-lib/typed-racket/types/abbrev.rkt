@@ -370,4 +370,31 @@
 (define-syntax-rule (-object . ?clauses)
   (make-Instance (-class . ?clauses)))
 
+(define-syntax -ref
+  (syntax-rules ()
+    [(_ x t p) (let ([x #`#,(gensym 'x)])
+                 (make-Ref x t p))]))
+
+(define-syntax -iref
+  (syntax-rules ()
+    [(_ t p) (make-InstdRef t p)]))
+
+(define-syntax -sli
+  (syntax-rules ()
+    [(_ leqs ...) 
+     (leqs->SLIs (list leqs ...))]))
+
+(define-syntax -leq
+  (syntax-rules ()
+    [(_ lhs rhs) (leq lhs rhs)]))
+
+(define-syntax -id-lexp
+  (syntax-rules ()
+    [(_ term ...) 
+     (let*-values ([(nums terms) (partition exact-integer? (syntax->datum #'(term ...)))]
+                   [(terms*) (for/list ([zx (in-list terms)])
+                               (list (first zx) (-id-path (datum->syntax #f (second zx)))))]
+                   [(linexp) (append nums terms*)])
+       (make-LExp linexp))]))
+
 

@@ -18,7 +18,7 @@
  ("../types/path-type.rkt" (path-type))
  ("../typecheck/typechecker.rkt" (tc-literal)))
 
-(provide lookup-id-type lookup-obj-type resolve-id-alias)
+(provide lookup-id-type lookup-id-not-type lookup-obj-type lookup-obj-not-type resolve-id-alias)
 
 (define/cond-contract (lookup-id-type id env #:fail [fail #f])
   (c:->* (identifier? env?) (#:fail (c:or/c #f (c:-> any/c (c:or/c Type/c #f))))
@@ -45,6 +45,43 @@
             (path-type π* id*-ty))]
     [fail (fail id)]
     [else (lookup-fail id)]))
+
+(define/cond-contract (lookup-id-not-type id env #:fail [fail #f])
+  (c:->* (identifier? env?) (#:fail (c:or/c #f (c:-> any/c (c:or/c Type/c #f))))
+         (c:or/c Type/c #f))
+  
+  ;; resolve any alias, lookup/calculate type
+  (define-values (π* id* id*-not-ty)
+    (match (resolve-id-alias id env)
+      [(Path: π x)
+       (let ([x-not-ty (raw-lookup-not-type env x fail)])
+         (values π x x-not-ty))]
+      [(? LExp? l)
+       (values null id #f)]
+      [(Empty:) (values null id (raw-lookup-not-type env id fail))]))
+  
+  
+  (cond
+    [id*-not-ty (if (null? π*)
+                    id*-not-ty 
+                    (path-type π* id*-not-ty))]
+    [fail (fail id)]
+    [else -Bottom]))
+
+(define/cond-contract (lookup-obj-not-type o env #:fail [fail #f])
+  (c:->* (Object? env?) (#:fail (c:or/c #f (c:-> any/c (c:or/c Type/c #f))))
+         (c:or/c Type/c #f))
+  (match o
+    [(Path: π (? identifier? x))
+     (let ([ty (lookup-id-not-type x env #:fail fail)])
+       (cond 
+         [ty (path-type π ty)]
+         [fail (fail o)]
+         [else -Bottom]))]
+    ;; ignore LExps specifics?
+    [_ #:when fail (fail o)]
+    [_ -Bottom]))
+
 
 (define/cond-contract (lookup-obj-type o env #:fail [fail #f])
   (c:->* (Object? env?) (#:fail (c:or/c #f (c:-> any/c (c:or/c Type/c #f))))

@@ -342,7 +342,6 @@
                 [env (or env (lexical-env))])
             (proves A0
                     env
-                    obj
                     (list (-filter (subst-type x-t x obj #t) obj)
                           (subst-filter x-p x obj #t))
                     (-filter super-t obj)))]
@@ -351,7 +350,6 @@
                 [env (or env (lexical-env))]) 
             (proves A0
                     env
-                    obj
                     (list (-filter sub-t obj)) 
                     (-and (-filter (subst-type x-t x obj #t) obj)
                           (subst-filter x-p x obj #t))))]

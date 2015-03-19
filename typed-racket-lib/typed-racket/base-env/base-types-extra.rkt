@@ -17,7 +17,7 @@
 (define-other-types
   ->i -> ->* case-> U Rec All Opaque Vector
   Parameterof List List* Class Object Values Instance Refinement
-  pred Struct Struct-Type Top Bot where)
+  pred Struct Struct-Type Top Bot where Refine)
 
 (provide (rename-out [All ∀]
                      [U Un]

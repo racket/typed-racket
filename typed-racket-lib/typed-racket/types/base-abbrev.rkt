@@ -356,12 +356,3 @@
      (let ([var (-v var)])
        (make-PolyRow (list 'var) consts ty))]))
 
-(define-syntax -ref
-  (syntax-rules ()
-    [(_ x t p) (let ([x #`#,(gensym 'x)])
-                 (make-Ref x t p))]))
-
-(define-syntax -iref
-  (syntax-rules ()
-    [(_ t p) (make-InstdRef t p)]))
-

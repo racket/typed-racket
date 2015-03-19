@@ -111,19 +111,15 @@
              (-filter -Symbol #'x))
     )
 
-    (test-suite "Implication"
-      (check-equal? (-imp -bot (-filter -Symbol #'x)) -top)
-      (check-equal? (-imp -top (-filter -Symbol #'x)) (-filter -Symbol #'x))
-      (check-equal? (-imp (-filter -Symbol #'x) -top) -top)
-      (check-equal? (-imp (-filter -Symbol #'x) -bot) (-not-filter -Symbol #'x))
-      (check-equal? (-imp (-not-filter -Symbol #'x) -bot) (-filter -Symbol #'x))
-      (check-equal? (-imp (-imp (-not-filter -Symbol #'x) (-not-filter -Symbol #'y)) -bot)
-                    (-and (-not-filter -Symbol #'x) (-filter -Symbol #'y)))
-      (check-equal?
-        (-imp (-not-filter -Symbol #'x)
-              (-not-filter -Symbol #'y))
-        (make-ImpFilter (-not-filter -Symbol #'x)
-                        (-not-filter -Symbol #'y))))
+    (test-suite 
+     "Implication"
+     (check-equal? (-imp -bot (-filter -Symbol #'x)) -top)
+     (check-equal? (-imp -top (-filter -Symbol #'x)) (-filter -Symbol #'x))
+     (check-equal? (-imp (-filter -Symbol #'x) -top) -top)
+     (check-equal? (-imp (-filter -Symbol #'x) -bot) (-not-filter -Symbol #'x))
+     (check-equal? (-imp (-not-filter -Symbol #'x) -bot) (-filter -Symbol #'x))
+     (check-equal? (-imp (-imp (-not-filter -Symbol #'x) (-not-filter -Symbol #'y)) -bot)
+                   (-and (-not-filter -Symbol #'x) (-filter -Symbol #'y))))
 
     (test-suite "Simplification"
       (check-equal?

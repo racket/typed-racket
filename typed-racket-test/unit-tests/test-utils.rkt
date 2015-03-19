@@ -9,7 +9,10 @@
          (rep type-rep)
          rackunit rackunit/text-ui)
 
-(provide private typecheck (rename-out [infer r:infer]) utils env rep types base-env static-contracts
+(provide private 
+         typecheck 
+         (rename-out [infer r:infer]) 
+         utils env rep types logic base-env static-contracts
          (all-defined-out))
 
 ;; FIXME - do something more intelligent

@@ -4,8 +4,7 @@
          racket/match racket/lazy-require
          (except-in racket/contract one-of/c)
          ;(prefix-in c: (contract-req))
-         (rep object-rep rep-utils filter-rep)
-         fme)
+         (rep object-rep rep-utils filter-rep))
 
 (provide -obj+
          -obj*)

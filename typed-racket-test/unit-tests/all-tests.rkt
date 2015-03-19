@@ -19,6 +19,7 @@
              (list new-names ...))))]))
 
 (define-tests unit-tests
+  "logic-tests.rkt"
   "typecheck-tests.rkt"
   "subtype-tests.rkt"
   "type-equal-tests.rkt"

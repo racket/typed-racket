@@ -101,6 +101,7 @@
 (define-literal-syntax-class #:for-label Top)
 (define-literal-syntax-class #:for-label Bot)
 (define-literal-syntax-class #:for-label where)
+(define-literal-syntax-class #:for-label Refine)
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
@@ -340,7 +341,7 @@
       [(fst . rst)
        #:fail-unless (not (syntax->list #'rst)) #f
        (-pair (parse-type #'fst) (parse-type #'rst))]
-      [(x:id :colon^ t:non-keyword-ty (:where^ ps:proposition ...))
+      [(:Refine^ [x:id :colon^ t:non-keyword-ty] ps:proposition ...)
        (-iref (abstract-ident #'x (parse-type #'t)) 
               (abstract-ident #'x (apply -and (attribute ps.prop))))]
       [(:Class^ e ...)

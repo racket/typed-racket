@@ -11,9 +11,14 @@
 
 (require-for-cond-contract (rep rep-utils))
 
-(provide/cond-contract
- [path-type ((listof PathElem?) Type/c . -> . Type/c)])
+(provide path-type)
 
+(define-custom-set-types type-set
+  #:elem? Type?
+  type-equal?
+  Rep-seq)
+
+(define empty-type-set (make-immutable-type-set))
 
 ;; returns the result of following a path into a type
 ;; (Listof PathElem) Type -> Type
@@ -24,7 +29,13 @@
 ;; It is intentionally reset each time we decrease the
 ;; paths size on a recursive call, and maintained/extended
 ;; when the path does not decrease on a recursive call.
-(define (path-type path t [resolved (set)])
+(define/cond-contract (path-type path t [resolved empty-type-set] #:fail-type [fail-type #f])
+  (->* ((listof PathElem?) 
+        Type/c) 
+       (immutable-type-set?
+        #:fail-type (or/c #f Type/c))
+       Type/c)
+  
   (match* (t path)
     ;; empty path
     [(t (list)) t]
@@ -62,5 +73,5 @@
      (path-type path (resolve-once t) (set-add resolved t))]
     
     ;; type/path mismatch =(
-    [(_ _) Err]))
+    [(_ _) (or fail-type Err)]))
 

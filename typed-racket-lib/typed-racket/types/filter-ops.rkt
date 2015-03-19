@@ -17,7 +17,8 @@
   [add-unconditional-filter-all-args (c:-> Function? Type/c Function?)]
   [add-unconditional-prop (c:-> tc-results/c Filter/c tc-results/c)]
   [erase-filter (c:-> tc-results/c tc-results/c)]
-  [name-ref=? (c:-> name-ref/c name-ref/c boolean?)])
+  [name-ref=? (c:-> name-ref/c name-ref/c boolean?)]
+  [invert-filter (c:-> Filter/c Filter/c)])
 
 (define (atomic-filter? p)
   (or (TypeFilter? p) 
@@ -137,7 +138,8 @@
     [(NotTypeFilter: t p) (-filter t p)]
     [(AndFilter: fs) (apply -or (map invert-filter fs))]
     [(OrFilter: fs) (apply -and (map invert-filter fs))]
-    [(ImpFilter: f1 f2) (-and f1 (invert-filter f2))]))
+    [(ImpFilter: f1 f2) (-and f1 (invert-filter f2))]
+    [(? SLI? s) (SLI-negate s)]))
 
 ;; -imp: Filter/c Filter/c -> Filter/c
 ;; Smart constructor for make-ImpFilter
@@ -148,8 +150,8 @@
     [(_ (Top:)) -top]
     [((Top:) _) p2]
     [(_ (Bot:)) #:when (not (SLI? p1))
-     (invert-filter p1)]
-    [(_ _) (make-ImpFilter p1 p2)]))
+                (invert-filter p1)]
+    [(_ _) (-or (invert-filter p1) p2)])) ; (make-ImpFilter p1 p2)
 
 (define (-or . args)
   (define mk

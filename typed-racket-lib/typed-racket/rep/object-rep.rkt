@@ -12,7 +12,8 @@
          (except-in racket/contract one-of/c)
          racket/match racket/dict
          (contract-req)
-         (for-syntax racket/base))
+         (for-syntax racket/base)
+         (utils tc-utils))
 
 (provide object-equal?
          LExp?
@@ -20,6 +21,7 @@
          LExp-const
          LExp-set-const
          LExp-coeffs
+         LExp-coeff
          LExp-set-coeff
          LExp-paths
          LExp-minus
@@ -31,6 +33,7 @@
          LExp-multiply
          LExp-has-var?
          LExp->sexp
+         LExp-gcd-shrink
          (rename-out [LExp:* LExp:]
                      [list->LExp make-LExp]
                      [LExp-terms* LExp-terms]))
@@ -126,13 +129,13 @@
   (-> (listof (or/c exact-integer? (list/c exact-integer? Path?))) 
       LExp?)
   (define coef car)
-  (define var cadr)
+  (define var cdr)
   (let loop ([c 0]
              [h empty-path-table]
              [terms terms])
     (match terms
       [`() (*LExp c h)]
-      [`((,a ,p) . ,terms*) 
+      [`((,a ,p) . ,terms*)
        (loop c 
              (table-set-coeff h p (+ a (table-get-coeff h p)))
              terms*)]
@@ -149,6 +152,13 @@
 (define/cond-contract (LExp-coeffs l)
   (-> LExp? (listof exact-integer?))
   (dict-values (LExp-terms l)))
+
+;; returns the coefficients from this LExp
+;; (e.g. (LExp-coeffs (3x + 4y + z + 42)) 
+;;   produces '(1 3 4))
+(define/cond-contract (LExp-coeff l p)
+  (-> LExp? Path? exact-integer?)
+  (table-get-coeff (LExp-terms l) p))
 
 (define/cond-contract (LExp-set-coeff l x cx)
   (-> LExp? Path? exact-integer? LExp?)
@@ -179,7 +189,7 @@
   (define +/- (if plus? + -))
   (for/fold ([terms terms1])
             ([p2 (in-list (dict-keys terms2))])
-    (define p2-const 
+    (define p2-const
       (+/- (table-get-coeff terms1 p2)
            (table-get-coeff terms2 p2)))
     (table-set-coeff terms p2 p2-const)))
@@ -229,9 +239,33 @@
     [else
      (*LExp (* n c)
             (for/fold ([h empty-path-table])
-                      ([p/c (in-hash-pairs terms)])
+                      ([p/c (in-dict-pairs terms)])
               (match-define (cons p c) p/c)
               (table-set-coeff h p (* n c))))]))
+
+;; LExp-shrink
+;; multiplies all scalars in the LExp l by 1/d
+(define/cond-contract (LExp-gcd-shrink l1 l2)
+  (-> LExp? LExp? (values LExp? LExp?))
+  
+  (define (scale-terms scale terms)
+    (for/fold ([h empty-path-table])
+              ([p/c (in-dict-pairs terms)])
+      (match-define (cons p c) p/c)
+      (table-set-coeff h p (* scale c))))
+  
+  (match* (l1 l2)
+    [((LExp: c1 terms1) (LExp: c2 terms2))
+     (define lexp-gcd (apply gcd (append (list c1 c2)
+                                         (dict-values terms1) 
+                                         (dict-values terms2))))
+     (cond
+       [(= 1 lexp-gcd) (values l1 l2)]
+       [else
+        (define n (/ lexp-gcd))
+        (values (*LExp (* n c1) (scale-terms n terms1))
+                (*LExp (* n c2) (scale-terms n terms2)))])]
+    [(_ _) (int-err "invalid LExp(s) in LExp-gcd-shrink: ~a ~a" l1 l2)]))
 
 (define/cond-contract (LExp-has-var? l x)
   (-> LExp? Path? boolean?)
@@ -273,7 +307,7 @@
 (define (LExp->sexp l Path->sexp)
   (match-define (LExp: c terms) l)
   (cond
-    [(hash-empty? terms) c]
+    [(dict-empty? terms) c]
     [else
      (define terms*
        (for/list ([x/c (in-dict-pairs terms)])

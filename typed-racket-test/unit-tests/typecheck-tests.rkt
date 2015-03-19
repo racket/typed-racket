@@ -3511,6 +3511,30 @@
        ;; PR 14889
        [tc-err (ann (vector-ref (ann (vector "hi") (Vectorof String)) 0) Symbol)
                #:msg #rx"Polymorphic function.*could not be applied"]
+       
+       ;; basic dependent typing checks
+       [tc-e 
+        (let ()
+          (: negate (->i [x : (U Number Boolean)] 
+                         (Refine [z : (U Number Boolean)]
+                                 (or (and (Number @ z) (Number @ x))
+                                     (and (Boolean @ z) (Boolean @ x))))))
+          (define negate
+            (λ (a) (cond
+                     [(number? a) (* -1 a)]
+                     [else (not a)])))
+          
+          (: foo (-> (U Number Boolean) Number))
+          (define foo 
+            (λ (x) (let ([y (negate x)])
+                     (if (number? y)
+                         x
+                         0))))
+          (void))
+        -Void]
+       
+       
+
        )
 
   (test-suite

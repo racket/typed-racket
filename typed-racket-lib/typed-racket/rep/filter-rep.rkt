@@ -6,6 +6,7 @@
          "free-variance.rkt" 
          racket/contract/base
          racket/match racket/dict
+         racket/list
          racket/lazy-require racket/set
          racket/function
          (for-syntax racket/base)
@@ -359,46 +360,48 @@
        [else #f])]
     [(_ _) (int-err "invalid SLI(s) to SLI-try-join: ~a ~a" s1 s2)]))
 
+(define (SLI-empty? s)
+  (set-empty? (SLI-system s)))
+
+
 ;; takes a list of leqs and builds
 ;; the proper disjoint SLIs
 (define/cond-contract (leqs->SLIs initial-leqs)
   (-> (listof leq?) (listof (or/c SLI? Top? Bot?)))
   
-  ;; split up the leqs based on their overlap of paths
-  (define/cond-contract (organize-leqs leqs)
-    (-> (listof leq?) 
-        (listof (cons/c immutable-leq-set? immutable-path-set?)))
-    (for/fold ([SLI-list null])
-              ([ineq (in-list leqs)])
-      (define ineq-ps (leq-paths ineq))
-      ;; build a list of (cons leq-set path-set) that will turn into
-      ;; the SLIs after we're done sorting out who goes where
-      (let loop ([SLIs SLI-list])
-        (match SLIs
-          ;; there are no SLIs yet, so make a new one
-          [(list) (list (cons (set-add empty-leq-set ineq) ineq-ps))]
-          ;; there is already in SLI
-          [(cons (and S (cons sys p-set)) ss) 
-           (cond
-             ;; ineq ∩ S ≠ ∅ , so loop with S = (S ∪ {ineq}) more or less
-             [(sets-intersect? p-set ineq-ps)
-              (define s* (cons (set-add sys ineq) (set-union p-set ineq-ps)))
-              (cons s* ss)]
-             ;; ineq ∩ S = ∅, continue looking for an SLI with intersection
-             [else
-              (cons S (loop ss))])]))))
+  ;; does an leq's paths overlap with an SLI's paths?
+  (define ((leq/SLI-overlap? l) s)
+    (sets-intersect? (leq-paths l) (SLI-paths s)))
+  ;; create an SLI by joining the list of SLIs and adding the leq
+  ;; don't consider any details/satisfiability etc, just merge
+  (define (naive-merge-SLIs+leq slis ineq)
+    (define ineq-ps (leq-paths ineq))
+    (define-values (sys ps)
+      (for/fold ([system empty-leq-set]
+                 [paths empty-path-set])
+                ([s (in-list slis)])
+        (match s
+          [(SLI: sys ps) (values (set-union system sys)
+                                 (set-union ps paths))]
+          [_ (int-err "invalid SLI in naive-merge-SLIs: ~a" s)])))
+    (*SLI (set-add sys ineq) 
+          (set-union ps ineq-ps)))
   
-  ;; now actually build the SLIs
-  (for/list ([sys/p-set (in-list (organize-leqs initial-leqs))])
-    (match sys/p-set
-      [(cons sys-set p-set)
-       (cond
-         [(internal-sli-trivially-valid? sys-set)
-          -top]
-         [(not (internal-sli-sat? sys-set))
-          -bot]
-         [else (*SLI sys-set p-set)])]
-      [_ (int-err "invalid immutable-leq-set? immutable-path-set? pair from organize-leqs: ~a" sys/p-set)])))
+  ;; build the various SLIs based on overlap
+  (define SLI-list
+    (for/fold ([SLI-list null])
+              ([ineq (in-list initial-leqs)])
+      (define-values (related-SLIs unrelated-SLIs)
+        (partition (leq/SLI-overlap? ineq) SLI-list))
+      (define joined-SLI (naive-merge-SLIs+leq related-SLIs ineq))
+      (cons joined-SLI unrelated-SLIs)))
+  
+  ;; now just simplify (if needed) the list of SLIs
+  (for/list ([sli (in-list SLI-list)])
+    (cond
+      [(SLI-trivially-valid? sli) -top]
+      [(not (SLI-satisfiable? sli)) -bot]
+      [else sli])))
 
 ;; internal-sli-partition
 ;; partitions leq expressions into

@@ -10,8 +10,8 @@
          (utils tc-utils)
          (types tc-result resolve subtype remove-intersect union filter-ops
                 numeric-tower)
-         (env type-env-structs lexical-env)
-         (logic prop-ops)
+         (env type-env-structs lexical-env mvar-env)
+         (logic prop-ops proves)
          (rename-in (types abbrev)
                     [-> -->]
                     [->* -->*]
@@ -104,8 +104,18 @@
     (values
      (for/fold ([Γ (replace-SLIs (replace-props env props) slis)]) ([f (in-list atoms)])
        (match f
-         [(or (TypeFilter: ft (Path: lo x)) (NotTypeFilter: ft (Path: lo x)))
-          (update-type/lexical
+         [(or (TypeFilter: ft (Path: _ x)) 
+              (NotTypeFilter: ft (Path: _ x)))
+          (if (or (is-var-mutated? x)
+                  (not (identifier-binding x)))
+              ;; if it is, we do nothing
+              Γ
+              ;; otherwise, refine the type
+              (parameterize
+                  ([current-orig-stx x])
+                (update-env/atom null Γ f exit)))
+          
+          #;(update-type/lexical
            (lambda (x t)
              (define new-t (update t ft (TypeFilter? f) lo))
              (when (type-equal? new-t -Bottom)

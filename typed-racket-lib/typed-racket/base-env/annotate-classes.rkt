@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/parse
+(require syntax/parse/pre
          syntax/parse/experimental/template
          "../private/parse-classes.rkt"
          "../private/syntax-properties.rkt"

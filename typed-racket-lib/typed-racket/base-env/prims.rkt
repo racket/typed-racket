@@ -118,7 +118,7 @@ the typed racket language.
                     (only-in racket/base values))
          (for-syntax
           racket/lazy-require
-          syntax/parse
+          syntax/parse/pre
           syntax/parse/experimental/template
           syntax/stx
           racket/list

@@ -6,8 +6,8 @@ don't depend on any other portion of the system
 |#
 
 (require syntax/source-syntax "disappeared-use.rkt"
-         racket/match racket/promise racket/string
-         syntax/parse (for-syntax racket/base syntax/parse)
+         racket/promise racket/string
+         syntax/parse/pre (for-syntax racket/base syntax/parse/pre)
          (only-in unstable/sequence in-slice))
 
 (provide ;; parameters
@@ -113,40 +113,40 @@ don't depend on any other portion of the system
 (define (reset-errors!) (set! delayed-errors null))
 
 (define (report-first-error)
-  (match (reverse delayed-errors)
-    [(list) (void)]
-    [(cons (struct err (msg stx)) _)
-     (reset-errors!)
-     (raise-typecheck-error msg stx)]))
+  (define r (reverse delayed-errors))
+  (unless (null? r)
+    (define f (car r))
+    (reset-errors!)
+    (raise-typecheck-error (err-msg f) (err-stx f))))
 
 (define (report-all-errors)
-  (match (reverse delayed-errors)
-    [(list) (void)]
-    ;; if there's only one, we don't need multiple-error handling
-    [(list (struct err (msg stx)))
-     (reset-errors!)
-     (log-type-error msg stx)
-     (raise-typecheck-error msg stx)]
-    [l
-     (let ([stxs
-            (for/list ([e (in-list l)])
-              (with-handlers ([exn:fail:syntax?
-                               (λ (e) ((error-display-handler) (exn-message e) e))])
-                (log-type-error (err-msg e) (err-stx e))
-                (raise-typecheck-error (err-msg e) (err-stx e)))
-              (err-stx e))])
-       (reset-errors!)
-       (unless (null? stxs)
-         (raise-typecheck-error (format "Summary: ~a errors encountered"
-                                        (length stxs))
-                                (apply append stxs))))]))
+  (define l (reverse delayed-errors))
+  (cond [(null? l) (void)]
+        ;; if there's only one, we don't need multiple-error handling
+        [(null? (cdr l))
+         (define f (car l))
+         (reset-errors!)
+         (log-type-error (err-msg f) (err-stx f))
+         (raise-typecheck-error (err-msg f) (err-stx f))]
+        [else (let ([stxs
+                     (for/list ([e (in-list l)])
+                       (with-handlers ([exn:fail:syntax?
+                                        (λ (e) ((error-display-handler) (exn-message e) e))])
+                         (log-type-error (err-msg e) (err-stx e))
+                         (raise-typecheck-error (err-msg e) (err-stx e)))
+                       (err-stx e))])
+                (reset-errors!)
+                (unless (null? stxs)
+                  (raise-typecheck-error (format "Summary: ~a errors encountered"
+                                                 (length stxs))
+                                         (apply append stxs))))]))
 
 ;; Returns #t if there's a type error recorded at the same position as
 ;; the given syntax object. Does not return a useful result if the
 ;; source, position, or span are #f.
 (define (error-at-stx-loc? stx)
   (for/or ([an-err (in-list delayed-errors)])
-    (match-define (struct err (_ stxes)) an-err)
+    (define stxes (err-stx an-err))
     (define stx* (and (not (null? stxes)) (car stxes)))
     (and stx*
          (equal? (syntax-source stx*) (syntax-source stx))
@@ -215,7 +215,8 @@ don't depend on any other portion of the system
   (define-values (field-strs vals)
     (for/fold ([field-strs null] [vals null])
               ([field+value (in-slice 2 rst)])
-      (match-define (list field value) field+value)
+      (define field (car field+value))
+      (define value (cadr field+value))
       (define field-strs*
         (cons (format "  ~a: ~~a" field) field-strs))
       (values field-strs* (cons value vals))))

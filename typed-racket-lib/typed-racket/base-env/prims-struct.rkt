@@ -13,9 +13,8 @@
          "colon.rkt"
          "base-types-extra.rkt"
          "ann-inst.rkt"
-         (for-syntax racket/base syntax/parse
+         (for-syntax racket/base syntax/parse/pre
                      racket/lazy-require
-                     syntax/parse/experimental/template
                      syntax/stx
                      racket/list
                      racket/syntax

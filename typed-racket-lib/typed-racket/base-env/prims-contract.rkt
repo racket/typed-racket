@@ -53,7 +53,7 @@
                        (rename-in racket/contract/base [-> c->] [->* c->*] [case-> c:case->])))
 
 (require racket/lazy-require
-         syntax/parse
+         syntax/parse/pre
          syntax/stx
          racket/syntax
          unstable/syntax

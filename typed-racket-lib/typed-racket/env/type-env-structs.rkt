@@ -21,7 +21,10 @@
   #:transparent
   #:property prop:custom-write
   (lambda (e prt mode)
-    (fprintf prt "(env ~a ~a)" (free-id-table-map (env-types e) list) (env-props e))))
+    (fprintf prt "(env (+ ~a) (- ~a) ~a)" 
+             (free-id-table-map (env-types e) list)
+             (free-id-table-map (env-not-types e) list)
+             (env-props e))))
 
 (provide/cond-contract
   [env? predicate/c]

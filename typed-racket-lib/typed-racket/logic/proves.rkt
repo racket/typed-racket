@@ -208,7 +208,7 @@
   
   (match prop
     [(? Top?) env]
-    [(? Bot?) (contradiction)]
+    [(? Bot?) (and contradiction (contradiction))]
     [(TypeFilter: t o)
      (update-env/type+ A env t o (λ () (and contradiction (contradiction))))]
     [(NotTypeFilter: t o)

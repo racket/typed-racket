@@ -1729,6 +1729,8 @@
 [exact->inexact
  (from-cases (map unop all-float-types)
              (-Zero . -> . -FlonumZero)
+             (-PosInt . -> . -PosFlonum)
+             (-NegInt . -> . -NegFlonum)
              (-PosRat . -> . -NonNegFlonum)
              (-NegRat . -> . -NonPosFlonum)
              (-Rat . -> . -Flonum)
@@ -1757,16 +1759,28 @@
                     (-NegFlonum . -> . -NegInt)
                     (-NonPosFlonum . -> . -NonPosInt)
                     (-Flonum . -> . -Int))]
-[real->single-flonum (cl->* (-RealZero . -> . -SingleFlonumZero)
-                            ;; no positive / negative cases, possible underflow
-                            (-NonNegReal . -> . -NonNegSingleFlonum)
-                            (-NonPosReal . -> . -NonPosSingleFlonum)
-                            (-Real . -> . -SingleFlonumZero))]
-[real->double-flonum (cl->* (-RealZero . -> . -FlonumZero)
-                            ;; no positive / negative cases, possible underflow
-                            (-NonNegReal . -> . -NonNegFlonum)
-                            (-NonPosReal . -> . -NonPosFlonum)
-                            (-Real . -> . -Flonum))]
+[real->single-flonum
+ (from-cases (map unop single-flonum-types)
+             (-FlonumPosZero . -> . -SingleFlonumPosZero)
+             (-FlonumNegZero . -> . -SingleFlonumNegZero)
+             (-RealZero . -> . -SingleFlonumZero)
+             (-PosInt . -> . -PosSingleFlonum)
+             (-NegInt . -> . -NegSingleFlonum)
+             ;; no positive / negative cases, possible underflow
+             (-NonNegReal . -> . -NonNegSingleFlonum)
+             (-NonPosReal . -> . -NonPosSingleFlonum)
+             (-Real . -> . -SingleFlonumZero))]
+[real->double-flonum
+ (from-cases (map unop all-flonum-types)
+             (-SingleFlonumPosZero . -> . -FlonumPosZero)
+             (-SingleFlonumNegZero . -> . -FlonumNegZero)
+             (-RealZero . -> . -FlonumZero)
+             (-PosInt . -> . -PosFlonum)
+             (-NegInt . -> . -NegFlonum)
+             ;; no positive / negative cases, possible underflow
+             (-NonNegReal . -> . -NonNegFlonum)
+             (-NonPosReal . -> . -NonPosFlonum)
+             (-Real . -> . -Flonum))]
 
 [floor
  (from-cases

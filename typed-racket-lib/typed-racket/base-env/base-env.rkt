@@ -7,6 +7,7 @@
   (except-in racket -> ->* one-of/c class)
   racket/unsafe/ops
   racket/unsafe/undefined
+  dependentfuns
   (only-in racket/extflonum floating-point-bytes->extfl extfl->floating-point-bytes)
   ;(only-in rnrs/lists-6 fold-left)
   '#%paramz
@@ -3214,3 +3215,91 @@
         (output (-opt (-pair ind-pair (-lst (-opt ind-pair)))))
         (-Input (Un -String -Input-Port -Bytes -Path)))
    (->optkey -Pattern -Input (N ?N -Bytes) #:match-select sel #f output)))
+
+;; TODO(amk) these are temporary axioms for testing refinement types
+;; & linear inequalities
+[int+ (~> [x : -Integer] 
+          [y : -Integer]
+          (-refine z -Integer 
+                   (-eqSLI (-id-lexp (1 z)) 
+                           (-id-lexp 1 (1 x) (1 y)))))]
+[int- (~> [x : -Integer] 
+          [y : -Integer]
+          (-refine z -Integer 
+                   (-eqSLI (-id-lexp (1 z)) 
+                           (-id-lexp -1 (1 x) (1 y)))))]
+[int*2 (~> [x : -Integer] 
+           (-refine z -Integer 
+                    (-eqSLI (-id-lexp (1 z)) 
+                            (-id-lexp (2 x)))))]
+[int*3 (~> [x : -Integer] 
+           (-refine z -Integer 
+                    (-eqSLI (-id-lexp (1 z)) 
+                            (-id-lexp (3 x)))))]
+;; TODO(amk) multiplication needs not only a latent object... but like
+;; a latent function that calculates it... wierd
+[int<= (~> [x : -Integer]
+           [y : -Integer]
+           (-refine z -Boolean 
+                    (-or (-and (-not-filter (-val #f) z) 
+                               (-SLI (-leq (-id-lexp (1 x))
+                                           (-id-lexp (1 y)))))
+                         (-and (-filter (-val #f) z) 
+                               (-SLI (-gt (-id-lexp (1 x))
+                                          (-id-lexp (1 y))))))))]
+[int< (~> [x : -Integer] 
+          [y : -Integer]
+          (-refine z -Boolean 
+                   (-or (-and (-not-filter (-val #f) z) 
+                              (-SLI (-lt (-id-lexp (1 x))
+                                         (-id-lexp (1 y)))))
+                        (-and (-filter (-val #f) z) 
+                              (-SLI (-gteq (-id-lexp (1 x))
+                                           (-id-lexp (1 y))))))))]
+[int>= (~> [x : -Integer] 
+           [y : -Integer]
+           (-refine z -Boolean 
+                    (-or (-and (-not-filter (-val #f) z) 
+                               (-SLI (-gteq (-id-lexp (1 x))
+                                            (-id-lexp (1 y)))))
+                         (-and (-filter (-val #f) z) 
+                               (-SLI (-lt (-id-lexp (1 x))
+                                          (-id-lexp (1 y))))))))]
+[int> (~> [x : -Integer] 
+          [y : -Integer]
+          (-refine z -Boolean 
+                   (-or (-and (-not-filter (-val #f) z) 
+                              (-SLI (-gt (-id-lexp (1 x))
+                                         (-id-lexp (1 y)))))
+                        (-and (-filter (-val #f) z)
+                              (-SLI (-leq (-id-lexp (1 x))
+                                          (-id-lexp (1 y))))))))]
+[int= (~> [x : -Integer] 
+          [y : -Integer]
+          (-refine z -Boolean 
+                   (-or (-and (-not-filter (-val #f) z) 
+                              (-eqSLI (-id-lexp (1 x))
+                                      (-id-lexp (1 y))))
+                        (-and (-filter (-val #f) z)
+                              (-or (-SLI (-gt (-id-lexp (1 x))
+                                              (-id-lexp (1 y))))
+                                   (-SLI (-lt (-id-lexp (1 x))
+                                              (-id-lexp (1 y)))))))))]
+[veclen (~> [v : -VectorTop]
+            (-refine i -Nat
+                     (let ([i (-lexp-obj (list 1 (-id-path i)))]
+                           [vlen (-lexp-obj (list 1 (-acc-path (list -length) (-id-path v))))])
+                       
+                       (-and (-SLI (-gteq i (-id-lexp 0)))
+                             (-eqSLI i vlen)))))]
+
+;; TODO(amk) support polymorphism w/ dep fun types
+[safevecref (~> [v : -VectorTop]
+                [x : (-refine i -Integer
+                              (let ([i (-lexp-obj (list 1 (-id-path i)))]
+                                    [vlen (-lexp-obj (list 1 (-acc-path (list -length) (-id-path v))))])
+                                (-SLI (-gteq i (-id-lexp 0))
+                                      (-lt i vlen))))]
+                Univ)]
+
+

@@ -7,7 +7,8 @@
          racket/match racket/list
          (contract-req)
          (except-in (types abbrev utils filter-ops) -> ->* one-of/c)
-         (rep type-rep object-rep filter-rep rep-utils object-ops))
+         (rep type-rep object-rep filter-rep rep-utils object-ops)
+         (utils tc-utils))
 
 (provide add-scope subst-type subst-filter subst-object)
 
@@ -129,9 +130,12 @@
            [(Empty:) -empty-obj]
            ;; the result is not from an annotation, so it isn't a NoObject
            [(NoObject:) -empty-obj]
-           [(Path: p* i*) (make-Path (append p p*) i*)])
+           [(Path: p* i*) (make-Path (append p p*) i*)]
+           [(? LExp? l) (if (null? p) l -empty-obj)]
+           [_ (int-err "unrecognized new object in subst-object: ~a" t)])
          t)]
-    [(? LExp? l) (LExp-path-map sub-o l)]))
+    [(? LExp? l) (LExp-path-map sub-o l)]
+    [_ (int-err "unrecognized target object in subst-object: ~a" t)]))
 
 ;; Substitution of objects into a filter in a filter set
 ;; This is ψ+ [o/x] and ψ- [o/x]

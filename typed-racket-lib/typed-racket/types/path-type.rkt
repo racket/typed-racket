@@ -6,7 +6,7 @@
          (rep object-rep type-rep)
          (utils tc-utils)
          (typecheck renamer)
-         (types subtype resolve union)
+         (types subtype resolve union remove-intersect numeric-tower)
          (except-in (types utils abbrev kw-types) -> ->* one-of/c))
 
 (require-for-cond-contract (rep rep-utils))
@@ -22,7 +22,7 @@
 
 ;; returns the result of following a path into a type
 ;; (Listof PathElem) Type -> Type
-;; Ex. '(CarPE) (Pair α β) -> α
+;; Ex. '(CarPE) (Pair α β) (-acc-path (list -len))-> α
 ;; resolved is the set of resolved types so far at a particular
 ;; path - it ensures we are making progress, that we do not
 ;; continue unfolding types infinitely while not progressing.
@@ -70,6 +70,10 @@
     ;; types which need resolving
     [((? needs-resolving?) _) #:when (not (set-member? resolved t))
      (path-type path (resolve-once t) (set-add resolved t))]
+    
+    ;; length ops
+    [(vt (list (LengthPE:))) #:when (overlap vt -VectorTop)
+                             -Nat]
     
     ;; type/path mismatch =(
     [(_ _) Err]))

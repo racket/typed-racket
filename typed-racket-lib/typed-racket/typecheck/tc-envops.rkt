@@ -62,6 +62,14 @@
         [(Bottom? ty*) ty*]
         [else (let ([flds* (append lhs (cons (make-fld ty* acc-id #f) (cdr rhs)))])
                 (make-Struct nm par flds* proc poly pred))]))]
+    ;; length ops
+    [(vt (list rst ... (LengthPE:)))
+     (cond
+       [(and (null? rst)
+             (overlap vt -VectorTop)
+             (overlap ft -Nat))
+        vt]
+       [else -Bottom])]
 
     ;; otherwise
     [(t '())

@@ -342,8 +342,8 @@
        #:fail-unless (not (syntax->list #'rst)) #f
        (-pair (parse-type #'fst) (parse-type #'rst))]
       [(:Refine^ [x:id :colon^ t:non-keyword-ty] ps:proposition ...)
-       (-iref (abstract-ident #'x (parse-type #'t)) 
-              (abstract-ident #'x (apply -and (attribute ps.prop))))]
+       (-irefine (abstract-ident #'x (parse-type #'t)) 
+                 (abstract-ident #'x (apply -and (attribute ps.prop))))]
       [(:Class^ e ...)
        (parse-class-type stx)]
       [(:Object^ e ...)

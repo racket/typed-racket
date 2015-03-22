@@ -10,6 +10,7 @@
          racket/function
          racket/undefined
          unstable/function
+         racket/lazy-require
 
          (prefix-in c: (contract-req))
          (rename-in (rep type-rep filter-rep object-rep)
@@ -42,6 +43,9 @@
          (only-in racket/fixnum fxvector?)
          (only-in racket/future fsemaphore?)
          (only-in '#%place place? place-channel?))
+
+(lazy-require
+ ["filter-ops.rkt" (-and)])
 
 (provide (except-out (all-defined-out) make-Base)
          (all-from-out "base-abbrev.rkt" "match-expanders.rkt"))
@@ -274,6 +278,7 @@
 (define/decl -cdr (make-CdrPE))
 (define/decl -syntax-e (make-SyntaxPE))
 (define/decl -force (make-ForcePE))
+(define/decl -length (make-LengthPE))
 
 ;; Type alias names
 (define (-struct-name name)
@@ -370,12 +375,12 @@
 (define-syntax-rule (-object . ?clauses)
   (make-Instance (-class . ?clauses)))
 
-(define-syntax -ref
+(define-syntax -refine
   (syntax-rules ()
     [(_ x t p) (let ([x #`#,(gensym 'x)])
                  (make-Ref x t p))]))
 
-(define-syntax -iref
+(define-syntax -irefine
   (syntax-rules ()
     [(_ t p) (make-InstdRef t p)]))
 
@@ -384,9 +389,30 @@
     [(_ leqs ...) 
      (leqs->SLIs (list leqs ...))]))
 
+(define-syntax -SLI
+  (syntax-rules ()
+    [(_ leqs ...) 
+     (apply -and (leqs->SLIs (list leqs ...)))]))
+
 (define-syntax -leq
   (syntax-rules ()
     [(_ lhs rhs) (leq lhs rhs)]))
+
+(define-syntax -lt
+  (syntax-rules ()
+    [(_ lhs rhs) (leq (LExp-add1 lhs) rhs)]))
+
+(define-syntax -gt
+  (syntax-rules ()
+    [(_ lhs rhs) (leq rhs (LExp-add1 lhs))]))
+
+(define-syntax -gteq
+  (syntax-rules ()
+    [(_ lhs rhs) (leq rhs lhs)]))
+
+(define-syntax -eqSLI
+  (syntax-rules ()
+    [(_ lhs rhs) (apply -and (-sli (leq lhs rhs) (leq rhs lhs)))]))
 
 (define-syntax -id-lexp
   (syntax-rules ()
@@ -397,4 +423,7 @@
                    [(linexp) (append nums terms*)])
        (make-LExp linexp))]))
 
-
+(define-syntax -lexp-obj
+  (syntax-rules ()
+    [(_ obj) 
+     (make-LExp (list obj))]))

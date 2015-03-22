@@ -351,67 +351,67 @@
    
    
    ;; Simple Refinement Types
-   [-Nat (-ref y -Nat -top)]
-   [(-ref a -Nat -top) -Nat]
-   [(-ref b Univ -bot) -Nat]
-   [(-ref c Univ (-filter -Nat c)) 
-    (-ref d Univ (-filter -Nat d))]
-   [(-ref e Univ (-filter -Nat e)) 
-    (-ref f Univ (-or (-filter -String f)
-                      (-filter -Nat f)))]
-   [(-ref g Univ (-filter (-ref q -Nat (-filter -Nat q)) g)) 
-    (-ref h Univ (-or (-filter -String h)
-                      (-filter -Nat h)))]
-   [(-ref i Univ (-or (-filter -String i)
-                      (-filter -Nat i))) 
-    (-ref j Univ (-or (-filter -Nat j)
-                      (-filter -String j)))]
+   [-Nat (-refine y -Nat -top)]
+   [(-refine a -Nat -top) -Nat]
+   [(-refine b Univ -bot) -Nat]
+   [(-refine c Univ (-filter -Nat c)) 
+    (-refine d Univ (-filter -Nat d))]
+   [(-refine e Univ (-filter -Nat e)) 
+    (-refine f Univ (-or (-filter -String f)
+                         (-filter -Nat f)))]
+   [(-refine g Univ (-filter (-refine q -Nat (-filter -Nat q)) g)) 
+    (-refine h Univ (-or (-filter -String h)
+                         (-filter -Nat h)))]
+   [(-refine i Univ (-or (-filter -String i)
+                         (-filter -Nat i))) 
+    (-refine j Univ (-or (-filter -Nat j)
+                         (-filter -String j)))]
    [FAIL
-    (-ref m Univ (-or (-filter -Symbol m)
-                      (-filter -String m)))
-    (-ref n Univ (-filter -String n))]
+    (-refine m Univ (-or (-filter -Symbol m)
+                         (-filter -String m)))
+    (-refine n Univ (-filter -String n))]
    [FAIL
-    (-ref k Univ (-or (-filter -Symbol k)
-                      (-filter -String k)
-                      (-filter -Nat k)))
-    (-ref l Univ (-or (-filter -Nat l)
-                      (-filter -String l)))]
+    (-refine k Univ (-or (-filter -Symbol k)
+                         (-filter -String k)
+                         (-filter -Nat k)))
+    (-refine l Univ (-or (-filter -Nat l)
+                         (-filter -String l)))]
    
    ;; Function Refinement Types
    [(~> [a : (Un -Nat -String)] 
-        (-ref x Univ (-or (-and (-filter -String a) (-filter -String x))
-                          (-and (-filter -Nat a) (-filter -Nat x)))))
+        (-refine x Univ (-or (-and (-filter -String a) (-filter -String x))
+                             (-and (-filter -Nat a) (-filter -Nat x)))))
     (~> [b : (Un -Nat -String)] 
-        (-ref y Univ (-or (-and (-filter -String b) (-filter -String y))
-                          (-and (-filter -Nat b) (-filter -Nat y)))))]
-
+        (-refine y Univ (-or (-and (-filter -String b) (-filter -String y))
+                             (-and (-filter -Nat b) (-filter -Nat y)))))]
+   
    [(~> [c : (Un -Nat -String)] 
-        (-ref y Univ (-or (-and (-filter -String c) (-filter -String y))
-                          (-and (-filter -Nat c) (-filter -Nat y)))))
+        (-refine y Univ (-or (-and (-filter -String c) (-filter -String y))
+                             (-and (-filter -Nat c) (-filter -Nat y)))))
     (~> [d : (Un -Nat -String)] 
-        (-ref q Univ (-filter
-                      (-ref z 
-                            (Un -Nat -String) 
-                            (-and (-filter (Un -Nat -String) z)
-                                  (-or (-and (-not-filter -Nat z) (-filter -String d))
-                                       (-and (-not-filter -String z) (-filter -Nat d)))))
-                      q)))]
+        (-refine q Univ (-filter
+                         (-refine z 
+                                  (Un -Nat -String) 
+                                  (-and (-filter (Un -Nat -String) z)
+                                        (-or (-and (-not-filter -Nat z) (-filter -String d))
+                                             (-and (-not-filter -String z) (-filter -Nat d)))))
+                         q)))]
    
    [(~> [e : (Un -Nat -String)]
-        [f : (-ref f Univ (-or (-and (-filter -String e) (-filter -String f))
-                               (-and (-filter -Nat e) (-filter -Nat f))))]
-        (-ref x Univ (-or (-and (-filter -String e) (-filter -String f) (-filter -String x))
-                          (-and (-filter -Nat e) (-filter -Nat f) (-filter -Nat x)))))
+        [f : (-refine f Univ (-or (-and (-filter -String e) (-filter -String f))
+                                  (-and (-filter -Nat e) (-filter -Nat f))))]
+        (-refine x Univ (-or (-and (-filter -String e) (-filter -String f) (-filter -String x))
+                             (-and (-filter -Nat e) (-filter -Nat f) (-filter -Nat x)))))
     
     (~> [y : -Nat] 
         [z : -Nat]
         -Nat)]
    [FAIL
     (~> [g : (Un -Nat -String)]
-        [b : (-ref b Univ (-or (-and (-filter -String g) (-filter -String b))
-                               (-and (-filter -Nat g) (-filter -Nat b))))]
-        (-ref x Univ (-or (-and (-filter -String g) (-filter -String b) (-filter -String x))
-                          (-and (-filter -Nat g) (-filter -Nat b) (-filter -Nat x)))))
+        [b : (-refine b Univ (-or (-and (-filter -String g) (-filter -String b))
+                                  (-and (-filter -Nat g) (-filter -Nat b))))]
+        (-refine x Univ (-or (-and (-filter -String g) (-filter -String b) (-filter -String x))
+                             (-and (-filter -Nat g) (-filter -Nat b) (-filter -Nat x)))))
     
     (~> [y : (Un -Nat -String)] 
         [z : -Nat]

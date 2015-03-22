@@ -308,7 +308,7 @@
   (define system-w/o-empties
     (for/fold ([sys system])
               ([p (in-list eliminated-paths)])
-      (internal-sli-elim-path sys)))
+      (internal-sli-elim-path sys p)))
   ;; define a function that can now go replace the surviving
   ;; paths with their appropriate values
   (define (path-fun p)

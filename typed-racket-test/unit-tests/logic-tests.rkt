@@ -225,6 +225,19 @@
                  (list (? SLI?))))
    
    (test-suite
+    "SLI -and"
+    
+    (check-false (Top? (let ([i (-lexp-obj (list 1 (-id-path #'i)))]
+                             [vlen (-lexp-obj (list 1 (-acc-path (list -length) (-id-path #'v))))])
+                         (-and (-SLI (-gteq i (-id-lexp 0)))
+                               (-eqSLI i vlen)))))
+    (check-false (-refine i -Nat
+                          (let* ([sli (-eqSLI (-lexp-obj (list 1 (-id-path i))) 
+                                             (-id-lexp 0))]
+                                 [_ (printf "\nSLI! ~a\n" sli)])
+                            sli))))
+   
+   (test-suite
     "SLI proofs"
     
     ;; 4 <= 3 is false

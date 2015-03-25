@@ -4,6 +4,7 @@
          "../utils/tc-utils.rkt"
          "../base-env/annotate-classes.rkt"
          "tc-result.rkt"
+         unstable/list
          racket/list racket/set racket/dict racket/match
          racket/format racket/string
          syntax/parse)
@@ -14,7 +15,12 @@
   (when drest
     (int-err "drest passed to kw-convert"))
   ;; the kw function protocol passes rest args as an explicit list
-  (define rest-type (if rest (-lst rest) empty))
+  (define rest-type (if rest (list (-lst rest)) empty))
+
+  ;; the kw protocol puts the arguments in keyword-sorted order in the
+  ;; function header, so we need to sort the types to match
+  (define sorted-kws
+    (sort kw-t keyword<? #:key (match-lambda [(Keyword: kw _ _) kw])))
 
   (make-Function
     (cond
@@ -22,7 +28,7 @@
        (define ts 
          (flatten
           (list
-           (for/list ([k (in-list kw-t)])
+           (for/list ([k (in-list sorted-kws)])
              (match k
                [(Keyword: _ t #t) t]
                [(Keyword: _ t #f) (list (-opt t) -Boolean)]))
@@ -32,36 +38,30 @@
            rest-type)))
        (list (make-arr* ts rng #:rest rest #:drest drest))]
       [else
-       ;; the kw protocol puts the arguments in keyword-sorted order in the
-       ;; function header, so we need to sort the types to match
-       (define sorted-kws
-         (sort kw-t keyword<? #:key (match-lambda [(Keyword: kw _ _) kw])))
-       (define ts/true
-         (flatten
-          (list
-           (for/list ([k (in-list sorted-kws)])
-             (match k
-               [(Keyword: _ t #t) t]
-               [(Keyword: _ t #f) (list t (-val #t))]))
-           plain-t
-           (for/list ([t (in-list opt-t)]) t)
-           (for/list ([t (in-list opt-t)]) (-val #t))
-           rest-type)))
-       (define ts/false
-         (flatten
-          (list
-           (for/list ([k (in-list sorted-kws)])
-             (match k
-               [(Keyword: _ t #t) t]
-               [(Keyword: _ t #f) (list (-val #f) (-val #f))]))
-           plain-t
-           (for/list ([t (in-list opt-t)]) (-val #f))
-           (for/list ([t (in-list opt-t)]) (-val #f))
-           rest-type)))
-       (remove-duplicates
-         (list (make-arr* ts/true rng #:drest drest)
-               (make-arr* ts/false rng #:drest drest)))])))
+       ;; The different types for each possibile combination of keywords
+       (define keyword-possibilities
+         (map append*
+           (apply cartesian-product
+             (for/list ([k (in-list sorted-kws)])
+               (match k
+                 [(Keyword: _ t #t) (list (list t))]
+                 [(Keyword: _ t #f) (list (list t (-val #t))
+                                          (list (-val #f) (-val #f)))])))))
 
+       ;; The different types for each possibile supplied number of optional arguments
+       (define optional-possibilities
+         (for/list ([supplied (in-range (add1 (length opt-t)))])
+            (define unsupplied (- (length opt-t) supplied))
+            (append
+              (take opt-t supplied)
+              (make-list unsupplied (-val #f))
+              (make-list supplied (-val #t))
+              (make-list unsupplied (-val #f)))))
+
+       (remove-duplicates
+         (for*/list ([kw-pos (in-list keyword-possibilities)]
+                     [opt-pos (in-list optional-possibilities)])
+          (make-arr* (append kw-pos plain-t opt-pos rest-type) rng #:drest drest)))])))
 
 ;; This is used to fix the filters of keyword types.
 ;; TODO: This should also explore deeper into the actual types and remove filters in there as well.

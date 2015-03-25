@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "test-utils.rkt"
-         rackunit racket/format racket/match
+         rackunit racket/format racket/match racket/list
          (typecheck tc-metafunctions tc-subst)
          (rep filter-rep type-rep object-rep)
          (types abbrev union filter-ops tc-result numeric-tower)
@@ -10,6 +10,16 @@
 
 (provide tests)
 (gen-test-main)
+
+(define-syntax-rule (SLI-add-test new-sli slis expected-slis)
+  (let* ([slis* (SLI-add new-sli slis)]
+         [slis*-perms (permutations slis*)]
+         [expected-perms (permutations expected-slis)])
+    (check-true (format "~a" '(new-sli slis))
+                (or (for*/or ([slis* (in-list slis*-perms)]
+                              [exp (in-list expected-perms)])
+                      (filter-equal? slis* exp))
+                    (list 'expected expected-slis 'actual slis*)))))
 
 (define-syntax-rule (SLI-imp assumptions goals)
   (for/and ([goal (in-list goals)])
@@ -225,17 +235,7 @@
                  (list (? SLI?))))
    
    (test-suite
-    "SLI -and"
-    
-    (check-false (Top? (let ([i (-lexp-obj (list 1 (-id-path #'i)))]
-                             [vlen (-lexp-obj (list 1 (-acc-path (list -length) (-id-path #'v))))])
-                         (-and (-SLI (-gteq i (-id-lexp 0)))
-                               (-eqSLI i vlen)))))
-    (check-false (-refine i -Nat
-                          (let* ([sli (-eqSLI (-lexp-obj (list 1 (-id-path i))) 
-                                             (-id-lexp 0))]
-                                 [_ (printf "\nSLI! ~a\n" sli)])
-                            sli))))
+    "SLI add")
    
    (test-suite
     "SLI proofs"
@@ -373,5 +373,5 @@
                                       (-id-lexp (1 x) (1 r) (1 q))))
                           (-sli (-leq (-id-lexp (1 t))
                                       (-id-lexp))))))
-   
+     
    ))

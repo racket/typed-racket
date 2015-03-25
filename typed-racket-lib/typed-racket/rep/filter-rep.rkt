@@ -90,28 +90,6 @@
 ;; implication
 (def-filter ImpFilter ([a Filter/c] [c Filter/c]))
 
-(def-filter OrFilter ([fs (and/c (length>=/c 2)
-                                 (listof (or/c TypeFilter? NotTypeFilter? ImpFilter?)))])
-  [#:intern (map Rep-seq fs)]
-  [#:fold-rhs (*OrFilter (map filter-rec-id fs))]
-  [#:frees (λ (f) (combine-frees (map f fs)))])
-
-(def-filter AndFilter ([fs (and/c (length>=/c 2)
-                                  (listof (or/c OrFilter? TypeFilter? NotTypeFilter? ImpFilter?)))])
-  [#:intern (map Rep-seq fs)]
-  [#:fold-rhs (*AndFilter (map filter-rec-id fs))]
-  [#:frees (λ (f) (combine-frees (map f fs)))])
-
-(def-filter FilterSet ([thn Filter/c] [els Filter/c])
-  [#:fold-rhs (*FilterSet (filter-rec-id thn) (filter-rec-id els))])
-
-;; represents no info about the filters of this expression
-;; should only be used for parsing type annotations and expected types
-(def-filter NoFilter () [#:fold-rhs #:base])
-
-(define (filter-equal? a b) (= (Rep-seq a) (Rep-seq b)))
-
-
 (define-custom-hash-types path-hash
   #:key? Path?
   object-equal?
@@ -257,7 +235,7 @@
   leq-equal?
   leq-hash)
 (define empty-leq-set (make-immutable-leq-set))
-(define empty-path-table (make-immutable-path-hash))
+(define empty-path-hash (make-immutable-path-hash))
 
 ;; set of all paths (e.g. the variables) from the
 ;; internal set in an SLI
@@ -284,16 +262,15 @@
   (-> (-> Path? Object?) SLI? Filter?)
   (match sli
     [(SLI: sys paths)
-     (internal-sli-path-map sys paths)]
+     (internal-sli-path-map f sys paths)]
     [_ (int-err "invalid SLI? to SLI-path-map: ~a" sli)]))
 
 (define/cond-contract (internal-sli-path-map f system paths)
   (-> (-> Path? Object?) immutable-leq-set? immutable-path-set? 
       Filter?)
-  ;; determine what paths are being mapped to Empty?
-  ;; and which are translated to new Paths/LExps
+  ;; calculate changes
   (define-values (new-path-map eliminated-paths)
-    (for/fold ([pmap empty-path-table]
+    (for/fold ([pmap empty-path-hash]
                [eliminated null])
               ([p (in-set paths)])
       (match (f p)
@@ -337,9 +314,8 @@
 
 (define empty-set (set))
 
-(define (sets-intersect? set1 set2)
-  (for/or ([p (in-set set1)])
-    (set-member? set2 p)))
+(define (set-overlap? s1 s2)
+  (not (set-empty? (set-intersect s1 s2))))
 
 ;; SLI-try-join
 ;; combine two SLIs if they share any paths
@@ -349,7 +325,7 @@
   (match* (s1 s2)
     [((SLI: sli1 ps1) (SLI: sli2 ps2))
      (cond 
-       [(sets-intersect? sli1 sli2)
+       [(set-overlap? sli1 sli2)
         (define system* (set-union sli1 sli2))
         (cond
           [(internal-sli-trivially-valid? system*)
@@ -371,7 +347,7 @@
   
   ;; does an leq's paths overlap with an SLI's paths?
   (define ((leq/SLI-overlap? l) s)
-    (sets-intersect? (leq-paths l) (SLI-paths s)))
+    (set-overlap? (leq-paths l) (SLI-paths s)))
   ;; create an SLI by joining the list of SLIs and adding the leq
   ;; don't consider any details/satisfiability etc, just merge
   (define (naive-merge-SLIs+leq slis ineq)
@@ -531,14 +507,14 @@
       [_ (int-err "invalid leq? given from SLI-system: ~a" ineq)])))
 
 
-(define/cond-contract (add-SLI sli slis)
+(define/cond-contract (add-SLI new-sli slis)
   (-> SLI? (listof SLI?) (or/c Bot? (listof SLI?)))
   (match slis
-    [null (list sli)]
-    [(cons sli* slis*)
-     (match (SLI-try-join sli sli*)
-       [#f (match (add-SLI sli slis*)
-             [(? list? l) (cons sli* l)]
+    [(list) (list new-sli)]
+    [(cons sli slis*)
+     (match (SLI-try-join new-sli sli)
+       [#f (match (add-SLI new-sli slis*)
+             [(? list? l) (cons sli l)]
              [(? Bot? b) b])]
        [(? SLI? new-s) (cons new-s slis*)]
        [(? Top?) slis*]
@@ -575,5 +551,27 @@
     [_ (int-err "SLI-negate given invalid SLI?: ~a" sli)]))
 
 
+;;***************************************************************************
+;; Or, And, FilterSet, NoFilter
+
+(def-filter OrFilter ([fs (and/c (length>=/c 2)
+                                 (listof (or/c TypeFilter? NotTypeFilter? ImpFilter? SLI?)))])
+  [#:intern (map Rep-seq fs)]
+  [#:fold-rhs (*OrFilter (map filter-rec-id fs))]
+  [#:frees (λ (f) (combine-frees (map f fs)))])
 
 
+(def-filter AndFilter ([fs (and/c (length>=/c 2)
+                                  (listof (or/c OrFilter? TypeFilter? NotTypeFilter? ImpFilter? SLI?)))])
+  [#:intern (map Rep-seq fs)]
+  [#:fold-rhs (*AndFilter (map filter-rec-id fs))]
+  [#:frees (λ (f) (combine-frees (map f fs)))])
+
+(def-filter FilterSet ([thn Filter/c] [els Filter/c])
+  [#:fold-rhs (*FilterSet (filter-rec-id thn) (filter-rec-id els))])
+
+;; represents no info about the filters of this expression
+;; should only be used for parsing type annotations and expected types
+(def-filter NoFilter () [#:fold-rhs #:base])
+
+(define (filter-equal? a b) (= (Rep-seq a) (Rep-seq b)))

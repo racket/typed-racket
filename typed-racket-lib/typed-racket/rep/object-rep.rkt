@@ -80,7 +80,7 @@
   [#:intern (list const terms)]
   [#:frees (λ (f) (combine-frees (map f (dict-keys terms))))]
   [#:fold-rhs ;; warning - this returns Empty if any subterm is converted to Empty
-   (LExp-path-map object-rec-id (*LExp const terms))])
+   (internal-lexp-path-map object-rec-id const terms)])
 
 ;; LExp-path-map
 ;; applies f to each Path p in the terms
@@ -91,31 +91,49 @@
 (define/cond-contract (LExp-path-map f lexp)
   (-> (-> Path? Object?) LExp? 
       (or/c LExp? Empty?))
-  (define terms (LExp-terms* lexp))
-  (define const (LExp-const lexp))
-  (let/ec exit
-    (for/fold ([lexp* lexp])
-              ([p/c (in-list terms)])
-      (match p/c
-        [(cons orig-p orig-c)
-         (match (f orig-p)
-           [(and (Empty:) o) (exit o)]
-           [(? Path? p*) 
-            (if (object-equal? orig-p p*)
-                lexp*
-                (LExp-set-coeff (LExp-set-coeff lexp* orig-p 0) 
-                                p*
-                                orig-c))]
-           [(? LExp? l) (LExp-plus (LExp-set-coeff lexp* orig-p 0) 
-                                   (LExp-scale l orig-c))]
-           [x (int-err "LExp-path-map function produced invalid result: ~a" x)])]
-        [y (int-err "invalid path/const pair: ~a" p/c)]))))
+  (match lexp
+    [(LExp: c ts) (internal-lexp-path-map f c ts)]
+    [_ (int-err "invalid LExp for LExp-path-map: ~a" lexp)]))
+
+
+(define/cond-contract (hash-scale-coeffs h scale)
+  (-> immutable-path-hash? exact-integer? immutable-path-hash?)
+  (for/fold ([h empty-path-table])
+            ([p/c (in-dict-pairs terms)])
+    (match-define (cons p c) p/c
+      (hash-set-coeff h p (* scale c)))))
+
+(define/cond-contract (internal-lexp-path-map f const terms)
+  (-> (-> Path? Object?) exact-integer? immutable-path-hash? 
+      (or/c LExp? Empty?))
+  (let loop ([term-pairs (dict->list terms)]
+             [const* const]
+             [terms* terms]))
+  (match term-pairs
+    [(list) (*LExp const* terms*)]
+    [(list (cons orig-p orig-c) rest ...)
+     (match (f orig-p)
+       [(and (Empty:) o) o]
+       [(? Path? p*) 
+        (cond 
+          [(object-equal? orig-p p*)
+           (loop rest const* terms*)]
+          [else
+           (define updated-terms 
+             (hash-set-coeff (hash-set-coeff terms* orig-p 0) p* orig-c))
+           (loop rest const* updated-terms)])]
+       [(? LExp? l) 
+        (match-define (LExp: c ts) l)
+        (internal-lexp-plus (* c orig-c) (hash-scale-coeffs ts orig-c) 
+                            const*       terms*)]
+       [x (int-err "LExp-path-map function produced invalid result: ~a" x)])]
+    [y (int-err "invalid path/const pair: ~a" p/c)]))
 
 
 ;; internal setter for coefficients of Paths
 ;; doesn't let any elements with a coefficient of 0
 ;; take up space in the dict
-(define/cond-contract (table-set-coeff h path i)
+(define/cond-contract (hash-set-coeff h path i)
   (-> immutable-path-hash? Path? exact-integer?
       immutable-path-hash?)
   (if (= 0 i)
@@ -124,7 +142,7 @@
 
 ;; internal getter for coefficients, defaults to 0 if
 ;; not found (as expected mathematically)
-(define/cond-contract (table-get-coeff h path)
+(define/cond-contract (hash-get-coeff h path)
   (-> immutable-path-hash? Path? exact-integer?)
   (dict-ref h path 0))
 
@@ -141,7 +159,7 @@
       [`() (*LExp c h)]
       [`((,a ,p) . ,terms*)
        (loop c 
-             (table-set-coeff h p (+ a (table-get-coeff h p)))
+             (hash-set-coeff h p (+ a (hash-get-coeff h p)))
              terms*)]
       [`(,a . ,terms*) 
        (loop (+ a c) h terms*)]
@@ -163,12 +181,12 @@
 ;;   produces '(1 3 4))
 (define/cond-contract (LExp-coeff l p)
   (-> LExp? Path? exact-integer?)
-  (table-get-coeff (LExp-terms l) p))
+  (hash-get-coeff (LExp-terms l) p))
 
 (define/cond-contract (LExp-set-coeff l x cx)
   (-> LExp? Path? exact-integer? LExp?)
   (match l
-    [(LExp: c terms) (*LExp c (table-set-coeff terms x cx))]
+    [(LExp: c terms) (*LExp c (hash-set-coeff terms x cx))]
     [_ (int-err "invalid lexp for LExp-set-coeff: ~a" l)]))
 
 ;; returns the terms from this LExp as cons pairs
@@ -196,9 +214,9 @@
   (for/fold ([terms terms1])
             ([p2 (in-list (dict-keys terms2))])
     (define p2-const
-      (+/- (table-get-coeff terms1 p2)
-           (table-get-coeff terms2 p2)))
-    (table-set-coeff terms p2 p2-const)))
+      (+/- (hash-get-coeff terms1 p2)
+           (hash-get-coeff terms2 p2)))
+    (hash-set-coeff terms p2 p2-const)))
 
 ;; l1 - l2
 (define/cond-contract (LExp-minus l1 l2)
@@ -206,9 +224,18 @@
   (match* (l1 l2)
     [((LExp: c1 terms1)
       (LExp: c2 terms2))
-     (*LExp (- c1 c2)
-            (terms-plus/minus terms1 terms2 #f))]
+     (let-values ([(c terms) (internal-lexp-plus c1 terms1 c2 terms2)])
+       (*LExp c terms))]
     [(_ _) (int-err "invalid LExp-minus arg(s): ~a ~a" l1 l2)]))
+
+;; l1 + l2
+(define/cond-contract (internal-lexp-plus c1 terms1 c2 terms2)
+  (-> exact-integer? immutable-path-pash?
+      exact-integer? immutable-path-pash?
+      (values exact-integer? immutable-path-pash?))
+  (values (- c1 c2)
+          (terms-plus/minus terms1 terms2 #f)))
+
 
 ;; l1 + l2
 (define/cond-contract (LExp-plus l1 l2)
@@ -216,8 +243,7 @@
   (match* (l1 l2)
     [((LExp: c1 terms1)
       (LExp: c2 terms2))
-     (*LExp (+ c1 c2)
-            (terms-plus/minus terms1 terms2 #t))]
+     (*LExp (+ c1 c2) (terms-plus/minus terms1 terms2 #t))]
     [(_ _) (int-err "invalid LExp-minus arg(s): ~a ~a" l1 l2)]))
 
 
@@ -250,12 +276,7 @@
         (*LExp 0 empty-path-table)]
        [(= 1 n) l]
        [else
-        (*LExp (* n c)
-               (for/fold ([h empty-path-table])
-                         ([p/c (in-dict-pairs terms)])
-                 (match p/c
-                   [(cons p c) (table-set-coeff h p (* n c))]
-                   [_ (int-err "invalid path/const pair in LExp-scale: ~a" p/c)])))])]
+        (*LExp (* n c) (hash-scale-coeffs terms n))])]
     [_ (int-err "invalid LExp-scale lexp: ~a" l)]))
 
 ;; LExp-shrink
@@ -267,14 +288,14 @@
     (for/fold ([h empty-path-table])
               ([p/c (in-dict-pairs terms)])
       (match p/c
-        [(cons p c) (table-set-coeff h p (* scale c))]
+        [(cons p c) (hash-set-coeff h p (* scale c))]
         [_ (int-err "invalid path/const pair in LExp-gcd-shrink: ~a" p/c)])))
   
   (match* (l1 l2)
     [((LExp: c1 terms1) (LExp: c2 terms2))
-     (define lexp-gcd (apply gcd (append (filter-not zero? (list c1 c2))
-                                         (filter-not zero? (dict-values terms1)) 
-                                         (filter-not zero? (dict-values terms2)))))
+     (define lexp-gcd (apply gcd (filter-not zero? (append (list c1 c2)
+                                                           (dict-values terms1)
+                                                           (dict-values terms2)))))
      (cond
        [(= 0 lexp-gcd) (values (*LExp 0 empty-path-table)
                                (*LExp 0 empty-path-table))]
@@ -287,7 +308,7 @@
 
 (define/cond-contract (LExp-has-var? l x)
   (-> LExp? Path? boolean?)
-  (not (zero? (table-get-coeff (LExp-terms l) x))))
+  (not (zero? (hash-get-coeff (LExp-terms l) x))))
 
 (define-match-expander LExp:*
   (lambda (stx)

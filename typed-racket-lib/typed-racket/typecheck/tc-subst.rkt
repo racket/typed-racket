@@ -147,9 +147,17 @@
   (match f
     [(ImpFilter: ant consq)
      (-imp (subst-filter ant k o (not polarity)) (sub-f consq))]
-    [(AndFilter: fs) (apply -and (map sub-f fs))]
+    [(AndFilter: fs) 
+     (when (ormap SLI? fs) (printf "\nsubst-filter ~a ~a ~a\n" f k o))
+     (define v (apply -and (map sub-f fs)))
+     (when (ormap SLI? fs) (printf "\nsubst-filter result: ~a\n" v))
+     v]
     [(OrFilter: fs) (apply -or (map sub-f fs))]
-    [(? SLI? s) (SLI-path-map sub-o s)]
+    [(? SLI? s) 
+     (printf "\nsubst-filter on SLI: ~a\n substituting ~a for ~a \n" f o k)
+     (define v (SLI-path-map sub-o s))
+     (printf "\n SLI substd: ~a\n" v)
+     v]
     [(Bot:) -bot]
     [(Top:) -top]
     [(or (TypeFilter: t (Path: p i))

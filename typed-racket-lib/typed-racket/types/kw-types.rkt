@@ -7,71 +7,63 @@
          "../utils/tc-utils.rkt"
          "../base-env/annotate-classes.rkt"
          "tc-result.rkt"
-         racket/list racket/set racket/dict racket/match
+         racket/list racket/set racket/match
          racket/format racket/string
          syntax/parse)
 
 ;; convert : [Listof Keyword] [Listof Type] [Listof Type] [Option Type]
 ;;           [Option Type] [Option (Pair Type symbol)] boolean -> Type
 (define (convert kw-t plain-t opt-t rng rest drest split?)
-  (define-values (mand-kw-t opt-kw-t) (partition (match-lambda [(Keyword: _ _ m) m]) kw-t))
-
   (when drest
     (int-err "drest passed to kw-convert"))
-
-  (define arities
-    (for/list ([i (in-range (length opt-t))])
-      (make-arr* (append plain-t (take opt-t i))
-                 rng
-                 #:kws kw-t
-                 #:rest rest
-                 #:drest drest)))
   ;; the kw function protocol passes rest args as an explicit list
-  (define rest-type (if rest (-lst rest) empty))
-  (define ts 
-    (flatten
-     (list
-      (for/list ([k (in-list kw-t)])
-        (match k
-          [(Keyword: _ t #t) t]
-          [(Keyword: _ t #f) (list (-opt t) -Boolean)]))
-      plain-t
-      (for/list ([t (in-list opt-t)]) (-opt t))
-      (for/list ([t (in-list opt-t)]) -Boolean)
-      rest-type)))
+  (define rest-type (if rest (list (-lst rest)) empty))
+
   ;; the kw protocol puts the arguments in keyword-sorted order in the
   ;; function header, so we need to sort the types to match
   (define sorted-kws
     (sort kw-t keyword<? #:key (match-lambda [(Keyword: kw _ _) kw])))
-  (define ts/true
-    (flatten
-     (list
-      (for/list ([k (in-list sorted-kws)])
-        (match k
-          [(Keyword: _ t #t) t]
-          [(Keyword: _ t #f) (list t (-val #t))]))
-      plain-t
-      (for/list ([t (in-list opt-t)]) t)
-      (for/list ([t (in-list opt-t)]) (-val #t))
-      rest-type)))
-  (define ts/false
-    (flatten
-     (list
-      (for/list ([k (in-list sorted-kws)])
-        (match k
-          [(Keyword: _ t #t) t]
-          [(Keyword: _ t #f) (list (-val #f) (-val #f))]))
-      plain-t
-      (for/list ([t (in-list opt-t)]) (-val #f))
-      (for/list ([t (in-list opt-t)]) (-val #f))
-      rest-type)))
-  (make-Function
-    (if split?
-        (remove-duplicates
-          (list (make-arr* ts/true rng #:drest drest)
-                (make-arr* ts/false rng #:drest drest)))
-        (list (make-arr* ts rng #:rest rest #:drest drest)))))
 
+  (make-Function
+    (cond
+      [(not split?)
+       (define ts 
+         (flatten
+          (list
+           (for/list ([k (in-list sorted-kws)])
+             (match k
+               [(Keyword: _ t #t) t]
+               [(Keyword: _ t #f) (list (-opt t) -Boolean)]))
+           plain-t
+           (for/list ([t (in-list opt-t)]) (-opt t))
+           (for/list ([t (in-list opt-t)]) -Boolean)
+           rest-type)))
+       (list (make-arr* ts rng #:rest rest #:drest drest))]
+      [else
+       ;; The different types for each possibile combination of keywords
+       (define keyword-possibilities
+         (map append*
+           (apply cartesian-product
+             (for/list ([k (in-list sorted-kws)])
+               (match k
+                 [(Keyword: _ t #t) (list (list t))]
+                 [(Keyword: _ t #f) (list (list t -True)
+                                          (list -False -False))])))))
+
+       ;; The different types for each possibile supplied number of optional arguments
+       (define optional-possibilities
+         (for/list ([supplied (in-range (add1 (length opt-t)))])
+            (define unsupplied (- (length opt-t) supplied))
+            (append
+              (take opt-t supplied)
+              (make-list unsupplied -False)
+              (make-list supplied -True)
+              (make-list unsupplied -False))))
+
+       (remove-duplicates
+         (for*/list ([kw-pos (in-list keyword-possibilities)]
+                     [opt-pos (in-list optional-possibilities)])
+          (make-arr* (append kw-pos plain-t opt-pos rest-type) rng #:drest drest)))])))
 
 ;; This is used to fix the props of keyword types.
 ;; TODO: This should also explore deeper into the actual types and remove props in there as well.
@@ -121,12 +113,12 @@
 
 (define (find-prefixes l)
   (define l* (sort l < #:key arity-length))
-  (for/fold ([d (list)]) ([e (in-list l*)])
-    (define prefix (for/or ([p (in-dict-keys d)])
+  (for/fold ([h (hash)]) ([e (in-list l*)])
+    (define prefix (for/or ([p (in-hash-keys h)])
                      (and (prefix-of p e) p)))
     (if prefix
-        (dict-set d prefix (arg-diff prefix e))
-        (dict-set d e empty))))
+        (hash-set h prefix (arg-diff prefix e))
+        (hash-set h e null))))
 
 ;; handle-extra-or-missing-kws : (Listof Keyword) LambdaKeywords
 ;;                               -> (Listof Keyword)
@@ -153,14 +145,16 @@
 (define (inner-kw-convert arrs actual-kws split?)
   (define table (find-prefixes arrs))
   (define fns
-    (for/set ([(k v) (in-dict table)])
+    ;; use for/list and remove duplicates afterwards instead of
+    ;; set and set->list to retain determinism
+    (for/list ([(k v) (in-hash table)])
       (match k
         [(arr: mand rng rest drest kws)
          (define kws* (if actual-kws
                           (handle-extra-or-missing-kws kws actual-kws)
                           kws))
          (convert kws* mand v rng rest drest split?)])))
-  (apply cl->* (set->list fns)))
+  (apply cl->* (remove-duplicates fns)))
 
 ;; kw-convert : Type (Option LambdaKeywords) [Boolean] -> Type
 ;; Given an ordinary function type, convert it to a type that matches the keyword

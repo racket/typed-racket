@@ -11,63 +11,56 @@
 ;; convert : [Listof Keyword] [Listof Type] [Listof Type] [Option Type]
 ;;           [Option Type] [Option (Pair Type symbol)] boolean -> Type
 (define (convert kw-t plain-t opt-t rng rest drest split?)
-  (define-values (mand-kw-t opt-kw-t) (partition (match-lambda [(Keyword: _ _ m) m]) kw-t))
-
   (when drest
     (int-err "drest passed to kw-convert"))
-
-  (define arities
-    (for/list ([i (in-range (length opt-t))])
-      (make-arr* (append plain-t (take opt-t i))
-                 rng
-                 #:kws kw-t
-                 #:rest rest
-                 #:drest drest)))
   ;; the kw function protocol passes rest args as an explicit list
   (define rest-type (if rest (-lst rest) empty))
-  (define ts 
-    (flatten
-     (list
-      (for/list ([k (in-list kw-t)])
-        (match k
-          [(Keyword: _ t #t) t]
-          [(Keyword: _ t #f) (list (-opt t) -Boolean)]))
-      plain-t
-      (for/list ([t (in-list opt-t)]) (-opt t))
-      (for/list ([t (in-list opt-t)]) -Boolean)
-      rest-type)))
-  ;; the kw protocol puts the arguments in keyword-sorted order in the
-  ;; function header, so we need to sort the types to match
-  (define sorted-kws
-    (sort kw-t keyword<? #:key (match-lambda [(Keyword: kw _ _) kw])))
-  (define ts/true
-    (flatten
-     (list
-      (for/list ([k (in-list sorted-kws)])
-        (match k
-          [(Keyword: _ t #t) t]
-          [(Keyword: _ t #f) (list t (-val #t))]))
-      plain-t
-      (for/list ([t (in-list opt-t)]) t)
-      (for/list ([t (in-list opt-t)]) (-val #t))
-      rest-type)))
-  (define ts/false
-    (flatten
-     (list
-      (for/list ([k (in-list sorted-kws)])
-        (match k
-          [(Keyword: _ t #t) t]
-          [(Keyword: _ t #f) (list (-val #f) (-val #f))]))
-      plain-t
-      (for/list ([t (in-list opt-t)]) (-val #f))
-      (for/list ([t (in-list opt-t)]) (-val #f))
-      rest-type)))
+
   (make-Function
-    (if split?
-        (remove-duplicates
-          (list (make-arr* ts/true rng #:drest drest)
-                (make-arr* ts/false rng #:drest drest)))
-        (list (make-arr* ts rng #:rest rest #:drest drest)))))
+    (cond
+      [(not split?)
+       (define ts 
+         (flatten
+          (list
+           (for/list ([k (in-list kw-t)])
+             (match k
+               [(Keyword: _ t #t) t]
+               [(Keyword: _ t #f) (list (-opt t) -Boolean)]))
+           plain-t
+           (for/list ([t (in-list opt-t)]) (-opt t))
+           (for/list ([t (in-list opt-t)]) -Boolean)
+           rest-type)))
+       (list (make-arr* ts rng #:rest rest #:drest drest))]
+      [else
+       ;; the kw protocol puts the arguments in keyword-sorted order in the
+       ;; function header, so we need to sort the types to match
+       (define sorted-kws
+         (sort kw-t keyword<? #:key (match-lambda [(Keyword: kw _ _) kw])))
+       (define ts/true
+         (flatten
+          (list
+           (for/list ([k (in-list sorted-kws)])
+             (match k
+               [(Keyword: _ t #t) t]
+               [(Keyword: _ t #f) (list t (-val #t))]))
+           plain-t
+           (for/list ([t (in-list opt-t)]) t)
+           (for/list ([t (in-list opt-t)]) (-val #t))
+           rest-type)))
+       (define ts/false
+         (flatten
+          (list
+           (for/list ([k (in-list sorted-kws)])
+             (match k
+               [(Keyword: _ t #t) t]
+               [(Keyword: _ t #f) (list (-val #f) (-val #f))]))
+           plain-t
+           (for/list ([t (in-list opt-t)]) (-val #f))
+           (for/list ([t (in-list opt-t)]) (-val #f))
+           rest-type)))
+       (remove-duplicates
+         (list (make-arr* ts/true rng #:drest drest)
+               (make-arr* ts/false rng #:drest drest)))])))
 
 
 ;; This is used to fix the filters of keyword types.

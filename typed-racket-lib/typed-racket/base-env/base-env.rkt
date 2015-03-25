@@ -624,13 +624,13 @@
 [kernel:reverse (-poly (a) (-> (-lst a) (-lst a)))]
 [append (-poly (a) (->* (list) (-lst a) (-lst a)))]
 [length (-poly (a) (-> (-lst a) -Index))]
-[memq (-poly (a) (-> Univ (-lst a) (-opt (-lst a))))]
-[memv (-poly (a) (-> Univ (-lst a) (-opt (-lst a))))]
-[memf (-poly (a) ((a . -> . Univ) (-lst a) . -> . (-opt (-lst a))))]
+[memq (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
+[memv (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
+[memf (-poly (a) ((a . -> . Univ) (-lst a) . -> . (-opt (-ne-lst a))))]
 [member (-poly (a)
-          (cl->* (Univ (-lst a) . -> . (-opt (-lst a)))
+          (cl->* (Univ (-lst a) . -> . (-opt (-ne-lst a)))
                  (Univ (-lst a) (-> a a Univ)
-                       . -> . (-opt (-lst a)))))]
+                       . -> . (-opt (-ne-lst a)))))]
 [findf (-poly (a) ((a . -> . B) (-lst a) . -> . (-opt a)))]
 
 [assq  (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]

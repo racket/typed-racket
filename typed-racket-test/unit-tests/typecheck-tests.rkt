@@ -2325,10 +2325,11 @@
 
        ;; test functions which do lookup with the "wrong type", where the
        ;; result type shouldn't be widened to include that type
-       [tc-e (memq 3 '(a b c)) (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
-       [tc-e (memv 3 '(a b c)) (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
-       [tc-e (member 3 '(a b c)) (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
-       [tc-e (member 3 '(a b c) equal?) (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
+       [tc-e (memq 3 '(a b c)) (t:Un (-val #f) (-ne-lst (one-of/c 'a 'b 'c)))]
+       [tc-e (memv 3 '(a b c)) (t:Un (-val #f) (-ne-lst (one-of/c 'a 'b 'c)))]
+       [tc-e (member 3 '(a b c)) (t:Un (-val #f) (-ne-lst (one-of/c 'a 'b 'c)))]
+       [tc-e (member 3 '(a b c) equal?) (t:Un (-val #f) (-ne-lst (one-of/c 'a 'b 'c)))]
+       [tc-e (memf symbol? '(a b c)) (t:Un (-val #f) (-ne-lst (one-of/c 'a 'b 'c)))]
        [tc-e (assq 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
        [tc-e (assv 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
        [tc-e (assoc 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]

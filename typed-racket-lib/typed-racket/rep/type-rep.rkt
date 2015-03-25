@@ -462,11 +462,17 @@
   [#:for-each (f) (f ty)])
 
 
+(define (keyword-sorted/c kws)
+  (or (empty? kws)
+      (= (length kws) 1)
+      (apply keyword<? (map Keyword-kw kws))))
+
+
 (def-rep arr ([dom (listof Type?)]
               [rng SomeValues?]
               [rest (or/c #f Type?)]
               [drest (or/c #f (cons/c Type? (or/c natural-number/c symbol?)))]
-              [kws (listof Keyword?)])
+              [kws (and/c (listof Keyword?) keyword-sorted/c)])
   [#:frees
    [#:vars (f)
     (combine-frees
@@ -506,6 +512,7 @@
    (when drest (f (car drest)))
    (when rest (f rest))
    (for-each f kws)])
+
 
 ;; arities : Listof[arr]
 (def-type Function ([arities (listof arr?)])

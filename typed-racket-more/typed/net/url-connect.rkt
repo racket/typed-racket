@@ -5,4 +5,4 @@
 
 (require/typed/provide
  net/url-connect
- [current-https-protocol (U SSL-Client-Context SSL-Protocol)])
+ [current-https-protocol (Parameterof (U SSL-Client-Context SSL-Protocol))])

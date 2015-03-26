@@ -31,6 +31,7 @@ the typed racket language.
 
 
 (provide (except-out (all-defined-out) -let-internal define-for-variants
+                     def-redirect
                      define-for*-variants with-handlers: define-for/acc:-variants
                      base-for/flvector: base-for/vector -lambda -define -do -let
                      -let* -let*-values -let-values -let/cc -let/ec -letrec -letrec-values)

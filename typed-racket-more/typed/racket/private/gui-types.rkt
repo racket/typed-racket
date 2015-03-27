@@ -19,22 +19,26 @@
          Color%
          Color-Database<%>
          DC<%>
+         DC-Path%
          Font%
          Font-List%
          Font-Name-Directory<%>
          GL-Config%
          GL-Context<%>
          Linear-Gradient%
+         PDF-DC%
          Pen%
          Pen-List%
          Pen-Style
          Pen-Cap-Style
          Pen-Join-Style
          Point%
+         Post-Script-DC%
          PS-Setup%
          Radial-Gradient%
          Record-DC%
-         Region%)
+         Region%
+         SVG-DC%)
 
 (define-type LoadFileKind
  (U 'unknown 'unknown/mask 'unknown/alpha
@@ -505,6 +509,38 @@
                [height Real #:optional])
          [get-recorded-datum (-> Any)]
          [get-recorded-procedure (-> (-> (Instance DC<%>) Void))]))
+
+(define-type PDF-DC%
+  (Class #:implements DC<%>
+         (init [interactive Any #:optional]
+               [parent (Option (U (Instance Frame%) (Instance Dialog%)))
+                       #:optional]
+               [use-paper-bbox Any #:optional]
+               [as-eps Any #:optional]
+               [width (Option Real) #:optional]
+               [height (Option Real) #:optional]
+               [output (U #f Path-String Output-Port) #:optional])))
+
+(define-type Post-Script-DC%
+  (Class #:implements DC<%>
+         (init [interactive Any #:optional]
+               [parent (Option (U (Instance Frame%) (Instance Dialog%)))
+                       #:optional]
+               [use-paper-bbox Any #:optional]
+               [as-eps Any #:optional]
+               [width (Option Real) #:optional]
+               [height (Option Real) #:optional]
+               [output (U #f Path-String Output-Port) #:optional])))
+
+(define-type SVG-DC%
+  (Class #:implements DC<%>
+         (init [width Real]
+               [height Real]
+               [output (U Path-String Output-Port)]
+               [exists (U 'error 'append 'update 'can-update
+                          'replace 'truncate
+                          'must-truncate 'truncate/replace)
+                       #:optional])))
 
 (define-type Font-List%
   (Class

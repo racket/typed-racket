@@ -150,6 +150,9 @@ previous type.
 
 Instances of this structure, such as @racket[(point 7 12)], have type @racket[point].
 
+If a struct supertype is provided, then the newly defined type
+is a @tech{subtype} of the parent.
+
 @section{Subtyping}
 
 In Typed Racket, all types are placed in a hierarchy, based on what

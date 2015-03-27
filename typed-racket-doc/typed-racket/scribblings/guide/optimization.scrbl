@@ -41,9 +41,9 @@ the types you assigned to your data. As such, you can improve the
 optimizer's usefulness by writing informative types.
 
 For example, the following programs both typecheck:
-@racketblock[(define: (f (x : Real))  : Real  (+ x 2.5))
+@racketblock[(define (f [x : Real])  : Real  (+ x 2.5))
              (f 3.5)]
-@racketblock[(define: (f (x : Float)) : Float (+ x 2.5))
+@racketblock[(define (f [x : Float]) : Float (+ x 2.5))
              (f 3.5)]
 
 However, the second one uses more informative types: the
@@ -112,7 +112,7 @@ the check for the empty list that is usually done when calling
 @racket[car] and @racket[cdr].
 
 @racketblock[
-(define: (sum (l : (Listof Integer))) : Integer
+(define (sum [l : (Listof Integer)]) : Integer
   (if (null? l)
       0
       (+ (car l) (sum (cdr l)))))
@@ -137,7 +137,7 @@ or as the more precise:
 Using the second definition, all @racket[car] and @racket[cdr]-related
 checks can be eliminated in this function:
 @racketblock[
-(define: (sum2 (l : List-2-Ints) : Integer)
+(define (sum2 [l : List-2-Ints]) : Integer
   (+ (car l) (car (cdr l))))
 ]
 
@@ -149,9 +149,9 @@ vector access using constant indices can be optimized in a similar
 fashion as @racket[car] and @racket[cdr].
 
 @#reader scribble/comment-reader (racketblock
-;; #(name r g b)
+;; #(color r g b)
 (define-type Color (Vector String Integer Integer Integer))
-(define: x : Color (vector "red" 255 0 0))
+(define x : Color (vector "red" 255 0 0))
 (vector-ref x 0) ; good
 (define color-name 0)
 (vector-ref x color-name) ; good

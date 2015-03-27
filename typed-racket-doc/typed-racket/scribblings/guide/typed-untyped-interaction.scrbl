@@ -55,7 +55,7 @@ typed/racket
 The @racket[require/typed] form has several kinds of clauses. The
 @racket[#:struct] clause specifies the import of a structure type
 and allows us to use the structure type as if it were defined with
-@racket[struct:].
+Typed Racket's @racket[struct].
 
 The second clause in the example above specifies that a given
 binding @racket[_distance] has the given type @racket[(-> pt pt Real)].
@@ -104,7 +104,7 @@ function:
 (module increment racket
   (provide increment)
 
-  (code:comment "increment : exact-integer? -> exact-integer?")
+  (code:contract "increment : exact-integer? -> exact-integer?")
   (define (increment x) "this is broken"))
 ]
 

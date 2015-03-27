@@ -26,7 +26,7 @@ language:
 @(define typed-mod
 @racketmod[
 typed/racket
-(struct: pt ([x : Real] [y : Real]))
+(struct pt ([x : Real] [y : Real]))
 
 (: distance (-> pt pt Real))
 (define (distance p1 p2)

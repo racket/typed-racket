@@ -119,16 +119,27 @@ unions are flattened.
 
 @section{Recursive Types}
 
-@deftech{Recursive types} can refer to themselves.  This allows a type
-to describe an infinite family of data.  For example, this is the type
-of binary trees of numbers.
+@deftech{Recursive types} are types whose definitions refer to
+themselves.  This allows a type to describe an infinite family
+of data.  For example, this is the type of binary trees of numbers.
 
 @racketblock[
-(define-type BinaryTree (Rec BT (U Number (Pair BT BT))))]
+(define-type BinaryTree (U Number (Pair BinaryTree BinaryTree)))]
 
-The @racket[Rec] type constructor specifies that the type @racket[BT]
-refers to the whole binary tree type within the body of the
-@racket[Rec] form.
+Types can also be @emph{mutually recursive}. For example, the above
+type defintion could also be written like this.
+
+@racketblock[
+(define-type BinaryTree (U BinaryTreeLeaf BinaryTreeNode))
+(define-type BinaryTreeLeaf Number)
+(define-type BinaryTreeNode (Pair BinaryTree BinaryTree))]
+
+Of course, types which directly refer to themselves are not
+permitted. For example, both of these definitions are illegal.
+
+@interaction[#:eval the-eval
+(define-type BinaryTree BinaryTree)
+(define-type BinaryTree (U Number BinaryTree))]
 
 @section{Structure Types}
 

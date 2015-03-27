@@ -1046,14 +1046,14 @@
      (<-type-pattern -Real -PosReal -NonNegReal -NegReal -NonPosReal)
      (->* (list R R) R B))]
 [>  (from-cases
-     (-> -One -Pos B : (-FS (-filter (Un) 1) -top)) ; can't happen
-     (-> -One -Nat B : (-FS (-filter -Zero 1) -top))
-     (-> -RealZero -Byte B : (-FS (-filter (Un) 1) -top))
-     (-> -One -Byte B : (-FS (-filter -Zero 1) -top))
-     (-> -Byte -Zero B : (-FS (-filter -PosByte 0) (-filter -Zero 0)))
-     (-> -Index -Zero B : (-FS (-filter -PosIndex 0) (-filter -Zero 0)))
-     (-> -NonNegFixnum -Zero B : (-FS (-filter -PosFixnum 0) (-filter -Zero 0)))
-     (-> -Nat -Zero B : (-FS (-filter -PosInt 0) (-filter -Zero 0)))
+     (-> -One -Int B : (-FS (-filter -NonPosInt 1) (-filter -PosInt 1)))
+     (-> -Int -One B : (-FS (-filter -PosInt 0) (-filter -NonPosInt 0)))
+     (-> -Zero -Int B : (-FS (-filter -NegInt 1) (-filter -NonNegInt 1))
+     (-> -Int -Zero B : (-FS (-filter -NonNegInt 0) (-filter -NegInt 0)))
+     ;; RealZero includes NaN so #f doesn't give much information
+     (-> -RealZero -Int B : (-FS (-filter -PosInt 1) -top))
+     (-> -Int -RealZero B : (-FS (-filter -NegInt 0) -top))
+
      (-> -PosByte -Byte B : (-FS -top (-filter -PosByte 1)))
      (-> -Byte -Byte B : (-FS (-filter -PosByte 0) -top))
      (-> -Byte -PosInt B : (-FS (-and (-filter -PosByte 0) (-filter -PosByte 1)) -top))
@@ -1063,9 +1063,6 @@
      (-> -Byte -Nat B : (-FS (-and (-filter -PosByte 0) (-filter -Byte 1)) -top))
      (-> -Byte -NonNegReal B : (-FS (-filter -PosByte 0) -top))
      (-> -Nat -Byte B : (-FS -top (-filter -Byte 0)))
-     (-> -RealZero -Index B : (-FS (-filter (Un) 1) -top))
-     (-> -One -Index B : (-FS (-filter -Zero 1) -top))
-     (-> -Index -Zero B : (-FS (-filter -PosIndex 0) (-filter -Zero 0)))
      (-> -PosIndex -Index B : (-FS -top (-filter -PosIndex 1)))
      (-> -Index -Index B : (-FS (-filter -PosIndex 0) -top))
      (-> -Index -PosInt B : (-FS (-and (-filter -PosIndex 0) (-filter -PosIndex 1)) -top))
@@ -1075,8 +1072,6 @@
      (-> -Index -Nat B : (-FS (-and (-filter -PosIndex 0) (-filter -Index 1)) -top))
      (-> -Index -NonNegReal B : (-FS (-filter -PosIndex 0) -top))
      (-> -Nat -Index B : (-FS -top (-filter -Index 0)))
-     (-> -Zero -Fixnum B : (-FS (-filter -NegFixnum 1) (-filter -NonNegFixnum 1)))
-     (-> -Fixnum -RealZero B : (-FS (-filter -PosFixnum 0) (-filter -NonPosFixnum 0)))
      (-> -PosInt -Fixnum B : (-FS -top (-and (-filter -PosFixnum 0) (-filter -PosFixnum 1))))
      (-> -PosRat -Fixnum B : (-FS -top (-filter -PosFixnum 1)))
      (-> -Nat -Fixnum B : (-FS -top (-and (-filter -NonNegFixnum 0) (-filter -NonNegFixnum 1))))

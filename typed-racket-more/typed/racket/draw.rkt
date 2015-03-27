@@ -27,6 +27,7 @@
                         racket/draw/private/color
                         racket/draw/private/font
                         racket/draw/private/pen
+                        racket/draw/private/record-dc
                         racket/draw/private/region)
           LoadFileKind
           Font-Family
@@ -56,6 +57,7 @@
           Point%
           PS-Setup%
           Radial-Gradient%
+          Record-DC%
           Region%))
 
 (begin-for-syntax
@@ -86,6 +88,7 @@
  [pen% (parse-type #'Pen%)]
  [ps-setup% (parse-type #'PS-Setup%)]
  [radial-gradient% (parse-type #'Radial-Gradient%)]
+ [record-dc% (parse-type #'Record-DC%)]
  [region% (parse-type #'Region%)]
  ;; 26 Drawing Functions
  [current-ps-setup (-Param (-inst (parse-type #'PS-Setup%)))]

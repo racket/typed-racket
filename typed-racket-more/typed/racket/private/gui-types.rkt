@@ -33,6 +33,7 @@
          Point%
          PS-Setup%
          Radial-Gradient%
+         Record-DC%
          Region%)
 
 (define-type LoadFileKind
@@ -497,6 +498,13 @@
                   (Real Real Integer Integer Bytes Any Any -> Void))]
          [set-bitmap ((Option (Instance Bitmap%)) -> Void)]
          [set-pixel (Real Real (Instance Color%) -> Boolean)]))
+
+(define-type Record-DC%
+  (Class #:implements DC<%>
+         (init [width Real #:optional]
+               [height Real #:optional])
+         [get-recorded-datum (-> Any)]
+         [get-recorded-procedure (-> (-> (Instance DC<%>) Void))]))
 
 (define-type Font-List%
   (Class

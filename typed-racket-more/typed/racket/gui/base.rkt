@@ -264,6 +264,20 @@
            (-> (-val 'wait) (-val #t))
            (-> (-evt a) a)))]
  [sleep/yield (-> -NonNegReal -Void)]
+ ;; 4.3 System Menus
+ [current-eventspace-has-standard-menus? (-> -Boolean)]
+ [current-eventspace-has-menu-root? (-> -Boolean)]
+ [application-about-handler
+  (cl->* (-> (-> ManyUniv)) (-> (-> ManyUniv) -Void))]
+ [application-file-handler
+  (cl->* (-> (-> -Path ManyUniv)) (-> (-> -Path ManyUniv) -Void))]
+ [application-preferences-handler
+  (cl->* (-> (-opt (-> ManyUniv)))
+         (-> (-opt (-> ManyUniv)) -Void))]
+ [application-quit-handler
+  (cl->* (-> (-> ManyUniv)) (-> (-> ManyUniv) -Void))]
+ [application-start-empty-handler
+  (cl->* (-> (-> ManyUniv)) (-> (-> ManyUniv) -Void))]
  ;; 4.4 Global Graphics
  [flush-display (-> -Void)]
  [get-display-count (-> -PosInt)]
@@ -306,28 +320,45 @@
  [get-panel-background (-> -Color%-Obj)]
  [get-highlight-background-color (-> -Color%-Obj)]
  [get-highlight-text-color (-> (-opt -Color%-Obj))]
- ; get-window-text-extent
- ; graphical-read-eval-print-loop
- ; textual-read-eval-print-loop
- ; get-current-mouse-state
+ [get-window-text-extent
+  (->opt -String (-inst (parse-type #'Font%))
+         [Univ]
+         (-values (list -Nat -Nat)))]
+ [graphical-read-eval-print-loop
+  (->opt [(-opt -Eventspace) Univ] -Void)]
+ [textual-read-eval-print-loop (-> -Void)]
+ [get-current-mouse-state
+  (-> (-values (list (-inst (parse-type #'Point%))
+                     (-lst (one-of/c 'left 'middle 'right
+                                     'shift 'control 'alt 'meta 'caps)))))]
  [hide-cursor-until-moved (-> -Void)]
  [is-busy? (-> -Boolean)]
  [label->plain-label (-> -String -String)]
- ; make-gl-bitmap
+ [make-gl-bitmap
+  (-> -Integer -Integer (-inst (parse-type #'GL-Config%))
+      (-inst (parse-type #'Bitmap%)))]
  [make-gui-empty-namespace (-> -Namespace)]
  [make-gui-namespace (-> -Namespace)]
- ; make-screen-bitmap
- ; play-sound
- ; position-integer?
- ; positive-dimension-integer?
- ; register-collecting-blit
- ; unregister-collecting-blit
- ; send-message-to-window
- ; spacing-integer?
+ [make-screen-bitmap
+  (-> -Integer -Integer (-inst (parse-type #'Bitmap%)))]
+ [play-sound (-> -Pathlike Univ -Boolean)]
+ [position-integer? (-> Univ -Boolean)]
+ [positive-dimension-integer? (-> Univ -Boolean)]
+ [register-collecting-blit
+  (->opt (-inst (parse-type #'Canvas%))
+         -Integer -Integer -Integer -Integer
+         (-inst (parse-type #'Bitmap%))
+         (-inst (parse-type #'Bitmap%))
+         [-Real -Real -Real -Real]
+         -Void)]
+ [unregister-collecting-blit
+  (-> (-inst (parse-type #'Canvas%)) -Void)]
+ [send-message-to-window (-> -Integer -Integer Univ Univ)]
+ [spacing-integer? (-> Univ -Boolean)]
  [system-position-ok-before-cancel? (-> -Boolean)]
- ; the-clipboard
- ; the-x-selection-clipboard
- ; label-string?
- ; key-code-symbol?
+ [the-clipboard (-inst (parse-type #'Clipboard<%>))]
+ [the-x-selection-clipboard (-inst (parse-type #'Clipboard<%>))]
+ [label-string? (-> Univ -Boolean)]
+ [key-code-symbol? (-> Univ -Boolean)]
  ;; 8 Editor functions
  [get-the-snip-class-list (-> (make-Instance (parse-type #'Snip-Class-List<%>)))])

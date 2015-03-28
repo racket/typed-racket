@@ -7,6 +7,7 @@
          racket/match racket/list
          (contract-req)
          (except-in (types abbrev utils filter-ops) -> ->* one-of/c)
+         (only-in (infer infer) restrict)
          (rep type-rep object-rep filter-rep rep-utils))
 
 (provide add-scope)
@@ -45,8 +46,8 @@
 ;; filters if they conflict with the argument type.
 (define/cond-contract (subst-tc-results res k o polarity t)
   (-> full-tc-results/c name-ref/c Object? boolean? Type? full-tc-results/c)
-  (define (st t) (subst-type t k o polarity))
-  (define (sf f) (subst-filter f k o polarity))
+  (define (st ty) (subst-type ty k o polarity t))
+  (define (sf f) (subst-filter f k o polarity t))
   (define (sfs fs) (subst-filter-set fs k o polarity t))
   (define (so ob) (subst-object ob k o polarity))
   (match res
@@ -59,8 +60,8 @@
 
 ;; Substitution of objects into a filter set
 ;; This is essentially ψ+|ψ- [o/x] from the paper
-(define/cond-contract (subst-filter-set fs k o polarity [t Univ])
-  (->* ((or/c FilterSet? NoFilter?) name-ref/c Object? boolean?) (Type/c) FilterSet?)
+(define/cond-contract (subst-filter-set fs k o polarity t)
+  (-> (or/c FilterSet? NoFilter?) name-ref/c Object? boolean? Type/c FilterSet?)
   (define extra-filter (-filter t k))
   (define (add-extra-filter f)
     (define f* (-and f extra-filter))
@@ -70,22 +71,22 @@
       [else f]))
   (match fs
     [(FilterSet: f+ f-)
-     (-FS (subst-filter (add-extra-filter f+) k o polarity)
-          (subst-filter (add-extra-filter f-) k o polarity))]
+     (-FS (subst-filter (add-extra-filter f+) k o polarity t)
+          (subst-filter (add-extra-filter f-) k o polarity t))]
     [_ -top-filter]))
 
 ;; Substitution of objects into a type
 ;; This is essentially t [o/x] from the paper
-(define/cond-contract (subst-type t k o polarity)
-  (-> Type/c name-ref/c Object? boolean? Type/c)
-  (define (st t) (subst-type t k o polarity))
-  (define/cond-contract (sf fs) (FilterSet? . -> . FilterSet?) (subst-filter-set fs k o polarity))
+(define/cond-contract (subst-type t k o polarity ty)
+  (-> Type/c name-ref/c Object? boolean? Type/c Type/c)
+  (define (st t) (subst-type t k o polarity ty))
+  (define/cond-contract (sf fs) (FilterSet? . -> . FilterSet?) (subst-filter-set fs k o polarity ty))
   (type-case (#:Type st
               #:Filter sf
               #:Object (lambda (f) (subst-object f k o polarity)))
               t
               [#:arr dom rng rest drest kws
-                     (let* ([st* (λ (t) (subst-type t (add-scope k) (add-scope/object o) polarity))])
+                     (let* ([st* (λ (t) (subst-type t (add-scope k) (add-scope/object o) polarity ty))])
                        (make-arr (map st dom)
                                  (st* rng)
                                  (and rest (st rest))
@@ -124,9 +125,9 @@
 
 ;; Substitution of objects into a filter in a filter set
 ;; This is ψ+ [o/x] and ψ- [o/x]
-(define/cond-contract (subst-filter f k o polarity)
-  (-> Filter/c name-ref/c Object? boolean? Filter/c)
-  (define (ap f) (subst-filter f k o polarity))
+(define/cond-contract (subst-filter f k o polarity ty)
+  (-> Filter/c name-ref/c Object? boolean? Type/c Filter/c)
+  (define (ap f) (subst-filter f k o polarity ty))
   (define (tf-matcher t p i maker)
     (cond
       [(name-ref=? i k)
@@ -135,14 +136,14 @@
           (if polarity -top -bot)]
          [_
           (maker
-            (subst-type t k o polarity)
+            (restrict ty (subst-type t k o polarity ty))
             (-acc-path p o))])]
       [(index-free-in? k t) (if polarity -top -bot)]
       [else f]))
 
   (match f
     [(ImpFilter: ant consq)
-     (-imp (subst-filter ant k o (not polarity)) (ap consq))]
+     (-imp (subst-filter ant k o (not polarity) ty) (ap consq))]
     [(AndFilter: fs) (apply -and (map ap fs))]
     [(OrFilter: fs) (apply -or (map ap fs))]
     [(Bot:) -bot]

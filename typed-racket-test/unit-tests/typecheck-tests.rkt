@@ -774,9 +774,9 @@
                 (if (equal? sym x) 3 x))
               #:ret (ret -PosByte -true-filter)]
 
-        [tc-e (let: ([x : (Listof Symbol)'(a b c)])
-                    (cond [(memq 'a x) => car]
-                          [else 'foo]))
+        [tc-e/t (let: ([x : (Listof Symbol)'(a b c)])
+                      (cond [(memq 'a x) => car]
+                            [else 'foo]))
               -Symbol]
 
         [tc-e (list 2 3 4) (-lst* -PosByte -PosByte -PosByte)]
@@ -1988,7 +1988,7 @@
                 (for/and: : Any ([i (in-range 4)])
                           (my-pred)))
               #:ret (ret Univ -top-filter -empty-obj)]
-        [tc-e
+        [tc-e/t
          (let ()
            (define: long : (List 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 Integer)
              (list 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))

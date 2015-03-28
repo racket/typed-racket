@@ -4,7 +4,7 @@
          rackunit racket/format
          (typecheck tc-metafunctions tc-subst)
          (rep filter-rep type-rep object-rep)
-         (types abbrev union filter-ops tc-result)
+         (types abbrev union filter-ops tc-result numeric-tower)
          (for-syntax racket/base syntax/parse))
 
 (provide tests)
@@ -146,6 +146,11 @@
                             (list (make-Path null #'x)) (list Univ))
         (ret null null null (-> Univ -Boolean : (-FS (-filter -String #'x) -top)) 'b))
 
+      ;; Filter is restricted by type of object
+      (check-equal?
+        (values->tc-results (make-Values (list (-result -Boolean (-FS (-filter -PosReal '(0 0)) (-filter -NonPosReal '(0 0))))))
+                            (list (make-Path null #'x)) (list -Integer))
+        (ret -Boolean (-FS (-filter -PosInt #'x) (-filter -NonPosInt #'x))))
     )
 
     (test-suite "replace-names"

@@ -3562,6 +3562,17 @@
                       (error "foo"))
                #:extend-env ([foo-x (t:-> (-prefab 'foo -String) -String)])
                #:msg #rx"expected: \\(Prefab foo.*given: \\(Prefab bar"]
+
+       [tc-e (< (ann 0 Integer) +inf.0)
+        #:ret (ret -Boolean -true-filter)]
+       [tc-e (> -inf.0 (ann 0 Exact-Rational))
+        #:ret (ret -Boolean -false-filter)]
+       [tc-e/t (lambda: ([x : Flonum]) (and (<= +inf.f x) x))
+        (t:-> -Flonum (t:Un (-val #f) (-val +inf.0))
+              : (-FS (-filter -PosInfinity 0) (-not-filter -PosInfinity 0)))]
+       [tc-e/t (lambda: ([x : Flonum]) (or (>= +inf.f x) x))
+        (t:-> -Flonum (t:Un (-val #t) -FlonumNan)
+              : -true-filter)]
        )
 
   (test-suite

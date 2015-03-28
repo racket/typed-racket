@@ -693,6 +693,10 @@
                    (list -Symbol -String Univ
                          (Un (-val #f) -Symbol)))
                t)]
+          [((Base: 'Place _ _ _) (Evt: t))
+           (cg Univ t)]
+          [((Base: 'Base-Place-Channel _ _ _) (Evt: t))
+           (cg Univ t)]
           [((CustodianBox: t) (Evt: t*)) (cg S t*)]
           [((Channel: t) (Evt: t*)) (cg t t*)]
           [((Async-Channel: t) (Evt: t*)) (cg t t*)]

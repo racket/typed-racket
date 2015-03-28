@@ -509,6 +509,11 @@
                      (list -Symbol -String Univ
                            (Un (-val #f) -Symbol)))
                     t)]
+         ;; FIXME: change Univ to Place-Message-Allowed if/when that type is defined
+         [((Base: 'Place _ _ _) (Evt: (== Univ)))
+          #t]
+         [((Base: 'Base-Place-Channel _ _ _) (Evt: (== Univ)))
+          #t]
          [((CustodianBox: t) (Evt: t*))
           ;; Note that it's the whole box type that's being
           ;; compared against t* here

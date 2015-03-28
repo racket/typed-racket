@@ -10,7 +10,7 @@
          "filter-rep.rkt" 
          "../utils/utils.rkt" 
          (except-in racket/contract one-of/c)
-         racket/match racket/dict racket/list
+         racket/match racket/dict racket/list racket/function
          (contract-req)
          (for-syntax racket/base)
          (utils tc-utils))
@@ -99,35 +99,36 @@
 (define/cond-contract (hash-scale-coeffs h scale)
   (-> immutable-path-hash? exact-integer? immutable-path-hash?)
   (for/fold ([h empty-path-table])
-            ([p/c (in-dict-pairs terms)])
-    (match-define (cons p c) p/c
-      (hash-set-coeff h p (* scale c)))))
+            ([p/c (in-dict-pairs h)])
+    (match-define (cons p c) p/c)
+    (hash-set-coeff h p (* scale c))))
 
 (define/cond-contract (internal-lexp-path-map f const terms)
   (-> (-> Path? Object?) exact-integer? immutable-path-hash? 
       (or/c LExp? Empty?))
   (let loop ([term-pairs (dict->list terms)]
              [const* const]
-             [terms* terms]))
-  (match term-pairs
-    [(list) (*LExp const* terms*)]
-    [(list (cons orig-p orig-c) rest ...)
-     (match (f orig-p)
-       [(and (Empty:) o) o]
-       [(? Path? p*) 
-        (cond 
-          [(object-equal? orig-p p*)
-           (loop rest const* terms*)]
-          [else
-           (define updated-terms 
-             (hash-set-coeff (hash-set-coeff terms* orig-p 0) p* orig-c))
-           (loop rest const* updated-terms)])]
-       [(? LExp? l) 
-        (match-define (LExp: c ts) l)
-        (internal-lexp-plus (* c orig-c) (hash-scale-coeffs ts orig-c) 
-                            const*       terms*)]
-       [x (int-err "LExp-path-map function produced invalid result: ~a" x)])]
-    [y (int-err "invalid path/const pair: ~a" p/c)]))
+             [terms* terms])
+    (match term-pairs
+      [(list) (*LExp const* terms*)]
+      [(list (cons orig-p orig-c) rest ...)
+       (match (f orig-p)
+         [(and (Empty:) o) o]
+         [(? Path? p*) 
+          (cond 
+            [(object-equal? orig-p p*)
+             (loop rest const* terms*)]
+            [else
+             (define updated-terms 
+               (hash-set-coeff (hash-set-coeff terms* orig-p 0) p* orig-c))
+             (loop rest const* updated-terms)])]
+         [(? LExp? l) 
+          (match-define (LExp: c ts) l)
+          (let-values ([(c* ts*) (internal-lexp-plus (* c orig-c) (hash-scale-coeffs ts orig-c) 
+                                                     const*       terms*)])
+            (loop rest c* (hash-set-coeff ts* orig-p 0)))]
+         [x (int-err "internal-lexp-path-map function produced invalid result: ~a" x)])]
+      [y (int-err "invalid term-pairs: ~a" term-pairs)])))
 
 
 ;; internal setter for coefficients of Paths
@@ -206,17 +207,21 @@
   (dict-keys (LExp-terms l)))
 
 
-;; LExp subtraction and addition helper
-(define/cond-contract (terms-plus/minus terms1 terms2 plus?)
-  (-> immutable-path-hash? immutable-path-hash? boolean?
-      immutable-path-hash?)
+(define/cond-contract (internal-lexp-plus/minus c1 terms1 c2 terms2 plus?)
+  (-> exact-integer? immutable-path-hash?
+      exact-integer? immutable-path-hash?
+      boolean?
+      (values exact-integer? immutable-path-hash?))
   (define +/- (if plus? + -))
-  (for/fold ([terms terms1])
-            ([p2 (in-list (dict-keys terms2))])
-    (define p2-const
-      (+/- (hash-get-coeff terms1 p2)
-           (hash-get-coeff terms2 p2)))
-    (hash-set-coeff terms p2 p2-const)))
+  (values (+/- c1 c2)
+          (for/fold ([terms terms1])
+                    ([p2 (in-list (dict-keys terms2))])
+            (hash-set-coeff terms p2
+                            (+/- (hash-get-coeff terms1 p2)
+                                 (hash-get-coeff terms2 p2))))))
+(define internal-lexp-plus (curryr internal-lexp-plus/minus #t))
+(define internal-lexp-minus (curryr internal-lexp-plus/minus #f))
+
 
 ;; l1 - l2
 (define/cond-contract (LExp-minus l1 l2)
@@ -224,17 +229,9 @@
   (match* (l1 l2)
     [((LExp: c1 terms1)
       (LExp: c2 terms2))
-     (let-values ([(c terms) (internal-lexp-plus c1 terms1 c2 terms2)])
+     (let-values ([(c terms) (internal-lexp-minus c1 terms1 c2 terms2)])
        (*LExp c terms))]
     [(_ _) (int-err "invalid LExp-minus arg(s): ~a ~a" l1 l2)]))
-
-;; l1 + l2
-(define/cond-contract (internal-lexp-plus c1 terms1 c2 terms2)
-  (-> exact-integer? immutable-path-pash?
-      exact-integer? immutable-path-pash?
-      (values exact-integer? immutable-path-pash?))
-  (values (- c1 c2)
-          (terms-plus/minus terms1 terms2 #f)))
 
 
 ;; l1 + l2
@@ -243,7 +240,8 @@
   (match* (l1 l2)
     [((LExp: c1 terms1)
       (LExp: c2 terms2))
-     (*LExp (+ c1 c2) (terms-plus/minus terms1 terms2 #t))]
+     (let-values ([(c terms) (internal-lexp-plus c1 terms1 c2 terms2)])
+       (*LExp c terms))]
     [(_ _) (int-err "invalid LExp-minus arg(s): ~a ~a" l1 l2)]))
 
 

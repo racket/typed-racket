@@ -233,7 +233,7 @@
           t]
          [(Top:) (loop fs* slis result)]
          [(? SLI? s)
-          (let ([slis* (add-SLI s slis)])
+         (let ([slis* (add-SLI s slis)])
             (if (Bot? slis*)
                 -bot
                 (loop fs* slis* result)))]

@@ -20,12 +20,11 @@
                                             (list 'expected: expected 'actual: actual)))))
 
 (define-syntax-rule (id-subst-many-SLI slis symbols new-os result)
-  (test-true (format  "~a" '(slis [new-os / symbols])) (let* ([_ (printf "<><><><><><>THIS IS THE TEST CASE!!!<><><><><><>")]
-                                                              [expected (apply -and result)]
-                                                              [actual (for/fold ([filter (apply -and slis)])
-                                                                              ([sym (in-list symbols)]
-                                                                               [new-o (in-list new-os)])
-                                                                      (subst-filter filter (datum->syntax #f sym) new-o #t))])
+  (test-true (format  "~a" '(slis [new-os / symbols])) (let ([expected (apply -and result)]
+                                                             [actual (for/fold ([filter (apply -and slis)])
+                                                                               ([sym (in-list symbols)]
+                                                                                [new-o (in-list new-os)])
+                                                                       (subst-filter filter (datum->syntax #f sym) new-o #t))])
                                                         (or (filter-equal? actual expected)
                                                             (list 'expected: expected 'actual: actual)))))
 
@@ -88,21 +87,6 @@
                  (-sli (-leq (-id-lexp (4 a))
                              (-id-lexp (5 z)))))
    
-   #;(check-equal? (add-SLI (car (-sli (-leq (-id-lexp (1 x))
-                                             (-id-lexp (2 y)))
-                                       (-leq (-id-lexp (3 q))
-                                             (-id-lexp (4 z)))))
-                          (cdr (-sli (-leq (-id-lexp (1 x))
-                                            (-id-lexp (2 y)))
-                                      (-leq (-id-lexp (3 q))
-                                            (-id-lexp (4 z))))))
-                 #f)
-   
-   #;(check-equal? (apply -and (-sli (-leq (-id-lexp (1 x))
-                                         (-id-lexp (2 y)))
-                                   (-leq (-id-lexp (3 q))
-                                         (-id-lexp (4 z)))))
-                 #f)
    
    ;; start w/ 2 disjoint SLIs, sub to make them join, then elim
    (id-subst-many-SLI (-sli (-leq (-id-lexp (1 x))

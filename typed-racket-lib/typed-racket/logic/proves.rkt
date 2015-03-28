@@ -157,8 +157,7 @@
 (define/cond-contract (update-env/type+ A env t o contradiction)
   (c:-> any/c env? Type? Object? (c:or/c #f procedure?)
         (c:or/c env? #f))
-  ;(printf "\nupdate-env/type+ ~a ~a ~a\n" env t o)
-  (define v (match o
+  (match o
     [(Path: π x)
      (define x-ty+ (lookup-id-type x env #:fail (λ (_) Univ)))
      (define x-ty- (lookup-id-not-type x env #:fail (λ (_) Bottom)))
@@ -166,10 +165,8 @@
      (define new-x-ty- (update-negative-type new-x-ty+ x-ty-))
      (cond
        [(Bottom? new-x-ty+)
-        ;(printf "\n/type+ exiting w/ bottom\n")
         (contradiction)]
        [(type-equal? new-x-ty- Univ)
-        ;(printf "\n/type+ exiting w/ neg as Univ\n")
         (contradiction)]
        [else (naive-extend/not-type (naive-extend/type env x new-x-ty+) x new-x-ty-)])]
     [(? LExp?)
@@ -177,15 +174,11 @@
      (if (not (overlap (integer-type) t))
          (contradiction)
          env)]))
-  
-  ;(printf "\nexiting update-env/type+ ~a ~a ~a WITH ~a\n" env t o v)
-  v)
 
 (define/cond-contract (update-env/type- A env t o contradiction)
   (c:-> any/c env? Type? Object? (c:or/c #f procedure?)
         (c:or/c env? #f))
-  ;(printf "\nupdate-env/type- ~a ~a ~a\n" env t o)
-  (define v (match o
+  (match o
     [(Path: π x)
      (define x-ty+ (lookup-id-type x env #:fail (λ (_) Univ))) ;; x is of type T
      (define new-x-ty+ (update x-ty+ t #f π)) ;; combine new type-, x is now of type T'
@@ -205,8 +198,6 @@
      (if (subtype (integer-type) t #:A A #:env env #:obj o)
          (contradiction)
          env)]))
-  ;(printf "\nexiting update-env/type- ~a ~a ~a WITH ~a\n" env t o v)
-  v)
 
 ;; TODO(AMK) 
 ;; there are more complex refinement cases to consider such as 

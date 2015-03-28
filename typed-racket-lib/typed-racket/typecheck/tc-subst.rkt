@@ -148,16 +148,10 @@
     [(ImpFilter: ant consq)
      (-imp (subst-filter ant k o (not polarity)) (sub-f consq))]
     [(AndFilter: fs) 
-     (when (ormap SLI? fs) (printf "\nsubst-filter ~a ~a ~a\n" f k o))
-     (define v (apply -and (map sub-f fs)))
-     (when (ormap SLI? fs) (printf "\nsubst-filter result: ~a\n" v))
-     v]
+     (apply -and (map sub-f fs))]
     [(OrFilter: fs) (apply -or (map sub-f fs))]
     [(? SLI? s) 
-     (printf "\nsubst-filter on SLI: ~a\n substituting ~a for ~a \n" f o k)
-     (define v (SLI-path-map sub-o s))
-     (printf "\n SLI substd: ~a\n" v)
-     v]
+     (SLI-path-map sub-o s)]
     [(Bot:) -bot]
     [(Top:) -top]
     [(or (TypeFilter: t (Path: p i))
@@ -170,7 +164,7 @@
           [_ (maker
               (subst-type t k o polarity)
               (-acc-path p o))])]
-       ;[(index-free-in? k t) (if polarity -top -bot)]
+       ;[(index-free-in? k t) (if polarity -top -bot)] this line is wrong -amk
        [else f])]
     [(or (TypeFilter: t (? LExp? l))
          (NotTypeFilter: t (? LExp? l)))

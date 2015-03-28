@@ -325,7 +325,7 @@
   (match* (s1 s2)
     [((SLI: sli1 ps1) (SLI: sli2 ps2))
      (cond 
-       [(set-overlap? sli1 sli2)
+       [(set-overlap? ps1 ps2)
         (define system* (set-union sli1 sli2))
         (cond
           [(internal-sli-trivially-valid? system*)

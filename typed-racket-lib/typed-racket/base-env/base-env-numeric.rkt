@@ -914,22 +914,8 @@
 [inexact? (make-pred-ty (Un -InexactReal -InexactImaginary -InexactComplex))]
 [fixnum? (make-pred-ty -Fixnum)]
 [index? (make-pred-ty -Index)]
-[positive? (cl->* (-> -Byte B : (-FS (-filter -PosByte 0) (-filter -Zero 0)))
-                  (-> -Index B : (-FS (-filter -PosIndex 0) (-filter -Zero 0)))
-                  (-> -Fixnum B : (-FS (-filter -PosFixnum 0) (-filter -NonPosFixnum 0)))
-                  (-> -Int B : (-FS (-filter -PosInt 0) (-filter -NonPosInt 0)))
-                  (-> -Rat B : (-FS (-filter -PosRat 0) (-filter -NonPosRat 0)))
-                  (-> -Flonum B : (-FS (-filter -PosFlonum 0) (-filter -NonPosFlonum 0)))
-                  (-> -SingleFlonum B : (-FS (-filter -PosSingleFlonum 0) (-filter -NonPosSingleFlonum 0)))
-                  (-> -InexactReal B : (-FS (-filter -PosInexactReal 0) (-filter -NonPosInexactReal 0)))
-                  (-> -Real B : (-FS (-filter -PosReal 0) (-filter -NonPosReal 0))))]
-[negative? (cl->* (-> -Fixnum B : (-FS (-filter -NegFixnum 0) (-filter -NonNegFixnum 0)))
-                  (-> -Int B : (-FS (-filter -NegInt 0) (-filter -Nat 0)))
-                  (-> -Rat B : (-FS (-filter -NegRat 0) (-filter -NonNegRat 0)))
-                  (-> -Flonum B : (-FS (-filter -NegFlonum 0) (-filter -NonNegFlonum 0)))
-                  (-> -SingleFlonum B : (-FS (-filter -NegSingleFlonum 0) (-filter -NonNegSingleFlonum 0)))
-                  (-> -InexactReal B : (-FS (-filter -NegInexactReal 0) (-filter -NonNegInexactReal 0)))
-                  (-> -Real B : (-FS (-filter -NegReal 0) (-filter -NonNegReal 0))))]
+[positive? (-> -Real B : (-FS (-filter -PosReal 0) (-filter -NonPosReal 0)))]
+[negative? (-> -Real B : (-FS (-filter -NegReal 0) (-filter -NonNegReal 0)))]
 [exact-positive-integer? (make-pred-ty -Pos)]
 [exact-nonnegative-integer? (make-pred-ty -Nat)]
 

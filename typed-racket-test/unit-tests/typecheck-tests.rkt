@@ -3571,6 +3571,17 @@
           (t:-> -Byte -Boolean : (-FS (-filter -PosByte 0) (-filter -Zero 0)))]
        [tc-e/t (lambda: ([x : Fixnum]) (negative? x))
           (t:-> -Fixnum -Boolean : (-FS (-filter -NegFixnum 0) (-filter -NonNegFixnum 0)))]
+
+       [tc-e (< (ann 0 Integer) +inf.0)
+        #:ret (ret -Boolean -true-filter)]
+       [tc-e (> -inf.0 (ann 0 Exact-Rational))
+        #:ret (ret -Boolean -false-filter)]
+       [tc-e/t (lambda: ([x : Flonum]) (and (<= +inf.f x) x))
+        (t:-> -Flonum (t:Un (-val #f) (-val +inf.0))
+              : (-FS (-filter (-val +inf.0) 0) (-not-filter (-val +inf.0) 0)))]
+       [tc-e/t (lambda: ([x : Flonum]) (or (>= +inf.f x) x))
+        (t:-> -Flonum (t:Un (-val #t) -FlonumNan)
+              : -true-filter)]
        )
 
   (test-suite

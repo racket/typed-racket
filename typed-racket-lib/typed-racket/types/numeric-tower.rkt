@@ -18,6 +18,7 @@
          -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero -SingleFlonumNan -PosSingleFlonum -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum -SingleFlonum
          -InexactRealPosZero -InexactRealNegZero -InexactRealZero -InexactRealNan -PosInexactReal -NonNegInexactReal -NegInexactReal -NonPosInexactReal -InexactReal
          -RealZero -PosReal -NonNegReal -NegReal -NonPosReal -Real
+         -PosInfinity -NegInfinity
          -ExactImaginary -FloatImaginary -SingleFlonumImaginary -InexactImaginary -Imaginary
          -ExactNumber -ExactComplex -FloatComplex -SingleFlonumComplex -InexactComplex -Number
          (rename-out (-Int -Integer))
@@ -56,6 +57,10 @@
 ;; Singletons
 (define/decl -Zero (make-Value 0)) ; exact
 (define/decl -One  (make-Value 1))
+
+;; Infinities (These are part of Flonum/Single-Flonum, but useful abbreviatios.)
+(define/decl -PosInfinity (*Un (-val +inf.0) (-val +inf.f)))
+(define/decl -NegInfinity (*Un (-val -inf.0) (-val -inf.f)))
 
 ;; Integers
 (define/decl -Byte>1 (make-Base 'Byte-Larger-Than-One ; unsigned

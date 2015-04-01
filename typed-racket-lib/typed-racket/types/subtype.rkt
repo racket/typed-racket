@@ -142,6 +142,10 @@
    [(f f) A0]
    [((Bot:) t) A0]
    [(s (Top:)) A0]
+   [((TypeFilter: t1 p) (TypeFilter: t2 p))
+    (subtype* A0 t1 t2)]
+   [((NotTypeFilter: t1 p) (NotTypeFilter: t2 p))
+    (subtype* A0 t2 t1)]
    [(_ _) #f]))
 
 (define (subtypes/varargs args dom rst)

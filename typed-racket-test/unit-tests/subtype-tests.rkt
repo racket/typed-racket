@@ -258,6 +258,15 @@
     (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
     (-> Univ -Boolean : (-FS (-filter -String 0) (-not-filter -String 0)))]
 
+   ;; subtyping for types inside filters
+   [(-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
+    (-> Univ -Boolean : (-FS (-filter (-opt -Symbol) 0) (-not-filter -Symbol 0)))]
+   [(-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter (-opt -Symbol) 0)))
+    (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))]
+   [FAIL
+    (-> Univ -Boolean : (-FS (-filter (-opt -Symbol) 0) (-not-filter (-opt -Symbol) 0)))
+    (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))]
+
    [FAIL (make-ListDots (-box (make-F 'a)) 'a) (-lst (-box Univ))]
    [(make-ListDots (-> -Symbol (make-F 'a)) 'a) (-lst (-> -Symbol Univ))]
 

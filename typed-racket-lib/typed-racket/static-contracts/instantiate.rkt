@@ -99,8 +99,10 @@
   (define (recur sc)
     (cond [(and cache (hash-ref cache sc #f)) => car]
           [(arr/sc? sc) (make-contract sc)]
-          [(parametric->/sc? sc)
-           (match-define (parametric->/sc: vars _) sc)
+          [(or (parametric->/sc? sc) (sealing->/sc? sc))
+           (match-define (or (parametric->/sc: vars _)
+                             (sealing->/sc: vars _ _))
+                         sc)
            (parameterize ([bound-names (append vars (bound-names))])
              (make-contract sc))]
           ;; If any names are bound, the contract can't be shared
@@ -167,6 +169,7 @@
     (define/match (free? sc _)
       [((or (recursive-sc-use name*)
             (parametric-var/sc: name*)
+            (sealing-var/sc: name*)
             (name/sc: name*))
         _)
        (when (free-identifier=? name name*)

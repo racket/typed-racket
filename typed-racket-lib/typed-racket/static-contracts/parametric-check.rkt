@@ -41,7 +41,7 @@
        (add-equation! eqs (get-var sc)
                       (lambda () (for/sum ((e elems))
                                    (variable-ref (get-var e)))))]
-      [(parametric-var/sc: id)
+      [(or (parametric-var/sc: id) (sealing-var/sc: id))
        (add-equation! eqs (get-var sc) (lambda () 1))]
       [(recursive-sc names values body)
        (for ([name names] [value values])

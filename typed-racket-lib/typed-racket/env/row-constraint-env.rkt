@@ -39,7 +39,8 @@
 ;; lookup-row-constraints : Symbol -> RowConstraint
 ;; returns the mapped-to constraints or #f
 (define (lookup-row-constraints var)
-  (cdr (assq var (current-row-constraints))))
+  (define result (assq var (current-row-constraints)))
+  (and result (cdr result)))
 
 ;; extend : Env Symbol RowConstraint -> Env
 ;; extend type environment with a var-constraints pair

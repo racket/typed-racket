@@ -147,6 +147,7 @@
       typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
       typed-racket/utils/opaque-object
       typed-racket/utils/evt-contract
+      typed-racket/utils/sealing-contract
       unstable/contract racket/contract/parametric))
 
 ;; Should the above requires be included in the output?
@@ -472,28 +473,46 @@
          ;; we need to generate absent clauses for non-opaque class contracts
          ;; that occur inside of a mixin type
          (define absents
-           (cond [(F? row-var)
-                  (define constraints (lookup-row-constraints (F-n row-var)))
-                  ;; the constraints with no corresponding type/contract need
-                  ;; to be absent
-                  (append (remove* field-names (cadr constraints))
-                          (remove* public-names (caddr constraints)))]
+           (cond [;; row constraints are only mapped when it's a row polymorphic
+                  ;; function in *positive* position (with no sealing)
+                  (and (F? row-var) (lookup-row-constraints (F-n row-var)))
+                  =>
+                  (λ (constraints)
+                    ;; the constraints with no corresponding type/contract need
+                    ;; to be absent
+                    (append (remove* field-names (cadr constraints))
+                            (remove* public-names (caddr constraints))))]
                  [else null]))
-         (class/sc ;; only enforce opaqueness if there's no row variable
-                   ;; and we are importing from untyped
-                   (and (from-untyped? typed-side) (not row-var))
-                   (append
-                     (map (λ (n sc) (member-spec 'override n sc))
-                          override-names (map t->sc/meth override-types))
-                     (map (λ (n sc) (member-spec 'pubment n sc))
-                          pubment-names (map t->sc/meth pubment-types))
-                     (map (λ (n sc) (member-spec 'inner n sc))
-                          augment-names (map t->sc/meth augment-types))
-                     (map (λ (n sc) (member-spec 'init n sc))
-                          init-names (map t->sc/neg init-types))
-                     (map (λ (n sc) (member-spec 'field n sc))
-                          field-names (map t->sc/both field-types)))
-                   absents)]
+         ;; add a seal/unseal if there was a row variable and the
+         ;; row polymorphic function type was in negative position
+         (define seal/sc
+           (and (F? row-var)
+                (not (lookup-row-constraints (F-n row-var)))
+                (triple-lookup
+                 (hash-ref recursive-values (F-n row-var)
+                           (λ () (error 'type->static-contract
+                                        "Recursive value lookup failed. ~a ~a"
+                                        recursive-values (F-n row-var))))
+                 typed-side)))
+         (define sc-for-class
+           (class/sc ;; only enforce opaqueness if there's no row variable
+                     ;; and we are importing from untyped
+                     (and (from-untyped? typed-side) (not row-var))
+                     (append
+                       (map (λ (n sc) (member-spec 'override n sc))
+                            override-names (map t->sc/meth override-types))
+                       (map (λ (n sc) (member-spec 'pubment n sc))
+                            pubment-names (map t->sc/meth pubment-types))
+                       (map (λ (n sc) (member-spec 'inner n sc))
+                            augment-names (map t->sc/meth augment-types))
+                       (map (λ (n sc) (member-spec 'init n sc))
+                            init-names (map t->sc/neg init-types))
+                       (map (λ (n sc) (member-spec 'field n sc))
+                            field-names (map t->sc/both field-types)))
+                     absents))
+         (if seal/sc
+             (and/sc seal/sc sc-for-class)
+             sc-for-class)]
         [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred?)
          (cond
            [(dict-ref recursive-values nm #f)]
@@ -695,8 +714,29 @@
                                 (hash-set rv v (same any/sc)))))
         (extend-row-constraints vs (list constraints)
           (t->sc body #:recursive-values recursive-values)))
-      ;; FIXME: needs sealing contracts, disabled for now
-      (fail #:reason "cannot generate contract for row polymorphic type")))
+      (match-let ([(PolyRow-names: vs-nm constraints b) type])
+        ;; FIXME: abstract this
+        (define function-type?
+          (let loop ([ty b])
+            (match (resolve ty)
+              [(Function: _) #t]
+              [(Union: elems) (andmap loop elems)]
+              [(Poly: _ body) (loop body)]
+              [(PolyDots: _ body) (loop body)]
+              [_ #f])))
+        (unless function-type?
+          (fail #:reason "cannot generate contract for non-function polymorphic type"))
+        (let ([temporaries (generate-temporaries vs-nm)])
+          (define rv (for/fold ([rv recursive-values])
+                               ([temp temporaries]
+                                [v-nm vs-nm])
+                       (hash-set rv v-nm (same (sealing-var/sc temp)))))
+          (parameterize ([bound-names (append (bound-names) vs-nm)])
+            ;; Only the first three sets of constraints seem to be needed
+            ;; since augment clauses don't make sense without a corresponding
+            ;; public method too. This invariant has to be enforced though.
+            (sealing->/sc temporaries (take constraints 3)
+              (t->sc b #:recursive-values rv)))))))
 
 ;; Predicate that checks for an App type with a recursive
 ;; Name type in application position

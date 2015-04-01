@@ -6,7 +6,8 @@
 (require "../utils/utils.rkt"
          racket/match racket/list
          (contract-req)
-         (except-in (types abbrev utils filter-ops) -> ->* one-of/c)
+         (except-in (types abbrev utils filter-ops path-type)
+                    -> ->* one-of/c)
          (only-in (infer infer) restrict)
          (rep type-rep object-rep filter-rep rep-utils))
 
@@ -135,8 +136,15 @@
          [(Empty:)
           (if polarity -top -bot)]
          [_
+          ;; `ty` alone doesn't account for the path, so
+          ;; first traverse it with the path to match `t`
+          (define ty/path (path-type p ty))
           (maker
-            (restrict ty (subst-type t k o polarity ty))
+            ;; don't restrict if the path doesn't match the type
+            (if (equal? ty/path Err)
+                (subst-type t k o polarity ty)
+                (restrict ty/path
+                          (subst-type t k o polarity ty)))
             (-acc-path p o))])]
       [(index-free-in? k t) (if polarity -top -bot)]
       [else f]))

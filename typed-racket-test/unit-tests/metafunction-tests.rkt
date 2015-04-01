@@ -151,6 +151,21 @@
         (values->tc-results (make-Values (list (-result -Boolean (-FS (-filter -PosReal '(0 0)) (-filter -NonPosReal '(0 0))))))
                             (list (make-Path null #'x)) (list -Integer))
         (ret -Boolean (-FS (-filter -PosInt #'x) (-filter -NonPosInt #'x))))
+
+      ;; Filter restriction accounts for paths
+      (check-equal?
+        (values->tc-results
+         (make-Values
+          (list (-result -Boolean
+                         (-FS (make-TypeFilter -PosReal
+                                               (make-Path (list -car) '(0 0)))
+                              (make-TypeFilter -NonPosReal
+                                               (make-Path (list -car) '(0 0)))))))
+         (list (make-Path null #'x))
+         (list (-lst -Integer)))
+        (ret -Boolean
+             (-FS (make-TypeFilter -PosInt (make-Path (list -car) #'x))
+                  (make-TypeFilter -NonPosInt (make-Path (list -car) #'x)))))
     )
 
     (test-suite "replace-names"

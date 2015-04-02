@@ -42,8 +42,8 @@
 ;; Substitution of objects into a tc-results
 ;; This is a combination of all of thes substitions from the paper over the different parts of the
 ;; results.
-;; t is the type of the object that we are substituting in. This allows for simplification of some
-;; filters if they conflict with the argument type.
+;; t is the type of the object that we are substituting in. This allows for reststriction/simplification
+;; of some filters if they conflict with the argument type.
 (define/cond-contract (subst-tc-results res k o polarity t)
   (-> full-tc-results/c name-ref/c Object? boolean? Type? full-tc-results/c)
   (define (st ty) (subst-type ty k o polarity t))
@@ -124,7 +124,8 @@
          t)]))
 
 ;; Substitution of objects into a filter in a filter set
-;; This is ψ+ [o/x] and ψ- [o/x]
+;; This is ψ+ [o/x] and ψ- [o/x] with the addition that filters are restricted to 
+;; only those values which are a subtype of the actual argument type (ty).
 (define/cond-contract (subst-filter f k o polarity ty)
   (-> Filter/c name-ref/c Object? boolean? Type/c Filter/c)
   (define (ap f) (subst-filter f k o polarity ty))

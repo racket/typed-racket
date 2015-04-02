@@ -87,6 +87,10 @@
   (c:-> exact-integer? LExp?)
   (make-LExp (list n)))
 
+(define/cond-contract (-arg-obj n)
+  (c:-> exact-nonnegative-integer? Object?)
+  (make-Path null (list 0 n)))
+
 (define/cond-contract (-car-of p)
   (c:-> (c:or/c Object? #f) (c:or/c Object? #f))
   (match p

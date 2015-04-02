@@ -19,8 +19,8 @@
     ((syntax? stx-list? arr? (listof tc-results/c) (or/c #f tc-results/c))
      (#:check boolean?)
      . ->* . full-tc-results/c)])
-(define (tc/funapp1 f-stx args-stx ftype0 argtys expected #:check [check? #t])
-  (match* (ftype0 argtys)
+(define (tc/funapp1 f-stx args-stx ftype0 args-res expected #:check [check? #t])
+  (match* (ftype0 args-res)
     [((arr: dom rng rest #f (and kws (list (Keyword: _ _ #f) ...)) dep?)
       (list (tc-result1: t-a phi-a o-a) ...))
 
@@ -39,8 +39,9 @@
                                #:delayed? #t)])
        (for ([dom-t (if rest (in-sequence-forever dom rest) (in-list dom))]
              [a (in-syntax args-stx)]
-             [arg-t (in-list t-a)])
-         (parameterize ([current-orig-stx a]) (check-below arg-t dom-t))))
+             [arg-t (in-list t-a)]
+             [arg-o (in-list o-a)])
+         (parameterize ([current-orig-stx a]) (check-below arg-t dom-t arg-o))))
      (let* ([dom-count (length dom)])
        ;; Currently do nothing with rest args and keyword args as there are no support for them in
        ;; objects yet.
@@ -68,7 +69,7 @@
                         #:more "a required keyword was not supplied"
                         "missing keyword" req-kw))]
     [((arr: _ _ _ drest '() _) _)
-     (int-err "funapp with drest args ~a ~a NYI" drest argtys)]
+     (int-err "funapp with drest args ~a ~a NYI" drest args-res)]
     [((arr: _ _ _ _ kws _) _)
      (int-err "funapp with keyword args ~a NYI" kws)]))
 

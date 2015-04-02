@@ -76,6 +76,10 @@
       (int-err "bad form input to tc-expr: ~a" form))
     ;; typecheck form
     (define t (tc-expr/check/internal form expected))
+    #;(match t
+    [(tc-result1: t fset o)
+    (printf "\n\n~a TCd at ~a ; ~a ; ~a\n\n" (syntax->datum form) t fset o)]
+    [_ (printf "\n\n~a TCd at ~a\n\n" (syntax->datum form) t)]) 
     (add-typeof-expr form t)
     (cond-check-below t expected)))
 
@@ -134,7 +138,10 @@
                 (ret (tc-literal #'val t) -true-filter (-int-obj datum))
                 (ret (tc-literal #'val t) -true-filter)))]
          [_
-          (ret (tc-literal #'val) -true-filter)])]
+          (let ([datum (syntax->datum #'val)])
+            (if (exact-integer? datum)
+                (ret (tc-literal #'val) -true-filter (-int-obj datum))
+                (ret (tc-literal #'val) -true-filter)))])]
       ;; syntax
       [(quote-syntax datum)
        (define expected-type

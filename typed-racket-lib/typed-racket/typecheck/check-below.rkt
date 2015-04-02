@@ -11,6 +11,7 @@
 (provide/cond-contract
  [check-below (-->i ([s (-or/c Type/c full-tc-results/c)]
                      [t (s) (if (Type/c? s) Type/c tc-results/c)])
+                    ([o (-or/c #f Object?)])
                     [_ (s) (if (Type/c? s) Type/c full-tc-results/c)])]
  [cond-check-below (-->i ([s (-or/c Type/c full-tc-results/c)]
                           [t (s) (-or/c #f (if (Type/c? s) Type/c tc-results/c))])
@@ -83,7 +84,7 @@
 ;;                   (Results Results -> Result)
 ;;                   (Type Results -> Type)
 ;;                   (Type Type -> Type))
-(define (check-below tr1 expected #:env [env #f] #:obj [obj #f])
+(define (check-below tr1 expected [obj #f])
   (define (filter-set-better? f1 f2)
     (match* (f1 f2)
       [(f f) #t]
@@ -124,7 +125,7 @@
 
     [((tc-result1: t1 f1 o1) (tc-result1: t2 f2 o2))
      (cond
-       [(not (subtype t1 t2))
+       [(not (subtype t1 t2 #:obj o1))
         (expected-but-got t2 t1)]
        [(and (not (filter-set-better? f1 f2))
              (object-better? o1 o2))
@@ -154,7 +155,8 @@
                       (list (or (NoObject:) (Empty:)) ...) dty2 dbound))
      (cond
        [(= (length t1) (length t2))
-        (unless (andmap subtype t1 t2)
+        (unless (andmap (λ (a b obj) (subtype a b #:obj obj))
+                        t1 t2 o1)
           (expected-but-got (stringify t2) (stringify t1)))
         (unless (subtype dty1 dty2)
           (type-mismatch dty2 dty1 "mismatch in ... argument"))]
@@ -165,7 +167,8 @@
     [((tc-results: t1 f1 o1 dty1 dbound) (tc-results: t2 f2 o2 dty2 dbound))
      (cond
        [(= (length t1) (length t2))
-        (unless (andmap subtype t1 t2)
+        (unless (andmap (λ (a b obj) (subtype a b #:obj obj))
+                        t1 t2 o1)
           (expected-but-got (stringify t2) (stringify t1)))
         (unless (subtype dty1 dty2)
           (type-mismatch dty2 dty1 "mismatch in ... argument"))]
@@ -178,14 +181,20 @@
                       (list (or (NoObject:) (Empty:)) ...)))
      (unless (= (length t1) (length t2))
        (value-mismatch expected tr1))
-     (unless (for/and ([t (in-list t1)] [s (in-list t2)]) (subtype t s))
+     (unless (for/and ([t (in-list t1)]
+                       [s (in-list t2)]
+                       [o (in-list o1)])
+               (subtype t s #:obj o))
        (expected-but-got (stringify t2) (stringify t1)))
      (fix-results expected)]
 
     [((tc-results: t1 fs os) (tc-results: t2 fs os))
      (unless (= (length t1) (length t2))
        (value-mismatch expected tr1))
-     (unless (for/and ([t (in-list t1)] [s (in-list t2)]) (subtype t s))
+     (unless (for/and ([t (in-list t1)]
+                       [s (in-list t2)]
+                       [o (in-list os)])
+               (subtype t s #:obj o))
        (expected-but-got (stringify t2) (stringify t1)))
      (fix-results expected)]
 
@@ -200,7 +209,7 @@
      (fix-results expected)]
 
     [((? Type/c? t1) (? Type/c? t2))
-     (unless (subtype t1 t2 #:env env #:obj obj)
+     (unless (subtype t1 t2 #:obj obj)
        (expected-but-got t2 t1))
      expected]
     [((tc-results: ts fs os dty dbound) (tc-results: ts* fs* os* dty* dbound*))

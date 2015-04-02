@@ -107,10 +107,10 @@
     (define (exit) (exit* #f empty))
     (define-values (props atoms slis) 
       (combine-props (apply append (map flatten-nested-props fs)) 
-                     (env-props env)
+                     (env-props+SLIs env)
                      exit))
     (values
-     (for/fold ([Γ (replace-SLIs (replace-props env props) slis)]) ([f (in-list atoms)])
+     (for/fold ([Γ (replace-props env (append slis props))]) ([f (in-list atoms)])
        (match f
          [(or (TypeFilter: ft (Path: _ x)) 
               (NotTypeFilter: ft (Path: _ x)))
@@ -156,7 +156,7 @@
              (with-lexical-env new-env
                (add-unconditional-prop 
                 (let () . bodies) 
-                (apply -and (append atoms (env-props new-env)))))
+                (apply -and (append atoms (env-SLIs new-env) (env-props new-env)))))
              ;; unreachable, bail out
              (let ()
                u.form
@@ -187,7 +187,10 @@
                 ([(ps) (apply append pss)]
                  [(new-env atoms) (env+props (naive-extend/types (lexical-env) ids/ts*)
                                              ps)]
-                 [(new-env) (and new-env (replace-props new-env (append atoms (env-props new-env))))])
+                 [(new-env) (and new-env
+                                 (replace-props
+                                  new-env
+                                  (append atoms (env-props+SLIs new-env))))])
               (if new-env
                   (with-lexical-env 
                    new-env
@@ -240,7 +243,7 @@
                  [(new-env atoms) (if env (env+props env all-ps) (values #f '()))]
                  [(new-env) (and new-env 
                                  (replace-props new-env 
-                                                (append atoms (env-props new-env))))])
+                                                (append atoms (env-props+SLIs new-env))))])
               (if new-env
                   (with-lexical-env new-env (let () . bodies))
                   ;; unreachable, bail out

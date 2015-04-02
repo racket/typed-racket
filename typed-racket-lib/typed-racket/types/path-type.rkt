@@ -3,7 +3,7 @@
 (require "../utils/utils.rkt"
          racket/match racket/set
          (contract-req)
-         (rep object-rep type-rep)
+         (rep object-rep type-rep filter-rep rep-utils)
          (utils tc-utils)
          (typecheck renamer)
          (types subtype resolve union remove-intersect numeric-tower)
@@ -14,7 +14,7 @@
 (provide path-type unpath-type)
 
 (define-custom-set-types type-set
-  #:elem? Type?
+  #:elem? Type/c?
   type-equal?
   Rep-seq)
 

@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require racket/match
+(require racket/list racket/match
          syntax/id-table
          (except-in "../utils/utils.rkt" env)
          (contract-req)
@@ -21,9 +21,10 @@
   #:transparent
   #:property prop:custom-write
   (lambda (e prt mode)
-    (fprintf prt "(env (+ ~a) (- ~a) ~a)" 
+    (fprintf prt "(env (+ ~a) (- ~a) (SLIs ~a) ~a)" 
              (free-id-table-map (env-types e) list)
              (free-id-table-map (env-not-types e) list)
+             (env-SLIs e)
              (env-props e))))
 
 (provide/cond-contract
@@ -31,9 +32,9 @@
   [raw-lookup-type (env? identifier? (identifier? . -> . any) . -> . any)]
   [raw-lookup-not-type (env? identifier? (identifier? . -> . any) . -> . any)]
   [env-props (env? . -> . (listof Filter/c))]
+  [env-props+SLIs (env? . -> . (listof Filter/c))]
   [env-SLIs (env? . -> . (listof SLI?))]
   [replace-props (env? (listof Filter/c) . -> . env?)]
-  [replace-SLIs (env? (listof SLI?) . -> . env?)]
   [empty-env env?]
   [raw-lookup-alias (env? identifier? (identifier? . -> . (or/c #f Object?)) . -> . (or/c #f Object?))]
   [env-extract-props (env? . -> . (values env? (listof Filter/c)))]
@@ -57,13 +58,19 @@
 
 (define (env-extract-props e)
   (match-let ([(env tys ntys fs als sli) e])
-    (values (env tys ntys (list) als sli) fs)))
+    (values (env tys ntys (list) als (list)) (append sli fs))))
 
-(define (replace-props e props)
-  (match-let ([(env tys ntys _ als sli) e])
-    (env tys ntys props als sli)))
+(define (env-props+SLIs e)
+  (match-let ([(env _ _ ps _ slis) e])
+    (append ps slis)))
 
-(define (replace-SLIs e slis)
+(define (replace-props e ps)
+  (match-let ([(env tys ntys _ als _) e])
+    (define-values
+      (slis props) (partition SLI? ps))
+    (env tys ntys props als slis)))
+
+#;(define (replace-SLIs e slis)
   (match-let ([(env tys ntys props als _) e])
     (env tys ntys props als slis)))
 

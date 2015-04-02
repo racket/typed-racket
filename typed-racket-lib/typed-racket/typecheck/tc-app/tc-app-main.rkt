@@ -80,6 +80,9 @@
          (match f-ty
            ;; TODO(AMK) support multi-arr functions w/ dependent types
            [(Function: (list (arr: doms rng rest drest kws #t)))
+            ;; here we check argument types before bounding them w/ expected
+            ;; results if possible, so more precise types in the domain
+            ;; can refine dependent types
             (define arg-ts (map (curryr tc-expr/check? #f) args*))
             (define arg-ts* (for/list ([t (in-list arg-ts)]
                                        [a (in-list args*)]

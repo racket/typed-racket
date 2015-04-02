@@ -5,6 +5,7 @@
          (utils tc-utils)
          (typecheck signatures tc-envops tc-metafunctions)
          (types type-table)
+         (env lexical-env)
          racket/match)
 
 ;; if typechecking
@@ -12,7 +13,8 @@
 (export tc-if^)
 
 (define (tc/if-twoarm tst thn els [expected #f])
-  (match (single-value tst)
+  (define sval (single-value tst))
+  (match sval
     [(tc-result1: _ (FilterSet: fs+ fs-) _)
      (define expected* (and expected (erase-filter expected)))
      (define results-t

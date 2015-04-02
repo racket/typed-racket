@@ -38,7 +38,9 @@
           make-Prompt-Tagof
           make-Prompt-TagTop
           make-StructType make-StructTypeTop
-          make-ListDots))
+          make-ListDots)
+ (only-in (rep object-rep)
+          make-LExp))
 
 ;; Racket Reference
 ;; Section 4.1
@@ -3222,83 +3224,87 @@
           [y : -Integer]
           (-refine z -Integer 
                    (-eqSLI (-id-lexp (1 z)) 
-                           (-id-lexp 1 (1 x) (1 y)))))]
+                           (-id-lexp 1 (1 x) (1 y))))
+          : (make-LExp (list (list 1 (-id-path x))
+                             (list 1 (-id-path y)))))]
 [int- (~> [x : -Integer] 
           [y : -Integer]
           (-refine z -Integer 
                    (-eqSLI (-id-lexp (1 z)) 
-                           (-id-lexp -1 (1 x) (1 y)))))]
+                           (-id-lexp -1 (1 x) (1 y))))
+          : (make-LExp (list (list 1 (-id-path x))
+                             (list -1 (-id-path y)))))]
 [int*2 (~> [x : -Integer] 
            (-refine z -Integer 
                     (-eqSLI (-id-lexp (1 z)) 
-                            (-id-lexp (2 x)))))]
+                            (-id-lexp (2 x))))
+           : (-id-lexp (2 x)))]
 [int*3 (~> [x : -Integer] 
            (-refine z -Integer 
                     (-eqSLI (-id-lexp (1 z)) 
-                            (-id-lexp (3 x)))))]
+                            (-id-lexp (3 x))))
+           : (-id-lexp (3 x)))]
 ;; TODO(amk) multiplication needs not only a latent object... but like
 ;; a latent function that calculates it... wierd
-[int<= (~> [x : -Integer]
-           [y : -Integer]
-           (-refine z -Boolean 
-                    (-or (-and (-not-filter (-val #f) z) 
-                               (-SLI (-leq (-id-lexp (1 x))
-                                           (-id-lexp (1 y)))))
-                         (-and (-filter (-val #f) z) 
-                               (-SLI (-gt (-id-lexp (1 x))
-                                          (-id-lexp (1 y))))))))]
-[int< (~> [x : -Integer] 
-          [y : -Integer]
-          (-refine z -Boolean 
-                   (-or (-and (-not-filter (-val #f) z) 
-                              (-SLI (-lt (-id-lexp (1 x))
-                                         (-id-lexp (1 y)))))
-                        (-and (-filter (-val #f) z) 
-                              (-SLI (-gteq (-id-lexp (1 x))
-                                           (-id-lexp (1 y))))))))]
-[int>= (~> [x : -Integer] 
-           [y : -Integer]
-           (-refine z -Boolean 
-                    (-or (-and (-not-filter (-val #f) z) 
-                               (-SLI (-gteq (-id-lexp (1 x))
-                                            (-id-lexp (1 y)))))
-                         (-and (-filter (-val #f) z) 
-                               (-SLI (-lt (-id-lexp (1 x))
-                                          (-id-lexp (1 y))))))))]
-[int> (~> [x : -Integer] 
-          [y : -Integer]
-          (-refine z -Boolean 
-                   (-or (-and (-not-filter (-val #f) z) 
-                              (-SLI (-gt (-id-lexp (1 x))
-                                         (-id-lexp (1 y)))))
-                        (-and (-filter (-val #f) z)
-                              (-SLI (-leq (-id-lexp (1 x))
-                                          (-id-lexp (1 y))))))))]
-[int= (~> [x : -Integer] 
-          [y : -Integer]
-          (-refine z -Boolean 
-                   (-or (-and (-not-filter (-val #f) z) 
-                              (-eqSLI (-id-lexp (1 x))
-                                      (-id-lexp (1 y))))
-                        (-and (-filter (-val #f) z)
-                              (-or (-SLI (-gt (-id-lexp (1 x))
-                                              (-id-lexp (1 y))))
-                                   (-SLI (-lt (-id-lexp (1 x))
-                                              (-id-lexp (1 y)))))))))]
-[veclen (~> [v : -VectorTop]
-            (-refine i -Nat
-                     (let ([i (-lexp-obj (list 1 (-id-path i)))]
-                           [vlen (-lexp-obj (list 1 (-acc-path (list -length) (-id-path v))))])
-                       
-                       (-and (-SLI (-gteq i (-id-lexp 0)))
-                             (-eqSLI i vlen)))))]
+
+[int<= (->* (list -Integer -Integer)
+            -Boolean
+            : (-FS (-SLI (-leq (-lexp-obj (list 1 (-arg-obj 0)))
+                               (-lexp-obj (list 1 (-arg-obj 1)))))
+                   
+                   (-SLI (-lt (-lexp-obj (list 1 (-arg-obj 1)))
+                              (-lexp-obj (list 1 (-arg-obj 0)))))))]
+[int< (->* (list -Integer -Integer)
+           -Boolean
+           : (-FS (-SLI (-lt (-lexp-obj (list 1 (-arg-obj 0)))
+                             (-lexp-obj (list 1 (-arg-obj 1)))))
+                  
+                  (-SLI (-leq (-lexp-obj (list 1 (-arg-obj 1)))
+                              (-lexp-obj (list 1 (-arg-obj 0)))))))]
+;; [int< (->* (list -Integer -Integer)
+;;             -Boolean
+;;             : (-FS (-SLI (-lt (-lexp-obj (list 1 (-arg-obj 1)))
+;;                               (-lexp-obj (list 1 (-arg-obj 0)))))
+                   
+;;                    (-SLI (-gteq (-lexp-obj (list 1 (-arg-obj 1)))
+;;                                 (-lexp-obj (list 1 (-arg-obj 0)))))))]
+;; [int>= (->* (list -Integer -Integer)
+;;             -Boolean
+;;             : (-FS (-SLI (-gteq (-lexp-obj (list 1 (-arg-obj 1)))
+;;                                 (-lexp-obj (list 1 (-arg-obj 0)))))
+                   
+;;                    (-SLI (-lt (-lexp-obj (list 1 (-arg-obj 1)))
+;;                               (-lexp-obj (list 1 (-arg-obj 0)))))))]
+
+;; [int> (->* (list -Integer -Integer)
+;;            -Boolean
+;;            : (-FS (-SLI (-gt (-lexp-obj (list 1 (-arg-obj 1)))
+;;                                (-lexp-obj (list 1 (-arg-obj 0)))))
+                  
+;;                   (-SLI (-leq (-lexp-obj (list 1 (-arg-obj 1)))
+;;                              (-lexp-obj (list 1 (-arg-obj 0)))))))]
+;; [int= (->* (list -Integer -Integer)
+;;            -Boolean
+;;            : (-FS (-SLI (-eqSLI (-lexp-obj (list 1 (-arg-obj 1)))
+;;                                 (-lexp-obj (list 1 (-arg-obj 0)))))
+                  
+;;                   (-or (-SLI (-gt (list 1 (-arg-obj 1))
+;;                                   (list 1 (-arg-obj 0))))
+;;                        (-SLI (-lt (list 1 (-arg-obj 1))
+;;                                   (list 1 (-arg-obj 0)))))))]
+
+
+[veclen (->* (list -VectorTop)
+             -Index
+             : -true-filter
+             : (-acc-path (list -length) (-arg-obj 0)))]
 
 ;; TODO(amk) support polymorphism w/ dep fun types
 [safevecref (~> [v : -VectorTop]
                 [x : (-refine i -Integer
                               (let ([i (-lexp-obj (list 1 (-id-path i)))]
                                     [vlen (-lexp-obj (list 1 (-acc-path (list -length) (-id-path v))))])
-                                (-SLI (-gteq i (-id-lexp 0))
+                                (-SLI (-leq (-id-lexp 0) i) (-gteq i (-id-lexp 0))
                                       (-lt i vlen))))]
                 Univ)]
 

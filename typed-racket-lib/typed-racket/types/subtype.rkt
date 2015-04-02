@@ -338,16 +338,20 @@
          [(_ (Error:)) A0]
          [((Error:) _) A0]
          [((Ref: x x-t x-p) super-t)
-          (let ([obj (or obj (new-obj))]
-                [env (or env (lexical-env))])
+          (let ([obj (or obj (new-obj))])
+            ;; this not only sets the correct environment, but will
+            ;; turn caching off (when env is non-#f after checking subtype)
+            (when (not env) (set! env (lexical-env)))
             (proves A0
                     env
                     (list (-filter (subst-type x-t x obj #t) obj)
                           (subst-filter x-p x obj #t))
                     (-filter super-t obj)))]
          [(sub-t (Ref: x x-t x-p))
-          (let ([obj (or obj (new-obj))]
-                [env (or env (lexical-env))]) 
+          (let ([obj (or obj (new-obj))])
+            ;; this not only sets the correct environment, but will
+            ;; turn caching off (when env is non-#f after checking subtype)
+            (when (not env) (set! env (lexical-env)))
             (proves A0
                     env
                     (list (-filter sub-t obj)) 
@@ -767,9 +771,10 @@
          ;; otherwise, not a subtype
          [(_ _) #f])))
    ;; cache when we didn't use special env and obj
+   ;; TODO(amk) fix! caching must include env =(
    (when (and (null? A) (not env) (not obj))
      (hash-set! subtype-cache (cons ss st) r))
-     r))
+   r))
 
 (define (type-compare? a b #:env [env #f] #:obj [obj #f])
   (or (type-equal? a b)

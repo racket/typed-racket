@@ -10,7 +10,7 @@
          (rep type-rep object-rep filter-rep rep-utils object-ops)
          (utils tc-utils))
 
-(provide add-scope subst-type subst-filter subst-object)
+(provide add-scope subst-type subst-filter subst-object subst-result)
 
 (provide/cond-contract
   [values->tc-results (->* (SomeValues/c (listof Object?)) ((listof Type/c)) full-tc-results/c)]
@@ -32,6 +32,34 @@
     (subst-tc-results res (list 0 arg) o #t t)))
 
 
+(define (subst-result res x o polarity o-ty)
+  (match res
+    [(AnyValues: f)
+     (make-AnyValues (subst-filter f x o polarity))]
+    [(or (Results: ts fsets objs)) 
+     (make-Values
+      (map -result
+           (for/list ([t (in-list ts)])
+             (subst-type t x o polarity))
+           (for/list ([fset (in-list fsets)])
+             (subst-filter-set fset x o polarity o-ty))
+           (for/list ([obj (in-list objs)])
+             (subst-object obj x o polarity))))]
+    [(Results: ts fsets objs dty dbound)
+     (make-ValuesDots
+      (make-Values
+       (map -result
+            (for/list ([t (in-list ts)])
+              (subst-type t x o polarity))
+            (for/list ([fset (in-list fsets)])
+              (subst-filter-set fset x o polarity o-ty))
+            (for/list ([obj (in-list objs)])
+              (subst-object obj x o polarity))))
+      (subst-type dty x o polarity)
+      dbound)]
+    [_ (int-err "non-result given to subst-result! ~a" res)]))
+
+
 ;; replace-names: (listof (list/c identifier? Object?) tc-results? -> tc-results?
 ;; For each name replaces all uses of it in res with the corresponding object.
 ;; This is used so that names do not escape the scope of their definitions
@@ -42,13 +70,13 @@
 ;; Substitution of objects into a tc-results
 ;; This is a combination of all of thes substitions from the paper over the different parts of the
 ;; results.
-;; t is the type of the object that we are substituting in. This allows for simplification of some
+;; o-ty is the type of the object that we are substituting in. This allows for simplification of some
 ;; filters if they conflict with the argument type.
-(define/cond-contract (subst-tc-results res k o polarity t)
+(define/cond-contract (subst-tc-results res k o polarity o-ty)
   (-> full-tc-results/c name-ref/c Object? boolean? Type? full-tc-results/c)
   (define (st t) (subst-type t k o polarity))
   (define (sf f) (subst-filter f k o polarity))
-  (define (sfs fs) (subst-filter-set fs k o polarity t))
+  (define (sfs fs) (subst-filter-set fs k o polarity o-ty))
   (define (so ob) (subst-object ob k o polarity))
   (match res
     [(tc-any-results: f) (tc-any-results (sf f))]
@@ -60,9 +88,9 @@
 
 ;; Substitution of objects into a filter set
 ;; This is essentially ψ+|ψ- [o/x] from the paper
-(define/cond-contract (subst-filter-set fs k o polarity [t Univ])
+(define/cond-contract (subst-filter-set fs k o polarity [o-ty Univ])
   (->* ((or/c FilterSet? NoFilter?) name-ref/c Object? boolean?) (Type/c) FilterSet?)
-  (define extra-filter (-filter t k))
+  (define extra-filter (-filter o-ty k))
   (define (add-extra-filter f)
     (define f* (-and f extra-filter))
     (cond

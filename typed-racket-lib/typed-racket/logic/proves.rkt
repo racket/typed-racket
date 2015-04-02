@@ -19,7 +19,7 @@
  ("../types/subtype.rkt" (subtype))
  ("../types/union.rkt" (Un)))
 
-(provide proves witnesses update-env/atom simple-proves)
+(provide proves witnesses update-env/atom simple-proves update-env/obj-type)
 
 (define Bottom (Un))
 
@@ -33,10 +33,10 @@
     (define (exit) (exit* A))
     (define-values (compound-props atoms slis)
       (combine-props (apply append (map flatten-nested-props new-props)) 
-                     (append (env-SLIs env) (env-props env))
+                     (env-props+SLIs env)
                      exit))
     (define env* 
-      (for/fold ([Γ (replace-SLIs (replace-props env '()) slis)]) 
+      (for/fold ([Γ (replace-props env slis)]) 
                 ([f (in-list atoms)])
         (match f
           [(or (? TypeFilter?) (? NotTypeFilter?))
@@ -103,7 +103,7 @@
        
        [(? SLI? s)
         (define slis* (add-SLI s (env-SLIs env)))
-        (define env* (if (Bot? slis*) #f (replace-SLIs env slis*)))
+        (define env* (if (Bot? slis*) #f (replace-props env (append (env-props env) slis*))))
         (define goal* (and env* (apply -and (logical-reduce A env* goal))))
         (or (not env*)
             (full-proves A env* ps goal*))]
@@ -153,6 +153,9 @@
     [else (if (overlap ty+ ty-)
               ty-
               Bottom)]))
+
+(define (update-env/obj-type env o t contradiction)
+  (update-env/type+ null env t o contradiction))
 
 (define/cond-contract (update-env/type+ A env t o contradiction)
   (c:-> any/c env? Type? Object? (c:or/c #f procedure?)

@@ -131,8 +131,15 @@
      `(make-Path ,(sub p) ,(if (identifier? i)
                                `(quote-syntax ,i)
                                `(list ,(car i) ,(cadr i))))]
+    [(LExp: c ps/cs)
+     `(make-LExp ,(cons c (for/list ([p/c (in-list ps/cs)])
+                            (list (car p/c) (sub (cdr p/c))))))]
+    [(SLI-leq-pairs: leqs)
+     `(car (leqs->SLIs ,(map (λ (p) `(leq ,(sub (car p))
+                                          ,(sub (cdr p))))
+                             leqs)))]
     [(? Rep? rep)
-     `(,(gen-constructor (car (vector->list (struct->vector rep))))
+     `(,(gen-constructor (vector-ref (struct->vector rep) 0))
        ,@(map sub (Rep-values rep)))]
     [_ (basic v)]))
 

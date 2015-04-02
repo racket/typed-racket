@@ -1073,7 +1073,6 @@
   (instantiate-idents (list id) a))
 
 ;; instantiate-idents : (listof idents) (or/c Type/c Filter/c) -> (or/c Type/c Filter/c)
-;; is the list backwards??? TODO(AMK) answer that
 (define (instantiate-idents ids a)
   (define n (length ids))
   (define mapping (for/list ([id (in-list ids)]
@@ -1127,7 +1126,11 @@
                   #:Object (do-obj lvl)
                   #:PathElem (do-pe lvl))
                  o
-                 [#:Path π name (make-Path π (transform name lvl))]))
+                 [#:Path π name (make-Path π (transform name lvl))]
+                 [#:LExp c ps/cs
+                  (make-LExp (cons c (for/list ([p/c (in-list ps/cs)])
+                                       (list (cdr p/c)
+                                             ((do-obj lvl) (car p/c))))))]))
   
   (define ((do-pe lvl) pe)
     (pathelem-case (#:Type (do-type lvl)
@@ -1136,6 +1139,7 @@
   (cond
     [(Type? target) ((do-type 0) target)]
     [(Filter? target) ((do-filter 0) target)]
+    [(Object? target) ((do-obj 0) target)]
     [else (int-err "unsupported transform-idents argument ~a" target)]))
 
 

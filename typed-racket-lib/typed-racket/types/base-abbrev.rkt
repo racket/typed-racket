@@ -227,6 +227,13 @@
        (make-Function (list (make-arr* (list xdom*) 
                                        (abstract-idents (list x) rng)
                                        #:dep? #t))))]
+    [(_ [x : xdom] rng : obj)
+     (let ([x #`#,(gensym 'x)]
+           [xdom* xdom]) 
+       (make-Function (list (make-arr* (list xdom*) 
+                                       (abstract-idents (list x) rng)
+                                       #:object (abstract-idents (list x) obj)
+                                       #:dep? #t))))]
     [(_ [x : xdom] [y : ydom] rng)
      (let ([x #`#,(gensym 'x)]
            [xdom* xdom]) 
@@ -235,6 +242,16 @@
          (make-Function 
           (list (make-arr* (map (curry abstract-idents (list x y)) (list xdom* ydom*)) 
                            (abstract-idents (list x y) rng)
+                           #:dep? #t)))))]
+    [(_ [x : xdom] [y : ydom] rng : obj)
+     (let ([x #`#,(gensym 'x)]
+           [xdom* xdom]) 
+       (let ([y #`#,(gensym 'y)]
+             [ydom* ydom])
+         (make-Function 
+          (list (make-arr* (map (curry abstract-idents (list x y)) (list xdom* ydom*)) 
+                           (abstract-idents (list x y) rng)
+                           #:object (abstract-idents (list x y) obj)
                            #:dep? #t)))))]
     [(_ [x : xdom] [y : ydom] [z : zdom] rng)
      (let ([x #`#,(gensym 'x)]

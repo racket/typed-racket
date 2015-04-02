@@ -33,6 +33,7 @@
                                  object-equal?)]
               ["../types/filter-ops.rkt" (-or)])
 
+
 (provide Filter/c FilterSet/c name-ref/c hash-name filter-equal?
          SLI?
          SLI-try-join
@@ -50,6 +51,7 @@
          SLI-path-map
          SLI->sexp
          SLI-negate
+         SLI-leq-pairs:
          (rename-out [SLI:* SLI:]))
 
 (define (Filter/c-predicate? e)
@@ -257,6 +259,14 @@
     (syntax-case stx ()
       [(_ sli)
        #'(? SLI? sli)])))
+
+(define-match-expander SLI-leq-pairs:
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ leq-pairs)
+       #'(? SLI?
+            (app (λ (s) (SLI->LExp-pairs s))
+                 leq-pairs))])))
 
 (define/cond-contract (SLI-path-map f sli)
   (-> (-> Path? Object?) SLI? Filter?)

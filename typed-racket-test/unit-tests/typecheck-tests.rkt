@@ -2058,7 +2058,7 @@
               (-lst -Symbol)]
         [tc-e (sequence-count zero? (inst empty-sequence Integer))
               -Nat]
-        [tc-e (sequence-filter zero? (inst empty-sequence Integer))
+        [tc-e ((inst sequence-filter Integer Zero) zero? (inst empty-sequence Integer))
               (-seq (-val 0))]
         [tc-e (sequence-add-between (inst empty-sequence Integer) 'foo)
               (-seq (t:Un -Int (-val 'foo)))]
@@ -3570,6 +3570,16 @@
        [tc-e/t
          (lambda: ([x : Real-Zero]) (or (zero? x) x))
          (t:-> -RealZero (t:Un (-val #t) -InexactRealNan) : -true-filter)]
+       [tc-e/t
+         (lambda: ([x : Positive-Integer]) (zero? x))
+         (t:-> -PosInt -Boolean : -false-filter)]
+       [tc-e/t
+         (lambda: ([x : Natural]) (zero? x))
+         (t:-> -Nat -Boolean : (-FS (-filter (-val 0) 0) (-not-filter (-val 0) 0)))]
+       [tc-e/t
+         (lambda: ([x : Real]) (zero? x))
+         (t:-> -Real -Boolean : (-FS (-filter -RealZero 0)
+                                     (-not-filter (t:Un -Zero -InexactRealPosZero -InexactRealNegZero) 0)))]
 
        [tc-e/t (lambda: ([x : Byte]) (positive? x))
           (t:-> -Byte -Boolean : (-FS (-filter -PosByte 0) (-filter -Zero 0)))]
@@ -3586,6 +3596,8 @@
        [tc-e/t (lambda: ([x : Flonum]) (or (>= +inf.f x) x))
         (t:-> -Flonum (t:Un (-val #t) -FlonumNan)
               : -true-filter)]
+
+
        )
 
   (test-suite

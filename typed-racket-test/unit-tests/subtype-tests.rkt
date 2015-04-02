@@ -370,4 +370,9 @@
     (-prefab '(foo #(0)) -String)]
    [FAIL
     (-prefab '(foo #()) -String) (-prefab '(foo #(0)) (-opt -String))]
+
+   ;; Filter subtyping
+   ((make-pred-ty (list -Real) -Boolean (Un (-val 0.0) (-val 0)))
+    (make-pred-ty (list -Int) -Boolean (-val 0)))
+
    ))

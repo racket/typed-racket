@@ -10,7 +10,8 @@
 
 (lazy-require
   ("union.rkt" (Un))
-  ("../infer/infer.rkt" (infer)))
+  ("../infer/infer.rkt" (infer))
+  ("../typecheck/tc-subst.rkt" (restrict-values)))
 
 (define subtype-cache (make-hash))
 
@@ -103,19 +104,19 @@
         (arr: t1 t2 #f #f '()))
        (subtype-seq A0
                     (subtypes* t1 s1)
-                    (subtype* s2 t2))]
+                    (subtype* (restrict-values s2 t1) t2))]
       [((arr: s1 s2 #f #f s-kws)
         (arr: t1 t2 #f #f t-kws))
        (subtype-seq A0
                     (subtypes* t1 s1)
                     (kw-subtypes* s-kws t-kws)
-                    (subtype* s2 t2))]
+                    (subtype* (restrict-values s2 t1) t2))]
       [((arr: s-dom s-rng s-rest #f s-kws)
         (arr: t-dom t-rng #f #f t-kws))
        (subtype-seq A0
                     (subtypes*/varargs t-dom s-dom s-rest)
                     (kw-subtypes* s-kws t-kws)
-                    (subtype* s-rng t-rng))]
+                    (subtype* (restrict-values s-rng t-dom) t-rng))]
       [((arr: s-dom s-rng #f #f s-kws)
         (arr: t-dom t-rng t-rest #f t-kws))
        #f]
@@ -125,7 +126,7 @@
                     (subtypes*/varargs t-dom s-dom s-rest)
                     (subtype* t-rest s-rest)
                     (kw-subtypes* s-kws t-kws)
-                    (subtype* s-rng t-rng))]
+                    (subtype* (restrict-values s-rng t-dom) t-rng))]
       ;; handle ... varargs when the bounds are the same
       [((arr: s-dom s-rng #f (cons s-drest dbound) s-kws)
         (arr: t-dom t-rng #f (cons t-drest dbound) t-kws))
@@ -133,7 +134,7 @@
                     (subtype* t-drest s-drest)
                     (subtypes* t-dom s-dom)
                     (kw-subtypes* s-kws t-kws)
-                    (subtype* s-rng t-rng))]
+                    (subtype* (restrict-values s-rng t-dom) t-rng))]
       [(_ _) #f]))
 
 ;; check subtyping of filters, so that predicates subtype correctly

@@ -13,6 +13,7 @@
 (provide add-scope)
 
 (provide/cond-contract
+  [restrict-values (-> SomeValues/c (listof Type/c) SomeValues/c)]
   [values->tc-results (->* (SomeValues/c (listof Object?)) ((listof Type/c)) full-tc-results/c)]
   [replace-names (-> (listof (list/c identifier? Object?)) tc-results/c tc-results/c)])
 
@@ -31,6 +32,10 @@
                          [t (in-list ts)])
     (subst-tc-results res (list 0 arg) o #t t)))
 
+;; Restrict the objects in v refering to the current functions arguments to be of the types ts.
+(define (restrict-values v ts)
+  (for/fold ([v v]) ([t (in-list ts)] [arg (in-naturals)])
+    (subst-type v (list 0 arg) (-arg-path arg) #t t)))
 
 ;; replace-names: (listof (list/c identifier? Object?) tc-results? -> tc-results?
 ;; For each name replaces all uses of it in res with the corresponding object.

@@ -3615,6 +3615,13 @@
                  (let ([f (plambda: (a ...) [w : a ... a] w)])
                    (f x "hello" #\c)))
         (t:-> -One (-lst* -One -String -Char))]
+
+       [tc-e/t
+         (lambda: ([x : Positive-Integer]) (< x 1))
+         (t:-> -PosInt -Boolean : -false-filter)]
+       [tc-e/t
+         (lambda: ([x : Integer]) (>= x 1))
+         (t:-> -Integer -Boolean : (-FS (-filter -PosInt 0) (-filter -NonPosInt 0)))]
        )
 
   (test-suite

@@ -3605,6 +3605,13 @@
        [tc-e/t
          (lambda: ([x : Flonum]) (if (= x (ann 1.0 Positive-Flonum)) x 'other))
          (t:-> -Flonum (t:Un -PosFlonum (-val 'other)) : -true-filter)]
+
+       [tc-e/t
+         (lambda: ([x : Positive-Integer]) (< x 1))
+         (t:-> -PosInt -Boolean : -false-filter)]
+       [tc-e/t
+         (lambda: ([x : Integer]) (>= x 1))
+         (t:-> -Integer -Boolean : (-FS (-filter -PosInt 0) (-filter -NonPosInt 0)))]
        )
 
   (test-suite

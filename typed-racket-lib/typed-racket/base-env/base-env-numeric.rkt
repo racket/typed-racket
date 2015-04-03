@@ -936,11 +936,10 @@
 
 [<  (from-cases
      (-> -Int -One B : (-FS (-filter -NonPosInt 0) (-filter -PosInt 0)))
-     (-> -Byte -RealZero B : (-FS (-filter (Un) 0) -top))
-     (-> -Zero -Byte B : (-FS (-filter -PosByte 1) (-filter -Zero 1))) ; can't be -RealZero, which includes NaN
-     (-> -Zero -Index B : (-FS (-filter -PosIndex 1) (-filter -Zero 1)))
-     (-> -Zero -NonNegFixnum B : (-FS (-filter -PosFixnum 1) (-filter -Zero 1)))
-     (-> -Zero -Nat B : (-FS (-filter -PosInt 1) (-filter -Zero 1)))
+     (-> -Real -Zero B : (-FS (-filter -NegReal 0) (-filter -NonNegReal 0)))
+     (-> -Zero -Real B : (-FS (-filter -PosReal 1) (-filter -NonPosReal 1)))
+     (-> -Real -RealZero B : (-FS (-filter -NegReal 0) -top)) ;; False says nothing because of NaN
+     (-> -RealZero -Real B : (-FS (-filter -PosReal 1) -top)) ;; False says nothing because of NaN
      (-> -Byte -PosByte B : (-FS -top (-filter -PosByte 0)))
      (-> -Byte -Byte B : (-FS (-filter -PosByte 1) -top))
      (-> -PosInt -Byte B : (-FS (-and (-filter -PosByte 0) (-filter -PosByte 1)) -top))
@@ -950,8 +949,6 @@
      (-> -Nat -Byte B : (-FS (-and (-filter -Byte 0) (-filter -PosByte 1)) -top))
      (-> -NonNegReal -Byte B : (-FS (-filter -PosByte 1) -top))
      (-> -Byte -Nat B : (-FS -top (-filter -Byte 1)))
-     (-> -Index -RealZero B : (-FS (-filter (Un) 0) -top))
-     (-> -Zero -Index B : (-FS (-filter -PosIndex 1) (-filter -Zero 1))) ; can't be -RealZero, which includes NaN
      (-> -Index -PosIndex B : (-FS -top (-filter -PosIndex 0)))
      (-> -Index -Index B : (-FS (-filter -PosIndex 1) -top))
      (-> -PosInt -Index B : (-FS (-and (-filter -PosIndex 0) (-filter -PosIndex 1)) -top))
@@ -961,8 +958,6 @@
      (-> -Nat -Index B : (-FS (-and (-filter -Index 0) (-filter -PosIndex 1)) -top))
      (-> -NonNegReal -Index B : (-FS (-filter -PosIndex 1) -top))
      (-> -Index -Nat B : (-FS -top (-filter -Index 1)))
-     (-> -Fixnum -Zero B : (-FS (-filter -NegFixnum 0) (-filter -NonNegFixnum 0))) ; can't be -RealZero
-     (-> -Zero -Fixnum B : (-FS (-filter -PosFixnum 1) (-filter -NonPosFixnum 1)))
      (-> -Fixnum -PosInt B : (-FS -top (-and (-filter -PosFixnum 0) (-filter -PosFixnum 1))))
      (-> -Fixnum -PosRat B : (-FS -top (-filter -PosFixnum 0)))
      (-> -Fixnum -Nat B : (-FS -top (-and (-filter -NonNegFixnum 0) (-filter -NonNegFixnum 1))))
@@ -996,11 +991,10 @@
      (->* (list R R) R B))]
 [>  (from-cases
      (-> -One -Int B : (-FS (-filter -NonPosInt 1) (-filter -PosInt 1)))
-     (-> -RealZero -Byte B : (-FS (-filter (Un) 1) -top))
-     (-> -Byte -Zero B : (-FS (-filter -PosByte 0) (-filter -Zero 0)))
-     (-> -Index -Zero B : (-FS (-filter -PosIndex 0) (-filter -Zero 0)))
-     (-> -NonNegFixnum -Zero B : (-FS (-filter -PosFixnum 0) (-filter -Zero 0)))
-     (-> -Nat -Zero B : (-FS (-filter -PosInt 0) (-filter -Zero 0)))
+     (-> -Real -Zero B : (-FS (-filter -PosReal 0) (-filter -NonPosReal 0)))
+     (-> -Zero -Real B : (-FS (-filter -NegReal 1) (-filter -NonNegReal 1)))
+     (-> -Real -RealZero B : (-FS (-filter -PosReal 0) -top)) ;; False says nothing because of NaN
+     (-> -RealZero -Real B : (-FS (-filter -NegReal 1) -top)) ;; False says nothing because of NaN
      (-> -PosByte -Byte B : (-FS -top (-filter -PosByte 1)))
      (-> -Byte -Byte B : (-FS (-filter -PosByte 0) -top))
      (-> -Byte -PosInt B : (-FS (-and (-filter -PosByte 0) (-filter -PosByte 1)) -top))
@@ -1010,8 +1004,6 @@
      (-> -Byte -Nat B : (-FS (-and (-filter -PosByte 0) (-filter -Byte 1)) -top))
      (-> -Byte -NonNegReal B : (-FS (-filter -PosByte 0) -top))
      (-> -Nat -Byte B : (-FS -top (-filter -Byte 0)))
-     (-> -RealZero -Index B : (-FS (-filter (Un) 1) -top))
-     (-> -Index -Zero B : (-FS (-filter -PosIndex 0) (-filter -Zero 0)))
      (-> -PosIndex -Index B : (-FS -top (-filter -PosIndex 1)))
      (-> -Index -Index B : (-FS (-filter -PosIndex 0) -top))
      (-> -Index -PosInt B : (-FS (-and (-filter -PosIndex 0) (-filter -PosIndex 1)) -top))
@@ -1021,8 +1013,6 @@
      (-> -Index -Nat B : (-FS (-and (-filter -PosIndex 0) (-filter -Index 1)) -top))
      (-> -Index -NonNegReal B : (-FS (-filter -PosIndex 0) -top))
      (-> -Nat -Index B : (-FS -top (-filter -Index 0)))
-     (-> -Zero -Fixnum B : (-FS (-filter -NegFixnum 1) (-filter -NonNegFixnum 1)))
-     (-> -Fixnum -RealZero B : (-FS (-filter -PosFixnum 0) (-filter -NonPosFixnum 0)))
      (-> -PosInt -Fixnum B : (-FS -top (-and (-filter -PosFixnum 0) (-filter -PosFixnum 1))))
      (-> -PosRat -Fixnum B : (-FS -top (-filter -PosFixnum 1)))
      (-> -Nat -Fixnum B : (-FS -top (-and (-filter -NonNegFixnum 0) (-filter -NonNegFixnum 1))))
@@ -1051,11 +1041,10 @@
 [<= (from-cases
      (-> -Int -One B : (-FS (-filter (Un -NonPosInt -One) 0) (-filter -PosInt 0)))
      (-> -One -Int B : (-FS (-filter -PosInt 1) (-filter -NonPosInt 1)))
-     (-> -Byte -Zero B : (-FS (-filter -Zero 0) (-filter -PosByte 0)))
-     (-> -Index -Zero B : (-FS (-filter -Zero 0) (-filter -PosIndex 0)))
-     (-> -NonNegFixnum -Zero B : (-FS (-filter -Zero 0) (-filter -PosFixnum 0)))
-     (-> -Nat -Zero B : (-FS (-filter -Zero 0) (-filter -PosInt 0)))
-     (-> -Zero -Nat B : (-FS -top (-filter (Un) 1)))
+     (-> -Real -Zero B : (-FS (-filter -NonPosReal 0) (-filter -PosReal 0)))
+     (-> -Zero -Real B : (-FS (-filter -NonNegReal 1) (-filter -NegReal 1)))
+     (-> -Real -RealZero B : (-FS (-filter -NonPosReal 0) -top)) ;; False says nothing because of NaN
+     (-> -RealZero -Real B : (-FS (-filter -NonNegReal 0) -top)) ;; False says nothing because of NaN
      (-> -PosByte -Byte B : (-FS (-filter -PosByte 1) -top))
      (-> -Byte -Byte B : (-FS -top (-filter -PosByte 0)))
      (-> -PosInt -Byte B : (-FS (-and (-filter -PosByte 0) (-filter -PosByte 1)) -top))
@@ -1065,8 +1054,6 @@
      (-> -Nat -Byte B : (-FS (-filter -Byte 0) -top))
      (-> -Byte -Nat B : (-FS -top (-and (-filter -PosByte 0) (-filter -Byte 1))))
      (-> -Byte -NonNegRat B : (-FS -top (-filter -PosByte 0)))
-     (-> -Index -Zero B : (-FS (-filter -Zero 0) (-filter -PosIndex 0)))
-     (-> -Zero -Index B : (-FS -top (-filter (Un) 1)))
      (-> -PosIndex -Index B : (-FS (-filter -PosIndex 1) -top))
      (-> -Index -Index B : (-FS -top (-filter -PosIndex 0)))
      (-> -Pos -Index B : (-FS (-and (-filter -PosIndex 0) (-filter -PosIndex 1)) -top))
@@ -1076,10 +1063,6 @@
      (-> -Nat -Index B : (-FS (-filter -Index 0) -top))
      (-> -Index -Nat B : (-FS -top (-and (-filter -PosIndex 0) (-filter -Index 1))))
      (-> -Index -NonNegRat B : (-FS -top (-filter -PosIndex 0)))
-     (-> -NonNegFixnum -Zero B : (-FS (-filter -Zero 0) (-filter -PosFixnum 0)))
-     (-> -Zero -NonNegFixnum B : (-FS (-filter -Zero 1) (-filter (Un) 1)))
-     (-> -Zero -Fixnum B : (-FS (-filter -NonNegFixnum 1) (-filter -NegFixnum 1)))
-     (-> -Fixnum -Zero B : (-FS (-filter -NonPosFixnum 0) (-filter -PosFixnum 0)))
      (-> -PosInt -Fixnum B : (-FS (-and (-filter -PosFixnum 0) (-filter -PosFixnum 1)) -top))
      (-> -PosReal -Fixnum B : (-FS (-filter -PosFixnum 1) -top))
      (-> -Nat -Fixnum B : (-FS (-and (-filter -NonNegFixnum 0) (-filter -NonNegFixnum 1)) -top))
@@ -1106,11 +1089,10 @@
 [>= (from-cases
      (-> -One -Int B : (-FS (-filter (Un -One -NonPosInt) 1) (-filter -PosInt 1)))
      (-> -Int -One B : (-FS (-filter -PosInt 0) (-filter -NonPosInt 0)))
-     (-> -Zero -Byte B : (-FS (-filter -Zero 1) (-filter -PosByte 1)))
-     (-> -Zero -Index B : (-FS (-filter -Zero 1) (-filter -PosIndex 1)))
-     (-> -Zero -NonNegFixnum B : (-FS (-filter -Zero 1) (-filter -PosFixnum 1)))
-     (-> -Zero -Nat B : (-FS (-filter -Zero 1) (-filter -PosInt 1)))
-     (-> -Nat -Zero B : (-FS -top (-filter (Un) 0)))
+     (-> -Real -Zero B : (-FS (-filter -NonNegReal 0) (-filter -NegReal 0)))
+     (-> -Zero -Real B : (-FS (-filter -NonPosReal 1) (-filter -PosReal 1)))
+     (-> -Real -RealZero B : (-FS (-filter -NonNegReal 0) -top)) ;; False says nothing because of NaN
+     (-> -RealZero -Real B : (-FS (-filter -NonPosReal 0) -top)) ;; False says nothing because of NaN
      (-> -Byte -PosByte B : (-FS (-filter -PosByte 0) -top))
      (-> -Byte -Byte B : (-FS -top (-filter -PosByte 1)))
      (-> -Byte -PosInt B : (-FS (-and (-filter -PosByte 0) (-filter -PosByte 1)) -top))
@@ -1120,8 +1102,6 @@
      (-> -Byte -Nat B : (-FS (-filter -Byte 1) -top))
      (-> -Nat -Byte B : (-FS -top (-and (-filter -Byte 0) (-filter -PosByte 1))))
      (-> -NonNegRat -Byte B : (-FS -top (-filter -PosByte 1)))
-     (-> -Zero -Index B : (-FS (-filter -Zero 1) (-filter -PosIndex 1)))
-     (-> -Index -Zero B : (-FS -top (-filter (Un) 0)))
      (-> -Index -PosIndex B : (-FS (-filter -PosIndex 0) -top))
      (-> -Index -Index B : (-FS -top (-filter -PosIndex 1)))
      (-> -Index -Pos B : (-FS (-and (-filter -PosIndex 0) (-filter -PosIndex 1)) -top))
@@ -1131,10 +1111,6 @@
      (-> -Index -Nat B : (-FS (-filter -Index 1) -top))
      (-> -Nat -Index B : (-FS -top (-and (-filter -Index 0) (-filter -PosIndex 1))))
      (-> -NonNegRat -Index B : (-FS -top (-filter -PosIndex 1)))
-     (-> -Zero -NonNegFixnum B : (-FS (-filter -Zero 1) (-filter -PosFixnum 1)))
-     (-> -NonNegFixnum -Zero B : (-FS (-filter -Zero 0) (-filter (Un) 0)))
-     (-> -Fixnum -Zero B : (-FS (-filter -NonNegFixnum 0) (-filter -NegFixnum 0)))
-     (-> -Zero -Fixnum B : (-FS (-filter -NonPosFixnum 1) (-filter -PosFixnum 1)))
      (-> -Fixnum -PosInt B : (-FS (-and (-filter -PosFixnum 0) (-filter -PosFixnum 1)) -top))
      (-> -Fixnum -PosReal B : (-FS (-filter -PosFixnum 0) -top))
      (-> -Fixnum -Nat B : (-FS (-and (-filter -NonNegFixnum 0) (-filter -NonNegFixnum 1)) -top))

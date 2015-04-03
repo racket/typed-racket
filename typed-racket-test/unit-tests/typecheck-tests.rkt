@@ -3612,6 +3612,12 @@
        [tc-e/t
          (lambda: ([x : Integer]) (>= x 1))
          (t:-> -Integer -Boolean : (-FS (-filter -PosInt 0) (-filter -NonPosInt 0)))]
+       [tc-e/t
+         (lambda: ([x : Nonnegative-Flonum]) (<= x 0))
+         (t:-> -NonNegFlonum -Boolean : (-FS (-filter -FlonumZero 0) (-filter -PosFlonum 0)))]
+       [tc-e/t
+         (lambda: ([x : Byte]) (if (< 0 x) x 1))
+         (t:-> -Byte -PosByte : (-FS (-filter -Byte (list 0 0)) -bot))]
        )
 
   (test-suite

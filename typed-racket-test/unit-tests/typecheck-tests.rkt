@@ -3578,8 +3578,7 @@
          (t:-> -Nat -Boolean : (-FS (-filter (-val 0) 0) (-not-filter (-val 0) 0)))]
        [tc-e/t
          (lambda: ([x : Real]) (zero? x))
-         (t:-> -Real -Boolean : (-FS (-filter -RealZero 0)
-                                     (-not-filter (t:Un -Zero -InexactRealPosZero -InexactRealNegZero) 0)))]
+         (t:-> -Real -Boolean : (-FS (-filter -RealZeroNoNan 0) (-not-filter -RealZeroNoNan 0)))]
 
        [tc-e/t (lambda: ([x : Byte]) (positive? x))
           (t:-> -Byte -Boolean : (-FS (-filter -PosByte 0) (-filter -Zero 0)))]
@@ -3597,7 +3596,15 @@
         (t:-> -Flonum (t:Un (-val #t) -FlonumNan)
               : -true-filter)]
 
-
+       [tc-e/t
+         (lambda: ([x : Flonum]) (if (= 0 x) 1.0 x))
+         (t:-> -Flonum (t:Un -PosFlonum -NegFlonum) : -true-filter)]
+       [tc-e/t
+         (lambda: ([x : Byte]) (if (= 0 x) 1 x))
+         (t:-> -Byte -PosByte : -true-filter)]
+       [tc-e/t
+         (lambda: ([x : Flonum]) (if (= x (ann 1.0 Positive-Flonum)) x 'other))
+         (t:-> -Flonum (t:Un -PosFlonum (-val 'other)) : -true-filter)]
        )
 
   (test-suite

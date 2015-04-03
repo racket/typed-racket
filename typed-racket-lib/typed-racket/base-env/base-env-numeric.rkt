@@ -891,8 +891,8 @@
 ;; There are 25 values that answer true to zero?. They are either reals, or inexact complexes.
 ;; Note -RealZero contains NaN and zero? returns #f on it
 [zero?
-  (-> N B : (-FS (-filter (Un -RealZero -InexactComplex -InexactImaginary) 0)
-                 (-not-filter (Un -Zero -InexactRealPosZero -InexactRealNegZero) 0)))]
+  (-> N B : (-FS (-filter (Un -RealZeroNoNan -InexactComplex -InexactImaginary) 0)
+                 (-not-filter -RealZeroNoNan 0)))]
 
 [number? (make-pred-ty N)]
 [integer? (asym-pred Univ B (-FS (-filter (Un -Int -Flonum -SingleFlonum) 0) ; inexact-integers exist...
@@ -920,46 +920,16 @@
 
 [=
  (from-cases
-  (map (lambda (l) (apply exclude-zero l))
-       (list (list -Byte -PosByte)
-             (list -Index -PosIndex)
-             (list -NonNegFixnum -PosFixnum)
-             (list -NonPosFixnum -NegFixnum)
-             (list -Nat -PosInt)
-             (list -NonPosInt -NegInt)
-             (list -Int (Un -PosInt -NegInt))
-             (list -NonNegRat -PosRat)
-             (list -NonPosRat -NegRat)
-             (list -Rat (Un -PosRat -NegRat))
-             (list -NonNegFlonum -PosFlonum -FlonumZero)
-             (list -NonPosFlonum -NegFlonum -FlonumZero)
-             (list -Flonum (Un -PosFlonum -NegFlonum) -FlonumZero)
-             (list -NonNegSingleFlonum -PosSingleFlonum -SingleFlonumZero)
-             (list -NonPosSingleFlonum -NegSingleFlonum -SingleFlonumZero)
-             (list -SingleFlonum (Un -PosSingleFlonum -NegSingleFlonum) -SingleFlonumZero)
-             (list -NonNegInexactReal -PosInexactReal -InexactRealZero)
-             (list -NonPosInexactReal -NegInexactReal -InexactRealZero)
-             (list -InexactReal (Un -PosInexactReal -NegInexactReal) -InexactRealZero)
-             (list -NonNegReal -PosReal -RealZero)
-             (list -NonPosReal -NegReal -RealZero)
-             (list -Real (Un -PosReal -NegReal) -RealZero)))
+   (-> -Real -RealZero B : (-FS (-filter -RealZeroNoNan 0) (-not-filter -RealZeroNoNan 0)))
+   (-> -RealZero -Real B : (-FS (-filter -RealZeroNoNan 1) (-not-filter -RealZeroNoNan 1)))
   (map (lambda (t) (commutative-equality/filter -ExactNumber t))
        (list -One -PosByte -Byte -PosIndex -Index
              -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum -Fixnum
              -PosInt -Nat -NegInt -NonPosInt -Int
              -PosRat -NonNegRat -NegRat -NonPosRat -Rat
              -ExactNumber))
-  (map (lambda (t) (commutative-equality/filter -Flonum t))
-       (list -FlonumZero -PosFlonum -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum))
-  (map (lambda (t) (commutative-equality/filter -SingleFlonum t))
-       (list -SingleFlonumZero -PosSingleFlonum -NonNegSingleFlonum
-             -NegSingleFlonum -NonPosSingleFlonum -SingleFlonum))
-  (map (lambda (t) (commutative-equality/filter -InexactReal t))
-       (list -InexactRealZero -PosInexactReal -NonNegInexactReal
-             -NegInexactReal -NonPosInexactReal -InexactReal))
-  ;; this case should take care of mixed type equality. the filters give
-  ;; sign information, and we get exactness information from the original
-  ;; types
+  ;; For all real types: the filters give sign information, and the exactness information is preserved
+  ;; from the original types.
   (map (lambda (t) (commutative-equality/filter -Real t))
        (list -RealZero -PosReal -NonNegReal -NegReal -NonPosReal -Real))
   (->* (list N N) N B))]

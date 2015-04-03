@@ -951,7 +951,7 @@
    [tc-err (class object% (super-new)
              (define/public (m) (n))
              (define/public (n x) 0))
-           #:ret (ret (-class #:method ([m (t:-> -Bottom)] [n (t:-> Univ -Zero : -true-filter)])))
+           #:ret (ret (-class #:method ([m (t:-> -Bottom)] [n (t:-> Univ -Zero : -true-filter : (-int-obj 0))])))
            #:msg #rx"since it is not a function type"]
    ;; test type-checking for classes without any
    ;; internal type annotations on methods
@@ -1394,7 +1394,7 @@
              (define/pubment (foo x) 0)
              (define/public (g x) (foo 3)))
            #:ret (ret (-class #:method ([g (t:-> Univ -Bottom)]
-                                        [foo (t:-> Univ -Zero : -true-filter)])
+                                        [foo (t:-> Univ -Zero : -true-filter : (-int-obj 0))])
                               #:augment ([foo top-func])))
            #:msg #rx"Cannot apply expression of type Any"]
    ;; the next several tests are for positional init arguments

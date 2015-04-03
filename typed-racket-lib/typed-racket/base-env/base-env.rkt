@@ -3294,18 +3294,22 @@
 ;;                                   (list 1 (-arg-obj 0)))))))]
 
 
-[veclen (->* (list -VectorTop)
-             -Index
-             : -true-filter
-             : (-acc-path (list -length) (-arg-obj 0)))]
+[exact-vector-length
+ (~> [v : -VectorTop]
+     (-refine i -Index
+              (-SLI (-lt (-lexp-obj (list 1 (-id-path i)))
+                         (-lexp-obj (list 1 (-acc-path (list -length) (-id-path v)))))))
+     : -true-filter
+     : (-acc-path (list -length) (-id-path v)))]
 
 ;; TODO(amk) support polymorphism w/ dep fun types
-[safevecref (~> [v : -VectorTop]
-                [x : (-refine i -Integer
-                              (let ([i (-lexp-obj (list 1 (-id-path i)))]
-                                    [vlen (-lexp-obj (list 1 (-acc-path (list -length) (-id-path v))))])
-                                (-SLI (-leq (-id-lexp 0) i) (-gteq i (-id-lexp 0))
-                                      (-lt i vlen))))]
-                Univ)]
+[safe-vector-ref
+ (~> [v : -VectorTop]
+     [x : (-refine i -Integer
+                   (let ([i (-lexp-obj (list 1 (-id-path i)))]
+                         [vlen (-lexp-obj (list 1 (-acc-path (list -length) (-id-path v))))])
+                     (-SLI (-leq (-id-lexp 0) i) (-gteq i (-id-lexp 0))
+                           (-lt i vlen))))]
+     Univ)]
 
 

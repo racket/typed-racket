@@ -227,6 +227,15 @@
        (make-Function (list (make-arr* (list xdom*) 
                                        (abstract-idents (list x) rng)
                                        #:dep? #t))))]
+    [(_ [x : xdom] rng : fs : obj)
+     (let ([x #`#,(gensym 'x)]
+           [xdom* xdom]) 
+       (make-Function (list (make-arr* (list xdom*) 
+                                       (abstract-idents (list x) rng)
+                                       #:filters fs
+                                       #:object (abstract-idents (list x) obj)
+                                       #:dep? #t))))]
+
     [(_ [x : xdom] rng : obj)
      (let ([x #`#,(gensym 'x)]
            [xdom* xdom]) 

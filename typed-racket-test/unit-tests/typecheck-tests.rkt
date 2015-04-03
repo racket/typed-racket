@@ -458,7 +458,7 @@
         [tc-e/t (lambda: ([x : Number]) 3) (t:-> -Number -PosByte : -true-filter : (-int-obj 3))]
         [tc-e/t (lambda: ([x : Number] [y : Boolean]) 3)
                 (t:-> -Number -Boolean -PosByte : -true-filter : (-int-obj 3))]
-        [tc-e/t (lambda () 3) (t:-> -PosByte : -true-filter)]
+        [tc-e/t (lambda () 3) (t:-> -PosByte : -true-filter : (-int-obj 3))]
         [tc-e (values 3 4) #:ret (ret (list -PosByte -PosByte)
                                       (list -true-filter -true-filter)
                                       (list (-int-obj 3) (-int-obj 4)))]
@@ -513,7 +513,7 @@
         [tc-e (values 3 #f) #:ret
               (ret (list -PosByte (-val #f))
                    (list -true-filter -false-filter)
-                   (list (-int-obj) -empty-obj))]
+                   (list (-int-obj 3) -empty-obj))]
         [tc-e (map #{values @ Symbol} '(a b c)) (-pair -Symbol (make-Listof -Symbol))]
         [tc-e (andmap add1 (ann '() (Listof Number))) (t:Un (-val #t) -Number)]
         [tc-e (ormap add1 (ann '() (Listof Number))) (t:Un (-val #f) -Number)]
@@ -546,8 +546,8 @@
                         'bc))
               -Number]
         [tc-e/t (let: ((x : Number 3)) (if (boolean? x) (not x) #t)) (-val #t)]
-        [tc-e/t (begin 3) -PosByte]
-        [tc-e/t (begin #f 3) -PosByte]
+        [tc-e/t (begin 3) -PosByte (-int-obj 3)]
+        [tc-e/t (begin #f 3) -PosByte (-int-obj 3)]
         [tc-e/t (begin #t) (-val #t)]
         [tc-e/t (begin0 #t) (-val #t)]
         [tc-e/t (begin0 #t 3) (-val #t)]
@@ -555,14 +555,15 @@
         [tc-e #f #:ret (ret (-val #f) -false-filter)]
         [tc-e/t '#t (-val #t)]
         [tc-e '#f #:ret (ret (-val #f) -false-filter)]
-        [tc-e/t (if #f 'a 3) -PosByte]
+        [tc-e/t (if #f 'a 3) -PosByte (-int-obj 3)]
         [tc-e/t (if #f #f #t) (t:Un (-val #t))]
         [tc-e (when #f 3) -Void]
         [tc-e/t '() -Null]
         [tc-e/t (let: ([x : (Listof Number) '(1)])
                       (cond [(pair? x) 1]
                             [(null? x) 1]))
-              -One]
+              -One
+              (-int-obj 1)]
         [tc-e/t (lambda: ([x : Number] . [y : Number *]) (car y))
                 (->* (list -Number) -Number -Number)]
         [tc-e ((lambda: ([x : Number] . [y : Number *]) (car y)) 3) -Number]
@@ -606,7 +607,7 @@
                         3))
               -Number]
 
-        [tc-e/t (let ([x 1]) x) -One]
+        [tc-e/t (let ([x 1]) x) -One (-int-obj 1)]
         [tc-e (let ([x 1]) (boolean? x)) #:ret (ret -Boolean -false-filter)]
         [tc-e (boolean? number?) #:ret (ret -Boolean -false-filter)]
 
@@ -700,7 +701,7 @@
                   x)
                 (t:Un (-val 'squarf) -PosByte)]
 
-        [tc-e/t (if #t 1 2) -One]
+        [tc-e/t (if #t 1 2) -One (-int-obj 1)]
 
 
         ;; eq? as predicate
@@ -842,7 +843,7 @@
         [tc-e/t (let* ([z 1]
                        [p? (lambda: ([x : Any]) (number? z))])
                   (lambda: ([x : Any]) (if (p? x) 11 12)))
-                (t:-> Univ -PosByte : -true-filter)]
+                (t:-> Univ -PosByte : -true-filter : (-int-obj 11))]
         [tc-e/t (let* ([z 1]
                        [p? (lambda: ([x : Any]) (number? z))])
                   (lambda: ([x : Any]) (if (p? x) x 12)))
@@ -855,7 +856,7 @@
         [tc-e/t (let* ([z 1]
                        [p? (lambda: ([x : Any]) (not (number? z)))])
                   (lambda: ([x : Any]) (if (p? x) x 12)))
-                (t:-> Univ -PosByte : -true-filter)]
+                (t:-> Univ -PosByte : -true-filter : (-int-obj 12))]
         [tc-e/t (let* ([z 1]
                        [p? (lambda: ([x : Any]) z)])
                   (lambda: ([x : Any]) (if (p? x) x 12)))
@@ -866,10 +867,10 @@
           #:ret (ret -Boolean -false-filter)]
 
         [tc-err ((lambda () 1) 2)
-          #:ret (ret (-val 1) -true-filter)]
+          #:ret (ret (-val 1) -true-filter (-int-obj 1))]
         [tc-err (apply (lambda () 1) '(2))]
         [tc-err ((lambda: ([x : Any] [y : Any]) 1) 2)
-          #:ret (ret (-val 1) -true-filter)]
+          #:ret (ret (-val 1) -true-filter (-int-obj 1))]
         [tc-err (map map '(2))]
         [tc-err ((plambda: (a) ([x : (a -> a)] [y : a]) (x y)) 5)]
         [tc-err ((plambda: (a) ([x : a] [y : a]) x) 5)]
@@ -924,7 +925,8 @@
         [tc-e/t (with-continuation-mark
                   ((inst make-continuation-mark-key Symbol)) 'mark
                   3)
-              -PosByte]
+              -PosByte
+              (-int-obj 3)]
         [tc-err (with-continuation-mark (5 4) 1
                   3)]
         [tc-err (with-continuation-mark 1 (5 4)
@@ -946,7 +948,7 @@
               -Number]
         [tc-err (call-with-values (lambda () 1)
                                   (lambda: () 2))
-          #:ret (ret -PosByte -true-filter)]
+          #:ret (ret -PosByte -true-filter (-int-obj 2))]
 
         [tc-err (call-with-values (lambda () (values 2))
                                   (lambda: ([x : Number] [y : Number]) (+ x y)))
@@ -1023,7 +1025,8 @@
                         (+ z w)))
                     (g 4))
                   5)
-                -PosByte]
+                -PosByte
+                (-int-obj 5)]
 
         [tc-err (let ()
                   (define x x)
@@ -1081,6 +1084,10 @@
         [tc-e/t (let ([f (plambda: (a ...) [w : a ... a] w)])
                   (f 1 "hello" #\c))
                 (-lst* -One -String -Char)]
+        [tc-e/t (lambda: ([x : One])
+                  (let ([f (plambda: (a ...) [w : a ... a] w)])
+                    (f x "hello" #\c)))
+                (-lst* -One -String -Char)]
         ;; instantiating non-dotted terms
         [tc-e/t (inst (plambda: (a) ([x : a]) x) Integer)
                 (make-Function (list (make-arr* (list -Integer) -Integer
@@ -1092,12 +1099,12 @@
 
         ;; instantiating dotted terms
         [tc-e/t (inst (plambda: (a ...) [xs : a ... a] 3) Integer Boolean Integer)
-                (-Integer -Boolean -Integer . t:-> . -PosByte : -true-filter)]
+                (-Integer -Boolean -Integer . t:-> . -PosByte : -true-filter : (-int-obj 3))]
         [tc-e/t (inst (plambda: (a ...) [xs : (a ... a -> Integer) ... a] 3) Integer Boolean Integer)
                 ((-Integer -Boolean -Integer . t:-> . -Integer)
                  (-Integer -Boolean -Integer . t:-> . -Integer)
                  (-Integer -Boolean -Integer . t:-> . -Integer)
-                 . t:-> . -PosByte : -true-filter)]
+                 . t:-> . -PosByte : -true-filter : (-int-obj 3))]
 
         [tc-e/t (plambda: (z x y ...) () (inst map z x y ... y))
               (-polydots (z x y)
@@ -1129,7 +1136,7 @@
                        (if (number? x)
                            (begin (f) (add1 x))
                            12))
-          #:ret (ret -PosByte -true-filter)]
+          #:ret (ret -PosByte -true-filter (-int-obj 12))]
 
         [tc-err (ann 3 (Rec a a))]
         [tc-err (ann 3 (Rec a (U a 3)))]
@@ -1283,7 +1290,7 @@
         (tc-e (or (string->number "7") 7)
               #:ret (ret -Number -true-filter))
         [tc-e (let ([x 1]) (if x x (add1 x)))
-              #:ret (ret -One -true-filter)]
+              #:ret (ret -One -true-filter (-int-obj 1))]
         [tc-e (let: ([x : (U (Vectorof Integer) String) (vector 1 2 3)])
                 (if (vector? x) (vector-ref x 0) (string-length x)))
          -Integer]
@@ -2082,7 +2089,9 @@
         [tc-e (vector-split-at (vector 2 3 4 5 6) 3)
               (list (-vec -Integer) (-vec -Integer))]
 
-        [tc-e/t (ann ((letrec ((x (lambda args 3))) x) 1 2) Byte) -Byte]
+        [tc-e/t (ann ((letrec ((x (lambda args 3))) x) 1 2) Byte)
+                -Byte
+                (-int-obj 3)]
         [tc-e (vector-ref (ann (vector 'a 'b) (Vector Symbol Symbol)) 0)
               -Symbol]
         [tc-err (vector-ref (ann (vector 'a 'b) (Vector Symbol Symbol)) 4)]
@@ -2943,16 +2952,17 @@
          -Number]
 
        [tc-e/t
-         (let ()
-           (: f (Number -> Number))
-           (define (f x)
-             (cond
-               ((zero? x) x)
-               (else (add1 (f (sub1 x))))))
-
-           (define y (f 7))
-           4)
-         -PosByte]
+        (let ()
+          (: f (Number -> Number))
+          (define (f x)
+            (cond
+              ((zero? x) x)
+              (else (add1 (f (sub1 x))))))
+          
+          (define y (f 7))
+          4)
+        -PosByte
+        (-int-obj 4)]
 
        [tc-err
          (let ()
@@ -2992,7 +3002,7 @@
        [tc-err
          (let ([f (lambda (x y) y)])
            (f 1 2 3))
-         #:ret (ret Univ -true-filter)]
+         #:ret (ret Univ -true-filter (-int-obj))]
 
        [tc-err
          (case-lambda

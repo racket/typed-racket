@@ -6,9 +6,10 @@ don't depend on any other portion of the system
 |#
 
 (require syntax/source-syntax "disappeared-use.rkt"
-         racket/promise racket/string
-         syntax/parse/pre (for-syntax racket/base syntax/parse/pre)
-         (only-in unstable/sequence in-slice))
+         racket/promise racket/string racket/lazy-require
+         syntax/parse/pre (for-syntax racket/base syntax/parse/pre))
+
+(lazy-require [unstable/sequence (in-slice)])
 
 (provide ;; parameters
          current-orig-stx

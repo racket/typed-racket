@@ -120,15 +120,11 @@ the typed racket language.
          (for-syntax
           racket/lazy-require
           syntax/parse/pre
-          syntax/parse/experimental/template
           syntax/stx
           racket/list
           racket/syntax
-          unstable/sequence
           unstable/syntax
           racket/base
-          racket/struct-info
-          syntax/struct
           (only-in "../typecheck/internal-forms.rkt" internal)
           "annotate-classes.rkt"
           "../utils/literal-syntax-class.rkt"
@@ -251,11 +247,11 @@ the typed racket language.
            . rest)
      (define/with-syntax (bn* ...)
        ;; singleton names go to just the name
-       (for/list ([bn (in-syntax #'(bn ...))])
+       (for/list ([bn (in-list (syntax->list #'(bn ...)))])
          (if (empty? (stx-cdr bn))
              (stx-car bn)
              bn)))
-     (template ((-lambda (?@ . vars) (bn* ...) . rest) e ...))]
+     (quasisyntax/loc stx ((-lambda #,@(syntax vars) (bn* ...) . rest) e ...))]
     [(-let . rest)
      (syntax/loc stx (-let-internal . rest))]))
 
@@ -269,10 +265,10 @@ the typed racket language.
   (syntax-parse stx
     [(_ ([pred? action] ...) . body)
      (with-syntax ([(pred?* ...)
-                    (for/list ([(pred? idx) (in-indexed (in-syntax #'(pred? ...)))])
+                    (for/list ([(pred? idx) (in-indexed (syntax->list #'(pred? ...)))])
                       (exn-predicate-property pred? idx))]
                    [(action* ...)
-                    (for/list ([(action idx) (in-indexed (in-syntax #'(action ...)))])
+                    (for/list ([(action idx) (in-indexed (syntax->list #'(action ...)))])
                       (exn-handler-property action idx))]
                    [body* (exn-body #'(let-values () . body))])
        (exn-handlers (quasisyntax/loc stx
@@ -744,7 +740,7 @@ the typed racket language.
        (syntax-parse rhs
          #:literals (-lambda)
          [(-lambda formals . others)
-          (template/loc stx (-lambda (?@ . vars) formals . others))]
+          (quasisyntax/loc stx (-lambda #,@(syntax vars) formals . others))]
          [_ rhs]))
      (quasisyntax/loc stx (define #,defined-id #,rhs*))]))
 

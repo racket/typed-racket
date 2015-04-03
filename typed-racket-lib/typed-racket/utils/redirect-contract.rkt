@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/modcollapse (for-template racket/base))
+(require syntax/private/modcollapse-noctc (for-template racket/base))
 (provide make-make-redirect-to-contract)
 
 ;; This is used to define identifiers that expand to a local-require

@@ -12,9 +12,8 @@
 ;; submodule is again to avoid dependency.
 
 (require
-  syntax/parse
-  (for-syntax racket/base racket/syntax
-              syntax/parse syntax/parse/experimental/template)
+  syntax/parse/pre
+  (for-syntax racket/base racket/syntax syntax/parse/pre)
   (for-label racket/base) ;; used for identifier comparison only
   (for-template racket/base))
 
@@ -42,7 +41,7 @@
     (begin
       (provide nms ...)
       (module* literal-set #f
-        (require syntax/parse)
+        (require syntax/parse/pre)
         (provide set-name)
         (define-literal-set set-name (nms ...)))
       (define-syntax (nms stx)
@@ -111,17 +110,18 @@
 
   (syntax-parse stx
     [(_ :clause ...)
-     (template
-       (begin
-         (begin
-           (define-syntax-class name
-             #:auto-nested-attributes
-             #:literal-sets ((internal-literals #:at name))
-             (pattern i:internal^ #:with (lit . body) #'i.value))
-           (define pred
-             (syntax-parser
-               [(~var _ name) #t]
-               [_ #f]))) ...))]))
+     (syntax
+      (begin 
+        (begin
+          (define-syntax-class name
+            #:auto-nested-attributes
+            #:literal-sets ((internal-literals #:at name))
+            (pattern i:internal^ #:with (lit . body) #'i.value))
+          (define pred
+            (syntax-parser
+              [(~var _ name) #t]
+              [_ #f])))
+        ...))]))
 
 
 (define-internal-classes

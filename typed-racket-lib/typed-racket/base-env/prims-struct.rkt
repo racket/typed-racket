@@ -18,15 +18,16 @@
                      syntax/stx
                      racket/list
                      racket/syntax
-                     unstable/sequence
                      unstable/syntax
                      racket/struct-info
-                     syntax/struct
                      "../typecheck/internal-forms.rkt"
                      "annotate-classes.rkt"
                      "../private/parse-classes.rkt"
                      "../private/syntax-properties.rkt"
                      "../typecheck/internal-forms.rkt"))
+
+(begin-for-syntax
+  (lazy-require [syntax/struct (build-struct-names)]))
 
 (provide define-typed-struct -struct define-typed-struct/exec define-type-alias dtsi* dtsi/exec*)
 

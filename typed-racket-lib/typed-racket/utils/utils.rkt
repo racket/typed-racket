@@ -5,7 +5,7 @@ This file is for utilities that are of general interest,
 at least theoretically.
 |#
 
-(require (for-syntax racket/base syntax/parse racket/string unstable/sequence)
+(require (for-syntax racket/base syntax/parse/pre racket/string)
          racket/require-syntax racket/provide-syntax
          racket/struct-info "timing.rkt")
 
@@ -42,7 +42,7 @@ at least theoretically.
             (syntax-parse stx
               [(form id:identifier ...)
                (with-syntax ([(id* ...)
-                              (for/list ([id (in-syntax #'(id ...))])
+                              (for/list ([id (syntax->list #'(id ...))])
                                 (datum->syntax
                                  id
                                  `(lib
@@ -62,7 +62,7 @@ at least theoretically.
             (syntax-parse stx
               [(_ id:identifier ...)
                (with-syntax ([(id* ...)
-                              (for/list ([id (in-syntax #'(id ...))])
+                              (for/list ([id (syntax->list #'(id ...))])
                                 (datum->syntax
                                  id
                                  `(lib

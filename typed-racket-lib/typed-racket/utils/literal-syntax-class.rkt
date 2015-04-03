@@ -1,14 +1,12 @@
 #lang racket/base
 
 (require
-  "../utils/utils.rkt"
-  syntax/parse
-  (utils tc-utils)
+  "../utils/utils.rkt" "../utils/disappeared-use.rkt"
+  syntax/parse/pre
   (for-syntax
     racket/base
     racket/syntax
-    syntax/parse
-    unstable/sequence))
+    syntax/parse/pre))
 
 (provide define-literal-syntax-class)
 
@@ -29,7 +27,7 @@
          (λ (sym) (introducer (datum->syntax #f sym)))))
      (define/with-syntax literal-set (add-context 'lit-set))
      (define/with-syntax (pattern-literals ...)
-        (for/list ([_ (in-syntax #'(literals ...))]
+        (for/list ([_ (in-list (syntax->list #'(literals ...)))]
                    [n (in-naturals)])
           (add-context (string->symbol (format "pat~a" n)))))
      #'(begin

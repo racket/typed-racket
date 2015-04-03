@@ -4,7 +4,7 @@
  (for-syntax racket/base racket/lazy-require
              "standard-inits.rkt")
  ;; these need to be available to the generated code
- "typecheck/renamer.rkt"
+ "typecheck/renamer.rkt" syntax/location
  (for-syntax (submod "base-env/prims-contract.rkt" self-ctor))
  (for-syntax "utils/struct-extraction.rkt")
  (for-syntax "typecheck/renamer.rkt")

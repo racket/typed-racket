@@ -17,7 +17,7 @@
          -FlonumPosZero -FlonumNegZero -FlonumZero -FlonumNan -PosFlonum -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
          -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero -SingleFlonumNan -PosSingleFlonum -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum -SingleFlonum
          -InexactRealPosZero -InexactRealNegZero -InexactRealZero -InexactRealNan -PosInexactReal -NonNegInexactReal -NegInexactReal -NonPosInexactReal -InexactReal
-         -RealZero -PosReal -NonNegReal -NegReal -NonPosReal -Real
+         -RealZero -RealZeroNoNan -PosReal -NonNegReal -NegReal -NonPosReal -Real
          -PosInfinity -NegInfinity
          -ExactImaginary -FloatImaginary -SingleFlonumImaginary -InexactImaginary -Imaginary
          -ExactNumber -ExactComplex -FloatComplex -SingleFlonumComplex -InexactComplex -Number
@@ -203,12 +203,13 @@
 (define/decl -InexactReal        (*Un -SingleFlonum -Flonum))
 
 ;; Reals
-(define/decl -RealZero   (*Un -Zero -InexactRealZero))
-(define/decl -PosReal    (*Un -PosRat -PosInexactReal))
-(define/decl -NonNegReal (*Un -NonNegRat -NonNegInexactReal))
-(define/decl -NegReal    (*Un -NegRat -NegInexactReal))
-(define/decl -NonPosReal (*Un -NonPosRat -NonPosInexactReal))
-(define/decl -Real       (*Un -Rat -InexactReal))
+(define/decl -RealZero      (*Un -Zero -InexactRealZero))
+(define/decl -RealZeroNoNan (*Un -Zero -InexactRealPosZero -InexactRealNegZero))
+(define/decl -PosReal       (*Un -PosRat -PosInexactReal))
+(define/decl -NonNegReal    (*Un -NonNegRat -NonNegInexactReal))
+(define/decl -NegReal       (*Un -NegRat -NegInexactReal))
+(define/decl -NonPosReal    (*Un -NonPosRat -NonPosInexactReal))
+(define/decl -Real          (*Un -Rat -InexactReal))
 
 ;; Complexes
 ;; We could go into _much_ more precision here.

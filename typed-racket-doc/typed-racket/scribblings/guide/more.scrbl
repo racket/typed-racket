@@ -3,8 +3,7 @@
 @begin[(require "../utils.rkt"
                 scribble/core scribble/eval
                 (for-label (only-meta-in 0 typed/racket)
-                           (prefix-in base: racket)
-                           (only-in mzlib/etc let+)))]
+                           (prefix-in base: racket)))]
 
 @title[#:tag "more"]{Specifying Types}
 
@@ -108,11 +107,14 @@ applied to a single variable using a reader extension:
 
 This is equivalent to the earlier use of @racket[let]. This is
 mostly useful for binding forms which do not have counterparts
-provided by Typed Racket, such as @racket[let+]:
+provided by Typed Racket, such as @racket[match]:
 
 @racketblock[
-(let+ ([val #,(annvar x Number) (+ 6 1)])
-  (* x x))]
+(: assert-symbols! ((Listof Any) -> (Listof Symbol)))
+(define (assert-symbols! lst)
+  (match lst
+    [(list (? symbol? #,(annvar s (Listof Symbol))) ...) s]
+    [_ (error "expected only symbols, given" lst)]))]
 
 @subsection{Annotating Expressions}
 

@@ -123,6 +123,10 @@ unions are flattened.
 themselves.  This allows a type to describe an infinite family
 of data.  For example, this is the type of binary trees of numbers.
 
+@margin-note[]{
+Recursive types can also be created anonymously without the use of
+@racket[define-type] using the @racket[Rec] type constructor.}
+
 @racketblock[
 (define-type BinaryTree (U Number (Pair BinaryTree BinaryTree)))]
 

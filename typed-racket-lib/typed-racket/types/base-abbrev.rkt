@@ -217,62 +217,65 @@
     [(_ dom rst rng _:c filters : object)
      #'(make-Function (list (make-arr* dom rng #:rest rst #:filters filters #:object object)))]))
 
-
-;; TODO(AMK) add support for things like [x y z : Integer]
-(define-syntax ~>
-  (syntax-rules (:)
-    [(_ [x : xdom] rng)
-     (let ([x #`#,(gensym 'x)]
-           [xdom* xdom]) 
-       (make-Function (list (make-arr* (list xdom*) 
-                                       (abstract-idents (list x) rng)
-                                       #:dep? #t))))]
-    [(_ [x : xdom] rng : fs : obj)
-     (let ([x #`#,(gensym 'x)]
-           [xdom* xdom]) 
-       (make-Function (list (make-arr* (list xdom*) 
-                                       (abstract-idents (list x) rng)
-                                       #:filters fs
-                                       #:object (abstract-idents (list x) obj)
-                                       #:dep? #t))))]
-
-    [(_ [x : xdom] rng : obj)
-     (let ([x #`#,(gensym 'x)]
-           [xdom* xdom]) 
-       (make-Function (list (make-arr* (list xdom*) 
-                                       (abstract-idents (list x) rng)
-                                       #:object (abstract-idents (list x) obj)
-                                       #:dep? #t))))]
-    [(_ [x : xdom] [y : ydom] rng)
-     (let ([x #`#,(gensym 'x)]
-           [xdom* xdom]) 
-       (let ([y #`#,(gensym 'y)]
-             [ydom* ydom])
+(define-syntax (~> stx)
+  (define (valid-formal-params? xs-syntax)
+    (let ([xs (syntax->datum xs-syntax)])
+      (unless (and (andmap symbol? xs)
+                   (= (length xs) (length (remove-duplicates xs))))
+        (raise-syntax-error '~> "invalid parameters" xs-syntax))
+      #t))
+  (syntax-case stx (:)
+    [(_ ([x : xt] ...) rng)
+     (valid-formal-params? #'(x ...))
+     #'(let ([x #'x] ...)
          (make-Function 
-          (list (make-arr* (map (curry abstract-idents (list x y)) (list xdom* ydom*)) 
-                           (abstract-idents (list x y) rng)
-                           #:dep? #t)))))]
-    [(_ [x : xdom] [y : ydom] rng : obj)
-     (let ([x #`#,(gensym 'x)]
-           [xdom* xdom]) 
-       (let ([y #`#,(gensym 'y)]
-             [ydom* ydom])
+          (list (make-arr* (map (curry abstract-idents (list x ...)) (list xt ...)) 
+                           (abstract-idents (list x ...) rng)
+                           #:dep? #t))))]
+    [(_ ([x : xt] ...) rst rng)
+     (valid-formal-params? #'(x ...))
+     #'(let ([x #'x] ...)
          (make-Function 
-          (list (make-arr* (map (curry abstract-idents (list x y)) (list xdom* ydom*)) 
-                           (abstract-idents (list x y) rng)
-                           #:object (abstract-idents (list x y) obj)
-                           #:dep? #t)))))]
-    [(_ [x : xdom] [y : ydom] [z : zdom] rng)
-     (let ([x #`#,(gensym 'x)]
-           [xdom* xdom]) 
-       (let ([y #`#,(gensym 'y)]
-             [ydom* ydom])
-         (let ([z #`#,(gensym 'z)]
-               [zdom* zdom])
-           (make-Function 
-            (list (make-arr* (map (curry abstract-idents (list x y z)) (list xdom* ydom* zdom*)) 
-                             (abstract-idents (list x y z) rng)
-                             #:dep? #t))))))]))
+          (list (make-arr* (map (curry abstract-idents (list x ...)) (list xt ...)) 
+                           (abstract-idents (list x ...) rng)
+                           #:rest (abstract-idents (list x ...) rst)
+                           #:dep? #t))))]
+    [(_ ([x : xt] ...) rng : filter)
+     (valid-formal-params? #'(x ...))
+     #'(let ([x #'x] ...)
+         (make-Function 
+          (list (make-arr* (map (curry abstract-idents (list x ...)) (list xt ...)) 
+                           (abstract-idents (list x ...) rng)
+                           #:filters (abstract-idents (list x ...) filter)
+                           #:dep? #t))))]
+    [(_ ([x : xt] ...) rng : filter : object)
+     (valid-formal-params? #'(x ...))
+     #'(let ([x #'x] ...)
+         (make-Function 
+          (list (make-arr* (map (curry abstract-idents (list x ...)) (list xt ...)) 
+                           (abstract-idents (list x ...) rng)
+                           #:filters (abstract-idents (list x ...) filter)
+                           #:object (abstract-idents (list x ...) object)
+                           #:dep? #t))))]
+    [(_ ([x : xt] ...) rst rng : filter)
+     (valid-formal-params? #'(x ...))
+     #'(let ([x #'x] ...)
+         (make-Function 
+          (list (make-arr* (map (curry abstract-idents (list x ...)) (list xt ...)) 
+                           (abstract-idents (list x ...) rng)
+                           #:rest (abstract-idents (list x ...) rst)
+                           #:filters (abstract-idents (list x ...) filter)
+                           #:dep? #t))))]
+    [(_ ([x : xt] ...) rst rng : filter : object)
+     (valid-formal-params? #'(x ...))
+     #'(let ([x #'x] ...)
+         (make-Function 
+          (list (make-arr* (map (curry abstract-idents (list x ...)) (list xt ...)) 
+                           (abstract-idents (list x ...) rng)
+                           #:rest (abstract-idents (list x ...) rst)
+                           #:filters (abstract-idents (list x ...) filter)
+                           #:object (abstract-idents (list x ...) object)
+                           #:dep? #t))))]))
 
 (define-syntax (-> stx)
   (define-syntax-class c

@@ -75,6 +75,8 @@
 (define-literal-syntax-class #:for-label car)
 (define-literal-syntax-class #:for-label cdr)
 (define-literal-syntax-class #:for-label colon^ (:))
+(define-literal-syntax-class #:for-label isT^ (-:))
+(define-literal-syntax-class #:for-label notT^ (-!))
 (define-literal-syntax-class #:for-label quote)
 (define-literal-syntax-class #:for-label cons)
 (define-literal-syntax-class #:for-label Class)
@@ -86,7 +88,7 @@
 (define-literal-syntax-class #:for-label pred)
 (define-literal-syntax-class #:for-label ->)
 (define-literal-syntax-class #:for-label ->*)
-(define-literal-syntax-class #:for-label ->i)
+(define-literal-syntax-class #:for-label ~>)
 (define-literal-syntax-class #:for-label case->^ (case-> case-lambda))
 (define-literal-syntax-class #:for-label Rec)
 (define-literal-syntax-class #:for-label U)
@@ -303,22 +305,99 @@
            #:attr negative (apply -and (attribute p-.prop))
            #:attr object (or (attribute o.object) -empty-obj)))
 
+(define-splicing-syntax-class (ident ids)
+  #:description "ident"
+  #:attributes (id)
+  (pattern i:identifier
+           #:fail-unless (or (identifier-binding #'i)
+                             (for/or ([x (in-list ids)]) (free-identifier=? x #'i)))
+           "Filters for predicates may not reference identifiers that are unbound"
+           #:fail-when (is-var-mutated? #'i)
+           "Filters for predicates may not reference identifiers that are mutated"
+           #:attr id #'i))
 
-(define-splicing-syntax-class proposition
-  #:description "proposition"
+;; simple object (i.e. not a linear expression)
+(define-splicing-syntax-class (s-object ids)
+  #:description "Simple Object"
+  #:attributes (obj)
+  (pattern (~var x (ident ids))
+           #:attr obj (-id-path (attribute x.id)))
+  (pattern (pe:path-elem ... (~var x (ident ids)))
+           #:attr obj (-acc-path (attribute pe.pe) (-id-path (attribute x.id)))))
+
+;; terms in a linear expression
+;; either just an integer, or an integer and path
+(define-splicing-syntax-class (linexp-term ids)
+  #:description "Linear Expression Term"
+  #:attributes (coeff path)
+  (pattern n:exact-integer
+           #:attr coeff (syntax->datum #'n)
+           #:attr path #f)
+  (pattern (n:exact-integer (~var p (s-object ids)))
+           #:attr coeff (syntax->datum #'n)
+           #:attr path (attribute p.obj)))
+
+;; complex object (i.e. includes linear expressions)
+(define-splicing-syntax-class (c-object ids)
+  #:description "Complex Object"
+  #:attributes (obj)
+  (pattern ((~datum +) (~var terms (linexp-term ids)) ...)
+           #:attr obj (make-LExp (for/list ([c (in-list (attribute terms.coeff))]
+                                            [p (in-list (attribute terms.path))])
+                                   (if p (list c p) c))))
+  (pattern n:exact-integer
+           #:attr obj (-int-obj (syntax->datum #'n)))
+  (pattern (~var p (s-object ids))
+           #:attr obj (attribute p.obj)))
+
+;; complex object but case as linear no matter what (i.e. includes linear expressions)
+(define-splicing-syntax-class (cl-object ids)
+  #:description "Complex Object"
+  #:attributes (obj)
+  (pattern ((~datum +) (~var terms (linexp-term ids)) ...)
+           #:attr obj (make-LExp (for/list ([c (in-list (attribute terms.coeff))]
+                                            [p (in-list (attribute terms.path))])
+                                   (if p (list c p) c))))
+  (pattern n:exact-integer
+           #:attr obj (-int-obj (syntax->datum #'n)))
+  (pattern (~var p (s-object ids))
+           #:attr obj (-obj-lexp (1 (attribute p.obj)))))
+
+(define-splicing-syntax-class (Prop ids) ;; BOOKMARK
+  #:description "Prop"
   #:attributes (prop)
   (pattern :Top^ #:attr prop -top)
   (pattern :Bot^ #:attr prop -bot)
-  (pattern (t:expr :@ ~! pe:path-elem ... q:id)
-           #:attr prop (-filter (parse-type #'t) (-acc-path (attribute pe.pe) 
-                                                            (-id-path #'q))))
-  (pattern (:! t:expr :@ ~! pe:path-elem ... q:id)
-           #:attr prop (-not-filter (parse-type #'t) (-acc-path (attribute pe.pe) 
-                                                                (-id-path #'q))))
-  (pattern ((~datum and) ps:proposition ...)
+  (pattern ((~var o (c-object ids)) :isT^ t:expr)
+           #:attr prop (-filter (parse-type #'t)
+                                (attribute o.obj)))
+  (pattern ((~var o (c-object ids)) :notT^ t:expr)
+           #:attr prop (-not-filter (parse-type #'t)
+                                    (attribute o.obj)))
+  (pattern ((~datum and) (~var ps (Prop ids)) ...)
            #:attr prop (apply -and (attribute ps.prop)))
-  (pattern ((~datum or) ps:proposition ...)
-           #:attr prop (apply -or (attribute ps.prop))))
+  (pattern ((~datum or) (~var ps (Prop ids)) ...)
+           #:attr prop (apply -or (attribute ps.prop)))
+  (pattern ((~datum =) (~var l1 (cl-object ids))
+                       (~var l2 (cl-object ids)))
+           #:attr prop (-eqSLI (attribute l1.obj)
+                               (attribute l2.obj)))
+  (pattern ((~datum <) (~var l1 (cl-object ids))
+                       (~var l2 (cl-object ids)))
+           #:attr prop (-SLI (-lt (attribute l1.obj)
+                                  (attribute l2.obj))))
+  (pattern ((or (~datum <=) (~datum ≤)) (~var l1 (cl-object ids))
+                                        (~var l2 (cl-object ids)))
+           #:attr prop (-SLI (-leq (attribute l1.obj)
+                                   (attribute l2.obj))))
+  (pattern ((~datum >) (~var l1 (cl-object ids))
+                       (~var l2 (cl-object ids)))
+           #:attr prop (-SLI (-lt (attribute l2.obj)
+                                  (attribute l1.obj))))
+  (pattern ((or (~datum >=) (~datum ≥)) (~var l1 (cl-object ids))
+                                        (~var l2 (cl-object ids)))
+           #:attr prop (-SLI (-leq (attribute l2.obj)
+                                   (attribute l1.obj)))))
 
 
 (define (parse-types stx-list)
@@ -341,7 +420,7 @@
       [(fst . rst)
        #:fail-unless (not (syntax->list #'rst)) #f
        (-pair (parse-type #'fst) (parse-type #'rst))]
-      [(:Refine^ [x:id :colon^ t:non-keyword-ty] ps:proposition ...)
+      [(:Refine^ [x:id :colon^ t:non-keyword-ty] (~var ps (Prop (list #'x))) ...)
        (-irefine (abstract-ident #'x (parse-type #'t)) 
                  (abstract-ident #'x (apply -and (attribute ps.prop))))]
       [(:Class^ e ...)
@@ -506,7 +585,7 @@
                    (parse-values-type #'rng)
                    #:kws (map force (attribute kws.Keyword)))))))]
       ;;TODO(AMK) better syntax support
-      [(:->i^ ~! [x:id :colon^ dom:non-keyword-ty] rng:non-keyword-ty)
+      [(:~>^ ~! [x:id :colon^ dom:non-keyword-ty] rng:non-keyword-ty)
        ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
        (with-arity 1
                    (make-Function 
@@ -514,7 +593,7 @@
                                      (abstract-ident #'x (parse-type #'rng))
                                      #:dep? #t))))]
       
-      [(:->i^ ~! 
+      [(:~>^ ~! 
               [x:id :colon^ domx:non-keyword-ty] 
               [y:id :colon^ domy:non-keyword-ty] 
               rng:non-keyword-ty)
@@ -526,7 +605,7 @@
                                     (abstract-idents (list #'x #'y) (parse-type #'rng))
                                      #:dep? #t))))]
       
-      [(:->i^ ~! 
+      [(:~>^ ~! 
               [x:id :colon^ domx:non-keyword-ty] 
               [y:id :colon^ domy:non-keyword-ty] 
               [z:id :colon^ domz:non-keyword-ty] 
@@ -564,8 +643,8 @@
       [:->^
        (parse-error #:delayed? #t "incorrect use of -> type constructor")
        Err]
-      [:->i^
-       (parse-error #:delayed? #t "incorrect use of ->i type constructor")
+      [:~>^
+       (parse-error #:delayed? #t "incorrect use of ~> type constructor")
        Err]
       [id:identifier
        (cond

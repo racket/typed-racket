@@ -381,17 +381,12 @@
 
 (define-syntax -refine
   (syntax-rules ()
-    [(_ x t p) (let ([x #`#,(gensym 'x)])
+    [(_ x t p) (let ([x #'x])
                  (make-Ref x t p))]))
 
 (define-syntax -irefine
   (syntax-rules ()
     [(_ t p) (make-InstdRef t p)]))
-
-(define-syntax -sli
-  (syntax-rules ()
-    [(_ leqs ...) 
-     (leqs->SLIs (list leqs ...))]))
 
 (define-syntax -SLI
   (syntax-rules ()
@@ -408,7 +403,7 @@
 
 (define-syntax -gt
   (syntax-rules ()
-    [(_ lhs rhs) (leq rhs (LExp-add1 lhs))]))
+    [(_ lhs rhs) (-lt rhs lhs)]))
 
 (define-syntax -gteq
   (syntax-rules ()
@@ -416,18 +411,33 @@
 
 (define-syntax -eqSLI
   (syntax-rules ()
-    [(_ lhs rhs) (apply -and (-sli (leq lhs rhs) (leq rhs lhs)))]))
+    [(_ lhs rhs) (apply -and (-SLI (leq lhs rhs) (leq rhs lhs)))]))
 
-(define-syntax -id-lexp
-  (syntax-rules ()
-    [(_ term ...) 
-     (let*-values ([(nums terms) (partition exact-integer? (syntax->datum #'(term ...)))]
-                   [(terms*) (for/list ([zx (in-list terms)])
-                               (list (first zx) (-id-path (datum->syntax #f (second zx)))))]
-                   [(linexp) (append nums terms*)])
-       (make-LExp linexp))]))
+(define-syntax (-id-lexp-term stx)
+  (syntax-case stx ()
+    [(_ (c id))
+     (and (exact-integer? (syntax->datum #'c))
+          (identifier? #'id))
+     #'(list c (-id-path id))]
+    [(_ c)
+     (exact-integer? (syntax->datum #'c)) #'c]))
 
-(define-syntax -lexp-obj
-  (syntax-rules ()
-    [(_ obj) 
-     (make-LExp (list obj))]))
+(define-syntax (-id-lexp stx)
+  (syntax-case stx ()
+    [(_ term ...)
+     #'(make-LExp (-id-lexp-term term) ...)]))
+
+
+(define-syntax (-obj-lexp-term stx)
+  (syntax-case stx ()
+    [(_ (c o))
+     (exact-integer? (syntax->datum #'c))
+     #'(list c o)]
+    [(_ c)
+     (syntax->datum #'c)
+     #'c]))
+
+(define-syntax (-obj-lexp stx)
+  (syntax-case stx ()
+    [(_ term ...)
+     #'(make-LExp (-obj-lexp-term term) ...)]))

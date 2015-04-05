@@ -186,37 +186,37 @@
    (test-suite
     "SLI generation"
     ;; 4 ≤ 3 is contradictory
-    (check-match (-sli (-leq (-id-lexp 4)
+    (check-match (-SLI (-leq (-id-lexp 4)
                              (-id-lexp 3)))
                  (list (? Bot?)))
     ;; 3 ≤ 4 is trivially valid
-    (check-match (-sli (-leq (-id-lexp 3)
+    (check-match (-SLI (-leq (-id-lexp 3)
                              (-id-lexp 4)))
                  (list (? Top?)))
     ;; 1 ≤ 1 ∧ 10 ≤ 20 is trivially valid
-    (check-match (-sli (-leq (-id-lexp 1)
+    (check-match (-SLI (-leq (-id-lexp 1)
                              (-id-lexp 1))
                        (-leq (-id-lexp 10)
                              (-id-lexp 20)))
                  (list (? Top?) (? Top?)))
     ;; 0 ≤ y ∧ y ≤ -1 is contradictory
-    (check-match (-sli (-leq (-id-lexp 0)
+    (check-match (-SLI (-leq (-id-lexp 0)
                              (-id-lexp (1 y)))
                        (-leq (-id-lexp (1 y))
                              (-id-lexp -1)))
                  (list (? Bot?)))
     ;; x ≤ z should produce 1 SLI
-    (check-match (-sli (-leq (-id-lexp (1 x))
+    (check-match (-SLI (-leq (-id-lexp (1 x))
                              (-id-lexp (1 z))))
                  (list (? SLI?)))
     ;; x ≤ z ∧ 2y ≤ 3q should produce 2 SLIs
-    (check-match (-sli (-leq (-id-lexp (1 x))
+    (check-match (-SLI (-leq (-id-lexp (1 x))
                              (-id-lexp (1 z)))
                        (-leq (-id-lexp (2 y))
                              (-id-lexp (3 q))))
                  (list (? SLI?) (? SLI?)))
     ;; x ≤ z ∧ y ≤ q ∧ y ≤ r should produce 2 SLIs
-    (check-match (-sli (-leq (-id-lexp (1 x))
+    (check-match (-SLI (-leq (-id-lexp (1 x))
                              (-id-lexp (1 z)))
                        (-leq (-id-lexp (1 y))
                              (-id-lexp (1 q)))
@@ -224,7 +224,7 @@
                              (-id-lexp (1 r))))
                  (list (? SLI?) (? SLI?)))
     ;; x ≤ z ∧ y ≤ q ∧ y ≤ r ∧ x ≤ r should produce 1 SLI
-    (check-match (-sli (-leq (-id-lexp (1 x))
+    (check-match (-SLI (-leq (-id-lexp (1 x))
                              (-id-lexp (1 z)))
                        (-leq (-id-lexp (1 y))
                              (-id-lexp (1 q)))
@@ -241,61 +241,61 @@
     "SLI proofs"
     
     ;; 4 <= 3 is false
-    (check-false (SLI-imp (-sli)
-                          (-sli (-leq (-id-lexp 4)
+    (check-false (SLI-imp (-SLI)
+                          (-SLI (-leq (-id-lexp 4)
                                       (-id-lexp 3)))))
     ;; P and ~P --> false
-    (check-not-false (SLI-imp (-sli (-leq (-id-lexp) (-id-lexp (1 a)))
+    (check-not-false (SLI-imp (-SLI (-leq (-id-lexp) (-id-lexp (1 a)))
                                     (leq-negate (-leq (-id-lexp) (-id-lexp (1 a)))))
-                              (-sli (-leq (-id-lexp 4)
+                              (-SLI (-leq (-id-lexp 4)
                                           (-id-lexp 3)))))
     
     
     ;; x + y <= z; 0 <= y; 0 <= x --> x <= z /\ y <= z
-    (check-not-false (SLI-imp (-sli (-leq (-id-lexp (1 x) (1 y))
+    (check-not-false (SLI-imp (-SLI (-leq (-id-lexp (1 x) (1 y))
                                           (-id-lexp (1 z)))
                                     (-leq (-id-lexp)
                                           (-id-lexp (1 y)))
                                     (-leq (-id-lexp)
                                           (-id-lexp (1 x))))
-                              (-sli (-leq (-id-lexp (1 x))
+                              (-SLI (-leq (-id-lexp (1 x))
                                           (-id-lexp (1 z)))
                                     (-leq (-id-lexp (1 y))
                                           (-id-lexp (1 z))))))
     
     ;; x + y <= z; 0 <= y; 0 <= x -/-> x <= z /\ y <= q
-    (check-false (SLI-imp (-sli (-leq (-id-lexp (1 x) (1 y))
+    (check-false (SLI-imp (-SLI (-leq (-id-lexp (1 x) (1 y))
                                       (-id-lexp (1 z)))
                                 (-leq (-id-lexp)
                                       (-id-lexp (1 y)))
                                 (-leq (-id-lexp)
                                       (-id-lexp (1 x))))
-                          (-sli (-leq (-id-lexp (1 x))
+                          (-SLI (-leq (-id-lexp (1 x))
                                       (-id-lexp (1 z)))
                                 (-leq (-id-lexp (1 y))
                                       (-id-lexp (1 q))))))
     
     ;; 7x <= 29 --> x <= 4
-    (check-not-false (SLI-imp (-sli (-leq (-id-lexp (7 x))
+    (check-not-false (SLI-imp (-SLI (-leq (-id-lexp (7 x))
                                           (-id-lexp 29)))
-                              (-sli (-leq (-id-lexp (1 x))
+                              (-SLI (-leq (-id-lexp (1 x))
                                           (-id-lexp 4)))))
     ;; 7x <= 28 --> x <= 4
-    (check-not-false (SLI-imp (-sli (-leq (-id-lexp (7 x))
+    (check-not-false (SLI-imp (-SLI (-leq (-id-lexp (7 x))
                                           (-id-lexp 28)))
-                              (-sli (-leq (-id-lexp (1 x))
+                              (-SLI (-leq (-id-lexp (1 x))
                                           (-id-lexp 4)))))
     ;; 7x <= 28 does not --> x <= 3
-    (check-false (SLI-imp (-sli (-leq (-id-lexp (7 x))
+    (check-false (SLI-imp (-SLI (-leq (-id-lexp (7 x))
                                       (-id-lexp 28)))
-                          (-sli (-leq (-id-lexp (1 x))
+                          (-SLI (-leq (-id-lexp (1 x))
                                       (-id-lexp 3)))))
     
     
     ;; 7x <= 27 --> x <= 3
-    (check-not-false (SLI-imp (-sli (-leq (-id-lexp (7 x))
+    (check-not-false (SLI-imp (-SLI (-leq (-id-lexp (7 x))
                                           (-id-lexp 27)))
-                              (-sli (-leq (-id-lexp (1 x))
+                              (-SLI (-leq (-id-lexp (1 x))
                                           (-id-lexp 3)))))
     
     ;; 4x+3y+9z+20q-100r + 42 <= 4x+3y+9z+20q+100r; 
@@ -311,7 +311,7 @@
     ;; 0 <= x + r + q;
     ;; -->
     ;; 0 <= t
-    (check-not-false (SLI-imp (-sli (-leq (-id-lexp (4 x) (3 y) (9 z) (20 q) (-100 r) 42)
+    (check-not-false (SLI-imp (-SLI (-leq (-id-lexp (4 x) (3 y) (9 z) (20 q) (-100 r) 42)
                                           (-id-lexp (4 x) (3 y) (9 z) (20 q) (100 r)))
                                     (-leq (-id-lexp (1 x))
                                           (-id-lexp (1 y) (1 z)))
@@ -333,7 +333,7 @@
                                           (-id-lexp (1 x) (1 r)))
                                     (-leq (-id-lexp)
                                           (-id-lexp (1 x) (1 r) (1 q))))
-                              (-sli (-leq (-id-lexp)
+                              (-SLI (-leq (-id-lexp)
                                           (-id-lexp (1 t))))))
     
     ;; 4x+3y+9z+20q-100r + 42 <= 4x+3y+9z+20q+100r; 
@@ -349,7 +349,7 @@
     ;; 0 <= x + r + q;
     ;; -/->
     ;; t <= 0
-    (check-false (SLI-imp (-sli (-leq (-id-lexp (4 x) (3 y) (9 z) (20 q) (-100 r) 42)
+    (check-false (SLI-imp (-SLI (-leq (-id-lexp (4 x) (3 y) (9 z) (20 q) (-100 r) 42)
                                       (-id-lexp (4 x) (3 y) (9 z) (20 q) (100 r)))
                                 (-leq (-id-lexp (1 x))
                                       (-id-lexp (1 y) (1 z)))
@@ -371,7 +371,7 @@
                                       (-id-lexp (1 x) (1 r)))
                                 (-leq (-id-lexp)
                                       (-id-lexp (1 x) (1 r) (1 q))))
-                          (-sli (-leq (-id-lexp (1 t))
+                          (-SLI (-leq (-id-lexp (1 t))
                                       (-id-lexp))))))
      
    ))

@@ -418,7 +418,7 @@
     [(_ (c id))
      (and (exact-integer? (syntax->datum #'c))
           (identifier? #'id))
-     #'(list c (-id-path id))]
+     #'(list c (-id-path #'id))]
     [(_ c)
      (exact-integer? (syntax->datum #'c)) #'c]))
 

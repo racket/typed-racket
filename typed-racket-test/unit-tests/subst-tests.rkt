@@ -56,45 +56,45 @@
    (id-subst-obj (-id-lexp 1 (2 x) (1 y)) x (-id-lexp 10 (2 y)) (-id-lexp 21 (5 y)))
    
    ;; simple replace y -> q
-   (id-subst-SLI (-sli (-leq (-id-lexp (2 x))
+   (id-subst-SLI (-SLI (-leq (-id-lexp (2 x))
                              (-id-lexp (3 y)))
                        (-leq (-id-lexp (4 y))
                              (-id-lexp (5 z))))
                  y 
                  (-id-path #'q)
-                 (-sli (-leq (-id-lexp (2 x))
+                 (-SLI (-leq (-id-lexp (2 x))
                              (-id-lexp (3 q)))
                        (-leq (-id-lexp (4 q))
                              (-id-lexp (5 z)))))
    
    ;; eliminate y
-   (id-subst-SLI (-sli (-leq (-id-lexp (2 x))
+   (id-subst-SLI (-SLI (-leq (-id-lexp (2 x))
                              (-id-lexp (3 y)))
                        (-leq (-id-lexp (4 y))
                              (-id-lexp (5 z)))) ;; 2x <= 3y,, 4y <= 5z --> 8x
                  y 
                  -empty-obj
-                 (-sli (-leq (-id-lexp (8 x))
+                 (-SLI (-leq (-id-lexp (8 x))
                              (-id-lexp (15 z)))))
    
    ;; eliminate y
-   (id-subst-SLI (-sli (-leq (-id-lexp (2 x))
+   (id-subst-SLI (-SLI (-leq (-id-lexp (2 x))
                              (-id-lexp (3 y)))
                        (-leq (-id-lexp (4 a))
                              (-id-lexp (5 z)))) ;; 2x <= 3y,, 4y <= 5z --> 8x
                  y 
                  -empty-obj
-                 (-sli (-leq (-id-lexp (4 a))
+                 (-SLI (-leq (-id-lexp (4 a))
                              (-id-lexp (5 z)))))
    
    
    ;; start w/ 2 disjoint SLIs, sub to make them join, then elim
-   (id-subst-many-SLI (-sli (-leq (-id-lexp (1 x))
+   (id-subst-many-SLI (-SLI (-leq (-id-lexp (1 x))
                                   (-id-lexp (2 y)))
                             (-leq (-id-lexp (3 q))
                                   (-id-lexp (4 z))))
                       '(y q r)
                       (list (-id-path #'r) (-id-path #'r) -empty-obj) 
-                      (-sli (-leq (-id-lexp (3 x))
+                      (-SLI (-leq (-id-lexp (3 x))
                                   (-id-lexp (8 z)))))))
 

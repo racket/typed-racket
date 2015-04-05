@@ -378,17 +378,17 @@
                          (-filter -String l)))]
    
    ;; Function Refinement Types
-   [(~> [a : (Un -Nat -String)] 
+   [(~> ([a : (Un -Nat -String)])
         (-refine x Univ (-or (-and (-filter -String a) (-filter -String x))
                              (-and (-filter -Nat a) (-filter -Nat x)))))
-    (~> [b : (Un -Nat -String)] 
+    (~> ([b : (Un -Nat -String)]) 
         (-refine y Univ (-or (-and (-filter -String b) (-filter -String y))
                              (-and (-filter -Nat b) (-filter -Nat y)))))]
    
-   [(~> [c : (Un -Nat -String)] 
+   [(~> ([c : (Un -Nat -String)]) 
         (-refine y Univ (-or (-and (-filter -String c) (-filter -String y))
                              (-and (-filter -Nat c) (-filter -Nat y)))))
-    (~> [d : (Un -Nat -String)] 
+    (~> ([d : (Un -Nat -String)]) 
         (-refine q Univ (-filter
                          (-refine z 
                                   (Un -Nat -String) 
@@ -397,23 +397,23 @@
                                              (-and (-not-filter -String z) (-filter -Nat d)))))
                          q)))]
    
-   [(~> [e : (Un -Nat -String)]
-        [f : (-refine f Univ (-or (-and (-filter -String e) (-filter -String f))
-                                  (-and (-filter -Nat e) (-filter -Nat f))))]
+   [(~> ([e : (Un -Nat -String)]
+         [f : (-refine f Univ (-or (-and (-filter -String e) (-filter -String f))
+                                   (-and (-filter -Nat e) (-filter -Nat f))))])
         (-refine x Univ (-or (-and (-filter -String e) (-filter -String f) (-filter -String x))
                              (-and (-filter -Nat e) (-filter -Nat f) (-filter -Nat x)))))
     
-    (~> [y : -Nat] 
-        [z : -Nat]
+    (~> ([y : -Nat] 
+         [z : -Nat])
         -Nat)]
    [FAIL
-    (~> [g : (Un -Nat -String)]
-        [b : (-refine b Univ (-or (-and (-filter -String g) (-filter -String b))
-                                  (-and (-filter -Nat g) (-filter -Nat b))))]
+    (~> ([g : (Un -Nat -String)]
+         [b : (-refine b Univ (-or (-and (-filter -String g) (-filter -String b))
+                                   (-and (-filter -Nat g) (-filter -Nat b))))])
         (-refine x Univ (-or (-and (-filter -String g) (-filter -String b) (-filter -String x))
                              (-and (-filter -Nat g) (-filter -Nat b) (-filter -Nat x)))))
     
-    (~> [y : (Un -Nat -String)] 
-        [z : -Nat]
+    (~> ([y : (Un -Nat -String)] 
+         [z : -Nat])
         -Nat)]
    ))

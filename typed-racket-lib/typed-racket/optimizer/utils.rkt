@@ -143,13 +143,11 @@
   [pattern (#%plain-lambda formals sub-exprs:expr ...)]
   [pattern ((~or if with-continuation-mark) e1:expr e2:expr e3:expr)
     #:with (sub-exprs ...) #'(e1 e2 e3)]
-  [pattern (~or (#%top . _) (#%variable-reference . _) (quote _) (quote-syntax _) :id)
+  [pattern (~or (#%top . _) (#%variable-reference . _) (quote _) (quote-syntax . _) :id)
     #:with (sub-exprs ...) #'()]
   [pattern (case-lambda [formals e*:expr ...] ...)
     #:with (sub-exprs ...) #'(e* ... ...)]
   [pattern ((~or let-values letrec-values) ([ids e-rhs:expr] ...) e-body:expr ...)
-    #:with (sub-exprs ...) #'(e-rhs ... e-body ...)]
-  [pattern (letrec-syntaxes+values stx-bindings ([(ids ...) e-rhs:expr] ...) e-body:expr ...)
     #:with (sub-exprs ...) #'(e-rhs ... e-body ...)]
   [pattern (#%expression e:expr)
     #:with (sub-exprs ...) #'(e)]

@@ -99,36 +99,40 @@
      (tc-expr/check e (-values (attribute i.type)))]
     [_ (tc-expr e)]))
 
+
+(define (regsiter-aliases-and-declarations names exprs)
+  ;; Collect the declarations, which are represented as expressions.
+  ;; We put them back into definitions to reuse the existing machinery
+  (define-values (type-aliases declarations)
+    (for/fold ([aliases '()] [declarations '()])
+              ([body (in-list exprs)])
+      (syntax-parse #`(define-values () #,body)
+        [t:type-alias
+         (values (cons #'t aliases) declarations)]
+        [t:type-declaration
+         (values aliases (cons (list #'t.id #'t.type) declarations))]
+        [_ (values aliases declarations)])))
+
+  (define-values (alias-names alias-map) (get-type-alias-info type-aliases))
+  (register-all-type-aliases alias-names alias-map)
+
+  (for ([declaration declarations])
+    (match-define (list id type) declaration)
+    (register-type-if-undefined id (parse-type type))
+    (register-scoped-tvars id (parse-literal-alls type)))
+
+  ;; add scoped type variables, before we get to typechecking
+  ;; FIXME: can this pass be fused with the one immediately above?
+  (for ([n (in-list names)] [b (in-list exprs)])
+    (syntax-case n ()
+      [(var) (add-scoped-tvars b (lookup-scoped-tvars #'var))]
+      [_ (void)])))
+
 (define (tc/letrec-values namess exprs body [expected #f])
   (let* ([names (stx-map syntax->list namess)]
          [orig-flat-names (apply append names)]
          [exprs (syntax->list exprs)])
-    ;; Collect the declarations, which are represented as expression.
-    ;; We put them back into definitions to reuse the existing machinery
-    (define-values (type-aliases declarations)
-      (for/fold ([aliases '()] [declarations '()])
-                ([body (in-list exprs)])
-        (syntax-parse #`(define-values () #,body)
-          [t:type-alias
-           (values (cons #'t aliases) declarations)]
-          [t:type-declaration
-           (values aliases (cons (list #'t.id #'t.type) declarations))]
-          [_ (values aliases declarations)])))
-
-    (define-values (alias-names alias-map) (get-type-alias-info type-aliases))
-    (register-all-type-aliases alias-names alias-map)
-
-    (for ([declaration declarations])
-      (match-define (list id type) declaration)
-      (register-type-if-undefined id (parse-type type))
-      (register-scoped-tvars id (parse-literal-alls type)))
-
-    ;; add scoped type variables, before we get to typechecking
-    ;; FIXME: can this pass be fused with the one immediately above?
-    (for ([n (in-list names)] [b (in-list exprs)])
-      (syntax-case n ()
-        [(var) (add-scoped-tvars b (lookup-scoped-tvars #'var))]
-        [_ (void)]))
+    (regsiter-aliases-and-declarations names exprs)
 
     ;; First look at the clauses that do not bind the letrec names
     (define all-clauses
@@ -257,11 +261,14 @@
   (let* (;; a list of each name clause
          [names (stx-map syntax->list namess)]
          ;; all the trailing expressions - the ones actually bound to the names
-         [exprs (syntax->list exprs)]
-         ;; the types of the exprs
-         #;[inferred-types (map (tc-expr-t/maybe-expected expected) exprs)]
-         ;; the annotated types of the name (possibly using the inferred types)
-         [results (for/list ([name (in-list names)] [e (in-list exprs)])
-                    (get-type/infer name e (tc-expr-t/maybe-expected expected)
-                                           tc-expr/check))])
-    (do-check void names results exprs body expected)))
+         [exprs (syntax->list exprs)])
+
+    (regsiter-aliases-and-declarations names exprs)
+
+    (let* (;; the types of the exprs
+           #;[inferred-types (map (tc-expr-t/maybe-expected expected) exprs)]
+           ;; the annotated types of the name (possibly using the inferred types)
+           [results (for/list ([name (in-list names)] [e (in-list exprs)])
+                      (get-type/infer name e (tc-expr-t/maybe-expected expected)
+                                      tc-expr/check))])
+      (do-check void names results exprs body expected))))

@@ -62,7 +62,7 @@
 (define-syntax-class internal-class-data
   #:literal-sets (kernel-literals)
   #:literals (class-internal values)
-  (pattern (let-values ([() (begin (quote
+  (pattern (let-values ([() (begin (quote-syntax
                                     (class-internal
                                      (#:forall type-parameter:id ...)
                                      (#:all-inits all-init-names:id ...)
@@ -78,7 +78,8 @@
                                      (#:inherit inherit-names:name-pair ...)
                                      (#:inherit-field inherit-field-names:name-pair ...)
                                      (#:augment augment-names:name-pair ...)
-                                     (#:pubment pubment-names:name-pair ...)))
+                                     (#:pubment pubment-names:name-pair ...))
+                                    #:local)
                                    (#%plain-app values))])
              _)
            #:with type-parameters #'(type-parameter ...)
@@ -106,14 +107,16 @@
            #:with private-field-names #'(private-fields ...)))
 
 (define-syntax-class initializer-body
-  #:literals (letrec-syntaxes+values)
+  #:literals (letrec-values let-values)
   #:attributes (val)
-  (pattern (letrec-syntaxes+values _ _ body:initializer-body)
+  (pattern (letrec-values _ body:initializer-body)
            #:with val #'body.val)
-  (pattern (letrec-syntaxes+values _ _
-             (~and e0 (~not letrec-syntaxes+values))
-             e:expr ...)
-           #:with val #'(e0 e ...)))
+  (pattern (let-values _ body:initializer-body)
+           #:with val #'body.val)
+  (pattern (letrec-values _ e:expr ...)
+           #:with val #'(e ...))
+  (pattern (let-values _ e:expr ...)
+           #:with val #'(e ...)))
 
 (define-syntax-class initializer-class
   #:literals (#%plain-lambda)
@@ -128,7 +131,7 @@
            #:with initializer-args-id #'init-args))
 
 (define-syntax-class make-methods-body
-  #:literals (let-values letrec-syntaxes+values #%plain-app values)
+  #:literals (let-values letrec-values #%plain-app values)
   #:attributes (initializer-body initializer-self-id
                 initializer-args-id)
   (pattern (letrec-values _
@@ -139,7 +142,7 @@
              augride:expr
              :initializer-class)))
   (pattern (let-values () :make-methods-body))
-  (pattern (letrec-syntaxes+values _ _ :make-methods-body)))
+  (pattern (letrec-values () :make-methods-body)))
 
 (define-syntax-class make-methods-class
   #:literals (let-values #%plain-lambda)
@@ -151,7 +154,7 @@
               :make-methods-body))))
 
 (define-syntax-class class-expansion
-  #:literals (let-values letrec-syntaxes+values #%plain-app quote)
+  #:literals (#%plain-app quote)
   #:attributes (superclass-expr
                 make-methods
                 initializer-body
@@ -174,7 +177,7 @@
   #:literals (values void :-internal)
   #:attributes (name type)
   (pattern (let-values
-             ([() (begin (quote (:-internal name:id type:expr))
+             ([() (begin (quote-syntax (:-internal name:id type:expr) #:local)
                          (#%plain-app values))])
              (#%plain-app void))))
 
@@ -262,26 +265,7 @@
            #:declare meth1 (core-method register/method register/self)
            #:declare meth2 (core-method register/method register/self)
            #:with form
-                  #'(head ([(meth-name) meth1.form] ...) meth2.form))
-  ;; The syntax variants have two lists of bindings
-  (pattern (letrec-syntaxes+values stx-bindings ([(meth-name:id) meth] ...)
-             meth-name-2:id)
-           #:declare meth (core-method register/method register/self)
-           #:do [(register/method #'meth-name-2)]
-           #:with form
-                  #'(letrec-syntaxes+values
-                     stx-bindings
-                     ([(meth-name) meth.form] ...)
-                     meth-name-2))
-  (pattern (letrec-syntaxes+values stx-bindings ([(meth-name) meth1] ...)
-             meth2)
-           #:declare meth1 (core-method register/method register/self)
-           #:declare meth2 (core-method register/method register/self)
-           #:with form
-                  #'(letrec-syntaxes+values
-                     stx-bindings
-                     ([(meth-name) meth1.form] ...)
-                     meth2.form)))
+                  #'(head ([(meth-name) meth1.form] ...) meth2.form)))
 
 ;; For detecting field mutations for occurrence typing
 (define-syntax-class (field-assignment local-table)
@@ -1451,7 +1435,7 @@
                        (syntax->list stx-list))))
   (syntax-parse form
     #:literals (let-values letrec-values #%plain-app
-                #%plain-lambda letrec-syntaxes+values)
+                #%plain-lambda)
     [stx
      #:when (accessor #'stx)
      (list form)]
@@ -1459,8 +1443,6 @@
      (recur-on-all #'(b ... body ...))]
     ;; for letrecs, traverse the RHSs too
     [(letrec-values ([(x ...) rhs ...] ...) body ...)
-     (recur-on-all #'(rhs ... ... body ...))]
-    [(letrec-syntaxes+values (sb ...) ([(x ...) rhs ...] ...) body ...)
      (recur-on-all #'(rhs ... ... body ...))]
     [(#%plain-app e ...)
      (recur-on-all #'(e ...))]

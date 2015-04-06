@@ -139,7 +139,7 @@
          [_
           (ret (tc-literal #'val) -true-filter)])]
       ;; syntax
-      [(quote-syntax datum)
+      [(quote-syntax datum . _)
        (define expected-type
          (match expected
            [(tc-result1: t) t]
@@ -182,10 +182,6 @@
       [(#%plain-app . _) (tc/app form expected)]
       ;; #%expression
       [(#%expression e) (tc/#%expression form expected)]
-      ;; syntax
-      ;; for now, we ignore the rhs of macros
-      [(letrec-syntaxes+values stxs vals . body)
-       (tc-expr/check (syntax/loc form (letrec-values vals . body)) expected)]
       ;; begin
       [(begin . es)
        (tc-body/check #'es expected)]

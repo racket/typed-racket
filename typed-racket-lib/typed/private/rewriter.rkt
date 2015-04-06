@@ -27,11 +27,6 @@
         (with-syntax ([(rhs* ...) (map rw (syntax->list #'(rhs ...)))]
                       [(expr* ...) (map rw (syntax->list #'(expr ...)))])
           (quasisyntax/loc stx (letrec-values ([(id ...) rhs*] ...) expr* ...)))]
-       [(letrec-syntaxes+values ([(sid ...) srhs] ...) ([(id ...) rhs] ...) expr ...)
-        (with-syntax ([(srhs* ...) (map rw (syntax->list #'(srhs ...)))]
-                      [(rhs* ...) (map rw (syntax->list #'(rhs ...)))]
-                      [(expr* ...) (map rw (syntax->list #'(expr ...)))])
-          (quasisyntax/loc stx (letrec-syntaxes+values ([(sid ...) srhs*] ...) ([(id ...) rhs*] ...) expr* ...)))]
        [((~and kw
                (~or if begin begin0 set! #%plain-app #%expression
                     #%variable-reference with-continuation-mark))

@@ -168,9 +168,7 @@
            ;; and the bindings for the final results refer to them
            #:with (key ...) #'(let*-values))
   (pattern (~and kw letrec-values)
-           #:with (key ...) #'(kw))
-  (pattern (~seq (~and kw letrec-syntaxes+values) stx-bindings)
-           #:with (key ...) #'(kw stx-bindings)))
+           #:with (key ...) #'(kw)))
 
 
 (define (direct-child-of? v exp)

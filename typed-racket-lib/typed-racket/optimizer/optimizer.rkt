@@ -13,8 +13,6 @@
 
 (provide optimize-top)
 
-
-
 (define-syntax-class opt-expr*
   #:commit
   #:literal-sets (kernel-literals)
@@ -61,16 +59,6 @@
            #:with opt (syntax/loc/origin this-syntax #'op
                         (op ([ids e-rhs.opt] ...)
                           e-body.opt ...)))
-  (pattern ((~and op letrec-syntaxes+values)
-            stx-bindings
-            ([(ids ...) e-rhs:opt-expr] ...)
-            e-body:opt-expr ...)
-           ;; optimize all the rhss and bodies
-           #:with opt (quasisyntax/loc/origin this-syntax #'op
-                        (letrec-syntaxes+values
-                          stx-bindings
-                          ([(ids ...) e-rhs.opt] ...)
-                          e-body.opt ...)))
   (pattern ((~and kw (~or if begin begin0 set! #%plain-app #%expression
                           #%variable-reference with-continuation-mark))
             e:opt-expr ...)
@@ -79,7 +67,7 @@
   (pattern (~and ((~or #%provide #%require begin-for-syntax define-syntaxes module module*)
                   . _)
                  opt))
-  (pattern (~and (~or (quote _) (quote-syntax _) (#%top . _) :id) opt)))
+  (pattern (~and (~or (quote _) (quote-syntax . _) (#%top . _) :id) opt)))
 
 (define (optimize-top stx)
   (parameterize ([optimize (syntax-parser [e:opt-expr* #'e.opt])])

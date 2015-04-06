@@ -46,7 +46,6 @@
       [(with-continuation-mark . es) (fmv/list #'es)]
       [(let-values ([_ e] ...) b ...) (fmv/list #'(b ... e ...))]
       [(letrec-values ([_ e] ...) b ...) (fmv/list #'(b ... e ...))]
-      [(letrec-syntaxes+values _ ([_ e] ...) b ...) (fmv/list #'(b ... e ...))]
       [(#%plain-module-begin . forms) (fmv/list #'forms)]
       ;; all the other forms don't have any expression subforms (like #%top)
       [_ tbl])))

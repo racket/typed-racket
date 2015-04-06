@@ -84,7 +84,7 @@
 ;; Substitution of objects into a type
 ;; This is essentially t [o/x] from the paper
 (define/cond-contract (subst-type t k o polarity ty)
-  (-> Type/c name-ref/c Object? boolean? Type/c Type/c)
+  (-> Type? name-ref/c Object? boolean? Type/c Type?)
   (define (st t) (subst-type t k o polarity ty))
   (define/cond-contract (sf fs) (FilterSet? . -> . FilterSet?) (subst-filter-set fs k o polarity ty))
   (type-case (#:Type st

@@ -1104,9 +1104,9 @@
                         (apply (plambda: (b ...) ([x : Number] . [y : Number ... b]) x)
                                1 w))
               (-polydots (a) ((list -String) (-Number a) . ->... . -Number))]
-        [tc-e/t (let ([f (plambda: (a ...) [w : a ... a] w)])
-                  (f 1 "hello" #\c))
-                (-lst* -One -String -Char)]
+        [tc-e (let ([f (plambda: (a ...) [w : a ... a] w)])
+                (f 1 "hello" #\c))
+              (-lst* -One -String -Char)]
         ;; instantiating non-dotted terms
         [tc-e/t (inst (plambda: (a) ([x : a]) x) Integer)
                 (make-Function (list (make-arr* (list -Integer) -Integer
@@ -2615,7 +2615,7 @@
        [tc-e ((inst (tr:lambda #:∀ (A) (x [y : A]) y) String) 'a "foo")
              #:ret (ret -String -true-filter)]
        [tc-e ((inst (tr:lambda #:forall (A ...) (x . [rst : A ... A]) rst) String) 'a "foo")
-             #:ret (ret (-lst* -String) -true-filter)]
+             (-lst* -String)]
        #| FIXME: does not work yet, TR thinks the type variable is unbound
        [tc-e (inst (tr:lambda #:forall (A) (x [y : A] [z : String "z"]) y) String)
              #:ret (ret (->opt Univ -String [-String] -String) -true-filter)]
@@ -2634,7 +2634,7 @@
              -String]
        [tc-e (let () (tr:define #:forall (A ...) (f x . [rst : A ... A]) rst)
                      (f 'a "b" "c"))
-             #:ret (ret (-lst* -String -String) -true-filter)]
+             (-lst* -String -String)]
 
        ;; test new :-less forms that allow fewer annotations
        [tc-e/t (let ([x "foo"]) x) -String]
@@ -3605,6 +3605,16 @@
        [tc-e/t
          (lambda: ([x : Flonum]) (if (= x (ann 1.0 Positive-Flonum)) x 'other))
          (t:-> -Flonum (t:Un -PosFlonum (-val 'other)) : -true-filter)]
+
+       [tc-e/t (lambda: ([x : One])
+                 (let ([f (lambda: [w : Any *] w)])
+                   (f x "hello" #\c)))
+        (t:-> -One (-lst Univ) : -true-filter)]
+
+       [tc-e/t (lambda: ([x : One])
+                 (let ([f (plambda: (a ...) [w : a ... a] w)])
+                   (f x "hello" #\c)))
+        (t:-> -One (-lst* -One -String -Char))]
        )
 
   (test-suite

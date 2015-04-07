@@ -118,10 +118,10 @@
 
       ;; Check additional filters
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-FS (-not-filter -String '(0 0)) -top)
+        (values->tc-results (make-Values (list (-result (-opt -String) (-FS -top (-not-filter -String '(0 0)))
                                                  (make-Path null '(0 0)))))
                             (list (make-Path null #'x)) (list -String))
-        (ret (-opt -Symbol) -false-filter (make-Path null #'x)))
+        (ret -String -true-filter (make-Path null #'x)))
 
       ;; Substitute into ranges correctly
       (check-equal?

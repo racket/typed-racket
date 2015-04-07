@@ -672,7 +672,7 @@
         [tc-e ((inst add-between Positive-Byte Symbol) '(1 2 3) 'a #:splice? #t #:before-first '(b))
               (-lst (t:Un -PosByte -Symbol))]
 
-        [tc-e (apply (plambda: (a) [x : a *] x) '(5)) (-lst -PosByte)]
+        [tc-e (apply (plambda: (a) [x : a *] x) '(5)) (unfold (-lst -PosByte))]
         [tc-e (apply append (list '(1 2 3) '(4 5 6))) (-lst -PosByte)]
 
         [tc-err ((case-lambda: [([x : Number]) x]
@@ -2686,7 +2686,7 @@
                (string-append x y))
              -String]
        [tc-e (let loop ([x "x"]) x)
-             #:ret (ret Univ -true-filter)]
+             #:ret (ret -String -true-filter)]
        [tc-e (let loop ([x : String "x"]) x)
              #:ret (ret -String -true-filter)]
        [tc-e (let/cc k "foo") -String]
@@ -3023,7 +3023,7 @@
        [tc-err
          (let ([f (lambda (x y) y)])
            (f 1 2 3))
-         #:ret (ret Univ -true-filter)]
+         #:ret (ret -PosByte -true-filter)]
 
        [tc-err
          (case-lambda
@@ -3328,7 +3328,7 @@
 
        [tc-e
          ((if (even? 4) add1 (inst values Integer)) 4)
-         -Int]
+         -PosIndex]
 
        ;; PR 14601
        [tc-err
@@ -3609,7 +3609,7 @@
        [tc-e/t (lambda: ([x : One])
                  (let ([f (lambda: [w : Any *] w)])
                    (f x "hello" #\c)))
-        (t:-> -One (-lst Univ) : -true-filter)]
+        (t:-> -One (unfold (-lst Univ)) : -true-filter)]
 
        [tc-e/t (lambda: ([x : One])
                  (let ([f (plambda: (a ...) [w : a ... a] w)])
@@ -3628,6 +3628,9 @@
        [tc-e/t
          (lambda: ([x : Byte]) (if (< 0 x) x 1))
          (t:-> -Byte -PosByte : (-FS (-filter -Byte (list 0 0)) -bot))]
+
+       [tc-e/t ((inst values Any) "a") -String]
+       [tc-e ((inst second Any Any Any) (list "a" "b")) -String]
        )
 
   (test-suite

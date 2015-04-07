@@ -53,16 +53,33 @@
 (define/cond-contract (subst-tc-results res k o polarity t)
   (-> full-tc-results/c name-ref/c Object? boolean? Type? full-tc-results/c)
   (define (st ty) (subst-type ty k o polarity t))
+  (define (sr ty fs ob) (subst-tc-result ty fs ob k o polarity t))
   (define (sf f) (subst-filter f k o polarity t))
-  (define (sfs fs) (subst-filter-set fs k o polarity t))
-  (define (so ob) (subst-object ob k o polarity))
   (match res
     [(tc-any-results: f) (tc-any-results (sf f))]
     [(tc-results: ts fs os)
-     (ret (map st ts) (map sfs fs) (map so os))]
+     (tc-results (map sr ts fs os) #f)]
     [(tc-results: ts fs os dt db)
-     (ret (map st ts) (map sfs fs) (map so os) (st dt) db)]))
+     (tc-results (map sr ts fs os) (cons (st dt) db))]))
 
+
+;; Substitution of objects into a tc-result
+;; This is a combination of the other substitutions, plus a restriction of the returned type
+;; to the arguments type if the returned object corresponds to an argument.
+(define (subst-tc-result r-t r-fs r-o k o polarity t)
+  (define argument-side
+    (match r-o
+      [(Path: p (? (lambda (nm) (name-ref=? nm k))))
+       (path-type p t)]
+      [_ Err]))
+
+  (tc-result
+    (if (equal? argument-side Err)
+        (subst-type r-t k o polarity t)
+        (restrict argument-side
+                  (subst-type r-t k o polarity t)))
+    (subst-filter-set r-fs k o polarity t)
+    (subst-object r-o k o polarity)))
 
 ;; Substitution of objects into a filter set
 ;; This is essentially ψ+|ψ- [o/x] from the paper

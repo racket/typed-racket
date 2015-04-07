@@ -1,10 +1,10 @@
 #;#;
 #<<END
-TR missed opt: list.rkt 6:0 (rest (rest l)) -- car/cdr on a potentially empty list -- caused by: 6:6 (rest l)
 TR opt: list.rkt 3:0 (first l) -- pair
 TR opt: list.rkt 4:0 (rest l) -- pair
 TR opt: list.rkt 5:0 (second l) -- pair
 TR opt: list.rkt 5:0 (second l) -- pair
+TR opt: list.rkt 6:0 (rest (rest l)) -- pair
 TR opt: list.rkt 6:6 (rest l) -- pair
 TR opt: list.rkt 7:0 (third l) -- pair
 TR opt: list.rkt 7:0 (third l) -- pair

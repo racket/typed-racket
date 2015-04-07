@@ -665,19 +665,16 @@
 
   (define abs-cases ; used both for abs and magnitude
     (list
-     (map unop (list -Zero -One -PosByte -Byte -PosIndex -Index -PosFixnum -NonNegFixnum))
+     (-NonNegReal . -> . -NonNegReal : -true-filter : (-arg-path 0))
      ;; abs may not be closed on fixnums. (abs min-fixnum) is not a fixnum
      ((Un -PosInt -NegInt) . -> . -PosInt)
      (-Int . -> . -Nat)
      ((Un -PosRat -NegRat) . -> . -PosRat)
      (-Rat . -> . -NonNegRat)
-     (-FlonumZero . -> . -FlonumZero)
      ((Un -PosFlonum -NegFlonum) . -> . -PosFlonum)
      (-Flonum . -> . -NonNegFlonum)
-     (-SingleFlonumZero . -> . -SingleFlonumZero)
      ((Un -PosSingleFlonum -NegSingleFlonum) . -> . -PosSingleFlonum)
      (-SingleFlonum . -> . -NonNegSingleFlonum)
-     (-InexactRealZero . -> . -InexactRealZero)
      ((Un -PosInexactReal -NegInexactReal) . -> . -PosInexactReal)
      (-InexactReal . -> . -NonNegInexactReal)
      ((Un -PosReal -NegReal) . -> . -PosReal)

@@ -444,7 +444,7 @@
         (tc-e (sinh (ann 0 Nonpositive-Integer)) -NonPosReal)
         (tc-e (angle -1) (t:Un -InexactReal -Zero))
         (tc-e (angle 2.3) -Zero)
-        (tc-e (magnitude 3/4) -PosRat)
+        (tc-e/t (magnitude 3/4) -PosRat)
         (tc-e (magnitude 3+2i) -NonNegReal)
         (tc-e (min (ann 3 Fixnum) (ann 3 Fixnum)) -Fixnum)
         (tc-e (min (ann -2 Negative-Fixnum) (ann 3 Fixnum)) -NegFixnum)
@@ -3631,6 +3631,7 @@
 
        [tc-e/t ((inst values Any) "a") -String]
        [tc-e ((inst second Any Any Any) (list "a" "b")) -String]
+       [tc-e/t (abs 4) -PosByte]
        )
 
   (test-suite

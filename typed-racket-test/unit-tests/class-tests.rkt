@@ -2021,4 +2021,21 @@
                  (define/public (m)
                    (if (string? x) (string-append x "bar") "baz"))))
              (error "foo"))
-           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]))
+           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]
+   ;; tests that we are not creating objects for mutable private fields
+   [tc-e (let ()
+           (class object%
+             (super-new)
+             (: bsp-trees (U #f Integer))
+             (define bsp-trees #f)
+             (: m (-> Any))
+             (define (m) (set! bsp-trees 5))
+             
+             (: sync-bsp-trees (-> Integer))
+             (define/private (sync-bsp-trees)
+               (let ([bsp-trees-val bsp-trees])
+                 (cond
+                   [bsp-trees-val  bsp-trees-val]
+                   [else 5]))))
+           (void))
+         -Void]))

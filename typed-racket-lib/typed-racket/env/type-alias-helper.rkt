@@ -235,7 +235,7 @@
       (register-type-name id type)
       (add-constant-variance! id args)
       (check-type-alias-contractive id type)
-      (values id type args)))
+      (values id type (map syntax-e args))))
 
   ;; Finally, do a last pass to refine the variance
   (refine-variance! names-to-refine types-to-refine tvarss))

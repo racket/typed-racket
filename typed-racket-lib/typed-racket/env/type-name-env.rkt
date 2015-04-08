@@ -17,9 +17,9 @@
                         (-> (listof identifier?) (listof Type/c) any)]
                        [add-alias (-> identifier? identifier? any)]
                        [type-name-env-map
-                        (-> (-> identifier? Type/c any) any)]
+                        (-> (-> identifier? (or/c #t Type/c) any) any)]
                        [type-variance-env-map
-                        (-> (-> identifier? variance? any) any)]
+                        (-> (-> identifier? (listof variance?) any) any)]
                        [lookup-type-name
                         (->* (identifier?) (procedure?) (or/c #t Type/c))]
                        [register-type-variance!

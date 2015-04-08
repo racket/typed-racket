@@ -1632,24 +1632,20 @@
 
 ;; exactness
 [exact->inexact
- (from-cases (map unop all-float-types)
+ (from-cases (-> (Un -InexactComplex -InexactReal) (Un -InexactReal -InexactComplex)
+                 : -true-filter : (-arg-path 0))
              (-Zero . -> . -FlonumZero)
              (-PosInt . -> . -PosFlonum)
              (-NegInt . -> . -NegFlonum)
-             (-PosRat . -> . -NonNegFlonum)
-             (-NegRat . -> . -NonPosFlonum)
+             (-NonNegRat . -> . -NonNegFlonum) ; not for Pos, possible underflow
+             (-NonPosRat . -> . -NonPosFlonum)
              (-Rat . -> . -Flonum)
-             (map unop (list -FlonumZero -PosFlonum -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
-                             -SingleFlonumZero -PosSingleFlonum -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum -SingleFlonum))
              (-NonNegReal . -> . -NonNegInexactReal) ; not for Pos, possible underflow
              (-NonPosReal . -> . -NonPosInexactReal)
              (-Real . -> . -InexactReal)
-             (-FloatComplex . -> . -FloatComplex)
-             (-SingleFlonumComplex . -> . -SingleFlonumComplex)
-             (-InexactComplex . -> . -InexactComplex)
              (N . -> . (Un -InexactReal -InexactComplex)))]
 [inexact->exact
- (from-cases (map unop all-rat-types)
+ (from-cases (-> -ExactNumber -ExactNumber : -true-filter : (-arg-path 0))
              (-RealZero . -> . -Zero)
              (-PosReal . -> . -PosRat)
              (-NonNegReal . -> . -NonNegRat)
@@ -1665,7 +1661,7 @@
                     (-NonPosFlonum . -> . -NonPosInt)
                     (-Flonum . -> . -Int))]
 [real->single-flonum
- (from-cases (map unop single-flonum-types)
+ (from-cases (-> -SingleFlonum -SingleFlonum : -true-filter : (-arg-path 0))
              (-FlonumPosZero . -> . -SingleFlonumPosZero)
              (-FlonumNegZero . -> . -SingleFlonumNegZero)
              (-RealZero . -> . -SingleFlonumZero)
@@ -1676,7 +1672,7 @@
              (-NonPosReal . -> . -NonPosSingleFlonum)
              (-Real . -> . -SingleFlonumZero))]
 [real->double-flonum
- (from-cases (map unop all-flonum-types)
+ (from-cases (-> -Flonum -Flonum : -true-filter : (-arg-path 0))
              (-SingleFlonumPosZero . -> . -FlonumPosZero)
              (-SingleFlonumNegZero . -> . -FlonumNegZero)
              (-RealZero . -> . -FlonumZero)

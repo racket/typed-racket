@@ -80,17 +80,14 @@
   (define round-type ; also used for truncate
     (lambda ()
       (from-cases
-       (map unop all-int-types)
+       (-> (Un -Int -RealZero) (Un -Int -RealZero) : -true-filter : (-arg-path 0))
        (-> -NonNegRat -Nat)
        (-> -NonPosRat -NonPosInt)
        (-> -Rat -Int)
-       (map unop (list -FlonumPosZero -FlonumNegZero -FlonumZero
-                       -NonNegFlonum -NonPosFlonum -Flonum
-                       -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero
+       (map unop (list -NonNegFlonum -NonPosFlonum -Flonum
                        -NonNegSingleFlonum -NonPosSingleFlonum -SingleFlonum
-                       -InexactRealPosZero -InexactRealNegZero -InexactRealZero
                        -NonNegInexactReal -NonPosInexactReal -InexactReal
-                       -RealZero -NonNegReal -NonPosReal -Real)))))
+                       -NonNegReal -NonPosReal -Real)))))
   
   (define (inexact-zero->exact-zero-type)
     (for/list ([t (in-list
@@ -1685,32 +1682,26 @@
 
 [floor
  (from-cases
-  (map unop all-int-types)
+  (-> (Un -Int -RealZero) (Un -Int -RealZero) : -true-filter : (-arg-path 0))
   (-> -NonNegRat -Nat)
   (-> -NegRat -NegInt)
   (-> -NonPosRat -NonPosInt)
   (-> -Rat -Int)
-  (map unop (list -FlonumPosZero -FlonumNegZero -FlonumZero
-                  -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
-                  -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero
+  (map unop (list -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
                   -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum -SingleFlonum
-                  -InexactRealPosZero -InexactRealNegZero -InexactRealZero
                   -NonNegInexactReal -NegInexactReal -NonPosInexactReal -InexactReal
-                  -RealZero -NonNegReal -NegReal -NonPosReal -Real)))]
+                  -NonNegReal -NegReal -NonPosReal -Real)))]
 [ceiling
  (from-cases
-  (map unop all-int-types)
+  (-> (Un -Int -RealZero) (Un -Int -RealZero) : -true-filter : (-arg-path 0))
   (-> -PosRat -PosInt)
   (-> -NonNegRat -Nat)
   (-> -NonPosRat -NonPosInt)
   (-> -Rat -Int)
-  (map unop (list -FlonumPosZero -FlonumNegZero -FlonumZero
-                  -PosFlonum -NonNegFlonum -NonPosFlonum -Flonum
-                  -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero
+  (map unop (list -PosFlonum -NonNegFlonum -NonPosFlonum -Flonum
                   -PosSingleFlonum -NonNegSingleFlonum -NonPosSingleFlonum -SingleFlonum
-                  -InexactRealPosZero -InexactRealNegZero -InexactRealZero
                   -PosInexactReal -NonNegInexactReal -NonPosInexactReal -InexactReal
-                  -RealZero -PosReal -NonNegReal -NonPosReal -Real)))]
+                  -PosReal -NonNegReal -NonPosReal -Real)))]
 [truncate (round-type)]
 [round (round-type)]
 

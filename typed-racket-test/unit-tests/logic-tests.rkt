@@ -21,12 +21,8 @@
                       (filter-equal? slis* exp))
                     (list 'expected expected-slis 'actual slis*)))))
 
-(define-syntax-rule (SLI-imp assumptions goals)
-  (for/and ([goal (in-list goals)])
-      (simple-proves assumptions goal)))
-
-(define-syntax-rule (SLI-imp/and assumptions goals)
-  (simple-proves assumptions (apply -and goals)))
+(define-syntax-rule (SLI-imp assumption goal)
+  (simple-proves (list assumption) goal))
 
 (define (id sym)
   (-id-path (datum->syntax #f sym)))
@@ -188,33 +184,33 @@
     ;; 4 ≤ 3 is contradictory
     (check-match (-SLI (-leq (-id-lexp 4)
                              (-id-lexp 3)))
-                 (list (? Bot?)))
+                 (? Bot?))
     ;; 3 ≤ 4 is trivially valid
     (check-match (-SLI (-leq (-id-lexp 3)
                              (-id-lexp 4)))
-                 (list (? Top?)))
+                 (? Top?))
     ;; 1 ≤ 1 ∧ 10 ≤ 20 is trivially valid
     (check-match (-SLI (-leq (-id-lexp 1)
                              (-id-lexp 1))
                        (-leq (-id-lexp 10)
                              (-id-lexp 20)))
-                 (list (? Top?) (? Top?)))
+                 (? Top?))
     ;; 0 ≤ y ∧ y ≤ -1 is contradictory
     (check-match (-SLI (-leq (-id-lexp 0)
                              (-id-lexp (1 y)))
                        (-leq (-id-lexp (1 y))
                              (-id-lexp -1)))
-                 (list (? Bot?)))
+                 (? Bot?))
     ;; x ≤ z should produce 1 SLI
     (check-match (-SLI (-leq (-id-lexp (1 x))
                              (-id-lexp (1 z))))
-                 (list (? SLI?)))
+                 (? SLI?))
     ;; x ≤ z ∧ 2y ≤ 3q should produce 2 SLIs
     (check-match (-SLI (-leq (-id-lexp (1 x))
                              (-id-lexp (1 z)))
                        (-leq (-id-lexp (2 y))
                              (-id-lexp (3 q))))
-                 (list (? SLI?) (? SLI?)))
+                 (AndFilter: (list (? SLI?) (? SLI?))))
     ;; x ≤ z ∧ y ≤ q ∧ y ≤ r should produce 2 SLIs
     (check-match (-SLI (-leq (-id-lexp (1 x))
                              (-id-lexp (1 z)))
@@ -222,7 +218,7 @@
                              (-id-lexp (1 q)))
                        (-leq (-id-lexp (1 y))
                              (-id-lexp (1 r))))
-                 (list (? SLI?) (? SLI?)))
+                 (AndFilter: (list (? SLI?) (? SLI?))))
     ;; x ≤ z ∧ y ≤ q ∧ y ≤ r ∧ x ≤ r should produce 1 SLI
     (check-match (-SLI (-leq (-id-lexp (1 x))
                              (-id-lexp (1 z)))
@@ -232,7 +228,7 @@
                              (-id-lexp (1 r)))
                        (-leq (-id-lexp (1 x))
                              (-id-lexp (1 r))))
-                 (list (? SLI?))))
+                 (? SLI?)))
    
    (test-suite
     "SLI add")

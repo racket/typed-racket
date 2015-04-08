@@ -425,7 +425,7 @@
 (define-syntax (-id-lexp stx)
   (syntax-case stx ()
     [(_ term ...)
-     #'(make-LExp (-id-lexp-term term) ...)]))
+     #'(make-LExp (list (-id-lexp-term term) ...))]))
 
 
 (define-syntax (-obj-lexp-term stx)

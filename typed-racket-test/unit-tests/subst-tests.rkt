@@ -9,33 +9,40 @@
 (gen-test-main)
 
 (define-syntax-rule (id-subst-obj o var new-o result)
-  (test-true (format  "~a" '(o [new-o / var])) (let ([o* (subst-object o #'var new-o #t)])
-                                        (or (object-equal? o* result)
-                                            (list 'expected: result 'actual: o*)))))
+  (test-true (format  "~a" '(o [new-o / var]))
+             (let ([o* (subst-object o #'var new-o #t)])
+               (or (object-equal? o* result)
+                   (list 'expected: result 'actual: o*)))))
 
 (define-syntax-rule (id-subst-SLI slis var new-o result)
-  (test-true (format  "~a" '(slis [new-o / var])) (let ([expected (apply -and result)]
-                                            [actual (subst-filter (apply -and slis) #'var new-o #t)])
-                                        (or (filter-equal? actual expected)
-                                            (list 'expected: expected 'actual: actual)))))
+  (test-true (format  "~a" '(slis [new-o / var]))
+             (let ([expected result]
+                   [actual (subst-filter slis #'var new-o #t)])
+               (or (filter-equal? actual expected)
+                   (list 'expected: expected 'actual: actual)))))
 
 (define-syntax-rule (id-subst-many-SLI slis symbols new-os result)
-  (test-true (format  "~a" '(slis [new-os / symbols])) (let ([expected (apply -and result)]
-                                                             [actual (for/fold ([filter (apply -and slis)])
-                                                                               ([sym (in-list symbols)]
-                                                                                [new-o (in-list new-os)])
-                                                                       (subst-filter filter (datum->syntax #f sym) new-o #t))])
-                                                        (or (filter-equal? actual expected)
-                                                            (list 'expected: expected 'actual: actual)))))
+  (test-true (format  "~a" '(slis [new-os / symbols]))
+             (let ([expected result]
+                   [actual (for/fold ([filter slis])
+                                     ([sym (in-list symbols)]
+                                      [new-o (in-list new-os)])
+                             (subst-filter filter (datum->syntax #f sym) new-o #t))])
+               (or (filter-equal? actual expected)
+                   (list 'expected: expected 'actual: actual)))))
 
 (define-syntax-rule (s img var tgt result)
   (test-eq? (format "~a" '(img tgt)) (substitute img 'var tgt) result))
 
 (define-syntax-rule (s* imgs rest var tgt result)
-  (test-eq? (format "~a" '(img tgt)) (substitute-dots (list . imgs) rest 'var tgt) result))
+  (test-eq? (format "~a" '(img tgt))
+            (substitute-dots (list . imgs) rest 'var tgt)
+            result))
 
 (define-syntax-rule (s... imgs var tgt result)
-  (test-eq? (format "~a" '(img tgt)) (substitute-dots (list . imgs) #f 'var tgt) result))
+  (test-eq? (format "~a" '(img tgt))
+            (substitute-dots (list . imgs) #f 'var tgt)
+            result))
 
 (define tests
   (test-suite 

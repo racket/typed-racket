@@ -122,10 +122,10 @@
 ;; A type name, potentially recursive or mutually recursive or pointing
 ;; to a type for a struct type
 ;; id is the name stored in the environment
-;; args are the type parameters for this type (or #f if none)
+;; args is the number of arguments expected by this Name type
 ;; struct? indicates if this maps to a struct type
 (def-type Name ([id identifier?]
-                [args (or/c #f (listof identifier?))]
+                [args exact-nonnegative-integer?]
                 [struct? boolean?])
   [#:intern (hash-id id)] [#:frees #f] [#:fold-rhs #:base])
 

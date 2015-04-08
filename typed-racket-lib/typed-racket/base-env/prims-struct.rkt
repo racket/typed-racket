@@ -180,7 +180,7 @@
     #:attributes (poly-vars)
     (pattern (All (arg:id ...) rest)
              #:with poly-vars #'(arg ...))
-    (pattern type:expr #:with poly-vars #'#f))
+    (pattern type:expr #:with poly-vars #'()))
 
   (define-splicing-syntax-class omit-define-syntaxes
     #:attributes (omit)

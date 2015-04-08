@@ -127,7 +127,7 @@
   (define type-name (struct-names-type-name names))
   (register-resolved-type-alias
    type-name
-   (make-Name type-name (struct-desc-tvars desc) (Struct? sty)))
+   (make-Name type-name (length (struct-desc-tvars desc)) (Struct? sty)))
   (register-type-name type-name
                       (make-Poly (struct-desc-tvars desc) sty)))
 
@@ -148,8 +148,7 @@
 
   ;; the base-type, with free type variables
   (define name-type
-    (make-Name (struct-names-type-name names)
-               #f #t))
+    (make-Name (struct-names-type-name names) 0 #t))
   (define poly-base
     (if (null? tvars)
         name-type
@@ -308,7 +307,7 @@
            (c:listof Type/c) (c:or/c #f identifier?)
            c:any/c)
   (define parent-type
-    (and parent (resolve-name (make-Name parent #f #t))))
+    (and parent (resolve-name (make-Name parent 0 #t))))
   (define parent-tys (map fld-t (get-flds parent-type)))
 
   (define names (get-struct-names nm fld-names #f))

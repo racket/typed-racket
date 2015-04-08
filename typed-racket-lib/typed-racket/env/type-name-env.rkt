@@ -64,7 +64,7 @@
   (when (lookup-type-name to (lambda () #f))
     (register-resolved-type-alias
      from
-     (make-Name to #f #t))))
+     (make-Name to 0 #t))))
 
 
 ;; a mapping from id -> listof[Variance] (where id is the name of the type)

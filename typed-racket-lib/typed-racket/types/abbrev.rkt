@@ -248,7 +248,7 @@
 
 ;; Type alias names
 (define (-struct-name name)
-  (make-Name name #f #t))
+  (make-Name name 0 #t))
 
 ;; Structs
 (define (-struct name parent flds [proc #f] [poly #f] [pred #'dummy])

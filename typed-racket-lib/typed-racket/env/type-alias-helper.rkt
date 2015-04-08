@@ -189,7 +189,7 @@
     (for/list ([id (in-list recursive-aliases)])
       (define record (dict-ref type-alias-map id))
       (match-define (list _ args) record)
-      (define name-type (make-Name id args #f))
+      (define name-type (make-Name id (length args) #f))
       (register-resolved-type-alias id name-type)
       ;; The `(make-placeholder-type id)` expression is used to make sure
       ;; that unions don't collapse the aliases too soon. This is a dummy
@@ -199,9 +199,9 @@
       ;; because dummy values will leak due to environment serialization.
       (register-type-name
        id
-       (if args
-           (make-Poly (map syntax-e args) (make-placeholder-type id))
-           (make-placeholder-type id)))
+       (if (null? args)
+           (make-placeholder-type id)
+           (make-Poly (map syntax-e args) (make-placeholder-type id))))
       name-type))
 
   ;; Register non-recursive type aliases
@@ -240,7 +240,7 @@
   ;; Finally, do a last pass to refine the variance
   (refine-variance! names-to-refine types-to-refine tvarss))
 
-;; Syntax -> Syntax Syntax Syntax Option<Integer>
+;; Syntax -> Syntax Syntax (Listof Syntax)
 ;; Parse a type alias internal declaration
 (define (parse-type-alias form)
   (syntax-parse form

@@ -1661,7 +1661,6 @@
 [syntax-local-introduce (-poly (a) (-> (-Syntax a) (-Syntax a)))]
 [make-syntax-introducer (-> (-poly (a) (-> (-Syntax a) (-Syntax a))))]
 [make-syntax-delta-introducer (->opt (-Syntax Univ) [(-opt (-Syntax Univ)) (-opt -Int)] (-poly (a) (-> (-Syntax a) (-Syntax a))))]
-[syntax-local-make-delta-introducer (-> (-Syntax Sym) (-> (-Syntax Sym) (-Syntax Sym)))]
 
 [syntax-local-transforming-module-provides? (-> B)]
 [syntax-local-module-defined-identifiers (-> (-HT (Un (-val #f) -Int) (-lst (-Syntax Sym))))]

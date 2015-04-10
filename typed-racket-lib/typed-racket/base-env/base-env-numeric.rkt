@@ -74,9 +74,10 @@
     (list (-> general specific B : (-FS (-filter specific 0) -top))
           (-> specific general B : (-FS (-filter specific 1) -top))))
 
-  (define (exclude-zero non-neg pos [zero -Zero])
-    (list (-> zero non-neg B : (-FS (-filter zero 1) (-filter pos 1)))
-          (-> non-neg zero B : (-FS (-filter zero 0) (-filter pos 0)))))
+  ;; if in addition if the equality is false, we know that general arg is not of the specific type.
+  (define (commutative-equality/strict-filter general specific)
+    (list (-> general specific B : (-FS (-filter specific 0) (-not-filter specific 0)))
+          (-> specific general B : (-FS (-filter specific 1) (-not-filter specific 1)))))
 
 
   (define round-type ; also used for truncate
@@ -204,12 +205,7 @@
     (lambda ()
       (fx-from-cases
        ;; we could rule out cases like (= Pos Neg), but we currently don't
-       (map (lambda (l) (apply exclude-zero l))
-            (list (list -Byte -PosByte)
-                  (list -Index -PosIndex)
-                  (list -Nat -PosFixnum)
-                  (list -NonPosInt -NegFixnum)
-                  (list -Int (Un -PosFixnum -NegFixnum))))
+       (commutative-equality/strict-filter -Int -Zero)
        (map (lambda (t) (commutative-equality/filter -Int t))
             (list -One -PosByte -Byte -PosIndex -Index -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum))
        (comp -Int))))
@@ -524,9 +520,7 @@
                   (binop -Fl))))
   (define fl=-type
     (fl-type-lambda
-      (from-cases (map (lambda (l) (exclude-zero (car l) (cadr l) -FlZero))
-                       (list (list -NonNegFl -PosFl)
-                             (list -NonPosFl -NegFl)))
+      (from-cases (commutative-equality/strict-filter -Fl (Un -FlPosZero -FlNegZero))
                   (map (lambda (t) (commutative-equality/filter -Fl t))
                        (list -FlZero -PosFl -NonNegFl
                              -NegFl -NonPosFl))

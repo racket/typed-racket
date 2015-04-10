@@ -531,13 +531,13 @@
        (comp -Fl))))
   (define flmin-type
     (fl-type-lambda
-      (from-cases (commutative-case -NegFl -Fl)
-                  (commutative-case -NonPosFl -Fl)
+      (from-cases (commutative-binop -Fl -NegFl)
+                  (commutative-binop -Fl -NonPosFl)
                   (map binop (list -PosFl -NonNegFl -Fl)))))
   (define flmax-type
     (fl-type-lambda
-      (from-cases (commutative-case -PosFl -Fl)
-                  (commutative-case -NonNegFl -Fl)
+      (from-cases (commutative-binop -Fl -PosFl)
+                  (commutative-binop -Fl -NonNegFl)
                   (map binop (list -NegFl -NonPosFl -Fl)))))
   (define flround-type ; truncate too
     (fl-type-lambda

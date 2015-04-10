@@ -504,58 +504,30 @@
     (fl-type-lambda
       (from-cases
        ;; false case, we know nothing, lhs may be NaN. same for all comparison that can involve floats
-       (-> -FlZero -Fl B : (-FS (-filter -PosFl 1) -top))
-       (-> -Fl -FlZero B : (-FS (-filter -NegFl 0) -top))
-       (-> -PosFl -Fl B : (-FS (-filter -PosFl 1) -top))
-       (-> -Fl -PosFl B)
        (-> -NonNegFl -Fl B : (-FS (-filter -PosFl 1) -top))
-       (-> -Fl -NonNegFl B)
-       (-> -NegFl -Fl B)
-       (-> -Fl -NegFl B : (-FS (-filter -NegFl 0) -top))
-       (-> -NonPosFl -Fl B)
        (-> -Fl -NonPosFl B : (-FS (-filter -NegFl 0) -top))
        (comp -Fl))))
   (define fl>-type
     (fl-type-lambda
       (from-cases
-       (-> -FlZero -Fl B : (-FS (-filter -NegFl 1) -top))
-       (-> -Fl -FlZero B : (-FS (-filter -PosFl 0) -top))
-       (-> -PosFl -Fl B)
-       (-> -Fl -PosFl B : (-FS (-filter -PosFl 0) -top))
-       (-> -NonNegFl -Fl B)
-       (-> -Fl -NonNegFl B : (-FS (-filter -PosFl 0) -top))
-       (-> -NegFl -Fl B : (-FS (-filter -NegFl 1) -top))
-       (-> -Fl -NegFl B)
        (-> -NonPosFl -Fl B : (-FS (-filter -NegFl 1) -top))
-       (-> -Fl -NonPosFl B)
+       (-> -Fl -NonNegFl B : (-FS (-filter -PosFl 0) -top))
        (comp -Fl))))
   (define fl<=-type
     (fl-type-lambda
       (from-cases
-       (-> -FlZero -Fl B : (-FS (-filter -NonNegFl 1) -top))
-       (-> -Fl -FlZero B : (-FS (-filter -NonPosFl 0) -top))
        (-> -PosFl -Fl B : (-FS (-filter -PosFl 1) -top))
-       (-> -Fl -PosFl B)
        (-> -NonNegFl -Fl B : (-FS (-filter -NonNegFl 1) -top))
-       (-> -Fl -NonNegFl B)
-       (-> -NegFl -Fl B)
        (-> -Fl -NegFl B : (-FS (-filter -NegFl 0) -top))
-       (-> -NonPosFl -Fl B)
        (-> -Fl -NonPosFl B : (-FS (-filter -NonPosFl 0) -top))
        (comp -Fl))))
   (define fl>=-type
     (fl-type-lambda
       (from-cases
-       (-> -FlZero -Fl B : (-FS (-filter -NonPosFl 1) -top))
-       (-> -Fl -FlZero B : (-FS (-filter -NonNegFl 0) -top))
-       (-> -PosFl -Fl B)
        (-> -Fl -PosFl B : (-FS (-filter -PosFl 0) -top))
-       (-> -NonNegFl -Fl B)
        (-> -Fl -NonNegFl B : (-FS (-filter -NonNegFl 0) -top))
        (-> -NegFl -Fl B : (-FS (-filter -NegFl 1) -top))
-       (-> -Fl -NegFl B)
-       (-> -NonPosFl -Fl B)
-       (-> -Fl -NonPosFl B : (-FS (-filter -NonPosFl 0) -top))
+       (-> -NonPosFl -Fl B : (-FS (-filter -NonPosFl 1) -top))
        (comp -Fl))))
   (define flmin-type
     (fl-type-lambda

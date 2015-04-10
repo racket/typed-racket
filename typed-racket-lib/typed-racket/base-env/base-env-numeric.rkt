@@ -394,8 +394,7 @@
   (define fxlshift-type
     (lambda ()
       (fx-from-cases
-       (map (lambda (x) (-> x -Zero x))
-            (list -Zero -One -PosByte -Byte -PosIndex -Index))
+       (-> -Int -Zero -Fixnum : -true-filter : (-arg-path 0))
        (-> -PosInt -Int -PosFixnum) ; negative 2nd arg errors, so we can't reach 0
        (-> -Nat -Int -NonNegFixnum)
        (-> -NegInt -Int -NegFixnum)
@@ -404,8 +403,7 @@
   (define fxrshift-type
     (lambda ()
       (fx-from-cases
-       (map (lambda (x) (-> x -Zero x))
-            (list -Zero -One -PosByte -Byte -PosIndex -Index))
+       (-> -Int -Zero -Fixnum : -true-filter : (-arg-path 0))
        (-> -Nat -Int -NonNegFixnum) ; can reach 0
        (-> -NegInt -Int -NegFixnum) ; can't reach 0
        (-> -NonPosInt -Int -NonPosFixnum)

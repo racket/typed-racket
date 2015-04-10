@@ -1842,10 +1842,10 @@
 
 [sgn (cl->* (-Zero . -> . -Zero)
             (-PosRat . -> . -One)
-            (-NonNegRat . -> . -Index) ; 0 or 1
-            (-NegRat . -> . -NegFixnum) ; -1
-            (-NonPosRat . -> . -NonPosFixnum) ; 0 or -1
-            (-Rat . -> . -Fixnum)
+            (-NonNegRat . -> . (Un -Zero -One))
+            (-NegRat . -> . (-val -1))
+            (-NonPosRat . -> .(Un (-val -1) -Zero))
+            (-Rat . -> . (Un (-val -1) -Zero -One))
             (-Flonum . -> . -Flonum)
             (-SingleFlonum . -> . -SingleFlonum)
             (-Real . -> . -Real))]

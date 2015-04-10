@@ -1036,12 +1036,12 @@
         |#
 
         ;; inference with internal define
-        [tc-e (let ()
-                (define x 1)
-                (define y 2)
-                (define z (+ x y))
-                (* x z))
-              -PosIndex]
+        [tc-e/t (let ()
+                  (define x 1)
+                  (define y 2)
+                  (define z (+ x y))
+                  (* x z))
+                -PosIndex]
 
         [tc-e/t (let ()
                   (define: (f [x : Number]) : Number

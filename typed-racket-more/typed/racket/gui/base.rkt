@@ -280,6 +280,7 @@
   (cl->* (-> (-> ManyUniv)) (-> (-> ManyUniv) -Void))]
  ;; 4.4 Global Graphics
  [flush-display (-> -Void)]
+ [get-display-backing-scale (->key #:monitor -Nat #f (-opt -NonNegReal))]
  [get-display-count (-> -PosInt)]
  [get-display-depth (-> -Nat)]
  [get-display-left-top-inset

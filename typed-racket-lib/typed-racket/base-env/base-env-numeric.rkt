@@ -955,14 +955,14 @@
 
 [* (from-cases
     (-> -One)
+    (-> N N : -true-filter : (-arg-path 0))
     (commutative-case -Zero N -Zero)
-    (map (lambda (t) (commutative-binop -One t))
-         all-number-types)
+    (-> N -One N : -true-filter : (-arg-path 0))
+    (-> -One N N : -true-filter : (-arg-path 1))
     (-> -PosByte -PosByte -PosIndex)
     (-> -Byte -Byte -Index)
     (-> -PosByte -PosByte -PosByte -PosFixnum)
     (-> -Byte -Byte -Byte -NonNegFixnum)
-    (map unop all-int-types)
     (varop -PosInt)
     (varop -Nat)
     (-> -NegInt -NegInt)
@@ -982,7 +982,6 @@
     (commutative-binop -NonPosRat -NonNegRat -NonPosRat)
     (-> -NegRat -NegRat -NegRat -NegRat)
     (-> -NonPosRat -NonPosRat -NonPosRat -NonPosRat)
-    (map unop rat-types)
     (varop -Rat)
     (varop-1+ -FlonumZero)
     ; no pos * -> pos, possible underflow
@@ -994,23 +993,19 @@
     ;; (* <float> 0) is exact 0 (i.e. not a float)
     (commutative-case -NonNegFlonum -PosReal) ; real args don't include 0
     (commutative-case -Flonum (Un -PosReal -NegReal) -Flonum)
-    (map unop all-flonum-types)
     (map varop-1+ (list -Flonum -SingleFlonumZero -NonNegSingleFlonum))
     ;; we could add contagion rules for negatives, but we haven't for now
     (-> -NegSingleFlonum -NegSingleFlonum -NonNegSingleFlonum) ; possible underflow, so no neg neg -> pos
     (-> -NegSingleFlonum -NegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum)
     (commutative-case -NonNegSingleFlonum (Un -PosRat -NonNegSingleFlonum))
     (commutative-case -SingleFlonum (Un -PosRat -NegRat -SingleFlonum) -SingleFlonum)
-    (map unop single-flonum-types)
     (map varop-1+ (list -SingleFlonum -InexactRealZero -NonNegInexactReal))
     (-> -NegInexactReal -NegInexactReal -NonNegInexactReal)
     (-> -NegInexactReal -NegInexactReal -NegInexactReal -NonPosInexactReal)
     (commutative-case -NonNegInexactReal (Un -PosRat -NonNegInexactReal))
     (commutative-case -InexactReal (Un -PosRat -NegRat -InexactReal) -InexactReal)
-    (map unop inexact-real-types)
     (varop-1+ -InexactReal)
     ;; reals
-    (map unop real-types)
     (varop -NonNegReal) ; (* +inf.0 0.0) -> +nan.0
     (-> -NonPosReal -NonPosReal -NonNegReal)
     (commutative-binop -NonPosReal -NonNegReal -NonPosReal)
@@ -1020,14 +1015,13 @@
     (commutative-case -FloatComplex (Un -InexactComplex -InexactReal -PosRat -NegRat) -FloatComplex)
     (commutative-case -SingleFlonumComplex (Un -SingleFlonumComplex -SingleFlonum -PosRat -NegRat) -SingleFlonumComplex)
     (commutative-case -InexactComplex (Un -InexactComplex -InexactReal -PosRat -NegRat) -InexactComplex)
-    (map unop number-types)
     (varop N))]
 [+ (from-cases
     (-> -Zero)
+    (-> N N : -true-filter : (-arg-path 0))
     (binop -Zero)
-    (map (lambda (t) (commutative-binop t -Zero t))
-         (list -One -PosByte -Byte -PosIndex -Index
-               -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum -Fixnum))
+    (-> N -Zero N : -true-filter : (-arg-path 0))
+    (-> -Zero N N : -true-filter : (-arg-path 1))
     (-> -PosByte -PosByte -PosIndex)
     (-> -Byte -Byte -Index)
     (-> -PosByte -PosByte -PosByte -PosIndex)
@@ -1042,11 +1036,9 @@
     (commutative-binop -NonPosFixnum -NonNegFixnum -Fixnum)
     (commutative-case -PosInt -Nat -PosInt)
     (commutative-case -NegInt -NonPosInt -NegInt)
-    (map unop all-int-types)
     (map varop (list -Nat -NonPosInt -Int))
     (commutative-case -PosRat -NonNegRat -PosRat)
     (commutative-case -NegRat -NonPosRat -NegRat)
-    (map unop rat-types)
     (map varop (list -NonNegRat -NonPosRat -Rat))
     ;; flonum + real -> flonum
     (commutative-case -PosFlonum -NonNegReal -PosFlonum)
@@ -1056,7 +1048,6 @@
     (commutative-case -NonNegFlonum -NonNegReal -NonNegFlonum)
     (commutative-case -NonPosFlonum -NonPosReal -NonPosFlonum)
     (commutative-case -Flonum -Real -Flonum)
-    (map unop all-flonum-types)
     (varop-1+ -Flonum)
     ;; single-flonum + rat -> single-flonum
     (commutative-case -PosSingleFlonum (Un -NonNegRat -NonNegSingleFlonum) -PosSingleFlonum)
@@ -1066,7 +1057,6 @@
     (commutative-case -NonNegSingleFlonum (Un -NonNegRat -NonNegSingleFlonum) -NonNegSingleFlonum)
     (commutative-case -NonPosSingleFlonum (Un -NonPosRat -NonPosSingleFlonum) -NonPosSingleFlonum)
     (commutative-case -SingleFlonum (Un -Rat -SingleFlonum) -SingleFlonum)
-    (map unop single-flonum-types)
     (varop-1+ -SingleFlonum)
     ;; inexact-real + real -> inexact-real
     (commutative-case -PosInexactReal -NonNegReal -PosInexactReal)
@@ -1076,18 +1066,15 @@
     (commutative-case -NonNegInexactReal -NonNegReal -NonNegInexactReal)
     (commutative-case -NonPosInexactReal -NonPosReal -NonPosInexactReal)
     (commutative-case -InexactReal -Real -InexactReal)
-    (map unop inexact-real-types)
     ;; real
     (commutative-case -PosReal -NonNegReal -PosReal)
     (commutative-case -NegReal -NonPosReal -NegReal)
-    (map unop real-types)
     (map varop (list -NonNegReal -NonPosReal -Real -ExactNumber))
     ;; complex
     (commutative-case -FloatComplex N -FloatComplex)
     (commutative-case -Flonum -InexactComplex -FloatComplex)
     (commutative-case -SingleFlonumComplex (Un -Rat -SingleFlonum -SingleFlonumComplex) -SingleFlonumComplex)
     (commutative-case -InexactComplex (Un -Rat -InexactReal -InexactComplex) -InexactComplex)
-    (map unop number-types)
     (varop N))]
 
 [- (from-cases
@@ -1099,9 +1086,8 @@
     (negation-pattern -PosSingleFlonum -NegSingleFlonum -NonNegSingleFlonum -NonPosSingleFlonum)
     (negation-pattern -PosInexactReal -NegInexactReal -NonNegInexactReal -NonPosInexactReal)
     (negation-pattern -PosReal -NegReal -NonNegReal -NonPosReal)
-    (map (lambda (t) (-> t -Zero t))
-         (list -One -PosByte -Byte -PosIndex -Index
-               -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum -Fixnum))
+
+    (-> N -Zero N : -true-filter : (-arg-path 0))
     (-> -One -One -Zero)
     (-> -PosByte -One -Byte)
     (-> -PosIndex -One -Index)
@@ -1138,8 +1124,7 @@
 [/ (from-cases ; very similar to multiplication, without closure properties for integers
     (commutative-case -Zero N -Zero)
     (unop -One)
-    (map (lambda (t) (-> t -One t))
-         all-number-types)
+    (-> N -One N : -true-filter : (-arg-path 0))
     (varop-1+ -PosRat)
     (varop-1+ -NonNegRat)
     (-> -NegRat -NegRat)

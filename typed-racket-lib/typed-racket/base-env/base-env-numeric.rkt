@@ -466,14 +466,16 @@
                        (list -FlZero -FlNan -PosFl -NonNegFl
                              -NegFl -NonPosFl -Fl))
                   (commutative-binop -NonNegFl -PosFl -PosFl)
-                  (map binop (list -NonNegFl -NegFl -NonPosFl -Fl))
-                  (-Fl -Fl . -> . -Fl))))
+                  (map binop (list -NonNegFl -NegFl -NonPosFl -Fl)))))
   (define fl--type
     (fl-type-lambda
       (from-cases (binop -FlZero)
-                  (-NegFl (Un -NonNegFl -FlZero) . -> . -NegFl)
-                  ((Un -NonPosFl -FlZero) -PosFl . -> . -NegFl)
+                  (-NegFl -NonNegFl . -> . -NegFl)
+                  (-NonPosFl -PosFl . -> . -NegFl)
                   (-NonPosFl -NonNegFl . -> . -NonPosFl)
+                  (-PosFl -NonPosFl . -> . -PosFl)
+                  (-NonNegFl -NegFl . -> . -PosFl)
+                  (-NonNegFl -NonPosFl . -> . -NonNegFl)
                   (binop -Fl))))
   (define fl*-type
     (fl-type-lambda

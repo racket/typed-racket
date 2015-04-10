@@ -561,9 +561,9 @@
                   (-Fl . -> . -NonNegFl))))
   (define flsqrt-type
     (fl-type-lambda
-      (from-cases (map unop (list -FlPosZero -FlNegZero -FlZero
-                                  -NonNegFl ; we don't have positive case, possible underflow
-                                  -Fl))))) ; anything negative returns nan
+      (from-cases (map unop (list -FlPosZero -FlNegZero -FlZero -PosFl))
+                  (-Fl . -> . -NonNegFl))))
+
   (define flexpt-type
     (fl-type-lambda
       (from-cases (-FlZero -PosFl . -> . -FlZero) ; (flexpt -0.0 0.1) -> 0.0 ; not sign preserving

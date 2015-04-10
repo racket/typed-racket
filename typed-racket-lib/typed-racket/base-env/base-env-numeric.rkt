@@ -360,8 +360,9 @@
   (define fxior-type
     (lambda ()
       (fx-from-cases
-       (binop -Zero)
-       (commutative-binop -One -Zero -One)
+       (-> -Zero -Int -Fixnum : -true-filter : (-arg-path 1))
+       (-> -Int -Zero -Fixnum : -true-filter : (-arg-path 0))
+
        (commutative-binop -PosByte -Byte -PosByte)
        (binop -Byte)
        (commutative-binop -PosIndex -Index -PosIndex)
@@ -373,7 +374,9 @@
   (define fxxor-type
     (lambda ()
       (fx-from-cases
-       (binop -Zero)
+       (-> -Zero -Int -Fixnum : -true-filter : (-arg-path 1))
+       (-> -Int -Zero -Fixnum : -true-filter : (-arg-path 0))
+
        (binop -One -Zero)
        (binop -Byte)
        (binop -Index)

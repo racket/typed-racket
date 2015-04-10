@@ -118,11 +118,10 @@
   (define fx+-type
     (lambda ()
       (fx-from-cases
-       (binop -Zero)
-       (map (lambda (t) (commutative-binop t -Zero t))
-            (list -One -PosByte -Byte -PosIndex -Index))
+       (-> -Zero -Int -Fixnum : -true-filter : (-arg-path 1))
+       (-> -Int -Zero -Fixnum : -true-filter : (-arg-path 0))
        (commutative-binop -PosByte -Byte -PosIndex)
-       (-Byte -Byte . -> . -PosIndex)
+       (binop -Byte -Index)
        ;; in other cases, either we stay within fixnum range, or we error
        (commutative-binop -Pos -Nat -PosFixnum)
        (-Nat -Nat . -> . -NonNegFixnum)

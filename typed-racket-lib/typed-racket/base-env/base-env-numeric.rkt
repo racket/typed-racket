@@ -163,9 +163,7 @@
     (lambda ()
       (fx-from-cases
        (-Zero -Int . -> . -Zero)
-       (map (lambda (t) (-> t -One t)) ; division by one is identity
-            (list -PosByte -Byte -PosIndex -Index
-                  -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum -Fixnum))
+       (-> -Int -One -Fixnum : -true-filter : (-arg-path 0))
        (-Byte -Nat . -> . -Byte)
        (-Index -Nat . -> . -Index)
        (-Nat -Nat . -> . -NonNegFixnum)

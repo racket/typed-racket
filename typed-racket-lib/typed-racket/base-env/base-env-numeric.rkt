@@ -558,8 +558,7 @@
   (define flexp-type
     (fl-type-lambda
       (from-cases (-NonNegFl . -> . -PosFl)
-                  (-NegFl . -> . -NonNegFl)
-                  (-Fl . -> . -Fl)))) ; nan is the only non nonnegative case (returns nan)
+                  (-Fl . -> . -NonNegFl))))
   (define flsqrt-type
     (fl-type-lambda
       (from-cases (map unop (list -FlPosZero -FlNegZero -FlZero

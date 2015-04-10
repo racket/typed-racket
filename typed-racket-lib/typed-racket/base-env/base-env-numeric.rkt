@@ -1711,13 +1711,12 @@
   (N . -> . N))]
 [integer-sqrt
  (from-cases
-  (map unop (list -Zero -One -Byte -Index))
+  (-> (Un -RealZero -One) (Un -RealZero -One) : -true-filter : (-arg-path 0))
+  (unop -Byte)
   (-NonNegFixnum . -> . -Index)
-  (map unop (list -Nat -NonNegRat
-                  -FlonumPosZero -FlonumNegZero -FlonumZero -NonNegFlonum
-                  -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero -NonNegSingleFlonum
-                  -InexactRealPosZero -InexactRealNegZero -InexactRealZero -NonNegInexactReal
-                  -RealZero -NonNegReal))
+  (-NonNegRat . -> . -Nat)
+  (map unop (list -NonNegFlonum -NonNegSingleFlonum -NonNegInexactReal -NonNegReal))
+  ; This errors on NaN so we can ignore it
   (-Rat . -> . -ExactNumber)
   (-Real . -> . N))] ; defined on inexact integers too, but not complex
 [integer-sqrt/remainder

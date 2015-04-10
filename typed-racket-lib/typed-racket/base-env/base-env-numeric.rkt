@@ -3,7 +3,7 @@
 (begin
   (require
    (for-syntax racket/base racket/syntax syntax/parse)
-   (only-in (rep type-rep) Type/c?)
+   (only-in (rep type-rep) Type/c? make-Values)
    racket/list racket/math racket/flonum racket/extflonum racket/unsafe/ops unstable/sequence racket/match
    (for-template racket/flonum racket/extflonum racket/fixnum racket/math racket/unsafe/ops racket/base
                  (only-in "../types/numeric-predicates.rkt" index?))
@@ -1721,21 +1721,22 @@
   (-Real . -> . N))] ; defined on inexact integers too, but not complex
 [integer-sqrt/remainder
  (from-cases
-  (-Zero . -> . (-values (list -Zero -Zero)))
+  (-RealZero . -> . (make-Values (list (-result -RealZero -true-filter (-arg-path 0))
+                                       (-result -RealZero -true-filter (-arg-path 0)))))
   (-One . -> . (-values (list -One -Zero)))
   (-Byte . -> . (-values (list -Byte -Byte)))
   (-Index . -> . (-values (list -Index -Index)))
   (-NonNegFixnum . -> . (-values (list -Index -NonNegFixnum)))
+  (-NonNegRat . -> . (-values (list -Nat -Nat)))
 
-  (map (λ (t) (t . -> . (-values (list t -Int))))
-       (list -Nat -NonNegRat
-             -FlonumPosZero -FlonumNegZero -FlonumZero -NonNegFlonum
-             -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero -NonNegSingleFlonum
-             -InexactRealPosZero -InexactRealNegZero -InexactRealZero -NonNegInexactReal
-             -RealZero -NonNegReal))
+  (map (λ (t) (t . -> . (-values (list t t))))
+       (list -NonNegFlonum
+             -NonNegSingleFlonum
+             -NonNegInexactReal
+             -NonNegReal))
 
   (-Rat . -> . (-values (list -ExactNumber -Int)))
-  (-Real . -> . (-values (list N -Int))))] ; defined on inexact integers too
+  (-Real . -> . (-values (list N -Real))))] ; defined on inexact integers too
 
 [log (cl->*
       (-NonNegRat . -> . -Real)

@@ -193,7 +193,7 @@
   (define fxabs-type
     (lambda ()
       (fx-from-cases
-       (map unop (list -Zero -One -PosByte -Byte -PosIndex -Index))
+       (-> -Nat -NonNegFixnum : -true-filter : (-arg-path 0))
        ((Un -PosInt -NegInt) . -> . -PosFixnum)
        (-Int . -> . -NonNegFixnum))))
   (define fx=-type

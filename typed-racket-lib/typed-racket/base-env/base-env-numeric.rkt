@@ -1946,17 +1946,9 @@
   (-> (Un -NonPosRat -NonPosFlonum -NonPosSingleFlonum -NonPosInexactReal -NonPosReal) -NonPosInt)
   (-> (Un -Rat -Flonum -SingleFlonum -InexactReal -Real) -Int))]
 
-[nan? (from-cases
-       (-> -Rat (-val #f))
-       (-> (Un -FlonumNan -SingleFlonumNan) (-val #t))
-       (-> -Real B))]
+[nan? (make-pred-ty (list -Real) B -InexactRealNan)]
 
-[infinite? (from-cases
-            (-> (Un -FlonumNan -FlonumNegZero -FlonumPosZero
-                    -SingleFlonumNan -SingleFlonumNegZero -SingleFlonumPosZero
-                    -Rat)
-                (-val #f))
-            (-> -Real B))]
+[infinite? (make-pred-ty (list -Real) B (Un -PosInfinity -NegInfinity))]
 
 ;; racket/fixnum
 [fx+ (fx+-type)]

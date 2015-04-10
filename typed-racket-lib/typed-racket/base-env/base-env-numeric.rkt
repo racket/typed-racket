@@ -481,7 +481,6 @@
     (fl-type-lambda
       (from-cases (binop -FlZero)
                   ;; we don't have Pos Pos -> Pos, possible underflow
-                  (binop -PosFl -NonNegFl)
                   (binop -NonNegFl)
                   (commutative-binop -NegFl -PosFl -NonPosFl)
                   (binop -NegFl -NonNegFl)

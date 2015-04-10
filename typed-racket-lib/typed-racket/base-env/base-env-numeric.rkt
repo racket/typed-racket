@@ -147,8 +147,9 @@
   (define fx*-type
     (lambda ()
       (fx-from-cases
-       (map binop (list -Zero -One))
-       (commutative-binop -Zero -Int)
+       (-> -One -Int -Fixnum : -true-filter : (-arg-path 1))
+       (-> -Int -One -Fixnum : -true-filter : (-arg-path 0))
+       (commutative-binop -Int -Zero)
        (-PosByte -PosByte . -> . -PosIndex)
        (-Byte -Byte . -> . -Index)
        (-PosInt -PosInt . -> . -PosFixnum)

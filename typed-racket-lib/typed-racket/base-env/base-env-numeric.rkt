@@ -488,7 +488,8 @@
   (define fl/-type
     (fl-type-lambda
       (from-cases (-FlZero -Fl . -> . -FlZero)
-                  (-PosFl -PosFl . -> . -NonNegFl) ; possible underflow
+                  ;; we don't have Pos Pos -> Pos, possible underflow
+                  (-NonNegFl -NonNegFl . -> . -NonNegFl)
                   (commutative-binop -PosFl -NegFl -NonPosFl)
                   (-NegFl -NegFl . -> . -NonNegFl)
                   (binop -Fl))))

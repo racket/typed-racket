@@ -318,9 +318,11 @@
   (define fxmin-type
     (lambda ()
       (fx-from-cases
-       (binop -Zero)
-       (binop -One)
-       (commutative-binop -Zero (Un -Zero -One) -Zero)
+       (-> -Nat -NonPosInt -NonPosFixnum : -true-filter : (-arg-path 1))
+       (-> -NonPosInt -Nat -NonPosFixnum : -true-filter : (-arg-path 0))
+       (-> -Zero -Int -NonPosFixnum)
+       (-> -Int -Zero -NonPosFixnum)
+
        (commutative-binop -PosByte -PosInt -PosByte)
        (commutative-binop -Byte -Nat -Byte)
        (commutative-binop -PosIndex -PosInt -PosIndex)
@@ -333,8 +335,11 @@
   (define fxmax-type
     (lambda ()
       (fx-from-cases
-       (binop -Zero)
-       (commutative-binop -One (Un -Zero -One) -One)
+       (-> -NonPosInt -Nat -NonNegFixnum : -true-filter : (-arg-path 1))
+       (-> -Nat -NonPosInt -NonNegFixnum : -true-filter : (-arg-path 0))
+       (-> -Zero -Int -NonNegFixnum)
+       (-> -Int -Zero -NonNegFixnum)
+
        (commutative-binop -PosByte -Byte -PosByte)
        (binop -Byte)
        (commutative-binop -PosIndex -Index -PosIndex)

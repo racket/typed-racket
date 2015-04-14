@@ -1081,13 +1081,9 @@
                         (apply (plambda: (b ...) ([x : Number] . [y : Number ... b]) x)
                                1 w))
               (-polydots (a) ((list -String) (-Number a) . ->... . -Number))]
-        [tc-e/t (let ([f (plambda: (a ...) [w : a ... a] w)])
-                  (f 1 "hello" #\c))
-                (-lst* -One -String -Char)]
-        [tc-e/t (lambda: ([x : One])
-                  (let ([f (plambda: (a ...) [w : a ... a] w)])
-                    (f x "hello" #\c)))
-                (-lst* -One -String -Char)]
+;        [tc-e/t (let ([f (plambda: (a ...) [w : a ... a] w)])
+;                  (f 1 "hello" #\c))
+;                (-lst* -One -String -Char)] TODO(AMK) uncomment
         ;; instantiating non-dotted terms
         [tc-e/t (inst (plambda: (a) ([x : a]) x) Integer)
                 (make-Function (list (make-arr* (list -Integer) -Integer
@@ -1453,8 +1449,10 @@
         (tc-e (boolean=? #t false) -Boolean)
         (tc-e (symbol=? 'foo 'foo) -Boolean)
 
-        (tc-e (equal? 1 2) -Boolean)
-        (tc-e (eqv? 1 2) -Boolean)
+        (tc-e (equal? 1 2)
+              #:ret (ret -Boolean (-FS -top (-not-filter -One (-int-obj 2)))))
+        (tc-e (eqv? 1 2)
+              #:ret (ret -Boolean (-FS -top (-not-filter -One (-int-obj 2)))))
         (tc-e (eq? 1 2) -Boolean)
         (tc-e (equal?/recur 'foo 'bar eq?) -Boolean)
 
@@ -2308,12 +2306,17 @@
 
        ;; test functions which do lookup with the "wrong type", where the
        ;; result type shouldn't be widened to include that type
-       [tc-e (memq 3 '(a b c)) (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
-       [tc-e (memv 3 '(a b c)) (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
-       [tc-e (member 3 '(a b c))
+       [tc-e (memq 3 '(a b c))
              #:ret (ret (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c))) 
+                        (-FS -bot (-not-filter (one-of/c 'a 'b 'c) (-int-obj 3))))]
+       [tc-e (memv 3 '(a b c))
+             #:ret (ret (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c))) 
+                        (-FS -bot (-not-filter (one-of/c 'a 'b 'c) (-int-obj 3))))]
+       [tc-e (member 3 '(a b c))
+             #:ret (ret (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))
                         (-FS -bot (-not-filter (one-of/c 'a 'b 'c) (-int-obj 3))))] ;; oddly specific? 
        [tc-e (member 3 '(a b c) equal?) (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
+       ;; (U False (Listof (U 'a 'b 'c))) (Bot | (! (U 'a 'b 'c) @ 3)) -)
        [tc-e (assq 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
        [tc-e (assv 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
        [tc-e (assoc 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
@@ -3564,12 +3567,10 @@
        ;; basic dependent typing checks
        [tc-e 
         (let ()
-          (: negate (~> [x : (U Number Boolean)] 
+          (: negate (~> ([x : (U Number Boolean)]) 
                         (Refine [z : (U Number Boolean)]
-                                (or (and (z -: Number)
-                                         (x -: Number))
-                                    (and (z -: Boolean)
-                                         (x -: Boolean))))))
+                                (or (x z -: Number)
+                                    (x z -: Boolean)))))
           (define negate
             (λ (a) (cond
                      [(number? a) (* -1 a)]

@@ -11,7 +11,7 @@
            (utils tc-utils)
            (private parse-type)
            (rep type-rep)
-
+           (only-in (types filter-ops) -or -and)
            (submod typed-racket/base-env/base-types initialize)
            (rename-in (types union abbrev numeric-tower resolve)
                       [Un t:Un] [-> t:->] [->* t:->*]))
@@ -367,7 +367,59 @@
    [FAIL (All (r #:row (init x))
            ((Class #:row-var r (init y)) -> (Class #:row-var r)))]
    [FAIL (All (r #:row (init x y z) (field f) m n)
-           ((Class #:row-var r a b c) -> (Class #:row-var r)))]
+              ((Class #:row-var r a b c) -> (Class #:row-var r)))]
+
+   ;; Refinement types
+   [(Refine [x : Any] Top) (-refine x Univ -top)]
+   [(Refine [x : Any] Bot) (-refine x Univ -bot)]
+   ;; x in prop
+   ;;; is type prop, single, many ids
+   [(Refine [x : Number] (x -: Integer))
+    (-refine x -Number (-filter -Integer x))]
+   ;; y not bound
+   [FAIL (Refine [x : Number] (x y -: Integer))]
+   ;; y now bound
+   [(Refine [y : Number]
+            (y -: (Refine [x : Number] (x y -: Integer))))
+    (-refine y -Number
+             (-filter (-refine x -Number
+                               (-and (-filter -Integer x)
+                                     (-filter -Integer y)))
+                      y))]
+   ;; is type prop, single, many ids
+   [(Refine [x : Number] (x -! String))
+    (-refine x -Number (-not-filter -String x))]
+   ;; y not bound
+   [FAIL (Refine [x : Number] (x y -! Integer))]
+   ;; y now bound
+   [(Refine [y : Number]
+            (y -: (Refine [x : Number] (x y -! Integer))))
+    (-refine y -Number
+             (-filter (-refine x -Number
+                               (-and (-not-filter -Integer x)
+                                     (-not-filter -Integer y)))
+                      y))]
+   ;; and prop, implicit and explicit
+   [(Refine [x : Number] (and (x -: Integer)
+                              (x -! String)))
+    (-refine x -Number (-and (-filter -Integer x)
+                             (-not-filter -String x)))]
+   [(Refine [x : Number]
+            (x -: Integer)
+            (x -! String))
+    (-refine x -Number (-and (-filter -Integer x)
+                             (-not-filter -String x)))]
+   ;;; or prop
+   [(Refine [x : Any] (or (x -: Integer)
+                          (x -: String)))
+    (-refine x Univ (-or (-filter -Integer x)
+                         (-filter -String x)))]
+   ;; x in type
+   [(Refine [y : (Refine [x : Number] (x y -! Integer))] Top)
+    (-refine y (-refine x -Number
+                         (-and (-not-filter -Integer x)
+                               (-not-filter -Integer y)))
+             -top)]
    ))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

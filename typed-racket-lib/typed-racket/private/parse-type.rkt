@@ -305,100 +305,78 @@
            #:attr negative (apply -and (attribute p-.prop))
            #:attr object (or (attribute o.object) -empty-obj)))
 
-(define-splicing-syntax-class (ident ids)
-  #:description "ident"
-  #:attributes (id)
-  (pattern i:identifier
-           #:fail-unless (or (identifier-binding #'i)
-                             (for/or ([x (in-list ids)]) (free-identifier=? x #'i)))
-           "Filters for predicates may not reference identifiers that are unbound"
-           #:fail-when (is-var-mutated? #'i)
-           "Filters for predicates may not reference identifiers that are mutated"
-           #:attr id #'i))
+(define ((parse-obj/ids ids) stx)
+  ;(define non-l-obj (parse-obj/ids ids))
+  ;(define lexp-term (parse-linear-term/ids ids))  
+  (parameterize ([current-orig-stx stx])
+    (syntax-parse
+        stx
+      #;[((~datum +) term:expr terms:expr ...)
+       (let ([terms (map lexp-term (syntax->list #'(term terms ...)))])
+         (make-LExp (for/list ([c/p (in-list terms)])
+                      (match-let ([(cons c p) c/p])
+                        (if p (list c p) c)))))]
+      #;[((~datum *) int:exact-integer obj:expr)
+       (let ([o (non-l-obj #'o)]
+             [n (syntax->datum #'int)])
+         (-obj-lexp (n o)))]
+      #;[((~datum *) obj:expr int:exact-integer)
+       (let ([o (non-l-obj #'o)]
+             [n (syntax->datum #'int)])
+         (-obj-lexp (n o)))]
+      #;[(pe:path-elem ... x:id)
+       (if (for/or ([y (in-list ids)]) (free-identifier=? #'x y))
+           (-acc-path (attribute pe.pe) (-id-path #'x))
+           (parse-error "expected a bound identifier in type-scope"
+                        "given" #'x))]
+      [x:id
+       (cond
+         [(for/or ([y (in-list ids)]) (free-identifier=? #'x y))
+          (-id-path #'x)]
+         [(and (identifier-binding #'i)
+               (not (is-var-mutated? #'x)))
+          (-id-path #'x)]
+         [(and (identifier-binding #'i)
+               (is-var-mutated? #'x))
+          (parse-error "cannot reference mutated variables in types"
+                       "given" #'x)]
+         [else (parse-error "expected a bound identifier in type-scope"
+                            "given" #'x)])]
+      [n:exact-integer
+       (-int-obj (syntax->datum #'n))]
+      [e
+       (parse-error "expected an object"
+                    "given" #'e)])))
 
-;; simple object (i.e. not a linear expression)
-(define-splicing-syntax-class (s-object ids)
-  #:description "Simple Object"
-  #:attributes (obj)
-  (pattern (~var x (ident ids))
-           #:attr obj (-id-path (attribute x.id)))
-  (pattern (pe:path-elem ... (~var x (ident ids)))
-           #:attr obj (-acc-path (attribute pe.pe) (-id-path (attribute x.id)))))
+(define ((parse-prop/ids ids) stx)
+  (define obj (parse-obj/ids ids))
+  ;(define l-obj (parse-linear-obj/ids ids))
+  (define type (parse-type/ids ids))
+  (define prop (parse-prop/ids ids))
+  (parameterize ([current-orig-stx stx])
+    (syntax-parse stx
+      [:Top^ -top]
+      [:Bot^ -bot]
+      [(obj-exp:expr obj-exps:expr ... :isT^ t:non-keyword-ty)
+       (let ([t (type #'t)])
+         (apply -and (for/list ([o (in-syntax #'(obj-exp obj-exps ...))])
+                       (-filter t (obj o)))))]
+      [(obj-exp:expr obj-exps:expr ... :notT^ t:non-keyword-ty)
+       (let ([t (type #'t)])
+         (apply -and (for/list ([o (in-syntax #'(obj-exp obj-exps ...))])
+                       (-not-filter t (obj o)))))]
+      [((~datum and) ps:expr ...)
+       (apply -and (map prop (syntax->list #'(ps ...))))]
+      [((~datum or) ps:expr ...)
+       (apply -or (map prop (syntax->list #'(ps ...))))]
+      [e
+       (begin (parse-error #:delayed? #t
+                           "expected a logical proposition"
+                           "given" #'e)
+              -bot)])))
 
-;; terms in a linear expression
-;; either just an integer, or an integer and path
-(define-splicing-syntax-class (linexp-term ids)
-  #:description "Linear Expression Term"
-  #:attributes (coeff path)
-  (pattern n:exact-integer
-           #:attr coeff (syntax->datum #'n)
-           #:attr path #f)
-  (pattern (n:exact-integer (~var p (s-object ids)))
-           #:attr coeff (syntax->datum #'n)
-           #:attr path (attribute p.obj)))
-
-;; complex object (i.e. includes linear expressions)
-(define-splicing-syntax-class (c-object ids)
-  #:description "Complex Object"
-  #:attributes (obj)
-  (pattern ((~datum +) (~var terms (linexp-term ids)) ...)
-           #:attr obj (make-LExp (for/list ([c (in-list (attribute terms.coeff))]
-                                            [p (in-list (attribute terms.path))])
-                                   (if p (list c p) c))))
-  (pattern n:exact-integer
-           #:attr obj (-int-obj (syntax->datum #'n)))
-  (pattern (~var p (s-object ids))
-           #:attr obj (attribute p.obj)))
-
-;; complex object but case as linear no matter what (i.e. includes linear expressions)
-(define-splicing-syntax-class (cl-object ids)
-  #:description "Complex Object"
-  #:attributes (obj)
-  (pattern ((~datum +) (~var terms (linexp-term ids)) ...)
-           #:attr obj (make-LExp (for/list ([c (in-list (attribute terms.coeff))]
-                                            [p (in-list (attribute terms.path))])
-                                   (if p (list c p) c))))
-  (pattern n:exact-integer
-           #:attr obj (-int-obj (syntax->datum #'n)))
-  (pattern (~var p (s-object ids))
-           #:attr obj (-obj-lexp (1 (attribute p.obj)))))
-
-(define-splicing-syntax-class (Prop ids) ;; BOOKMARK
-  #:description "Prop"
-  #:attributes (prop)
-  (pattern :Top^ #:attr prop -top)
-  (pattern :Bot^ #:attr prop -bot)
-  (pattern ((~var o (c-object ids)) :isT^ t:expr)
-           #:attr prop (-filter (parse-type #'t)
-                                (attribute o.obj)))
-  (pattern ((~var o (c-object ids)) :notT^ t:expr)
-           #:attr prop (-not-filter (parse-type #'t)
-                                    (attribute o.obj)))
-  (pattern ((~datum and) (~var ps (Prop ids)) ...)
-           #:attr prop (apply -and (attribute ps.prop)))
-  (pattern ((~datum or) (~var ps (Prop ids)) ...)
-           #:attr prop (apply -or (attribute ps.prop)))
-  (pattern ((~datum =) (~var l1 (cl-object ids))
-                       (~var l2 (cl-object ids)))
-           #:attr prop (-eqSLI (attribute l1.obj)
-                               (attribute l2.obj)))
-  (pattern ((~datum <) (~var l1 (cl-object ids))
-                       (~var l2 (cl-object ids)))
-           #:attr prop (-SLI (-lt (attribute l1.obj)
-                                  (attribute l2.obj))))
-  (pattern ((or (~datum <=) (~datum ≤)) (~var l1 (cl-object ids))
-                                        (~var l2 (cl-object ids)))
-           #:attr prop (-SLI (-leq (attribute l1.obj)
-                                   (attribute l2.obj))))
-  (pattern ((~datum >) (~var l1 (cl-object ids))
-                       (~var l2 (cl-object ids)))
-           #:attr prop (-SLI (-lt (attribute l2.obj)
-                                  (attribute l1.obj))))
-  (pattern ((or (~datum >=) (~datum ≥)) (~var l1 (cl-object ids))
-                                        (~var l2 (cl-object ids)))
-           #:attr prop (-SLI (-leq (attribute l2.obj)
-                                   (attribute l1.obj)))))
-
+(define (parse-prop stx)
+  ((parse-prop/ids '()) stx))
 
 (define (parse-types stx-list)
   (stx-map parse-type stx-list))
@@ -411,6 +389,9 @@
      (-val (syntax->datum #'t))]))
 
 (define (parse-type stx)
+  ((parse-type/ids '()) stx))
+
+(define ((parse-type/ids ids) stx)
   (parameterize ([current-orig-stx stx])
     (syntax-parse
         stx
@@ -420,9 +401,10 @@
       [(fst . rst)
        #:fail-unless (not (syntax->list #'rst)) #f
        (-pair (parse-type #'fst) (parse-type #'rst))]
-      [(:Refine^ [x:id :colon^ t:non-keyword-ty] (~var ps (Prop (list #'x))) ...)
-       (-irefine (abstract-ident #'x (parse-type #'t)) 
-                 (abstract-ident #'x (apply -and (attribute ps.prop))))]
+      [(:Refine^ [x:id :colon^ t:non-keyword-ty] ps:expr ...)
+       (define ids* (cons #'x ids))
+       (-irefine (abstract-ident #'x ((parse-type/ids ids*) #'t))
+                 (abstract-ident #'x (apply -and (stx-map (parse-prop/ids ids*) #'(ps ...)))))]
       [(:Class^ e ...)
        (parse-class-type stx)]
       [(:Object^ e ...)
@@ -584,40 +566,20 @@
                    doms
                    (parse-values-type #'rng)
                    #:kws (map force (attribute kws.Keyword)))))))]
-      ;;TODO(AMK) better syntax support
-      [(:~>^ ~! [x:id :colon^ dom:non-keyword-ty] rng:non-keyword-ty)
-       ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
-       (with-arity 1
-                   (make-Function 
-                    (list (make-arr (list (parse-type #'dom)) 
-                                     (abstract-ident #'x (parse-type #'rng))
-                                     #:dep? #t))))]
-      
-      [(:~>^ ~! 
-              [x:id :colon^ domx:non-keyword-ty] 
-              [y:id :colon^ domy:non-keyword-ty] 
-              rng:non-keyword-ty)
-       ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
-       (with-arity 2
-                   (make-Function 
-                    (list (make-arr (list (abstract-idents (list #'x #'y) (parse-type #'domx)) 
-                                          (abstract-idents (list #'x #'y) (parse-type #'domy)))
-                                    (abstract-idents (list #'x #'y) (parse-type #'rng))
-                                     #:dep? #t))))]
-      
-      [(:~>^ ~! 
-              [x:id :colon^ domx:non-keyword-ty] 
-              [y:id :colon^ domy:non-keyword-ty] 
-              [z:id :colon^ domz:non-keyword-ty] 
-              rng:non-keyword-ty)
-       ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
-       (with-arity 3
-                   (make-Function 
-                    (list (make-arr (list (abstract-ident (list #'x #'y #'z) (parse-type #'domx)) 
-                                           (abstract-ident (list #'x #'y #'z) (parse-type #'domy))
-                                           (abstract-ident (list #'x #'y #'z) (parse-type #'domz)))
-                                     (abstract-idents (list #'x #'y #'z) (parse-type #'rng))
-                                     #:dep? #t))))]
+      [(:~>^ ([xs:id :colon^ doms:non-keyword-ty] ...)
+             rng:non-keyword-ty)
+       (define maybe-dup (check-duplicate-identifier (syntax->list #'(xs ...))))
+       (when maybe-dup
+         (parse-error #:delayed? #t
+                      "duplicate type variable"
+                      "variable" (syntax-e maybe-dup)))
+       (let* ([arg-ids (syntax->list #'(xs ...))]
+              [pt (parse-type/ids (append arg-ids ids))]
+              [dom-ts (for/list ([t (in-list (stx-map pt #'(doms ...)))])
+                        (abstract-idents arg-ids t))]
+              [rng (abstract-idents arg-ids (pt #'rng))])
+         (with-arity (length arg-ids)
+           (make-Function (list (make-arr dom-ts rng #:dep? #t)))))]
       ;; This case needs to be at the end because it uses cut points to give good error messages.
       [(~or (:->^ ~! dom:non-keyword-ty ... rng:expr
              :colon^ (~var latent (full-latent (syntax->list #'(dom ...)))))
@@ -643,8 +605,10 @@
       [:->^
        (parse-error #:delayed? #t "incorrect use of -> type constructor")
        Err]
-      [:~>^
-       (parse-error #:delayed? #t "incorrect use of ~> type constructor")
+      [(:~>^ any ...)
+       (parse-error #:delayed? #t
+                    "incorrect use of ~~> type constructor"
+                    "given" stx)
        Err]
       [id:identifier
        (cond

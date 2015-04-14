@@ -65,16 +65,10 @@
                        Real)
                  (List Bytes Integer Integer)))
    [get-argb-pixels
-    (case-> (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes -> Void)
-            (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes Any -> Void)
-            (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes Any Any -> Void))]
-   [get-backing-scale (-> Real)]
+    (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+         [Any Any #:unscaled? Any]
+         Void)]
+   [get-backing-scale (-> Nonnegative-Real)]
    [get-depth (-> Exact-Nonnegative-Integer)]
    [get-handle (-> Any)]
    [get-height (-> Exact-Positive-Integer)]
@@ -93,15 +87,9 @@
                ((U Path-String Output-Port) (U 'png 'jpeg 'xbm 'xpm 'bmp) [#:unscaled? Any] -> Boolean)
                ((U Path-String Output-Port) (U 'png 'jpeg 'xbm 'xpm 'bmp) Natural [#:unscaled? Any] -> Boolean))]
    [set-argb-pixels
-    (case-> (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes -> Void)
-            (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes Any -> Void)
-            (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes Any Any -> Void))]
+    (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+         [Any Any #:unscaled? Any]
+         Void)]
    [set-loaded-mask ((Instance Bitmap%) -> Void)]))
 
 (define-type Color%
@@ -491,15 +479,15 @@
   (Class #:implements DC<%>
          (init [bitmap (Option (Instance Bitmap%))])
          [get-argb-pixels
-          (case-> (Real Real Integer Integer Bytes -> Void)
-                  (Real Real Integer Integer Bytes Any -> Void)
-                  (Real Real Integer Integer Bytes Any Any -> Void))]
+          (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+               [Any Any]
+               Void)]
          [get-bitmap (-> (Option (Instance Bitmap%)))]
          [get-pixel (Real Real (Instance Color%) -> Boolean)]
          [set-argb-pixels
-          (case-> (Real Real Integer Integer Bytes -> Void)
-                  (Real Real Integer Integer Bytes Any -> Void)
-                  (Real Real Integer Integer Bytes Any Any -> Void))]
+          (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+               [Any Any]
+               Void)]
          [set-bitmap ((Option (Instance Bitmap%)) -> Void)]
          [set-pixel (Real Real (Instance Color%) -> Boolean)]))
 

@@ -241,7 +241,10 @@
   (define st (unsafe-Rep-seq t))
   (early-return
    #:return-when (or (eq? ss st) (seen? ss st A)) A
-   (define cr (hash-ref subtype-cache (cons ss st) 'missing))
+   (define cr (let ([inner (hash-ref subtype-cache st #f)])
+                (if inner
+                    (hash-ref inner ss 'missing)
+                    'missing)))
    #:return-when (boolean? cr) (and cr A)
    (define ks (unsafe-Type-key s))
    (define kt (unsafe-Type-key t))
@@ -686,7 +689,9 @@
          ;; otherwise, not a subtype
          [(_ _) #f])))
      (when (null? A)
-       (hash-set! subtype-cache (cons ss st) r))
+       (hash-set!
+         (hash-ref! subtype-cache st (lambda () (make-hash)))
+         ss r))
      r))
 
 (define (type-compare? a b)

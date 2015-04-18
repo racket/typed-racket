@@ -257,6 +257,11 @@
       #:vars '(a)
       #:result [(-seq (-v a)) (-seq (-val 'b))]]
 
+    [infer-t
+      (-lst (-val (-v a)))
+      (Un (-pair (-v a) Univ) -Null)
+      #:vars '(a)]
+
     ;; Currently Broken
     ;(infer-t (make-ListDots -Symbol 'b) (-pair -Symbol (-lst -Symbol)) #:indices '(b))
     [i2-t (-v a) N ('a N)]

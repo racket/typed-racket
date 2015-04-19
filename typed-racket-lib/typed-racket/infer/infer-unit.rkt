@@ -212,7 +212,7 @@
       [(_ seq) #'(app List->seq (? values seq))])))
 
 
-;; generate-dbound-prefix: Symbol Type/c Natural Symbol -> (Values (Listof Symbol) (Listof Type/c))
+;; generate-dbound-prefix: Symbol Type/c Natural (U Symbol #f) -> (Values (Listof Symbol) (Listof Type/c))
 ;; Substitutes n fresh new variables, replaces dotted occurences of v in t with the variables (and
 ;; maybe new-end), and then for each variable substitutes it in for regular occurences of v.
 (define (generate-dbound-prefix v ty n new-end)
@@ -868,21 +868,22 @@
   (early-return
    (define short-S (take S (length T)))
    (define rest-S (drop S (length T)))
-   (define ctx (context null X (list dotted-var)))
-   (define expected-cset (if expected
-                             (cgen ctx R expected)
-                             (empty-cset '() '())))
-   #:return-unless expected-cset #f
-   (define cs-short (cgen/list ctx short-S T #:expected-cset expected-cset))
-   #:return-unless cs-short #f
+   ;; Generate a new type corresponding to T-dotted for every extra arg.
    (define-values (new-vars new-Ts)
      (generate-dbound-prefix dotted-var T-dotted (length rest-S) #f))
-   (define cs-dotted (cgen/list (context-add-vars ctx new-vars) rest-S new-Ts
-                                #:expected-cset expected-cset))
-   #:return-unless cs-dotted #f
-   (define cs-dotted* (move-vars-to-dmap cs-dotted dotted-var new-vars))
-   #:return-unless cs-dotted* #f
-   (define cs (cset-meet cs-short cs-dotted*))
+   (define (subst t)
+     (substitute-dots (map make-F new-vars) #f dotted-var t))
+   (define ctx (context null (append new-vars X) (list dotted-var)))
+
+   (define expected-cset (if expected
+                             (cgen ctx (subst R) expected)
+                             (empty-cset '() '())))
+   #:return-unless expected-cset #f
+   (define cs (% move-vars-to-dmap
+                 (% cset-meet
+                    (cgen/list ctx short-S (map subst T) #:expected-cset expected-cset)
+                    (cgen/list ctx rest-S new-Ts #:expected-cset expected-cset))
+                 dotted-var new-vars))
    #:return-unless cs #f
    (define m (cset-meet cs expected-cset))
    #:return-unless m #f

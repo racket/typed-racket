@@ -1128,9 +1128,9 @@
                  o
                  [#:Path π name (make-Path π (transform name lvl))]
                  [#:LExp c ps/cs
-                  (make-LExp (cons c (for/list ([p/c (in-list ps/cs)])
-                                       (list (cdr p/c)
-                                             ((do-obj lvl) (car p/c))))))]))
+                  (apply -lexp (cons c (for/list ([p/c (in-list ps/cs)])
+                                         (list (cdr p/c)
+                                               ((do-obj lvl) (car p/c))))))]))
   
   (define ((do-pe lvl) pe)
     (pathelem-case (#:Type (do-type lvl)

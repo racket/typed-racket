@@ -137,7 +137,7 @@
     [(ForcePE:) 'force]
     [(StructPE: t i) `(,(type->sexp t)-,i)]
     [(SyntaxPE:) 'syntax]
-    [(LengthPE:) 'length]
+    [(LengthPE:) 'len]
     [else `(Invalid Path-Element: ,(struct->vector pathelem))]))
 
 ;; object->sexp : Object -> S-expression

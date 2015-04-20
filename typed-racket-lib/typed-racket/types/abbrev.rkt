@@ -11,6 +11,7 @@
          racket/undefined
          unstable/function
          racket/lazy-require
+         syntax/parse
 
          (prefix-in c: (contract-req))
          (rename-in (rep type-rep filter-rep object-rep)
@@ -85,7 +86,7 @@
 ;; Constructors for Objects
 (define/cond-contract (-int-obj n)
   (c:-> exact-integer? LExp?)
-  (make-LExp (list n)))
+  (-lexp n))
 
 (define/cond-contract (-arg-obj n)
   (c:-> exact-nonnegative-integer? Object?)
@@ -113,6 +114,12 @@
   (c:-> (c:or/c Object? #f) (c:or/c Object? #f))
   (match p
     [(Path: lpe x) (make-Path (cons -force lpe) x)]
+    [_ p]))
+
+(define/cond-contract (-len-of p)
+  (c:-> (c:or/c Object? #f) (c:or/c Object? #f))
+  (match p
+    [(Path: lpe x) (make-Path (cons -len lpe) x)]
     [_ p]))
 
 ;; Convenient constructor for Values
@@ -282,7 +289,7 @@
 (define/decl -cdr (make-CdrPE))
 (define/decl -syntax-e (make-SyntaxPE))
 (define/decl -force (make-ForcePE))
-(define/decl -length (make-LengthPE))
+(define/decl -len (make-LengthPE))
 
 ;; Type alias names
 (define (-struct-name name)
@@ -393,6 +400,11 @@
     [(_ leqs ...) 
      (apply -and (leqs->SLIs (list leqs ...)))]))
 
+(define-syntax -build-SLI
+  (syntax-rules ()
+    [(_ leqs)
+     (apply -and (leqs->SLIs leqs))]))
+
 (define-syntax -leq
   (syntax-rules ()
     [(_ lhs rhs) (leq lhs rhs)]))
@@ -416,8 +428,6 @@
 (define-syntax (-id-lexp-term stx)
   (syntax-case stx ()
     [(_ (c id))
-     (and (exact-integer? (syntax->datum #'c))
-          (identifier? #'id))
      #'(list c (-id-path #'id))]
     [(_ c)
      (exact-integer? (syntax->datum #'c)) #'c]))
@@ -425,19 +435,4 @@
 (define-syntax (-id-lexp stx)
   (syntax-case stx ()
     [(_ term ...)
-     #'(make-LExp (list (-id-lexp-term term) ...))]))
-
-
-(define-syntax (-obj-lexp-term stx)
-  (syntax-case stx ()
-    [(_ (c o))
-     (exact-integer? (syntax->datum #'c))
-     #'(list c o)]
-    [(_ c)
-     (syntax->datum #'c)
-     #'c]))
-
-(define-syntax (-obj-lexp stx)
-  (syntax-case stx ()
-    [(_ term ...)
-     #'(make-LExp (-obj-lexp-term term) ...)]))
+     #'(-lexp (-id-lexp-term term) ...)]))

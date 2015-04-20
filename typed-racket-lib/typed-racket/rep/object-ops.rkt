@@ -27,10 +27,10 @@
   (match (list o1 o2)
     [(list-no-order (? Empty? o) _) o]
     [(list (? Path?) (? Path?))
-     (LExp-multiply (make-LExp (list 0 (list 1 o1)))
-                     (make-LExp (list 0 (list 1 o2))))]
+     (LExp-multiply (-lexp (list 0 (list 1 o1)))
+                     (-lexp (list 0 (list 1 o2))))]
     [(list-no-order (? LExp? l) (? Path? p))
-     (LExp-multiply l (make-LExp (list 0 (list 1 p))))]
+     (LExp-multiply l (-lexp (list 0 (list 1 p))))]
     [(list (? LExp?) (? LExp?))
      (LExp-multiply o1 o2)]))
 
@@ -48,8 +48,8 @@
   (match (list o1 o2)
     [(list-no-order (? Empty? o) _) o]
     [(list (? Path?) (? Path?))
-     (make-LExp (list (list 1 o1) (list 1 o2)))]
+     (-lexp (list 1 o1) (list 1 o2))]
     [(list-no-order (? LExp? l) (? Path? p))
-     (LExp-plus l (make-LExp (list 1) (list p)))]
+     (LExp-plus l (-lexp (list 1) (list p)))]
     [(list (? LExp?) (? LExp?))
      (LExp-plus o1 o2)]))

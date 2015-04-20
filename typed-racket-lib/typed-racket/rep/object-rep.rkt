@@ -34,8 +34,8 @@
          LExp-has-var?
          LExp->sexp
          LExp-gcd-shrink
+         -lexp
          (rename-out [LExp:* LExp:]
-                     [list->LExp make-LExp]
                      [LExp-terms* LExp-terms]))
 
 (def-pathelem CarPE () [#:fold-rhs #:base])
@@ -148,8 +148,8 @@
   (dict-ref h path 0))
 
 ;; constructor for LExps
-(define/cond-contract (list->LExp terms)
-  (-> (listof (or/c exact-integer? (list/c exact-integer? Path?))) 
+(define/cond-contract (-lexp . terms)
+  (->* () () #:rest (listof (or/c exact-integer? (list/c exact-integer? Path?))) 
       LExp?)
   (define coef car)
   (define var cdr)
@@ -351,9 +351,7 @@
           (for/list ([x/c (in-dict-pairs terms)])
             (match x/c
               [(cons x coeff)
-               (cond
-                 [(= 1 coeff) (Path->sexp x)]
-                 [else `(* ,coeff ,(Path->sexp x))])]
+               `(* ,coeff ,(Path->sexp x))]
               [_ (int-err "invalid term/coeff pair in LExp->sexp ~a" x/c)])))
         (cons '+ (if (zero? c) terms* (cons c terms*)))])]
     [_ (int-err "invalid LExp in LExp->sexp ~a" l)]))

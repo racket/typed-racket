@@ -40,7 +40,7 @@
           make-StructType make-StructTypeTop
           make-ListDots)
  (only-in (rep object-rep)
-          make-LExp))
+          -lexp))
 
 ;; Racket Reference
 ;; Section 4.1
@@ -3222,48 +3222,51 @@
 ;; & linear inequalities
 [int+ (~> ([x : -Integer] 
            [y : -Integer])
-          (-refine z -Integer 
-                   (-eqSLI (-id-lexp (1 z)) 
-                           (-id-lexp 1 (1 x) (1 y))))
+          (let ([x #'x] [y #'y] [z #'z])
+            (-refine z -Integer 
+                     (-eqSLI (-lexp `(1 ,z)) 
+                             (-lexp 1 `(1 ,x) `(1 ,y)))))
           : -true-filter
-          : (make-LExp (list (list 1 (-id-path x))
-                             (list 1 (-id-path y)))))]
+          : (let ([x #'x] [y #'y]) (-lexp `(1 ,x) `(1 ,y))))]
 [int- (~> ([x : -Integer] 
            [y : -Integer])
-          (-refine z -Integer 
-                   (-eqSLI (-id-lexp (1 z)) 
-                           (-id-lexp -1 (1 x) (1 y))))
+          (let ([x #'x] [y #'y] [z #'z])
+            (-refine z -Integer 
+                     (-eqSLI (-lexp `(1 ,z)) 
+                             (-lexp -1 `(1 ,x) `(1 ,y)))))
           : -true-filter
-          : (-id-lexp (1 x) (-1 y)))]
+          : (let ([x #'x] [y #'y]) (-lexp `(1 ,x) `(-1 ,y))))]
 [int*2 (~> ([x : -Integer]) 
-           (-refine z -Integer 
-                    (-eqSLI (-id-lexp (1 z)) 
-                            (-id-lexp (2 x))))
+           (let ([x #'x] [z #'z])
+             (-refine z -Integer 
+                      (-eqSLI (-lexp `(1 ,z)) 
+                              (-lexp `(2 ,x)))))
            : -true-filter
-           : (-id-lexp (2 x)))]
+           : (let ([x #'x]) (-lexp `(2 ,x))))]
 [int*3 (~> ([x : -Integer]) 
-           (-refine z -Integer 
-                    (-eqSLI (-id-lexp (1 z)) 
-                            (-id-lexp (3 x))))
+           (let ([x #'x] [z #'z])
+             (-refine z -Integer 
+                      (-eqSLI (-lexp `(1 ,z)) 
+                              (-lexp `(3 ,x)))))
            : -true-filter
-           : (-id-lexp (3 x)))]
+           : (let ([x #'x]) (-lexp `(3 ,x))))]
 ;; TODO(amk) multiplication needs not only a latent object... but like
 ;; a latent function that calculates it... wierd
 
 [int<= (->* (list -Integer -Integer)
             -Boolean
-            : (-FS (-SLI (-leq (-obj-lexp (1 (-arg-obj 0)))
-                               (-obj-lexp (1 (-arg-obj 1)))))
+            : (-FS (-SLI (-leq (-lexp `(1 ,(-arg-obj 0)))
+                               (-lexp `(1 ,(-arg-obj 1)))))
                    
-                   (-SLI (-lt (-obj-lexp (1 (-arg-obj 1)))
-                              (-obj-lexp (1 (-arg-obj 0)))))))]
+                   (-SLI (-lt (-lexp `(1 ,(-arg-obj 1)))
+                              (-lexp `(1 ,(-arg-obj 0)))))))]
 [int< (->* (list -Integer -Integer)
            -Boolean
-           : (-FS (-SLI (-lt (-obj-lexp (1 (-arg-obj 0)))
-                             (-obj-lexp (1 (-arg-obj 1)))))
+           : (-FS (-SLI (-lt (-lexp `(1 ,(-arg-obj 0)))
+                             (-lexp `(1 ,(-arg-obj 1)))))
                   
-                  (-SLI (-leq (-obj-lexp (1 (-arg-obj 1)))
-                              (-obj-lexp (1 (-arg-obj 0)))))))]
+                  (-SLI (-leq (-lexp `(1 ,(-arg-obj 1)))
+                              (-lexp `(1 ,(-arg-obj 0)))))))]
 ;; [int< (->* (list -Integer -Integer)
 ;;             -Boolean
 ;;             : (-FS (-SLI (-lt (-lexp-obj (list 1 (-arg-obj 1)))
@@ -3300,18 +3303,18 @@
 [exact-vector-length
  (~> ([v : -VectorTop])
      (-refine i -Index
-              (-SLI (-lt (-obj-lexp (1 (-id-path i)))
-                         (-obj-lexp (1 (-acc-path (list -length) (-id-path v)))))))
+              (-SLI (-lt (-lexp `(1 ,(-id-path i)))
+                         (-lexp `(1 ,(-acc-path (list -len) (-id-path v)))))))
      : -true-filter
-     : (-acc-path (list -length) (-id-path v)))]
+     : (-acc-path (list -len) (-id-path v)))]
 
 ;; TODO(amk) support polymorphism w/ dep fun types
 [safe-vector-ref
  (~> ([v : -VectorTop]
       [x : (-refine i -Integer
-                    (let ([i (-obj-lexp (1 (-id-path i)))]
-                          [vlen (-obj-lexp (1 (-acc-path (list -length) (-id-path v))))])
-                      (-SLI (-leq (-id-lexp 0) i) (-gteq i (-id-lexp 0))
+                    (let ([i (-lexp `(1 ,(-id-path i)))]
+                          [vlen (-lexp `(1 ,(-acc-path (list -len) (-id-path v))))])
+                      (-SLI (-leq (-lexp 0) i) (-gteq i (-lexp 0))
                             (-lt i vlen))))])
      Univ)]
 

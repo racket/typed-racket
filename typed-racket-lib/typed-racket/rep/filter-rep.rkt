@@ -23,7 +23,7 @@
                                  LExp-scale
                                  LExp-add1
                                  LExp-minus
-                                 make-LExp
+                                 -lexp
                                  constant-LExp?
                                  LExp-paths
                                  LExp-path-map
@@ -165,9 +165,9 @@
              (LExp-set-coeff r p 0))]
        [(< a b)
         (leq (LExp-set-coeff (LExp-minus l r) p 0)
-             (make-LExp (list (list (- b a) p))))]
+             (-lexp (list (- b a) p)))]
        [else
-        (leq (make-LExp (list (list (- a b) p)))
+        (leq (-lexp (list (- a b) p))
              (LExp-set-coeff (LExp-minus r l) p 0))])]
     [_ (int-err "invalid leq? for leq-isolate-var" ineq)]))
 

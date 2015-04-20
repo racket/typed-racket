@@ -38,7 +38,8 @@
 (provide star ddd/bound
          current-referenced-aliases
          current-referenced-class-parents
-         current-type-alias-name)
+         current-type-alias-name
+         -lexp)
 
 ;; current-type-alias-name : Parameter<(Option Id)>
 ;; This parameter stores the name of the type alias that is
@@ -74,6 +75,7 @@
 
 (define-literal-syntax-class #:for-label car)
 (define-literal-syntax-class #:for-label cdr)
+(define-literal-syntax-class #:for-label len)
 (define-literal-syntax-class #:for-label colon^ (:))
 (define-literal-syntax-class #:for-label isT^ (-:))
 (define-literal-syntax-class #:for-label notT^ (-!))
@@ -102,7 +104,6 @@
 (define-literal-syntax-class #:for-label values)
 (define-literal-syntax-class #:for-label Top)
 (define-literal-syntax-class #:for-label Bot)
-(define-literal-syntax-class #:for-label where)
 (define-literal-syntax-class #:for-label Refine)
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
@@ -218,7 +219,9 @@
   (pattern :car^
            #:attr pe (make-CarPE))
   (pattern :cdr^
-           #:attr pe (make-CdrPE)))
+           #:attr pe (make-CdrPE))
+  (pattern :len^
+           #:attr pe (make-LengthPE)))
 
 
 (define-syntax-class @
@@ -305,30 +308,64 @@
            #:attr negative (apply -and (attribute p-.prop))
            #:attr object (or (attribute o.object) -empty-obj)))
 
-(define ((parse-obj/ids ids) stx)
-  ;(define non-l-obj (parse-obj/ids ids))
-  ;(define lexp-term (parse-linear-term/ids ids))  
+
+(define ((parse-nonlinear-obj/ids ids) stx)
+  (parameterize ([current-orig-stx stx])
+    (let ([obj ((parse-obj/ids ids) stx)])
+      (cond
+        [(not (LExp? obj)) obj]
+        [else (parse-error "expected a nonlinear object"
+                           "given" stx)]))))
+
+(define ((parse-linear-term/ids ids) stx)
   (parameterize ([current-orig-stx stx])
     (syntax-parse
         stx
-      #;[((~datum +) term:expr terms:expr ...)
+      [((~datum *) n:exact-integer o:expr)
+       (let ([i (syntax->datum #'n)]
+             [obj ((parse-nonlinear-obj/ids ids) #'o)])
+         (list i obj))]
+      [((~datum *) o:expr n:exact-integer)
+       (let ([i (syntax->datum #'n)]
+             [obj ((parse-nonlinear-obj/ids ids) #'o)])
+         (list i obj))]
+      [n:exact-integer
+       (syntax->datum #'n)]
+      [o:expr
+       (list 1 ((parse-nonlinear-obj/ids ids) #'o))]
+      [e
+       (parse-error "expected a linear object"
+                    "given" #'e)])))
+
+(define ((parse-linear-obj/ids ids) stx)
+  (let ([obj ((parse-obj/ids ids) stx)])
+    (cond
+      [(LExp? obj) obj]
+      [(Path? obj)
+       (-lexp `(1 ,obj))]
+      [else (int-err "parse-obj/ids returned non- LExp or Path! ~a" obj)])))
+
+
+(define ((parse-obj/ids ids) stx)
+  (define non-l-obj (parse-nonlinear-obj/ids ids))
+  (define lexp-term (parse-linear-term/ids ids))  
+  (parameterize ([current-orig-stx stx])
+    (syntax-parse
+        stx
+      [((~datum +) term:expr terms:expr ...)
        (let ([terms (map lexp-term (syntax->list #'(term terms ...)))])
-         (make-LExp (for/list ([c/p (in-list terms)])
-                      (match-let ([(cons c p) c/p])
-                        (if p (list c p) c)))))]
-      #;[((~datum *) int:exact-integer obj:expr)
-       (let ([o (non-l-obj #'o)]
+         (apply -lexp terms))]
+      [((~datum *) int:exact-integer obj:expr)
+       (let ([o (non-l-obj #'obj)]
              [n (syntax->datum #'int)])
-         (-obj-lexp (n o)))]
-      #;[((~datum *) obj:expr int:exact-integer)
-       (let ([o (non-l-obj #'o)]
+         (-lexp `(,n ,o)))]
+      [((~datum *) obj:expr int:exact-integer)
+       (let ([o (non-l-obj #'obj)]
              [n (syntax->datum #'int)])
-         (-obj-lexp (n o)))]
-      #;[(pe:path-elem ... x:id)
-       (if (for/or ([y (in-list ids)]) (free-identifier=? #'x y))
-           (-acc-path (attribute pe.pe) (-id-path #'x))
-           (parse-error "expected a bound identifier in type-scope"
-                        "given" #'x))]
+         (-lexp `(,n ,o)))]
+      [(pe:path-elem ... x:id)
+       (let ([x-obj (non-l-obj #'x)])
+         (-acc-path (attribute pe.pe) x-obj))]
       [x:id
        (cond
          [(for/or ([y (in-list ids)]) (free-identifier=? #'x y))
@@ -350,18 +387,18 @@
 
 (define ((parse-prop/ids ids) stx)
   (define obj (parse-obj/ids ids))
-  ;(define l-obj (parse-linear-obj/ids ids))
+  (define l-obj (parse-linear-obj/ids ids))
   (define type (parse-type/ids ids))
   (define prop (parse-prop/ids ids))
   (parameterize ([current-orig-stx stx])
     (syntax-parse stx
       [:Top^ -top]
       [:Bot^ -bot]
-      [(obj-exp:expr obj-exps:expr ... :isT^ t:non-keyword-ty)
+      [(obj-exp:expr obj-exps:expr ... :isT^ ~! t:non-keyword-ty)
        (let ([t (type #'t)])
          (apply -and (for/list ([o (in-syntax #'(obj-exp obj-exps ...))])
                        (-filter t (obj o)))))]
-      [(obj-exp:expr obj-exps:expr ... :notT^ t:non-keyword-ty)
+      [(obj-exp:expr obj-exps:expr ... :notT^ ~! t:non-keyword-ty)
        (let ([t (type #'t)])
          (apply -and (for/list ([o (in-syntax #'(obj-exp obj-exps ...))])
                        (-not-filter t (obj o)))))]
@@ -369,6 +406,44 @@
        (apply -and (map prop (syntax->list #'(ps ...))))]
       [((~datum or) ps:expr ...)
        (apply -or (map prop (syntax->list #'(ps ...))))]
+      [((~datum <) ~! l1:expr l2:expr l-rest:expr ...)
+       (define lobjs (map l-obj (syntax->list #'(l1 l2 l-rest ...))))
+       (define ineqs (for/list ([lhs (in-list lobjs)]
+                                [rhs (in-list (cdr lobjs))])
+                       (-lt lhs rhs)))
+       (-build-SLI ineqs)]
+      [((~or (~datum <=) (~datum ≤)) ~! l1:expr l2:expr l-rest:expr ...)
+       (define lobjs (map l-obj (syntax->list #'(l1 l2 l-rest ...))))
+       (define ineqs (for/list ([lhs (in-list lobjs)]
+                                [rhs (in-list (cdr lobjs))])
+                       (-leq lhs rhs)))
+       (-build-SLI ineqs)]
+      [((~datum =) ~! l1:expr l2:expr l-rest:expr ...)
+       (define lobjs (map l-obj (syntax->list #'(l1 l2 l-rest ...))))
+       (define-values (ineqs1 ineqs2)
+         (for/lists (l1 l2) ([lhs (in-list lobjs)]
+                             [rhs (in-list (cdr lobjs))])
+           (values (-leq lhs rhs) (-leq rhs lhs))))
+       (-build-SLI (append ineqs1 ineqs2))]
+      [((~datum !=)  ~! l1:expr l2:expr l-rest:expr ...)
+       (define lobjs (map l-obj (syntax->list #'(l1 l2 l-rest ...))))
+       (define neqs
+         (for/list ([lhs (in-list lobjs)]
+                    [rhs (in-list (cdr lobjs))])
+           (-SLI (-lt lhs rhs) (-lt rhs lhs))))
+       (apply -or neqs)]
+      [((~or (~datum >=) (~datum ≥)) ~! l1:expr l2:expr l-rest:expr ...)
+       (define lobjs (map l-obj (syntax->list #'(l1 l2 l-rest ...))))
+       (define ineqs (for/list ([lhs (in-list lobjs)]
+                                [rhs (in-list (cdr lobjs))])
+                       (-gteq lhs rhs)))
+       (-build-SLI ineqs)]
+      [((~datum >)  ~! l1:expr l2:expr l-rest:expr ...)
+       (define lobjs (map l-obj (syntax->list #'(l1 l2 l-rest ...))))
+       (define ineqs (for/list ([lhs (in-list lobjs)]
+                                [rhs (in-list (cdr lobjs))])
+                       (-gt lhs rhs)))
+       (-build-SLI ineqs)]
       [e
        (begin (parse-error #:delayed? #t
                            "expected a logical proposition"

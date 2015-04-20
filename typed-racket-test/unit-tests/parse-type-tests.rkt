@@ -10,7 +10,7 @@
            (env tvar-env type-alias-env mvar-env)
            (utils tc-utils)
            (private parse-type)
-           (rep type-rep)
+           (rep type-rep object-rep)
            (only-in (types filter-ops) -or -and)
            (submod typed-racket/base-env/base-types initialize)
            (rename-in (types union abbrev numeric-tower resolve)
@@ -409,7 +409,7 @@
             (x -! String))
     (-refine x -Number (-and (-filter -Integer x)
                              (-not-filter -String x)))]
-   ;;; or prop
+   ;; or prop
    [(Refine [x : Any] (or (x -: Integer)
                           (x -: String)))
     (-refine x Univ (-or (-filter -Integer x)
@@ -420,6 +420,77 @@
                          (-and (-not-filter -Integer x)
                                (-not-filter -Integer y)))
              -top)]
+
+   ;; paths
+   [(Refine [y : (Refine [x : (Pairof Any Any)] ((car x) (cdr y) -: Integer))] Top)
+    (-refine y (-refine x (-pair Univ Univ)
+                         (-and (-filter -Integer (-car-of (-id-path x)))
+                               (-filter -Integer (-cdr-of (-id-path y)))))
+             -top)]
+
+   ;; basic linear inequalities 
+   [(Refine [x : Integer] (<= 0 x))
+    (-refine x -Integer (-SLI (-leq (-lexp 0)
+                                    (-lexp (list 1 (-id-path x))))))]
+   [(Refine [x : Integer] (≤ 0 x))
+    (-refine x -Integer (-SLI (-leq (-lexp 0)
+                                    (-lexp (list 1 (-id-path x))))))]
+   [(Refine [x : Integer] (<= 0 (* 1 x)))
+    (-refine x -Integer (-SLI (-leq (-lexp 0)
+                                    (-lexp (list 1 (-id-path x))))))]
+   [(Refine [x : Integer] (<= 42 (* x 42)))
+    (-refine x -Integer (-SLI (-leq (-lexp 42)
+                                    (-lexp (list 42 (-id-path x))))))]
+   [(Refine [x : Integer] (<= x 0))
+    (-refine x -Integer (-SLI (-leq (-lexp (list 1 (-id-path x)))
+                                    (-lexp 0))))]
+   [(Refine [x : Integer] (< x 0))
+    (-refine x -Integer (-SLI (-lt (-lexp (list 1 (-id-path x)))
+                                   (-lexp 0))))]
+   [(Refine [x : Integer] (> x 0))
+    (-refine x -Integer (-SLI (-gt (-lexp (list 1 (-id-path x)))
+                                   (-lexp 0))))]
+   [(Refine [x : Integer] (≥ 0 x))
+    (-refine x -Integer (-SLI (-gteq (-lexp 0)
+                                     (-lexp (list 1 (-id-path x))))))]
+   [(Refine [x : Integer] (>= 0 x))
+    (-refine x -Integer (-SLI (-gteq (-lexp 0)
+                                     (-lexp (list 1 (-id-path x))))))]
+
+   ;; more complicated linear inequalities
+   [(Refine [x : Integer] (<= 42 (+ 1 (* x 42) (* x 42))))
+    (-refine x -Integer (-SLI (-leq (-lexp 42)
+                                    (-lexp 1 (list 42 (-id-path x))
+                                           (list 42 (-id-path x))))))]
+   [(Refine [x : Integer] (<= (+ 1 (* x 42) (* x 42)) 42))
+    (-refine x -Integer (-SLI (-leq (-lexp 1
+                                           (list 42 (-id-path x))
+                                           (list 42 (-id-path x)))
+                                    (-lexp 42))))]
+   [(Refine [x : Integer] (<= (+ 1 (* 42 x) (* x 42))
+                              (+ 1 (* x 42) (* x 42))))
+    (-refine x -Integer (-SLI (-leq (-lexp 1
+                                           (list 42 (-id-path x))
+                                           (list 42 (-id-path x)))
+                                    (-lexp 1
+                                           (list 42 (-id-path x))
+                                           (list 42 (-id-path x))))))]
+   [(Refine [x : Integer] (<= 0 (car x)))
+    (-refine x -Integer (-SLI (-leq (-lexp 0)
+                                    (-lexp (list 1 (-car-of (-id-path x)))))))]
+   [(Refine [x : Integer] (<= 0 (* 3 (cdr x))))
+    (-refine x -Integer (-SLI (-leq (-lexp 0)
+                                    (-lexp (list 3 (-cdr-of (-id-path x)))))))]
+   [(Refine [v : (Vectorof Any)] (<= 0 (len v)))
+    (-refine x (make-Vector Univ) (-SLI (-leq (-lexp 0)
+                                              (-lexp (list 3 (-len-of (-id-path x)))))))]
+   
+   ;; unbound id
+   [FAIL (Refine [x : Integer] (<= 0 (* y 1)))]
+   ;; nested linear expressions
+   [FAIL (Refine [x : Integer] (<= 0 (* 1 (* 1 x))))]
+   [FAIL (Refine [x : Integer] (<= 0 (+ (+ (* 1 x))
+                                        (* 1 x))))]
    ))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

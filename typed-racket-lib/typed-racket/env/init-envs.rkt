@@ -132,8 +132,8 @@
                                `(quote-syntax ,i)
                                `(list ,(car i) ,(cadr i))))]
     [(LExp: c ps/cs)
-     `(make-LExp ,(cons c (for/list ([p/c (in-list ps/cs)])
-                            (list (car p/c) (sub (cdr p/c))))))]
+     `(apply -lexp ,(cons c (for/list ([p/c (in-list ps/cs)])
+                              (list (car p/c) (sub (cdr p/c))))))]
     [(SLI-leq-pairs: leqs)
      `(car (leqs->SLIs ,(map (λ (p) `(leq ,(sub (car p))
                                           ,(sub (cdr p))))

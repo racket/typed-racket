@@ -491,6 +491,19 @@
    [FAIL (Refine [x : Integer] (<= 0 (* 1 (* 1 x))))]
    [FAIL (Refine [x : Integer] (<= 0 (+ (+ (* 1 x))
                                         (* 1 x))))]
+
+   ;; and / or
+   [(Refine [x : Integer] (and (<= 0 x) (<= x 0)))
+    (-refine x -Integer (-SLI (-leq (-lexp 0)
+                                    (-lexp (list 1 (-id-path x))))
+                              (-leq (-lexp (list 1 (-id-path x)))
+                                    (-lexp 0))))]
+
+   [(Refine [x : Integer] (or (<= 0 x) (<= x 0)))
+    (-refine x -Integer (-or (-SLI (-leq (-lexp 0)
+                                         (-lexp (list 1 (-id-path x)))))
+                             (-SLI (-leq  (-lexp (list 1 (-id-path x)))
+                                          (-lexp 0)))))]
    ))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

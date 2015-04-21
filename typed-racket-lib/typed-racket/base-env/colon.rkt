@@ -37,7 +37,8 @@
 
 (define-syntax (:-helper stx)
   (syntax-parse stx
-    [(_ _ top-level? i:id ty)
+    [(_ orig-stx top-level? i ty)
+     #:fail-unless (identifier? #'i) (err #'orig-stx "expected identifier" #'i)
      (unless (or (syntax-e #'top-level?)
                  (identifier-binding #'i))
        (tc-error/stx #'i
@@ -47,9 +48,9 @@
      (syntax-property (syntax/loc stx (begin (quote (:-internal i ty))
                                              (#%plain-app values)))
                       'disappeared-use #'i)]
-    [(_ orig-stx _ i:id x ...)
+    [(_ orig-stx _ i x ...)
+     #:fail-unless (identifier? #'i) (err #'orig-stx "expected identifier" #'i)
      (case (syntax-length #'(x ...))
-       [(1)  (err #'orig-stx "can only annotate identifiers with types" #'i)]
-       [(0)  (err #'orig-stx "missing type")]
-       [else (err #'orig-stx "bad syntax (multiple types after identifier)")])]))
+       [(0)  (err #'orig-stx "missing type after identifier")]
+       [else (err #'orig-stx "too many types after identifier")])]))
 

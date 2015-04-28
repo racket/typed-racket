@@ -1841,21 +1841,21 @@
   (-Real . -> . N))] ; defined on inexact integers too, but not complex
 [integer-sqrt/remainder
  (from-cases
-  (-Zero . -> . (-values -Zero -Zero))
-  (-One . -> . (-values -One -Zero))
-  (-Byte . -> . (-values -Byte -Byte))
-  (-Index . -> . (-values -Index -Index))
-  (-NonNegFixnum . -> . (-values -Index -NonNegFixnum))
+  (-Zero . -> . (-values (list -Zero -Zero)))
+  (-One . -> . (-values (list -One -Zero)))
+  (-Byte . -> . (-values (list -Byte -Byte)))
+  (-Index . -> . (-values (list -Index -Index)))
+  (-NonNegFixnum . -> . (-values (list -Index -NonNegFixnum)))
 
-  (map (λ (t) (t . -> . (-values t -Int)))
+  (map (λ (t) (t . -> . (-values (list t -Int))))
        (list -Nat -NonNegRat
              -FlonumPosZero -FlonumNegZero -FlonumZero -NonNegFlonum
              -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero -NonNegSingleFlonum
              -InexactRealPosZero -InexactRealNegZero -InexactRealZero -NonNegInexactReal
              -RealZero -NonNegReal))
 
-  (-Rat . -> . (-values -ExactNumber -Int))
-  (-Real . -> . (-values N -Int)))] ; defined on inexact integers too
+  (-Rat . -> . (-values (list -ExactNumber -Int)))
+  (-Real . -> . (-values (list N -Int))))] ; defined on inexact integers too
 
 [log (cl->*
       (-NonNegRat . -> . -Real)

@@ -440,6 +440,7 @@
         (tc-e (extflexpt 0.5t0 0.3t0) -NonNegExtFlonum)
         (tc-e (extflexpt 0.00000000001t0 100000000000.0t0) -NonNegExtFlonum)
         (tc-e (extflexpt -2.0t0 -0.5t0) -ExtFlonum) ; NaN
+        (tc-e (let-values ([(x y) (integer-sqrt/remainder 0)]) (+ x y)) -Zero)
         (tc-e (tanh (ann 0 Nonnegative-Integer)) -NonNegReal)
         (tc-e (sinh (ann 0 Nonpositive-Integer)) -NonPosReal)
         (tc-e (angle -1) (t:Un -InexactReal -Zero))

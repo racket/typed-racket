@@ -93,7 +93,7 @@
                        -InexactRealPosZero -InexactRealNegZero -InexactRealZero
                        -NonNegInexactReal -NonPosInexactReal -InexactReal
                        -RealZero -NonNegReal -NonPosReal -Real)))))
-  
+
   (define (inexact-zero->exact-zero-type)
     (for/list ([t (in-list
                     (list -FlonumPosZero -FlonumNegZero -FlonumZero
@@ -101,7 +101,7 @@
                           -InexactRealPosZero -InexactRealNegZero -InexactRealZero
                           -RealZero))])
       (-> t -Zero)))
-  
+
   (define (exact-round-type) ; also used for exact-truncate
     (from-cases
      (map unop all-int-types)
@@ -109,7 +109,7 @@
      (-> (Un -NonNegRat -NonNegFlonum -NonNegSingleFlonum -NonNegInexactReal -NonNegReal) -Nat)
      (-> (Un -NonPosRat -NonPosFlonum -NonPosSingleFlonum -NonPosInexactReal -NonPosReal) -NonPosInt)
      (-> (Un -Rat -Flonum -SingleFlonum -InexactReal -Real) -Int)))
-  
+
   (define fl-unop (lambda () (unop -Flonum)))
   (define extfl-unop (lambda () (unop -ExtFlonum)))
 
@@ -441,19 +441,19 @@
        (binop -Int -Fixnum))))
 
   ;; A bit of machinery to allow floating point operations to be abstracted over double/extended
-  ;; floating point types without repetition. 
+  ;; floating point types without repetition.
   (define-syntax (define-fl-type-lambda stx)
     (define-syntax-class fl-parameter
       (pattern (generic-name:id flonum-name:id extflonum-name:id)
         #:with get-value (generate-temporary #'generic-name)
-        #:with definitions 
+        #:with definitions
           #'(begin
               (define (get-value)
                 (case (fl-type)
                   [(flonum) flonum-name]
                   [(ext-flonum) extflonum-name]
                   [else (error 'generic-name "Cannot use an fl-type outside of fl-type-lambda")]))
-              (define-syntax generic-name 
+              (define-syntax generic-name
                 (syntax-id-rules ()
                  [_ (get-value)])))))
 
@@ -578,15 +578,15 @@
     (fl-type-lambda
       (from-cases
        (-> -FlZero -Fl B : (-FS (-filter -NonPosFl 1) -top))
-       (-> -Fl -FlZero B : (-FS (-filter -NonNegFl 0) -top))
+       (-> -Fl -FlZero B)
        (-> -PosFl -Fl B)
-       (-> -Fl -PosFl B : (-FS (-filter -PosFl 0) -top))
+       (-> -Fl -PosFl B)
        (-> -NonNegFl -Fl B)
-       (-> -Fl -NonNegFl B : (-FS (-filter -NonNegFl 0) -top))
+       (-> -Fl -NonNegFl B)
        (-> -NegFl -Fl B : (-FS (-filter -NegFl 1) -top))
        (-> -Fl -NegFl B)
        (-> -NonPosFl -Fl B)
-       (-> -Fl -NonPosFl B : (-FS (-filter -NonPosFl 0) -top))
+       (-> -Fl -NonPosFl B : (-FS (-filter -NonNegFl 0) -top))
        (comp -Fl))))
   (define flmin-type
     (fl-type-lambda

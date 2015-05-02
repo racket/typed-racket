@@ -47,7 +47,7 @@
 
   (do-standard-inits)
   (print-complex-filters? #t)
-  
+
   ;; tr-expand: syntax? -> syntax?
   ;; Expands out a form and annotates it with necesarry TR machinery.
   (define (tr-expand stx)
@@ -1130,10 +1130,10 @@
               (-polydots (z x y)
                          (t:-> (cl->*
                                 ((t:-> x z) (-pair x (-lst x)) . t:-> . (-pair z (-lst z)))
-                                ((list ((list x) (y y) . ->... . z) (-lst x)) 
-                                 ((-lst y) y) 
+                                ((list ((list x) (y y) . ->... . z) (-lst x))
+                                 ((-lst y) y)
                                  . ->... . (-lst z)))
-                               : -true-filter 
+                               : -true-filter
                                : (-id-path #'map)))]
 
         ;; error tests
@@ -1293,7 +1293,7 @@
                              'whatever))
          #:ret (ret (-val 'whatever) -true-filter)]
         [tc-e
-         (call-with-values (lambda () 
+         (call-with-values (lambda ()
                              ((inst time-apply Number Number Number Number Number Number Number)
                               + (list 1 2 3 4 5 6)))
                            (lambda: ([v : (Listof Number)]
@@ -1764,7 +1764,7 @@
               #:ret (ret -Boolean -true-filter))
         (tc-e (let: ((e : Compiled-Expression (compile #'(module + racket 2))))
                 (compiled-module-expression? e)) -Boolean)
-        
+
         ;Dynamic Require
         (tc-e (dynamic-require "module/path" #f) -Void)
         (tc-e (dynamic-require 'module/path #f) -Void)
@@ -2067,7 +2067,7 @@
                 (: foo ((Sequenceof Integer) -> (Sequenceof Any)))
                 (define foo
                   (λ (x)
-                    (cond 
+                    (cond
                       [(boolean? x) (void)]
                       [(symbol? x) (void)]
                       [(char? x) (void)]
@@ -2141,7 +2141,7 @@
            ((inst filter Any Symbol) symbol? null)
            (-lst -Symbol)]
         [tc-e/t (ann (plambda: (A -Boolean ...) ((a : A) b : B ... B)
-                       (apply (inst values A B ... B) a b)) 
+                       (apply (inst values A B ... B) a b))
                      (All (A B ...) (A B ... -> (values A B ... B))))
               (-polydots (a b) ((list a) (b b) . ->... . (make-ValuesDots (list (-result a)) b 'b)))]
         [tc-e/t (ann (ann 'x Symbol) Symbol) -Symbol]
@@ -2406,12 +2406,12 @@
                (place-channel-put c1 "a"))
              -Void]
        [tc-e (place-message-allowed? 'msg) -Boolean]
-       
+
        [tc-e (let ()
                (: bar ((Evtof Any) -> (Evtof Any)))
                (define bar
                  (λ (x)
-                   (cond 
+                   (cond
                      [(boolean? x) "nope"]
                      [(symbol? x) "nope"]
                      [(char? x) "nope"]
@@ -3180,26 +3180,26 @@
 
 
        [tc-e
-         (tr:lambda xs (tr:lambda (x) 
+         (tr:lambda xs (tr:lambda (x)
                          (apply values (map (tr:lambda (z) (tr:lambda (y) (symbol? x))) xs))))
          #:ret
            (ret (-polydots (a ...)
                   (->... (list) (a a)
                          (-values (list
                                    (t:-> Univ
-                                         (-values-dots 
+                                         (-values-dots
                                           (list)
-                                          (t:-> Univ -Boolean 
+                                          (t:-> Univ -Boolean
                                                 : (-FS (-filter -Symbol (list 1 0)) -top)) 'a)))))))
            #:expected
            (ret (-polydots (a ...)
-                  (->... 
-                   (list) (a a) 
-                   (-values 
+                  (->...
+                   (list) (a a)
+                   (-values
                     (list
-                     (t:-> Univ 
-                           (-values-dots 
-                            (list) 
+                     (t:-> Univ
+                           (-values-dots
+                            (list)
                             (t:-> Univ -Boolean : (-FS (-filter -Symbol (list 1 0)) -top)) 'a)))))))]
 
        [tc-err
@@ -3209,7 +3209,7 @@
          (lambda xs (inst (apply values (plambda: (b) ([x : b]) x) xs) Symbol))
          #:ret (ret (-polydots (a ...) (->... (list) (a a)
                                               (-values-dots (list (t:-> -Symbol -Symbol)) a 'a))))
-         #:expected (ret (-polydots (a ...) 
+         #:expected (ret (-polydots (a ...)
                                     (->... (list) (a a)
                                            (-values-dots (list (t:-> -Symbol -Symbol)) a 'a))))]
 
@@ -3401,10 +3401,10 @@
           (raise 'foo))
         #:ret (ret -String)
         #:msg #rx"expected: Symbol.*given: Any"]
-       
+
        [tc-err
         (raise (λ ([x : Number]) (add1 x)))]
-       
+
        [tc-err
         (raise (exn:fail:syntax "" (current-continuation-marks)
                                 (list (datum->syntax #f add1))))]
@@ -3452,7 +3452,7 @@
        [tc-e ((letrec ((loop (lambda: ([x : (Listof Integer)]) (cond ((null? (cdr x)) #t) (else #f))))) loop)
               (list 1 2))
              -Boolean]
-       
+
        ;; bottom propogation from cons
        [tc-e (let ()
                (: f ((U (Listof Number) (Listof String)) -> (Listof Number)))
@@ -3462,11 +3462,11 @@
                                   [else (map string-length l)])))
                (void))
              -Void]
-       
+
        ;; aliasing unit tests
        [tc-e (let ()
                (: foo (-> Any Number))
-               (define foo 
+               (define foo
                  (λ (x)
                    (let ([y x])
                      (if (number? y)
@@ -3474,7 +3474,7 @@
                          42))))
                (void))
              -Void]
-       
+
        [tc-e (let ()
                (: foo (-> Any Number))
                (define foo
@@ -3482,14 +3482,14 @@
                    (match x
                      [(? number?) x]
                      [`(_ . (_ . ,(? number?))) (cddr x)]
-                     [`(_ . (_ . ,(? pair? p))) 
+                     [`(_ . (_ . ,(? pair? p)))
                       (if (number? (caddr x))
                           (car p)
                           41)]
                      [_ 42])))
                (void))
              -Void]
-       
+
        [tc-err (let ()
                  (: foo (-> Any Number))
                  (define foo
@@ -3499,7 +3499,7 @@
                               (if (number? x)
                                   x*
                                   42))))))]
-       
+
        ;; ensure let-aliasing doesn't cause problems w/ type variable types
        [tc-e (let ()
                (: foo (All (A) (-> A (Tuple Number A))))
@@ -3512,7 +3512,7 @@
                        [else (list 42 x*)]))))
                (void))
              -Void]
-       
+
        ;; tests looking up path-types into unions
        [tc-e (let ()
                (: foo ((U (Pairof Number Number) (Pairof Number String)) -> Number))
@@ -3521,7 +3521,7 @@
                                x)))
                (void))
              -Void]
-       
+
        ;; tests looking up path-types into polymorphic functions
        [tc-e (let ()
                (: poly-foo (All (α β) (U (Pairof Number α) (Pairof Number β)) -> Number))
@@ -3529,7 +3529,7 @@
                                          x)))
                (void))
              -Void]
-       
+
        [tc-e (let ()
                (: poly-foo (All (α β) ((U (Pairof Number α) (Pairof Number β)) -> (U α β))))
                (define poly-foo (λ (p)
@@ -3537,7 +3537,7 @@
                                     x)))
                (void))
              -Void]
-       
+
        [tc-e (let ()
                (: poly-foo-dots (All (α ... β) (U (Pairof Number α) (Pairof Number β)) -> Number))
                (define poly-foo-dots (λ (p)
@@ -3633,6 +3633,114 @@
        [tc-e/t ((inst values Any) "a") -String]
        [tc-e ((inst second Any Any Any) (list "a" "b")) -String]
        [tc-e/t (abs 4) -PosByte]
+
+       ;; PR 124: Tests for flonum typechecking
+       [tc-e
+         (ann (let ([x : Flonum-Zero 0.0])
+                (if (fl>= x (ann -4.0 Flonum))
+                  x -3.0))  Flonum)
+         -Fl]
+        [tc-e
+          (ann (let ([x : Flonum-Zero 0.0])
+                 (if (fl<= x (ann -4.0 Flonum))
+                   -3.0 x))  Flonum)
+          -Fl]
+
+        ;; -PosFl -Fl
+        [tc-e
+          (ann (let ([x : Positive-Flonum 5.0])
+                 (if (fl>= x (ann 1.0 Flonum))
+                   x 1.0))  Flonum)
+          -Fl]
+        [tc-e
+          (ann (let ([x : Positive-Flonum 5.0])
+                 (if (fl<= x (ann 1.0 Flonum))
+                   1.0 x))  Flonum)
+          -Fl]
+
+        ;; -NonNegFl -Fl
+        [tc-e
+          (ann
+            (let ([x : Nonnegative-Flonum 5.0])
+              (if (fl>= x (ann 1.0 Flonum))
+                x 1.0))  Flonum)
+          -Fl]
+        [tc-e
+          (ann (let ([x : Nonnegative-Flonum 5.0])
+                 (if (fl<= x (ann 1.0 Flonum))
+                   1.0 x))  Flonum)
+          -Fl]
+
+        ;; -NonPosFl -Fl
+        [tc-e
+          (ann (let ([x : Nonpositive-Flonum -1.0])
+                 (if (fl>= x (ann -5.0 Flonum))
+                   x -2.0)) Flonum)
+          -Fl]
+        [tc-e
+          (ann (let ([x : Nonpositive-Flonum -1.0])
+                 (if (fl<= x (ann -5.0 Flonum))
+                   -2.0 x)) Flonum)
+          -Fl]
+
+        ;; -NegFl -Fl
+        [tc-e
+          (ann (let ([x : Negative-Flonum -1.0])
+                 (if (fl>= x (ann -5.0 Flonum))
+                   x -2.0)) Flonum)
+          -Fl]
+        [tc-e
+          (ann (let ([x : Negative-Flonum -1.0])
+                 (if (fl<= x (ann -5.0 Flonum))
+                   -2.0 x)) Flonum)
+          -Fl]
+
+       ;; Error tests
+       ;; Flonum, Flonum-Zero
+       [tc-err
+         (ann (let ([x : Flonum 5.0])
+                (if (fl>= x (ann 0.0 Flonum-Zero))
+                  x 0.0))  Flonum-Zero)]
+       [tc-err
+         (ann (let ([x : Flonum 5.0])
+                (if (fl<= x (ann 0.0 Flonum-Zero))
+                  0.0 x))  Flonum-Zero)]
+       ;; Flonum, Positive-Flownum
+       [tc-err
+         (ann (let ([x : Flonum 5.0])
+                (if (fl>= x (ann 1.0 Positive-Flonum))
+                  x 1.0))  Positive-Flonum)]
+       [tc-err
+         (ann (let ([x : Flonum 5.0])
+                (if (fl<= x (ann 1.0 Positive-Flonum))
+                  1.0 x))  Positive-Flonum)]
+       ;; Flonum, Nonnegative-Flonum
+       [tc-err
+         (ann (let ([x : Flonum 5.0])
+                (if (fl>= x (ann 1.0 Nonnegative-Flonum))
+                  x 1.0))  Nonnegative-Flonum)]
+       [tc-err
+         (ann (let ([x : Flonum 5.0])
+                (if (fl<= x (ann 1.0 Nonnegative-Flonum))
+                  1.0 x))  Nonnegative-Flonum)]
+       ;;Flonum, Negative-Flonum
+       [tc-err
+         (ann (let ([x : Flonum -1.0])
+                (if (fl>= x (ann -5.0 Negative-Flonum))
+                  x -2.0)) Negative-Flonum)]
+       [tc-err
+         (ann (let ([x : Flonum -1.0])
+                (if (fl<= x (ann -5.0 Negative-Flonum))
+                  -2.0 x)) Negative-Flonum)]
+       ;; Flonum, Nonpositive-Flonum
+       [tc-err
+         (ann (let ([x : Flonum 5.0])
+                (if (fl>= x (ann -4.0 Nonpositive-Flonum))
+                  x -3.0))  Nonpositive-Flonum)]
+       [tc-err
+         (ann (let ([x : Flonum 5.0])
+                (if (fl<= x (ann -4.0 Nonpositive-Flonum))
+                  -3.0 x)))]
        )
 
   (test-suite

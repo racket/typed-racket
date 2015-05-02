@@ -13,10 +13,13 @@
 
 (provide remove-provides provide? generate-prov)
 
+;; Returns #t for safe provides. Returns #f for non-provide forms
+;; and unsafe provides for which contracts will not be generated.
 (define (provide? form)
   (syntax-parse form
     #:literal-sets (kernel-literals)
-    [(#%provide . rest) form]
+    [(~and (#%provide . rest) (~not _:unsafe-provide^))
+     form]
     [_ #f]))
 
 (define (remove-provides forms)

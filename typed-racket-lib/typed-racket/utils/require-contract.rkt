@@ -7,7 +7,7 @@
          (for-syntax racket/base
                      syntax/parse))
 
-(provide require/contract define-ignored)
+(provide require/contract define-ignored rename-without-provide)
 
 (define-syntax (define-ignored stx)
   (syntax-case stx ()
@@ -26,6 +26,17 @@
                                           'inferred-name
                                           (syntax-e #'name)))])]))
 
+;; Define a rename-transformer that's set up to avoid being provided
+;; by all-defined-out or related forms.
+(define-syntax (rename-without-provide stx)
+  (syntax-parse stx
+    [(_ nm:id hidden:id)
+     #'(define-syntax nm
+         (make-rename-transformer
+          (syntax-property (syntax-property (quote-syntax hidden)
+                                            'not-free-identifier=? #t)
+                           'not-provide-all-defined #t)))]))
+
 ;; Requires an identifier from an untyped module into a typed module
 ;; nm is the import
 ;; hidden is an id that will end up being the actual definition
@@ -42,11 +53,7 @@
   (syntax-parse stx
     [(require/contract nm:renameable hidden:id cnt lib)
      #`(begin (require (only-in lib [nm.orig-nm nm.orig-nm-r]))
-              (define-syntax nm.nm
-                (make-rename-transformer
-                 (syntax-property (syntax-property (quote-syntax hidden)
-                                                   'not-free-identifier=? #t)
-                                  'not-provide-all-defined #t)))
+              (rename-without-provide nm.nm hidden)
 
               (define-ignored hidden
                 (contract cnt

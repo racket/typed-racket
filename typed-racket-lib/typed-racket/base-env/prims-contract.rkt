@@ -45,6 +45,15 @@
         require/typed-legacy require/typed require/typed/provide
         require-typed-struct/provide cast make-predicate define-predicate))
 
+;; unsafe operations go in this submodule
+(module* unsafe #f
+  ;; turned into a macro on the requiring side
+  (provide -unsafe-require/typed))
+
+;; used for private unsafe functionality in require macros
+;; *do not export*
+(define-syntax unsafe-kw (syntax-rules ()))
+
 (require (for-template (submod "." forms) "../utils/require-contract.rkt"
                        (submod "../typecheck/internal-forms.rkt" forms)
                        "colon.rkt"
@@ -92,11 +101,12 @@
   (pattern (nm:id parent:id)))
 
 
-(define-values (require/typed-legacy require/typed)
+(define-values (require/typed-legacy require/typed -unsafe-require/typed)
  (let ()
   (define-syntax-class opt-rename
-    #:attributes (nm spec)
+    #:attributes (nm orig-nm spec)
     (pattern nm:id
+             #:with orig-nm #'nm
              #:with spec #'nm)
     (pattern (orig-nm:id internal-nm:id)
              #:with spec #'(orig-nm internal-nm)
@@ -137,44 +147,58 @@
     (pattern [(~or (~datum opaque) #:opaque) opaque ty:id pred:id #:name-exists]
              #:with opt #'(#:name-exists)))
 
-  (define-syntax-class (clause legacy lib)
+  (define-syntax-class (clause legacy unsafe? lib)
    #:attributes (spec)
    (pattern oc:opaque-clause #:attr spec
      #`(require/opaque-type oc.ty oc.pred #,lib . oc.opt))
    (pattern (~var strc (struct-clause legacy)) #:attr spec
-     #`(require-typed-struct strc.nm (strc.body ...) strc.constructor-parts ... #,lib))
+     #`(require-typed-struct strc.nm (strc.body ...) strc.constructor-parts ...
+                             #,@(if unsafe? #'(unsafe-kw) #'())
+                             #,lib))
    (pattern sig:signature-clause #:attr spec
      #`(require-typed-signature sig.sig-name (sig.var ...) (sig.type ...) #,lib))
    (pattern sc:simple-clause #:attr spec
-     #`(require/typed #:internal sc.nm sc.ty #,lib)))
+     #`(require/typed #:internal sc.nm sc.ty #,lib
+                      #,@(if unsafe? #'(unsafe-kw) #'()))))
 
 
-  (define ((r/t-maker legacy) stx)
+  (define ((r/t-maker legacy unsafe?) stx)
     (unless (or (unbox typed-context?) (eq? (syntax-local-context) 'module-begin))
       (raise-syntax-error #f "only allowed in a typed module" stx))
     (syntax-parse stx
-      [(_ lib:expr (~var c (clause legacy #'lib)) ...)
+      [(_ lib:expr (~var c (clause legacy unsafe? #'lib)) ...)
        (when (zero? (syntax-length #'(c ...)))
          (raise-syntax-error #f "at least one specification is required" stx))
        #`(begin c.spec ...)]
-      [(_ #:internal nm:opt-rename ty lib (~optional [~seq #:struct-maker parent]) ...)
+      [(_ #:internal nm:opt-rename ty lib
+          (~optional [~seq #:struct-maker parent])
+          (~optional (~and (~seq (~literal unsafe-kw))
+                           (~bind [unsafe? #t]))
+                     #:defaults ([unsafe? #f])))
        (define/with-syntax hidden (generate-temporary #'nm.nm))
        (define/with-syntax sm (if (attribute parent)
                                   #'(#:struct-maker parent)
                                   #'()))
-       ;; define `cnt*` to be fixed up later by the module type-checking
-       (define cnt*
-         (syntax-local-lift-expression
-          (make-contract-def-rhs #'ty #f (attribute parent))))
-       (quasisyntax/loc stx
-         (begin
-           ;; register the identifier so that it has a binding (for top-level)
-           #,@(if (eq? (syntax-local-context) 'top-level)
-                  (list #'(define-syntaxes (hidden) (values)))
-                  null)
-           #,(internal #'(require/typed-internal hidden ty . sm))
-           #,(ignore #`(require/contract nm.spec hidden #,cnt* lib))))]))
-  (values (r/t-maker #t) (r/t-maker #f))))
+       (cond [(not (attribute unsafe?))
+              ;; define `cnt*` to be fixed up later by the module type-checking
+              (define cnt*
+                (syntax-local-lift-expression
+                 (make-contract-def-rhs #'ty #f (attribute parent))))
+              (quasisyntax/loc stx
+                (begin
+                  ;; register the identifier so that it has a binding (for top-level)
+                  #,@(if (eq? (syntax-local-context) 'top-level)
+                         (list #'(define-syntaxes (hidden) (values)))
+                         null)
+                  #,(internal #'(require/typed-internal hidden ty . sm))
+                  #,(ignore #`(require/contract nm.spec hidden #,cnt* lib))))]
+             [else
+              (quasisyntax/loc stx
+                (begin
+                  (require (only-in lib [nm.orig-nm hidden]))
+                  (rename-without-provide nm.nm hidden)
+                  #,(internal #'(require/typed-internal hidden ty . sm))))])]))
+  (values (r/t-maker #t #f) (r/t-maker #f #f) (r/t-maker #f #t))))
 
 
 (define (require/typed/provide stx)
@@ -356,10 +380,17 @@
    (pattern (~seq #:constructor-name name:id) #:attr extra #f)
    (pattern (~seq #:extra-constructor-name name:id) #:attr extra #t))
 
+  (define-splicing-syntax-class unsafe-clause
+   (pattern (~seq) #:attr unsafe? #f)
+   (pattern (~seq (~literal unsafe-kw)) #:attr unsafe? #t))
 
   (define ((rts legacy) stx)
     (syntax-parse stx #:literals (:)
-      [(_ name:opt-parent ([fld : ty] ...) (~var input-maker (constructor-term legacy #'name.nm)) lib)
+      [(_ name:opt-parent
+          ([fld : ty] ...)
+          (~var input-maker (constructor-term legacy #'name.nm))
+          unsafe:unsafe-clause
+          lib)
        (with-syntax* ([nm #'name.nm]
                       [parent #'name.parent]
                       [hidden (generate-temporary #'name.nm)]
@@ -439,17 +470,20 @@
                          #,(ignore #'(require/contract pred hidden (any/c . c-> . boolean?) lib))
                          #,(internal #'(require/typed-internal hidden (Any -> Boolean : nm)))
                          (require/typed #:internal (maker-name real-maker) nm lib
-                                        #:struct-maker parent)
+                                        #:struct-maker parent
+                                        #,@(if (attribute unsafe.unsafe?) #'(unsafe-kw) #'()))
 
                          ;This needs to be a different identifier to meet the specifications
                          ;of struct (the id constructor shouldn't expand to it)
                          #,(if (syntax-e #'extra-maker)
-                               #'(require/typed #:internal (maker-name extra-maker) nm lib
-                                                #:struct-maker parent)
+                               #`(require/typed #:internal (maker-name extra-maker) nm lib
+                                                #:struct-maker parent
+                                                #,@(if (attribute unsafe.unsafe?) #'(unsafe-kw) #'()))
                                #'(begin))
 
-                         (require/typed lib
-                           [sel (nm -> ty)]) ...)))]))
+                         #,@(if (attribute unsafe.unsafe?)
+                                #'((require/typed #:internal sel (nm -> ty) lib unsafe-kw) ...)
+                                #'((require/typed lib [sel (nm -> ty)]) ...)))))]))
 
   (values (rts #t) (rts #f))))
 

@@ -74,5 +74,6 @@
   (tr:class:local-table tr:class:local-table)
   (tr:class:name-table tr:class:name-table)
   (tr:class:def tr:class:def)
+  (unsafe-provide unsafe-provide #:mark)
   )
 

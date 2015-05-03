@@ -3634,113 +3634,107 @@
        [tc-e ((inst second Any Any Any) (list "a" "b")) -String]
        [tc-e/t (abs 4) -PosByte]
 
-       ;; PR 124: Tests for flonum typechecking
-       [tc-e
-         (ann (let ([x : Flonum-Zero 0.0])
-                (if (fl>= x (ann -4.0 Flonum))
-                  x -3.0))  Flonum)
-         -Fl]
-        [tc-e
-          (ann (let ([x : Flonum-Zero 0.0])
-                 (if (fl<= x (ann -4.0 Flonum))
-                   -3.0 x))  Flonum)
-          -Fl]
-
-        ;; -PosFl -Fl
-        [tc-e
-          (ann (let ([x : Positive-Flonum 5.0])
-                 (if (fl>= x (ann 1.0 Flonum))
-                   x 1.0))  Flonum)
-          -Fl]
-        [tc-e
-          (ann (let ([x : Positive-Flonum 5.0])
-                 (if (fl<= x (ann 1.0 Flonum))
-                   1.0 x))  Flonum)
-          -Fl]
-
-        ;; -NonNegFl -Fl
-        [tc-e
-          (ann
-            (let ([x : Nonnegative-Flonum 5.0])
-              (if (fl>= x (ann 1.0 Flonum))
-                x 1.0))  Flonum)
-          -Fl]
-        [tc-e
-          (ann (let ([x : Nonnegative-Flonum 5.0])
-                 (if (fl<= x (ann 1.0 Flonum))
-                   1.0 x))  Flonum)
-          -Fl]
-
-        ;; -NonPosFl -Fl
-        [tc-e
-          (ann (let ([x : Nonpositive-Flonum -1.0])
-                 (if (fl>= x (ann -5.0 Flonum))
-                   x -2.0)) Flonum)
-          -Fl]
-        [tc-e
-          (ann (let ([x : Nonpositive-Flonum -1.0])
-                 (if (fl<= x (ann -5.0 Flonum))
-                   -2.0 x)) Flonum)
-          -Fl]
-
-        ;; -NegFl -Fl
-        [tc-e
-          (ann (let ([x : Negative-Flonum -1.0])
-                 (if (fl>= x (ann -5.0 Flonum))
-                   x -2.0)) Flonum)
-          -Fl]
-        [tc-e
-          (ann (let ([x : Negative-Flonum -1.0])
-                 (if (fl<= x (ann -5.0 Flonum))
-                   -2.0 x)) Flonum)
-          -Fl]
-
-       ;; Error tests
-       ;; Flonum, Flonum-Zero
-       [tc-err
-         (ann (let ([x : Flonum 5.0])
-                (if (fl>= x (ann 0.0 Flonum-Zero))
-                  x 0.0))  Flonum-Zero)]
-       [tc-err
-         (ann (let ([x : Flonum 5.0])
-                (if (fl<= x (ann 0.0 Flonum-Zero))
-                  0.0 x))  Flonum-Zero)]
-       ;; Flonum, Positive-Flownum
-       [tc-err
-         (ann (let ([x : Flonum 5.0])
-                (if (fl>= x (ann 1.0 Positive-Flonum))
-                  x 1.0))  Positive-Flonum)]
-       [tc-err
-         (ann (let ([x : Flonum 5.0])
-                (if (fl<= x (ann 1.0 Positive-Flonum))
-                  1.0 x))  Positive-Flonum)]
-       ;; Flonum, Nonnegative-Flonum
-       [tc-err
-         (ann (let ([x : Flonum 5.0])
-                (if (fl>= x (ann 1.0 Nonnegative-Flonum))
-                  x 1.0))  Nonnegative-Flonum)]
-       [tc-err
-         (ann (let ([x : Flonum 5.0])
-                (if (fl<= x (ann 1.0 Nonnegative-Flonum))
-                  1.0 x))  Nonnegative-Flonum)]
-       ;;Flonum, Negative-Flonum
-       [tc-err
-         (ann (let ([x : Flonum -1.0])
-                (if (fl>= x (ann -5.0 Negative-Flonum))
-                  x -2.0)) Negative-Flonum)]
-       [tc-err
-         (ann (let ([x : Flonum -1.0])
-                (if (fl<= x (ann -5.0 Negative-Flonum))
-                  -2.0 x)) Negative-Flonum)]
-       ;; Flonum, Nonpositive-Flonum
-       [tc-err
-         (ann (let ([x : Flonum 5.0])
-                (if (fl>= x (ann -4.0 Nonpositive-Flonum))
-                  x -3.0))  Nonpositive-Flonum)]
-       [tc-err
-         (ann (let ([x : Flonum 5.0])
-                (if (fl<= x (ann -4.0 Nonpositive-Flonum))
-                  -3.0 x)))]
+       ;; PR 125: Tests for flonum predicate typechecking
+       [tc-e/t
+         (lambda: ([x : Flonum-Zero] [y : Flonum])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -FlonumZero -Flonum
+               (make-Values (list
+                              (-result -Boolean (-FS (-filter -NonNegFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -FlonumZero 1) -top))
+                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -NonPosFlonum 1) -top)))))]
+       [tc-e/t
+         (lambda: ([x : Flonum] [y : Flonum-Zero])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -Flonum -FlonumZero
+               (make-Values (list
+                              (-result -Boolean (-FS (-filter -NonPosFlonum 0) -top))
+                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
+                              (-result -Boolean (-FS (-filter -FlonumZero 0) -top))
+                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
+                              (-result -Boolean))))]
+       [tc-e/t
+         (lambda: ([x : Positive-Flonum] [y : Flonum])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -PosFlonum -Flonum
+               (make-Values (list
+                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
+                              (-result -Boolean)
+                              (-result -Boolean))))]
+       [tc-e/t
+         (lambda: ([x : Flonum] [y : Positive-Flonum])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -Flonum -PosFlonum
+               (make-Values (list
+                              (-result -Boolean)
+                              (-result -Boolean)
+                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
+                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
+                              (-result -Boolean))))]
+       [tc-e/t
+         (lambda: ([x : Nonnegative-Flonum] [y : Flonum])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -NonNegFlonum -Flonum
+               (make-Values (list
+                              (-result -Boolean (-FS (-filter -NonNegFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -NonNegFlonum 1) -top))
+                              (-result -Boolean)
+                              (-result -Boolean))))]
+       [tc-e/t
+         (lambda: ([x : Flonum] [y : Nonnegative-Flonum])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -Flonum -NonNegFlonum
+               (make-Values (list
+                              (-result -Boolean)
+                              (-result -Boolean)
+                              (-result -Boolean (-FS (-filter -NonNegFlonum 0) -top))
+                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
+                              (-result -Boolean))))]
+       [tc-e/t
+         (lambda: ([x : Negative-Flonum] [y : Flonum])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -NegFlonum -Flonum
+               (make-Values (list
+                              (-result -Boolean)
+                              (-result -Boolean)
+                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top)))))]
+       [tc-e/t
+         (lambda: ([x : Flonum] [y : Negative-Flonum])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -Flonum -NegFlonum
+               (make-Values (list
+                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
+                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
+                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
+                              (-result -Boolean)
+                              (-result -Boolean))))]
+       [tc-e/t
+         (lambda: ([x : Nonpositive-Flonum] [y : Flonum])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -NonPosFlonum -Flonum
+               (make-Values (list
+                              (-result -Boolean)
+                              (-result -Boolean)
+                              (-result -Boolean (-FS (-filter -NonPosFlonum 1) -top))
+                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top))
+                              (-result -Boolean))))]
+       [tc-e/t
+         (lambda: ([x : Flonum] [y : Nonpositive-Flonum])
+           (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
+         (t:-> -Flonum -NonPosFlonum
+               (make-Values (list
+                              (-result -Boolean (-FS (-filter -NonPosFlonum 0) -top))
+                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
+                              (-result -Boolean (-FS (-filter -NonPosFlonum 0) -top))
+                              (-result -Boolean)
+                              (-result -Boolean (-FS (-filter -NonNegFlonum 0) -top)))))]
        )
 
   (test-suite

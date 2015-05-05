@@ -24,6 +24,9 @@
 (define-syntax gen-test-main
   (syntax-parser
     [(stx:id)
-     #`(module* main #f
-         (require rackunit/text-ui)
-         (void (run-tests #,(datum->syntax #'stx 'tests))))]))
+     #`(begin
+         (module* main #f
+           (require rackunit/text-ui)
+           (void (run-tests #,(datum->syntax #'stx 'tests))))
+         (module* test #f
+           (require (submod ".." main))))]))

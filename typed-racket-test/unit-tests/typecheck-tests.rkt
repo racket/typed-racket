@@ -3654,7 +3654,7 @@
                               (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
                               (-result -Boolean (-FS (-filter -FlonumZero 0) -top))
                               (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
-                              (-result -Boolean))))]
+                              (-result -Boolean (-FS (-filter -NonNegFlonum 0) -top)))))]
        [tc-e/t
          (lambda: ([x : Positive-Flonum] [y : Flonum])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
@@ -3674,7 +3674,7 @@
                               (-result -Boolean)
                               (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
                               (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
-                              (-result -Boolean))))]
+                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top)))))]
        [tc-e/t
          (lambda: ([x : Nonnegative-Flonum] [y : Flonum])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
@@ -3694,7 +3694,7 @@
                               (-result -Boolean)
                               (-result -Boolean (-FS (-filter -NonNegFlonum 0) -top))
                               (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
-                              (-result -Boolean))))]
+                              (-result -Boolean (-FS (-filter -NonNegFlonum 0) -top)))))]
        [tc-e/t
          (lambda: ([x : Negative-Flonum] [y : Flonum])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
@@ -3724,7 +3724,7 @@
                               (-result -Boolean)
                               (-result -Boolean (-FS (-filter -NonPosFlonum 1) -top))
                               (-result -Boolean (-FS (-filter -NegFlonum 1) -top))
-                              (-result -Boolean))))]
+                              (-result -Boolean (-FS (-filter -NonPosFlonum 1) -top)))))]
        [tc-e/t
          (lambda: ([x : Flonum] [y : Nonpositive-Flonum])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
@@ -3734,7 +3734,7 @@
                               (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
                               (-result -Boolean (-FS (-filter -NonPosFlonum 0) -top))
                               (-result -Boolean)
-                              (-result -Boolean (-FS (-filter -NonNegFlonum 0) -top)))))]
+                              (-result -Boolean))))]
        )
 
   (test-suite

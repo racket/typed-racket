@@ -2038,4 +2038,49 @@
                    [bsp-trees-val  bsp-trees-val]
                    [else 5]))))
            (void))
-         -Void]))
+         -Void]
+  ;; tests private fields declared with define-values
+  [tc-e (let ()
+          (send
+            (new
+              (class object%
+                (super-new)
+                (define-values (a b) (values 1 "foo"))
+                (: get-ab (-> (Values Integer String)))
+                (define/public (get-ab) (values a b))))
+            get-ab)
+          (void))
+        -Void]
+  [tc-e (let ()
+          (send
+            (new
+              (class object%
+                (super-new)
+                (define-values (a b)
+                  (let ([x 1] [y "foo"]) (values x y)))
+                (: get-ab (-> (Values Integer String)))
+                (define/public (get-ab) (values a b))))
+            get-ab)
+          (void))
+        -Void]
+  ;; Failure tests for soundness of private field initialization
+  [tc-err (let ()
+            (define c%
+              (class object%
+                (super-new)
+                (: a String)
+                (define-values (a b) (values 1 2))
+                (: get-a (-> String))
+                (define/public (get-a) a)))
+            (error "foo"))
+          #:msg #rx"expected: String.*given: Integer"]
+  [tc-err (let ()
+            (define c%
+              (class object%
+                (super-new)
+                (: a String)
+                (define-values (a b) (let ([z 1]) (values z z)))
+                (: get-a (-> String))
+                (define/public (get-a) a)))
+            (error "foo"))
+          #:msg #rx"expected: String.*given: Integer"]))

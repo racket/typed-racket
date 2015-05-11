@@ -9,7 +9,7 @@
 (require (for-syntax "annotate-classes.rkt"
                      "../private/syntax-properties.rkt"
                      racket/base
-                     syntax/parse))
+                     syntax/parse/pre))
 
 (provide (rename-out [-case-lambda case-lambda]
                      [-case-lambda case-lambda:])

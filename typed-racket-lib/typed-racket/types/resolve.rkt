@@ -60,10 +60,9 @@
                           " does not match the given number:"
                           " expected " num-poly
                           ", given " num-rands))))]
-      [(Name: _ args #f)
-       (cond [args
+      [(Name: _ num-args #f)
+       (cond [(> num-args 0)
               (define num-rands (length rands))
-              (define num-args (length args))
               (unless (= num-rands num-args)
                 (tc-error (~a "The expected number of arguments for "
                               rator " does not match the given number:"

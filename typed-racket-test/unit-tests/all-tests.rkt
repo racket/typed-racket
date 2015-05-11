@@ -44,4 +44,5 @@
   "generalize-tests.rkt"
   "rep-tests.rkt"
   "prims-tests.rkt"
-  "tooltip-tests.rkt")
+  "tooltip-tests.rkt"
+  "prefab-tests.rkt")

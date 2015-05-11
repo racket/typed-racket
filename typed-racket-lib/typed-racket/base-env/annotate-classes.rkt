@@ -1,7 +1,6 @@
 #lang racket/base
 
-(require syntax/parse
-         syntax/parse/experimental/template
+(require syntax/parse/pre
          "../private/parse-classes.rkt"
          "../private/syntax-properties.rkt"
          (for-label "colon.rkt"))
@@ -275,7 +274,9 @@
            #:attr opt-property
            (list (length (attribute mand)) (length (attribute opt)))
            #:attr erased
-           (template ((?@ . mand.form) ... (?@ . opt.form) ... . rest.form))))
+           (with-syntax ([((mand-form ...) ...) #'(mand.form ...)]
+                         [((opt-form ...) ...) #'(opt.form ...)])
+             (syntax (mand-form ... ... opt-form ... ... . rest.form)))))
 
 (define-syntax-class curried-formals
   #:attributes (erased fun-name)

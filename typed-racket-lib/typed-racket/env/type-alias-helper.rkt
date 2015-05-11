@@ -83,16 +83,17 @@
     (define-values (id type-stx args) (parse-type-alias type-alias))
     ;; Register type alias names with a dummy value so that it's in
     ;; scope for the registration later.
-    ;;
-    ;; The `(make-Value (gensym))` expression is used to make sure
-    ;; that unions don't collapse the aliases too soon.
     (register-resolved-type-alias id Err)
-    (register-type-name
-     id
-     (if args
-         (make-Poly (map syntax-e args) (make-Value (gensym)))
-         (make-Value (gensym))))
     (values id (list id type-stx args))))
+
+;; Identifier -> Type
+;; Construct a fresh placeholder type
+(define (make-placeholder-type id)
+  (make-Base ;; the uninterned symbol here ensures that no two type
+             ;; aliases get the same placeholder type
+             (string->uninterned-symbol (symbol->string (syntax-e id)))
+             #'(int-err "Encountered unresolved alias placeholder")
+             (lambda _ #f) #f))
 
 ;; register-all-type-aliases : Listof<Id> Dict<Id, TypeAliasInfo> -> Void
 ;;
@@ -188,8 +189,19 @@
     (for/list ([id (in-list recursive-aliases)])
       (define record (dict-ref type-alias-map id))
       (match-define (list _ args) record)
-      (define name-type (make-Name id args #f))
+      (define name-type (make-Name id (length args) #f))
       (register-resolved-type-alias id name-type)
+      ;; The `(make-placeholder-type id)` expression is used to make sure
+      ;; that unions don't collapse the aliases too soon. This is a dummy
+      ;; value that's used until the real type is found in the pass below.
+      ;;
+      ;; A type name should not be registered for non-recursive aliases
+      ;; because dummy values will leak due to environment serialization.
+      (register-type-name
+       id
+       (if (null? args)
+           (make-placeholder-type id)
+           (make-Poly (map syntax-e args) (make-placeholder-type id))))
       name-type))
 
   ;; Register non-recursive type aliases
@@ -223,12 +235,12 @@
       (register-type-name id type)
       (add-constant-variance! id args)
       (check-type-alias-contractive id type)
-      (values id type args)))
+      (values id type (map syntax-e args))))
 
   ;; Finally, do a last pass to refine the variance
   (refine-variance! names-to-refine types-to-refine tvarss))
 
-;; Syntax -> Syntax Syntax Syntax Option<Integer>
+;; Syntax -> Syntax Syntax (Listof Syntax)
 ;; Parse a type alias internal declaration
 (define (parse-type-alias form)
   (syntax-parse form

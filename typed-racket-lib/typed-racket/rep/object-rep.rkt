@@ -48,6 +48,7 @@
   [#:fold-rhs (*StructPE (type-rec-id t) idx)])
 ;; TODO(amk) add type so length can access lists
 (def-pathelem LengthPE () [#:fold-rhs #:base])
+(def-pathelem FieldPE () [#:fold-rhs #:base])
 
 (def-object Empty () [#:fold-rhs #:base])
 (define -empty-obj (*Empty))

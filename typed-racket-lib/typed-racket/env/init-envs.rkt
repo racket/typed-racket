@@ -78,12 +78,9 @@
      `(->acc (list ,@(map sub dom)) ,(sub t) ,(sub pth))]
     [(Result: t (FilterSet: (Top:) (Top:)) (Empty:)) `(-result ,(sub t))]
     [(Union: elems) (split-union elems)]
-    [(Base: n cnt pred _) (int-err "Base type not in predefined-type-table" n)]
+    [(Base: n cnt pred _) (int-err "Base type ~a not in predefined-type-table" n)]
     [(Name: stx args struct?)
-     `(make-Name (quote-syntax ,stx)
-                 ,(and args
-                       `(list ,@(map (λ (x) `(quote-syntax ,x)) args)))
-                 ,struct?)]
+     `(make-Name (quote-syntax ,stx) ,args ,struct?)]
     [(fld: t acc mut) `(make-fld ,(sub t) (quote-syntax ,acc) ,mut)]
     [(Struct: name parent flds proc poly? pred-id)
      `(make-Struct (quote-syntax ,name) ,(sub parent)

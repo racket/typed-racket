@@ -12,6 +12,7 @@
          (submod typed-racket/private/type-contract test-exports)
          (only-in racket/contract contract)
          racket/match
+         (except-in typed/racket/class private)
          rackunit)
 (provide tests)
 (gen-test-main)
@@ -50,7 +51,9 @@
          (let/ec exit
            (let ([contract (type->contract v (λ (#:reason [reason #f])
                                                 (exit (or reason "No reason given"))))])
-             (with-check-info (('contract (syntax->datum contract)))
+             (match-define (list ctc-defs ctc) contract)
+             (define ctc-data (map syntax->datum (append ctc-defs (list ctc))))
+             (with-check-info (('contract ctc-data))
                (fail-check "type could be converted to contract")))))
        (unless (regexp-match? expected-reason reason)
          (with-check-info (('reason reason))
@@ -63,7 +66,9 @@
     (namespace-require 'unstable/contract)
     (namespace-require 'typed-racket/utils/any-wrap)
     (namespace-require 'typed-racket/utils/evt-contract)
+    (namespace-require 'typed-racket/utils/opaque-object)
     (namespace-require '(submod typed-racket/private/type-contract predicates))
+    (namespace-require 'typed/racket/class)
     (current-namespace)))
 
 ;; (t-int type (-> any any) any)
@@ -98,14 +103,17 @@
      (define pos (if (syntax-e #'typed-side) 'typed 'untyped))
      (define neg (if (syntax-e #'typed-side) 'untyped 'typed))
      #`(test-case (format "~a for ~a in ~a" 'type-expr 'val-expr 'fun-expr)
-         (let ([type-val type-expr] [fun-val fun-expr] [val val-expr])
-           (with-check-info (['type type-val] ['test-value val])
+         (let ([type-val type-expr])
+           (with-check-info (['type type-val] ['test-value (quote val-expr)])
              (define ctc-result
                (type->contract type-val
                                #:typed-side typed-side
                                (λ (#:reason [reason #f])
                                  (fail-check (or reason "Type could not be converted to contract")))))
              (match-define (list extra-stxs ctc-stx) ctc-result)
+             (define namespace (ctc-namespace))
+             (define val (eval (quote val-expr) namespace))
+             (define fun-val (eval (quote fun-expr) namespace))
              (define ctced-val
                (eval #`(let ()
                          #,@(map (λ (stx) (syntax-shift-phase-level stx 1))
@@ -114,7 +122,7 @@
                                    #,val
                                    #,(quote (quote #,pos))
                                    #,(quote (quote #,neg))))
-                     (ctc-namespace)))
+                     namespace))
              (check (λ () (fun-val ctced-val))))))]))
 
 (define tests
@@ -144,6 +152,10 @@
               (t (-polydots (a) -Symbol))
               (t (-polydots (a) (->... (list) (a a) -Symbol)))
 
+              (t (-polyrow (a) (list null null null null) -Symbol))
+              (t (-polyrow (a) (list null null null null)
+                   (-> (-class #:row (-v a)) (-class #:row (-v a)))))
+
               (t (-mu x (-Syntax x)))
               (t (-> (-> Univ -Bottom : -bot-filter) -Bottom : -bot-filter))
               (t (-poly (A B) (-> A B (Un A B))))
@@ -164,6 +176,18 @@
               (t/fail (-polydots (a) (->... (list) (a a) (make-ValuesDots null a 'a)))
                       "dotted return values")
               (t/fail (-> ManyUniv)
+                      "unknown return values")
+
+              ;; Github Issue #50
+              (t (cl->* (-> -String -Bottom) (-> -String -Symbol -Bottom)))
+              (t (make-Function
+                  (list (make-arr* (list -String) -Boolean
+                                   #:kws (list (make-Keyword '#:key Univ #t))
+                                   #:filters (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
+                        (make-arr* (list -String Univ) -Boolean
+                                   #:kws (list (make-Keyword '#:key Univ #t))
+                                   #:filters (-FS (-filter -Symbol 0) (-not-filter -Symbol 0))))))
+              (t/fail (cl->* (-> -String ManyUniv) (-> -String Univ ManyUniv))
                       "unknown return values")
 
               (t/fail
@@ -201,20 +225,27 @@
               (t-sc (Un (-lst Univ) -Number) (or/sc number/sc (listof/sc any-wrap/sc)))
 
               ;; classes
-              (t-sc (-class) (class/sc null #f))
+              (t-sc (-class) (class/sc #f null null))
               (t-sc (-class #:init ([x -Number #f] [y -Number #f]))
-                    (class/sc (list (member-spec 'init 'x number/sc)
+                    (class/sc #f
+                              (list (member-spec 'init 'x number/sc)
                                     (member-spec 'init 'y number/sc))
-                              #f))
+                              null))
               (t-sc (-class #:init ([x -Number #f] [y -Number #t]))
-                    (class/sc (list (member-spec 'init 'x number/sc)
+                    (class/sc #f
+                              (list (member-spec 'init 'x number/sc)
                                     (member-spec 'init 'y number/sc))
-                              #f))
+                              null))
               (t-sc (-class #:init ([x -Number #f]) #:init-field ([y -Integer #f]))
-                    (class/sc (list (member-spec 'init 'x number/sc)
+                    (class/sc #f
+                              (list (member-spec 'init 'x number/sc)
                                     (member-spec 'init 'y integer/sc)
                                     (member-spec 'field 'y integer/sc))
-                              #f))
+                              null))
+              (t (-class #:method ([m (-poly (x) (-> x x))])))
+              (t (-class #:method ([m (-polydots (x) (->... (list) (x x) -Void))])))
+              (t (-class #:method ([m (-polyrow (x) (list null null null null)
+                                        (-> (-class #:row (-v x)) -Void))])))
 
               ;; typed/untyped interaction tests
               (t-int (-poly (a) (-> a a))
@@ -258,4 +289,18 @@
                           (make-channel)
                           #:untyped
                           #:msg #rx"cannot put on a channel")
+              ;; typed/untyped interaction with class/object contracts
+              (t-int/fail (-object #:method ([m (-> -String)]))
+                          (λ (o) (send o n))
+                          (new (class object% (super-new)
+                                 (define/public (m) "m")
+                                 (define/public (n) "n")))
+                          #:typed
+                          #:msg #rx"cannot call uncontracted")
+              (t-int (-class #:method ([m (-> -String)]))
+                     (λ (s%) (class s% (super-new)
+                               (define/public (n) "ok")))
+                     (class object% (super-new)
+                       (define/public (m) "m"))
+                     #:untyped)
               ))

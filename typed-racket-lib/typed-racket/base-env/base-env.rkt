@@ -90,7 +90,7 @@
 [real->floating-point-bytes (->opt -Real (one-of/c  4 8) [Univ -Bytes -Nat] -Bytes)]
 [system-big-endian? (-> B)]
 
-[order-of-magnitude (-> -PosReal -Int)]
+[order-of-magnitude (cl-> [(-PosInt) -Nat] [(-PosReal) -Int])]
 
 ;; Section 4.2.5.3 (ExtFlonum-Bytes Conversions)
 [floating-point-bytes->extfl (->opt -Bytes [Univ -Nat -Nat] -ExtFlonum)]
@@ -627,13 +627,13 @@
 [kernel:reverse (-poly (a) (-> (-lst a) (-lst a)))]
 [append (-poly (a) (->* (list) (-lst a) (-lst a)))]
 [length (-poly (a) (-> (-lst a) -Index))]
-[memq (-poly (a) (-> Univ (-lst a) (-opt (-lst a))))]
-[memv (-poly (a) (-> Univ (-lst a) (-opt (-lst a))))]
-[memf (-poly (a) ((a . -> . Univ) (-lst a) . -> . (-opt (-lst a))))]
+[memq (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
+[memv (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
+[memf (-poly (a) ((a . -> . Univ) (-lst a) . -> . (-opt (-ne-lst a))))]
 [member (-poly (a)
-          (cl->* (Univ (-lst a) . -> . (-opt (-lst a)))
+          (cl->* (Univ (-lst a) . -> . (-opt (-ne-lst a)))
                  (Univ (-lst a) (-> a a Univ)
-                       . -> . (-opt (-lst a)))))]
+                       . -> . (-opt (-ne-lst a)))))]
 [findf (-poly (a) ((a . -> . B) (-lst a) . -> . (-opt a)))]
 
 [assq  (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
@@ -2308,14 +2308,14 @@
   (-poly (a)
    (cl->* (-> mod (Un (one-of/c #f 0) -Void) -Void)
           (-> mod (Un (one-of/c #f 0) -Void) (-> a) (Un -Void a))
-          (->opt mod Sym [(-> Univ)] ManyUniv))))]
+          (->opt mod Sym [(-> Univ)] Univ))))]
 
 [dynamic-require-for-syntax
  (let ((mod (Un -Module-Path -Resolved-Module-Path -Module-Path-Index)))
   (-poly (a)
    (cl->* (-> mod (-val #f) -Void)
           (-> mod (-val #f) (-> a) (Un -Void a))
-          (->opt mod Sym [(-> Univ)] ManyUniv))))]
+          (->opt mod Sym [(-> Univ)] Univ))))]
 
 [module-declared?
  (->opt (Un -Module-Path -Resolved-Module-Path -Module-Path-Index)
@@ -2937,10 +2937,15 @@
 
 ;; Section 18.2 (Libraries and Collections)
 [find-library-collection-paths (->opt [(-lst -Pathlike) (-lst -Pathlike)] (-lst -Path))]
+[find-library-collection-links (-> (-lst (-opt -Path)))]
 [collection-file-path (->* (list -Pathlike) -Pathlike -Path)]
 [collection-path (->* (list) -Pathlike -Path)]
-[current-library-collection-paths (-Param -Path -Path)]
+[current-library-collection-paths (-Param (-lst -Path) (-lst -Path))]
+[current-library-collection-links
+ (-Param (-lst (-opt (Un -Pathlike (-HT (-opt -Symbol) (-lst -Pathlike)))))
+         (-lst (-opt (Un -Path (-HT (-opt -Symbol) (-lst -Path))))))]
 [use-user-specific-search-paths (-Param Univ B)]
+[use-collection-link-paths (-Param Univ B)]
 
 ;; Typed Racket Reference
 ;; Section 4

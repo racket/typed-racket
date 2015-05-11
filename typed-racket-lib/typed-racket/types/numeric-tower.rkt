@@ -17,7 +17,8 @@
          -FlonumPosZero -FlonumNegZero -FlonumZero -FlonumNan -PosFlonum -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
          -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero -SingleFlonumNan -PosSingleFlonum -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum -SingleFlonum
          -InexactRealPosZero -InexactRealNegZero -InexactRealZero -InexactRealNan -PosInexactReal -NonNegInexactReal -NegInexactReal -NonPosInexactReal -InexactReal
-         -RealZero -PosReal -NonNegReal -NegReal -NonPosReal -Real
+         -RealZero -RealZeroNoNan -PosReal -NonNegReal -NegReal -NonPosReal -Real
+         -PosInfinity -NegInfinity
          -ExactImaginary -FloatImaginary -SingleFlonumImaginary -InexactImaginary -Imaginary
          -ExactNumber -ExactComplex -FloatComplex -SingleFlonumComplex -InexactComplex -Number
          (rename-out (-Int -Integer))
@@ -59,6 +60,10 @@
 ;; Singletons
 (define/decl -Zero (make-Value 0)) ; exact
 (define/decl -One  (make-Value 1))
+
+;; Infinities (These are part of Flonum/Single-Flonum, but useful abbreviatios.)
+(define/decl -PosInfinity (*Un (-val +inf.0) (-val +inf.f)))
+(define/decl -NegInfinity (*Un (-val -inf.0) (-val -inf.f)))
 
 ;; Integers
 (define/decl -Byte>1 (make-Base 'Byte-Larger-Than-One ; unsigned
@@ -201,12 +206,13 @@
 (define/decl -InexactReal        (*Un -SingleFlonum -Flonum))
 
 ;; Reals
-(define/decl -RealZero   (*Un -Zero -InexactRealZero))
-(define/decl -PosReal    (*Un -PosRat -PosInexactReal))
-(define/decl -NonNegReal (*Un -NonNegRat -NonNegInexactReal))
-(define/decl -NegReal    (*Un -NegRat -NegInexactReal))
-(define/decl -NonPosReal (*Un -NonPosRat -NonPosInexactReal))
-(define/decl -Real       (*Un -Rat -InexactReal))
+(define/decl -RealZero      (*Un -Zero -InexactRealZero))
+(define/decl -RealZeroNoNan (*Un -Zero -InexactRealPosZero -InexactRealNegZero))
+(define/decl -PosReal       (*Un -PosRat -PosInexactReal))
+(define/decl -NonNegReal    (*Un -NonNegRat -NonNegInexactReal))
+(define/decl -NegReal       (*Un -NegRat -NegInexactReal))
+(define/decl -NonPosReal    (*Un -NonPosRat -NonPosInexactReal))
+(define/decl -Real          (*Un -Rat -InexactReal))
 
 ;; Complexes
 ;; We could go into _much_ more precision here.

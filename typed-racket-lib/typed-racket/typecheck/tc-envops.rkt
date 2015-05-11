@@ -71,6 +71,19 @@
         vt]
        [else -Bottom])]
 
+    ;; class field ops
+    ;;
+    ;; A refinement of a private field in a class is really a refinement of the
+    ;; return type of the accessor function for that field (rather than a variable).
+    ;; We cannot just refine the type of the argument to the accessor, since that
+    ;; is an object type that doesn't mention private fields. Thus we use the
+    ;; FieldPE path element as a marker to refine the result of the accessor
+    ;; function.
+    [((Function: (list (arr: doms (Values: (list (Result: rng _ _))) _ _ _)))
+      (list rst ... (FieldPE:)))
+     (make-Function
+      (list (make-arr* doms (update rng ft pos? rst))))]
+
     ;; otherwise
     [(t '())
      (if pos?

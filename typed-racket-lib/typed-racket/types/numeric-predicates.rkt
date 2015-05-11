@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require racket/unsafe/ops
-         racket/performance-hint)
+         (submod racket/performance-hint begin-encourage-inline))
 
 (provide index? exact-rational?)
 

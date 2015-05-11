@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require (for-syntax racket/base syntax/parse syntax/stx))
+(require (for-syntax racket/base syntax/parse/pre syntax/stx))
 
 (define-syntax (#%module-begin stx)
   (syntax-parse stx #:literals (require)

@@ -258,6 +258,15 @@
     (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
     (-> Univ -Boolean : (-FS (-filter -String 0) (-not-filter -String 0)))]
 
+   ;; subtyping for types inside filters
+   [(-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
+    (-> Univ -Boolean : (-FS (-filter (-opt -Symbol) 0) (-not-filter -Symbol 0)))]
+   [(-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter (-opt -Symbol) 0)))
+    (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))]
+   [FAIL
+    (-> Univ -Boolean : (-FS (-filter (-opt -Symbol) 0) (-not-filter (-opt -Symbol) 0)))
+    (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))]
+
    [FAIL (make-ListDots (-box (make-F 'a)) 'a) (-lst (-box Univ))]
    [(make-ListDots (-> -Symbol (make-F 'a)) 'a) (-lst (-> -Symbol Univ))]
 
@@ -348,8 +357,6 @@
     (-class #:method ((m (-> -Nat))) #:augment ((m (-> -Nat))))
     (-class #:method ((m (-> -Nat))))]
    
-   
-   
    ;; Simple Refinement Types
    [-Nat (-refine y -Nat -top)]
    [(-refine a -Nat -top) -Nat]
@@ -416,4 +423,23 @@
     (~> ([y : (Un -Nat -String)] 
          [z : -Nat])
         -Nat)]
+
+   ;; prefab structs
+   [(-prefab 'foo -String) (-prefab 'foo -String)]
+   [(-prefab 'foo -String) (-prefab 'foo (-opt -String))]
+   [(-prefab '(bar foo 1) -String -Symbol) (-prefab 'foo -String)]
+   [(-prefab '(bar foo 1) -String -Symbol) (-prefab 'foo (-opt -String))]
+   [FAIL
+    (-prefab '(foo #(0)) -String) (-prefab '(foo #(0)) (-opt -String))]
+   [(-prefab '(foo 1 #(0)) -String -Symbol)
+    (-prefab '(foo #(0)) -String)]
+   [(-prefab '(bar foo 1 #(0)) -String -Symbol)
+    (-prefab '(foo #(0)) -String)]
+   [FAIL
+    (-prefab '(foo #()) -String) (-prefab '(foo #(0)) (-opt -String))]
+
+   ;; Filter subtyping
+   ((make-pred-ty (list -Real) -Boolean (Un (-val 0.0) (-val 0)))
+    (make-pred-ty (list -Int) -Boolean (-val 0)))
+
    ))

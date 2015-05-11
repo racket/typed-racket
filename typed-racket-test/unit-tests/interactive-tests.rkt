@@ -166,7 +166,7 @@
     (test-form-exn #rx"at least one argument"
       (:query-type/args))
 
-    (test-form (regexp-quote "(case-> (-> One One) (-> One))")
+    (test-form (regexp-quote "(-> One)")
       (:query-type/result * 1))
     (test-form #rx"not in the given function's range.\n"
       (:query-type/result + String))

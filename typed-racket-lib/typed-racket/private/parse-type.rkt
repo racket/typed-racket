@@ -5,7 +5,7 @@
 (require "../utils/utils.rkt"
          (except-in (rep type-rep object-rep) make-arr)
          (rename-in (types abbrev union utils filter-ops resolve
-                           classes)
+                           classes prefab)
                     [make-arr* make-arr])
          (utils tc-utils stxclass-util literal-syntax-class)
          syntax/stx (prefix-in c: (contract-req))
@@ -100,6 +100,7 @@
 (define-literal-syntax-class #:for-label Vector)
 (define-literal-syntax-class #:for-label Struct)
 (define-literal-syntax-class #:for-label Struct-Type)
+(define-literal-syntax-class #:for-label Prefab)
 (define-literal-syntax-class #:for-label Values)
 (define-literal-syntax-class #:for-label values)
 (define-literal-syntax-class #:for-label Top)
@@ -501,11 +502,20 @@
       [(:Struct-Type^ t)
        (define v (parse-type #'t))
        (match (resolve v)
-         [(? Struct? s) (make-StructType s)]
+         [(or (? Struct? s) (? Prefab? s)) (make-StructType s)]
          [_ (parse-error #:delayed? #t
                          "expected a structure type for argument to Struct-Type"
                          "given" v)
             (Un)])]
+      [(:Prefab^ key ts ...)
+       #:fail-unless (prefab-key? (syntax->datum #'key)) "expected a prefab key"
+       (define num-fields (length (syntax->list #'(ts ...))))
+       (define new-key (normalize-prefab-key (syntax->datum #'key) num-fields))
+       (unless (= (prefab-key->field-count new-key) num-fields)
+         (parse-error "the number of fields in the prefab key and type disagree"
+                      "key" (prefab-key->field-count new-key)
+                      "fields" num-fields))
+       (make-Prefab new-key (parse-types #'(ts ...)))]
       [(:Instance^ t)
        (let ([v (parse-type #'t)])
          (if (not (or (F? v) (Mu? v) (Name? v) (Class? v) (Error? v)))

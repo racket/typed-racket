@@ -120,10 +120,10 @@
 ;; A type name, potentially recursive or mutually recursive or pointing
 ;; to a type for a struct type
 ;; id is the name stored in the environment
-;; args are the type parameters for this type (or #f if none)
+;; args is the number of arguments expected by this Name type
 ;; struct? indicates if this maps to a struct type
 (def-type Name ([id identifier?]
-                [args (or/c #f (listof identifier?))]
+                [args exact-nonnegative-integer?]
                 [struct? boolean?])
   [#:intern (hash-id id)] [#:frees #f] [#:fold-rhs #:base])
 
@@ -398,9 +398,18 @@
   ;; This should eventually be based on understanding of struct properties.
   [#:key '(struct procedure)])
 
+;; Represents prefab structs
+;; key  : prefab key encoding mutability, auto-fields, etc.
+;; flds : the types of all of the prefab fields
+(def-type Prefab ([key prefab-key?]
+                  [flds (listof Type/c)])
+  [#:frees (λ (f) (combine-frees (map f flds)))]
+  [#:fold-rhs (*Prefab key (map type-rec-id flds))]
+  [#:key 'prefab])
+
 ;; A structure type descriptor
 (def-type StructTypeTop () [#:fold-rhs #:base] [#:key 'struct-type])
-(def-type StructType ([s (or/c F? B? Struct?)]) [#:key 'struct-type])
+(def-type StructType ([s (or/c F? B? Struct? Prefab?)]) [#:key 'struct-type])
 
 ;; the supertype of all of these values
 (def-type BoxTop () [#:fold-rhs #:base] [#:key 'box])

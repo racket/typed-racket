@@ -784,6 +784,21 @@ this top type.
 @ex[(struct-info (arity-at-least 0))]
 }
 
+@defform[(Prefab key type ...)]{
+  Represents a @rtech{prefab} structure type with the given prefab structure
+  key (such as one returned by @racket[prefab-struct-key] or accepted by
+  @racket[make-prefab-struct]) and with the given types for each field.
+
+  In the case of prefab structure types with supertypes, the field types of the
+  supertypes come before the field types of the child structure type. The order
+  of types matches the order of arguments to a prefab struct constructor.
+
+  @ex[#s(salad "potato" "mayo")
+      (: q-salad (Prefab (salad food 1) String String Symbol))
+      (define q-salad
+        #s((salad food 1) "quinoa" "EVOO" salad))]
+}
+
 @defalias[→ ->]
 @defalias[case→ case->]
 @defalias[∀ All]

@@ -258,11 +258,9 @@
       [(null? (syntax-e s)) (formals (reverse acc) #f stx)]
       [else (formals (reverse acc) s stx)])))
 
+;; Currently no support for objects representing the rest argument
 (define (formals->objects formals)
-  (for/list ([i (in-list (append (formals-positional formals)
-                                 (if (formals-rest formals)
-                                     (list (formals-rest formals))
-                                     empty)))])
+  (for/list ([i (in-list (formals-positional formals))])
     (make-Path null i)))
 
 

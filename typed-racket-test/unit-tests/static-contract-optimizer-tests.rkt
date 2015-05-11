@@ -275,14 +275,24 @@
       #:neg (case->/sc (list (arr/sc (list any/sc) any/sc (list list?/sc)))))
 
     (check-optimize
-      (object/sc (list (member-spec 'field 'x (listof/sc any/sc))))
-      #:pos (object/sc (list (member-spec 'field 'x list?/sc)))
-      #:neg (object/sc (list (member-spec 'field 'x list?/sc))))
+      (object/sc #t (list (member-spec 'field 'x (listof/sc any/sc))))
+      #:pos (object/sc #t (list (member-spec 'field 'x list?/sc)))
+      #:neg (object/sc #t (list (member-spec 'field 'x list?/sc))))
 
     (check-optimize
-      (class/sc (list (member-spec 'field 'x (listof/sc any/sc))) #f)
-      #:pos (class/sc (list (member-spec 'field 'x list?/sc)) #f)
-      #:neg (class/sc (list (member-spec 'field 'x list?/sc)) #f))
+      (object/sc #f (list (member-spec 'field 'x (listof/sc any/sc))))
+      #:pos (object/sc #f (list (member-spec 'field 'x list?/sc)))
+      #:neg (object/sc #f (list (member-spec 'field 'x list?/sc))))
+
+    (check-optimize
+      (class/sc #t (list (member-spec 'field 'x (listof/sc any/sc))) null)
+      #:pos (class/sc #t (list (member-spec 'field 'x list?/sc)) null)
+      #:neg (class/sc #t (list (member-spec 'field 'x list?/sc)) null))
+
+    (check-optimize
+      (class/sc #f (list (member-spec 'field 'x (listof/sc any/sc))) null)
+      #:pos (class/sc #f (list (member-spec 'field 'x list?/sc)) null)
+      #:neg (class/sc #f (list (member-spec 'field 'x list?/sc)) null))
 
     (check-optimize
       (recursive-sc (list foo-id bar-id)

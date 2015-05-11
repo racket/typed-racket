@@ -262,6 +262,10 @@
    [(String [#:a String] String * -> String)
     (->optkey -String [] #:rest -String #:a -String #f -String)]
 
+   ;;; Prefab structs
+   [(Prefab foo String) (-prefab 'foo -String)]
+   [FAIL (Prefab (foo 0) String)]
+
    ;;; Classes
    [(Class) (-class)]
    [(Class (init [x Number] [y Number]))

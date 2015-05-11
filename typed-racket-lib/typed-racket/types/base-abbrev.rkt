@@ -123,9 +123,13 @@
 (define/decl -no-obj (make-NoObject))
 (define/decl -empty-obj (make-Empty))
 (define (-id-path id)
-  (if (is-var-mutated? id)
-      -empty-obj
-      (make-Path null id)))
+  (cond
+    [(identifier? id)
+     (if (is-var-mutated? id)
+         -empty-obj
+         (make-Path null id))]
+    [else
+     (make-Path null id)]))
 (define (-arg-path arg [depth 0])
   (make-Path null (list depth arg)))
 (define (-acc-path path-elems o)
@@ -302,11 +306,13 @@
 (define (simple-> doms rng)
   (->* doms rng))
 
-(define (->acc dom rng path)
-  (make-Function (list (make-arr* dom rng
-                                  #:filters (-FS (-not-filter (-val #f) (make-Path path (list 0 0)))
-                                                 (-filter (-val #f) (make-Path path (list 0 0))))
-                                  #:object (make-Path path (list 0 0))))))
+(define (->acc dom rng path #:var [var (list 0 0)])
+  (define obj (-acc-path path (-id-path var)))
+  (make-Function
+   (list (make-arr* dom rng
+                    #:filters (-FS (-not-filter (-val #f) obj)
+                                   (-filter (-val #f) obj))
+                    #:object obj))))
 
 (define (cl->* . args)
   (define (funty-arities f)

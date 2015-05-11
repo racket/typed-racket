@@ -1,9 +1,9 @@
 #lang scribble/manual
 
 @begin[(require "../utils.rkt"
-		scribble/core scribble/eval
-		(for-label (only-meta-in 0 typed/racket)
-                           (only-in mzlib/etc let+)))]
+                scribble/core scribble/eval
+                (for-label (only-meta-in 0 typed/racket)
+                           (prefix-in base: racket)))]
 
 @title[#:tag "more"]{Specifying Types}
 
@@ -41,13 +41,13 @@ and in an internal definition
 ]
 
 In addition to the @racket[:] form, almost all binding forms from
-@racketmodname[racket] have counterparts which allow the specification
-of types. The @racket[define:] form allows the definition of variables
-in both top-level and internal contexts.
+@racketmodname[racket] are replaced with counterparts which allow the
+specification of types. Typed Racket's @racket[define] form allows the
+definition of variables in both top-level and internal contexts.
 
 @racketblock[
-(define: x : Number 7)
-(define: (id [z : Number]) : Number z)]
+(define x : Number 7)
+(define (id [z : Number]) : Number z)]
 
 Here, @racket[x] has the type @racket[Number], and @racket[id] has the
 type @racket[(-> Number Number)].  In the body of @racket[id],
@@ -56,22 +56,23 @@ type @racket[(-> Number Number)].  In the body of @racket[id],
 @subsection{Annotating Local Binding}
 
 @racketblock[
-(let: ([x : Number 7])
+(let ([x : Number 7])
   (add1 x))
 ]
 
-The @racket[let:] form is exactly like @racket[let], but type
-annotations are provided for each variable bound.  Here, @racket[x] is
-given the type @racket[Number].  The @racket[let*:] and
-@racket[letrec:] are similar. Annotations are optional with
-@racket[let:] and variants.
+The @racket[let] form is exactly like
+@racketlink[base:let]{@racketidfont{let}} from @racketmodname[racket],
+but type annotations may be provided for each variable bound.  Here,
+@racket[x] is given the type @racket[Number]. The @racket[let*] and
+@racket[letrec] are similar. Annotations are optional with @racket[let]
+and variants.
 
 @racketblock[
-(let-values: ([([x : Number] [y : String]) (values 7 "hello")])
+(let-values ([([x : Number] [y : String]) (values 7 "hello")])
   (+ x (string-length y)))
 ]
 
-The @racket[let*-values:] and @racket[letrec-values:] forms are similar.
+The @racket[let*-values] and @racket[letrec-values] forms are similar.
 
 @subsection{Annotating Functions}
 
@@ -79,19 +80,19 @@ Function expressions also bind variables, which can be annotated with
 types. This function expects two arguments, a @racket[Number] and a
 @racket[String]:
 
-@racketblock[(lambda: ([x : Number] [y : String]) (+ x 5))]
+@racketblock[(lambda ([x : Number] [y : String]) (+ x 5))]
 
 This function accepts at least one @racket[String], followed by
 arbitrarily many @racket[Number]s.  In the body, @racket[y] is a list
 of @racket[Number]s.
 
-@racketblock[(lambda: ([x : String] (unsyntax @tt["."]) [y : Number #,**]) (apply + y))]
+@racketblock[(lambda ([x : String] (unsyntax @tt["."]) [y : Number #,**]) (apply + y))]
 
 This function has the type @racket[(-> String Number #,** Number)].
 Functions defined by cases may also be annotated:
 
-@racketblock[(case-lambda: [() 0]
-			   [([x : Number]) x])]
+@racketblock[(case-lambda [() 0]
+                          [([x : Number]) x])]
 
 This function has the type
 @racket[(case-> (-> Number) (-> Number Number))].
@@ -104,13 +105,16 @@ applied to a single variable using a reader extension:
 @racketblock[
 (let ([#,(annvar x Number) 7]) (add1 x))]
 
-This is equivalent to the earlier use of @racket[let:]. This is
-especially useful for binding forms which do not have counterparts
-provided by Typed Racket, such as @racket[let+]:
+This is equivalent to the earlier use of @racket[let]. This is
+mostly useful for binding forms which do not have counterparts
+provided by Typed Racket, such as @racket[match]:
 
 @racketblock[
-(let+ ([val #,(annvar x Number) (+ 6 1)])
-  (* x x))]
+(: assert-symbols! ((Listof Any) -> (Listof Symbol)))
+(define (assert-symbols! lst)
+  (match lst
+    [(list (? symbol? #,(annvar s (Listof Symbol))) ...) s]
+    [_ (error "expected only symbols, given" lst)]))]
 
 @subsection{Annotating Expressions}
 
@@ -187,7 +191,7 @@ Example 2:
 ]
 Example 3:
 @racketblock[
-  (map (lambda: ([n : Integer]) (add1 n)) '(1 2 3))
+  (map (lambda ([n : Integer]) (add1 n)) '(1 2 3))
 ]
 Example 4:
 @racketblock[

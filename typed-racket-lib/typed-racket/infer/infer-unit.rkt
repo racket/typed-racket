@@ -13,7 +13,7 @@
            (utils tc-utils)
            (rep free-variance type-rep filter-rep object-rep rep-utils)
            (types utils abbrev numeric-tower union subtype resolve
-                  substitute generalize)
+                  substitute generalize prefab)
            (env index-env tvar-env))
           make-env -> ->* one-of/c)
          "constraint-structs.rkt"
@@ -547,6 +547,18 @@
                         [else empty])])
              (% cset-meet proc-c (cgen/flds context flds flds*)))]
 
+          ;; two prefab structs with the same key
+          [((Prefab: k ss) (Prefab: k* ts))
+           #:when (and (prefab-key-subtype? k k*)
+                       (>= (length ss) (length ts)))
+           (% cset-meet*
+              (for/list/fail ([s (in-list ss)]
+                              [t (in-list ts)]
+                              [mut? (in-list (prefab-key->field-mutability k*))])
+                (if mut?
+                    (cgen/inv context s t)
+                    (cgen context s t))))]
+
           ;; two struct names, need to resolve b/c one could be a parent
           [((Name: n _ #t) (Name: n* _ #t))
            (if (free-identifier=? n n*)
@@ -681,6 +693,10 @@
                    (list -Symbol -String Univ
                          (Un (-val #f) -Symbol)))
                t)]
+          [((Base: 'Place _ _ _) (Evt: t))
+           (cg Univ t)]
+          [((Base: 'Base-Place-Channel _ _ _) (Evt: t))
+           (cg Univ t)]
           [((CustodianBox: t) (Evt: t*)) (cg S t*)]
           [((Channel: t) (Evt: t*)) (cg t t*)]
           [((Async-Channel: t) (Evt: t*)) (cg t t*)]

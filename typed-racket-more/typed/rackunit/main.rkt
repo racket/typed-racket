@@ -217,12 +217,32 @@
  [current-test-name (Parameter (Option String))]
  [current-test-case-around (Parameter ((Thunk Any) -> Any))])
 
+; 3.3.1.1
+(define-syntax-rule (def-test [tst (ch args ...)] ...)
+  (begin (provide tst ...)
+         (define-syntax-rule (tst name args ...)
+           (test-case name (ch args ...))) ...))
+
+(def-test
+  [test-check (check op v1 v2)]
+  (test-pred (check-pred pred v))
+  (test-equal? (check-equal? v1 v2))
+  (test-eq? (check-eq? v1 v2))
+  (test-eqv? (check-eqv? v1 v2))
+  (test-= (check-= v1 v2 epsilon))
+  (test-true (check-true v))
+  (test-false (check-false v))
+  (test-not-false (check-not-false v))
+  (test-exn (check-exn pred thunk))
+  (test-not-exn (check-not-exn thunk)))
+
+
 ; 3.4
 (require (only-in rackunit before after around delay-test))
 (provide before after around delay-test)
 
 ; 3.5
-; XXX require/expose seems WRONG for typed/scheme
+; XXX require/expose seems WRONG for typed/racket
 
 ; 3.7
 (require-typed-struct (exn:test exn) () rackunit)

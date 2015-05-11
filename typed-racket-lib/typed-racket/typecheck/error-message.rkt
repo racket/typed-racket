@@ -44,13 +44,16 @@
   (define r2 (resolve t2))
   (match* (r1 r2)
     [((F: s1) (F: s2))
-     (=> fail)
-     (unless (string=? (symbol->string s1) (symbol->string s2))
-       (fail))
+     #:when (string=? (symbol->string s1) (symbol->string s2))
      ;; FIXME: this case could have a better error message that, say,
      ;;        prints the binding locations of each type variable.
      (type-mismatch (format "`~a'" t1) (format "a different `~a'" t2)
                     "type variables bound in different scopes")]
+    [((Struct: n1 _ _ _ _ _) (Struct: n2 _ _ _ _ _))
+     #:when (and (not (free-identifier=? n1 n2))
+                 (eq? (syntax-e n1) (syntax-e n2)))
+     (type-mismatch (syntax-e n1) (format "a different ~a" (syntax-e n2))
+                    "incompatible struct types with the same name")]
     [((? Class?) (? Class?))
      (class-mismatch r1 r2)]
     [((Instance: (app resolve (? Class? c1))) (Instance: (app resolve (? Class? c2))))

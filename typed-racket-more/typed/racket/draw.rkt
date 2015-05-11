@@ -8,15 +8,19 @@
           racket/draw/private/bitmap-dc
           racket/draw/private/brush
           racket/draw/private/color
+          racket/draw/private/dc-path
           racket/draw/private/font
           racket/draw/private/font-dir
           racket/draw/private/gl-config
           racket/draw/private/gl-context
           racket/draw/private/gradient
           racket/draw/private/pen
+          racket/draw/private/point
+          racket/draw/private/post-script-dc
           racket/draw/private/ps-setup
           racket/draw/private/record-dc
           racket/draw/private/region
+          racket/draw/private/svg-dc
           (only-in typed/racket/base -> U)
           "private/gui-types.rkt"
           (for-syntax (submod "private/gui-types.rkt" #%type-decl)))
@@ -27,6 +31,7 @@
                         racket/draw/private/color
                         racket/draw/private/font
                         racket/draw/private/pen
+                        racket/draw/private/record-dc
                         racket/draw/private/region)
           LoadFileKind
           Font-Family
@@ -43,20 +48,25 @@
           Color%
           Color-Database<%>
           DC<%>
+          DC-Path%
           Font%
           Font-List%
           GL-Config%
           GL-Context<%>
           Linear-Gradient%
+          PDF-DC%
           Pen%
           Pen-List%
           Pen-Style
           Pen-Cap-Style
           Pen-Join-Style
           Point%
+          Post-Script-DC%
           PS-Setup%
           Radial-Gradient%
-          Region%))
+          Record-DC%
+          Region%
+          SVG-DC%))
 
 (begin-for-syntax
   (define -Bitmap% (parse-type #'Bitmap%))
@@ -78,15 +88,22 @@
  [brush% (parse-type #'Brush%)]
  [brush-list% (parse-type #'Brush-List%)]
  [color% (parse-type #'Color%)]
+ [dc-path% (parse-type #'DC-Path%)]
  [font% (parse-type #'Font%)]
  [font-list% (parse-type #'Font-List%)]
  [get-current-gl-context (parse-type #'(-> (U #f GL-Context<%>)))]
  [gl-config% (parse-type #'GL-Config%)]
  [linear-gradient% (parse-type #'Linear-Gradient%)]
+ [pdf-dc% (parse-type #'PDF-DC%)]
  [pen% (parse-type #'Pen%)]
+ [pen-list% (parse-type #'Pen-List%)]
+ [point% (parse-type #'Point%)]
+ [post-script-dc% (parse-type #'Post-Script-DC%)]
  [ps-setup% (parse-type #'PS-Setup%)]
  [radial-gradient% (parse-type #'Radial-Gradient%)]
+ [record-dc% (parse-type #'Record-DC%)]
  [region% (parse-type #'Region%)]
+ [svg-dc% (parse-type #'SVG-DC%)]
  ;; 26 Drawing Functions
  [current-ps-setup (-Param (-inst (parse-type #'PS-Setup%)))]
  [get-face-list (->optkey [(one-of/c 'mono 'all)]

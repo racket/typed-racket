@@ -19,21 +19,26 @@
          Color%
          Color-Database<%>
          DC<%>
+         DC-Path%
          Font%
          Font-List%
          Font-Name-Directory<%>
          GL-Config%
          GL-Context<%>
          Linear-Gradient%
+         PDF-DC%
          Pen%
          Pen-List%
          Pen-Style
          Pen-Cap-Style
          Pen-Join-Style
          Point%
+         Post-Script-DC%
          PS-Setup%
          Radial-Gradient%
-         Region%)
+         Record-DC%
+         Region%
+         SVG-DC%)
 
 (define-type LoadFileKind
  (U 'unknown 'unknown/mask 'unknown/alpha
@@ -60,16 +65,10 @@
                        Real)
                  (List Bytes Integer Integer)))
    [get-argb-pixels
-    (case-> (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes -> Void)
-            (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes Any -> Void)
-            (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes Any Any -> Void))]
-   [get-backing-scale (-> Real)]
+    (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+         [Any Any #:unscaled? Any]
+         Void)]
+   [get-backing-scale (-> Nonnegative-Real)]
    [get-depth (-> Exact-Nonnegative-Integer)]
    [get-handle (-> Any)]
    [get-height (-> Exact-Positive-Integer)]
@@ -88,15 +87,9 @@
                ((U Path-String Output-Port) (U 'png 'jpeg 'xbm 'xpm 'bmp) [#:unscaled? Any] -> Boolean)
                ((U Path-String Output-Port) (U 'png 'jpeg 'xbm 'xpm 'bmp) Natural [#:unscaled? Any] -> Boolean))]
    [set-argb-pixels
-    (case-> (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes -> Void)
-            (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes Any -> Void)
-            (Real Real
-                  Exact-Nonnegative-Integer Exact-Nonnegative-Integer
-                  Bytes Any Any -> Void))]
+    (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+         [Any Any #:unscaled? Any]
+         Void)]
    [set-loaded-mask ((Instance Bitmap%) -> Void)]))
 
 (define-type Color%
@@ -486,17 +479,56 @@
   (Class #:implements DC<%>
          (init [bitmap (Option (Instance Bitmap%))])
          [get-argb-pixels
-          (case-> (Real Real Integer Integer Bytes -> Void)
-                  (Real Real Integer Integer Bytes Any -> Void)
-                  (Real Real Integer Integer Bytes Any Any -> Void))]
+          (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+               [Any Any]
+               Void)]
          [get-bitmap (-> (Option (Instance Bitmap%)))]
          [get-pixel (Real Real (Instance Color%) -> Boolean)]
          [set-argb-pixels
-          (case-> (Real Real Integer Integer Bytes -> Void)
-                  (Real Real Integer Integer Bytes Any -> Void)
-                  (Real Real Integer Integer Bytes Any Any -> Void))]
+          (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+               [Any Any]
+               Void)]
          [set-bitmap ((Option (Instance Bitmap%)) -> Void)]
          [set-pixel (Real Real (Instance Color%) -> Boolean)]))
+
+(define-type Record-DC%
+  (Class #:implements DC<%>
+         (init [width Real #:optional]
+               [height Real #:optional])
+         [get-recorded-datum (-> Any)]
+         [get-recorded-procedure (-> (-> (Instance DC<%>) Void))]))
+
+(define-type PDF-DC%
+  (Class #:implements DC<%>
+         (init [interactive Any #:optional]
+               [parent (Option (U (Instance Frame%) (Instance Dialog%)))
+                       #:optional]
+               [use-paper-bbox Any #:optional]
+               [as-eps Any #:optional]
+               [width (Option Real) #:optional]
+               [height (Option Real) #:optional]
+               [output (U #f Path-String Output-Port) #:optional])))
+
+(define-type Post-Script-DC%
+  (Class #:implements DC<%>
+         (init [interactive Any #:optional]
+               [parent (Option (U (Instance Frame%) (Instance Dialog%)))
+                       #:optional]
+               [use-paper-bbox Any #:optional]
+               [as-eps Any #:optional]
+               [width (Option Real) #:optional]
+               [height (Option Real) #:optional]
+               [output (U #f Path-String Output-Port) #:optional])))
+
+(define-type SVG-DC%
+  (Class #:implements DC<%>
+         (init [width Real]
+               [height Real]
+               [output (U Path-String Output-Port)]
+               [exists (U 'error 'append 'update 'can-update
+                          'replace 'truncate
+                          'must-truncate 'truncate/replace)
+                       #:optional])))
 
 (define-type Font-List%
   (Class
@@ -522,7 +554,28 @@
 (define-type Font-Hinting (U 'aligned 'unaligned))
 
 (define-type Font%
-  (Class [get-face (-> (Option String))]
+  (Class (init-rest (U Null
+                       (List Real Font-Family)
+                       (List Real Font-Family Font-Style)
+                       (List Real Font-Family Font-Style Font-Weight)
+                       (List Real Font-Family Font-Style Font-Weight Any)
+                       (List Real Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing)
+                       (List Real Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing Any)
+                       (List Real Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing Any Font-Hinting)
+                       (List Real String Font-Family)
+                       (List Real String Font-Family Font-Style)
+                       (List Real String Font-Family Font-Style Font-Weight)
+                       (List Real String Font-Family Font-Style Font-Weight Any)
+                       (List Real String Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing)
+                       (List Real String Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing Any)
+                       (List Real String Font-Family Font-Style Font-Weight Any
+                             Font-Smoothing Any Font-Hinting)))
+         [get-face (-> (Option String))]
          [get-family (-> Font-Family)]
          [get-hinting (-> Font-Hinting)]
          [get-point-size (-> Positive-Integer)]
@@ -822,7 +875,8 @@
                [y (Option Integer) #:optional]
                [style (Listof (U 'no-resize-border 'no-caption
                                  'no-system-menu 'hide-menu-bar
-                                 'toolbar-button 'float 'metal))
+                                 'toolbar-button 'float 'metal
+                                 'fullscreen-button 'fullscreen-aux))
                       #:optional]
                [enabled Any #:optional]
                [border Natural #:optional]
@@ -835,9 +889,11 @@
                [stretchable-width Any #:optional]
                [stretchable-height Any #:optional])
          [create-status-line (-> Void)]
+         [fullscreen (-> Any Void)]
          [get-menu-bar (-> (Option (Instance Menu-Bar%)))]
          [has-status-line? (-> Boolean)]
          [iconize (Any -> Void)]
+         [is-fullscreened? (-> Boolean)]
          [is-iconized? (-> Boolean)]
          [is-maximized? (-> Boolean)]
          [maximize (Any -> Void)]

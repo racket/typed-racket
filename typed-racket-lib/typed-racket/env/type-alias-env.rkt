@@ -1,8 +1,9 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-	 syntax/id-table racket/dict
-         (utils tc-utils)         
+         syntax/id-table racket/dict
+         (utils tc-utils)
+         (typecheck renamer)
          racket/match)
 
 (provide register-type-alias
@@ -33,7 +34,8 @@
   (mapping-put! id (make-resolved ty)))
 
 (define (lookup-type-alias id parse-type [k (lambda () (tc-error "Unknown type alias: ~a" (syntax-e id)))])
-  (match (free-id-table-ref the-mapping id #f)
+  (match (or (free-id-table-ref the-mapping id #f)
+             (free-id-table-ref the-mapping (un-rename id) #f))
     [#f (k)]
     [(struct unresolved (stx #f))
      (resolve-type-alias id parse-type)]

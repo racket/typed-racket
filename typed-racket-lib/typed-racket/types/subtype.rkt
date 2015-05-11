@@ -6,7 +6,7 @@
          (rep type-rep filter-rep object-rep rep-utils)
          (utils tc-utils early-return)
          (types utils resolve base-abbrev match-expanders
-                numeric-tower substitute current-seen)
+                numeric-tower substitute current-seen prefab)
          (env type-env-structs)
          (for-syntax racket/base syntax/parse unstable/sequence))
 
@@ -20,8 +20,8 @@
   ("../types/abbrev.rkt" (-car-of -cdr-of))
   ; TODO(AMK) subst should not be in typecheck
   ("../typecheck/tc-subst.rkt" (subst-type subst-filter))
-  ("filter-ops.rkt" (-and)))
-
+  ("filter-ops.rkt" (-and))
+  ("../typecheck/tc-subst.rkt" (restrict-values)))
 
 (define subtype-cache (make-hash))
 
@@ -123,7 +123,8 @@
          (let*-values ([(x ...) exp] ...) body ...)
          (begin body ...))]))
 
-
+;; The usage of restrict-values is in order to restrict the objects refering to the current
+;; functions arguments (TR PR 15025)
 ;; simple co/contra-variance for ->
 (define (arr-subtype*/no-fail A0 t1 t2 env)
     (match* (t1 t2)
@@ -140,7 +141,7 @@
          [(env) (env-extend-types (or env (lexical-env)) ids doms2)])
         (subtype-seq A0
                      (subtypes* doms2 doms1 env)
-                     (subtype* rng1 rng2 env #f)))]
+                     (subtype* (restrict-values rng1 doms2) rng2 env #f)))]
       
       [((arr: doms1 rng1 #f #f kws1 dep1?)
         (arr: doms2 rng2 #f #f kws2 dep2?)) 
@@ -155,7 +156,7 @@
         (subtype-seq A0
                      (subtypes* doms2 doms1 env)
                      (kw-subtypes* kws1 kws2 env)
-                     (subtype* rng1 rng2 env #f)))]
+                     (subtype* (restrict-values rng1 doms2) rng2 env #f)))]
       
       [((arr: doms1 rng1 rest1 #f kws1 dep1?)
         (arr: doms2 rng2 #f #f kws2 dep2?))
@@ -170,7 +171,7 @@
         (subtype-seq A0
                      (subtypes*/varargs doms2 doms1 rest1 env)
                      (kw-subtypes* kws1 kws2 env)
-                     (subtype* rng1 rng2 env #f)))]
+                     (subtype* (restrict-values rng1 doms2) rng2 env #f)))]
       
       [((arr: s-dom s-rng #f #f s-kws dep1?)
         (arr: t-dom t-rng t-rest #f t-kws dep2?))
@@ -190,7 +191,7 @@
                      (subtypes*/varargs doms2 doms1 rest1 env)
                      (subtype* rest2 rest1 env #f)
                      (kw-subtypes* kws1 kws2 env)
-                     (subtype* rng1 rng2 env #f)))]
+                     (subtype* (restrict-values rng1 doms2) rng2 env #f)))]
       
       ;; handle ... varargs when the bounds are the same
       [((arr: doms1 rng1 #f (cons drest1 dbound) kws1 dep1?)
@@ -216,6 +217,10 @@
    [(f f) A0]
    [((Bot:) t) A0]
    [(s (Top:)) A0]
+   [((TypeFilter: t1 p) (TypeFilter: t2 p))
+    (subtype* A0 t1 t2)]
+   [((NotTypeFilter: t1 p) (NotTypeFilter: t2 p))
+    (subtype* A0 t2 t1)]
    [(_ _) #f]))
 
 (define (subtypes/varargs args dom rst #:env [env #f])
@@ -612,7 +617,12 @@
                      (list -Symbol -String Univ
                            (Un (-val #f) -Symbol)))
                     t
-                     env obj)]
+                    env obj)]
+         ;; FIXME: change Univ to Place-Message-Allowed if/when that type is defined
+         [((Base: 'Place _ _ _) (Evt: (== Univ)))
+          #t]
+         [((Base: 'Base-Place-Channel _ _ _) (Evt: (== Univ)))
+          #t]
          [((CustodianBox: t) (Evt: t*))
           ;; Note that it's the whole box type that's being
           ;; compared against t* here
@@ -663,6 +673,21 @@
          ;; subtyping on structs follows the declared hierarchy
          [((Struct: nm (? Type/c? parent) _ _ _ _) other)
           (subtype* A0 parent other env obj)]
+          (subtype* A0 parent other)]
+         [((Prefab: k1 ss) (Prefab: k2 ts))
+          (and (prefab-key-subtype? k1 k2)
+               (and (>= (length ss) (length ts))
+                    (for/fold ([A A0])
+                              ([s (in-list ss)]
+                               [t (in-list ts)]
+                               [mut? (in-list (prefab-key->field-mutability k2))]
+                               #:break (not A))
+                      (and A
+                           (if mut?
+                               (subtype-seq A
+                                            (subtype* t s env)
+                                            (subtype* s t env)) ;; TODO(AMK) Prefab path??
+                               (subtype* A s t))))))]
          ;; subtyping on values is pointwise, except special case for Bottom
          [((Values: (list (Result: (== -Bottom) _ _))) _)
           A0]

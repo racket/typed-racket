@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/parse
+(require syntax/parse/pre
          "../utils/literal-syntax-class.rkt"
          (for-label "../base-env/base-types-extra.rkt"))
 (provide star ddd ddd/bound omit-parens)

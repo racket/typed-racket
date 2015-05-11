@@ -1,7 +1,7 @@
 #lang racket/base
 (require
-  syntax/parse
-  (for-syntax racket/base syntax/parse racket/syntax))
+  syntax/parse/pre
+  (for-syntax racket/base syntax/parse/pre racket/syntax))
 
 (define-syntax define-matcher
   (syntax-parser

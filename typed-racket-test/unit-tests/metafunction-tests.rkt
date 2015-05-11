@@ -4,7 +4,7 @@
          rackunit racket/format
          (typecheck tc-metafunctions tc-subst)
          (rep filter-rep type-rep object-rep)
-         (types abbrev union filter-ops tc-result)
+         (types abbrev union filter-ops tc-result numeric-tower)
          (for-syntax racket/base syntax/parse))
 
 (provide tests)
@@ -118,10 +118,10 @@
 
       ;; Check additional filters
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-FS (-not-filter -String '(0 0)) -top)
+        (values->tc-results (make-Values (list (-result (-opt -String) (-FS -top (-not-filter -String '(0 0)))
                                                  (make-Path null '(0 0)))))
                             (list (make-Path null #'x)) (list -String))
-        (ret (-opt -Symbol) -false-filter (make-Path null #'x)))
+        (ret -String -true-filter (make-Path null #'x)))
 
       ;; Substitute into ranges correctly
       (check-equal?
@@ -146,6 +146,26 @@
                             (list (make-Path null #'x)) (list Univ))
         (ret null null null (-> Univ -Boolean : (-FS (-filter -String #'x) -top)) 'b))
 
+      ;; Filter is restricted by type of object
+      (check-equal?
+        (values->tc-results (make-Values (list (-result -Boolean (-FS (-filter -PosReal '(0 0)) (-filter -NonPosReal '(0 0))))))
+                            (list (make-Path null #'x)) (list -Integer))
+        (ret -Boolean (-FS (-filter -PosInt #'x) (-filter -NonPosInt #'x))))
+
+      ;; Filter restriction accounts for paths
+      (check-equal?
+        (values->tc-results
+         (make-Values
+          (list (-result -Boolean
+                         (-FS (make-TypeFilter -PosReal
+                                               (make-Path (list -car) '(0 0)))
+                              (make-TypeFilter -NonPosReal
+                                               (make-Path (list -car) '(0 0)))))))
+         (list (make-Path null #'x))
+         (list (-lst -Integer)))
+        (ret -Boolean
+             (-FS (make-TypeFilter -PosInt (make-Path (list -car) #'x))
+                  (make-TypeFilter -NonPosInt (make-Path (list -car) #'x)))))
     )
 
     (test-suite "replace-names"

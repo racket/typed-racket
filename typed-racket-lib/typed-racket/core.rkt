@@ -27,7 +27,7 @@
        (parameterize ([optimize? (or (and (not (attribute opt?)) (optimize?))
                                      (and (attribute opt?) (syntax-e (attribute opt?))))])
          (tc-module/full stx pmb-form
-          (λ (new-mod before-code pre-after-code)
+          (λ (new-mod pre-before-code pre-after-code)
             (with-syntax*
              (;; pmb = #%plain-module-begin
               [(pmb . body2) new-mod]
@@ -37,7 +37,8 @@
               [transformed-body
                (begin0 (change-contract-fixups (syntax->list #'transformed-body))
                        (do-time "Fixed contract ids"))]
-              ;; add the real definitions of contracts on the after-code
+              ;; add the real definitions of contracts on the before- and after-code
+              [(before-code ...) (change-provide-fixups (flatten-all-begins pre-before-code))]
               [(after-code ...) (change-provide-fixups (flatten-all-begins pre-after-code))]
               ;; potentially optimize the code based on the type information
               [(optimized-body ...) (maybe-optimize #'transformed-body)] ;; has own call to do-time
@@ -50,10 +51,8 @@
              ;; reconstruct the module with the extra code
              ;; use the regular %#module-begin from `racket/base' for top-level printing
              (arm #`(#%module-begin 
-                     #,(if (unbox include-extra-requires?)
-                           extra-requires
-                           #'(begin))
-                     #,before-code optimized-body ... after-code ... check-syntax-help)))))))]))
+                     #,(if (unbox include-extra-requires?) extra-requires #'(begin))
+                     before-code ... optimized-body ... after-code ... check-syntax-help)))))))]))
 
 (define did-I-suggest-:print-type-already? #f)
 (define :print-type-message " ... [Use (:print-type <expr>) to see more.]")
@@ -114,7 +113,8 @@
                        (cond [(andmap equal? tgs tcs) ""]
                              [indented?
                               (format "\n[more precisely: ~a]"
-                                      (pretty-format-type (make-Values tcs) #:indent 17))]
+                                      (pretty-format-type (make-Values (map -result tcs))
+                                                          #:indent 17))]
                              [else (format " [more precisely: ~a]" (cons 'Values tcs))])
                        ;; did any get pruned?
                        (cond [(andmap equal? t tcs) ""]

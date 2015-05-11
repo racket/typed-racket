@@ -20,10 +20,16 @@
 ;; and error checking in primitive macros
 (define tests
   (test-suite "Prims tests"
+    (check-bad (let () (: 2 Zero) 'dummy)
+               #rx"expected identifier")
+    (check-bad (let () (: x) 'dummy)
+               #rx"missing type")
+    (check-bad (let () (: x Listof Any) 'dummy)
+               #rx"too many types")
     (check-bad (let () (: x : Listof Any) 'dummy)
-               #rx"multiple types")
+               #rx"too many types")
     (check-bad (let () (: x : -> String String) 'dummy)
-               #rx"multiple types")
+               #rx"too many types")
     (check-ok (let () (: x : String -> String -> String)
                       (define x 0)
                       'dummy))))

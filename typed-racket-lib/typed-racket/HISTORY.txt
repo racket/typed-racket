@@ -1,5 +1,13 @@
-(add1 6.1.1)
+(add1 6.2)
+- Startup time reduction
+6.2
+- Use submodules to avoid allocating contract wrappers when not needed.
+- Class types and contract generation are significantly improved, but still experimental.
+- Many types for GUI classes added.
+- Tests on let-bound variables now refine the type of what was bound to them.
 - DrRacket tooltips for types and type errors.
+- Support for prefab structs.
+- Types for a variety of libraries, including `rackunit` and `json`.
 6.1.1
 - Exception handling is now sound. Broke existing programs (e.g. marketplace).
 - More types for GUI and framework.

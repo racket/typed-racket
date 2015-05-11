@@ -1834,4 +1834,208 @@
            (: x2 X)
            (define x2 'bar)
            (void))
+         -Void]
+   ;; Check strange method definition forms. Some of these are unlikely to actually come
+   ;; up but are allowed by the grammar of classes.
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (public m)
+               (define-values (m)
+                 (let-values ([(x) (lambda () (void))]
+                              [(y) (lambda () (void))])
+                   (let-values ([(z) (lambda () (void))])
+                     z)))))
+           (send (new c%) m))
+         -Void]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (public m)
+               (define-values (m)
+                 (let-values ([(x) (lambda () (void))])
+                   (let-values ([(y) (lambda () (void))])
+                     (lambda () (y) (x)))))))
+           (send (new c%) m))
+         -Void]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (public m)
+               (define-values (m)
+                 (letrec-values ([(x) (lambda () (void))])
+                   (letrec-values ([(y) (lambda () (void))])
+                     (lambda () (y) (x)))))))
+           (send (new c%) m))
+         -Void]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (public m)
+               (define-values (m)
+                 (let-values ([(x) (lambda () (void))])
+                   (let-values ([(y) (lambda () (void))])
+                     (case-lambda [() (void)]))))))
+           (send (new c%) m))
+         -Void]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (public m)
+               (define-values (m)
+                 (let-values ([(x) (lambda () (void))])
+                   (let-values ([(y) (lambda () (void))])
+                     (case-lambda [() (x)]))))))
+           (send (new c%) m))
+         -Void]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (public m)
+               (define-values (m)
+                 (let-values ([(x) (lambda () (void))])
+                   (let-values ([(y) (case-lambda [() (x)])])
+                     y)))))
+           (send (new c%) m))
+         -Void]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (public m)
+               (define-values (m)
+                 (let-values ([(x) (lambda () (void))])
+                   (let-values ([(y) (case-lambda [() (x)])])
+                     (tr:lambda (#:x [x "x"]) (void)))))))
+           (send (new c%) m))
+         -Void]
+   [tc-e (let ()
+           (define c%
+             (class object% (super-new)
+               (: m (-> Integer #:x Integer Integer))
+               (public m)
+               (define-values (m)
+                 (let-values ([(m) (tr:lambda (x #:x y) (add1 y))]) m))))
+           (send (new c%) m 0 #:x 1))
+         -Integer]
+   ;; This tests a bug that came up while adding support for the test
+   ;; cases directly above
+   [tc-e (let ()
+           (define c%
+             (class object% (super-new)
+               (define/public (m [x : Symbol 'y])
+                 (symbol->string x) (void))))
+           (send (new c%) m))
+         -Void]
+   ;; Next several tests are for occurrence typing on private fields
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (: x (U String #f))
+               (define x "foo")
+               (: m (-> String))
+               (define/public (m)
+                 (if (string? x) (string-append x "bar") "baz"))))
+           (send (new c%) m))
+         -String]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (: x (U String #f))
+               (define x "foo")
+               (: m (-> String))
+               (define/public (m)
+                 ;; ensure just x works
+                 (if x (string-append x "bar") "baz"))))
+           (send (new c%) m))
+         -String]
+   [tc-e (let ()
+           (define c%
+             (class object%
+               (super-new)
+               (: x (List (U String #f)))
+               (define x (list "foo"))
+               (: m (-> String))
+               (define/public (m)
+                 (if (string? (car x)) ; car path
+                     (string-append (car x) "bar")
+                     "baz"))))
+           (send (new c%) m))
+         -String]
+   [tc-e (class object%
+           (super-new)
+           (: x (Option String))
+           (define x "foo")
+           ;; let-aliasing + occ. typing on fields
+           (let ([y x]) (if (string? y) (string-append x) "")))
+         (-class)]
+   [tc-e (class object%
+           (super-new)
+           (: x (Option String))
+           (define x "foo")
+           (let ([y x]) (if y (string-append x) "")))
+         (-class)]
+   ;; Failure tests for occurrence typing on private fields. The types
+   ;; are obfuscated a bit to prevent interference from type aliases in
+   ;; another test.
+   [tc-err (let ()
+             (define c%
+               (class object%
+                 (super-new)
+                 (: x (U String 'obfuscate))
+                 (define x "foo")
+                 (set! x 'obfuscate) ; prevents occ. typing
+                 (: m (-> String))
+                 (define/public (m)
+                   (if (string? x) (string-append x "bar") "baz"))))
+             (error "foo"))
+           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]
+   [tc-err (let ()
+             (define c%
+               (class object%
+                 (super-new)
+                 (: x (U String 'obfuscate))
+                 (define x "foo")
+                 (field [f (begin (set! x 'obfuscate) "hello")])
+                 (: m (-> String))
+                 (define/public (m)
+                   (if (string? x) (string-append x "bar") "baz"))))
+             (error "foo"))
+           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]
+   [tc-err (let ()
+             (define c%
+               (class object%
+                 (super-new)
+                 (: x (U String 'obfuscate))
+                 (define x "foo")
+                 (define/public (n) (set! x 'obfuscate))
+                 (: m (-> String))
+                 (define/public (m)
+                   (if (string? x) (string-append x "bar") "baz"))))
+             (error "foo"))
+           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]
+   ;; tests that we are not creating objects for mutable private fields
+   [tc-e (let ()
+           (class object%
+             (super-new)
+             (: bsp-trees (U #f Integer))
+             (define bsp-trees #f)
+             (: m (-> Any))
+             (define (m) (set! bsp-trees 5))
+             
+             (: sync-bsp-trees (-> Integer))
+             (define/private (sync-bsp-trees)
+               (let ([bsp-trees-val bsp-trees])
+                 (cond
+                   [bsp-trees-val  bsp-trees-val]
+                   [else 5]))))
+           (void))
          -Void]))

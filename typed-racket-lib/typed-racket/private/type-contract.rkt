@@ -7,7 +7,7 @@
  syntax/parse
  (rep type-rep filter-rep object-rep)
  (utils tc-utils)
- (env type-name-env)
+ (env type-name-env row-constraint-env)
  (rep rep-utils)
  (types resolve union utils printer)
  (prefix-in t: (types abbrev numeric-tower))
@@ -16,6 +16,7 @@
  racket/format
  racket/dict
  unstable/list
+ syntax/flatten-begin
  (only-in (types abbrev) -Bottom)
  (static-contracts instantiate optimize structures combinators)
  ;; TODO make this from contract-req
@@ -133,18 +134,25 @@
                                         #,(syntax-position orig-id)
                                         #,(syntax-span orig-id))))])]))
 
+;; The below requires are needed since they provide identifiers that
+;; may appear in the residual program.
+
+;; TODO: It would be better to have individual contracts specify which
+;; modules should be required, but for now this is just all of them.
 (define extra-requires
   #'(require
-      ;; the below requires are needed since they provide identifiers
-      ;; that may appear in the residual program
       (submod typed-racket/private/type-contract predicates)
       typed-racket/utils/utils
       (for-syntax typed-racket/utils/utils)
       typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
+      typed-racket/utils/opaque-object
       typed-racket/utils/evt-contract
       unstable/contract racket/contract/parametric))
 
-;; should the above requires be included in the output?
+;; Should the above requires be included in the output?
+;;   This box is only used for contracts generated for `require/typed`
+;;   and `cast`, contracts for `provides go into the `#%contract-defs`
+;;   submodule, which always has the above `require`s.
 (define include-extra-requires? (box #f))
 
 (define (change-contract-fixups forms)
@@ -157,15 +165,26 @@
          (begin (set-box! include-extra-requires? #t)
                 (generate-contract-def e ctc-cache sc-cache))))))
 
-(define (change-provide-fixups forms)
-  (define ctc-cache (make-hash))
-  (define sc-cache (make-hash))
+;; TODO: These are probably all in a specific place, which could avoid
+;;       the big traversal
+(define (change-provide-fixups forms  [ctc-cache (make-hash)] [sc-cache (make-hash)])
   (with-new-name-tables
    (for/list ([form (in-list forms)])
-     (cond [(contract-def/provide-property form)
-            (set-box! include-extra-requires? #t)
-            (generate-contract-def/provide form ctc-cache sc-cache)]
-           [else form]))))
+     (syntax-parse form #:literal-sets (kernel-literals)
+       [_
+        #:when (contract-def/provide-property form)
+        (generate-contract-def/provide form ctc-cache sc-cache)]
+       [(module* name #f forms ...)
+        (quasisyntax/loc form
+          (module* name #f 
+            #,@(change-provide-fixups (syntax->list #'(forms ...))
+                                      ctc-cache sc-cache)))]
+       [((~literal #%plain-module-begin) forms ...)
+        (quasisyntax/loc form
+          (#%plain-module-begin
+           #,@(change-provide-fixups (flatten-all-begins #'(begin forms ...))
+                                     ctc-cache sc-cache)))]
+       [_ form]))))
 
 ;; To avoid misspellings
 (define impersonator-sym 'impersonator)
@@ -234,9 +253,6 @@
      kind
      #:cache cache)))
 
-
-
-
 (define any-wrap/sc (chaperone/sc #'any-wrap/c))
 
 (define (no-duplicates l)
@@ -287,8 +303,8 @@
         (loop t (flip-side typed-side) recursive-values))
       (define (t->sc/both t #:recursive-values (recursive-values recursive-values))
         (loop t 'both recursive-values))
-      (define (t->sc/method t) (t->sc/function t fail typed-side recursive-values loop #t))
       (define (t->sc/fun t) (t->sc/function t fail typed-side recursive-values loop #f))
+      (define (t->sc/meth t) (t->sc/method t fail typed-side recursive-values loop))
 
       (define (only-untyped sc)
         (if (from-typed? typed-side)
@@ -319,15 +335,15 @@
         [(Name: name-id args #f)
          (cond [;; recursive references are looked up in a special table
                 ;; that's handled differently by sc instantiation
-                (lookup-name-sc name-id typed-side)]
+                (lookup-name-sc type typed-side)]
                [else
                 (define rv recursive-values)
                 (define resolved-name (resolve-once type))
-                (register-name-sc name-id
+                (register-name-sc type
                                   (λ () (loop resolved-name 'untyped rv))
                                   (λ () (loop resolved-name 'typed rv))
                                   (λ () (loop resolved-name 'both rv)))
-                (lookup-name-sc name-id typed-side)])]
+                (lookup-name-sc type typed-side)])]
         ;; Ordinary type applications or struct type names, just resolve
         [(or (App: _ _ _) (Name/struct:)) (t->sc (resolve-once type))]
         [(Univ:) (if (from-typed? typed-side) any-wrap/sc any/sc)]
@@ -383,39 +399,12 @@
         ;[(StructTop: s) (struct-top/sc s)]
 
 
-        [(Poly: vs b)
-         (if (not (from-untyped? typed-side))
-             ;; in positive position, no checking needed for the variables
-             (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
-                                       (hash-set rv v (same any/sc)))))
-               (t->sc b #:recursive-values recursive-values))
-             ;; in negative position, use parametric contracts.
-             (match-let ([(Poly-names: vs-nm b) type])
-               (define function-type?
-                 (let loop ([ty b])
-                   (match (resolve ty)
-                     [(Function: _) #t]
-                     [(Union: elems) (andmap loop elems)]
-                     [(Poly: _ body) (loop body)]
-                     [(PolyDots: _ body) (loop body)]
-                     [_ #f])))
-               (unless function-type?
-                 (fail #:reason "cannot generate contract for non-function polymorphic type"))
-               (let ((temporaries (generate-temporaries vs-nm)))
-                 (define rv (for/fold ((rv recursive-values)) ((temp temporaries)
-                                                               (v-nm vs-nm))
-                              (hash-set rv v-nm (same (parametric-var/sc temp)))))
-                 (parameterize ([bound-names (append (bound-names) vs-nm)])
-                   (parametric->/sc temporaries
-                     (t->sc b #:recursive-values rv))))))]
-        [(PolyDots: (list vs ... dotted-v) b)
-         (if (not (from-untyped? typed-side))
-             ;; in positive position, no checking needed for the variables
-             (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
-                                       (hash-set rv v (same any/sc)))))
-               (t->sc b #:recursive-values recursive-values))
-             ;; in negative position, use parametric contracts.
-             (fail #:reason "cannot generate contract for variable arity polymorphic type"))]
+        [(? Poly?)
+         (t->sc/poly type fail typed-side recursive-values t->sc)]
+        [(? PolyDots?)
+         (t->sc/polydots type fail typed-side recursive-values t->sc)]
+        [(? PolyRow?)
+         (t->sc/polyrow type fail typed-side recursive-values t->sc)]
 
         [(Mu: n b)
          (match-define (and n*s (list untyped-n* typed-n* both-n*)) (generate-temporaries (list n n n)))
@@ -443,18 +432,29 @@
                      n*s
                      (list untyped typed both)
                      (recursive-sc-use (if (from-typed? typed-side) typed-n* untyped-n*)))])]
-        [(Instance: (? Mu? t))
-         (t->sc (make-Instance (resolve-once t)))]
+        ;; Don't directly use the class static contract generated for Name,
+        ;; because that will get an #:opaque class contract. This will do the
+        ;; wrong thing for object types since it errors too eagerly.
         [(Instance: (? Name? t))
-         (instanceof/sc (t->sc t))]
+         #:when (Class? (resolve-once t))
+         (cond [(lookup-name-sc type typed-side)]
+               [else
+                (define rv recursive-values)
+                (define resolved (make-Instance (resolve-once t)))
+                (register-name-sc type
+                                  (λ () (loop resolved 'untyped rv))
+                                  (λ () (loop resolved 'typed rv))
+                                  (λ () (loop resolved 'both rv)))
+                (lookup-name-sc type typed-side)])]
         [(Instance: (Class: _ _ fields methods _ _))
          (match-define (list (list field-names field-types) ...) fields)
          (match-define (list (list public-names public-types) ...) methods)
-         (object/sc (append (map (λ (n sc) (member-spec 'method n sc))
-                                 public-names (map t->sc/method public-types))
+         (object/sc (from-typed? typed-side)
+                    (append (map (λ (n sc) (member-spec 'method n sc))
+                                 public-names (map t->sc/meth public-types))
                             (map (λ (n sc) (member-spec 'field n sc))
                                  field-names (map t->sc/both field-types))))]
-        [(Class: _ inits fields publics augments _)
+        [(Class: row-var inits fields publics augments _)
          (match-define (list (list init-names init-types _) ...) inits)
          (match-define (list (list field-names field-types) ...) fields)
          (match-define (list (list public-names public-types) ...) publics)
@@ -469,18 +469,31 @@
                                [type (in-list public-types)]
                                #:unless (memq name pubment-names))
              (values name type)))
-         (class/sc (append
+         ;; we need to generate absent clauses for non-opaque class contracts
+         ;; that occur inside of a mixin type
+         (define absents
+           (cond [(F? row-var)
+                  (define constraints (lookup-row-constraints (F-n row-var)))
+                  ;; the constraints with no corresponding type/contract need
+                  ;; to be absent
+                  (append (remove* field-names (cadr constraints))
+                          (remove* public-names (caddr constraints)))]
+                 [else null]))
+         (class/sc ;; only enforce opaqueness if there's no row variable
+                   ;; and we are importing from untyped
+                   (and (from-untyped? typed-side) (not row-var))
+                   (append
                      (map (λ (n sc) (member-spec 'override n sc))
-                          override-names (map t->sc/method override-types))
+                          override-names (map t->sc/meth override-types))
                      (map (λ (n sc) (member-spec 'pubment n sc))
-                          pubment-names (map t->sc/method pubment-types))
-                     (map (λ (n sc) (member-spec 'augment n sc))
-                          augment-names (map t->sc/method augment-types))
+                          pubment-names (map t->sc/meth pubment-types))
+                     (map (λ (n sc) (member-spec 'inner n sc))
+                          augment-names (map t->sc/meth augment-types))
                      (map (λ (n sc) (member-spec 'init n sc))
                           init-names (map t->sc/neg init-types))
                      (map (λ (n sc) (member-spec 'field n sc))
                           field-names (map t->sc/both field-types)))
-                   #f)]
+                   absents)]
         [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred?)
          (cond
            [(dict-ref recursive-values nm #f)]
@@ -521,6 +534,31 @@
     (loop t typed-side recursive-values))
   (define (t->sc/neg t #:recursive-values (recursive-values recursive-values))
     (loop t (flip-side typed-side) recursive-values))
+
+  ;; handle-range : Arr (-> Static-Contact) -> Static-Contract
+  ;; Match the range of an arr and determine if a contract can be generated
+  ;; and call the given thunk or raise an error
+  (define (handle-range arr convert-arr)
+    (match arr
+      ;; functions with no filters or objects
+      [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws)
+       (convert-arr)]
+      ;; Functions that don't return
+      [(arr: dom (Values: (list (Result: (== -Bottom) _ _) ...)) rst drst kws)
+       (convert-arr)]
+      ;; functions with filters or objects
+      [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws)
+       (if (from-untyped? typed-side)
+           (fail #:reason (~a "cannot generate contract for function type"
+                              " with filters or objects."))
+           (convert-arr))]
+      [(arr: dom (? ValuesDots?) rst drst kws)
+       (fail #:reason (~a "cannot generate contract for function type"
+                          " with dotted return values"))]
+      [(arr: dom (? AnyValues?) rst drst kws)
+       (fail #:reason (~a "cannot generate contract for function type"
+                          " with unknown return values"))]))
+
   (match f
     [(Function: arrs)
      ;; Try to generate a single `->*' contract if possible.
@@ -538,18 +576,24 @@
       ;;  2 and 6, which is wrong.
       ;; TODO sufficient condition, but may not be necessary
       [(has-optional-args? arrs)
-       (match* ((first arrs) (last arrs))
-         [((arr: first-dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst #f kws dep?)
-           (arr: last-dom _ _ _ _ _)) ; all but dom is the same for all
-          (define mand-args (map t->sc/neg first-dom))
-          (define opt-args (map t->sc/neg (drop last-dom (length first-dom))))
-          (define-values (mand-kws opt-kws)
-            (let*-values ([(mand-kws opt-kws) (partition-kws kws)])
-              (values (map conv mand-kws)
-                      (map conv opt-kws))))
-          (define range (map t->sc rngs))
-          (define rest (and rst (listof/sc (t->sc/neg rst))))
-          (function/sc (process-dom mand-args) opt-args mand-kws opt-kws rest range)])]
+       (define first-arr (first arrs))
+       (define last-arr (last arrs))
+       (define (convert-arr)
+         (match-define (arr: first-dom (Values: (list (Result: rngs _ _) ...))
+                             rst _ kws dep?)
+                       first-arr)
+         ;; all but dom is the same for all arrs
+         (match-define (arr: last-dom _ _ _ _ _) last-arr)
+         (define mand-args (map t->sc/neg first-dom))
+         (define opt-args (map t->sc/neg (drop last-dom (length first-dom))))
+         (define-values (mand-kws opt-kws)
+           (let*-values ([(mand-kws opt-kws) (partition-kws kws)])
+             (values (map conv mand-kws)
+                     (map conv opt-kws))))
+         (define range (map t->sc rngs))
+         (define rest (and rst (listof/sc (t->sc/neg rst))))
+         (function/sc (process-dom mand-args) opt-args mand-kws opt-kws rest range))
+       (handle-range first-arr convert-arr)]
       [else
        (define ((f case->) a)
          (define (convert-arr arr)
@@ -575,6 +619,7 @@
                                                       #:recursive-values
                                                         (hash-set recursive-values (cdr drst) (same any/sc))))))
                     (map t->sc rngs))))]))
+<<<<<<< HEAD
          (match a
            ;; functions with no filters or objects
            [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws dep?)
@@ -594,6 +639,9 @@
            [(arr: dom (? AnyValues?) rst drst kws dep?)
             (fail #:reason (~a "cannot generate contract for function type"
                                " with unknown return values"))]))
+=======
+         (handle-range a (λ () (convert-arr a))))
+>>>>>>> upstream/master
        (define arities
          (for/list ([t arrs])
            (match t
@@ -604,6 +652,73 @@
        (if (= (length arrs) 1)
            ((f #f) (first arrs))
            (case->/sc (map (f #t) arrs)))])]))
+
+;; Generate a contract for a object/class method clause
+;; Precondition: type is a valid method type
+(define (t->sc/method type fail typed-side recursive-values loop)
+  ;; helper for mutually recursive calls in Poly cases
+  (define (rec body #:recursive-values rv)
+    (t->sc/method body fail typed-side rv loop))
+  (match type
+    [(? Poly?)
+     (t->sc/poly type fail typed-side recursive-values rec)]
+    [(? PolyDots?)
+     (t->sc/polydots type fail typed-side recursive-values rec)]
+    [(? PolyRow?)
+     (t->sc/polyrow type fail typed-side recursive-values rec)]
+    [(? Function?)
+     (t->sc/function type fail typed-side recursive-values loop #t)]
+    [_ (fail #:reason "invalid method type")]))
+
+;; Generate a contract for a polymorphic function type
+(define (t->sc/poly type fail typed-side recursive-values t->sc)
+  (match-define (Poly: vs b) type)
+  (if (not (from-untyped? typed-side))
+      ;; in positive position, no checking needed for the variables
+      (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
+                                (hash-set rv v (same any/sc)))))
+        (t->sc b #:recursive-values recursive-values))
+      ;; in negative position, use parametric contracts.
+      (match-let ([(Poly-names: vs-nm b) type])
+        (define function-type?
+          (let loop ([ty b])
+            (match (resolve ty)
+              [(Function: _) #t]
+              [(Union: elems) (andmap loop elems)]
+              [(Poly: _ body) (loop body)]
+              [(PolyDots: _ body) (loop body)]
+              [_ #f])))
+        (unless function-type?
+          (fail #:reason "cannot generate contract for non-function polymorphic type"))
+        (let ((temporaries (generate-temporaries vs-nm)))
+          (define rv (for/fold ((rv recursive-values)) ((temp temporaries)
+                                                        (v-nm vs-nm))
+                       (hash-set rv v-nm (same (parametric-var/sc temp)))))
+          (parameterize ([bound-names (append (bound-names) vs-nm)])
+            (parametric->/sc temporaries
+              (t->sc b #:recursive-values rv)))))))
+
+;; Generate a contract for a variable-arity polymorphic function type
+(define (t->sc/polydots type fail typed-side recursive-values t->sc)
+  (match-define (PolyDots: (list vs ... dotted-v) b) type)
+  (if (not (from-untyped? typed-side))
+      ;; in positive position, no checking needed for the variables
+      (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
+                                (hash-set rv v (same any/sc)))))
+        (t->sc b #:recursive-values recursive-values))
+      ;; in negative position, cannot generate for polydots yet
+      (fail #:reason "cannot generate contract for variable arity polymorphic type")))
+
+;; Generate a contract for a row-polymorphic function type
+(define (t->sc/polyrow type fail typed-side recursive-values t->sc)
+  (match-define (PolyRow: vs constraints body) type)
+  (if (not (from-untyped? typed-side))
+      (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
+                                (hash-set rv v (same any/sc)))))
+        (extend-row-constraints vs (list constraints)
+          (t->sc body #:recursive-values recursive-values)))
+      ;; FIXME: needs sealing contracts, disabled for now
+      (fail #:reason "cannot generate contract for row polymorphic type")))
 
 ;; Predicate that checks for an App type with a recursive
 ;; Name type in application position

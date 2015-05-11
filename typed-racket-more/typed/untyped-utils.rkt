@@ -43,10 +43,15 @@
                     [(untyped3-name ...)  (generate-temporaries #'(name ...))]
                     [(macro-name ...)  (generate-temporaries #'(name ...))]
                     [typed-module  (generate-temporary #'typed-module)]
-                    [untyped-module  (generate-temporary #'untyped-module)])
+                    [untyped-module  (generate-temporary #'untyped-module)]
+                    [*typed/racket/base (datum->syntax #'from-module-spec
+                                                       'typed/racket/base)]
+                    [*require (datum->syntax #'from-module-spec
+                                             'require)])
        (syntax/loc stx
          (begin
-           (module typed-module typed/racket/base
+           (module typed-module *typed/racket/base ; to bind in `T`s
+             (*require typed/racket/base) ; to bind introduced `begin`, etc.
              (begin form ...)
              (require (rename-in (only-in from-module-spec name ...)
                                  [name untyped2-name] ...))

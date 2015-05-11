@@ -11,6 +11,7 @@
 
 (require "../structures.rkt"
          "../constraints.rkt"
+         "../../rep/type-rep.rkt" ; only for contract
          racket/contract
          racket/dict
          racket/match
@@ -29,15 +30,15 @@
                                static-contract?
                                static-contract?
                                static-contract?)))]
-          [lookup-name-sc (-> identifier? symbol? (or/c #f static-contract?))]
-          [register-name-sc (-> identifier?
+          [lookup-name-sc (-> Type/c symbol? (or/c #f static-contract?))]
+          [register-name-sc (-> Type/c
                                 (-> static-contract?)
                                 (-> static-contract?)
                                 (-> static-contract?)
                                 any)]))
 
-(define name-sc-table (make-parameter (make-free-id-table)))
-(define name-defs-table (make-parameter (make-free-id-table)))
+(define name-sc-table (make-parameter (make-hash)))
+(define name-defs-table (make-parameter (make-hash)))
 
 ;; Use this table to track whether a contract has already been
 ;; generated for this name type yet. Stores booleans.
@@ -52,42 +53,42 @@
   (free-id-table-set! (name-defined-table) name #t))
 
 (define-syntax-rule (with-new-name-tables e)
-  (parameterize ([name-sc-table (make-free-id-table)]
-                 [name-defs-table (make-free-id-table)]
+  (parameterize ([name-sc-table (make-hash)]
+                 [name-defs-table (make-hash)]
                  [name-defined-table (make-free-id-table)])
     e))
 
 (define (get-all-name-defs)
   (define name-scs (name-sc-table))
-  (for/list ([(name defs) (in-dict (name-defs-table))])
-    (define scs (free-id-table-ref name-scs name))
+  (for/list ([(type defs) (in-dict (name-defs-table))])
+    (define scs (hash-ref name-scs type))
     (define gen-names (map name-combinator-gen-name scs))
     (cons gen-names defs)))
 
-(define (lookup-name-sc name typed-side)
-  (define result (free-id-table-ref (name-sc-table) name #f))
+(define (lookup-name-sc type typed-side)
+  (define result (hash-ref (name-sc-table) type #f))
   (and result
        (case typed-side
          [(both)    (car result)]
          [(typed)   (cadr result)]
          [(untyped) (caddr result)])))
 
-(define (register-name-sc name typed-thunk untyped-thunk both-thunk)
+(define (register-name-sc type typed-thunk untyped-thunk both-thunk)
   (define-values (typed-name untyped-name both-name)
     (values (generate-temporary)
             (generate-temporary)
             (generate-temporary)))
-  (free-id-table-set! (name-sc-table)
-                      name
-                      (list (name-combinator null typed-name)
-                            (name-combinator null untyped-name)
-                            (name-combinator null both-name)))
+  (hash-set! (name-sc-table)
+             type
+             (list (name-combinator null typed-name)
+                   (name-combinator null untyped-name)
+                   (name-combinator null both-name)))
   (define typed-sc (typed-thunk))
   (define untyped-sc (untyped-thunk))
   (define both-sc (both-thunk))
-  (free-id-table-set! (name-defs-table)
-                      name
-                      (list typed-sc untyped-sc both-sc)))
+  (hash-set! (name-defs-table)
+             type
+             (list typed-sc untyped-sc both-sc)))
 
 (struct name-combinator combinator (gen-name)
   #:transparent

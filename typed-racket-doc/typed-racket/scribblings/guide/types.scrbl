@@ -44,7 +44,7 @@ kinds of numbers.
 Finally, any value is itself a type:
 
 @interaction[#:eval the-eval
-(ann 23 : 23)]
+(ann 23 23)]
 
 @section{Function Types}
 
@@ -56,7 +56,7 @@ Here are some example function types:
 @racketblock[
 (-> Number Number)
 (-> String String Boolean)
-(-> Char (values String Natural))
+(-> Char (Values String Natural))
 ]
 
 The first type requires a @racket[Number] as input, and produces a
@@ -66,9 +66,9 @@ one argument, and produces  @rtech{multiple values}, of types
 each of these types.
 
 @interaction[#:eval the-eval
-(lambda: ([x : Number]) x)
-(lambda: ([a : String] [b : String]) (equal? a b))
-(lambda: ([c : Char]) (values (string c) (char->integer c)))]
+(lambda ([x : Number]) x)
+(lambda ([a : String] [b : String]) (equal? a b))
+(lambda ([c : Char]) (values (string c) (char->integer c)))]
 
 
 @section{Types for Functions with Optional or Keyword Arguments}
@@ -119,25 +119,43 @@ unions are flattened.
 
 @section{Recursive Types}
 
-@deftech{Recursive types} can refer to themselves.  This allows a type
-to describe an infinite family of data.  For example, this is the type
-of binary trees of numbers.
+@deftech{Recursive types} are types whose definitions refer to
+themselves.  This allows a type to describe an infinite family
+of data.  For example, this is the type of binary trees of numbers.
+
+@margin-note[]{
+Recursive types can also be created anonymously without the use of
+@racket[define-type] using the @racket[Rec] type constructor.}
 
 @racketblock[
-(define-type BinaryTree (Rec BT (U Number (Pair BT BT))))]
+(define-type BinaryTree (U Number (Pair BinaryTree BinaryTree)))]
 
-The @racket[Rec] type constructor specifies that the type @racket[BT]
-refers to the whole binary tree type within the body of the
-@racket[Rec] form.
+Types can also be @emph{mutually recursive}. For example, the above
+type defintion could also be written like this.
+
+@racketblock[
+(define-type BinaryTree (U BinaryTreeLeaf BinaryTreeNode))
+(define-type BinaryTreeLeaf Number)
+(define-type BinaryTreeNode (Pair BinaryTree BinaryTree))]
+
+Of course, types which directly refer to themselves are not
+permitted. For example, both of these definitions are illegal.
+
+@interaction[#:eval the-eval
+(define-type BinaryTree BinaryTree)
+(define-type BinaryTree (U Number BinaryTree))]
 
 @section{Structure Types}
 
-Using @racket[struct:] introduces new types, distinct from any
+Using @racket[struct] introduces new types, distinct from any
 previous type.
 
-@racketblock[(struct: point ([x : Real] [y : Real]))]
+@racketblock[(struct point ([x : Real] [y : Real]))]
 
 Instances of this structure, such as @racket[(point 7 12)], have type @racket[point].
+
+If a struct supertype is provided, then the newly defined type
+is a @tech{subtype} of the parent.
 
 @section{Subtyping}
 
@@ -203,8 +221,8 @@ an analog of the @tt{Maybe} type constructor from Haskell:
 
 @racketmod[
 typed/racket
-(struct: None ())
-(struct: (a) Some ([v : a]))
+(struct None ())
+(struct (a) Some ([v : a]))
 
 (define-type (Opt a) (U None (Some a)))
 
@@ -221,7 +239,7 @@ a structure with no contents.
 The second definition
 
 @racketblock[
-(struct: (a) Some ([v : a]))
+(struct (a) Some ([v : a]))
 ]
 
 creates a parameterized type, @racket[Some], which is a structure with
@@ -299,7 +317,7 @@ the type variable @racket[_a] to annotate the argument
 
 @racketblock[
 (: my-id (All (a) (-> a a)))
-(define my-id (lambda: ([x : a]) x))
+(define my-id (lambda ([x : a]) x))
 ]
 
 Lexical scope also implies that type variables can be shadowed,
@@ -308,17 +326,17 @@ such as in the following example:
 @racketblock[
 (: my-id (All (a) (-> a a)))
 (define my-id
-  (lambda: ([x : a])
+  (lambda ([x : a])
     (: helper (All (a) (-> a a)))
     (define helper
-      (lambda: ([y : a]) y))
+      (lambda ([y : a]) y))
     (helper x)))
 ]
 
-The reference to @racket[_a] inside the inner @racket[lambda:]
+The reference to @racket[_a] inside the inner @racket[lambda]
 refers to the type variable in @racket[_helper]'s annotation.
 That @racket[_a] is @emph{not} the same as the @racket[_a]
-in the annotation of the outer @racket[lambda:] expression.
+in the annotation of the outer @racket[lambda] expression.
 
 
 @(close-eval the-eval)

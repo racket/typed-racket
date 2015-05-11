@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/parse
+(require syntax/parse/pre
          (for-template (only-in racket/base quote))
          "annotate-classes.rkt")
 

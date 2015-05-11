@@ -39,7 +39,7 @@
   '(("optimizer/run.rkt" 1200)
     ("run.rkt" 1800)
     ("tr-random-testing.rkt" 300)
-    ("with-tr-contracts.rkt" 1000)))
+    ("with-tr-contracts.rkt" 1500)))
 
 
 ;; No need to compile the actual integration tests, just the harness.

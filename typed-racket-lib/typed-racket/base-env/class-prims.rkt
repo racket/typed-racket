@@ -5,8 +5,8 @@
 (require (prefix-in untyped: racket/class)
          "class-clauses.rkt"
          "colon.rkt"
-         "../typecheck/internal-forms.rkt"
          "../private/class-literals.rkt"
+         "../utils/typed-method-property.rkt"
          (only-in "prims.rkt" [define tr:define])
          (for-syntax
           racket/base
@@ -17,6 +17,7 @@
           syntax/kerncase
           syntax/parse
           syntax/stx
+          "../typecheck/internal-forms.rkt"
           "annotate-classes.rkt"
           "../private/syntax-properties.rkt"
           "../utils/disarm.rkt"
@@ -169,7 +170,11 @@
         (set-tr-class-info-maybe-private!
          info
          (cons #'id (tr-class-info-maybe-private info)))
-        (tr:class:def-property #'class-exp #'id)]
+        (define new-def
+          (syntax/loc #'class-exp
+            (define-values (id)
+              (chaperone-procedure body #f prop:typed-method #t))))
+        (tr:class:def-property new-def #'id)]
        ;; private field definition
        [(define-values (id ...) . rst)
         (set-tr-class-info-private-fields!
@@ -183,7 +188,7 @@
           (begin
             #,(tr:class:top-level-property
                (tr:class:type-annotation-property
-                #'(quote-syntax (:-augment name augment-type)) #t) #t)
+                #'(quote (:-augment name augment-type)) #t) #t)
             #,(tr:class:top-level-property
                (tr:class:type-annotation-property
                 (syntax/loc #'class-exp (: name type)) #t) #t)))]

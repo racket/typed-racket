@@ -15,7 +15,7 @@
   (require typed/racket/class)
   (require/typed (submod ".." fish) [fish% Fish%])
   
-  (define-type-alias Fish% (Class (init [weight Real])
+  (define-type-alias Fish% (Class (init-field [weight Real])
                                   [get-weight (-> Real)]
                                   [inc-weight-by! (Real Boolean -> Void)]))
   

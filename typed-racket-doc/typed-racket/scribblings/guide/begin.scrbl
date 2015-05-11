@@ -23,18 +23,20 @@ are provided as well; for example, the
 @racketmodname[typed/racket/base] language corresponds to
 @racketmodname[racket/base].
 
-@racketblock+eval[#:eval the-eval (struct: pt ([x : Real] [y : Real]))]
+@racketblock+eval[#:eval the-eval (struct pt ([x : Real] [y : Real]))]
 
-@margin-note{Many forms in Typed Racket have the same name as the
-untyped forms, with a @racket[:] suffix.}
+@margin-note{Typed Racket provides modified versions of core Racket forms,
+which permit type annotations. Previous versions of Typed Racket provided
+these with a @racket[:] suffix, but these are now only included as legacy
+forms for backwards compatibility.}
 This defines a new structure, named @racket[pt], with two fields,
 @racket[x] and @racket[y].  Both fields are specified to have the type
 @racket[Real], which corresponds to the @rtech{real numbers}.
  The
-@racket[struct:] form corresponds to the @racket[struct]
-form from @racketmodname[racket]---when porting a program from
-@racketmodname[racket] to @racketmodname[typed/racket], uses of
-@racket[struct] should be changed to @racket[struct:].
+@racket[struct] form corresponds to its untyped counterpart from
+from @racketmodname[racket]---when porting a program from
+@racketmodname[racket] to @racketmodname[typed/racket], simply add
+type annotations to existing field declarations.
 
 @racketblock+eval[#:eval the-eval (: distance (-> pt pt Real))]
 
@@ -86,8 +88,8 @@ represent these using @italic{union types}, written @racket[(U t1 t2 ...)].
 @racketmod[
 typed/racket
 (define-type Tree (U leaf node))
-(struct: leaf ([val : Number]))
-(struct: node ([left : Tree] [right : Tree]))
+(struct leaf ([val : Number]))
+(struct node ([left : Tree] [right : Tree]))
 
 (: tree-height (-> Tree Integer))
 (define (tree-height t)

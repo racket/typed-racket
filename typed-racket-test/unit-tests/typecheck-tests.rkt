@@ -39,7 +39,7 @@
     (for-template (only-in typed-racket/typed-racket do-standard-inits))
     (typecheck typechecker check-below)
     (utils mutated-vars tc-utils)
-    (env mvar-env))
+    (env lexical-env mvar-env))
   (provide
     test-literal test-literal/fail
     test test/proc test/fail)
@@ -93,25 +93,35 @@
                #:expected golden
                (string-append base-message extra-message1 extra-message2)))))
 
-  ;; test: syntax? tc-results? [(option/c tc-results?)] -> void?
+  ;; test: syntax? tc-results? [(option/c tc-results?)]
+  ;;       [(listof (list id type))] -> void?
   ;; Checks that the expression typechecks using the expected type to the golden result.
-  (define (test expr golden (expected #f))
-    (test/proc expr (lambda (_) golden) expected))
+  ;;
+  ;; The new-mapping argument (here and in subsequent functions) is used to extend the
+  ;; lexical type environment in the test case with additional bindings. Its use is to
+  ;; simulate forms that are difficult to put in unit tests, like `struct`.
+  (define (test expr golden (expected #f) (new-mapping '()))
+    (test/proc expr (lambda (_) golden) expected new-mapping))
 
-  ;; test/proc: syntax? (syntax? -> tc-results?) [(option/c tc-results?)] -> void?
+  ;; test/proc: syntax? (syntax? -> tc-results?) [(option/c tc-results?)]
+  ;;            [(listof (list id type))] -> void?
   ;; Checks that the expression typechecks to golden result. The golden result is computed by applying
   ;; the golden function to the expanded syntax of the expression.
-  (define (test/proc expr golden-fun (expected #f))
+  (define (test/proc expr golden-fun (expected #f) (new-mapping '()))
     (define expanded-expr (tr-expand expr))
-    (define result (tc expanded-expr expected))
+    (define result (with-lexical-env/extend-types
+                     (map car new-mapping)
+                     (map cadr new-mapping)
+                     (tc expanded-expr expected)))
     (define golden (golden-fun expanded-expr))
     (check-tc-results result golden #:name "tc-expr"))
 
 
-  ;; test/fail syntax? tc-results? (or/c string? regexp?) (option/c tc-results?) -> void?
+  ;; test/fail syntax? tc-results? (or/c string? regexp?) (option/c tc-results?)
+  ;;           [(listof (list id type))] -> void?
   ;; Checks that the expression doesn't typecheck using the expected type, returns the golden type,
   ;; and raises an error message matching the golden message
-  (define (test/fail code golden message expected)
+  (define (test/fail code golden message expected (new-mapping '()))
     (dynamic-wind
       void
       (λ ()
@@ -125,7 +135,10 @@
                                         "tc-expr raised the wrong error message")))))])
           (define result
             (parameterize ([delay-errors? #t])
-              (tc (tr-expand code) expected)))
+              (with-lexical-env/extend-types
+                (map car new-mapping)
+                (map cadr new-mapping)
+                (tc (tr-expand code) expected))))
           (check-tc-results result golden #:name "tc-expr")
           (report-first-error)
           (raise (cross-phase-failure
@@ -195,6 +208,11 @@
     (pattern (~seq #:expected v:expr))
     (pattern (~seq) #:attr v #'#f))
 
+  (define-splicing-syntax-class extend-env
+    (pattern (~seq #:extend-env ([name:id type:expr] ...))
+             #:with v #'(list (list (quote-syntax name) type) ...))
+    (pattern (~seq) #:attr v #''()))
+
   ;; for specifying the error message in a test
   (define-splicing-syntax-class expected-msg
     (pattern (~seq #:msg v:expr))
@@ -222,10 +240,10 @@
      (quasisyntax/loc stx
        (test-phase1 code
          (test/proc (quote-syntax code) p)))]
-    [(_ code:expr return:return ex:expected)
+    [(_ code:expr return:return ex:expected env:extend-env)
      (quasisyntax/loc stx
        (test-phase1 code
-         (test (quote-syntax code) return.v ex.v)))]))
+         (test (quote-syntax code) return.v ex.v env.v)))]))
 
 (define-syntax (tc-e/t stx)
   (syntax-parse stx
@@ -244,10 +262,10 @@
 ;; check that typechecking this expression fails
 (define-syntax (tc-err stx)
   (syntax-parse stx
-    [(_ code:expr ret:err-return ex:expected msg:expected-msg)
+    [(_ code:expr ret:err-return ex:expected env:extend-env msg:expected-msg)
      (quasisyntax/loc stx
         (test-phase1 #,(syntax/loc #'code (FAIL code))
-           (test/fail (quote-syntax code) ret.v msg.v ex.v)))]))
+           (test/fail (quote-syntax code) ret.v msg.v ex.v env.v)))]))
 
 (define-syntax (tc-l/err stx)
   (syntax-parse stx
@@ -423,22 +441,37 @@
         (tc-e (extflexpt 0.5t0 0.3t0) -NonNegExtFlonum)
         (tc-e (extflexpt 0.00000000001t0 100000000000.0t0) -NonNegExtFlonum)
         (tc-e (extflexpt -2.0t0 -0.5t0) -ExtFlonum) ; NaN
+        (tc-e (let-values ([(x y) (integer-sqrt/remainder 0)]) (+ x y)) -Zero)
         (tc-e (tanh (ann 0 Nonnegative-Integer)) -NonNegReal)
         (tc-e (sinh (ann 0 Nonpositive-Integer)) -NonPosReal)
         (tc-e (angle -1) (t:Un -InexactReal -Zero))
         (tc-e (angle 2.3) -Zero)
-        (tc-e (magnitude 3/4) -PosRat)
+        (tc-e/t (magnitude 3/4) -PosRat)
         (tc-e (magnitude 3+2i) -NonNegReal)
         (tc-e (min (ann 3 Fixnum) (ann 3 Fixnum)) -Fixnum)
         (tc-e (min (ann -2 Negative-Fixnum) (ann 3 Fixnum)) -NegFixnum)
         (tc-e (min (ann 3 Fixnum) (ann -2 Negative-Fixnum)) -NegFixnum)
         (tc-e (exact->inexact (ann 3 Number)) (t:Un -InexactReal -InexactComplex))
+        (tc-e (exact->inexact 3) -PosFlonum)
+        (tc-e (exact->inexact -3) -NegFlonum)
+        (tc-e (real->double-flonum 0.0) -FlonumPosZero)
+        (tc-e (real->double-flonum -0.0) -FlonumNegZero)
+        (tc-e (real->double-flonum 0.0f0) -FlonumPosZero)
+        (tc-e (real->double-flonum -0.0f0) -FlonumNegZero)
         (tc-e (real->double-flonum #e1e-500) -NonNegFlonum)
         (tc-e (real->double-flonum #e-1e-500) -NonPosFlonum)
+        (tc-e (real->double-flonum 3) -PosFlonum)
+        (tc-e (real->double-flonum -3) -NegFlonum)
+        (tc-e (real->single-flonum 0.0) -SingleFlonumPosZero)
+        (tc-e (real->single-flonum -0.0) -SingleFlonumNegZero)
+        (tc-e (real->single-flonum 0.0f0) -SingleFlonumPosZero)
+        (tc-e (real->single-flonum -0.0f0) -SingleFlonumNegZero)
         (tc-e (real->single-flonum #e1e-500) -NonNegSingleFlonum)
         (tc-e (real->single-flonum #e-1e-500) -NonPosSingleFlonum)
         (tc-e (real->single-flonum 1e-300) -NonNegSingleFlonum)
         (tc-e (real->single-flonum -1e-300) -NonPosSingleFlonum)
+        (tc-e (real->single-flonum 3) -PosSingleFlonum)
+        (tc-e (real->single-flonum -3) -NegSingleFlonum)
         (tc-e (extfl->inexact 1t-500) -NonNegFlonum)
         (tc-e (extfl->inexact -1t-500) -NonPosFlonum)
         (tc-e (real->extfl #e1e-8192) -NonNegExtFlonum)
@@ -647,7 +680,7 @@
         [tc-e ((inst add-between Positive-Byte Symbol) '(1 2 3) 'a #:splice? #t #:before-first '(b))
               (-lst (t:Un -PosByte -Symbol))]
 
-        [tc-e (apply (plambda: (a) [x : a *] x) '(5)) (-lst -PosByte)]
+        [tc-e (apply (plambda: (a) [x : a *] x) '(5)) (unfold (-lst -PosByte))]
         [tc-e (apply append (list '(1 2 3) '(4 5 6))) (-lst -PosByte)]
 
         [tc-err ((case-lambda: [([x : Number]) x]
@@ -749,9 +782,9 @@
                 (if (equal? sym x) 3 x))
               #:ret (ret -PosByte -true-filter)]
 
-        [tc-e (let: ([x : (Listof Symbol)'(a b c)])
-                    (cond [(memq 'a x) => car]
-                          [else 'foo]))
+        [tc-e/t (let: ([x : (Listof Symbol)'(a b c)])
+                      (cond [(memq 'a x) => car]
+                            [else 'foo]))
               -Symbol]
 
         [tc-e (list 2 3 4) (-lst* -PosByte -PosByte -PosByte)]
@@ -1011,12 +1044,12 @@
         |#
 
         ;; inference with internal define
-        [tc-e (let ()
-                (define x 1)
-                (define y 2)
-                (define z (+ x y))
-                (* x z))
-              -PosIndex]
+        [tc-e/t (let ()
+                  (define x 1)
+                  (define y 2)
+                  (define z (+ x y))
+                  (* x z))
+                -PosIndex]
 
         [tc-e/t (let ()
                   (define: (f [x : Number]) : Number
@@ -1814,6 +1847,10 @@
         (tc-e (sync (make-custodian-box (current-custodian) 0))
               (make-CustodianBox (-val 0)))
         (tc-e (sync ((inst make-channel String))) -String)
+        (tc-e (sync (dynamic-place 'foo 'foo)) Univ)
+        (tc-e (let-values ([(in out) (place-channel)])
+                (sync in))
+              Univ)
         (tc-e (sync always-evt) (-mu x (make-Evt x)))
         (tc-e (sync never-evt) -Bottom)
         (tc-e (sync never-evt always-evt) (-mu x (make-Evt x)))
@@ -1967,7 +2004,7 @@
                 (for/and: : Any ([i (in-range 4)])
                           (my-pred)))
               #:ret (ret Univ -top-filter -empty-obj)]
-        [tc-e
+        [tc-e/t
          (let ()
            (define: long : (List 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 Integer)
              (list 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
@@ -2033,7 +2070,7 @@
               (-lst -Symbol)]
         [tc-e (sequence-count zero? (inst empty-sequence Integer))
               -Nat]
-        [tc-e (sequence-filter zero? (inst empty-sequence Integer))
+        [tc-e ((inst sequence-filter Integer Zero) zero? (inst empty-sequence Integer))
               (-seq (-val 0))]
         [tc-e (sequence-add-between (inst empty-sequence Integer) 'foo)
               (-seq (t:Un -Int (-val 'foo)))]
@@ -2317,6 +2354,7 @@
                         (-FS -bot (-not-filter (one-of/c 'a 'b 'c) (-int-obj 3))))] ;; oddly specific? 
        [tc-e (member 3 '(a b c) equal?) (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
        ;; (U False (Listof (U 'a 'b 'c))) (Bot | (! (U 'a 'b 'c) @ 3)) -)
+       [tc-e (memf symbol? '(a b c)) (t:Un (-val #f) (-ne-lst (one-of/c 'a 'b 'c)))]
        [tc-e (assq 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
        [tc-e (assv 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
        [tc-e (assoc 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
@@ -2598,7 +2636,7 @@
        [tc-e ((inst (tr:lambda #:∀ (A) (x [y : A]) y) String) 'a "foo")
              #:ret (ret -String -true-filter)]
        [tc-e ((inst (tr:lambda #:forall (A ...) (x . [rst : A ... A]) rst) String) 'a "foo")
-             #:ret (ret (-lst* -String) -true-filter)]
+             (-lst* -String)]
        #| FIXME: does not work yet, TR thinks the type variable is unbound
        [tc-e (inst (tr:lambda #:forall (A) (x [y : A] [z : String "z"]) y) String)
              #:ret (ret (->opt Univ -String [-String] -String) -true-filter)]
@@ -2617,7 +2655,7 @@
              -String]
        [tc-e (let () (tr:define #:forall (A ...) (f x . [rst : A ... A]) rst)
                      (f 'a "b" "c"))
-             #:ret (ret (-lst* -String -String) -true-filter)]
+             (-lst* -String -String)]
 
        ;; test new :-less forms that allow fewer annotations
        [tc-e/t (let ([x "foo"]) x) -String]
@@ -2669,7 +2707,7 @@
                (string-append x y))
              -String]
        [tc-e (let loop ([x "x"]) x)
-             #:ret (ret Univ -true-filter)]
+             #:ret (ret -String -true-filter)]
        [tc-e (let loop ([x : String "x"]) x)
              #:ret (ret -String -true-filter)]
        [tc-e (let/cc k "foo") -String]
@@ -3007,8 +3045,8 @@
        [tc-err
          (let ([f (lambda (x y) y)])
            (f 1 2 3))
-         #:ret (ret Univ -true-filter (-int-obj 2))]
-
+         #:ret (ret -PosByte -true-filter (-int-obj 2))]
+       
        [tc-err
          (case-lambda
            ((x y . z) 'x)
@@ -3312,7 +3350,7 @@
 
        [tc-e
          ((if (even? 4) add1 (inst values Integer)) 4)
-         -Int]
+         -PosIndex]
 
        ;; PR 14601
        [tc-err
@@ -3585,8 +3623,90 @@
           (void))
         -Void]
        
-       
 
+       [tc-e (let ()
+               (foo-x (foo "foo"))
+               (foo-x #s(foo "foo"))
+               (foo-x #s((foo 1 (0 #f) #()) "foo"))
+               (foo-x #s((bar foo 1 (0 #f) #()) "foo" 'bar))
+               (foo-x #s((baz bar 1 foo 1 (0 #f) #()) "foo" 'bar 'baz)))
+             -String
+             #:extend-env ([foo (t:-> -String (-prefab 'foo -String))]
+                           [foo-x (t:-> (-prefab 'foo -String) -String)])]
+       [tc-err (begin (foo-x "foo")
+                      (error "foo"))
+               #:extend-env ([foo-x (t:-> (-prefab 'foo -String) -String)])
+               #:msg #rx"expected: \\(Prefab.*given: String"]
+       [tc-err (begin (foo-x #s(bar "bar"))
+                      (error "foo"))
+               #:extend-env ([foo-x (t:-> (-prefab 'foo -String) -String)])
+               #:msg #rx"expected: \\(Prefab foo.*given: \\(Prefab bar"]
+
+       [tc-e/t
+         (lambda: ([x : Real-Zero]) (or (zero? x) x))
+         (t:-> -RealZero (t:Un (-val #t) -InexactRealNan) : -true-filter)]
+       [tc-e/t
+         (lambda: ([x : Positive-Integer]) (zero? x))
+         (t:-> -PosInt -Boolean : -false-filter)]
+       [tc-e/t
+         (lambda: ([x : Natural]) (zero? x))
+         (t:-> -Nat -Boolean : (-FS (-filter (-val 0) 0) (-not-filter (-val 0) 0)))]
+       [tc-e/t
+         (lambda: ([x : Real]) (zero? x))
+         (t:-> -Real -Boolean : (-FS (-filter -RealZeroNoNan 0) (-not-filter -RealZeroNoNan 0)))]
+
+       [tc-e/t (lambda: ([x : Byte]) (positive? x))
+          (t:-> -Byte -Boolean : (-FS (-filter -PosByte 0) (-filter -Zero 0)))]
+       [tc-e/t (lambda: ([x : Fixnum]) (negative? x))
+          (t:-> -Fixnum -Boolean : (-FS (-filter -NegFixnum 0) (-filter -NonNegFixnum 0)))]
+
+       [tc-e (< (ann 0 Integer) +inf.0)
+        #:ret (ret -Boolean -true-filter)]
+       [tc-e (> -inf.0 (ann 0 Exact-Rational))
+        #:ret (ret -Boolean -false-filter)]
+       [tc-e/t (lambda: ([x : Flonum]) (and (<= +inf.f x) x))
+        (t:-> -Flonum (t:Un (-val #f) (-val +inf.0))
+              : (-FS (-filter (-val +inf.0) 0) (-not-filter (-val +inf.0) 0)))]
+       [tc-e/t (lambda: ([x : Flonum]) (or (>= +inf.f x) x))
+        (t:-> -Flonum (t:Un (-val #t) -FlonumNan)
+              : -true-filter)]
+
+       [tc-e/t
+         (lambda: ([x : Flonum]) (if (= 0 x) 1.0 x))
+         (t:-> -Flonum (t:Un -PosFlonum -NegFlonum) : -true-filter)]
+       [tc-e/t
+         (lambda: ([x : Byte]) (if (= 0 x) 1 x))
+         (t:-> -Byte -PosByte : -true-filter)]
+       [tc-e/t
+         (lambda: ([x : Flonum]) (if (= x (ann 1.0 Positive-Flonum)) x 'other))
+         (t:-> -Flonum (t:Un -PosFlonum (-val 'other)) : -true-filter)]
+
+       [tc-e/t (lambda: ([x : One])
+                 (let ([f (lambda: [w : Any *] w)])
+                   (f x "hello" #\c)))
+        (t:-> -One (unfold (-lst Univ)) : -true-filter)]
+
+       [tc-e/t (lambda: ([x : One])
+                 (let ([f (plambda: (a ...) [w : a ... a] w)])
+                   (f x "hello" #\c)))
+        (t:-> -One (-lst* -One -String -Char))]
+
+       [tc-e/t
+         (lambda: ([x : Positive-Integer]) (< x 1))
+         (t:-> -PosInt -Boolean : -false-filter)]
+       [tc-e/t
+         (lambda: ([x : Integer]) (>= x 1))
+         (t:-> -Integer -Boolean : (-FS (-filter -PosInt 0) (-filter -NonPosInt 0)))]
+       [tc-e/t
+         (lambda: ([x : Nonnegative-Flonum]) (<= x 0))
+         (t:-> -NonNegFlonum -Boolean : (-FS (-filter -FlonumZero 0) (-filter -PosFlonum 0)))]
+       [tc-e/t
+         (lambda: ([x : Byte]) (if (< 0 x) x 1))
+         (t:-> -Byte -PosByte : (-FS (-filter -Byte (list 0 0)) -bot))]
+
+       [tc-e/t ((inst values Any) "a") -String]
+       [tc-e ((inst second Any Any Any) (list "a" "b")) -String]
+       [tc-e/t (abs 4) -PosByte]
        )
 
   (test-suite
@@ -3642,5 +3762,16 @@
          #:expected (-mu X (-pair (-vec (t:Un (-val ':a) X)) (t:Un (-val ':b) X)))]
    [tc-l/err #(1 2) #:expected (make-HeterogeneousVector (list -Number -Symbol))
                     #:msg #rx"expected: Symbol"]
+   [tc-l #s(foo "a" a)
+         (-prefab 'foo -String (-val 'a))]
+   [tc-l #s((foo 2 (0 #f) #()) "a" a)
+         (-prefab 'foo -String (-val 'a))]
+   [tc-l #s((foo bar 1) "a" a)
+         (-prefab '(foo bar 1) -String (-val 'a))]
+   [tc-l #s((foo bar 1 baz 1) "a" a)
+         (-prefab '(foo bar 1 baz 1) -String (-val 'a))]
+   [tc-l #s(foo "a")
+         (-prefab 'foo (-opt -String))
+         #:expected (-prefab 'foo (-opt -String))]
    )
   ))

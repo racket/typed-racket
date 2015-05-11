@@ -36,7 +36,7 @@
 (define (has-row-constraints? v)
   (not (not (assq v (current-row-constraints)))))
 
-;; lookup-row-constraints : Symbol -> Type
+;; lookup-row-constraints : Symbol -> RowConstraint
 ;; returns the mapped-to constraints or #f
 (define (lookup-row-constraints var)
   (cdr (assq var (current-row-constraints))))

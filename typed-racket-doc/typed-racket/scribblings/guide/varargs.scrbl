@@ -31,7 +31,7 @@ We can define such functions in Typed Racket as well:
 
 @racketmod[
 typed/racket
-(: sum (-> Number * Number))
+(: sum (-> Number #,** Number))
 (define (sum . xs)
   (if (null? xs)
       0

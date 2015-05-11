@@ -3,7 +3,8 @@
 (require "../utils/utils.rkt"
          racket/match
          (typecheck signatures check-below)
-         (types abbrev numeric-tower resolve subtype union generalize)
+         (types abbrev numeric-tower resolve subtype union generalize
+                prefab)
          (rep type-rep)
          (only-in (infer infer) restrict)
          (utils stxclass-util)
@@ -124,8 +125,21 @@
                  [ks (hash-map h (lambda (x y) (tc-literal x)))]
                  [vs (hash-map h (lambda (x y) (tc-literal y)))])
             (make-Hashtable (generalize (apply Un ks)) (generalize (apply Un vs))))])]
+    [(~var i (3d prefab-struct-key))
+     (tc-prefab (syntax-e #'i) expected)]
     [_ Univ]))
 
-
-
-
+;; Typecheck a prefab struct literal
+(define (tc-prefab struct-inst expected)
+  (define expected-ts
+    (match (and expected (resolve expected))
+      [(Prefab: _ ts) (in-sequence-forever (in-list ts) #f)]
+      [_ (in-cycle (in-value #f))]))
+  (define key (prefab-struct-key struct-inst))
+  (define struct-vec (struct->vector struct-inst))
+  (define fields
+    (for/list ([elem (in-vector struct-vec 1)]
+               [expected-t expected-ts])
+      (tc-literal elem expected-t)))
+  (make-Prefab (normalize-prefab-key key (length fields))
+               fields))

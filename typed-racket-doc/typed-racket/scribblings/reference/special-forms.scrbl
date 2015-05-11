@@ -497,13 +497,21 @@ for function types.
 the types @racket[t], and also provides all of the @racket[v]s.}
 
 @defform/none[#{v : t}]{ This declares that the variable @racket[v] has type
-@racket[t].  This is legal only for binding occurrences of @racket[_v].}
+@racket[t].  This is legal only for binding occurrences of @racket[_v].
+
+If a dispatch macro on @racket[#\{] already exists in the current
+@tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{readtable}, this
+syntax will be disabled.}
 
 @defform[(ann e t)]{Ensure that @racket[e] has type @racket[t], or
 some subtype.  The entire expression has type @racket[t].
 This is legal only in expression contexts.}
 
-@defform/none[#{e :: t}]{A reader abbreviation for @racket[(ann e t)].}
+@defform/none[#{e :: t}]{A reader abbreviation for @racket[(ann e t)].
+
+If a dispatch macro on @racket[#\{] already exists in the current
+@tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{readtable}, this
+syntax will be disabled.}
 
 @defform[(cast e t)]{The entire expression has the type @racket[t], while
 @racket[e] may have any type. The value of the entire expression is the value

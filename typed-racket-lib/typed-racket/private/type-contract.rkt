@@ -541,21 +541,21 @@
   (define (handle-range arr convert-arr)
     (match arr
       ;; functions with no filters or objects
-      [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws)
+      [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws dep?)
        (convert-arr)]
       ;; Functions that don't return
-      [(arr: dom (Values: (list (Result: (== -Bottom) _ _) ...)) rst drst kws)
+      [(arr: dom (Values: (list (Result: (== -Bottom) _ _) ...)) rst drst kws dep?)
        (convert-arr)]
       ;; functions with filters or objects
-      [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws)
+      [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws dep?)
        (if (from-untyped? typed-side)
            (fail #:reason (~a "cannot generate contract for function type"
                               " with filters or objects."))
            (convert-arr))]
-      [(arr: dom (? ValuesDots?) rst drst kws)
+      [(arr: dom (? ValuesDots?) rst drst kws dep?)
        (fail #:reason (~a "cannot generate contract for function type"
                           " with dotted return values"))]
-      [(arr: dom (? AnyValues?) rst drst kws)
+      [(arr: dom (? AnyValues?) rst drst kws dep?)
        (fail #:reason (~a "cannot generate contract for function type"
                           " with unknown return values"))]))
 
@@ -619,29 +619,7 @@
                                                       #:recursive-values
                                                         (hash-set recursive-values (cdr drst) (same any/sc))))))
                     (map t->sc rngs))))]))
-<<<<<<< HEAD
-         (match a
-           ;; functions with no filters or objects
-           [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws dep?)
-            (convert-arr a)]
-           ;; Functions that don't return
-           [(arr: dom (Values: (list (Result: (== -Bottom) _ _) ...)) rst drst kws dep?)
-            (convert-arr a)]
-           ;; functions with filters or objects
-           [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws dep?)
-            (if (from-untyped? typed-side)
-                (fail #:reason (~a "cannot generate contract for function type"
-                                   " with filters or objects."))
-                (convert-arr a))]
-           [(arr: dom (? ValuesDots?) rst drst kws dep?)
-            (fail #:reason (~a "cannot generate contract for function type"
-                               " with dotted return values"))]
-           [(arr: dom (? AnyValues?) rst drst kws dep?)
-            (fail #:reason (~a "cannot generate contract for function type"
-                               " with unknown return values"))]))
-=======
          (handle-range a (λ () (convert-arr a))))
->>>>>>> upstream/master
        (define arities
          (for/list ([t arrs])
            (match t

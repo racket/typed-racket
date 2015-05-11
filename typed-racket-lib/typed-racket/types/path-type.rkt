@@ -68,7 +68,7 @@
     [((PolyRow: _ _ body-t) _) (path-type path body-t resolved)]
     
     ;; for private fields in classes
-    [((Function: (list (arr: doms (Values: (list (Result: rng _ _))) _ _ _)))
+    [((Function: (list (arr: doms (Values: (list (Result: rng _ _))) _ _ _ _)))
       (list rst ... (FieldPE:)))
      (path-type rst rng)]
 

@@ -673,7 +673,6 @@
          ;; subtyping on structs follows the declared hierarchy
          [((Struct: nm (? Type/c? parent) _ _ _ _) other)
           (subtype* A0 parent other env obj)]
-          (subtype* A0 parent other)]
          [((Prefab: k1 ss) (Prefab: k2 ts))
           (and (prefab-key-subtype? k1 k2)
                (and (>= (length ss) (length ts))

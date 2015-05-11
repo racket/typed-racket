@@ -4,6 +4,7 @@
 ;; figure 8, pg 8 of "Logical Types for Untyped Languages"
 
 (require "../utils/utils.rkt"
+         (utils tc-utils)
          racket/match racket/list
          (contract-req)
          (except-in (types abbrev utils filter-ops path-type)
@@ -130,7 +131,7 @@
 ;; Substitution of objects into a type
 ;; This is essentially t [o/x] from the paper
 (define/cond-contract (subst-type t k o polarity o-ty)
-  (-> Type/c name-ref/c Object? boolean? Type/c)
+  (-> Type/c name-ref/c Object? boolean? Type/c Type/c)
   (define (st t) (subst-type t k o polarity o-ty))
   (define/cond-contract (sf fs) ((or/c Filter/c FilterSet?) . -> . (or/c Filter/c FilterSet?)) 
     (if (FilterSet? fs)
@@ -192,7 +193,7 @@
 ;; This is ψ+ [o/x] and ψ- [o/x] with the addition that filters are restricted to
 ;; only those values which are a subtype of the actual argument type (o-ty).
 (define/cond-contract (subst-filter f k o polarity o-ty)
-  (-> Filter/c name-ref/c Object? boolean? Filter/c)
+  (-> Filter/c name-ref/c Object? boolean? Type/c Filter/c)
   (define (sub-f f) (subst-filter f k o polarity o-ty))
   (define (sub-o o*) (subst-object o* k o polarity))
   
@@ -216,7 +217,7 @@
           [_
            ;; `ty` alone doesn't account for the path, so
            ;; first traverse it with the path to match `t`
-           (define ty/path (path-type p ty))
+           (define ty/path (path-type p o-ty))
            (maker
             ;; don't restrict if the path doesn't match the type
             (if (equal? ty/path Err)

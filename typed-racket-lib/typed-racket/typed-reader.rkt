@@ -77,7 +77,15 @@
         (list src line col pos (and pos (- p pos)))))]))
 
 (define (readtable)
-  (make-readtable (current-readtable) #\{ 'dispatch-macro parse-id-type))
+  ; don't install the reader macro if a dispatch macro on the open brace has already been installed
+  (define current-table (current-readtable))
+  (define-values (c reader-proc dispatch-proc)
+    (if current-table
+        (readtable-mapping current-table #\{)
+        (values #f #f #f)))
+  (if dispatch-proc
+      current-table
+      (make-readtable current-table #\{ 'dispatch-macro parse-id-type)))
 
 (define (*read inp)
   (parameterize ([current-readtable (readtable)])

@@ -520,7 +520,7 @@
     [(MPair: s t) `(MPairof ,(t->s s) ,(t->s t))]
     [(Refinement: parent p?)
      `(Refinement ,(t->s parent) ,(syntax-e p?))]
-    [(Ref: z t p) `(,(syntax->datum z) : ,(type->sexp t) where ,(filter->sexp p))]
+    [(Ref: z t p) `(Refine [,(syntax->datum z) : ,(type->sexp t)] ,(filter->sexp p))]
     [(Sequence: ts)
      `(Sequenceof ,@(map t->s ts))]
     [(Error:) 'Error]

@@ -52,6 +52,7 @@
          SLI->sexp
          SLI-negate
          SLI-leq-pairs:
+         *Top
          (rename-out [SLI:* SLI:]))
 
 (define (Filter/c-predicate? e)

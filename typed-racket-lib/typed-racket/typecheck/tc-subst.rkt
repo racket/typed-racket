@@ -112,8 +112,7 @@
 
 ;; Substitution of objects into a filter set
 ;; This is essentially ψ+|ψ- [o/x] from the paper
-  ;; TODO(AMK) dbl check: pre-merge my old version was this: [o-ty Univ]
-(define/cond-contract (subst-filter-set fs k o polarity o-ty) 
+(define/cond-contract (subst-filter-set fs k o polarity [o-ty Univ]) 
   (-> (or/c FilterSet? NoFilter?) name-ref/c Object? boolean? Type/c FilterSet?)
   (define extra-filter (-filter o-ty k))
   (define (add-extra-filter f)
@@ -130,8 +129,8 @@
 
 ;; Substitution of objects into a type
 ;; This is essentially t [o/x] from the paper
-(define/cond-contract (subst-type t k o polarity o-ty)
-  (-> Type/c name-ref/c Object? boolean? Type/c Type/c)
+(define/cond-contract (subst-type t k o polarity [o-ty Univ])
+  (->* (Type? name-ref/c Object? boolean?) (Type?) Type?)
   (define (st t) (subst-type t k o polarity o-ty))
   (define/cond-contract (sf fs) ((or/c Filter/c FilterSet?) . -> . (or/c Filter/c FilterSet?)) 
     (if (FilterSet? fs)
@@ -192,8 +191,8 @@
 
 ;; This is ψ+ [o/x] and ψ- [o/x] with the addition that filters are restricted to
 ;; only those values which are a subtype of the actual argument type (o-ty).
-(define/cond-contract (subst-filter f k o polarity o-ty)
-  (-> Filter/c name-ref/c Object? boolean? Type/c Filter/c)
+(define/cond-contract (subst-filter f k o polarity [o-ty Univ])
+  (->* (Filter/c name-ref/c Object? boolean?) (Type/c) Filter/c)
   (define (sub-f f) (subst-filter f k o polarity o-ty))
   (define (sub-o o*) (subst-object o* k o polarity))
   

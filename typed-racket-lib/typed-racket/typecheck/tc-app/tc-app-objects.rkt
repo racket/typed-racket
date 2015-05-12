@@ -32,9 +32,9 @@
   (pattern (dmo . args)
      #:declare dmo (id-from 'do-make-object 'racket/private/class-internal)
      (int-err "unexpected arguments to do-make-object"))
-  (pattern (gf meth obj)
+  (pattern (gf fld obj)
      #:declare gf (id-from 'get-field/proc 'racket/private/class-internal)
-     (check-get-field #'meth #'obj))
+     (check-get-field #'fld #'obj))
   (pattern (gf . args)
      #:declare gf (id-from 'get-field/proc 'racket/private/class-internal)
      (int-err "unexpected arguments to get-field/proc"))
@@ -111,22 +111,23 @@
 
 ;; check-get-field : Syntax Syntax -> TCResult
 ;; type-check the `get-field` operation on objects
-(define (check-get-field meth obj)
-  (define maybe-meth-sym
-    (syntax-parse meth [(quote m:id) (syntax-e #'m)] [_ #f]))
+(define (check-get-field fld obj)
+  (define field-sym
+    (syntax-parse fld
+      [(quote f:id) (syntax-e #'f)]
+      ;; this case should not be reached since `get-field` will check this
+      [_ (int-err "expected a symbolic field name, but got ~a" fld)]))
   (define obj-type (tc-expr/t obj))
-  (unless maybe-meth-sym
-    (tc-error/expr "expected a symbolic method name, but got ~a" meth))
   (define (check obj-type)
     (match (resolve obj-type)
       ;; FIXME: handle unions and mu?
       [(and ty (Instance: (Class: _ _ (list fields ...) _ _ _)))
-       (cond [(assq maybe-meth-sym fields) =>
+       (cond [(assq field-sym fields) =>
               (λ (field-entry) (ret (cadr field-entry)))]
              [else
               (tc-error/expr/fields "type mismatch"
                                     #:more "the object is missing an expected field"
-                                    "field" maybe-meth-sym
+                                    "field" field-sym
                                     "object type" ty)])]
       [(Instance: (? needs-resolving? type))
        (check (make-Instance (resolve type)))]

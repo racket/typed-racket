@@ -37,7 +37,7 @@
     (types tc-result printer)
     syntax/parse
     (for-template (only-in typed-racket/typed-racket do-standard-inits))
-    (typecheck typechecker check-below)
+    (typecheck typechecker check-below tc-envops)
     (utils mutated-vars tc-utils)
     (env lexical-env mvar-env))
   (provide
@@ -112,6 +112,7 @@
     (define result (with-lexical-env/extend-types
                      (map car new-mapping)
                      (map cadr new-mapping)
+                     #:unreachable #f
                      (tc expanded-expr expected)))
     (define golden (golden-fun expanded-expr))
     (check-tc-results result golden #:name "tc-expr"))
@@ -138,6 +139,7 @@
               (with-lexical-env/extend-types
                 (map car new-mapping)
                 (map cadr new-mapping)
+                #:unreachable #f
                 (tc (tr-expand code) expected))))
           (check-tc-results result golden #:name "tc-expr")
           (report-first-error)

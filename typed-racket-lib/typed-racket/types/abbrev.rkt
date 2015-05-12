@@ -46,7 +46,7 @@
          (only-in '#%place place? place-channel?))
 
 (lazy-require
- ["filter-ops.rkt" (-and)])
+ ["filter-ops.rkt" (-and -or)])
 
 (provide (except-out (all-defined-out) make-Base)
          (all-from-out "base-abbrev.rkt" "match-expanders.rkt"))
@@ -93,6 +93,13 @@
 (define/cond-contract (-arg-obj n)
   (c:-> exact-nonnegative-integer? Object?)
   (make-Path null (list 0 n)))
+
+;; an arg object that may be nested in other binding constructs
+(define/cond-contract (-narg-obj n m)
+  (c:-> exact-nonnegative-integer?
+        exact-nonnegative-integer?
+        Object?)
+  (make-Path null (list n m)))
 
 (define/cond-contract (-car-of p)
   (c:-> (c:or/c Object? #f) (c:or/c Object? #f))
@@ -407,25 +414,28 @@
     [(_ leqs)
      (apply -and (leqs->SLIs leqs))]))
 
-(define-syntax -leq
-  (syntax-rules ()
-    [(_ lhs rhs) (leq lhs rhs)]))
+(define (-leq lhs rhs)
+  (leq lhs rhs))
+(define (-lt lhs rhs)
+  (-leq (LExp-add1 lhs) rhs))
+(define (-gt lhs rhs)
+  (-lt rhs lhs))
+(define (-gteq lhs rhs)
+  (-leq rhs lhs))
 
-(define-syntax -lt
-  (syntax-rules ()
-    [(_ lhs rhs) (leq (LExp-add1 lhs) rhs)]))
-
-(define-syntax -gt
-  (syntax-rules ()
-    [(_ lhs rhs) (-lt rhs lhs)]))
-
-(define-syntax -gteq
-  (syntax-rules ()
-    [(_ lhs rhs) (leq rhs lhs)]))
-
-(define-syntax -eqSLI
-  (syntax-rules ()
-    [(_ lhs rhs) (apply -and (-SLI (leq lhs rhs) (leq rhs lhs)))]))
+(define (-leqSLI lhs rhs)
+  (-SLI (leq lhs rhs)))
+(define (-ltSLI lhs rhs)
+  (-leqSLI (LExp-add1 lhs) rhs))
+(define (-gtSLI lhs rhs)
+  (-ltSLI rhs lhs))
+(define (-gteqSLI lhs rhs)
+  (-leqSLI rhs lhs))
+(define (-eqSLI lhs rhs)
+  (-SLI (-leq lhs rhs) (-leq rhs lhs)))
+(define (-neqSLI lhs rhs)
+  (-or (-ltSLI lhs rhs)
+       (-gtSLI lhs rhs)))
 
 (define-syntax (-id-lexp-term stx)
   (syntax-case stx ()

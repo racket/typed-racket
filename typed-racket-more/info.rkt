@@ -4,7 +4,7 @@
 
 (define deps '("srfi-lite-lib"
                "base"
-	       "net-lib"
+               "net-lib"
                "draw-lib"
                "rackunit-lib"
                "rackunit-gui"
@@ -13,7 +13,8 @@
                "gui-lib"
                "pict-lib"
                "racket-index"
-               "sandbox-lib"))
+               "sandbox-lib"
+               "racket/unsafe/ops"))
 
 (define pkg-desc "Types for various libraries")
 

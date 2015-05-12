@@ -7,7 +7,7 @@
   (except-in racket -> ->* one-of/c class)
   racket/unsafe/ops
   racket/unsafe/undefined
-  dependentfuns
+  typed/safe/ops
   (only-in racket/extflonum floating-point-bytes->extfl extfl->floating-point-bytes)
   ;(only-in rnrs/lists-6 fold-left)
   '#%paramz
@@ -799,7 +799,12 @@
 [vector? (make-pred-ty (make-VectorTop))]
 [vector->list (-poly (a) (-> (-vec a) (-lst a)))]
 [list->vector (-poly (a) (-> (-lst a) (-vec a)))]
-[vector-length ((make-VectorTop) . -> . -Index)]
+[vector-length (~> ([v : -VectorTop])
+                   (-refine i -Index
+                            (-SLI (-lt (-lexp `(1 ,(-id-path i)))
+                                       (-lexp `(1 ,(-acc-path (list -len) (-id-path v)))))))
+                   : -true-filter
+                   : (-acc-path (list -len) (-id-path v)))]
 [vector (-poly (a) (->* (list) a (-vec a)))]
 [vector-immutable (-poly (a) (->* (list) a (-vec a)))]
 [vector->immutable-vector (-poly (a) (-> (-vec a) (-vec a)))]
@@ -3223,55 +3228,53 @@
         (-Input (Un -String -Input-Port -Bytes -Path)))
    (->optkey -Pattern -Input (N ?N -Bytes) #:match-select sel #f output)))
 
-;; TODO(amk) these are temporary axioms for testing refinement types
-;; & linear inequalities
-[int+ (~> ([x : -Integer] 
-           [y : -Integer])
-          (let ([x #'x] [y #'y] [z #'z])
-            (-refine z -Integer 
-                     (-eqSLI (-lexp `(1 ,z)) 
-                             (-lexp 1 `(1 ,x) `(1 ,y)))))
-          : -true-filter
-          : (let ([x #'x] [y #'y]) (-lexp `(1 ,x) `(1 ,y))))]
-[int- (~> ([x : -Integer] 
-           [y : -Integer])
-          (let ([x #'x] [y #'y] [z #'z])
-            (-refine z -Integer 
-                     (-eqSLI (-lexp `(1 ,z)) 
-                             (-lexp -1 `(1 ,x) `(1 ,y)))))
-          : -true-filter
-          : (let ([x #'x] [y #'y]) (-lexp `(1 ,x) `(-1 ,y))))]
-[int*2 (~> ([x : -Integer]) 
-           (let ([x #'x] [z #'z])
-             (-refine z -Integer 
-                      (-eqSLI (-lexp `(1 ,z)) 
-                              (-lexp `(2 ,x)))))
-           : -true-filter
-           : (let ([x #'x]) (-lexp `(2 ,x))))]
-[int*3 (~> ([x : -Integer]) 
-           (let ([x #'x] [z #'z])
-             (-refine z -Integer 
-                      (-eqSLI (-lexp `(1 ,z)) 
-                              (-lexp `(3 ,x)))))
-           : -true-filter
-           : (let ([x #'x]) (-lexp `(3 ,x))))]
+;; [int+ (~> ([x : -Integer] 
+;;            [y : -Integer])
+;;           (let ([x #'x] [y #'y] [z #'z])
+;;             (-refine z -Integer 
+;;                      (-eqSLI (-lexp `(1 ,z)) 
+;;                              (-lexp 1 `(1 ,x) `(1 ,y)))))
+;;           : -true-filter
+;;           : (let ([x #'x] [y #'y]) (-lexp `(1 ,x) `(1 ,y))))]
+;; [int- (~> ([x : -Integer] 
+;;            [y : -Integer])
+;;           (let ([x #'x] [y #'y] [z #'z])
+;;             (-refine z -Integer 
+;;                      (-eqSLI (-lexp `(1 ,z)) 
+;;                              (-lexp -1 `(1 ,x) `(1 ,y)))))
+;;           : -true-filter
+;;           : (let ([x #'x] [y #'y]) (-lexp `(1 ,x) `(-1 ,y))))]
+;; [int*2 (~> ([x : -Integer]) 
+;;            (let ([x #'x] [z #'z])
+;;              (-refine z -Integer 
+;;                       (-eqSLI (-lexp `(1 ,z)) 
+;;                               (-lexp `(2 ,x)))))
+;;            : -true-filter
+;;            : (let ([x #'x]) (-lexp `(2 ,x))))]
+;; [int*3 (~> ([x : -Integer]) 
+;;            (let ([x #'x] [z #'z])
+;;              (-refine z -Integer 
+;;                       (-eqSLI (-lexp `(1 ,z)) 
+;;                               (-lexp `(3 ,x)))))
+;;            : -true-filter
+;;            : (let ([x #'x]) (-lexp `(3 ,x))))]
 ;; TODO(amk) multiplication needs not only a latent object... but like
 ;; a latent function that calculates it... wierd
 
-[int<= (->* (list -Integer -Integer)
-            -Boolean
-            : (-FS (-SLI (-leq (-lexp `(1 ,(-arg-obj 0)))
-                               (-lexp `(1 ,(-arg-obj 1)))))
+;; [int<= (->* (list -Integer -Integer)
+;;             -Boolean
+;;             : (-FS (-SLI (-leq (-lexp `(1 ,(-arg-obj 0)))
+;;                                (-lexp `(1 ,(-arg-obj 1)))))
                    
-                   (-SLI (-lt (-lexp `(1 ,(-arg-obj 1)))
-                              (-lexp `(1 ,(-arg-obj 0)))))))]
-[int< (->* (list -Integer -Integer)
-           -Boolean
-           : (-FS (-SLI (-lt (-lexp `(1 ,(-arg-obj 0)))
-                             (-lexp `(1 ,(-arg-obj 1)))))
+;;                    (-SLI (-lt (-lexp `(1 ,(-arg-obj 1)))
+;;                               (-lexp `(1 ,(-arg-obj 0)))))))]
+;; [int< (->* (list -Integer -Integer)
+;;            -Boolean
+;;            : (-FS (-SLI (-lt (-lexp `(1 ,(-arg-obj 0)))
+;;                              (-lexp `(1 ,(-arg-obj 1)))))
                   
-                  (-SLI (-leq (-lexp `(1 ,(-arg-obj 1)))
-                              (-lexp `(1 ,(-arg-obj 0)))))))]
+;;                   (-SLI (-leq (-lexp `(1 ,(-arg-obj 1)))
+;;                               (-lexp `(1 ,(-arg-obj 0)))))))]
 ;; [int< (->* (list -Integer -Integer)
 ;;             -Boolean
 ;;             : (-FS (-SLI (-lt (-lexp-obj (list 1 (-arg-obj 1)))
@@ -3304,14 +3307,6 @@
 ;;                        (-SLI (-lt (list 1 (-arg-obj 1))
 ;;                                   (list 1 (-arg-obj 0)))))))]
 
-
-[exact-vector-length
- (~> ([v : -VectorTop])
-     (-refine i -Index
-              (-SLI (-lt (-lexp `(1 ,(-id-path i)))
-                         (-lexp `(1 ,(-acc-path (list -len) (-id-path v)))))))
-     : -true-filter
-     : (-acc-path (list -len) (-id-path v)))]
 
 ;; TODO(amk) support polymorphism w/ dep fun types
 [safe-vector-ref

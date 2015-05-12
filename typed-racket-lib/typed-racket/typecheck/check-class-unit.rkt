@@ -556,6 +556,14 @@
         #:when (set-member? (hash-ref parse-info 'private-fields) name))
     (hash-set! private-field-types name (list type)))
 
+  ;; Hash<Syntax -> Listof<Listof<Syntax>, Listof<Type>>>
+  ;; Maps the outermost `let-values` expressions introduced by the expansion of
+  ;;  `define-values` within the class body to a list of identifier syntaxes
+  ;;  that represent variables and a list of corresponding types.
+  ;;  The variables temporarily hold the values of the initializer expression;
+  ;;  a field mutator is called on each one in the body of the `let-values`.
+  ;;  Typechecking of these calls is done in `check-field-set!s` and requires
+  ;;  the types of the initial values.
   (define inits-temporaries-types (make-hasheq))
 
   (define synthesized-init-val-stxs

@@ -604,14 +604,14 @@
 
   (define (ret-nat-leq-arg t arg-num)
     (-irefine t
-              (-SLI (-leq 0
+              (-SLI (-leq (-lexp 0)
                           (-lexp (list 1 (-narg-obj 0 0))))
                     (-leq (-lexp (list 1 (-narg-obj 0 0)))
                           (-lexp (list 1 (-narg-obj 1 arg-num)))))))
   
   (define (ret-in-range t upper)
     (-irefine t
-              (-SLI (-leq 0
+              (-SLI (-leq (-lexp 0)
                           (-lexp (list 1 (-narg-obj 0 0))))
                     (-leq (-lexp (list 1 (-narg-obj 0 0)))
                           upper))))
@@ -676,11 +676,11 @@
   ;; helper for adding props to binary integer comparisons
   ;; (< <= = >= >)
   (define ((int-bcomp-props fn+ fn-) p+ p-)
-    (-FS (-and (fn+ (-arg-path 0)
-                    (-arg-path 1))
+    (-FS (-and (fn+ (-lexp (list 1 (-arg-path 0)))
+                    (-lexp (list 1 (-arg-path 1))))
                p+)
-         (-and (fn- (-arg-path 0)
-                    (-arg-path 1))
+         (-and (fn- (-lexp (list 1 (-arg-path 0)))
+                    (-lexp (list 1 (-arg-path 1))))
                p-)))
   (define -FSb< (int-bcomp-props -ltSLI -gteqSLI))
   (define -FSb<= (int-bcomp-props -leqSLI -gtSLI))
@@ -691,17 +691,17 @@
   ;; helper for adding props to turnary integer comparisons
   ;; (< <= = >= >)
   (define ((int-tcomp-props fn+ fn-) p+ p-)
-    (-FS (-and (fn+ (-arg-path 0)
-                    (-arg-path 1))
-               (fn+ (-arg-path 1)
-                    (-arg-path 2))
+    (-FS (-and (fn+ (-lexp (list 1 (-arg-path 0)))
+                    (-lexp (list 1 (-arg-path 1))))
+               (fn+ (-lexp (list 1 (-arg-path 1)))
+                    (-lexp (list 1 (-arg-path 2))))
                p+)
-         (-and (-or (fn- (-arg-path 0)
-                         (-arg-path 1))
-                    (-and (fn+ (-arg-path 0)
-                               (-arg-path 1))
-                          (fn- (-arg-path 1)
-                               (-arg-path 2))))
+         (-and (-or (fn- (-lexp (list 1 (-arg-path 0)))
+                         (-lexp (list 1 (-arg-path 1))))
+                    (-and (fn+ (-lexp (list 1 (-arg-path 0)))
+                               (-lexp (list 1 (-arg-path 1))))
+                          (fn- (-lexp (list 1 (-arg-path 1)))
+                               (-lexp (list 1 (-arg-path 2))))))
                p-)))
 
   (define -FSt< (int-tcomp-props -ltSLI -gteqSLI))

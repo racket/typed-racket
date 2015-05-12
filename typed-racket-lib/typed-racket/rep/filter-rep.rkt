@@ -101,15 +101,18 @@
 ;; Less-than-or-Equal-to internal propositions
 ;; (i.e. SLIs, which are Filters, use them internally,
 ;;  but they are not accessible outside of this file)
-(define (leq l1 l2)
-  (let-values ([(l1* l2*) (LExp-gcd-shrink l1 l2)])
-    (cons l1* l2*)))
 
 (define (leq? a)
   (match a
     [(cons lhs rhs) (and (LExp? lhs)
                          (LExp? rhs))]
     [_ #f]))
+
+;; smart constructor -- reduces them when possible by gcds
+(define/cond-contract (leq l1 l2)
+  (-> LExp? LExp? leq?)
+  (let-values ([(l1* l2*) (LExp-gcd-shrink l1 l2)])
+    (cons l1* l2*)))
 
 (define (leq-lhs x)
   (car x))

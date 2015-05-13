@@ -140,7 +140,7 @@
 
 
   (define ((r/t-maker legacy) stx)
-    (unless (unbox typed-context?)
+    (unless (or (unbox typed-context?) (eq? (syntax-local-context) 'module-begin))
       (raise-syntax-error #f "only allowed in a typed module" stx))
     (syntax-parse stx
       [(_ lib:expr (~var c (clause legacy #'lib)) ...)

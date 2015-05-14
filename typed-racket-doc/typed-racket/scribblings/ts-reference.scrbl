@@ -34,6 +34,7 @@ For a friendly introduction, see the companion manual
 @include-section["reference/no-check.scrbl"]
 @include-section["reference/typed-regions.scrbl"]
 @include-section["reference/optimization.scrbl"]
+@include-section["reference/unsafe.scrbl"]
 @include-section["reference/legacy.scrbl"]
 @include-section["reference/compatibility-languages.scrbl"]
 @include-section["reference/experimental.scrbl"]

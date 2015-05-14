@@ -1,7 +1,9 @@
 #lang info
 
 (define collection 'use-pkg-name)
-(define deps '("base"
+(define deps '("redex-lib"
+               "sandbox-lib"
+               "base"
                "typed-racket"
                "typed-racket-more"
                "typed-racket-compatibility"

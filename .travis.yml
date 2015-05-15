@@ -4,7 +4,9 @@ env:
 - PATH=~/racket/bin:$PATH
 
 before_install:
-- curl -L -o installer.sh http://www.cs.utah.edu/plt/snapshots/current/installers/min-racket-current-x86_64-linux-precise.sh
+- "export DISPLAY=:99.0"
+- "sh -e /etc/init.d/xvfb start"
+- curl -L -o installer.sh http://plt.eecs.northwestern.edu/snapshots/current/installers/racket-test-current-x86_64-linux-precise.sh
 - sh installer.sh --in-place --dest ~/racket/
 
 install:
@@ -12,9 +14,16 @@ install:
 - echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
 - raco pkg config catalogs >> catalog-config.txt
 - raco pkg config --set catalogs `cat catalog-config.txt`
-- raco pkg install --deps search-auto typed-racket-lib
+- raco pkg update -i --no-setup source-syntax/ typed-racket-lib/ typed-racket-more/ typed-racket-compatibility/ typed-racket-doc/ typed-racket/ typed-racket-test/
+- raco setup typed typed-racket typed-racket-test
 
 script:
+- racket -l typed-racket-test/run -- --unit
+- racket -l typed-racket-test/run -- --int
+- racket -l typed-racket-test/run -- --opt
+- racket -l typed-racket-test/run -- --missed-opt
+- raco setup -j 1 math
+- racket -l typed-racket-test/run -- --math
 - echo "done"
 
 after_script:

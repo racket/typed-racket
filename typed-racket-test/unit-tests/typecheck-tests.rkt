@@ -1187,6 +1187,11 @@
         [tc-e (sequence-filter module-path? (ann (vector "a" 4 5 "b") (Vectorof Any)))
               (-seq (t:Un -Module-Path))]
 
+        [tc-e (let ([pos-not-5? : [-> Real (U Positive-Real #f) : #:+ Positive-Real]
+                                (λ (x) (and (positive? x) (not (= x 5)) x))])
+                (partition pos-not-5? (ann '(1 2 -3 4.2 5 -6) (Listof Real))))
+              (list (-lst -PosReal) (-lst -Real))] ; multiple values
+
 
         #|
         [tc-err (plambda: (a ...) [as : a ... a]

@@ -703,8 +703,9 @@
                    . ->... .
                    -Index))]
 [partition
- (-poly (a b) (cl->* (-> (-> a Univ) (-lst a) (-values (list (-lst a) (-lst a))))
-                     (-> (make-pred-ty a) (-lst b) (-values (list (-lst a) (-lst b))))))]
+ (-poly (a b) (cl->*
+               (-> (asym-pred b Univ (-FS (-filter a 0) -top)) (-lst b) (-values (list (-lst a) (-lst b))))
+               (-> (-> a Univ) (-lst a) (-values (list (-lst a) (-lst a))))))]
 
 [last   (-poly (a) ((-lst a) . -> . a))]
 [add-between (-poly (a b) ((-lst a) b

@@ -153,8 +153,8 @@
             (let-values ([(field-name:id) accessor-or-mutator] ...)
               :make-methods-body))))
 
-(define-syntax-class class-expansion
-  #:literals (#%plain-app quote)
+(define-syntax-class core-class-expansion
+  #:literals (let-values letrec-syntaxes+values #%plain-app quote)
   #:attributes (superclass-expr
                 make-methods
                 initializer-body
@@ -169,6 +169,16 @@
             (~and make-methods :make-methods-class)
             (quote :boolean)
             (quote #f))))
+
+(define-syntax-class class-expansion
+  #:literals (#%expression)
+  #:attributes (superclass-expr
+                make-methods
+                initializer-body
+                initializer-self-id
+                initializer-args-id)
+  (pattern :core-class-expansion)
+  (pattern (#%expression :core-class-expansion)))
 
 ;; This is similar to `type-declaration` from "internal-forms.rkt", but
 ;; the expansion is slightly different in a class so we use this instead.

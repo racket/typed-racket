@@ -51,7 +51,7 @@
   ;; tr-expand: syntax? -> syntax?
   ;; Expands out a form and annotates it with necesarry TR machinery.
   (define (tr-expand stx)
-    (define expanded-stx (local-expand stx 'expression '()))
+    (define expanded-stx (syntax-local-introduce (local-expand stx 'expression '())))
     (find-mutated-vars expanded-stx mvar-env)
     expanded-stx)
 

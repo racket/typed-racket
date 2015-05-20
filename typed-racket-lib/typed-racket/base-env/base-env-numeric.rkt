@@ -652,7 +652,8 @@
 
   (define abs-cases ; used both for abs and magnitude
     (list
-     (-NonNegReal . -> . -NonNegReal : -true-filter : (-arg-path 0))
+     ;; abs is not the identity on negative zeros.
+     ((Un -Zero -PosReal) . -> . (Un -Zero -PosReal) : -true-filter : (-arg-path 0))
      ;; abs may not be closed on fixnums. (abs min-fixnum) is not a fixnum
      ((Un -PosInt -NegInt) . -> . -PosInt)
      (-Int . -> . -Nat)

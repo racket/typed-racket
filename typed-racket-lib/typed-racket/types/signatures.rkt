@@ -12,7 +12,8 @@
          (for-template racket/base
                        (typecheck internal-forms)))
 
-(provide check-sub-signatures?)
+(provide check-sub-signatures?
+         valid-signatures?)
 
 ;; check-subsignatures? : (listof Signature) (listof Signature) -> boolean?
 ;; checks that the first list of signatures is a valid "subtype"/extensions
@@ -38,3 +39,18 @@
       (cons (Signature-name sig)
             (signature-extensions (Signature-extends sig)))
       null))
+
+
+;; valid-sigs : (listof Signature) -> boolean
+;; returns true iff the list of signatures contains no duplicates under
+;; extension
+(define (valid-signatures? sigs)
+  (define sig-ids (apply append (map signature-extensions sigs)))
+  (distinct? sig-ids))
+
+;; distinct? : (listof id) -> boolean?
+;; returns true iff the signature ids are all distinct
+(define (distinct? sigs)
+  (or (empty? sigs)
+      (and (not (member (first sigs) (rest sigs) free-identifier=?))
+           (distinct? (rest sigs)))))

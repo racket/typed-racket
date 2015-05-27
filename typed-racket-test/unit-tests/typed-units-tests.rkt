@@ -151,6 +151,14 @@
         (: x String)
         (define x a))
       (error ""))]
+   ;; units can only import/export distinct sets of signatures
+   [tc-err
+    (let ()
+      (define-signature a^ ())
+      (define-signature b^ extends a^ ())
+      (define-siganture c^ extends a^ ())
+      (unit (import b^ c^) (export))
+      (error ""))]
    
    ;; This tests that the linking clauses in compound-unit forms
    ;; are correctly satisfied

@@ -18,7 +18,7 @@
          (private parse-type syntax-properties type-annotation)
          (env lexical-env tvar-env global-env 
               signature-env signature-helper)
-         (types utils abbrev union subtype resolve generalize)
+         (types utils abbrev union subtype resolve generalize signatures)
          (typecheck check-below internal-forms)
          (utils tc-utils)
          (rep type-rep)
@@ -601,6 +601,13 @@
      (define import-signatures (map lookup-signature (map sig-info-name imports-info)))
      (define export-signatures (map lookup-signature (map sig-info-name exports-info)))
      (define init-depend-signatures (map lookup-signature init-depends))
+
+     (unless (valid-signatures? import-signatures)
+       (tc-error/expr "unit expressions must import distinct signatures"))
+     ;; this check for exports may be unnecessary
+     ;; the unit macro seems to check it as well
+     (unless (valid-signatures? export-signatures)
+       (tc-error/expr "unit expresssions must export distinct signatures"))
      
      (define local-sig-type-map
        (apply append (map make-local-type-mapping imports-info)))

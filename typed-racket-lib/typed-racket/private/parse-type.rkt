@@ -5,7 +5,7 @@
 (require "../utils/utils.rkt"
          (except-in (rep type-rep object-rep) make-arr)
          (rename-in (types abbrev union utils filter-ops resolve
-                           classes prefab)
+                           classes prefab signatures)
                     [make-arr* make-arr])
          (utils tc-utils stxclass-util literal-syntax-class)
          syntax/stx (prefix-in c: (contract-req))
@@ -370,15 +370,12 @@
                                  "given" v)
                     (make-Instance (Un)))
              (make-Instance v)))]
-      
       [(:Unit^ (:import^ import:id ...)
                (:export^ export:id ...)
                (~optional (:init-depend^ init-depend:id ...) 
                           #:defaults ([(init-depend 1) null]))
                (~optional result
                           #:defaults ([result #f])))
-       ;; TODO: error handling when the signature is not in the environment
-       ;; TODO: handle the case where signatures in imports/exports are not distinct
        (define id->sig (lambda (id) 
                          (define sig (lookup-signature id))
                          (unless sig
@@ -387,10 +384,32 @@
                                         "Unknown signature used in Unit type"
                                         "signature" (syntax-e id)))
                          sig))
+       ;; handle the case where signatures in imports/exports are not distinct
+       (define (check-init-depends/imports? s1 s2)
+         (unless (and (andmap values s1)
+                      (andmap values s2)
+                      (andmap (lambda (id)
+                                (member (Signature-name id)
+                                        (map Signature-name s2)
+                                        free-identifier=?)) s1))
+           (parse-error
+            #:stx stx
+            #:delayed? #t
+            "Unit type initialization dependencies must be a subset of imports")))
+       (define (check-signatures sigs)
+         (unless (and (andmap values sigs) (valid-signatures? sigs))
+           (parse-error #:stx stx
+                        #:delayed? #t
+                        "Unit types must import and export distinct signatures"))
+         sigs)
+       (define imports (check-signatures (map id->sig (syntax->list #'(import ...)))))
+       (define exports (check-signatures (map id->sig (syntax->list #'(export ...)))))
+       (define init-depends (map id->sig (syntax->list #'(init-depend ...))))
+       (check-init-depends/imports? init-depends imports)
        (define res (attribute result))
-       (make-Unit (map id->sig (syntax->list #'(import ...)))
-                  (map id->sig (syntax->list #'(export ...)))
-                  (map id->sig (syntax->list #'(init-depend ...)))
+       (make-Unit imports
+                  exports
+                  init-depends
                   (if res (parse-values-type res) (-values (list -Void))))]
       
       [(:List^ ts ...)

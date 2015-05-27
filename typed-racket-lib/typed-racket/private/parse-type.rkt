@@ -379,7 +379,14 @@
                           #:defaults ([result #f])))
        ;; TODO: error handling when the signature is not in the environment
        ;; TODO: handle the case where signatures in imports/exports are not distinct
-       (define id->sig (lambda (id) (lookup-signature id)))
+       (define id->sig (lambda (id) 
+                         (define sig (lookup-signature id))
+                         (unless sig
+                           (parse-error #:stx id
+                                        #:delayed? #t
+                                        "Unknown signature used in Unit type"
+                                        "signature" (syntax-e id)))
+                         sig))
        (define res (attribute result))
        (make-Unit (map id->sig (syntax->list #'(import ...)))
                   (map id->sig (syntax->list #'(export ...)))

@@ -30,6 +30,13 @@
 (import tc-if^ tc-lambda^ tc-app^ tc-let^ tc-expr^)
 (export check-unit^)
 
+;; id-set-diff : (listof id) (listof id) -> (listof id)
+;; returns the set difference of two lists of identifers
+(define (id-set-diff s1 s2)
+    (filter
+     (lambda (id) (not (member id s2 free-identifier=?)))
+     s1))
+
 ;; Syntax class deifnitions
 ;; variable annotations expand slightly differently in the body of a unit
 ;; due to how the unit macro transforms internal definitions
@@ -538,7 +545,20 @@
     (tc-expr/t unit-expr-stx))
   ;; only check subtyping when not using invoke-unit/infer
   (unless infer?
-    (check-below unit-expr-type expected-unit-type))
+    (define subtype? (subtype unit-expr-type expected-unit-type))
+    (unless subtype?
+      (match unit-expr-type
+        [(Unit: imports _ _ _)
+         (define expected-import-sigs (map Signature-name imports))
+         (define declared-import-sigs (map Signature-name import-signatures))
+         (define missing-imports (id-set-diff expected-import-sigs declared-import-sigs))
+         ;; missing-imports cannot be an empty list since subtype? is #f
+         (tc-error/fields "insufficient imports to invoke-unit expression"
+                          "expected imports" (map syntax-e expected-import-sigs)
+                          "declared imports" (map syntax-e declared-import-sigs)
+                          "missing imports" (map syntax-e missing-imports)
+                          #:delayed? #t)]
+        [_ (check-below unit-expr-type expected-unit-type)])))
   (cond 
     ;; not a unit then tc-error/expr
     [(Unit? unit-expr-type)

@@ -16,9 +16,9 @@
   [struct signature-spec ([name identifier?]
                           [members (listof identifier?)]
                           [scs (listof static-contract?)])]
-  ;; TODO: this will change when unit/c supports init-depends
   [unit/sc (-> (listof signature-spec?) 
-               (listof signature-spec?) 
+               (listof signature-spec?)
+               (listof identifier?)
                (listof static-contract?) 
                static-contract?)]))
 
@@ -46,21 +46,25 @@
 
 (define unit-spec->list
   (match-lambda
-   [(unit-spec imports exports invoke)
+   [(unit-spec imports exports init-depends invoke)
     (flatten (append (filter-map signature-spec-scs imports)
                      (filter-map signature-spec-scs exports)
+                     ;; Should the init-depends go here?
+                     ;; there are no contracts attached
                      (filter-map (lambda (x) x) invoke)))]))
 
-(struct unit-spec (imports exports invoke) 
+(struct unit-spec (imports exports init-depends invoke) 
         #:transparent
         #:property prop:sequence unit-spec->list)
 
 (define (unit-spec-sc-map f seq)
   (match seq
-    [(unit-spec imports exports invokes)
+    [(unit-spec imports exports init-depends invokes)
      (unit-spec
       (map (signature-spec-sc-map f) imports)
       (map (signature-spec-sc-map f) exports)
+      ;; Should the init-depends change at all???
+      init-depends
       (map (lambda (invoke) (and invoke (f invoke 'covariant))) invokes))]))
 
 (define ((signature-spec-sc-map f) seq)
@@ -77,6 +81,7 @@
     [(unit-combinator 
       (unit-spec (list imports ...)
                  (list exports ...)
+                 (list deps ...)
                  (list invoke/scs ...)))
      
      (define (sig-spec->syntax sig-spec)
@@ -98,8 +103,8 @@
      #`(unit/c
         (import #,@(map sig-spec->syntax imports))
         (export #,@(map sig-spec->syntax exports))
-        ;; TODO: (init-depend ...)
+        (init-depend #,@deps)
         #,(invokes->contract invoke/scs))]))
 
-(define (unit/sc imports exports invoke)
-  (unit-combinator (unit-spec imports exports invoke)))
+(define (unit/sc imports exports init-depends invoke)
+  (unit-combinator (unit-spec imports exports init-depends invoke)))

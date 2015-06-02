@@ -222,11 +222,19 @@
     (->optkey -String -Symbol [-String] #:rest -Symbol -Void)]
    [(All (a) (->* (a Symbol) (String) #:rest Symbol Void))
     (-poly (a) (->optkey a -Symbol [-String] #:rest -Symbol -Void))]
+   [(->* (Integer) (String #:foo Integer String) Void)
+    (->optkey -Integer [-String -String] #:foo -Integer #f -Void)]
    [(->* (Integer) (String #:foo Integer) Void)
+    (->optkey -Integer [-String] #:foo -Integer #f -Void)]
+   [(->* (Integer) (#:foo Integer String) Void)
     (->optkey -Integer [-String] #:foo -Integer #f -Void)]
    [(->* (Integer #:bar Integer) (String) Void)
     (->optkey -Integer [-String] #:bar -Integer #t -Void)]
+   [(->* (#:bar Integer Integer) (String) Void)
+    (->optkey -Integer [-String] #:bar -Integer #t -Void)]
    [(->* (Integer #:bar Integer) (String #:foo Integer) Void)
+    (->optkey -Integer [-String] #:bar -Integer #t #:foo -Integer #f -Void)]
+   [(->* (#:bar Integer Integer) (#:foo Integer String) Void)
     (->optkey -Integer [-String] #:bar -Integer #t #:foo -Integer #f -Void)]
    [(->* (Any (-> Any Boolean : #:+ (String @ 1 0))) Void)
     (t:-> Univ (t:->* (list Univ) -Boolean : (-FS (-filter -String '(1 0)) -top))

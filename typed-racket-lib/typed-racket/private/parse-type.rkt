@@ -13,6 +13,7 @@
          (env tvar-env type-alias-env mvar-env
               lexical-env index-env row-constraint-env)
          racket/dict
+         racket/list
          racket/promise
          racket/format
          racket/match
@@ -185,23 +186,33 @@
            #:when (not (syntax->list #'t))))
 
 ;; syntax classes for parsing ->* function types
-(define-syntax-class ->*-mand
-  #:description "mandatory arguments for ->*"
+(define-syntax-class (->*-args mand?)
+  #:description "type arguments for ->*"
   #:attributes (doms kws)
-  (pattern (dom:non-keyword-ty ... kw:plain-kw-tys ...)
-           #:attr doms (syntax->list #'(dom ...))
-           #:attr kws  (attribute kw.mand-kw)))
+  (pattern ((~var dom (->*-dom mand?)) ...)
+           #:do [(define-values (kws doms)
+                   ;; would like to use `partition` but we need to traverse multiple
+                   ;; lists rather than just checking Keyword? due to laziness
+                   (for/fold ([kws null] [doms null])
+                             ([kw? (in-list (attribute dom.kw?))]
+                              [type/kw (attribute dom.result)])
+                     (if kw?
+                         (values (cons type/kw kws) doms)
+                         (values kws (cons type/kw doms)))))]
+           #:attr doms (reverse doms)
+           #:attr kws (reverse kws)))
 
-(define-splicing-syntax-class ->*-opt
-  #:description "optional arguments for ->*"
-  #:attributes (doms kws)
- (pattern (~optional (dom:non-keyword-ty ... kw:plain-kw-tys ...))
-          #:attr doms (if (attribute dom)
-                          (syntax->list #'(dom ...))
-                          null)
-          #:attr kws (if (attribute kw)
-                         (attribute kw.opt-kw)
-                         null)))
+;; parameterized syntax class for parsing ->* domains.
+(define-splicing-syntax-class (->*-dom mand?)
+  #:attributes (kw? result)
+  (pattern (~seq k:keyword t:expr)
+           #:attr kw? #t
+           #:attr result
+           (delay (make-Keyword (syntax-e #'k) (parse-type #'t) mand?)))
+  (pattern t:expr
+           #:attr kw? #f
+           ;; does not need to be delayed since there's no parsing done
+           #:attr result #'t))
 
 (define-splicing-syntax-class ->*-rest
   #:description "rest argument type for ->*"
@@ -502,7 +513,11 @@
               (parse-type #'rng)
               : (-FS (attribute latent.positive) (attribute latent.negative))
               : (attribute latent.object)))]
-      [(:->*^ mand:->*-mand opt:->*-opt rest:->*-rest rng)
+      [(:->*^ (~var mand (->*-args #t))
+              (~optional (~var opt (->*-args #f))
+                         #:defaults ([opt.doms null] [opt.kws null]))
+              rest:->*-rest
+              rng)
        (with-arity (length (attribute mand.doms))
          (define doms (for/list ([d (attribute mand.doms)])
                         (parse-type d)))

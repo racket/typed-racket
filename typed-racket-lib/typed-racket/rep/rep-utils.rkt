@@ -208,7 +208,7 @@
 ;; kws is e.g. '(#:Type #:Filter #:Object #:PathElem)
 (define-for-syntax (mk-fold hashtable rec-ids kws)
   (lambda (stx)
-    (define new-hashtable (hash-copy hashtable))
+    (define new-hashtable (make-hasheq))
     (define-syntax-class clause
       (pattern
        ;; Given name, matcher.
@@ -268,8 +268,8 @@
     (syntax-parse stx
       [(tc (~var recs (sized-list kws)) ty clauses:clause ...)
        ;; map defined types' keywords to their given fold-rhs's.
-       ;; This is done with a new copy of the hash generated in mk
-       ;; so we can give special cases for only specific elements.
+       ;; we will then combine this with the default hash table to generate
+       ;; the full match expression
        (for ([k (attribute clauses.kw)]
              [v (attribute clauses.val)])
          (hash-set! new-hashtable k v))
@@ -288,7 +288,9 @@
                         #`[#,rec-id (make-rename-transformer #'#,rec-id*)])]
                      [(match-clauses ...)
                       ;; create all clauses we fold on, with keyword/body
-                      (hash-map new-hashtable gen-clause)]
+                      (append
+                       (hash-map new-hashtable gen-clause)
+                       (hash-map hashtable gen-clause))]
                      [error-msg (quasisyntax/loc stx (error 'tc "no pattern for ~a" #,fold-target))])
          #`(let (let-clauses ...
                  ;; binds #'fold-target to the given element to fold down.

@@ -11,7 +11,7 @@
                     [->* t:->*]
                     [one-of/c t:one-of/c])
          (private type-annotation syntax-properties)
-         (types type-table)
+         (types resolve type-table)
          (typecheck signatures tc-metafunctions tc-subst)
          (env lexical-env tvar-env index-env scoped-tvar-env)
          (utils tc-utils)
@@ -286,11 +286,10 @@
   (define expected-type
     (match expected
       [(tc-result1: t)
-       (let loop ((t t))
-         (match t
-           [(Mu: _ _) (loop (unfold t))]
-           [(Function/arrs: _ _ _ _ '()) t]
-           [_ #f]))]
+       (define resolved (resolve t))
+       (match resolved
+         [(Function/arrs: _ _ _ _ '()) resolved]
+         [_ #f])]
       [_ #f]))
 
   ;; find-matching-arrs: (list/c natural? boolean?) arities-seen? -> (or #f Listof[arr?])
@@ -400,7 +399,7 @@
   (define/cond-contract (maybe-loop form formals bodies expected)
     (syntax? syntax? syntax? (or/c tc-results/c #f) . -> . Type/c)
     (match expected
-      [(tc-result1: (or (Poly: _ _) (PolyDots: _ _) (PolyRow: _ _ _)))
+      [(tc-result1: (app resolve (or (? Poly?) (? PolyDots?) (? PolyRow?))))
        (tc/plambda form (remove-poly-layer tvarss-list) formals bodies expected)]
       [_
         (define remaining-layers (remove-poly-layer tvarss-list))
@@ -424,7 +423,7 @@
   (define tvarss (get-poly-layer tvarss-list))
 
   (match expected
-    [(tc-result1: (and t (Poly-fresh: ns fresh-ns expected*)))
+    [(tc-result1: (app resolve (and t (Poly-fresh: ns fresh-ns expected*))))
      ;; make sure the declared and annotated type variable arities match up
      ;; with the expected type variable arity
      (for ((tvars (in-list tvarss)))
@@ -435,7 +434,7 @@
          (tc-error "Expected ~a type variables, but given ~a"
                    (length fresh-ns) (length tvars))))
      (make-Poly #:original-names ns fresh-ns (extend-and-loop form fresh-ns formals bodies (ret expected*)))]
-    [(tc-result1: (and t (PolyDots-names: (list ns ... dvar) expected*)))
+    [(tc-result1: (app resolve (and t (PolyDots-names: (list ns ... dvar) expected*))))
      ;; make sure the declared and annotated type variable arities match up
      ;; with the expected type variable arity
      (for ((tvars (in-list tvarss)))
@@ -447,7 +446,7 @@
          [else
            (tc-error "Expected a polymorphic function with ..., but function/annotation had no ...")]))
      (make-PolyDots (append ns (list dvar)) (extend-and-loop form ns formals bodies (ret expected*)))]
-    [(tc-result1: (and t (PolyRow-fresh: ns fresh-ns constraints expected*)))
+    [(tc-result1: (app resolve (and t (PolyRow-fresh: ns fresh-ns constraints expected*))))
      (for ((tvars (in-list tvarss)))
        (when (and (cons? tvars) (list? (first tvars)))
          (tc-error
@@ -491,7 +490,7 @@
 (define (tc/lambda form formals bodies expected)
   (if (or (has-poly-annotation? form)
           (match expected
-            [(tc-result1: t) (or (Poly? t) (PolyDots? t) (PolyRow? t))]
+            [(tc-result1: (app resolve t)) (or (Poly? t) (PolyDots? t) (PolyRow? t))]
             [_ #f]))
       (ret (tc/plambda form (get-poly-tvarss form) formals bodies expected) -true-filter)
       (ret (tc/mono-lambda/type formals bodies expected) -true-filter)))

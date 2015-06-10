@@ -3740,6 +3740,24 @@
                               (-result -Boolean (-FS (-filter -NonPosFlonum 0) -top))
                               (-result -Boolean)
                               (-result -Boolean))))]
+
+       ;; Tests for Module-Path
+       [tc-e/t (ann "x" Module-Path) -Module-Path]
+       [tc-e/t (ann 'x Module-Path) -Module-Path]
+       [tc-e/t (ann '(planet x) Module-Path) -Module-Path]
+       [tc-e/t (ann '(planet "foo") Module-Path) -Module-Path]
+       [tc-e/t (ann '(planet "foo" ("x" "y" 1 2)) Module-Path) -Module-Path]
+       [tc-e/t (ann '(submod "foo" foo) Module-Path) -Module-Path]
+       [tc-e/t (ann '(submod "." bar) Module-Path) -Module-Path]
+       [tc-e/t (ann '(submod ".." bar) Module-Path) -Module-Path]
+       ;; Need an `ann` here because TR doesn't typecheck the literal ".."
+       ;; with a precise enough type to satisfy Module-Path
+       [tc-e (ann `(submod ".." bar ,(ann ".." "..")) Module-Path)
+             #:ret (ret -Module-Path)
+             #:expected (ret -Module-Path)]
+       [tc-e/t (ann '(lib "foo") Module-Path) -Module-Path]
+       [tc-err (begin (ann '(submod ".." bar ".") Module-Path)
+                      (error "foo"))]
        )
 
   (test-suite

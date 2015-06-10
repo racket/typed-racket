@@ -121,20 +121,23 @@
 (define/decl -Thread (make-Base 'Thread #'thread? thread?))
 (define/decl -Path (make-Base 'Path #'path? path?))
 (define/decl -Module-Path
-  (Un -Symbol -String -Path
-      (-lst* (-val 'quote) -Symbol)
-      (-lst* (-val 'lib) -String)
-      (-lst* (-val 'file) -String)
-      (-pair (-val 'planet)
-	     (Un (-lst* -Symbol)
-		 (-lst* -String)
-		 (-lst* -String
-			(-lst*
-			 -String -String
-			 #:tail (make-Listof
-				 (Un -Nat
-				     (-lst* (Un -Nat (one-of/c '= '+ '-))
-					    -Nat)))))))))
+  (-mu X
+       (Un -Symbol -String -Path
+           (-lst* (-val 'quote) -Symbol)
+           (-lst* (-val 'lib) -String)
+           (-lst* (-val 'file) -String)
+           (-pair (-val 'planet)
+                  (Un (-lst* -Symbol)
+                      (-lst* -String)
+                      (-lst* -String
+                             (-lst*
+                              -String -String
+                              #:tail (make-Listof
+                                      (Un -Nat
+                                          (-lst* (Un -Nat (one-of/c '= '+ '-))
+                                                 -Nat)))))))
+           (-lst* (-val 'submod) X
+                  #:tail (-lst (Un -Symbol (-val "..")))))))
 (define/decl -Resolved-Module-Path (make-Base 'Resolved-Module-Path #'resolved-module-path? resolved-module-path?))
 (define/decl -Module-Path-Index (make-Base 'Module-Path-Index #'module-path-index? module-path-index?))
 (define/decl -Compiled-Module-Expression (make-Base 'Compiled-Module-Expression #'compiled-module-expression? compiled-module-expression?))

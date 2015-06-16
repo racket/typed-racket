@@ -654,6 +654,8 @@
     (list
      ;; abs is not the identity on negative zeros.
      ((Un -Zero -PosReal) . -> . (Un -Zero -PosReal) : -true-filter : (-arg-path 0))
+     ;; but we know that we at least get *some* zero, and that it preserves exactness
+     (map unop (list -FlonumZero -SingleFlonumZero -RealZero))
      ;; abs may not be closed on fixnums. (abs min-fixnum) is not a fixnum
      ((Un -PosInt -NegInt) . -> . -PosInt)
      (-Int . -> . -Nat)

@@ -3638,7 +3638,7 @@
        [tc-e/t ((inst values Any) "a") -String]
        [tc-e ((inst second Any Any Any) (list "a" "b")) -String]
        [tc-e/t (abs 4) -PosByte]
-       [tc-e (abs -0.0) -NonNegFlonum]
+       [tc-e (abs -0.0) -FlonumZero]
 
        ;; PR 125: Tests for flonum predicate typechecking
        [tc-e/t

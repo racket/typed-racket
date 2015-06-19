@@ -33,20 +33,22 @@
                       racket/unit-exptime
                       syntax/strip-context
                       (utils tc-utils)
-                      syntax/id-table)
-          (only-in racket/unit 
-                   [define-signature untyped-define-signature] 
-                   [unit untyped-unit]
-                   [invoke-unit untyped-invoke-unit]
-                   [invoke-unit/infer untyped-invoke-unit/infer]
-                   [compound-unit untyped-compound-unit]
-                   [define-unit untyped-define-unit]
-                   [define-compound-unit untyped-define-compound-unit]
-                   [define-values/invoke-unit untyped-define-values/invoke-unit]
-                   [define-values/invoke-unit/infer untyped-define-values/invoke-unit/infer]
-                   [compound-unit/infer untyped-compound-unit/infer]
-                   [define-compound-unit/infer untyped-define-compound-unit/infer]
-                   [unit-from-context untyped-unit-from-context]
+                      syntax/id-table
+                      syntax/id-set)
+          (prefix-in untyped- (only-in racket/unit
+                                       define-signature
+                                       unit
+                                       invoke-unit
+                                       invoke-unit/infer
+                                       compound-unit
+                                       define-unit
+                                       define-compound-unit
+                                       define-values/invoke-unit
+                                       define-values/invoke-unit/infer
+                                       compound-unit/infer
+                                       define-compound-unit/infer
+                                       unit-from-context))
+          (only-in racket/unit
                    extends
                    import
                    export
@@ -106,7 +108,11 @@
     (pattern (export sig:sig-spec ...)
              #:with names #'(sig.sig-name ...)
              #:attr renamers (attribute sig.rename)))
-  
+
+  ;; The `rename` attribute in the sig-spec syntax class is used to correctly
+  ;; map names of signature bound variables in unit bodies to their names in
+  ;; the fully expanded syntax. It applies prefixes and renamings from
+  ;; signature specifications to identifiers.
   (define-syntax-class sig-spec
     #:literals (prefix rename)
     (pattern sig-id:id
@@ -134,7 +140,6 @@
                (or (lookup rn) rn))
              #:with sig-name #'sig.sig-name))
   
-  ;; need lexical signature vars to error with duplicate type annotations
   (define (signatures-vars stx)
     (define (signature-vars sig-id)
       (let-values ([(_0 vars _2 _3)
@@ -239,29 +244,23 @@
         (export esig:sig-spec ...))
      (define imports-stx (syntax->list #'(isig.sig-name ...)))
      (define exports-stx (syntax->list #'(esig ...)))
-     (with-syntax ([temp (syntax-local-introduce (generate-temporary))])
-       #`(begin
-           #,(internal (quasisyntax/loc stx
-                         (define-values/invoke-unit-internal
-                           (#,@(map imports/members imports-stx))
-                           (#,@(process-dv-exports exports-stx)))))
-           (: temp (Unit (import isig.sig-name ...)
-                         (export esig.sig-name ...)
-                         ;; FIXME this needs to be AnyValues
-                         ;; FIXME: init-depends
-                           Any))
-           (define temp unit-expr)
-           
-           #,(ignore (quasisyntax/loc stx
-                       (untyped-define-values/invoke-unit unit-expr
-                                                          (import isig ...)
-                                                          (export esig ...))))))]))
+     (define/with-syntax temp (syntax-local-introduce (generate-temporary)))
+     #`(begin
+         #,(internal (quasisyntax/loc stx
+                       (define-values/invoke-unit-internal
+                         (#,@(map imports/members imports-stx))
+                         (#,@(process-dv-exports exports-stx)))))
+         (: temp (Unit (import isig.sig-name ...)
+                       (export esig.sig-name ...)
+                       (init-depend isig.sig-name ...)
+                       ;; FIXME this needs to be AnyValues
+                        Any))
+         (define temp unit-expr)
+         #,(ignore (quasisyntax/loc stx
+                     (untyped-define-values/invoke-unit unit-expr
+                                                        (import isig ...)
+                                                        (export esig ...)))))]))
 (begin-for-syntax
-  (define (id-set-diff s1 s2)
-    (filter
-     (lambda (id) (not (member id s2 free-identifier=?)))
-     s1))
-  
   (define (get-imports/exports unit-ids)
     (for/fold ([imports null]
                [exports null])
@@ -273,7 +272,7 @@
   
   (define (infer-imports unit-ids)
     (define-values (imports exports) (get-imports/exports unit-ids))
-    (id-set-diff imports exports))
+    (free-id-set-subtract imports exports))
 
   ;; infer-exports returns all the exports from linked
   ;; units rather than just those that are not also
@@ -310,16 +309,17 @@
              #:attr link-units? #f
              #:with untyped-stx (tr:unit:invoke:expr-property 
                                  #'(#%expression unit-id) #t)
-             #:with last-id
-             (local-expand #'unit-id (syntax-local-context) (kernel-form-identifier-list))
-             )
+             #:with last-id (local-expand #'unit-id
+                                          (syntax-local-context)
+                                          (kernel-form-identifier-list)))
     (pattern (link uid-inits:id ... uid-last:id)
              #:attr link-units? #t
              #:with untyped-stx
              #`(link uid-inits ... uid-last)
              #:attr unit-ids (syntax->list #'(uid-inits ... uid-last))
-             #:with last-id 
-             (local-expand #'uid-last (syntax-local-context) (kernel-form-identifier-list)))))
+             #:with last-id (local-expand #'uid-last
+                                          (syntax-local-context)
+                                          (kernel-form-identifier-list)))))
 
 ;; Note: This may not correctly handle all use cases of
 ;; define-values/invoke-unit/infer
@@ -328,7 +328,7 @@
 ;;   to be registered in tc-toplevel
 ;; - imports are the set-difference of the union of all imports and the
 ;;   union of all exports
-;; This seems to correctly handle bot recursive and non-recursive
+;; This seems to correctly handle both recursive and non-recursive
 ;; linking patterns
 (define-syntax (define-values/invoke-unit/infer stx)
   (syntax-parse stx
@@ -440,9 +440,9 @@
 (define-syntax (unit stx)
   (syntax-parse stx
     [(unit imports:unit-imports 
-       exports:unit-exports
-       init-depends:init-depend-form
-       e:unit-expr ...)
+           exports:unit-exports
+           init-depends:init-depend-form
+           e:unit-expr ...)
      (ignore
       (tr:unit
        (quasisyntax/loc stx
@@ -567,14 +567,7 @@
    #`(define-values (name ...)
        #,(ignore
           (tr:unit:compound-property
-           #`(#%expression
-              (begin
-                links
-                sigs
-                im
-                ex
-                infer
-                rhs))
+           #`(#%expression (begin links sigs im ex infer rhs))
            #t)))])
 
 (define-syntax (define-compound-unit stx)
@@ -614,8 +607,6 @@
   (define-syntax-class compound-infer-links
     #:literals (link)
     (pattern (link lnk:infer-linkage-decl ...)
-             ;; #:with untyped-links
-             ;; #'(link lnk.untyped-link-decl ...)
              #:attr bound-link-ids (apply append (map syntax->list 
                                                       (syntax->list 
                                                        #'(lnk.bound-link-ids ...))))
@@ -637,6 +628,26 @@
   
   (define-syntax-class infer-link-export
     (pattern link-or-sig-id:id))
+  (define (build-linkage-info unit-id lb-sig-ids lb-link-ids link-ids)
+    (match-define-values ((list (cons _ imports) ...) (list (cons _ exports) ...))
+                         (unit-static-signatures unit-id unit-id))
+    (define runtime-id
+      (local-expand unit-id (syntax-local-context) (kernel-form-identifier-list)))
+    (tr:unit:compound:expr-property
+     #`(#%expression
+        (begin
+          (void #,@lb-sig-ids ;(quote-syntax lb.sig-id) ...
+                )
+          (void #,@lb-link-ids ;(quote-syntax lb.link-id) ...
+                )
+          (void #,@link-ids ;(quote-syntax link-id) ...
+                )
+          ;; all imports
+          (void #,@(map (lambda (id) #`(quote-syntax #,id)) imports))
+          ;; all exports
+          (void #,@(map (lambda (id) #`(quote-syntax #,id)) exports))
+          (void (quote-syntax #,runtime-id))))
+     'infer))
   
   (define-syntax-class infer-linkage-decl
     (pattern ((lb:link-binding ...)
@@ -650,62 +661,27 @@
                    #'unit-id
                    'infer)
                 link-id ...)
-             #:with linkage-information
-             (begin
-               (let () 
-                 (match-define-values ((list (cons _ imports) ...) (list (cons _ exports) ...))
-                                      (unit-static-signatures #'unit-id #'unit-id))
-                 (define runtime-id 
-                   (local-expand #'unit-id (syntax-local-context) (kernel-form-identifier-list)))
-                 (tr:unit:compound:expr-property
-                  #`(#%expression
-                     (begin
-                       (void (quote-syntax lb.sig-id) ...)
-                       (void (quote-syntax lb.link-id) ...)
-                       (void (quote-syntax link-id) ...)
-                       ;; all imports
-                       (void #,@(map (lambda (id) 
-                                       #`(quote-syntax #,id)) 
-                                     imports))
-                       ;; all exports
-                       (void #,@(map (lambda (id) 
-                                       #`(quote-syntax #,id))
-                                     exports))
-                       (void (quote-syntax #,runtime-id))))
-                  'infer))))
+             #:with linkage-information (build-linkage-info #'unit-id
+                                                            #'((quote-syntax lb.sig-id) ...)
+                                                            #'((quote-syntax lb.link-id) ...)
+                                                            #'((quote-syntax link-id) ...)))
     (pattern unit-id:id
              #:with bound-link-ids #'()
              #:with bound-sig-ids #'()
              #:with linkage-stx
              (tr:unit:compound:expr-property #'unit-id 'infer)
-             #:with linkage-information
-             (let ()
-               (match-define-values ((list (cons _ imports) ...) (list (cons _ exports) ...))
-                                    (unit-static-signatures #'unit-id #'unit-id))
-               (define runtime-id
-                 (local-expand #'unit-id (syntax-local-context) (kernel-form-identifier-list)))
-               (tr:unit:compound:expr-property
-                #`(#%expression
-                   (begin
-                     (void)
-                     (void)
-                     (void)
-                     ;; all imports
-                     (void #,@(map (lambda (id) 
-                                     #`(quote-syntax #,id))
-                                   imports))
-                     ;; all exports
-                     (void #,@(map (lambda (id) 
-                                     #`(quote-syntax #,id))
-                                   exports))
-                     (void (quote-syntax #,runtime-id))))
-                'infer)))))
+             #:with linkage-information (build-linkage-info #'unit-id
+                                                            #'()
+                                                            #'()
+                                                            #'()))))
 
 ;; NOTE/TODO:
 ;; - it seems that the docs for compound-unit/infer
 ;;   suggest that imports are filled in from the 
 ;;   static information bound to the unit-ids
 ;;   but simple tests don't seem to confirm this
+;; The typed implementation similarly does not fill
+;; in any import information into the `import` clause
 (define-syntax (compound-unit/infer stx)
   (syntax-parse stx
     [(_ 
@@ -762,6 +738,3 @@
             (void (quote-syntax sig))
             (untyped-unit-from-context sig))))
        #t))]))
-
-
-

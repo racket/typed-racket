@@ -376,14 +376,14 @@
                           #:defaults ([(init-depend 1) null]))
                (~optional result
                           #:defaults ([result #f])))
-       (define id->sig (lambda (id) 
-                         (define sig (lookup-signature id))
-                         (unless sig
-                           (parse-error #:stx id
-                                        #:delayed? #t
-                                        "Unknown signature used in Unit type"
-                                        "signature" (syntax-e id)))
-                         sig))
+       (define (id->sig id)
+         (define sig (lookup-signature id))
+         (unless sig
+           (parse-error #:stx id
+                        #:delayed? #t
+                        "Unknown signature used in Unit type"
+                        "signature" (syntax-e id)))
+         sig)
        ;; handle the case where signatures in imports/exports are not distinct
        (define (check-init-depends/imports? s1 s2)
          (unless (and (andmap values s1)
@@ -411,7 +411,6 @@
                   exports
                   init-depends
                   (if res (parse-values-type res) (-values (list -Void))))]
-      
       [(:List^ ts ...)
        (parse-list-type stx)]
       [(:List*^ ts ... t)

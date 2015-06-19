@@ -12,7 +12,7 @@
                      racket/syntax
                      syntax/kerncase
                      "../private/syntax-properties.rkt"
-                     "../typecheck/internal-forms.rkt"
+                     (typecheck internal-forms)
                      syntax/id-table
                      racket/dict
                      racket/unit-exptime
@@ -22,8 +22,7 @@
                   extends)
          (for-label "colon.rkt")
          (submod "../typecheck/internal-forms.rkt" forms)
-         (only-in "../../typed/racket/base.rkt" define-type)
-         (for-template (rep type-rep)))
+         (only-in "../../typed/racket/base.rkt" define-type))
 
 (begin-for-syntax 
   (define-literal-set colon #:for-label (:))
@@ -70,7 +69,10 @@
              #:attr form '())))
 
 
-
+;; process-signature-forms : (listof syntax?) -> (values (pairof id id) any)
+;; Processes the raw syntax of signature forms and returns two values
+;; - a list of pairs representing names and types bound by the signature
+;; - information about type aliases bound by a signature (currently unused)
 (define-for-syntax (process-signature-forms forms)
   (define-values (members-raw aliases-raw) 
     (for/fold ([members-raw null]

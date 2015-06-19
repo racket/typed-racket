@@ -3,6 +3,7 @@
 ;; This module provides helper functions for typed signatures
 
 (require "../utils/utils.rkt"
+         syntax/id-set
          (utils tc-utils)
          (env signature-env)
          (rep type-rep)
@@ -11,7 +12,6 @@
          racket/list
          racket/match
          racket/unit-exptime
-         (only-in racket/set subset?)
          (for-template racket/base
                        (submod "../typecheck/internal-forms.rkt" forms)))
 
@@ -50,14 +50,8 @@
 ;; those listed in a require/typed clause
 (define (check-signature-bindings name vars stx)
   (match-define-values (_ inferred-vars _ _) (signature-members name name))
-  (define (id-set-diff s1 s2)
-    (filter
-     ;; is free-label-identifier=? the right thing here?
-     ;; free-template-identifier=? also seems to work
-     (lambda (id) (not (member id s2 free-label-identifier=?)))
-     s1))
-  (unless (and (empty? (id-set-diff vars inferred-vars))
-               (empty? (id-set-diff inferred-vars vars)))
+  (unless (and (empty? (free-id-set-subtract vars inferred-vars))
+               (empty? (free-id-set-subtract inferred-vars vars)))
     (tc-error/fields "required signature declares inconsistent members"
                      "expected members" (map syntax-e inferred-vars)
                      "received members" (map syntax-e vars)

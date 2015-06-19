@@ -3,11 +3,11 @@
 ;; This module provides a unit for type-checking units
 
 (require "../utils/utils.rkt"
+         syntax/id-set
          racket/dict
          racket/format
          racket/list
          racket/match
-         racket/set
          racket/syntax
          syntax/id-table
          syntax/parse
@@ -27,17 +27,10 @@
                        (private unit-literals)
                        (submod "internal-forms.rkt" forms)))
 
-(import tc-if^ tc-lambda^ tc-app^ tc-let^ tc-expr^)
+(import tc-let^ tc-expr^)
 (export check-unit^)
 
-;; id-set-diff : (listof id) (listof id) -> (listof id)
-;; returns the set difference of two lists of identifers
-(define (id-set-diff s1 s2)
-    (filter
-     (lambda (id) (not (member id s2 free-identifier=?)))
-     s1))
-
-;; Syntax class deifnitions
+;; Syntax class definitions
 ;; variable annotations expand slightly differently in the body of a unit
 ;; due to how the unit macro transforms internal definitions
 (define-syntax-class unit-body-annotation
@@ -160,11 +153,9 @@
              (attribute t.init-depends))]))
 
 (define-syntax-class unit-expansion
-  #:literals (let-values letrec-syntaxes+values #%plain-app quote)
-  #:attributes (;imports
-                ;exports
-                ;init-depends
-                body-stx)
+;  #:literals (let-values letrec-syntaxes+values #%plain-app quote)
+  #:literal-sets (kernel-literals)
+  #:attributes (body-stx)
   (pattern (#%plain-app
             make-unit:id
             name:expr 
@@ -177,7 +168,8 @@
 
 ;; Compound Unit syntax classes
 (define-syntax-class compound-unit-expansion
-  #:literals (#%expression #%plain-app void quote-syntax begin)
+  #:literal-sets (kernel-literals)
+  #:literals (void)
   (pattern (#%expression
             (begin
               (#%plain-app void (quote-syntax link-id) ...)
@@ -194,7 +186,8 @@
            #:with compound-unit #'untyped-compound-unit-exp))
 
 (define-syntax-class compound-unit-expr
-  #:literals (#%expression #%plain-app void quote-syntax begin)
+  #:literal-sets (kernel-literals)
+  #:literals (void)
   (pattern (#%expression
             (begin
               (#%plain-app void (quote-syntax export-sig:id) ...)
@@ -219,7 +212,8 @@
 
 (define (parse-infer-table-item stx)
   (syntax-parse stx
-    #:literals (void quote-syntax #%plain-app begin #%expression #%plain-lambda)
+    #:literal-sets (kernel-literals)
+    #:literals (void)
     [(#%expression
       (begin
         (#%plain-app void (quote-syntax sig-ex:id) ...)
@@ -435,7 +429,8 @@
 
 (define (parse-and-check-unit-from-context form expected-type)
   (syntax-parse form
-    #:literals (#%expression begin void quote-syntax #%plain-app)
+    #:literal-sets (kernel-literals)
+    #:literals (void)
     [(#%expression
       (begin (#%plain-app void (quote-syntax sig-id:id)) unit))
      (define sig (lookup-signature #'sig-id))
@@ -467,21 +462,13 @@
   (define (lookup-link-id id) (lookup-type id link-mapping))
   (define (lookup-sig-id id) 
     (lookup-type id (map (lambda (k/v) (cons (cdr k/v) (car k/v))) link-mapping)))
-  
-  (define (set-union lst1 lst2)
-    (remove-duplicates (append lst1 lst2) free-identifier=?))
-  (define (set-intersect lst1 lst2)
-    (filter 
-     (lambda (e) (member e lst2 free-identifier=?))
-     lst1))
-  
   (define import-signatures (map lookup-signature (map lookup-link-id compound-import-links)))
   (define export-signatures (map lookup-signature compound-export-sigs))
   
   (define-values (check _ init-depends)
     (for/fold ([check -Void]
-               [seen-init-depends compound-import-links]
-               [calculated-init-depends '()])
+               [seen-init-depends (immutable-free-id-set compound-import-links)]
+               [calculated-init-depends (immutable-free-id-set)])
               ([form (in-list forms-to-check)])
       (define-values (unit-expr-stx import-link-ids export-link-ids export-sig-ids)
         (parse-compound-unit-expr form))
@@ -493,25 +480,34 @@
         (-unit import-sigs 
                export-sigs 
                (map lookup-signature
-                    (map lookup-link-id (set-intersect seen-init-depends import-link-ids))) 
+                    (map lookup-link-id (free-id-set->list
+                                         (free-id-set-intersect
+                                          seen-init-depends
+                                          (immutable-free-id-set import-link-ids)))))
                ManyUniv))
       (define unit-expr-type (tc-expr/t unit-expr-stx))
       (check-below unit-expr-type unit-expected-type)
       (define-values (check new-init-depends)
         (match unit-expr-type
           [(Unit: _ _ ini-deps ty)
-           (values ty (set-intersect (map Signature-name ini-deps) (map lookup-link-id compound-import-links)))]
+           (values ty (free-id-set-intersect
+                       (immutable-free-id-set (map Signature-name ini-deps))
+                       (immutable-free-id-set (map lookup-link-id compound-import-links))))]
           [_ (values #f null)]))
       (values check 
-              (set-union seen-init-depends export-link-ids) 
-              (set-union calculated-init-depends new-init-depends))))
+              (free-id-set-union seen-init-depends (immutable-free-id-set export-link-ids))
+              (free-id-set-union calculated-init-depends new-init-depends))))
   (if check
-      (-unit import-signatures export-signatures (map lookup-signature init-depends) check)
+      (-unit import-signatures
+             export-signatures
+             (map lookup-signature (free-id-set->list init-depends))
+             check)
       -Bottom))
 
 ;; syntax class for invoke-table
 (define-syntax-class invoke-table
-  #:literals (let-values void #%plain-app #%expression begin quote-syntax)
+  #:literal-sets (kernel-literals)
+  #:literals (void)
   (pattern (let-values ([()
                          (#%expression
                           (begin (#%plain-app void (quote-syntax sig-id:id) sig-var:id ...)
@@ -551,7 +547,7 @@
         [(Unit: imports _ _ _)
          (define expected-import-sigs (map Signature-name imports))
          (define declared-import-sigs (map Signature-name import-signatures))
-         (define missing-imports (id-set-diff expected-import-sigs declared-import-sigs))
+         (define missing-imports (free-id-set-subtract expected-import-sigs declared-import-sigs))
          ;; missing-imports cannot be an empty list since subtype? is #f
          (tc-error/fields "insufficient imports to invoke-unit expression"
                           "expected imports" (map syntax-e expected-import-sigs)
@@ -710,9 +706,7 @@
     (apply append (map (λ (stx) (trawl-for-property stx accessor))
                        (syntax->list stx-list))))
   (syntax-parse form
-    #:literals (let-values letrec-values #%plain-app
-                #%plain-lambda letrec-syntaxes+values
-                #%expression begin)
+    #:literal-sets (kernel-literals)
     [stx
      #:when (accessor #'stx)
      (list form)]

@@ -4,10 +4,10 @@
 (define deps '("redex-lib"
                "sandbox-lib"
                "base"
-               "typed-racket"
+               "typed-racket-lib"
                "typed-racket-more"
                "typed-racket-compatibility"
-               "unstable"
+               "unstable-lib"
                "unstable-2d"
                "rackunit-lib"
                "racket-index"
@@ -23,7 +23,7 @@
                      "redex-lib"
                      "htdp-lib"
                      "sandbox-lib"
-                     "unstable"))
+                     "unstable-lib"))
 (define update-implies '("typed-racket"))
 
 (define pkg-desc "tests for \"typed-racket\"")

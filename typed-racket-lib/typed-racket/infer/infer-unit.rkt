@@ -735,7 +735,7 @@
 ;; R : Type/c - result type into which we will be substituting
 (define/cond-contract (subst-gen C X Y R)
   (cset? (listof symbol?) (listof symbol?) (or/c Values/c AnyValues? ValuesDots?)
-   . -> . (or/c #f substitution/c))
+         . -> . (or/c #f substitution/c))
   (define var-hash (free-vars-hash (free-vars* R)))
   (define idx-hash (free-vars-hash (free-idxs* R)))
   ;; c : Constaint
@@ -772,32 +772,35 @@
      S))
   (match (car (cset-maps C))
     [(cons cmap (dmap dm))
-     (let ([subst (hash-union
+     (let* ([subst (hash-union
                     (for/hash ([(k dc) (in-hash dm)])
                       (define (c->t c) (constraint->type c (hash-ref idx-hash k Constant)))
                       (values
-                        k
-                        (match dc
-                          [(dcon fixed #f)
-                           (i-subst (map c->t fixed))]
-                          [(or (dcon fixed rest) (dcon-exact fixed rest))
-                           (i-subst/starred
-                             (map c->t fixed)
-                             (c->t rest))]
-                          [(dcon-dotted fixed dc dbound)
-                           (i-subst/dotted
-                             (map c->t fixed)
-                             (c->t dc)
-                             dbound)])))
-                   (for/hash ([(k v) (in-hash cmap)])
-                     (values k (t-subst (constraint->type v (hash-ref var-hash k Constant))))))])
+                       k
+                       (match dc
+                         [(dcon fixed #f)
+                          (i-subst (map c->t fixed))]
+                         [(or (dcon fixed rest) (dcon-exact fixed rest))
+                          (i-subst/starred
+                           (map c->t fixed)
+                           (c->t rest))]
+                         [(dcon-dotted fixed dc dbound)
+                          (i-subst/dotted
+                           (map c->t fixed)
+                           (c->t dc)
+                           dbound)])))
+                    (for/hash ([(k v) (in-hash cmap)])
+                      (values k (t-subst (constraint->type v (hash-ref var-hash k Constant))))))]
+            [subst (for/fold ([subst subst]) ([v (in-list X)])
+                     (let ([entry (hash-ref subst v #f)])
+                       ;; Make sure we got a subst entry for a type var
+                       ;; (i.e. just a type to substitute)
+                       ;; If we don't have one, there are no constraints on this variable
+                       (if (and entry (t-subst? entry))
+                           subst
+                           (hash-set subst v (t-subst Univ)))))])
        ;; verify that we got all the important variables
-       (and (for/and ([v (in-list X)])
-              (let ([entry (hash-ref subst v #f)])
-                ;; Make sure we got a subst entry for a type var
-                ;; (i.e. just a type to substitute)
-                (and entry (t-subst? entry))))
-            (extend-idxs subst)))]))
+       (extend-idxs subst))]))
 
 ;; context : the context of what to infer/not infer
 ;; S : a list of types to be the subtypes of T

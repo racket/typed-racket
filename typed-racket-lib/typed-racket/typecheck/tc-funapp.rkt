@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require (rename-in "../utils/utils.rkt" [infer r:infer])
-         racket/match
+         racket/match racket/list
          (prefix-in c: (contract-req))
          (env tvar-env)
          (for-syntax syntax/parse racket/base)
@@ -98,8 +98,8 @@
       ;; in filters/objects).
       (λ (dom rng rest kw? a)
         (extend-tvars vars
-         (infer/vararg vars null argtys dom rest rng
-                       (and expected (tc-results->values expected)))))
+                      (infer/vararg vars null argtys dom rest rng
+                                    (and expected (tc-results->values expected)))))
       f-type args-res expected)]
     ;; Row polymorphism. For now we do really dumb inference that only works
     ;; in very restricted cases, but is probably enough for most cases in

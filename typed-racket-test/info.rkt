@@ -24,7 +24,9 @@
                      "htdp-lib"
                      "sandbox-lib"
                      "unstable-lib"))
-(define update-implies '("typed-racket"))
+(define update-implies '("typed-racket-lib"
+                         "typed-racket-more"
+                         "typed-racket-compatibility"))
 
 (define pkg-desc "tests for \"typed-racket\"")
 

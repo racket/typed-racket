@@ -79,6 +79,7 @@ The following libraries are included with Typed Racket in the
 @defmodule/incl[typed/openssl]
 @defmodule/incl[typed/pict]
 @defmodule[typed/racket/async-channel #:no-declare @history[#:added "1.1"]]
+@defmodule/incl[typed/openssl]
 @defmodule/incl[typed/racket/date]
 @defmodule/incl[typed/racket/draw]
 @defmodule/incl[typed/racket/gui]
@@ -92,6 +93,8 @@ The following libraries are included with Typed Racket in the
 @defmodule/incl[typed/srfi/14]
 @defmodule/incl[typed/srfi/19]
 @defmodule/incl[typed/syntax/stx]
+@defmodule/incl[typed/web-server/configuration/responders]
+@defmodule/incl[typed/web-server/http]
 
 In some cases, these typed adapters may not contain all of exports of the
 original module, or their types may be more limited.

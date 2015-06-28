@@ -5,6 +5,7 @@
 (define deps '("srfi-lite-lib"
                "base"
 	       "net-lib"
+	       "web-server-lib"
                "draw-lib"
                "rackunit-lib"
                "rackunit-gui"

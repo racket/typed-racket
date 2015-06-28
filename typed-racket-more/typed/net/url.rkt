@@ -7,15 +7,18 @@
 ;; opaque types
 (require/typed/provide
  net/url
- [#:opaque URL-Exception url-exception?]
- [#:opaque HTTP-Connection http-connection?])
+ [#:opaque URL-Exception url-exception?])
 
+(require (only-in typed/net/http-client
+                  HTTP-Connection
+                  [http-conn? http-connection?]))
+(provide HTTP-Connection http-connection?)
 
 ;; convenience type aliases
 ;; PortT/String is unused, but was provided by earlier versions of this module, so it's included here
 (define-type PortT ([URL] [(Listof String)] . ->* . Input-Port))
-(define-type PortT/String ([URL] [String (Listof String)] . ->* . Input-Port))
-(define-type PortT/Bytes ([URL] [Bytes (Listof String)] . ->* . Input-Port))
+(define-type PortT/String ([URL String] [(Listof String)] . ->* . Input-Port))
+(define-type PortT/Bytes ([URL Bytes] [(Listof String)] . ->* . Input-Port))
 (provide PortT PortT/String PortT/Bytes)
 
 (require/typed/provide

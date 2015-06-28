@@ -657,6 +657,7 @@
               -PosByte]
 
         [tc-e (car (append (list 1 2) (list 3 4))) -PosByte]
+        [tc-e (append '(1) '(2 3)) (-pair -PosByte (-lst -PosByte))]
 
         [tc-e
          (let-syntax ([a
@@ -674,7 +675,7 @@
               (-lst (t:Un -PosByte -Symbol))]
 
         [tc-e (apply (plambda: (a) [x : a *] x) '(5)) (unfold (-lst -PosByte))]
-        [tc-e (apply append (list '(1 2 3) '(4 5 6))) (-lst -PosByte)]
+        [tc-e (apply append (list '(1 2 3) '(4 5 6))) (-pair -PosByte (-lst -PosByte))]
 
         [tc-err ((case-lambda: [([x : Number]) x]
                                [([y : Number] [x : Number]) x])
@@ -1084,9 +1085,10 @@
         [tc-err (list*)]
 
         [tc-err (apply append (list 1) (list 2) (list 3) (list (list 1) "foo"))]
-        [tc-e (apply append (list 1) (list 2) (list 3) (list (list 1) (list 1))) (-lst -PosByte)]
+        [tc-e (apply append (list 1) (list 2) (list 3) (list (list 1) (list 1)))
+              (-pair -PosByte (-lst -PosByte))]
         [tc-e (apply append (list 1) (list 2) (list 3) (list (list 1) (list "foo")))
-              (-lst (t:Un -String -PosByte))]
+              (-pair (t:Un -String -PosByte) (-lst (t:Un -String -PosByte)))]
         [tc-e (plambda: (b ...) [y : b ... b] (apply append (map list y)))
          #:ret (ret (-polydots (b) (->... (list) (b b) (-lst Univ))) -true-filter)]
         [tc-e/t (plambda: (b ...) [y : (Listof Integer) ... b] (apply append y))

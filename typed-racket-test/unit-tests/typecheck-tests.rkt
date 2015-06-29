@@ -3761,6 +3761,11 @@
        [tc-e/t (ann '(lib "foo") Module-Path) -Module-Path]
        [tc-err (begin (ann '(submod ".." bar ".") Module-Path)
                       (error "foo"))]
+
+       [tc-err (let ([x (eval 0)]) x)]
+       [tc-err (let ()
+                 (define x (eval 0))
+                 x)]
        )
 
   (test-suite

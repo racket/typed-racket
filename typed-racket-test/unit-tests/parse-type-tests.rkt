@@ -134,6 +134,7 @@
     (-polydots (a) ((list) [a a] . ->... . N))]
    [(All (a ...) (-> (values a ...)))
     (-polydots (a) (t:-> (make-ValuesDots (list) a 'a)))]
+   [(-> Number AnyValues) (t:-> N ManyUniv)]
 
    ;; PR 14554, non-productive recursive type
    [FAIL (Rec x (All (A #:row) x))]

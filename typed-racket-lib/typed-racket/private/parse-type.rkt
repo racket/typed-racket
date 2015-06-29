@@ -98,6 +98,7 @@
 (define-literal-syntax-class #:for-label Prefab)
 (define-literal-syntax-class #:for-label Values)
 (define-literal-syntax-class #:for-label values)
+(define-literal-syntax-class #:for-label AnyValues)
 (define-literal-syntax-class #:for-label Top)
 (define-literal-syntax-class #:for-label Bot)
 (define-literal-syntax-class #:for-label Distinction)
@@ -622,7 +623,7 @@
        (-Tuple (parse-types #'(tys ...)))])))
 
 ;; Syntax -> Type
-;; Parse a (Values ...) type
+;; Parse a (Values ...) or AnyValues type
 (define (parse-values-type stx)
   (parameterize ([current-orig-stx stx])
     (syntax-parse stx
@@ -644,6 +645,7 @@
                        var))]
       [((~or :Values^ :values^) tys ...)
        (-values (parse-types #'(tys ...)))]
+      [:AnyValues^ ManyUniv]
       [t
        (-values (list (parse-type #'t)))])))
 
@@ -874,6 +876,7 @@
      (ret (parse-types #'(t ...))
           (stx-map (lambda (x) -no-filter) #'(t ...))
           (stx-map (lambda (x) -no-obj) #'(t ...)))]
+    [:AnyValues^ (tc-any-results -no-filter)]
     [t (ret (parse-type #'t) -no-filter -no-obj)]))
 
 (define parse-type/id (parse/id parse-type))

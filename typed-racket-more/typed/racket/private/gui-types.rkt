@@ -533,12 +533,12 @@
 (define-type Font-List%
   (Class
    [find-or-create-font
-    (case-> (Integer (U Symbol String) Symbol Symbol -> (Instance Font%))
-            (Integer (U Symbol String) Symbol Symbol Any -> (Instance Font%))
-            (Integer (U Symbol String) Symbol Symbol Any Any -> (Instance Font%))
-            (Integer (U Symbol String) Symbol Symbol Any Any Any -> (Instance Font%))
-            (Integer (U Symbol String) Symbol Symbol Any Any Any Any -> (Instance Font%))
-            (Integer (U Symbol String) Symbol Symbol Any Any Any Any Font-Hinting -> (Instance Font%)))]))
+    (case-> (Real (U Symbol String) Symbol Symbol -> (Instance Font%))
+            (Real (U Symbol String) Symbol Symbol Any -> (Instance Font%))
+            (Real (U Symbol String) Symbol Symbol Any Any -> (Instance Font%))
+            (Real (U Symbol String) Symbol Symbol Any Any Any -> (Instance Font%))
+            (Real (U Symbol String) Symbol Symbol Any Any Any Any -> (Instance Font%))
+            (Real (U Symbol String) Symbol Symbol Any Any Any Any Font-Hinting -> (Instance Font%)))]))
 
 (define-type Font-Family
   (U 'default 'decorative 'roman 'script 'swiss
@@ -580,6 +580,7 @@
          [get-hinting (-> Font-Hinting)]
          [get-point-size (-> Positive-Integer)]
          [get-size-in-pixels (-> Boolean)]
+         [get-size (-> Nonnegative-Real)]
          [get-smoothing (-> Font-Smoothing)]
          [get-style (-> Font-Style)]
          [get-underlined (-> Boolean)]
@@ -2708,7 +2709,7 @@
 
 (define-type Style-List%
   (Class ; FIXME: this is a final method
-         ; [basic-style (-> (Instance Style<%>))]
+         [basic-style (-> (Instance Style<%>))]
          [convert ((Instance Style<%>) -> (Instance Style<%>))]
          [find-named-style
           (String -> (Option (Instance Style<%>)))]

@@ -47,15 +47,19 @@ The following libraries are included with Typed Racket in the
 @(define-syntax-rule @defmodule/incl[name]
    @defmodule[name #:no-declare])
 
-@;; framework and mred left out until support for classes
-@;; is more complete
-@defmodule/incl[typed/file]
+@defmodule/incl[typed/file/gif]
+@defmodule/incl[typed/file/md5]
+@defmodule/incl[typed/file/tar]
+@defmodule/incl[typed/framework]
+@defmodule/incl[typed/json]
+@defmodule/incl[typed/mred/mred]
 @defmodule/incl[typed/net/base64]
 @defmodule/incl[typed/net/cgi]
 @defmodule/incl[typed/net/cookie]
 @defmodule/incl[typed/net/dns]
 @defmodule/incl[typed/net/ftp]
 @defmodule/incl[typed/net/gifwrite]
+@defmodule/incl[typed/net/git-checkout]
 @defmodule/incl[typed/net/head]
 @defmodule/incl[typed/net/http-client]
 @defmodule/incl[typed/net/imap]
@@ -67,19 +71,30 @@ The following libraries are included with Typed Racket in the
 @defmodule/incl[typed/net/sendurl]
 @defmodule/incl[typed/net/smtp]
 @defmodule/incl[typed/net/uri-codec]
+@defmodule/incl[typed/net/url-connect]
+@defmodule/incl[typed/net/url-structs]
 @defmodule/incl[typed/net/url]
-@defmodule/incl[typed/openssl]
 @defmodule/incl[typed/openssl/md5]
 @defmodule/incl[typed/openssl/sha1]
+@defmodule/incl[typed/openssl]
 @defmodule/incl[typed/pict]
-@defmodule[typed/racket/async-channel @history[#:added "1.1"]]
+@defmodule[typed/racket/async-channel #:no-declare @history[#:added "1.1"]]
 @defmodule/incl[typed/racket/date]
+@defmodule/incl[typed/racket/draw]
+@defmodule/incl[typed/racket/gui]
+@defmodule/incl[typed/racket/sandbox]
+@defmodule/incl[typed/racket/snip]
 @defmodule/incl[typed/racket/system]
+@defmodule/incl[typed/rackunit/docs-complete]
+@defmodule/incl[typed/rackunit/gui]
+@defmodule/incl[typed/rackunit/text-ui]
 @defmodule/incl[typed/rackunit]
 @defmodule/incl[typed/srfi/14]
 @defmodule/incl[typed/srfi/19]
 @defmodule/incl[typed/syntax/stx]
-@defmodule/incl[typed/json]
+
+In some cases, these typed adapters may not contain all of exports of the
+original module, or their types may be more limited.
 
 Other libraries included in the main distribution that are either
 written in Typed Racket or have adapter modules that are typed:

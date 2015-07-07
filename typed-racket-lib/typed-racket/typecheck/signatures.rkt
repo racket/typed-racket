@@ -29,6 +29,15 @@
    [cond-contracted check-compound-unit (syntax? (or/c tc-results/c #f) . -> . full-tc-results/c)]
    [cond-contracted check-unit-from-context (syntax? (or/c tc-results/c #f) . -> . full-tc-results/c)]))
 
+(define-signature check-contract^
+  ([cond-contracted check-contract ((syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]
+   [cond-contracted coerce-to-con (Type? . -> . Type?)]
+   [cond-contracted check-contract-app ((;; a contract
+                                         syntax?
+                                         ;; what's being contracted
+                                         syntax?)
+                                        ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]))
+
 (define-signature tc-if^
   ([cond-contracted tc/if-twoarm ((syntax? syntax? syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]))
 

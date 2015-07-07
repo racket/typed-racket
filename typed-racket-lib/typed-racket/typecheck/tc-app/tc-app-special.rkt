@@ -11,15 +11,18 @@
          (private type-annotation)
          (rep type-rep prop-rep)
          (utils tc-utils)
+         (base-env base-special-env)
 
          (for-label racket/base racket/bool '#%paramz))
 
 
-(import tc-expr^)
+(import tc-expr^ check-contract^)
 (export tc-app-special^)
 
 (define-literal-set special-literals #:for-label
   (extend-parameterization false? not call-with-values list))
+(define coerce-ctc
+  (make-template-identifier 'coerce-contract 'racket/contract/private/guts))
 
 (define-tc/app-syntax-class (tc/app-special expected)
   #:literal-sets (kernel-literals special-literals)
@@ -63,10 +66,27 @@
   ;; (quote-module-name) originally.
   (pattern (op src path)
     #:declare op (id-from 'module-name-fixup 'syntax/location)
-    (ret Univ))
+    (begin
+      ;; Because we aren't typechecking src and path, they won't have entries in
+      ;; the type-table. Without ignoring these two, typechecking the expansion
+      ;; of provide/contract and contract-out ends up with the optimizer trying
+      ;; to type-of src and path... but they have no entry in the type-table!
+      (register-ignored! #'src)
+      (register-ignored! #'path)
+      (ret Univ)))
   ;; special case for `delay'
   (pattern (mp1 (#%plain-lambda ()
                   (#%plain-app mp2 (#%plain-app call-with-values (#%plain-lambda () e) list))))
     #:declare mp1 (id-from 'make-promise 'racket/promise)
     #:declare mp2 (id-from 'make-promise 'racket/promise)
-    (ret (-Promise (tc-expr/t #'e)))))
+    (ret (-Promise (tc-expr/t #'e))))
+  (pattern (app-ctc ctc val pos neg name loc)
+    #:declare app-ctc (id-from 'apply-contract 'racket/contract/private/base)
+    #:do [(register-ignored! #'loc)]
+    (check-contract-app #'ctc #'val))
+  ;; coerce-contract is actually a function but its type is somewhat complex, so
+  ;; we typecheck it here. If it seems worth it to support this in higher-order
+  ;; cases, we can give the identifier a type in contract-prims.
+  (pattern (c-c sym e)
+    #:when (and (identifier? #'c-c) (free-identifier=? coerce-ctc #'c-c))
+    (ret (coerce-to-con (tc-expr/t #'e)))))

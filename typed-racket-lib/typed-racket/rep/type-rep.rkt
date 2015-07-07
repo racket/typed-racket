@@ -1226,6 +1226,9 @@
        -Bottom
        (make-Distinction nm id ty))])
 
+;; Contract type
+(def-structural Con ([in-ty #:contravariant] [out-ty #:covariant]))
+(def-structural FlatCon ([in-ty #:contravariant] [out-ty #:covariant]))
 
 ;;************************************************************
 ;; Type Variable tools (i.e. Abstraction/Instantiation)

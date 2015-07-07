@@ -6,7 +6,7 @@
          (rep type-rep prop-rep object-rep
               core-rep type-mask values-rep rep-utils
               free-variance rep-switch)
-         (utils tc-utils prefab identifier)
+         (utils tc-utils prefab identifier contract-utils)
          (only-in (env type-env-structs)
                   with-lexical-env
                   with-naively-extended-lexical-env
@@ -348,7 +348,6 @@
           [(Struct: _ #f _ _ _ _) #f]
           [_ (int-err "what is this?!?! ~a" s)])))
   (not (or (in-hierarchy? s1 s2) (in-hierarchy? s2 s1))))
-
 
 ;;************************************************************
 ;; Values Subtyping
@@ -703,6 +702,13 @@
                (and (not init-rest) (not init-rest*)
                     A)))]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: Con (Con: t1-pre t1-post))
+   (match t2
+     [(Con: t2-pre t2-post)
+      (subtype-seq A
+                   (subtype* A t2-pre t1-pre obj)
+                   (subtype* A t1-post t2-post obj))]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Continuation-Mark-Keyof (Continuation-Mark-Keyof: val1))
    (match t2
      [(? Continuation-Mark-KeyTop?) A]
@@ -803,6 +809,17 @@
      ;; tvars are equal if they are the same variable
      [(F: var2) (eq? var1 var2)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: FlatCon (FlatCon: t1-pre t1-post))
+   (match t2
+     [(FlatCon: t2-pre t2-post)
+      (subtype-seq A
+                   (subtype* A t2-pre t1-pre)
+                   (subtype* A t1-post t2-post))]
+     [(Con: t2-pre t2-post)
+      (subtype-seq A
+                   (subtype* A t2-pre t1-pre)
+                   (subtype* A t1-post t2-post))]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Fun (Fun: arrows1))
    (match* (t2 arrows1)
      ;; special case when t1 can be collapsed into simpler arrow
@@ -822,6 +839,15 @@
      [((? DepFun? dfun) _)
       (for/or ([a1 (in-list arrows1)])
         (arrow-subtype-dfun* A a1 dfun))]
+     [((or (FlatCon: t2-pre t2-post)
+           (Con: t2-pre t2-post))
+       _)
+      ;; XXX hacks
+      (match t1
+        [(ConFn*: t1-pre t1-post)
+         (subtype-seq A
+                      (subtype* A t2-pre t1-pre)
+                      (subtype* A t1-post t2-post))])]
      [(_ _) (continue<: A t1 t2 obj)])]
   [(case: Future (Future: elem1))
    (match t2

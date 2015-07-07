@@ -10,7 +10,7 @@
 (require "../utils/utils.rkt"
          (except-in
           (combine-in
-           (utils tc-utils)
+           (utils tc-utils contract-utils)
            (rep free-variance type-rep prop-rep object-rep rep-utils)
            (types utils abbrev numeric-tower union subtype resolve
                   substitute generalize prefab)
@@ -559,6 +559,24 @@
            (cg S T)]
           [((Distinction: _ _ S) T)
            (cg S T)]
+
+          [((Con: S-pre S-post) (Con: T-pre T-post))
+           (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
+          [((FlatCon: S-pre S-post) (FlatCon: T-pre T-post))
+           (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
+          [((FlatCon: S-pre S-post) (Con: T-pre T-post))
+           (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
+          [((and (PredicateProp: (PropSet: (TypeProp: _ S-post) _))
+                 (Function: (list (arr: (list S-pre) _ _ _ _))))
+            ;; Apparently I can't just have the FlatCon case -- is the inference
+            ;; isn't aware of the subtyping relation?
+            (Con*: T-pre T-post))
+
+           (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
+          [((Function: (list (arr: (list S-pre) _ _ _ _)))
+            (Con*: T-pre T-post))
+
+           (% cset-meet (cg T-pre S-pre) (cg S-pre T-post))]
 
           ;; two structs with the same name
           ;; just check pairwise on the fields

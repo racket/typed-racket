@@ -30,6 +30,7 @@ For a friendly introduction, see the companion manual
 @include-section["reference/libraries.scrbl"]
 @include-section["reference/typed-classes.scrbl"]
 @include-section["reference/typed-units.scrbl"]
+@include-section["reference/typed-contracts.scrbl"]
 @include-section["reference/utilities.scrbl"]
 @include-section["reference/exploring-types.scrbl"]
 @include-section["reference/no-check.scrbl"]

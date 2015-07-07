@@ -4,7 +4,7 @@
          racket/list racket/set
          (prefix-in c: (contract-req))
          (rep type-rep prop-rep object-rep rep-utils)
-         (utils tc-utils early-return)
+         (utils tc-utils contract-utils early-return)
          (types utils resolve base-abbrev match-expanders
                 numeric-tower substitute current-seen prefab signatures)
          (for-syntax racket/base syntax/parse racket/sequence))
@@ -311,6 +311,26 @@
           (subtype* A0 t1 t2)]
          [((Distinction: _ _ t1) t2)
           (subtype* A0 t1 t2)]
+         [((ConFn*: t1-pre t1-post) (FlatCon: t2-pre t2-post))
+          (subtype-seq A0
+                       (subtype* t2-pre t1-pre)
+                       (subtype* t1-post t2-post))]
+         [((ConFn*: t1-pre t1-post) (Con: t2-pre t2-post))
+          (subtype-seq A0
+                       (subtype* t2-pre t1-pre)
+                       (subtype* t1-post t2-post))]
+         [((FlatCon: t1-pre t1-post) (FlatCon: t2-pre t2-post))
+          (subtype-seq A0
+                       (subtype* t2-pre t1-pre)
+                       (subtype* t1-post t2-post))]
+         [((FlatCon: t1-pre t1-post) (Con: t2-pre t2-post))
+          (subtype-seq A0
+                       (subtype* t2-pre t1-pre)
+                       (subtype* t1-post t2-post))]
+         [((Con: t1-pre t1-post) (Con: t2-pre t2-post))
+          (subtype-seq A0
+                       (subtype* t2-pre t1-pre)
+                       (subtype* t1-post t2-post))]
          ;; sequences are covariant
          [((Sequence: ts) (Sequence: ts*))
           (subtypes* A0 ts ts*)]

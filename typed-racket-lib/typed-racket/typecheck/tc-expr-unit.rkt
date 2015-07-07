@@ -26,15 +26,15 @@
                        racket/contract/private/provide)
 
          (for-label (only-in '#%paramz [parameterization-key pz:pk])
-                    (only-in racket/private/class-internal find-method/who)))
+                    (only-in racket/private/class-internal find-method/who)
+                    (only-in (base-env contract-prims) ->/c)))
 
 (import tc-if^ tc-lambda^ tc-app^ tc-let^ tc-send^ check-subforms^ tc-literal^
-        check-class^ check-unit^ tc-expression^)
+        check-class^ check-unit^ tc-expression^ check-contract^)
 (export tc-expr^)
 
 (define-literal-set tc-expr-literals #:for-label
   (find-method/who))
-
 
 ;; typecheck an identifier
 ;; the identifier has variable effect
@@ -121,6 +121,8 @@
       (int-err "bad form input to tc-expr: ~a" form))
     (syntax-parse form
       #:literal-sets (kernel-literals tc-expr-literals)
+      [:tr:ctc^
+       (check-contract form expected)]
       ;; a TR-annotated class
       [stx:tr:class^
        (check-class form expected)]

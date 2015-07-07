@@ -155,6 +155,9 @@
            (length argtys))])]
     [(Distinction: _ _ t)
      (tc/funapp f-stx args-stx t args-res expected)]
+    [(FlatCon: t-pre t-post)
+     (define t->bool (-> t-pre -Boolean : (-PS (-is-type 0 t-post) -tt)))
+     (tc/funapp f-stx args-stx t->bool args-res expected)]
     ;; resolve names, polymorphic apps, mu, etc
     [(? needs-resolving?)
      (tc/funapp f-stx args-stx (resolve-once f-type) args-res expected)]

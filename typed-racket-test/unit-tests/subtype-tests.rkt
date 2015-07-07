@@ -385,4 +385,17 @@
    ((make-pred-ty (list -Real) -Boolean (Un (-val 0.0) (-val 0)))
     (make-pred-ty (list -Int) -Boolean (-val 0)))
 
+   [(-FlatCon -Real -Real) (-Con -Real -Real)]
+   [(-> Univ -Boolean : (-PS (-is-type 0 -Integer) -tt))
+    (-FlatCon Univ -Integer)]
+   [(-> -Real -Boolean)
+    (-FlatCon -Real -Real)]
+   [(-> -Real -Boolean : (-PS (-is-type 0 -PosReal) -tt))
+    (-FlatCon -Real -PosReal)]
+   [FAIL
+    (-> Univ -Boolean : (-PS (-is-type 0 -Real) -tt))
+    (-FlatCon Univ -Integer)]
+   [(-> Univ -Boolean : (-PS (-is-type 0 -Integer) -tt))
+    (-FlatCon Univ -Real)]
+   [(-> -String (Un -Boolean -Number)) (-FlatCon -String -String)]
    ))

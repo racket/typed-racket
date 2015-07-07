@@ -530,6 +530,8 @@
     [(fld: t a m) `(fld ,(type->sexp t))]
     [(Distinction: name sym ty) ; from define-new-subtype
      name]
+    [(Con: t-pre t-post) `(Con ,(t->s t-pre) ,(t->s t-post))]
+    [(FlatCon: t-pre t-post) `(FlatCon ,(t->s t-pre) ,(t->s t-post))]
     [else `(Unknown Type: ,(struct->vector type))]
     ))
 

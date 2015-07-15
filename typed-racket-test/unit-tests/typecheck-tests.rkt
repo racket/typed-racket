@@ -273,6 +273,8 @@
        (test-phase1 #,(syntax/loc #'lit (LITERAL/FAIL lit))
          (test-literal/fail (quote-syntax lit) msg.v ex.v)))]))
 
+;;check that typechecking a module fails
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

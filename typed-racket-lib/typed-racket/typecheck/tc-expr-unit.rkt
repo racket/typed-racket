@@ -28,7 +28,7 @@
                     (only-in racket/private/class-internal find-method/who)))
 
 (import tc-if^ tc-lambda^ tc-app^ tc-let^ tc-send^ check-subforms^ tc-literal^
-        check-class^ tc-expression^)
+        check-class^ check-unit^ tc-expression^)
 (export tc-expr^)
 
 (define-literal-set tc-expr-literals #:for-label
@@ -123,6 +123,15 @@
       ;; a TR-annotated class
       [stx:tr:class^
        (check-class form expected)]
+      ;; Unit forms
+      [stx:tr:unit^
+       (check-unit form expected)]
+      [stx:tr:unit:invoke^
+       (check-invoke-unit form expected)]
+      [stx:tr:unit:compound^
+       (check-compound-unit form expected)]
+      [stx:tr:unit:from-context^
+       (check-unit-from-context form expected)]
       [stx:exn-handlers^
        (register-ignored! form)
        (check-subforms/with-handlers form expected) ]

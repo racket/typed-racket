@@ -14,7 +14,6 @@
          racket/match
          syntax/parse
          syntax/stx
-         (only-in unstable/list check-duplicate)
          (only-in unstable/sequence in-syntax)
          (for-template (base-env class-clauses)))
 

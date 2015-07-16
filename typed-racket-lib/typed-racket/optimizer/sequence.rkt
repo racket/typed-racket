@@ -2,7 +2,7 @@
 
 (require syntax/parse
          racket/match
-         unstable/function
+         racket/function
          syntax/parse/experimental/specialize
          (for-template racket/base racket/unsafe/ops)
          "../utils/utils.rkt" "../utils/tc-utils.rkt"

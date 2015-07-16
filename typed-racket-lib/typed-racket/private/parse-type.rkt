@@ -17,7 +17,6 @@
          racket/promise
          racket/format
          racket/match
-         (only-in unstable/list check-duplicate)
          "parse-classes.rkt"
          (for-label
            (except-in racket/base case-lambda)

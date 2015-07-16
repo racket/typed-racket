@@ -9,7 +9,7 @@
          racket/match
          racket/function
          racket/undefined
-         unstable/function
+         racket/function
 
          (prefix-in c: (contract-req))
          (rename-in (rep type-rep filter-rep object-rep)

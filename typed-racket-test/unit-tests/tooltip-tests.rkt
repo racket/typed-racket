@@ -5,9 +5,9 @@
 ;; certain types are recorded at the right locations.
 
 (require "test-utils.rkt"
+         racket/list
          racket/match
          rackunit
-         unstable/list
          (for-syntax racket/base))
 
 (provide tests)

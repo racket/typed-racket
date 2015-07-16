@@ -9,7 +9,7 @@
          (only-in (infer infer) restrict)
          (utils stxclass-util)
          syntax/parse
-         unstable/function
+         racket/function
          unstable/sequence
          racket/extflonum)
 

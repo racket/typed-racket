@@ -25,7 +25,7 @@
          (for-syntax
            racket/base
            syntax/parse)
-         unstable/sequence unstable/list unstable/hash
+         unstable/sequence unstable/hash
          racket/list)
 
 (import dmap^ constraints^)
@@ -261,7 +261,7 @@
     ;; One is null-end the other is uniform-end
     [((seq ss (null-end))
       (seq ts (uniform-end t-rest)))
-     (cgen/list context ss (extend ss ts t-rest))]
+     (cgen/list context ss (list-extend ss ts t-rest))]
     [((seq ss (uniform-end s-rest))
       (seq ts (null-end)))
      #f]
@@ -270,7 +270,7 @@
       (seq ts (uniform-end t-rest)))
      (cgen/list context
                 (cons s-rest ss)
-                (cons t-rest (extend ss ts t-rest)))]
+                (cons t-rest (list-extend ss ts t-rest)))]
     ;; dotted below, nothing above
     [((seq ss (dotted-end dty dbound))
       (seq ts (null-end)))
@@ -358,7 +358,7 @@
         (% cset-meet
            (cgen/list context ss (if (positive? length-delta)
                                      (drop-right ts length-delta)
-                                     (extend ss ts t-rest)))
+                                     (list-extend ss ts t-rest)))
            (% move-vars+rest-to-dmap
               (% cset-meet
                  (cgen/list (context-add context #:bounds (list new-bound) #:vars vars #:indices (list new-bound))
@@ -851,7 +851,7 @@
 
 ;; like infer, but T-var is the vararg type:
 (define (infer/vararg X Y S T T-var R [expected #f])
-  (define new-T (if T-var (extend S T T-var) T))
+  (define new-T (if T-var (list-extend S T T-var) T))
   (and ((length S) . >= . (length T))
        (infer X Y S new-T R expected)))
 

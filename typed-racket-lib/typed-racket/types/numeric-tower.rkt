@@ -4,7 +4,7 @@
          (rename-in (types numeric-predicates base-abbrev)
                     [simple-Un *Un])
          (rename-in (rep type-rep) [make-Base make-Base*])
-         unstable/function
+         racket/function
          racket/extflonum
          ;; For base type contracts
          (for-template racket/base racket/contract/base racket/extflonum (types numeric-predicates)))

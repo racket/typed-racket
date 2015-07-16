@@ -15,7 +15,6 @@
  racket/match racket/syntax racket/list
  racket/format
  racket/dict
- unstable/list
  syntax/flatten-begin
  (only-in (types abbrev) -Bottom)
  (static-contracts instantiate optimize structures combinators)

@@ -60,14 +60,14 @@
             #:attr all-init-names (append (attribute init-field-names)
                                           (attribute init-names))
             #:fail-when
-            (check-duplicate (attribute all-init-names))
+            (check-duplicates (attribute all-init-names))
             "duplicate init or init-field clause"
             #:fail-when
-            (check-duplicate (attribute all-field-names))
+            (check-duplicates (attribute all-field-names))
             "duplicate field or init-field clause"
             #:fail-when
-            (check-duplicate (append (attribute method-names)
-                                     (attribute augment-names)))
+            (check-duplicates (append (attribute method-names)
+                                      (attribute augment-names)))
             "duplicate method or augmentable method clause"
             #:attr constraints
             (list (attribute all-init-names)
@@ -115,14 +115,14 @@
                                 (attribute augments)
                                 (attribute init-rest))
            #:fail-when
-           (check-duplicate (map first (attribute inits)))
+           (check-duplicates (map first (attribute inits)))
            "duplicate init or init-field clause"
            #:fail-when
-           (check-duplicate (map first (attribute fields)))
+           (check-duplicates (map first (attribute fields)))
            "duplicate field or init-field clause"
            #:fail-when
-           (check-duplicate (map first (append (attribute methods)
-                                               (attribute augments))))
+           (check-duplicates (map first (append (attribute methods)
+                                                (attribute augments))))
            "duplicate method or augmentable method clause"))
 
 ;; Type -> RowConstraint
@@ -228,16 +228,16 @@
                                  (parse-type (attribute init-rest-type)))
            #:with implements #'(implements-id ...)
            #:fail-when
-           (check-duplicate (map first (attribute inits)))
+           (check-duplicates (map first (attribute inits)))
            "duplicate init or init-field clause"
            #:fail-when
-           (check-duplicate (map first (attribute fields)))
+           (check-duplicates (map first (attribute fields)))
            "duplicate field or init-field clause"
            #:fail-when
-           (check-duplicate (map first (attribute methods)))
+           (check-duplicates (map first (attribute methods)))
            "duplicate method clause"
            #:fail-when
-           (check-duplicate (map first (attribute augments)))
+           (check-duplicates (map first (attribute augments)))
            "duplicate augment clause"))
 
 ;; Stx Stx Listof<Boolean> (Stx -> Type) -> Listof<(List Symbol Type Boolean)>

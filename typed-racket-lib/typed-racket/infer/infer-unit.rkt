@@ -25,8 +25,8 @@
          (for-syntax
            racket/base
            syntax/parse)
-         unstable/sequence unstable/hash
-         racket/list)
+         unstable/sequence
+         racket/hash racket/list)
 
 (import dmap^ constraints^)
 (export infer^)

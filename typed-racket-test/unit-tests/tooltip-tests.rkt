@@ -85,7 +85,7 @@
     (for/list ([tooltip (in-list tooltips)])
       (match-define (vector _ start end _) tooltip)
       (list start end)))
-  (if (check-duplicate locations)
+  (if (check-duplicates locations)
       'duplicate-tooltips
       #t))
 

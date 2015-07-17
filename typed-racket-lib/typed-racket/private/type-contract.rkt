@@ -642,7 +642,7 @@
          (for/list ([t arrs])
            (match t
              [(arr: dom _ _ _ _) (length dom)])))
-       (define maybe-dup (check-duplicate arities))
+       (define maybe-dup (check-duplicates arities))
        (when maybe-dup
          (fail #:reason (~a "function type has two cases of arity " maybe-dup)))
        (if (= (length arrs) 1)

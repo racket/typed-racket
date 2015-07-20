@@ -2,7 +2,7 @@
 
 (define collection 'multi)
 
-(define deps '(("base" #:version "6.2.0.2")
+(define deps '(("base" #:version "6.2.900.4")
                "pconvert-lib"
                "unstable-contract-lib"
                "source-syntax"

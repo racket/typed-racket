@@ -3,7 +3,7 @@
 (define collection 'use-pkg-name)
 (define deps '("redex-lib"
                "sandbox-lib"
-               "base"
+               ("base" #:version "6.2.900.4")
                "typed-racket-lib"
                "typed-racket-more"
                "typed-racket-compatibility"

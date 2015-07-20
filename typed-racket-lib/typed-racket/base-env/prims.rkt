@@ -770,13 +770,13 @@ the typed racket language.
 (define-syntax (typecheck-fail stx)
   (syntax-parse stx
     [(_ orig msg:str #:covered-id var:id)
-     #'(quote (typecheck-fail-internal orig msg var))]
+     #'(quote-syntax (typecheck-fail-internal orig msg var) #:local)]
     [(_ orig msg:str)
-     #'(quote (typecheck-fail-internal orig msg #f))]
+     #'(quote-syntax (typecheck-fail-internal orig msg #f) #:local)]
     [(_ orig #:covered-id var:id)
-     #'(quote (typecheck-fail-internal orig "Incomplete case coverage" var))]
+     #'(quote-syntax (typecheck-fail-internal orig "Incomplete case coverage" var) #:local)]
     [(_ orig)
-     #'(quote(typecheck-fail-internal orig "Incomplete case coverage" #f))]))
+     #'(quote-syntax (typecheck-fail-internal orig "Incomplete case coverage" #f) #:local)]))
 
 (define-syntax (base-for/vector stx)
   (syntax-case stx ()

@@ -17,7 +17,9 @@ at least theoretically.
  ;; logging
  show-input?
  ;; provide macros
- rep utils typecheck infer env private types static-contracts)
+ rep utils typecheck infer env private types static-contracts
+ ;; misc
+ list-extend)
 
 (define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
@@ -200,3 +202,8 @@ at least theoretically.
                       (self-ctor-transformer (struct-info-self-ctor-id ins) stx))
           #:property prop:struct-info (λ (x) (extract-struct-info (struct-info-self-ctor-info x))))
   struct-info-self-ctor))
+
+;; Listof[A] Listof[B] B -> Listof[B]
+;; pads out t to be as long as s
+(define (list-extend s t extra)
+  (append t (build-list (max 0 (- (length s) (length t))) (lambda _ extra))))

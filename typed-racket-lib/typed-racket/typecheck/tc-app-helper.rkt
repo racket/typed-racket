@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         racket/match unstable/list unstable/sequence racket/set racket/list
+         racket/match unstable/sequence racket/set racket/list
          (only-in racket/list make-list)
          (contract-req)
          (typecheck check-below tc-subst tc-metafunctions)
@@ -119,8 +119,8 @@
                   (format "Wrong number of arguments - Expected ~a, but got ~a\n\n" (length (car doms)) (length arg-tys))
                   "")
               (append
-               (for/list ([dom-t (in-list (extend arg-tys (car doms) #f))]
-                          [arg-t (in-list (extend (car doms) arg-tys #f))]
+               (for/list ([dom-t (in-list (list-extend arg-tys (car doms) #f))]
+                          [arg-t (in-list (list-extend (car doms) arg-tys #f))]
                           [i (in-naturals 1)])
                          (let ([dom-t (or dom-t "-none-")]
                                [arg-t (or arg-t "-none-")])

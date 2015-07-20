@@ -2,7 +2,7 @@
 
 (require (rename-in "../utils/utils.rkt" [infer r:infer])
          racket/syntax syntax/parse syntax/stx syntax/id-table
-         racket/list unstable/list racket/dict racket/match unstable/sequence
+         racket/list racket/dict racket/match unstable/sequence
          (prefix-in c: (contract-req))
          (rep type-rep)
          (types utils abbrev type-table struct-table)
@@ -26,6 +26,10 @@
  [tc-toplevel-form (syntax? . c:-> . c:any/c)])
 
 (define-logger online-check-syntax)
+
+(define (filter-multiple l . fs)
+  (apply values
+         (map (lambda (f) (filter f l)) fs)))
 
 (define unann-defs (make-free-id-table))
 
@@ -542,4 +546,3 @@
      (tc-toplevel/pass1.5 form)
      (begin0 (tc-toplevel/pass2 form #f)
              (report-all-errors))]))
-

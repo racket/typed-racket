@@ -5,7 +5,6 @@
 (define deps '(("base" #:version "6.2.0.2")
                "pconvert-lib"
                "unstable-contract-lib"
-               "unstable-list-lib"
                "source-syntax"
                "compatibility-lib" ;; to assign types
                "string-constants-lib"))

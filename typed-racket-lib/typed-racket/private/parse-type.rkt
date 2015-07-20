@@ -17,7 +17,6 @@
          racket/promise
          racket/format
          racket/match
-         (only-in unstable/list check-duplicate)
          "parse-classes.rkt"
          (for-label
            (except-in racket/base case-lambda)
@@ -690,10 +689,10 @@
   (define merged-augments (merge-clause super-augments augments))
 
   ;; make sure augments and methods are disjoint
-  (define maybe-dup-method (check-duplicate (dict-keys merged-methods)))
+  (define maybe-dup-method (check-duplicates (dict-keys merged-methods)))
   (when maybe-dup-method
     (parse-error "duplicate method name" "name" maybe-dup-method))
-  (define maybe-dup-augment (check-duplicate (dict-keys merged-augments)))
+  (define maybe-dup-augment (check-duplicates (dict-keys merged-augments)))
   (when maybe-dup-augment
     (parse-error "duplicate augmentable method name"
                  "name" maybe-dup-augment))

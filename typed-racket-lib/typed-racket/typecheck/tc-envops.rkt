@@ -2,7 +2,6 @@
 
 (require (rename-in "../utils/utils.rkt" [infer infer-in]))
 (require racket/match racket/list
-         (only-in unstable/list list-update)
          (for-syntax racket/base syntax/parse)
          (contract-req)
          (infer-in infer)

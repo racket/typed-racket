@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         unstable/list unstable/sequence syntax/id-table racket/dict racket/syntax
+         unstable/sequence syntax/id-table racket/dict racket/syntax
          racket/struct-info racket/match syntax/parse
          (only-in (private type-contract) include-extra-requires?)
          (private syntax-properties)
@@ -90,11 +90,11 @@
     (define type-is-constructor? #t) ;Conservative estimate (provide/contract does the same)
     (match-define (list type-desc constr pred (list accs ...) muts super) (extract-struct-info si))
     (define-values (defns export-defns new-ids aliases)
-      (map/values 4
-                  (lambda (e) (if (identifier? e)
-                                  (mk e)
-                                  (mk-ignored-quad e)))
-                  (list* type-desc pred super accs)))
+      (for/lists (defns export-defns new-ids aliases)
+        ([e (in-list (list* type-desc pred super accs))])
+        (if (identifier? e)
+            (mk e)
+            (mk-ignored-quad e))))
     ;; Here, we recursively handle all of the identifiers referenced
     ;; in this static struct info.
     (define-values (constr-defn constr-export-defn constr-new-id constr-aliases)

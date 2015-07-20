@@ -27,10 +27,6 @@
 
 (define-logger online-check-syntax)
 
-(define (filter-multiple l . fs)
-  (apply values
-         (map (lambda (f) (filter f l)) fs)))
-
 (define unann-defs (make-free-id-table))
 
 (define (parse-typed-struct form)

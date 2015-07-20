@@ -19,7 +19,8 @@ at least theoretically.
  ;; provide macros
  rep utils typecheck infer env private types static-contracts
  ;; misc
- list-extend)
+ list-extend
+ filter-multiple)
 
 (define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
@@ -207,3 +208,7 @@ at least theoretically.
 ;; pads out t to be as long as s
 (define (list-extend s t extra)
   (append t (build-list (max 0 (- (length s) (length t))) (lambda _ extra))))
+
+(define (filter-multiple l . fs)
+  (apply values
+         (map (lambda (f) (filter f l)) fs)))

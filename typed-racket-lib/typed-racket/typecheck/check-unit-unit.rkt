@@ -153,7 +153,6 @@
              (attribute t.init-depends))]))
 
 (define-syntax-class unit-expansion
-;  #:literals (let-values letrec-syntaxes+values #%plain-app quote)
   #:literal-sets (kernel-literals)
   #:attributes (body-stx)
   (pattern (#%plain-app

@@ -637,12 +637,9 @@
     (tr:unit:compound:expr-property
      #`(#%expression
         (begin
-          (void #,@lb-sig-ids ;(quote-syntax lb.sig-id) ...
-                )
-          (void #,@lb-link-ids ;(quote-syntax lb.link-id) ...
-                )
-          (void #,@link-ids ;(quote-syntax link-id) ...
-                )
+          (void #,@lb-sig-ids)
+          (void #,@lb-link-ids)
+          (void #,@link-ids)
           ;; all imports
           (void #,@(map (lambda (id) #`(quote-syntax #,id)) imports))
           ;; all exports

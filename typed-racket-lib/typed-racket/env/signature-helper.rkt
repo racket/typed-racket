@@ -50,8 +50,9 @@
 ;; those listed in a require/typed clause
 (define (check-signature-bindings name vars stx)
   (match-define-values (_ inferred-vars _ _) (signature-members name name))
-  (unless (and (empty? (free-id-set-subtract vars inferred-vars))
-               (empty? (free-id-set-subtract inferred-vars vars)))
+  (define inferred-vars-set (immutable-free-id-set inferred-vars #:phase (add1 (syntax-local-phase-level))))
+  (define vars-set (immutable-free-id-set vars #:phase (add1 (syntax-local-phase-level))))
+  (unless (free-id-set=? inferred-vars-set vars-set)
     (tc-error/fields "required signature declares inconsistent members"
                      "expected members" (map syntax-e inferred-vars)
                      "received members" (map syntax-e vars)
@@ -113,8 +114,5 @@
 (define (fix-order sig-id sig-bindings)
   (match-define-values (_ members _ _) (signature-members sig-id sig-id))
   (map
-   (lambda (id) (assoc id sig-bindings free-label-identifier=?))
+   (lambda (id) (assoc id sig-bindings free-transformer-identifier=?))
    members))
-
-
-

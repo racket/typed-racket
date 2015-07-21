@@ -125,7 +125,7 @@
              #:with (constructor-parts ...) #'constructor.value))
 
   (define-syntax-class signature-clause
-    #:attributes (sig-name (member 1))
+    #:attributes (sig-name [member 1])
     (pattern [#:signature sig-name:id (member ...)]))
 
   (define-syntax-class opaque-clause

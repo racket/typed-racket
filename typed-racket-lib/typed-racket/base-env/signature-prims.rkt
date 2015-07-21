@@ -35,8 +35,10 @@
     #:attributes (internal-form erased)
     (pattern :sig-var-form
              #:attr kind 'var)
-    
+    ;; The define-type form is explicitly disallowed until I can figure out how
+    ;; to sensibly support them in signature definitions
     (pattern :sig-type-form
+             #:fail-when #t "type definitions are not allowed within signature definitions"
              #:attr kind 'type))
   
   (define-syntax-class sig-var-form

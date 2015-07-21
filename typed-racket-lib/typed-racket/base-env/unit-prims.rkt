@@ -27,7 +27,7 @@
                       syntax/flatten-begin
                       syntax/kerncase
                       "../private/syntax-properties.rkt"
-                      "../typecheck/internal-forms.rkt"
+                      (typecheck internal-forms)
                       syntax/id-table
                       racket/dict
                       racket/unit-exptime
@@ -139,7 +139,8 @@
                (define rn ((attribute sig.rename) id))
                (or (lookup rn) rn))
              #:with sig-name #'sig.sig-name))
-  
+
+  ;; extracts the signature members from syntax representing a sequence of signature name
   (define (signatures-vars stx)
     (define (signature-vars sig-id)
       (let-values ([(_0 vars _2 _3)
@@ -213,9 +214,10 @@
             #'exprs.trampoline-form]))]))
 
 
-;; Typed macro for define-values/invoke-unit
-;; This has to be handled specially because they types of
-;; the defined values must be registered in the environment
+;; imports/members : identifier? -> syntax?
+;; given an identifier representing a signature
+;; returns syntax containing the signature name and the names of each variable contained
+;; in the signature, this is needed to typecheck define-values/invoke-unit forms
 (define-for-syntax (imports/members sig-id)
   (match-define-values (_ (list imp-mem ...) _ _)
                        (signature-members sig-id sig-id))
@@ -236,6 +238,9 @@
                             (signature-members sig-id sig-id))
        #`(#,sig-id #,@(map renamer ex-mem))])))
 
+;; Typed macro for define-values/invoke-unit
+;; This has to be handled specially because the types of
+;; the defined values must be registered in the environment
 (define-syntax (define-values/invoke-unit stx)
   (syntax-parse stx 
     #:literals (import export)
@@ -307,8 +312,7 @@
     (pattern unit-id:id
              #:attr unit-ids (syntax->list #'(unit-id))
              #:attr link-units? #f
-             #:with untyped-stx (tr:unit:invoke:expr-property 
-                                 #'(#%expression unit-id) #t)
+             #:with untyped-stx (tr:unit:invoke:expr-property #'(#%expression unit-id) #t)
              #:with last-id (local-expand #'unit-id
                                           (syntax-local-context)
                                           (kernel-form-identifier-list)))
@@ -439,22 +443,21 @@
 
 (define-syntax (unit stx)
   (syntax-parse stx
-    [(unit imports:unit-imports 
-           exports:unit-exports
-           init-depends:init-depend-form
-           e:unit-expr ...)
+    [(unit imports:unit-imports exports:unit-exports init-depends:init-depend-form e:unit-expr ...)
      (ignore
       (tr:unit
        (quasisyntax/loc stx
-         (untyped-unit  imports
-                        exports
-                        #,@(attribute init-depends.form)
-                        #,(make-signature-local-table #'imports.names
-                                                      (attribute imports.renamers)
-                                                      #'exports.names
-                                                      (attribute exports.renamers)
-                                                      #'init-depends.names)
-                        (add-tags e ...)))))]))
+         (untyped-unit
+          imports
+          exports
+          #,@(attribute init-depends.form)
+          #,(make-signature-local-table
+             #'imports.names
+             (attribute imports.renamers)
+             #'exports.names
+             (attribute exports.renamers)
+             #'init-depends.names)
+          (add-tags e ...)))))]))
 
 
 (define-trampolining-macro process-define-unit
@@ -566,9 +569,7 @@
   [(define-values (name:id ...) rhs)
    #`(define-values (name ...)
        #,(ignore
-          (tr:unit:compound-property
-           #`(#%expression (begin links sigs im ex infer rhs))
-           #t)))])
+          (tr:unit:compound-property #`(#%expression (begin links sigs im ex infer rhs)) #t)))])
 
 (define-syntax (define-compound-unit stx)
   (syntax-parse stx

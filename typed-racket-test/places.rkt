@@ -1,7 +1,7 @@
 #lang racket
 
 (require racket/place typed-racket/optimizer/logging
-         unstable/open-place syntax/modcode data/queue)
+         syntax/modcode data/queue)
 (provide start-worker dr serialize-exn deserialize-exn s-exn? generate-log/place compile-path/place verbose?)
 
 (define verbose? (make-parameter #f))

@@ -153,7 +153,7 @@
   ((set/sc (#:covariant #:chaperone)) set/c #:flat)
   ((vector/sc . (#:invariant)) vector/c #:chaperone)
   ((vectorof/sc (#:invariant)) vectorof #:chaperone)
-  ((promise/sc (#:covariant)) (and/c promise/c (not/c promise/name?)) #:chaperone)
+  ((promise/sc (#:covariant)) (λ (x) (and/c (promise/c x) (not/c promise/name?))) #:chaperone)
   ((syntax/sc (#:covariant #:flat)) syntax/c #:flat)
   ((hash/sc (#:invariant #:flat) (#:invariant)) hash/c #:chaperone)
   ((box/sc (#:invariant)) box/c #:chaperone)

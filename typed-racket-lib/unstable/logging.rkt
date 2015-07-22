@@ -1,10 +1,11 @@
 #lang racket/base
 
-(require racket/contract/base)
+(require racket/contract/base
+         racket/logging)
 
-(define level/c (or/c 'fatal 'error 'warning 'info 'debug))
-(define log-spec/c (listof (or/c symbol? #f)))
-(define log-message/c (vector/c level/c string? any/c (or/c symbol? #f)))
+;; re-exported from racket/logging, for backwards compatibility
+(provide with-intercepted-logging
+         with-logging-to-port)
 
 ;; helper used below
 (define (receiver-thread receiver stop-chan intercept)
@@ -57,38 +58,5 @@
   (reverse (listener-rev-messages cur-listener)))
 
 (provide/contract
- [start-recording (->* () #:rest log-spec/c listener?)]
+ [start-recording (->* () #:rest (listof (or/c symbol? #f)) listener?)]
  [stop-recording  (-> listener? (listof log-message/c))])
-
-
-(define (with-intercepted-logging interceptor proc . log-spec)
-  (let* ([orig-logger (current-logger)]
-         ;; We use a local logger to avoid getting messages that didn't
-         ;; originate from proc. Since it's a child of the original logger,
-         ;; the rest of the program still sees the log entries.
-         [logger      (make-logger #f orig-logger)]
-         [receiver    (apply make-log-receiver logger log-spec)]
-         [stop-chan   (make-channel)]
-         [t           (receiver-thread receiver stop-chan interceptor)])
-    (begin0
-        (parameterize ([current-logger logger])
-          (proc))
-      (channel-put stop-chan 'stop) ; stop the receiver thread
-      (thread-wait t))))
-
-(define (with-logging-to-port port proc . log-spec)
-  (apply with-intercepted-logging
-         (lambda (l) (displayln (vector-ref l 1) ; actual message
-                                port))
-         proc
-         log-spec))
-
-(provide/contract [with-intercepted-logging
-                   (->* ((-> log-message/c any)
-                         (-> any))
-                        #:rest log-spec/c
-                        any)]
-                  [with-logging-to-port
-                   (->* (output-port? (-> any))
-                        #:rest log-spec/c
-                        any)])

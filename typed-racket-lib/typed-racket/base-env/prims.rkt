@@ -201,6 +201,7 @@ the typed racket language.
   (let ([mk (lambda (form)
               (lambda (stx)
                 (syntax-parse stx
+                  #:context form
                   [(_ (bs:optionally-annotated-binding ...) . body)
                    (quasisyntax/loc stx (#,form (bs.binding ...) . body))])))])
     (values (mk #'let) (mk #'let*) (mk #'letrec))))

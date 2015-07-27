@@ -1646,6 +1646,10 @@
         (tc-e (syntax-column #'here) (-opt -Nat))
         (tc-e (syntax-position #'here) (-opt -PosInt))
         (tc-e (syntax-span #'here) (-opt -Nat))
+        (tc-e (syntax-local-identifier-as-binding #'x) (-Syntax -Symbol))
+        (tc-e (syntax-debug-info #'x) -HashTop)
+        (tc-e (internal-definition-context-introduce (syntax-local-make-definition-context) #'x)
+              (-Syntax (-val 'x)))
 
 
         ;Parameters

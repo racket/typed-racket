@@ -1638,6 +1638,10 @@
 [internal-definition-context? (make-pred-ty -Internal-Definition-Context)]
 [syntax-local-make-definition-context (->opt [(-opt -Internal-Definition-Context)] -Internal-Definition-Context)]
 [syntax-local-bind-syntaxes (-> (-lst (-Syntax Sym)) (-opt (-Syntax Univ)) -Internal-Definition-Context -Void)]
+[internal-definition-context-introduce
+ (-poly (a) (->opt -Internal-Definition-Context (-Syntax a)
+                   [(one-of/c 'flip 'add 'remove)]
+                   (-Syntax a)))]
 [internal-definition-context-seal (-> -Internal-Definition-Context -Void)]
 [identifier-remove-from-definition-context (-> (-Syntax Sym) (Un -Internal-Definition-Context (-lst -Internal-Definition-Context)) (-Syntax Sym))]
 
@@ -1658,6 +1662,7 @@
 [syntax-local-certifier (->opt [B] (-poly (a) (->opt (-Syntax a) [Univ (-opt (-poly (b) (-> (-Syntax b) (-Syntax b))))] (-Syntax a))))]
 [syntax-transforming? (-> B)]
 
+[syntax-local-identifier-as-binding (-> (-Syntax -Symbol) (-Syntax -Symbol))]
 [syntax-local-introduce (-poly (a) (-> (-Syntax a) (-Syntax a)))]
 [make-syntax-introducer (-> (-poly (a) (-> (-Syntax a) (-Syntax a))))]
 [make-syntax-delta-introducer (->opt (-Syntax Univ) [(-opt (-Syntax Univ)) (-opt -Int)] (-poly (a) (-> (-Syntax a) (-Syntax a))))]
@@ -1678,6 +1683,7 @@
 
 ;; Section 12.8
 [syntax-recertify (-poly (a) (-> (-Syntax a) (-Syntax Univ) -Inspector Univ (-Syntax a)))]
+[syntax-debug-info (-poly (a) (->opt (-Syntax a) [(-opt -Integer) Univ] -HashTop))]
 
 ;; Section 12.9
 [expand (-> Univ (-Syntax Univ))]

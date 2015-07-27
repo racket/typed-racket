@@ -53,7 +53,7 @@
                    [disappeared-use-todo      null]
                    [disappeared-bindings-todo null])
       (define fully-expanded-stx (disarm* (do-expand stx expand-ctxt (list #'module*))))
-      (when (show-input?)
+      (when (print-syntax?)
         (pretty-print (syntax->datum fully-expanded-stx)))
       (do-time "Local Expand Done")
       (let ([exprs (syntax->list (syntax-local-introduce fully-expanded-stx))])

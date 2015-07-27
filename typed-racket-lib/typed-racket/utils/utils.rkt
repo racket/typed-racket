@@ -14,8 +14,6 @@ at least theoretically.
  optimize?
  ;; timing
  start-timing do-time
- ;; logging
- show-input?
  ;; provide macros
  rep utils typecheck infer env private types static-contracts
  ;; misc
@@ -32,8 +30,6 @@ at least theoretically.
                                          (require racket/contract/region))))
       (syntax-rules () [(_) (begin)])))
 (do-contract-req)
-
-(define show-input? (make-parameter #f))
 
 ;; fancy require syntax
 (define-syntax (define-requirer stx)

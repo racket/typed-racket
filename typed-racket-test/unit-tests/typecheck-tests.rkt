@@ -1367,6 +1367,18 @@
         [tc-err (list (values 1 2))
           #:ret (ret (-Tuple (list -Bottom)))]
 
+        ;; Lists
+        [tc-e (list-update '("a" "b" "c") 1 (λ (x) "a")) (-lst -String)]
+        [tc-e (list-set '("a" "b" "c") 1 "a") (-lst -String)]
+        [tc-e (list-prefix? '(1 2 3) '(a b c)) -Boolean]
+        [tc-e (take-common-prefix '("a" "b" "c") '(1 2 3)) (-lst -String)]
+        [tc-e (group-by (λ: ([x : String]) (even? (string-length x))) '("a" "bb" "c"))
+              (-lst (-lst -String))]
+        [tc-e (cartesian-product '("a" "b") '(a b))
+              (-lst (-lst* -String (one-of/c 'a 'b)))]
+        [tc-e (remf symbol? '(a b c)) (-lst (one-of/c 'a 'b 'c))]
+        [tc-e (remf* symbol? '(a b c)) (-lst (one-of/c 'a 'b 'c))]
+        [tc-e (check-duplicates '("a" "a" "b")) (-opt -String)]
 
         ;;Path tests
         (tc-e (path-string? "foo") -Boolean)

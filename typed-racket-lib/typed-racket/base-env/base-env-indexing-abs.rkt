@@ -238,6 +238,8 @@
                  (->opt -SingleFlonum -Real [-SingleFlonum] (-lst -SingleFlonum))
                  (->opt -InexactReal -Real [-InexactReal] (-lst -InexactReal))
                  (->opt -Real -Real [-Real] (-lst -Real)))]
+   [list-update (-poly (a b) ((-lst a) index-type . -> . (-> a b) (-lst (Un a b))))]
+   [list-set (-poly (a b) ((-lst a) index-type . -> . b (-lst (Un a b))))]
    [take   (-poly (a) ((-lst a) index-type . -> . (-lst a)))]
    [drop   (-poly (a) ((-lst a) index-type . -> . (-lst a)))]
    [take-right   (-poly (a) ((-lst a) index-type . -> . (-lst a)))]

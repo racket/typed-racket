@@ -14,6 +14,7 @@
   (only-in '#%kernel [apply kernel:apply] [reverse kernel:reverse])
   (only-in racket/private/pre-base new-apply-proc)
   compatibility/mlist
+  racket/logging
   racket/private/stx
   (only-in mzscheme make-namespace)
   (only-in racket/match/runtime match:error matchable? match-equality-test))
@@ -751,6 +752,16 @@
         (asym-pred a Univ (-FS (-filter b 0) -top))
         (-values (list (-lst a) (-lst b))))
     (-> (-lst a) (-> a Univ) (-values (list (-lst a) (-lst a))))))]
+
+[list-prefix? (-poly (a b) (->opt (-lst a) (-lst b) [(-> a b Univ)] -Boolean))]
+[take-common-prefix (-poly (a b) (->opt (-lst a) (-lst b) [(-> a b Univ)] (-lst a)))]
+[drop-common-prefix
+ (-poly (a b)
+   (->opt (-lst a) (-lst b) [(-> a b Univ)] (-values (list (-lst a) (-lst b)))))]
+[split-common-prefix
+ (-poly (a b)
+   (->opt (-lst a) (-lst b) [(-> a b Univ)] (-values (list (-lst a) (-lst a) (-lst b)))))]
+
 [append-map
  (-polydots (c a b) ((list ((list a) (b b) . ->... . (-lst c)) (-lst a))
                      ((-lst b) b) . ->... .(-lst c)))]
@@ -760,6 +771,10 @@
 [in-permutations (-poly (a) (-> (-lst a) (-seq (-lst a))))]
 [argmin (-poly (a) ((a . -> . -Real) (-lst a) . -> . a))]
 [argmax (-poly (a) ((a . -> . -Real) (-lst a) . -> . a))]
+[group-by (-poly (a b) (->opt (-> a b) (-lst a) [(-> b b Univ)] (-lst (-lst a))))]
+[cartesian-product (-polydots (a) (->... '() ((-lst a) a) (-lst (make-ListDots a 'a))))]
+[remf (-poly (a) (-> (-> a Univ) (-lst a) (-lst a)))]
+[remf* (-poly (a) (-> (-> a Univ) (-lst a) (-lst a)))]
 
 ;; Section 4.9.8 (Immutable Cyclic Data)
 [make-reader-graph (-> Univ Univ)]
@@ -1074,6 +1089,8 @@
                      (-> c -Boolean : (-FS (-not-filter b 0) (-not-filter a 0))))
                  (-> ((list) [d d] . ->... . Univ)
                      ((list) [d d] . ->... . -Boolean))))]
+[conjoin (-polydots (a) (->* '() (->... '() (a a) Univ) (->... '() (a a) Univ)))]
+[disjoin (-polydots (a) (->* '() (->... '() (a a) Univ) (->... '() (a a) Univ)))]
 ;; probably the most useful cases
 ;; doesn't cover cases where we pass multiple of the function's arguments to curry,
 ;; also doesn't express that the returned function is itself curried
@@ -2851,6 +2868,21 @@
 [log-receiver? (make-pred-ty -Log-Receiver)]
 [make-log-receiver (-> -Logger -Log-Level -Log-Receiver)]
 
+;; Section 15.5.4 (Additional Logging Functions, racket/logging)
+[log-level/c (make-pred-ty (one-of/c 'none 'fatal 'error 'warning 'info 'debug))]
+[with-intercepted-logging
+ (-polydots (a)
+   (->* (list (-> (make-HeterogeneousVector (list -Symbol -String Univ (-opt -Symbol))) Univ)
+              (-> (make-ValuesDots null a 'a)))
+        (-opt (one-of/c 'none 'fatal 'error 'warning 'info 'debug))
+        (make-ValuesDots null a 'a)))]
+[with-logging-to-port
+ (-polydots (a)
+   (->* (list -Output-Port (-> (make-ValuesDots null a 'a))
+              (one-of/c 'none 'fatal 'error 'warning 'info 'debug))
+        (-opt -Symbol)
+        (make-ValuesDots null a 'a)))]
+
 ;; Section 15.6 (Time)
 [seconds->date (cl->* (-Integer . -> . -Date)
                       (-Integer Univ . -> . -Date))]
@@ -3121,6 +3153,12 @@
   (cl->*
    (->key (-lst a) (-> a a -Boolean) #:key (-> a a) #f #:cache-keys? -Boolean #f (-lst a))
    (->key (-lst a) (-> b b -Boolean) #:key (-> a b) #f #:cache-keys? -Boolean #f (-lst a)))))
+(check-duplicates
+ (-poly
+  (a b)
+  (cl->*
+   (->optkey (-lst a) ((-> a a Univ)) #:key (-> a a) #f (-opt a))
+   (->optkey (-lst a) ((-> b b Univ)) #:key (-> a b) #f (-opt a)))))
 (remove-duplicates
  (-poly
   (a b)

@@ -40,7 +40,7 @@
 
 (define (start-worker get-ch name)
   (define verb (verbose?))
-  (open-place ch
+  (place/context ch
     (let loop ()
       (match (place-channel-get get-ch)                
         [(vector 'log name dir res)

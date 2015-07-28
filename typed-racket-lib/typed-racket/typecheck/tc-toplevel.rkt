@@ -376,16 +376,22 @@
       (syntax-parse p #:literal-sets (kernel-literals)
         [(#%provide form ...)
          (for/fold ([h h]) ([f (in-syntax #'(form ...))])
-           (syntax-parse f
-             [i:id
-              (dict-update h #'i (lambda (tail) (cons #'i tail)) '())]
-             [((~datum rename) in out)
-              (dict-update h #'in (lambda (tail) (cons #'out tail)) '())]
-             [(name:unknown-provide-form . _)
-              (parameterize ([current-orig-stx f])
-                (tc-error "provide: ~a not supported by Typed Racket" (syntax-e #'name.name)))]
-             [_ (parameterize ([current-orig-stx f])
-                  (int-err "unknown provide form"))]))]
+           (let loop ([f f])
+             (syntax-parse f
+               [i:id
+                (dict-update h #'i (lambda (tail) (cons #'i tail)) '())]
+               [((~datum rename) in out)
+                (dict-update h #'in (lambda (tail) (cons #'out tail)) '())]
+               [((~datum for-meta) 0 fm)
+                (loop #'fm)]
+               ;; is this safe?
+               [((~datum for-meta) _ fm)
+                h]
+               [(name:unknown-provide-form . _)
+                (parameterize ([current-orig-stx f])
+                  (tc-error "provide: ~a not supported by Typed Racket" (syntax-e #'name.name)))]
+               [_ (parameterize ([current-orig-stx f])
+                    (int-err "unknown provide form"))])))]
         [_ (int-err "non-provide form! ~a" (syntax->datum p))])))
   ;; compute the new provides
   (define-values (new-stx/pre new-stx/post)

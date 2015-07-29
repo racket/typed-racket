@@ -31,7 +31,9 @@
     (for/list ([names namess] [results results])
       (match results
         [(list (tc-result: _ _ os) ...)
-         (map list names os)]))))
+         (map list names os)]
+        [(tc-results: (list (== -Bottom)))
+         (map list names (make-list (length names) -empty-obj))]))))
 
 ;; Checks that the body has the expected type when names are bound to the types spcified by results.
 ;; The exprs are also typechecked by using expr->type.
@@ -74,7 +76,9 @@
                                                (-and (-filter (-val #f) n) f-)))]))))]
           ;; amk: does this case ever occur?
           [(list (tc-result: e-ts (NoFilter:) _) ...)
-           (values e-ts (make-list (length e-ts) -empty-obj) null)]))))
+           (values e-ts (make-list (length e-ts) -empty-obj) null)]
+          [(tc-results: (list (== -Bottom)))
+           (values (list -Bottom) (list -empty-obj) null)]))))
   ;; extend the lexical environment for checking the body
   ;; with types and potential aliases
   (with-lexical-env/extend-types+aliases
@@ -89,7 +93,9 @@
         (for ([expr (in-list exprs)] [results (in-list expected-results)])
           (match results
             [(list (tc-result: ts fs os) ...)
-             (expr->type expr (ret ts fs os))]))
+             (expr->type expr (ret ts fs os))]
+            [(tc-results: (list (== -Bottom)))
+             (list expr -Bottom -empty-obj)]))
         ;; typecheck the body
         (tc-body/check body (and expected (erase-filter expected)))))))
 
@@ -234,15 +240,19 @@
     (cond [(null? clauses) (k)]
           [else
            (match-define (lr-clause names expr) (car clauses))
-           (match-define (list (tc-result: ts fs os) ...)
-             (get-type/infer names expr
-                             (lambda (e) (tc-expr/maybe-expected/t e names))
-                             tc-expr/check))
-           (with-lexical-env/extend-types 
-            names 
-            ts
-            (replace-names (map list names os)
-                           (loop (cdr clauses))))])))
+           (match (get-type/infer names expr (lambda (e) (tc-expr/maybe-expected/t e names)) tc-expr/check)
+             [(list (tc-result: ts fs os) ...)
+              (with-lexical-env/extend-types
+               names
+               ts
+               (replace-names (map list names os)
+                              (loop (cdr clauses))))]
+             [(tc-results: (list (== -Bottom)))
+              (with-lexical-env/extend-types
+               names
+               (make-list (length names) -Bottom)
+               (replace-names (map list names (make-list (length names) -empty-obj))
+                              (loop (cdr clauses))))])])))
 
 ;; this is so match can provide us with a syntax property to
 ;; say that this binding is only called in tail position

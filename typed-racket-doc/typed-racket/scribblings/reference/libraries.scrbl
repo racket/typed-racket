@@ -68,6 +68,8 @@ The following libraries are included with Typed Racket in the
 @defmodule/incl[typed/net/smtp]
 @defmodule/incl[typed/net/uri-codec]
 @defmodule/incl[typed/net/url]
+@defmodule/incl[typed/web-server/http]
+@defmodule/incl[typed/web-server/configuration/responders]
 @defmodule/incl[typed/openssl]
 @defmodule/incl[typed/openssl/md5]
 @defmodule/incl[typed/openssl/sha1]

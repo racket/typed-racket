@@ -351,6 +351,8 @@
          (listof/sc (t->sc elem-ty))]
         [(Base: sym cnt _ _)
          (flat/sc #`(flat-named-contract '#,sym (flat-contract-predicate #,cnt)) sym)]
+        [(Distinction: _ _ t) ; from define-new-subtype
+         (t->sc t)]
         [(Refinement: par p?)
          (and/sc (t->sc par) (flat/sc p?))]
         [(Union: elems)

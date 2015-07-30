@@ -29,7 +29,8 @@
 (begin-for-syntax
   (lazy-require [syntax/struct (build-struct-names)]))
 
-(provide define-typed-struct -struct define-typed-struct/exec define-type-alias dtsi* dtsi/exec*)
+(provide define-typed-struct -struct define-typed-struct/exec dtsi* dtsi/exec*
+         define-type-alias define-new-subtype)
 
 (define-for-syntax (with-type* expr ty)
   (with-type #`(ann #,expr #,ty)))
@@ -209,3 +210,27 @@
                #'(begin))
          #,(internal (syntax/loc stx
                        (define-type-alias-internal tname type poly-vars))))]))
+
+(define-syntax define-new-subtype
+  (lambda (stx)
+    (unless (memq (syntax-local-context) '(module module-begin))
+      (raise-syntax-error 'define-new-subtype
+                          "can only be used at module top-level"))
+    (syntax-parse stx
+      [(define-new-subtype ty:id (constructor:id rep-ty:expr))
+       #:with gen-id (generate-temporary #'ty)
+       #:with stx-err-fun
+       #'(lambda (stx)
+           (raise-syntax-error
+            'type-check
+            "type name used out of context"
+            stx
+            (and (stx-pair? stx) (stx-car stx))))
+       #`(begin
+           #,(ignore
+              #'(begin
+                  (define-syntax ty stx-err-fun)
+                  (define constructor (lambda (x) x))))
+           #,(internal (syntax/loc stx
+                         (define-new-subtype-internal ty (constructor rep-ty) #:gen-id gen-id))))])))
+

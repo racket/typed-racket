@@ -67,6 +67,17 @@
       [_:type-alias
        (list)]
 
+      ;; define-new-subtype
+      [form:new-subtype-def
+       ;; (define-new-subtype-internal name (constructor rep-type) #:gen-id gen-id)
+       (define name (syntax-e (attribute form.name)))
+       (define sym (syntax-e (attribute form.gen-id)))
+       (define rep-ty (parse-type (attribute form.rep-type)))
+       (define new-ty (-Distinction name sym rep-ty))
+       (register-type (attribute form.constructor) (-> rep-ty new-ty))
+       (register-type-alias (attribute form.name) new-ty)
+       (list)]
+
       ;; declare-refinement
       ;; FIXME - this sucks and should die
       [t:type-refinement

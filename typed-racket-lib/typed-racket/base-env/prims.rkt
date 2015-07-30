@@ -39,6 +39,7 @@ the typed racket language.
          (all-from-out "case-lambda.rkt")
          (all-from-out (submod "prims-contract.rkt" forms))
          define-type-alias
+         define-new-subtype
          define-typed-struct
          define-typed-struct/exec
          ann inst

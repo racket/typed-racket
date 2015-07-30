@@ -286,6 +286,10 @@
 (define-syntax-rule (->opt args ... [opt ...] res)
   (opt-fn (list args ...) (list opt ...) res))
 
+;; from define-new-subtype
+(define (-Distinction name sym ty)
+  (make-Distinction name sym ty))
+
 ;; class utilities
 
 (begin-for-syntax

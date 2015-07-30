@@ -192,11 +192,6 @@
              (for/list ([i (in-list vars)] [t (in-list ts)])
                (register-type i t)
                (free-id-table-set! unann-defs i #t)
-               (make-def-binding i t))]
-            [(tc-results: (list (== -Bottom)))
-             (for/list ([i (in-list vars)] [t (in-cycle (list -Bottom))])
-               (register-type i t)
-               (free-id-table-set! unann-defs i #t)
                (make-def-binding i t))])])]
 
       ;; for the top-level, as for pass1

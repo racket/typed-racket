@@ -86,8 +86,9 @@
              (match res
                [(tc-any-results: _)
                 (tc-error/expr
-                  "Expression should produce ~a values, but produces an unknown number of values"
-                  (length stxs))]
+                 #:return (map (lambda _ (tc-result (Un))) stxs)
+                 "Expression should produce ~a values, but produces an unknown number of values"
+                 (length stxs))]
                [(tc-results: (list (== -Bottom)) _ _)
                 (for/list ([_ (in-range (length stxs))])
                   (tc-result -Bottom))]

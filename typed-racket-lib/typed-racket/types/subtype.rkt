@@ -292,6 +292,9 @@
           #f]
          [((or (? Struct? s1) (NameStruct: s1)) (Value: (? (negate struct?) _)))
           #f]
+         ;; from define-new-subtype
+         [((Distinction: _ _ t1) t2)
+          (subtype* A0 t1 t2)]
          ;; sequences are covariant
          [((Sequence: ts) (Sequence: ts*))
           (subtypes* A0 ts ts*)]

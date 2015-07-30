@@ -517,6 +517,8 @@
      `(Sequenceof ,@(map t->s ts))]
     [(Error:) 'Error]
     [(fld: t a m) `(fld ,(type->sexp t))]
+    [(Distinction: name sym ty) ; from define-new-subtype
+     name]
     [else `(Unknown Type: ,(struct->vector type))]
     ))
 

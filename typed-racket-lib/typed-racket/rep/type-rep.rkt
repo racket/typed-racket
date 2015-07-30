@@ -579,6 +579,17 @@
   [#:frees (λ (f) (make-invariant (f value)))]
   [#:key 'continuation-mark-key])
 
+;; Distinction
+;; comes from define-new-subtype
+;; nm: a symbol representing the name of the type
+;; id: a symbol created with gensym
+;; ty: a type for the representation, where this will be a subtype of ty
+(def-type Distinction ([nm symbol?] [id symbol?] [ty Type/c])
+  [#:frees (λ (f) (f ty))]
+  [#:intern (list (Rep-seq ty) nm id)]
+  [#:fold-rhs (*Distinction nm id (type-rec-id ty))]
+  [#:key (Type-key ty)])
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; remove-dups: List[Type] -> List[Type]

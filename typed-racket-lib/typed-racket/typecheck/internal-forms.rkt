@@ -21,6 +21,7 @@
   internal
 
   type-alias
+  new-subtype-def
   type-refinement
   typed-struct
   typed-struct/exec
@@ -31,6 +32,7 @@
   typecheck-failure
 
   type-alias?
+  new-subtype-def?
   typed-struct?
   typed-struct/exec?)
 
@@ -50,6 +52,7 @@
   (internal-forms internal-literals
                   require/typed-internal
                   define-type-alias-internal
+                  define-new-subtype-internal
                   define-type-internal
                   define-typed-struct-internal
                   define-typed-struct/exec-internal
@@ -127,6 +130,8 @@
 (define-internal-classes
   [type-alias
     (define-type-alias-internal name type args)]
+  [new-subtype-def
+    (define-new-subtype-internal name (constructor rep-type) #:gen-id gen-id)]
   [type-refinement
     (declare-refinement-internal predicate)]
   [typed-struct

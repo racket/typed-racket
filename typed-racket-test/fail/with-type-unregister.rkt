@@ -3,7 +3,7 @@
 #lang racket/load
 
 (require (only-in typed/racket with-type String)
-         unstable/macro-testing)
+         syntax/macro-testing)
 
 ;; Ensure that types are unregistered in the type environment for free
 ;; variables for a `with-type` at the top-level

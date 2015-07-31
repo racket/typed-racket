@@ -1,7 +1,7 @@
 #lang racket/load
 
 (require (only-in typed/racket with-type)
-         unstable/macro-testing)
+         syntax/macro-testing)
 
 ;; Test that the typed-context? flag is properly reset
 

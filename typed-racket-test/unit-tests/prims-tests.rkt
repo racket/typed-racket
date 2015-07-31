@@ -6,7 +6,7 @@
          (base-env base-types-extra)
          (base-env prims)
          rackunit
-         unstable/macro-testing)
+         syntax/macro-testing)
 
 (provide tests)
 (gen-test-main)

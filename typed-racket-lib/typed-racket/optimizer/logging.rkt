@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require racket/string
-         unstable/syntax racket/logging syntax/parse
+         syntax/location racket/logging syntax/parse
          data/queue
          "../utils/tc-utils.rkt")
 

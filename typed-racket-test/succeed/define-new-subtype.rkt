@@ -30,6 +30,16 @@
 (define (radians->degrees x)
   (degrees (rkt:radians->degrees x)))
 
+(define-type Listof-Radians (Listof Radians))
+
+(: map-sin : Listof-Radians -> (Listof Real))
+(define (map-sin angles)
+  (map sin angles))
+
+(: map-deg->rad : (Listof Degrees) -> (Listof Radians))
+(define (map-deg->rad angles)
+  (map degrees->radians angles))
+
 (void
  (sin (asin 1/2))
  )

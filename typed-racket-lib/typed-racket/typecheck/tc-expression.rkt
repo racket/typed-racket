@@ -8,7 +8,6 @@
   (utils tc-utils)
   (env index-env tvar-env scoped-tvar-env)
   (private syntax-properties parse-type)
-  unstable/syntax
   racket/format
   racket/match
   syntax/stx

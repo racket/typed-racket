@@ -18,7 +18,6 @@
                      syntax/stx
                      racket/list
                      racket/syntax
-                     unstable/syntax
                      racket/struct-info
                      "../typecheck/internal-forms.rkt"
                      "annotate-classes.rkt"

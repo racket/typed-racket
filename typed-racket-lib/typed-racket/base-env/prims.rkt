@@ -124,7 +124,6 @@ the typed racket language.
           syntax/stx
           racket/list
           racket/syntax
-          unstable/syntax
           racket/base
           (only-in "../typecheck/internal-forms.rkt" internal)
           "annotate-classes.rkt"

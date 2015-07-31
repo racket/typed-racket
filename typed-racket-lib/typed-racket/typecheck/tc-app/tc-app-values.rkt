@@ -3,7 +3,7 @@
 (require "../../utils/utils.rkt"
          "signatures.rkt"
          "utils.rkt"
-         syntax/parse racket/match unstable/sequence unstable/syntax
+         syntax/parse racket/match unstable/sequence
          (typecheck signatures tc-funapp)
          (types utils)
 

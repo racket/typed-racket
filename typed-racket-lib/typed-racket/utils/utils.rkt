@@ -18,7 +18,8 @@ at least theoretically.
  rep utils typecheck infer env private types static-contracts
  ;; misc
  list-extend
- filter-multiple)
+ filter-multiple
+ syntax-length)
 
 (define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
@@ -208,3 +209,7 @@ at least theoretically.
 (define (filter-multiple l . fs)
   (apply values
          (map (lambda (f) (filter f l)) fs)))
+
+(define (syntax-length stx)
+  (let ((list (syntax->list stx)))
+    (and list (length list))))

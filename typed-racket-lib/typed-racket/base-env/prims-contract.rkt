@@ -56,7 +56,6 @@
          syntax/parse/pre
          syntax/stx
          racket/syntax
-         unstable/syntax
          racket/base
          racket/struct-info
          syntax/struct
@@ -67,6 +66,7 @@
          ;; struct-extraction is actually used at both of these phases
          "../utils/struct-extraction.rkt"
          (for-syntax "../utils/struct-extraction.rkt")
+         (only-in "../utils/utils.rkt" syntax-length)
          (for-template racket/base "ann-inst.rkt"))
 
 ;; Lazily loaded b/c they're only used sometimes, so we save a lot

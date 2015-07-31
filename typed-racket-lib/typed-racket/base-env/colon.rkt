@@ -1,8 +1,9 @@
 #lang racket/base
 
-(require (for-syntax racket/base syntax/parse/pre unstable/syntax
+(require (for-syntax racket/base syntax/parse/pre
                      "../private/parse-classes.rkt"
                      "../utils/disappeared-use.rkt"
+                     "../utils/utils.rkt"
                      (only-in "../utils/tc-utils.rkt" tc-error/stx))
          (submod "../typecheck/internal-forms.rkt" forms)
          (prefix-in t: "base-types-extra.rkt"))

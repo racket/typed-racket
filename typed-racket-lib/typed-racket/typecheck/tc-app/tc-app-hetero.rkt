@@ -1,7 +1,7 @@
 #lang racket/unit
 
 (require "../../utils/utils.rkt"
-         syntax/parse syntax/stx racket/match unstable/sequence unstable/syntax
+         syntax/parse syntax/stx racket/match unstable/sequence
          "signatures.rkt"
          "utils.rkt"
          (types utils abbrev numeric-tower union resolve type-table generalize)

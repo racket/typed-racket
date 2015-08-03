@@ -142,8 +142,10 @@
         [_ (void)]))
     
     ;; add local signature definitions to the signature environment
+    ;; the list must be traversed in reverse order to make sure
+    ;; sub-signatures can reference their parents
     (define signatures
-      (for/list ([sig-form (in-list signature-forms)])
+      (for/list ([sig-form (in-list (reverse signature-forms))])
         (define-values (name signature)
           (parse-signature sig-form))
         (register-signature! name signature)

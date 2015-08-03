@@ -43,3 +43,14 @@
 
 (define (signature-env-map f)
   (free-id-table-map (signature-env) f))
+
+
+(provide print-signature-env)
+(define (print-signature-env)
+  (printf "Printing Signature Env:\n")
+  (free-id-table-for-each
+   (signature-env)
+   (lambda (id sig)
+     (printf "id: ~a\n" id)
+     (printf "sig: ~a\n" sig)))
+  (printf "End Print Signature Env\n\n"))

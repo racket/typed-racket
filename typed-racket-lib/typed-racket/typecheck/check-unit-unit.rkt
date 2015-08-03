@@ -24,6 +24,7 @@
          (rep type-rep)
          (for-syntax racket/base racket/unit-exptime)
          (for-template racket/base
+                       racket/unsafe/undefined
                        (private unit-literals)
                        (submod "internal-forms.rkt" forms)))
 
@@ -39,11 +40,15 @@
   (pattern
    (#%expression
     (begin 
-      (#%plain-app void)
+      (#%plain-app void (#%plain-lambda () var-int))
       (begin
         (quote
          (:-internal var:id t))
         (#%plain-app values))))
+   #:attr fixed-form #`(begin
+                         (quote
+                          (:-internal var-int t))
+                         (#%plain-app values))
    #:attr name #'var
    ;; Needed to substiture the internal renaming of exported definitions
    ;; in unit bodies in order to ensure that the annotation is applied
@@ -72,7 +77,6 @@
 
 
 (define (process-ann/def-for-letrec ann/defs export-mapping import-mapping)
-  (define import-names (map car import-mapping))
   (for/fold ([names #`()]
              [exprs #`()]
              [unannotated-exports (map car export-mapping)])
@@ -87,9 +91,11 @@
        (define lookup-result (lookup-type name export-mapping))
        (define form ((attribute a.subst-annotation) 
                      (or lookup-result name)))
+       (define fixed (attribute a.fixed-form))
        (define new-unannotated-exports (remove name unannotated-exports))
        (values #`(#,@names ())
-               #`(#,@exprs #,form)
+               #`(#,@exprs ;#,form
+                  #,fixed)
                new-unannotated-exports)]
       [d:unit-body-definition
        (values #`(#,@names d.vars) #`(#,@exprs d.body) unannotated-exports)])))
@@ -113,56 +119,120 @@
   #:literal-sets (kernel-literals)
   #:literals (list cons)
   (pattern 
-   (#%plain-app list (quote sig-id:id) 
-                (#%plain-app cons (quote var-ext:id)
-                             (#%plain-lambda () var-int:unit-int-rep)) ...)
-   
-   #:with name #'sig-id
-   #:attr info (sig-info #'sig-id 
-                         (syntax->list #'(var-ext ...)) 
-                         (syntax->list #'(var-int.id ...)))))
-
-(define (get-info stx)
-  (syntax-parse stx
-    [ir:index-row
-     (attribute ir.info)]))
+   (quote sig-id:id)
+   #:with name #'sig-id))
 
 (define-syntax-class signature-index-table
   #:literal-sets (kernel-literals)
   #:literals (void list cons values)
   (pattern
    (let-values ([() (#%expression
-                     (begin (#%plain-app void import:index-row ...)
-                            (#%plain-app values)))]
-                [() (#%expression
                      (begin (#%plain-app void export:index-row ...)
-                            (#%plain-app values)))]
-                [() (#%expression
-                     (begin (#%plain-app void (quote init-depend:id) ...)
                             (#%plain-app values)))])
      (#%plain-app void))
-   #:attr imports (map get-info (syntax->list #'(import ...)))
-   #:attr exports (map get-info (syntax->list #'(export ...)))
-   #:attr init-depends (syntax->list #'(init-depend ...))))
+   #:attr export-sigs (syntax->list #'(export.name ...))))
 
-(define (parse-index-table stx)
-  (syntax-parse stx
-    [t:signature-index-table
-     (values (attribute t.imports)
-             (attribute t.exports)
-             (attribute t.init-depends))]))
+(define (parse-index-table import-sigs import-internal-ids import-tags
+                           export-sigs export-temp-ids export-temp-internal-map
+                           init-depend-tags)
+  (define tag-map (map cons import-tags import-sigs))
+  (define lookup-temp (λ (temp) (lookup-type temp export-temp-internal-map)))
+  
+  (values (for/list ([sig-id  (in-list import-sigs)]
+                     [sig-internal-ids (in-list import-internal-ids)])
+            (sig-info sig-id
+                      (map car (Signature-mapping (lookup-signature sig-id)))
+                      sig-internal-ids))
+          (for/list ([sig (in-list export-sigs)]
+                     [temp-ids (in-list export-temp-ids)])
+            (sig-info sig
+                      (map car (Signature-mapping (lookup-signature sig)))
+                      (map lookup-temp temp-ids)))          
+          (map (λ (x) (lookup-type x tag-map)) init-depend-tags)))
+
+;; Needed to parse out signature names, and signature-tags from the unit syntax
+;; the tags are used to lookup init-depend signatures
+(define-syntax-class sig-vector
+  #:literal-sets (kernel-literals)
+  #:literals (vector-immutable cons)
+  (pattern (#%plain-app 
+            vector-immutable
+            (#%plain-app cons 
+                         (quote sig:id)
+                         (#%plain-app vector-immutable sig-tag tag-rest ...))
+            ...)
+           #:with sigs #'(sig ...)
+           #:with sig-tags #'(sig-tag ...)))
+
+(define-syntax-class init-depend-list
+  #:literal-sets (kernel-literals)
+  #:literals (list cons)
+  (pattern (#%plain-app list (#%plain-app cons _ sig-tag) ...)
+           #:with init-depend-tags #'(sig-tag ...)))
+
+(define-syntax-class export-table
+  #:literal-sets (kernel-literals)
+  #:literals (make-immutable-hash list cons vector-immutable check-not-unsafe-undefined unbox)
+  (pattern (#%plain-app
+            make-immutable-hash
+            (#%plain-app
+             list
+             (#%plain-app
+              cons
+              signature-tag:id
+              (#%plain-app
+               vector-immutable
+               (#%plain-lambda () 
+                 (#%plain-app check-not-unsafe-undefined (#%plain-app unbox export-temp-id) external-id))
+               ...))
+             ...))
+           #:attr export-temp-ids (map syntax->list (syntax->list #'((export-temp-id ...) ...)))))
 
 (define-syntax-class unit-expansion
   #:literal-sets (kernel-literals)
-  #:attributes (body-stx)
+  #:attributes (body-stx 
+                import-internal-ids 
+                import-sigs 
+                import-sig-tags 
+                export-sigs 
+                export-temp-ids
+                init-depend-tags)
   (pattern (#%plain-app
             make-unit:id
             name:expr 
-            import-vector:expr
-            export-vector:expr
-            list-dep:expr
-            unit-body:expr)
+            import-vector:sig-vector
+            export-vector:sig-vector
+            list-dep:init-depend-list
+            (letrec-syntaxes+values (_ ...) (_ ...)
+              (letrec-syntaxes+values (_ ...) (_ ...)
+                (#%expression
+                 (#%plain-lambda ()
+                   (let-values (((export-temp-id:id) _) ...)
+                     (#%plain-app
+                      values
+                      (#%plain-lambda (import-table:id)
+                                      (let-values (((import:id ...) _) ...)
+                                        unit-body:expr))
+                      et:export-table
+                      _ ...)))))))
+           #:attr import-sigs (syntax->list #'import-vector.sigs)
+           #:attr import-sig-tags (syntax->list #'import-vector.sig-tags)
+           #:attr export-sigs (syntax->list #'export-vector.sigs)
+           #:attr export-temp-ids (attribute et.export-temp-ids)
+           #:attr init-depend-tags (syntax->list #'list-dep.init-depend-tags)
+           #:attr import-internal-ids (map syntax->list (syntax->list #'((import ...) ...)))
            #:with body-stx #'unit-body))
+
+(define-syntax-class export-temp-internal-map-elem
+  #:literal-sets (kernel-literals)
+  #:literals (set-box!)
+  (pattern (#%plain-app set-box! temp-id:id internal-id:id)))
+
+(define export-map-elem?
+  (syntax-parser [e:export-temp-internal-map-elem #t]
+                 [_ #f]))
+(define extract-export-map-elem
+  (syntax-parser [e:export-temp-internal-map-elem (cons #'e.temp-id #'e.internal-id)]))
 
 
 ;; Compound Unit syntax classes
@@ -492,7 +562,7 @@
            (values ty (free-id-set-intersect
                        (immutable-free-id-set (map Signature-name ini-deps))
                        (immutable-free-id-set (map lookup-link-id compound-import-links))))]
-          [_ (values #f null)]))
+          [_ (values #f (immutable-free-id-set))]))
       (values check 
               (free-id-set-union seen-init-depends (immutable-free-id-set export-link-ids))
               (free-id-set-union calculated-init-depends new-init-depends))))
@@ -546,12 +616,13 @@
         [(Unit: imports _ _ _)
          (define expected-import-sigs (map Signature-name imports))
          (define declared-import-sigs (map Signature-name import-signatures))
-         (define missing-imports (free-id-set-subtract expected-import-sigs declared-import-sigs))
+         (define missing-imports (free-id-set-subtract (immutable-free-id-set expected-import-sigs)
+                                                       (immutable-free-id-set declared-import-sigs)))
          ;; missing-imports cannot be an empty list since subtype? is #f
          (tc-error/fields "insufficient imports to invoke-unit expression"
                           "expected imports" (map syntax-e expected-import-sigs)
                           "declared imports" (map syntax-e declared-import-sigs)
-                          "missing imports" (map syntax-e missing-imports)
+                          "missing imports" (map syntax-e (free-id-set->list missing-imports))
                           #:delayed? #t)]
         [_ (check-below unit-expr-type expected-unit-type)])))
   (cond 
@@ -581,17 +652,25 @@
        )]
     [else -Bottom]))
 
-
+;; Parse and check unit syntax
 (define (parse-and-check form expected)
   (syntax-parse form
     [u:unit-expansion
+     ;; extract the unit body syntax
      (define body-stx #'u.body-stx)
-     ;; handle signature table information
-     (define unit-index-table 
-       (first (trawl-for-property body-stx tr:unit:index-table-property)))
+     (define import-sigs (attribute u.import-sigs))
+     (define import-internal-ids (attribute u.import-internal-ids))
+     (define import-tags (attribute u.import-sig-tags))
+     (define export-sigs (attribute u.export-sigs))
+     (define export-temp-ids (attribute u.export-temp-ids))
+     (define init-depend-tags (attribute u.init-depend-tags))
+     (define export-temp-internal-map
+       (trawl-for-property body-stx export-map-elem? extract-export-map-elem))
      (define-values (imports-info exports-info init-depends)
-       (parse-index-table unit-index-table))
-     
+       (parse-index-table import-sigs import-internal-ids import-tags
+                          export-sigs export-temp-ids export-temp-internal-map
+                          init-depend-tags))
+
      ;; Get Signatures to build Unit type
      (define import-signatures (map lookup-signature (map sig-info-name imports-info)))
      (define export-signatures (map lookup-signature (map sig-info-name exports-info)))
@@ -606,7 +685,6 @@
      
      (define local-sig-type-map
        (apply append (map make-local-type-mapping imports-info)))
-     
      ;; Need to pass on to tc/letrec to ensure variables defined with the correct types
      (define export-signature-type-map
        (map (lambda (si)
@@ -653,10 +731,10 @@
                (lambda (stx) (eq? (tr:unit:body-exp-def-type-property stx) 'expr))
                body-forms)])
          (cond
-          [(not last-form) (append exprs (list #'(#%plain-app void)))]
-          [(eq? (tr:unit:body-exp-def-type-property last-form) 'def/type)
-           (append exprs (list #'(#%plain-app void)))]
-          [else exprs])))
+           [(not last-form) (append exprs (list #'(#%plain-app void)))]
+           [(eq? (tr:unit:body-exp-def-type-property last-form) 'def/type)
+            (append exprs (list #'(#%plain-app void)))]
+           [else exprs])))
      
      ;; get the definitions/annotations in the body
      (define  annotation/definition-forms
@@ -700,15 +778,15 @@
 ;; Syntax (Syntax -> Any) -> Listof<Syntax>
 ;; Look through the expansion of the unit macro in search for
 ;; syntax with some property (e.g., definition bodies and expressions)
-(define (trawl-for-property form accessor)
+(define (trawl-for-property form accessor [extractor values])
   (define (recur-on-all stx-list)
-    (apply append (map (λ (stx) (trawl-for-property stx accessor))
+    (apply append (map (λ (stx) (trawl-for-property stx accessor extractor))
                        (syntax->list stx-list))))
   (syntax-parse form
     #:literal-sets (kernel-literals)
     [stx
      #:when (accessor #'stx)
-     (list form)]
+     (list (extractor form))]
     [(let-values ([(x ...) rhs ...] ...) body ...)
      (recur-on-all #'(rhs ... ... body ...))]
     ;; for letrecs, traverse the RHSs too

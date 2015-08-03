@@ -146,17 +146,7 @@
       (let-values ([(_0 vars _2 _3)
                     (signature-members sig-id sig-id)])
         vars))
-    (apply append (map signature-vars (syntax->list stx))))
-  
-  ;; extract vars from a signature with the correct syntax marks
-  ;; TODO: this is probably not general enough and will need to be modified
-  (define (get-signature-vars sig-id)
-    (define-values (_0 vars _2 _3)
-      ;; TODO: give better argument for error-stx
-      (signature-members sig-id sig-id))
-    (map
-     syntax-local-introduce
-     vars)))
+    (apply append (map signature-vars (syntax->list stx)))))
 
 
 ;; Abstraction for creating trampolining macros
@@ -277,7 +267,8 @@
   
   (define (infer-imports unit-ids)
     (define-values (imports exports) (get-imports/exports unit-ids))
-    (free-id-set-subtract imports exports))
+    (free-id-set->list (free-id-set-subtract (immutable-free-id-set imports)
+                                             (immutable-free-id-set exports))))
 
   ;; infer-exports returns all the exports from linked
   ;; units rather than just those that are not also
@@ -305,7 +296,7 @@
     (pattern (~seq)
              #:attr exports #f)
     (pattern (export sig:id ...)
-             #:attr exports #'(sig ...)))
+             #:attr exports (syntax->list #'(sig ...))))
   
   (define-syntax-class unit-spec
     #:literals (link)
@@ -341,7 +332,8 @@
          #,(internal (quasisyntax/loc stx
                        (define-values/invoke-unit-internal
                          (#,@(map imports/members (attribute dviui.inferred-imports)))
-                         (#,@(process-dv-exports (attribute dviui.inferred-exports))))))
+                         (#,@(process-dv-exports
+                              (attribute dviui.inferred-exports))))))
          #,(ignore (quasisyntax/loc stx dviui.untyped-stx)))]))
 
 ;; invoke-unit macro
@@ -391,31 +383,6 @@
                 #t)
              #,@(attribute imports.untyped-import)))))))]))
 
-;; This table implementation is going to break when only/except are allowed in
-;; typed units, the indexing strategy won't work in that case
-(define-for-syntax (make-signature-local-table imports import-renamers 
-                                               exports export-renamers 
-                                               init-depends)
-  (define (make-index-row sig-id renamer)
-    (with-syntax ([(sig-var ...) (map renamer (get-signature-vars sig-id))]) 
-      #`(list (quote #,sig-id) (cons (quote sig-var) (lambda () sig-var)) ...)))
-  (tr:unit:index-table-property
-   (with-syntax ([(init-depend ...) (syntax->list init-depends)])
-     #`(let-values ([() (#%expression
-                         (begin (void #,@(map make-index-row 
-                                              (syntax->list imports)
-                                              import-renamers))
-                                (values)))]
-                    [() (#%expression
-                         (begin  (void #,@(map make-index-row 
-                                               (syntax->list exports)
-                                               export-renamers))
-                                 (values)))]
-                    [() (#%expression
-                         (begin  (void (quote init-depend) ...)
-                                 (values)))])
-         (void)))
-   #t))
 
 (define-syntax (add-tags stx)
   (syntax-parse stx
@@ -423,11 +390,18 @@
     [(_ e)
      (define exp-e (local-expand #'e (syntax-local-context) (kernel-form-identifier-list)))
      (syntax-parse exp-e
-       #:literals (begin define-values define-syntaxes)
+       #:literals (begin define-values define-syntaxes :)
        [(begin b ...)
         #'(add-tags b ...)]
        [(define-syntaxes (name:id ...) rhs:expr)
         exp-e]
+       [(define-values () (colon-helper (: name:id type) rest ...))
+        #`(define-values ()
+            #,(tr:unit:body-exp-def-type-property
+               #'(#%expression
+                  (begin (void (lambda () name))
+                         (colon-helper (: name type) rest ...)))
+               'def/type))]
        [(define-values (name:id ...) rhs)
         #`(define-values (name ...)
             #,(tr:unit:body-exp-def-type-property
@@ -443,20 +417,15 @@
 
 (define-syntax (unit stx)
   (syntax-parse stx
-    [(unit imports:unit-imports exports:unit-exports init-depends:init-depend-form e:unit-expr ...)
+    #:literals (import export)
+    [(unit (import im ...) (export ex ...) init-depends:init-depend-form e:unit-expr ...)
      (ignore
       (tr:unit
        (quasisyntax/loc stx
          (untyped-unit
-          imports
-          exports
+          (import im ...)
+          (export ex ...)
           #,@(attribute init-depends.form)
-          #,(make-signature-local-table
-             #'imports.names
-             (attribute imports.renamers)
-             #'exports.names
-             (attribute exports.renamers)
-             #'init-depends.names)
           (add-tags e ...)))))]))
 
 
@@ -470,22 +439,18 @@
 ;; define-unit macro
 (define-syntax (define-unit stx)
   (syntax-parse stx
+    #:literals (import export)
     [(define-unit uid:id
-       imports:unit-imports
-       exports:unit-exports
+       (import im ...)
+       (export ex ...)
        init-depends:init-depend-form
        e:unit-expr ...)
      (quasisyntax/loc stx
        (process-define-unit 
         (untyped-define-unit uid
-          imports
-          exports
+          (import im ...)
+          (export ex ...)
           #,@(attribute init-depends.form)
-          #,(make-signature-local-table #'imports.names
-                                        (attribute imports.renamers)
-                                        #'exports.names
-                                        (attribute exports.renamers)
-                                        #'init-depends.names)
           (add-tags e ...))))]))
 
 

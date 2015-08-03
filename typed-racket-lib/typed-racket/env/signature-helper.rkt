@@ -75,6 +75,8 @@
                               "extended signature" (syntax-e inferred-super)
                               #:stx stx)))]
    [(not (syntax->datum super)) #f]
+   ;; This case should probably be an error, because if the signature was not false
+   ;; the lookup may still silently fail which should not be allowed here
    [else (lookup-signature super)]))
 
 ;; parse-signature-binding : Syntax -> (list/c identifier? syntax?)

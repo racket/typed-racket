@@ -44,6 +44,7 @@
                     [(macro-name ...)  (generate-temporaries #'(name ...))]
                     [typed-module  (generate-temporary #'typed-module)]
                     [untyped-module  (generate-temporary #'untyped-module)]
+                    [*racket/base (datum->syntax #'from-module-spec 'racket/base)]
                     [*typed/racket/base (datum->syntax #'from-module-spec
                                                        'typed/racket/base)]
                     [*require (datum->syntax #'from-module-spec
@@ -53,18 +54,19 @@
            (module typed-module *typed/racket/base ; to bind in `T`s
              (*require typed/racket/base) ; to bind introduced `begin`, etc.
              (begin form ...)
-             (require (rename-in (only-in from-module-spec name ...)
-                                 [name untyped2-name] ...))
+             (require (only-in from-module-spec
+                               [name untyped2-name] ...))
              (provide untyped-name ...)
              (: untyped-name T) ...
              (define untyped-name untyped2-name) ...)
            
-           (module untyped-module racket/base
+           (module untyped-module *racket/base
+             (*require racket/base)
              (require typed/untyped-utils
-                      (rename-in (only-in from-module-spec name ...)
-                                 [name typed-name] ...)
-                      (rename-in (only-in (submod ".." typed-module) untyped-name ...)
-                                 [untyped-name untyped3-name] ...))
+                      (only-in from-module-spec
+                               [name typed-name] ...)
+                      (only-in (submod ".." typed-module)
+                               [untyped-name untyped3-name] ...))
              (provide macro-name ...)
              (define-typed/untyped-identifier macro-name typed-name untyped3-name) ...)
            

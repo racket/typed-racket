@@ -217,6 +217,13 @@
   (define (reset-resolver-cache!) (resolver-cache-remove! name-types))
   (reset-resolver-cache!)
 
+  ;; Checks whether two aliases are in the same connected component.
+  ;; Used for the polymorphic recursion check below.
+  (define (in-same-component? id id2)
+    (for/or ([component (in-list (append components class-components))])
+      (and (member id component free-identifier=?)
+           (member id2 component free-identifier=?))))
+
   ;; Finish registering recursive aliases
   ;; names-to-refine : Listof<Id>
   ;; types-to-refine : Listof<Type>
@@ -229,7 +236,9 @@
       (define type
         ;; make sure to reject the type if it uses polymorphic
         ;; recursion (see resolve.rkt)
-        (parameterize ([current-check-polymorphic-recursion args])
+        (parameterize ([current-check-polymorphic-recursion
+                        `#s(poly-rec-info ,(λ (id2) (in-same-component? id id2))
+                                          ,args)])
           (parse-type type-stx)))
       (reset-resolver-cache!)
       (register-type-name id type)

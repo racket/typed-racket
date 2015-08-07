@@ -17,14 +17,16 @@
 
 (define-struct poly (name vars) #:prefab)
 
-;; Parameter<Option<Listof<Symbol>>>
+;; (Parameter (Option Poly-Rec-Info))
 ;; This parameter controls whether or not the resolving process
 ;; should check for polymorphic recursion in implicit recursive
 ;; type names. This should only need to be enabled at type alias
 ;; definition time.
 ;;
-;; If not #f, it should be a list of symbols that correspond
-;; to the type parameters of the type being parsed.
+;; If not #f, it should be a record of a procedure that checks if an
+;; alias is in the same connected component as the original alias
+;; and a list of symbols that correspond to the type parameters of
+;; the type being parsed.
 (define current-check-polymorphic-recursion (make-parameter #f))
 
 (define (resolve-name t)
@@ -60,7 +62,7 @@
                           " does not match the given number:"
                           " expected " num-poly
                           ", given " num-rands))))]
-      [(Name: _ num-args #f)
+      [(Name: name-id num-args #f)
        (cond [(> num-args 0)
               (define num-rands (length rands))
               (unless (= num-rands num-args)
@@ -92,15 +94,18 @@
               ;; Check argument to make sure there's no polymorphic recursion
               (define (check-argument given-type arg-name)
                 (define ok?
-                  (if (F? given-type)
-                      (type-equal? given-type (make-F (syntax-e arg-name)))
+                  (or (F? given-type)
                       (not (member (syntax-e arg-name) (fv given-type)))))
                 (unless ok?
                   (tc-error (~a "Recursive type " rator " cannot be applied at"
                                 " a different type in its recursive invocation"))))
-              (define current-vars (current-check-polymorphic-recursion))
-              (when current-vars
-                (for-each check-argument rands current-vars))]
+              (match (current-check-polymorphic-recursion)
+                [`#s(poly-rec-info ,same-component? ,current-vars)
+                 #:when (same-component? name-id)
+                 (for* ([rand (in-list rands)]
+                        [var (in-list current-vars)])
+                   (check-argument rand var))]
+                [_ (void)])]
              [else
               (tc-error "Type ~a cannot be applied, arguments were: ~a" rator rands)])]
       [(Mu: _ _) (void)]

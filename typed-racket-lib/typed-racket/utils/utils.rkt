@@ -19,7 +19,8 @@ at least theoretically.
  ;; misc
  list-extend
  filter-multiple
- syntax-length)
+ syntax-length
+ in-sequence-forever)
 
 (define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
@@ -213,3 +214,14 @@ at least theoretically.
 (define (syntax-length stx)
   (let ((list (syntax->list stx)))
     (and list (length list))))
+
+(define (in-sequence-forever seq val)
+  (make-do-sequence
+   (λ ()
+     (let-values ([(more? gen) (sequence-generate seq)])
+       (values (λ (e) (if (more?) (gen) val))
+               (λ (_) #t)
+               #t
+               (λ (_) #t)
+               (λ _ #t)
+               (λ _ #t))))))

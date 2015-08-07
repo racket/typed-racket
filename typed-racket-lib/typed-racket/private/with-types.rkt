@@ -12,7 +12,7 @@
          racket/syntax
          syntax/flatten-begin
          syntax/parse
-         unstable/sequence
+         racket/sequence
          "../tc-setup.rkt"
          "../standard-inits.rkt"
          (for-template

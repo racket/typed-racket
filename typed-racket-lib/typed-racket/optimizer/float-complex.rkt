@@ -2,7 +2,7 @@
 
 (require syntax/parse syntax/stx racket/promise
          racket/syntax racket/match syntax/parse/experimental/specialize
-         "../utils/utils.rkt" racket/unsafe/ops unstable/sequence
+         "../utils/utils.rkt" racket/unsafe/ops racket/sequence
          (for-template racket/base racket/math racket/flonum racket/unsafe/ops)
          (types numeric-tower subtype type-table utils)
          (optimizer utils numeric-utils logging float unboxed-tables))

@@ -10,7 +10,7 @@
          (utils stxclass-util)
          syntax/parse
          racket/function
-         unstable/sequence
+         racket/sequence
          racket/extflonum)
 
 (import)

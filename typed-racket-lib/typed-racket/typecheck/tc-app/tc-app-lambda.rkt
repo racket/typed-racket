@@ -5,7 +5,7 @@
          "utils.rkt"
          (prefix-in - (contract-req))
          syntax/parse racket/match racket/list
-         unstable/sequence
+         racket/sequence
          (typecheck signatures find-annotation)
          (types abbrev utils generalize type-table)
          (private type-annotation syntax-properties)

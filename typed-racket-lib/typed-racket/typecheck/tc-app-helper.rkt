@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         racket/match unstable/sequence racket/set racket/list
+         racket/match racket/sequence racket/set racket/list
          (only-in racket/list make-list)
          (contract-req)
          (typecheck check-below tc-subst tc-metafunctions)

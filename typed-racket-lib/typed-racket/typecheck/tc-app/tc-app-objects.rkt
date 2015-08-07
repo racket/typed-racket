@@ -3,7 +3,7 @@
 (require "../../utils/utils.rkt"
          "signatures.rkt"
          "utils.rkt"
-         syntax/parse syntax/stx racket/match unstable/sequence
+         syntax/parse syntax/stx racket/match racket/sequence
          racket/format
          racket/list
          (typecheck signatures)

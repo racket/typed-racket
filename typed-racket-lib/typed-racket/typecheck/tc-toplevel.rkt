@@ -2,7 +2,7 @@
 
 (require (rename-in "../utils/utils.rkt" [infer r:infer])
          racket/syntax syntax/parse syntax/stx syntax/id-table
-         racket/list racket/dict racket/match unstable/sequence
+         racket/list racket/dict racket/match racket/sequence
          (prefix-in c: (contract-req))
          (rep type-rep)
          (types utils abbrev type-table struct-table)

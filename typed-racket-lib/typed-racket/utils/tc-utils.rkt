@@ -9,7 +9,7 @@ don't depend on any other portion of the system
          racket/promise racket/string racket/lazy-require
          syntax/parse/pre (for-syntax racket/base syntax/parse/pre))
 
-(lazy-require [unstable/sequence (in-slice)])
+(lazy-require [racket/sequence (in-slice)])
 
 (provide ;; parameters
          current-orig-stx

@@ -3,7 +3,7 @@
 ;; This module provides functions for printing types and related
 ;; data structures such as filters and objects
 
-(require racket/require racket/match unstable/sequence racket/string racket/promise
+(require racket/require racket/match racket/sequence racket/string racket/promise
          racket/pretty
          racket/list
          racket/set

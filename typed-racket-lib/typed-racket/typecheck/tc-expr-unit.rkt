@@ -17,7 +17,7 @@
          syntax/parse
          (only-in racket/list split-at)
          (typecheck internal-forms tc-envops)
-         unstable/sequence
+         racket/sequence
          racket/extflonum
          ;; Needed for current implementation of typechecking letrec-syntax+values
          (for-template (only-in racket/base letrec-values)

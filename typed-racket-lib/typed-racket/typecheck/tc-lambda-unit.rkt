@@ -3,7 +3,7 @@
 (require "../utils/utils.rkt"
          racket/dict racket/list syntax/parse syntax/stx
          racket/match syntax/id-table racket/set
-         unstable/sequence
+         racket/sequence
          (contract-req)
          (rep type-rep object-rep rep-utils)
          (rename-in (types abbrev utils union)

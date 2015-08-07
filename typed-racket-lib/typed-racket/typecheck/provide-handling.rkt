@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         unstable/sequence syntax/id-table racket/dict racket/syntax
+         racket/sequence syntax/id-table racket/dict racket/syntax
          racket/struct-info racket/match syntax/parse
          (only-in (private type-contract) include-extra-requires?)
          (private syntax-properties)

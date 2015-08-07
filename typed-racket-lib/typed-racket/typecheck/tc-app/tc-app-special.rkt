@@ -5,7 +5,7 @@
          "utils.rkt"
          syntax/parse racket/match
          syntax/stx
-         unstable/sequence
+         racket/sequence
          (typecheck signatures tc-funapp)
          (types abbrev utils)
          (private type-annotation)

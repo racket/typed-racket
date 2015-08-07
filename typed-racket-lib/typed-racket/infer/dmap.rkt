@@ -4,7 +4,7 @@
          "signatures.rkt" "constraint-structs.rkt"
          (utils tc-utils) 
          (contract-req)
-         unstable/sequence)
+         racket/sequence)
 
 (import constraints^)
 (export dmap^)

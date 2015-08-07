@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
 	 (types abbrev union subtype)
-	 unstable/sequence
+	 racket/sequence
          "fail.rkt" "signatures.rkt" "constraint-structs.rkt"
          racket/match
          racket/list)

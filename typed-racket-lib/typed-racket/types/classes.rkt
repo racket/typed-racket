@@ -14,7 +14,7 @@
          racket/match
          syntax/parse
          syntax/stx
-         (only-in unstable/sequence in-syntax)
+         (only-in racket/sequence in-syntax)
          (for-template (base-env class-clauses)))
 
 (provide Class:

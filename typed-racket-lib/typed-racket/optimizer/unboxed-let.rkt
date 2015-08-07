@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/parse syntax/stx unstable/sequence
+(require syntax/parse syntax/stx racket/sequence
          syntax/parse/experimental/template
          racket/match racket/syntax
          racket/promise

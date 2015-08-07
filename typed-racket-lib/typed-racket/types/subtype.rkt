@@ -6,7 +6,7 @@
          (utils tc-utils early-return)
          (types utils resolve base-abbrev match-expanders
                 numeric-tower substitute current-seen prefab)
-         (for-syntax racket/base syntax/parse unstable/sequence))
+         (for-syntax racket/base syntax/parse racket/sequence))
 
 (lazy-require
   ("union.rkt" (Un))

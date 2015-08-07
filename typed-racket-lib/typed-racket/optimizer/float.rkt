@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/parse unstable/sequence racket/dict racket/flonum racket/promise
+(require syntax/parse racket/sequence racket/dict racket/flonum racket/promise
          syntax/parse/experimental/specialize
          (for-template racket/base racket/flonum racket/unsafe/ops racket/math)
          "../utils/utils.rkt"

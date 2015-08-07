@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require racket/dict syntax/parse syntax/id-table unstable/sequence)
+(require racket/dict syntax/parse syntax/id-table racket/sequence)
 
 ;; find and add to mapping all the set!'ed variables in form
 ;; if the supplied mapping is mutable, mutates it

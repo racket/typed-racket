@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/parse syntax/stx unstable/sequence
+(require syntax/parse syntax/stx racket/sequence
          racket/syntax
          (for-template racket/base)
          "../utils/utils.rkt"

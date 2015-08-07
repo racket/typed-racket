@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require racket/match unstable/sequence
+(require racket/match racket/sequence
          racket/dict syntax/id-table racket/syntax syntax/stx
          syntax/parse
          syntax/parse/experimental/specialize

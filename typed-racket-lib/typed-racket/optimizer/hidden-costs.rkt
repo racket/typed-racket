@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/parse unstable/sequence
+(require syntax/parse racket/sequence
          (for-template racket/base)
          "../utils/utils.rkt"
          (optimizer utils logging)

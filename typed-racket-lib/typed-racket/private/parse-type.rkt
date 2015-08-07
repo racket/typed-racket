@@ -9,7 +9,7 @@
                     [make-arr* make-arr])
          (utils tc-utils stxclass-util literal-syntax-class)
          syntax/stx (prefix-in c: (contract-req))
-         syntax/parse unstable/sequence
+         syntax/parse racket/sequence
          (env tvar-env type-alias-env mvar-env
               lexical-env index-env row-constraint-env)
          racket/dict

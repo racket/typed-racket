@@ -74,7 +74,7 @@ don't depend on any other portion of the system
     (when (and (warn-unreachable?)
                (log-level? l 'warning)
                (and (syntax-transforming?)
-                    (syntax-original? (syntax-local-introduce e)))
+                    (syntax-original? e))
                #;(and (orig-module-stx)
                       (eq? (debugf syntax-source-module e)
                            (debugf syntax-source-module (orig-module-stx))))

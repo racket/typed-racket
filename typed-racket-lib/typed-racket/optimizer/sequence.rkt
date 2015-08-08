@@ -38,7 +38,7 @@
 (define-syntax-class make-sequence
   (pattern op:id
     #:when (id-from? #'op 'make-sequence 'racket/private/for)
-    #:do [(add-disappeared-use (syntax-local-introduce #'op))]))
+    #:do [(add-disappeared-use #'op)]))
 
 (define-syntax-class sequence-opt-expr
   #:commit

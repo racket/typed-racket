@@ -546,7 +546,7 @@
             (when (current-referenced-aliases)
               (define alias-box (current-referenced-aliases))
               (set-box! alias-box (cons #'id (unbox alias-box))))
-            (add-disappeared-use (syntax-local-introduce #'id))
+            (add-disappeared-use #'id)
             t)]
          [else
           (parse-error #:delayed? #t (~a "type name `" (syntax-e #'id) "' is unbound"))

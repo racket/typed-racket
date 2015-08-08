@@ -31,7 +31,7 @@
      #:when (eq? 'expression ctx)
      (err stx "must be used in a definition context")]
     [(: id (~and kw :) . more:omit-parens)
-     (add-disappeared-use (syntax-local-introduce #'kw))
+     (add-disappeared-use #'kw)
      (wrap stx #`(:-helper #,stx #,top-level? id more.type))]
     [(: e ...)
      (wrap stx #`(:-helper #,stx #,top-level? e ...))]))
@@ -48,7 +48,7 @@
                      (syntax-e #'i)))
      (syntax-property (syntax/loc stx (begin (quote-syntax (:-internal i ty) #:local)
                                              (#%plain-app values)))
-                      'disappeared-use (syntax-local-introduce #'i))]
+                      'disappeared-use #'i)]
     [(_ orig-stx _ i x ...)
      #:fail-unless (identifier? #'i) (err #'orig-stx "expected identifier" #'i)
      (case (syntax-length #'(x ...))

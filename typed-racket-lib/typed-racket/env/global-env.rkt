@@ -17,7 +17,8 @@
          register-types
          unregister-type
          check-all-registered-types
-         type-env-map)
+         type-env-map
+         reset-type-env!)
 
 (lazy-require ["../rep/type-rep.rkt" (Type/c? type-equal?)])
 
@@ -25,6 +26,19 @@
 ;; where id is a variable, and type is the type of the variable
 ;; if the result is a box, then the type has not actually been defined, just registered
 (define the-mapping (make-free-id-table))
+
+(define (reset-type-env!)
+  ;; Bindings can change in between top-level interactions. In particular, a binding
+  ;; introduced with `require/typed` changes after the form is evaluated. To
+  ;; accomodate shifting binding information, rebuild `the-mapping`. Otherwise,
+  ;; shifting bindngs can cause a lookup to fail, even when the table contains a
+  ;; `free-identifier=?` entry.
+  (define new-mapping (make-free-id-table))
+  (free-id-table-for-each
+   the-mapping
+   (lambda (k v)
+     (free-id-table-set! new-mapping k v)))
+  (set! the-mapping new-mapping))
 
 ;; add a single type to the mapping
 ;; identifier type -> void

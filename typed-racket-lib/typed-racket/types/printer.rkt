@@ -3,7 +3,7 @@
 ;; This module provides functions for printing types and related
 ;; data structures such as filters and objects
 
-(require racket/require racket/match racket/sequence racket/string racket/promise
+(require racket/require racket/match racket/dict racket/string racket/promise
          racket/pretty
          racket/list
          racket/set
@@ -59,7 +59,7 @@
 ;; has-name : Type -> Maybe[Listof<Symbol>]
 (define (has-name? t)
   (define candidates
-    (for/list ([(n t*) (in-pairs (in-list (force (current-type-names))))]
+    (for/list ([(n t*) (in-dict (force (current-type-names)))]
                #:when (and print-aliases (Type? t*) (type-equal? t t*)))
       n))
   (and (pair? candidates)

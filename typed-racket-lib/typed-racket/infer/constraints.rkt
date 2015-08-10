@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
 	 (types abbrev union subtype)
-	 racket/sequence
+	 racket/dict
          "fail.rkt" "signatures.rkt" "constraint-structs.rkt"
          racket/match
          racket/list)
@@ -26,7 +26,7 @@
 (define (insert cs var S T)
   (match cs
     [(struct cset (maps))
-     (make-cset (for/list ([(map dmap) (in-pairs maps)])
+     (make-cset (for/list ([(map dmap) (in-dict maps)])
                   (cons (hash-set map var (make-c S T))
                         dmap)))]))
 
@@ -66,8 +66,8 @@
     [(x y)
      (match* (x y)
       [((struct cset (maps1)) (struct cset (maps2)))
-       (define maps (for*/list ([(map1 dmap1) (in-pairs (remove-duplicates maps1))]
-                                [(map2 dmap2) (in-pairs (remove-duplicates maps2))]
+       (define maps (for*/list ([(map1 dmap1) (in-dict (remove-duplicates maps1))]
+                                [(map2 dmap2) (in-dict (remove-duplicates maps2))]
                                 [v (in-value (% cons
                                                 (hash-union/fail map1 map2 #:combine c-meet)
                                                 (dmap-meet dmap1 dmap2)))]

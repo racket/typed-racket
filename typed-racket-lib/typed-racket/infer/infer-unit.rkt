@@ -25,7 +25,7 @@
          (for-syntax
            racket/base
            syntax/parse)
-         racket/sequence
+         racket/dict
          racket/hash racket/list)
 
 (import dmap^ constraints^)
@@ -106,7 +106,7 @@
 ;; (CMap DMap -> Pair<CMap, DMap>) CSet -> CSet
 ;; Map a function over a constraint set
 (define (map/cset f cset)
-  (% make-cset (for/list/fail ([(cmap dmap) (in-pairs (cset-maps cset))])
+  (% make-cset (for/list/fail ([(cmap dmap) (in-dict (cset-maps cset))])
                  (f cmap dmap))))
 
 ;; Symbol DCon -> DMap

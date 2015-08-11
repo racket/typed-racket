@@ -1,7 +1,8 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
-         (except-in (types utils abbrev filter-ops remove-intersect) -> ->* one-of/c)
+         (except-in (types utils abbrev filter-ops remove-intersect type-table)
+                    -> ->* one-of/c)
          (only-in (types abbrev) (-> t:->) [->* t:->*])
          (private type-annotation parse-type syntax-properties)
          (env lexical-env type-alias-helper mvar-env
@@ -85,6 +86,9 @@
       (get-names+objects namess expected-results)
       (with-lexical-env/extend-props
         (apply append props)
+        ;; if a let rhs does not return, the body isn't checked
+        #:unreachable (for ([form (in-list (syntax->list body))])
+                        (register-ignored! form))
         ;; type-check the rhs exprs
         (for ([expr (in-list exprs)] [results (in-list expected-results)])
           (match results

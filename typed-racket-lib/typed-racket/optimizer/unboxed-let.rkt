@@ -188,6 +188,9 @@
 
   (define (rec exp)
     (syntax-parse exp
+      ;; if there are unreachable expressions in the body, we can't check
+      ;; if it's worth unboxing, so just give up
+      [_:ignore-table^ #f]
       ;; can be used in a complex arithmetic expr, can be a direct child
       [(~and (~not :id) exp:float-complex-arith-expr)
        (or (direct-child-of? v #'exp)

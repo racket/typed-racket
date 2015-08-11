@@ -8,8 +8,9 @@
 ;; protected on export from TR with contracts, but where the
 ;; contracted defintion is in the #%contract-defs submodule.
 
-;; varref: a variable reference to the typed module that has the
-;;         appropriate submodule in it
+;; contract-defs-submod-modidx: a module path index to the contract
+;;  defs submodule of the typed module
+;;  (using a module path index here makes it friendlier for 'raco exe')
 
 ;; id: the name of the export from the submodule which will be
 ;;     redirected-to by the local-require

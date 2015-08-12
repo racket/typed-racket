@@ -3,7 +3,7 @@
 (providing (libs (except scheme/base #%module-begin #%top-interaction
                          with-handlers default-continuation-prompt-tag
                          define λ lambda define-struct for for*
-                         let let* let-values letrec letrec-values
+                         let let* let-values let*-values letrec letrec-values
                          let/cc let/ec do case-lambda
                          for/list for/vector for/hash for/hasheq for/hasheqv
                          for/and for/or for/sum for/product for/lists

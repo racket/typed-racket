@@ -100,6 +100,7 @@
 (define-literal-syntax-class #:for-label values)
 (define-literal-syntax-class #:for-label Top)
 (define-literal-syntax-class #:for-label Bot)
+(define-literal-syntax-class #:for-label Distinction)
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
@@ -427,6 +428,8 @@
        (parse-all-type stx)]
       [(:Opaque^ p?:id)
        (make-Opaque #'p?)]
+      [(:Distinction^ name:id unique-id:id rep-ty:expr)
+       (-Distinction (syntax-e #'name) (syntax-e #'unique-id) (parse-type #'rep-ty))]
       [(:Parameter^ t)
        (let ([ty (parse-type #'t)])
          (-Param ty ty))]

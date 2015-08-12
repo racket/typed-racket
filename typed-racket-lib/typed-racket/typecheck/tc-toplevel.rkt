@@ -69,8 +69,7 @@
 
       ;; define-new-subtype
       [form:new-subtype-def
-       ;; also handled by an earlier pass
-       (list)]
+       (handle-define-new-subtype/pass1 #'form)]
 
       ;; declare-refinement
       ;; FIXME - this sucks and should die
@@ -290,12 +289,11 @@
 (define (type-check forms0)
   (define forms (syntax->list forms0))
   (do-time "before form splitting")
-  (define-values (type-aliases struct-defs new-subtype-defs stx-defs0 val-defs0 provs)
+  (define-values (type-aliases struct-defs stx-defs0 val-defs0 provs)
     (filter-multiple
      forms
      type-alias? 
      (lambda (e) (or (typed-struct? e) (typed-struct/exec? e)))
-     new-subtype-def?
      parse-syntax-def
      parse-def
      provide?))
@@ -313,8 +311,6 @@
     (for-each register-type-name names)
     (for-each add-constant-variance! names type-vars))
   (do-time "after adding type names")
-
-  (for-each handle-define-new-subtype new-subtype-defs)
 
   (register-all-type-aliases type-alias-names type-alias-map)
 
@@ -548,17 +544,13 @@
   (begin0 (tc-toplevel/pass2 form #f)
           (report-all-errors)))
 
-;; handle-define-new-subtype : Syntax -> Void
-(define (handle-define-new-subtype form)
+;; handle-define-new-subtype/pass1 : Syntax -> Empty
+(define (handle-define-new-subtype/pass1 form)
   (syntax-parse form
-    ;; define-new-subtype
     [form:new-subtype-def
      ;; (define-new-subtype-internal name (constructor rep-type) #:gen-id gen-id)
-     (define name (syntax-e (attribute form.name)))
-     (define sym (syntax-e (attribute form.gen-id)))
+     (define ty (parse-type (attribute form.name)))
      (define rep-ty (parse-type (attribute form.rep-type)))
-     (define new-ty (-Distinction name sym rep-ty))
-     (register-type (attribute form.constructor) (-> rep-ty new-ty))
-     (register-type-alias (attribute form.name) new-ty)
-     (void)]))
+     (register-type (attribute form.constructor) (-> rep-ty ty))
+     (list)]))
 

@@ -206,10 +206,9 @@
             stx
             (and (stx-pair? stx) (stx-car stx))))
        #`(begin
+           (define-type-alias ty (Distinction ty gen-id rep-ty))
            #,(ignore
-              #'(begin
-                  (define-syntax ty stx-err-fun)
-                  (define constructor (lambda (x) x))))
+              #'(define constructor (lambda (x) x)))
            #,(internal (syntax/loc stx
                          (define-new-subtype-internal ty (constructor rep-ty) #:gen-id gen-id))))])))
 

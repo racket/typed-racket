@@ -293,6 +293,9 @@
          [((or (? Struct? s1) (NameStruct: s1)) (Value: (? (negate struct?) _)))
           #f]
          ;; from define-new-subtype
+         [((Distinction: nm1 id1 t1) (app resolve (Distinction: nm2 id2 t2)))
+          #:when (and (equal? nm1 nm2) (equal? id1 id2))
+          (subtype* A0 t1 t2)]
          [((Distinction: _ _ t1) t2)
           (subtype* A0 t1 t2)]
          ;; sequences are covariant

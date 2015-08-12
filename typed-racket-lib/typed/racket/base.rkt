@@ -18,7 +18,7 @@
            require-typed-struct-legacy
            require/typed-legacy)
          typed-racket/base-env/base-types
-         typed-racket/base-env/base-types-extra)
+         (except-in typed-racket/base-env/base-types-extra Distinction))
 (provide (rename-out [define-type-alias define-type])
          (all-from-out typed-racket/base-env/prims)
          (all-from-out typed-racket/base-env/base-types)

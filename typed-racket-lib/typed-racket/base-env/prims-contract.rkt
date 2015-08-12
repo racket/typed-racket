@@ -158,6 +158,10 @@
           (make-contract-def-rhs #'ty #f (attribute parent))))
        (quasisyntax/loc stx
          (begin
+           ;; register the identifier so that it has a binding (for top-level)
+           #,@(if (eq? (syntax-local-context) 'top-level)
+                  (list #'(define-syntaxes (hidden) (values)))
+                  null)
            #,(internal #'(require/typed-internal hidden ty . sm))
            #,(ignore #`(require/contract nm.spec hidden #,cnt* lib))))]))
   (values (r/t-maker #t) (r/t-maker #f))))

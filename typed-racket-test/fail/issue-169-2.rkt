@@ -1,3 +1,5 @@
+#;
+(exn-pred #rx"expected: \\(Listof Nothing\\).*given: \\(Listof Pos\\*\\)")
 #lang typed/racket
 (define-type Pos Integer)
 (define-new-subtype Pos* (p Pos))

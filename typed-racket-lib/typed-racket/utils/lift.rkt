@@ -15,7 +15,7 @@
     (let loop ([stx stx])
       (define stx* (local-expand/capture-lifts stx ctx stop-ids))
       (syntax-parse stx*
-        #:literals (begin define-values)
+        #:literal-sets (kernel-literals)
         [(begin (define-values (n) e) ... e*)
          (define-values (sub-defss defs)
            (for/lists (_1 _2) ([e (in-list (syntax->list #'(e ...)))]

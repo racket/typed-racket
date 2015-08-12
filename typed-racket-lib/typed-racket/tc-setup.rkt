@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "utils/utils.rkt"
+         syntax/kerncase
          syntax/stx
          racket/pretty racket/promise racket/lazy-require
          (env type-name-env type-alias-env mvar-env)
@@ -9,7 +10,8 @@
          (for-syntax racket/base)
          (for-template racket/base))
 (lazy-require [typed-racket/optimizer/optimizer (optimize-top)])
-(lazy-require [typed-racket/typecheck/tc-toplevel (tc-toplevel-form tc-module)])
+(lazy-require [typed-racket/typecheck/tc-toplevel (tc-module)])
+(lazy-require [typed-racket/typecheck/toplevel-trampoline (tc-toplevel-start)])
 
 (provide maybe-optimize init-current-type-names
          tc-module/full
@@ -36,7 +38,7 @@
 
 (define-logger online-check-syntax)
 
-(define (tc-setup orig-stx stx expand-ctxt do-expand checker k)
+(define (tc-setup orig-stx stx expand-ctxt do-expand stop-forms k)
   (set-box! typed-context? #t)
   ;(start-timing (syntax-property stx 'enclosing-module-name))
   (with-handlers
@@ -52,11 +54,11 @@
                    ;; reinitialize disappeared uses
                    [disappeared-use-todo      null]
                    [disappeared-bindings-todo null])
-      (define fully-expanded-stx (disarm* (do-expand stx expand-ctxt (list #'module*))))
+      (define expanded-stx (disarm* (do-expand stx expand-ctxt stop-forms)))
       (when (print-syntax?)
-        (pretty-print (syntax->datum fully-expanded-stx)))
+        (pretty-print (syntax->datum expanded-stx)))
       (do-time "Local Expand Done")
-      (let ([exprs (syntax->list (syntax-local-introduce fully-expanded-stx))])
+      (let ([exprs (syntax->list (syntax-local-introduce expanded-stx))])
         (when (pair? exprs)
           (log-message online-check-syntax-logger
                        'info
@@ -66,17 +68,25 @@
       ;; expansion errors to happen with out paying that cost
       (do-standard-inits)
       (do-time "Initialized Envs")
-      (find-mutated-vars fully-expanded-stx mvar-env)
-      (parameterize ([orig-module-stx (or (orig-module-stx) orig-stx)]
-                     [expanded-module-stx fully-expanded-stx])
-        (do-time "Starting `checker'")
-        (call-with-values (λ () (checker fully-expanded-stx))
-          (λ results
-            (do-time "Typechecking Done")
-            (apply k fully-expanded-stx results)))))))
+      (find-mutated-vars expanded-stx mvar-env)
+      (k expanded-stx))))
 
-(define (tc-toplevel/full orig-stx stx k)
-  (tc-setup orig-stx stx 'top-level local-expand/capture* tc-toplevel-form k))
+;; for top-level use
+(define (tc-toplevel/full orig-stx stx)
+  (tc-setup orig-stx stx 'top-level
+            local-expand/capture* (kernel-form-identifier-list)
+            (λ (head-expanded-stx)
+              (parameterize ([orig-module-stx (or (orig-module-stx) orig-stx)])
+                (do-time "Trampoline the top-level checker")
+                (tc-toplevel-start head-expanded-stx)))))
 
 (define (tc-module/full orig-stx stx k)
-  (tc-setup orig-stx stx 'module-begin local-expand tc-module k))
+  (tc-setup orig-stx stx 'module-begin local-expand (list #'module*)
+            (λ (fully-expanded-stx)
+              (do-time "Starting `checker'")
+              (parameterize ([orig-module-stx (or (orig-module-stx) orig-stx)]
+                             [expanded-module-stx fully-expanded-stx])
+                (call-with-values (λ () (tc-module fully-expanded-stx))
+                  (λ results
+                    (do-time "Typechecking Done")
+                    (apply k fully-expanded-stx results)))))))

@@ -523,41 +523,30 @@
   (syntax-parse stx
     [(pmb . forms) (begin0 (type-check #'forms) (do-time "finished type checking"))]))
 
-;; typecheck a top-level form
+;; typecheck a top-level form that does not have any
+;; top-level `begin`s
 ;; used only from #%top-interaction
 ;; syntax -> (or/c 'no-type tc-results/c)
 (define (tc-toplevel-form form)
-  (syntax-parse form
-    ;; Don't open up `begin`s that are supposed to be ignored
-    [(~and ((~literal begin) e ...)
-           (~not (~or _:ignore^ _:ignore-some^)))
-     (begin0
-       (or (for/last ([form (in-syntax #'(e ...))])
-             (tc-toplevel-form form))
-           'no-type)
-       (report-all-errors))]
-    [_
-     ;; Handle type aliases
-     (when (type-alias? form)
-       (define-values (alias-names alias-map)
-         (get-type-alias-info (list form)))
-       (register-all-type-aliases alias-names alias-map))
-     ;; Handle struct definitions
-     (when (typed-struct? form)
-       (define name (name-of-struct form))
-       (define tvars (type-vars-of-struct form))
-       (register-type-name name)
-       (add-constant-variance! name tvars)
-       (define parsed (parse-typed-struct form))
-       (register-parsed-struct-sty! parsed)
-       (refine-struct-variance! (list parsed))
-       (register-parsed-struct-bindings! parsed))
-     (tc-toplevel/pass1 form)
-     (tc-toplevel/pass1.5 form)
-     (begin0 (tc-toplevel/pass2 form #f)
-             (report-all-errors))]))
-
-
+  ;; Handle type aliases
+  (when (type-alias? form)
+    (define-values (alias-names alias-map)
+      (get-type-alias-info (list form)))
+    (register-all-type-aliases alias-names alias-map))
+  ;; Handle struct definitions
+  (when (typed-struct? form)
+    (define name (name-of-struct form))
+    (define tvars (type-vars-of-struct form))
+    (register-type-name name)
+    (add-constant-variance! name tvars)
+    (define parsed (parse-typed-struct form))
+    (register-parsed-struct-sty! parsed)
+    (refine-struct-variance! (list parsed))
+    (register-parsed-struct-bindings! parsed))
+  (tc-toplevel/pass1 form)
+  (tc-toplevel/pass1.5 form)
+  (begin0 (tc-toplevel/pass2 form #f)
+          (report-all-errors)))
 
 ;; handle-define-new-subtype : Syntax -> Void
 (define (handle-define-new-subtype form)

@@ -1592,6 +1592,8 @@
           -Nat
           (-opt -Integer)
           (-opt -Integer))))]
+[identifier-binding-symbol
+ (Ident . ->opt . [(Un -Int (-val #f))] -Symbol)]
 
 ;; Section 12.4
 [set!-transformer? (-> Univ B)]

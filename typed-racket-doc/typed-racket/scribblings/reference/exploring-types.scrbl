@@ -33,7 +33,8 @@ The following bindings are only available at the Typed Racket REPL.
   ]
 }
 
-@defform[(:print-type e)]{Prints the type of @racket[_e]. This prints the whole
+@defform[(:print-type e)]{Prints the type of @racket[_e], which must be
+an expression. This prints the whole
 type, which can sometimes be quite large.
 
 @examples[#:eval the-top-eval

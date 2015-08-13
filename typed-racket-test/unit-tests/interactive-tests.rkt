@@ -152,10 +152,6 @@
       (:print-type))
     (test-form-exn #rx"exactly one argument"
       (:print-type 1 2))
-    (test-form (regexp-quote "has no type")
-      (:print-type (begin (begin))))
-    (test-form (regexp-quote "has no type")
-      (:print-type (require racket/format)))
 
     (test-form (regexp-quote "(-> 4 Zero Zero)")
       (:query-type/args * 4 0))

@@ -43,7 +43,7 @@
     "../tc-setup.rkt"
     (private parse-type syntax-properties)
     (types utils abbrev printer)
-    (typecheck tc-toplevel tc-app-helper)
+    (typecheck tc-app-helper typechecker)
     (rep type-rep)
     (utils tc-utils)
     (for-template racket/base))
@@ -77,16 +77,16 @@
   (define (:print-type-impl stx)
     (syntax-parse stx
       [(_ e)
-       (tc-toplevel/full stx #'e
-         (λ (expanded type)
-           #`(displayln
-              #,(if (eq? type 'no-type)
-                    "This form has no type (it does not produce a value)."
-                    (pretty-format-type
-                     (match type
-                       [(tc-result1: t f o) t]
-                       [(tc-results: t) (-values t)]
-                       [(tc-any-results: f) (-AnyValues f)]))))))]
+       (define type
+         (tc-expr (local-expand #'e 'expression (list #'module*))))
+       #`(displayln
+          #,(if (eq? type 'no-type)
+                "This form has no type (it does not produce a value)."
+                (pretty-format-type
+                 (match type
+                   [(tc-result1: t f o) t]
+                   [(tc-results: t) (-values t)]
+                   [(tc-any-results: f) (-AnyValues f)]))))]
       [form
        (raise-syntax-error #f "must be applied to exactly one argument" #'form)]))
 
@@ -95,17 +95,17 @@
     (syntax-parse stx
       [(_ op arg-type ...)
        (with-syntax ([(dummy-arg ...) (generate-temporaries #'(arg-type ...))])
-         (tc-toplevel/full
-           stx
-           ;; create a dummy function with the right argument types
+         ;; create a dummy function with the right argument types
+         (define expr
            #`(lambda #,(stx-map type-label-property
                                 #'(dummy-arg ...) #'(arg-type ...))
-               (op dummy-arg ...))
-           (λ (expanded type)
-             #`(display
-                #,(pretty-format-type
-                   (match type
-                     [(tc-result1: (and t (Function: _)) f o) t]))))))]
+               (op dummy-arg ...)))
+         (define type
+           (tc-expr (local-expand expr 'expression (list #'module*))))
+         #`(display
+            #,(pretty-format-type
+               (match type
+                 [(tc-result1: (and t (Function: _)) f o) t]))))]
       [form
        (raise-syntax-error #f "must be applied to at least one argument" #'form)]))
 
@@ -114,17 +114,17 @@
     (syntax-parse stx
       [(_ op desired-type)
        (let ([expected (parse-type #'desired-type)])
-         (tc-toplevel/full stx #'op
-           (λ (expanded type)
-             (match type
-               [(tc-result1: (and t (Function: _)) f o)
-                (let ([cleaned (cleanup-type t expected #f)])
-                  #`(display
-                     #,(match cleaned
-                         [(Function: '())
-                          "Desired return type not in the given function's range.\n"]
-                         [(Function: arrs)
-                          (pretty-format-type cleaned)])))]
-               [_ (error (format "~a: not a function" (syntax->datum #'op)))]))))]
+         (define type
+           (tc-expr (local-expand #'op 'expression (list #'module*))))
+         (match type
+           [(tc-result1: (and t (Function: _)) f o)
+            (let ([cleaned (cleanup-type t expected #f)])
+              #`(display
+                 #,(match cleaned
+                     [(Function: '())
+                      "Desired return type not in the given function's range.\n"]
+                     [(Function: arrs)
+                      (pretty-format-type cleaned)])))]
+           [_ (error (format "~a: not a function" (syntax->datum #'op)))]))]
       [form
        (raise-syntax-error #f "must be applied to exactly two arguments" #'form)])))

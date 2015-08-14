@@ -1612,6 +1612,7 @@
 
 
         (tc-e (copy-directory/files "tmp/src" "tmp/dest") -Void)
+        (tc-e (copy-directory/files "tmp/src" "tmp/dest" #:preserve-links? #t) -Void)
         (tc-e (delete-directory/files "tmp/src") -Void)
 
         (tc-e (find-files (lambda (p) #t)) (-lst -Path))

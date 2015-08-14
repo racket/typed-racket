@@ -2583,7 +2583,10 @@
 ;; Section 15.2.4
 
 ;; Section 15.2.5 (racket/file)
-[copy-directory/files (->key -Pathlike -Pathlike  #:keep-modify-seconds? Univ #f -Void)]
+[copy-directory/files (->key -Pathlike -Pathlike
+                             #:keep-modify-seconds? Univ #f
+                             #:preserve-links? Univ #f
+                             -Void)]
 [delete-directory/files (->key -Pathlike #:must-exist? Univ #f -Void)]
 
 [find-files (->optkey (-> -Path Univ) [(-opt -Pathlike)] #:follow-links? Univ #f (-lst -Path))]

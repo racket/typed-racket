@@ -46,10 +46,13 @@
     (typecheck tc-app-helper typechecker)
     (rep type-rep)
     (utils tc-utils)
+    (for-syntax racket/base syntax/parse)
     (for-template racket/base))
   (provide
     :type-impl :print-type-impl :query-type/args-impl :query-type/result-impl)
 
+  ;; this one doesn't quite fit the pattern of the next three REPL operations, so
+  ;; this one isn't defined with a macro as below
   (define (:type-impl stx)
     (syntax-parse stx
       [(_ (~optional (~and #:verbose verbose-kw)) ty:expr)
@@ -72,59 +75,55 @@
       [form
        (raise-syntax-error #f "must be applied to exactly one argument" #'form)]))
 
+  (define-syntax (define-repl-op stx)
+    (syntax-parse stx
+      [(_ op args to-expand handler err)
+       #'(define (op stx)
+           (syntax-parse stx
+             [args
+              (define result
+                (tc-expr (local-expand to-expand 'expression (list #'module*))))
+              (handler result)]
+             [form
+              (raise-syntax-error #f err #'form)]))]))
+
   ;; TODO what should be done with stx
   ;; Prints the _entire_ type. May be quite large.
-  (define (:print-type-impl stx)
-    (syntax-parse stx
-      [(_ e)
-       (define type
-         (tc-expr (local-expand #'e 'expression (list #'module*))))
-       #`(displayln
-          #,(if (eq? type 'no-type)
-                "This form has no type (it does not produce a value)."
-                (pretty-format-type
-                 (match type
-                   [(tc-result1: t f o) t]
-                   [(tc-results: t) (-values t)]
-                   [(tc-any-results: f) (-AnyValues f)]))))]
-      [form
-       (raise-syntax-error #f "must be applied to exactly one argument" #'form)]))
+  (define-repl-op :print-type-impl (_ e) #'e
+    (λ (type)
+      #`(displayln
+         #,(pretty-format-type
+            (match type
+              [(tc-result1: t f o) t]
+              [(tc-results: t) (-values t)]
+              [(tc-any-results: f) (-AnyValues f)]))))
+    "must be applied to exactly one argument")
 
   ;; given a function and input types, display the result type
-  (define (:query-type/args-impl stx)
-    (syntax-parse stx
-      [(_ op arg-type ...)
-       (with-syntax ([(dummy-arg ...) (generate-temporaries #'(arg-type ...))])
-         ;; create a dummy function with the right argument types
-         (define expr
-           #`(lambda #,(stx-map type-label-property
-                                #'(dummy-arg ...) #'(arg-type ...))
-               (op dummy-arg ...)))
-         (define type
-           (tc-expr (local-expand expr 'expression (list #'module*))))
-         #`(display
-            #,(pretty-format-type
-               (match type
-                 [(tc-result1: (and t (Function: _)) f o) t]))))]
-      [form
-       (raise-syntax-error #f "must be applied to at least one argument" #'form)]))
+  (define-repl-op :query-type/args-impl (_ op arg-type ...)
+    (with-syntax ([(dummy-arg ...) (generate-temporaries #'(arg-type ...))])
+      ;; create a dummy function with the right argument types
+      #`(lambda #,(stx-map type-label-property
+                           #'(dummy-arg ...) #'(arg-type ...))
+                (op dummy-arg ...)))
+     (λ (type)
+       #`(display
+          #,(pretty-format-type
+             (match type
+               [(tc-result1: (and t (Function: _)) f o) t]))))
+     "must be applied to at least one argument" )
 
   ;; given a function and a desired return type, fill in the blanks
-  (define (:query-type/result-impl stx)
-    (syntax-parse stx
-      [(_ op desired-type)
-       (let ([expected (parse-type #'desired-type)])
-         (define type
-           (tc-expr (local-expand #'op 'expression (list #'module*))))
-         (match type
-           [(tc-result1: (and t (Function: _)) f o)
-            (let ([cleaned (cleanup-type t expected #f)])
-              #`(display
-                 #,(match cleaned
-                     [(Function: '())
-                      "Desired return type not in the given function's range.\n"]
-                     [(Function: arrs)
-                      (pretty-format-type cleaned)])))]
-           [_ (error (format "~a: not a function" (syntax->datum #'op)))]))]
-      [form
-       (raise-syntax-error #f "must be applied to exactly two arguments" #'form)])))
+  (define-repl-op :query-type/result-impl (_ op desired-type) #'op
+    (λ (type)
+      (match type
+        [(tc-result1: (and t (Function: _)) f o)
+         (let ([cleaned (cleanup-type t (parse-type #'desired-type) #f)])
+           #`(display
+              #,(match cleaned
+                  [(Function: '())
+                   "Desired return type not in the given function's range.\n"]
+                  [(Function: arrs)
+                   (pretty-format-type cleaned)])))]
+        [_ (error (format "~a: not a function" (syntax->datum #'op)))]))
+    "must be applied to exactly two arguments"))

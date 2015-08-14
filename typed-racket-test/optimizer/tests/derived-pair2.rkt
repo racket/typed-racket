@@ -1,29 +1,29 @@
 #;#;
 #<<END
-TR opt: derived-pair2.rkt 2:0 (caaar (cons (cons (cons 1 2) 3) 4)) -- pair
-TR opt: derived-pair2.rkt 2:0 (caaar (cons (cons (cons 1 2) 3) 4)) -- pair
-TR opt: derived-pair2.rkt 2:0 (caaar (cons (cons (cons 1 2) 3) 4)) -- pair
-TR opt: derived-pair2.rkt 3:0 (caadr (cons 1 (cons (cons 2 3) 4))) -- pair
-TR opt: derived-pair2.rkt 3:0 (caadr (cons 1 (cons (cons 2 3) 4))) -- pair
-TR opt: derived-pair2.rkt 3:0 (caadr (cons 1 (cons (cons 2 3) 4))) -- pair
-TR opt: derived-pair2.rkt 4:0 (cadar (cons (cons 1 (cons 2 3)) 4)) -- pair
-TR opt: derived-pair2.rkt 4:0 (cadar (cons (cons 1 (cons 2 3)) 4)) -- pair
-TR opt: derived-pair2.rkt 4:0 (cadar (cons (cons 1 (cons 2 3)) 4)) -- pair
-TR opt: derived-pair2.rkt 5:0 (caddr (cons 1 (cons 2 (cons 3 4)))) -- pair
-TR opt: derived-pair2.rkt 5:0 (caddr (cons 1 (cons 2 (cons 3 4)))) -- pair
-TR opt: derived-pair2.rkt 5:0 (caddr (cons 1 (cons 2 (cons 3 4)))) -- pair
-TR opt: derived-pair2.rkt 6:0 (cdaar (cons (cons (cons 1 2) 3) 4)) -- pair
-TR opt: derived-pair2.rkt 6:0 (cdaar (cons (cons (cons 1 2) 3) 4)) -- pair
-TR opt: derived-pair2.rkt 6:0 (cdaar (cons (cons (cons 1 2) 3) 4)) -- pair
-TR opt: derived-pair2.rkt 7:0 (cdadr (cons 1 (cons (cons 2 3) 4))) -- pair
-TR opt: derived-pair2.rkt 7:0 (cdadr (cons 1 (cons (cons 2 3) 4))) -- pair
-TR opt: derived-pair2.rkt 7:0 (cdadr (cons 1 (cons (cons 2 3) 4))) -- pair
-TR opt: derived-pair2.rkt 8:0 (cddar (cons (cons 1 (cons 2 3)) 4)) -- pair
-TR opt: derived-pair2.rkt 8:0 (cddar (cons (cons 1 (cons 2 3)) 4)) -- pair
-TR opt: derived-pair2.rkt 8:0 (cddar (cons (cons 1 (cons 2 3)) 4)) -- pair
-TR opt: derived-pair2.rkt 9:0 (cdddr (cons 1 (cons 2 (cons 3 4)))) -- pair
-TR opt: derived-pair2.rkt 9:0 (cdddr (cons 1 (cons 2 (cons 3 4)))) -- pair
-TR opt: derived-pair2.rkt 9:0 (cdddr (cons 1 (cons 2 (cons 3 4)))) -- pair
+TR opt: derived-pair2.rkt 2:1 caaar -- pair
+TR opt: derived-pair2.rkt 2:1 caaar -- pair
+TR opt: derived-pair2.rkt 2:1 caaar -- pair
+TR opt: derived-pair2.rkt 3:1 caadr -- pair
+TR opt: derived-pair2.rkt 3:1 caadr -- pair
+TR opt: derived-pair2.rkt 3:1 caadr -- pair
+TR opt: derived-pair2.rkt 4:1 cadar -- pair
+TR opt: derived-pair2.rkt 4:1 cadar -- pair
+TR opt: derived-pair2.rkt 4:1 cadar -- pair
+TR opt: derived-pair2.rkt 5:1 caddr -- pair
+TR opt: derived-pair2.rkt 5:1 caddr -- pair
+TR opt: derived-pair2.rkt 5:1 caddr -- pair
+TR opt: derived-pair2.rkt 6:1 cdaar -- pair
+TR opt: derived-pair2.rkt 6:1 cdaar -- pair
+TR opt: derived-pair2.rkt 6:1 cdaar -- pair
+TR opt: derived-pair2.rkt 7:1 cdadr -- pair
+TR opt: derived-pair2.rkt 7:1 cdadr -- pair
+TR opt: derived-pair2.rkt 7:1 cdadr -- pair
+TR opt: derived-pair2.rkt 8:1 cddar -- pair
+TR opt: derived-pair2.rkt 8:1 cddar -- pair
+TR opt: derived-pair2.rkt 8:1 cddar -- pair
+TR opt: derived-pair2.rkt 9:1 cdddr -- pair
+TR opt: derived-pair2.rkt 9:1 cdddr -- pair
+TR opt: derived-pair2.rkt 9:1 cdddr -- pair
 END
 #<<END
 1

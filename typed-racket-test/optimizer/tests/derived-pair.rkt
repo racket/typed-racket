@@ -1,13 +1,13 @@
 #;#;
 #<<END
-TR opt: derived-pair.rkt 2:0 (caar (cons (cons 1 2) 3)) -- pair
-TR opt: derived-pair.rkt 2:0 (caar (cons (cons 1 2) 3)) -- pair
-TR opt: derived-pair.rkt 3:0 (cadr (cons 1 (cons 2 3))) -- pair
-TR opt: derived-pair.rkt 3:0 (cadr (cons 1 (cons 2 3))) -- pair
-TR opt: derived-pair.rkt 4:0 (cdar (cons (cons 1 2) 3)) -- pair
-TR opt: derived-pair.rkt 4:0 (cdar (cons (cons 1 2) 3)) -- pair
-TR opt: derived-pair.rkt 5:0 (cddr (cons 1 (cons 2 3))) -- pair
-TR opt: derived-pair.rkt 5:0 (cddr (cons 1 (cons 2 3))) -- pair
+TR opt: derived-pair.rkt 2:1 caar -- pair
+TR opt: derived-pair.rkt 2:1 caar -- pair
+TR opt: derived-pair.rkt 3:1 cadr -- pair
+TR opt: derived-pair.rkt 3:1 cadr -- pair
+TR opt: derived-pair.rkt 4:1 cdar -- pair
+TR opt: derived-pair.rkt 4:1 cdar -- pair
+TR opt: derived-pair.rkt 5:1 cddr -- pair
+TR opt: derived-pair.rkt 5:1 cddr -- pair
 END
 #<<END
 1

@@ -51,7 +51,6 @@
       [(Empty:) (values (list) id*)]))
   ;; calculate the type, resolving aliasing and paths if necessary
   (define ty (path-type alias-path (lookup-type/lexical alias-id)))
-  
   (ret ty
        (if (overlap ty (-val #f))
            (-FS (-not-filter (-val #f) obj) (-filter (-val #f) obj))

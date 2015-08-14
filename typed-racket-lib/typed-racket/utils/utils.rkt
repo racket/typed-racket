@@ -186,7 +186,7 @@ at least theoretically.
     [(self arg ...) (datum->syntax stx
                                    (cons (syntax-property (transfer-srcloc orig #'self)
                                                           'constructor-for
-                                                          (syntax-local-introduce #'self))
+                                                          #'self)
                                          (syntax-e (syntax (arg ...))))
                                    stx
                                    stx)]

@@ -25,8 +25,8 @@
     #:when (syntax->datum #'unboxed-info)
     #:with (real-binding imag-binding orig-binding) #'unboxed-info
     ;; we need to introduce both the binding and the use at the same time
-    #:do [(add-disappeared-use (syntax-local-introduce #'v))
-          (add-disappeared-binding (syntax-local-introduce #'orig-binding))]))
+    #:do [(add-disappeared-use #'v)
+          (add-disappeared-binding #'orig-binding)]))
 
 ;; associates the names of functions with unboxed args (and whose call sites have to
 ;; be modified) to the arguments which can be unboxed and those which have to be boxed

@@ -27,7 +27,7 @@
        (parameterize ([optimize? (or (and (not (attribute opt?)) (optimize?))
                                      (and (attribute opt?) (syntax-e (attribute opt?))))])
          (tc-module/full stx pmb-form
-          (λ (new-mod pre-before-code pre-after-code)
+          (λ (new-mod pre-before-code pre-after-code)  ; `new-mod` is current `syntax-local-introduce`d
             (with-syntax*
              (;; pmb = #%plain-module-begin
               [(pmb . body2) new-mod]
@@ -41,7 +41,9 @@
               [(before-code ...) (change-provide-fixups (flatten-all-begins pre-before-code))]
               [(after-code ...) (change-provide-fixups (flatten-all-begins pre-after-code))]
               ;; potentially optimize the code based on the type information
-              [(optimized-body ...) (maybe-optimize #'transformed-body)] ;; has own call to do-time
+              [(optimized-body ...) (syntax-local-introduce
+                                     (maybe-optimize ;; has own call to do-time
+                                      #'transformed-body))]
               ;; add in syntax property on useless expression to draw check-syntax arrows
               [check-syntax-help (syntax-property
                                   (syntax-property
@@ -70,14 +72,16 @@
      ;; Cast at the top-level still needs this for some reason
      (do-standard-inits)
      (tc-toplevel/full stx #'form
-       (λ (body2 type)
+       (λ (body2 type) ; `body2` is current `syntax-local-introduce`d
          (with-syntax*
           ([(optimized-body ...) (maybe-optimize #`(#,body2))]
            ;; Transform after optimization for top-level because the flattening will
            ;; change syntax object identity (via syntax-track-origin) which doesn't work
            ;; for looking up types in the optimizer.
            [(transformed-body ...)
-            (change-contract-fixups (flatten-all-begins #'(begin optimized-body ...)))])
+            (map
+             syntax-local-introduce 
+             (change-contract-fixups (flatten-all-begins #'(begin optimized-body ...))))])
           (define ty-str
             (match type
               ;; 'no-type means the form is not an expression and

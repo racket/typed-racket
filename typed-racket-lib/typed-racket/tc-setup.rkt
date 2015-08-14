@@ -3,7 +3,7 @@
 (require "utils/utils.rkt"
          syntax/stx
          racket/pretty racket/promise racket/lazy-require
-         (env type-name-env type-alias-env mvar-env)
+         (env type-name-env type-alias-env mvar-env global-env)
          (utils tc-utils disarm mutated-vars lift)
          "standard-inits.rkt"
          (for-syntax racket/base)
@@ -20,8 +20,9 @@
   (if (optimize?)
       (begin
         (do-time "Starting optimizer")
-        (begin0 (stx-map optimize-top body)
-          (do-time "Optimized")))
+        (begin0
+         (datum->syntax #f (stx-map optimize-top body))
+         (do-time "Optimized")))
       body))
 
 ;; -> Promise<Dict<Name, Type>>
@@ -52,11 +53,13 @@
                    ;; reinitialize disappeared uses
                    [disappeared-use-todo      null]
                    [disappeared-bindings-todo null])
-      (define fully-expanded-stx (disarm* (do-expand stx expand-ctxt (list #'module*))))
+      (define fully-expanded-stx
+        (syntax-local-introduce
+         (disarm* (do-expand stx expand-ctxt (list #'module*)))))
       (when (print-syntax?)
         (pretty-print (syntax->datum fully-expanded-stx)))
       (do-time "Local Expand Done")
-      (let ([exprs (syntax->list (syntax-local-introduce fully-expanded-stx))])
+      (let ([exprs (syntax->list fully-expanded-stx)])
         (when (pair? exprs)
           (log-message online-check-syntax-logger
                        'info
@@ -76,6 +79,7 @@
             (apply k fully-expanded-stx results)))))))
 
 (define (tc-toplevel/full orig-stx stx k)
+  (reset-type-env!)
   (tc-setup orig-stx stx 'top-level local-expand/capture* tc-toplevel-form k))
 
 (define (tc-module/full orig-stx stx k)

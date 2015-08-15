@@ -540,6 +540,13 @@
                         #:when v)
               v))]
 
+          ;; from define-new-subtype
+          [((Distinction: nm1 id1 S) (app resolve (Distinction: nm2 id2 T)))
+           #:when (and (equal? nm1 nm2) (equal? id1 id2))
+           (cg S T)]
+          [((Distinction: _ _ S) T)
+           (cg S T)]
+
           ;; two structs with the same name
           ;; just check pairwise on the fields
           [((Struct: nm _ flds proc _ _) (Struct: nm* _ flds* proc* _ _))

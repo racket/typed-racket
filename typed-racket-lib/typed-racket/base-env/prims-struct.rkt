@@ -198,13 +198,6 @@
     (syntax-parse stx
       [(define-new-subtype ty:id (constructor:id rep-ty:expr))
        #:with gen-id (generate-temporary #'ty)
-       #:with stx-err-fun
-       #'(lambda (stx)
-           (raise-syntax-error
-            'type-check
-            "type name used out of context"
-            stx
-            (and (stx-pair? stx) (stx-car stx))))
        #`(begin
            (define-type-alias ty (Distinction ty gen-id rep-ty))
            #,(ignore

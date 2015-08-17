@@ -378,7 +378,10 @@
       [(Value: '()) null]))
   (match type
     ;; if we know how it was written, print that
-    [(? Rep-stx a) (syntax->datum (Rep-stx a))]
+    [(? Rep-stx a)
+     (if (Error? a)
+         `(Error ,(syntax->datum (Rep-stx a)))
+         (syntax->datum (Rep-stx a)))]
     [(Univ:) 'Any]
     ;; struct names are just printed as the original syntax
     [(Name/struct: id) (syntax-e id)]

@@ -10,7 +10,7 @@
          (for-syntax racket/base)
          (for-template racket/base "def-export.rkt"))
 
-(provide remove-provides provide? generate-prov get-alternate)
+(provide remove-provides provide? generate-prov)
 
 (define (provide? form)
   (syntax-parse form

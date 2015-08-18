@@ -5,8 +5,7 @@
 (require racket/contract/region racket/contract/base
          syntax/location
          (for-syntax racket/base
-                     syntax/parse
-                     (prefix-in tr: "../typecheck/renamer.rkt")))
+                     syntax/parse))
 
 (provide require/contract define-ignored)
 
@@ -26,11 +25,6 @@
         #`(define name #,(syntax-property #'e
                                           'inferred-name
                                           (syntax-e #'name)))])]))
-
-(define-syntax (get-alternate stx)
-  (syntax-case stx ()
-    [(_ id)
-     (tr:get-alternate #'id)]))
 
 ;; Requires an identifier from an untyped module into a typed module
 ;; nm is the import
@@ -56,9 +50,16 @@
 
               (define-ignored hidden
                 (contract cnt
-                          (get-alternate nm.orig-nm-r)
+                          #,(get-alternate #'nm.orig-nm-r)
                           '(interface for #,(syntax->datum #'nm.nm))
                           (current-contract-region)
                           (quote nm.nm)
                           (quote-srcloc nm.nm))))]))
 
+;; identifier -> identifier
+;; get the alternate field of the renaming, if it exists
+(define-for-syntax (get-alternate id)
+  (define-values (v new-id) (syntax-local-value/immediate id (λ _ (values #f #f))))
+  (cond [(rename-transformer? v)
+         (get-alternate (rename-transformer-target v))]
+        [else id]))

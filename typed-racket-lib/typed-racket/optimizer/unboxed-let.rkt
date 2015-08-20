@@ -99,14 +99,15 @@
          (define-syntax-class unboxed-clauses
            #:attributes (bindings)
            (pattern (clauses:unboxed-clause ...)
-             #:attr bindings (delay (template ((?@ . clauses.bindings) ...)))))]
+             #:attr bindings (delay (template ((?@ . clauses.bindings) ...)))))
+         (define top-stx this-syntax)]
 
    #:attr opt
      (syntax-parse #'(clause ...)
       [clauses:unboxed-clauses
         (delay
           (quasisyntax/loc/origin
-            this-syntax #'letk.kw
+            top-stx #'letk.kw
             (letk.key ... clauses.bindings body.opt ...)))])))
 
 

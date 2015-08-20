@@ -14,7 +14,7 @@
 
 (def-measure-unit Measure-Unit
   ([hash-table
-    (hash/c base-measure-unit/c (and/c exact-integer? (not/c zero?)))])
+    (hash/c base-measure-unit/c (and/c exact-integer? (not/c zero?)) #:immutable #t)])
   [#:frees #f])
 
 (define (make-measure-unit ht)

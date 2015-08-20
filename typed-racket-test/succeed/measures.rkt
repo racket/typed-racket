@@ -9,6 +9,9 @@
 (define t (measure 2 s))
 (: f : Real-Meters Real-Seconds -> Real-Meters/Second)
 (define (f x t)
-  ; testing that (Measure Real (u* m (u^ s -1))) is the same as Real-Meters/Second
-  (measure (/ x t) (u* m (u^ s -1))))
+  (m/ x t))
 (f x t)
+(define one (m*))
+(define x* (m* x))
+(define x*t (m* x t))
+(define x/t (m/ x t))

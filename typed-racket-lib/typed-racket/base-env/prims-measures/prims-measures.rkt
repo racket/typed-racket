@@ -6,7 +6,10 @@
          measure
          u*
          u^
-         )
+         m*
+         m^
+         m/
+         (for-syntax -u* -u^))
 
 (require (submod "../../typecheck/internal-forms.rkt" forms)
          "../base-types-extra.rkt"
@@ -73,6 +76,10 @@
     (quasisyntax/loc expr-stx
       (#,(measure-property #'#%expression u-stx)
        #,expr-stx)))
+  (define (add-measure-arith-prop expr-stx)
+    (quasisyntax/loc expr-stx
+      (#,(measure-arith-property #'#%expression #t)
+       #,expr-stx)))
   )
 
 (define-syntax measure
@@ -80,4 +87,24 @@
     (syntax-parse stx
       [(measure n:expr u:expr)
        (add-measure-prop #'n #'u)])))
+
+(define-syntax m*
+  (lambda (stx)
+    (syntax-parse stx
+      [(m* a:expr ...)
+       (add-measure-arith-prop #'(* a ...))])))
+
+(define-syntax m^
+  (lambda (stx)
+    (syntax-parse stx
+      [(m^ a:expr b:integer)
+       (add-measure-arith-prop #'(expt a b))])))
+
+(define-syntax m/
+  (lambda (stx)
+    (syntax-parse stx
+      [(m/ a:expr)
+       #'(m^ a -1)]
+      [(m/ a:expr b:expr ...+)
+       #'(m* a (m/ (m* b ...)))])))
 

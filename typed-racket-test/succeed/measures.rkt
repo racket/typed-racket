@@ -1,4 +1,5 @@
 #lang typed/racket
+(provide (all-defined-out))
 (define-base-measure-unit m)
 (define-base-measure-unit s)
 (define-measure-unit m/s (u* m (u^ s -1)))
@@ -11,7 +12,9 @@
 (define (f x t)
   (m/ x t))
 (f x t)
+(define zero (m+))
 (define one (m*))
 (define x* (m* x))
 (define x*t (m* x t))
 (define x/t (m/ x t))
+(define 2x/t (m+ (f x t) x/t))

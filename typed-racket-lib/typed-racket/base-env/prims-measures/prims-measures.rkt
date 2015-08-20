@@ -9,6 +9,8 @@
          m*
          m^
          m/
+         m+
+         m-
          (for-syntax -u* -u^))
 
 (require (submod "../../typecheck/internal-forms.rkt" forms)
@@ -107,4 +109,20 @@
        #'(m^ a -1)]
       [(m/ a:expr b:expr ...+)
        #'(m* a (m/ (m* b ...)))])))
+
+(define-syntax m+
+  (lambda (stx)
+    (syntax-parse stx
+      [(m+)
+       #'(measure 0 (u*))]
+      [(m+ a:expr ...+)
+       (add-measure-arith-prop #'(+ a ...))])))
+
+(define-syntax m-
+  (lambda (stx)
+    (syntax-parse stx
+      [(m- a:expr)
+       #'(m* a (measure -1 (u*)))]
+      [(m- a:expr b:expr ...+)
+       #'(m+ a (m- (m+ b ...)))])))
 

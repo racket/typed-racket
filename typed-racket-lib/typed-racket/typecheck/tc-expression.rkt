@@ -163,5 +163,14 @@
      (match-define (Distinction: 'Measure-Type u t) ty)
      (match-define (tc-results: (list n-ty) fs os) (tc-expr stx))
      (ret (list (-Measure n-ty (-u^ u (syntax-e #'b)))) fs os)]
+    [(#%plain-app + ~! a:expr ...+)
+     (match-define (list (tc-results: (list tys) _ _) ...) (stx-map tc-expr #'(a ...)))
+     (match-define (list (Distinction: 'Measure-Type us ts) ...) tys)
+     (match-define (tc-results: (list n-ty) fs os) (tc-expr stx))
+     (match-define (list-rest u us*) us)
+     (for ([u* (in-list us*)])
+       (unless (equal? u u*)
+         (tc-error/expr "m+ mismatched units: cannot add ~v and ~v" u u*)))
+     (ret (list (-Measure n-ty u)) fs os)]
     [_ (tc-error/expr "unrecognized measure arithmetic form")]))
 

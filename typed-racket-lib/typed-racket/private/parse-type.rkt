@@ -18,6 +18,7 @@
          racket/format
          racket/match
          "parse-classes.rkt"
+         "../base-env/prims-measures/parse-measure-unit.rkt"
          (for-label
            (except-in racket/base case-lambda)
            "../base-env/colon.rkt"
@@ -101,6 +102,7 @@
 (define-literal-syntax-class #:for-label Top)
 (define-literal-syntax-class #:for-label Bot)
 (define-literal-syntax-class #:for-label Distinction)
+(define-literal-syntax-class #:for-label Measure)
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
@@ -430,6 +432,8 @@
        (make-Opaque #'p?)]
       [(:Distinction^ name:id unique-id:id rep-ty:expr)
        (-Distinction (syntax-e #'name) (syntax-e #'unique-id) (parse-type #'rep-ty))]
+      [(:Measure^ t:expr unit:expr)
+       (parse-measure-type #'t #'unit)]
       [(:Parameter^ t)
        (let ([ty (parse-type #'t)])
          (-Param ty ty))]
@@ -867,6 +871,11 @@
   (when conflicting-name
     (parse-error "class member conflicts with row variable constraints"
                  "conflicting name" conflicting-name)))
+
+;; parse-measure-type : Syntax Syntax -> Type/c
+;; helper for parse-type on (Measure type unit)
+(define (parse-measure-type t-stx unit)
+  (-Measure (parse-type t-stx) (parse-measure-unit unit)))
 
 (define (parse-tc-results stx)
   (syntax-parse stx

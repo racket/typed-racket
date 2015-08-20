@@ -8,6 +8,7 @@
   (utils tc-utils)
   (env index-env tvar-env scoped-tvar-env)
   (private syntax-properties parse-type)
+  typed-racket/base-env/prims-measures/parse-measure-unit
   racket/format
   racket/match
   syntax/stx
@@ -25,6 +26,8 @@
     [(exp:type-ascription^ e)
      (add-scoped-tvars #'e (parse-literal-alls (attribute exp.value)))
      (tc-expr/check #'e (parse-tc-results (attribute exp.value)))]
+    [(exp:measure^ e)
+     (add-measure-unit/tc-results (tc-expr #'e) (attribute exp.value))]
     [(exp:ignore-some-expr^ e)
      (register-ignored! #'e)
      (check-subforms/ignore #'e)
@@ -124,4 +127,22 @@
          (~a "Cannot instantiate row with member " name
              " that the given row variable requires to be absent"))))
      (instantiate-poly ty (list row))]))
+
+;; add-measure-unit/tc-results : tc-results? syntax? -> tc-results?
+(define (add-measure-unit/tc-results tc-res u)
+  (define (error-case number)
+    (tc-error/expr
+      "Cannot instantiate expression that produces ~a values"
+      number))
+  (match tc-res
+    [(tc-results: tys fs os)
+     (match tys
+      [(list ty)
+       (ret (list (add-measure-unit ty u)) fs os)]
+      [_ (error-case (if (null? tys) 0 "multiple"))])]
+    [_ (error-case "multiple")]))
+
+;; add-measure-unit : Type Syntax -> Type
+(define (add-measure-unit ty u)
+  (-Measure ty (parse-measure-unit u)))
 

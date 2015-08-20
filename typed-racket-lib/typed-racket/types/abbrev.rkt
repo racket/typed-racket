@@ -290,6 +290,9 @@
 (define (-Distinction name sym ty)
   (make-Distinction name sym ty))
 
+(define (-Measure ty u)
+  (-Distinction 'Measure-Type u ty))
+
 ;; class utilities
 
 (begin-for-syntax

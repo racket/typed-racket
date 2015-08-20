@@ -21,7 +21,8 @@
 
 
 (lazy-require
-  ["../types/printer.rkt" (print-type print-filter print-object print-pathelem)])
+  ["../types/printer.rkt" (print-type print-filter print-object print-pathelem)]
+  ["../base-env/prims-measures/print-measure-unit.rkt" (print-measure-unit)])
 
 
 (provide == defintern hash-id (for-syntax fold-target))
@@ -359,7 +360,8 @@
 (make-prim-type [Type def-type #:Type type-case print-type type-name-ht type-rec-id #:key]
                 [Filter def-filter #:Filter filter-case print-filter filter-name-ht filter-rec-id]
                 [Object def-object #:Object object-case print-object object-name-ht object-rec-id]
-                [PathElem def-pathelem #:PathElem pathelem-case print-pathelem pathelem-name-ht pathelem-rec-id])
+                [PathElem def-pathelem #:PathElem pathelem-case print-pathelem pathelem-name-ht pathelem-rec-id]
+                [MeasureUnit def-measure-unit #:MeasureUnit measure-unit-case print-measure-unit measure-unit-name-ht measure-unit-rec-id])
 
 ;; NOTE: change these if the definitions above change, or everything will segfault
 (define-syntax-rule (unsafe-Rep-seq v) (unsafe-struct*-ref v 0))
@@ -370,7 +372,8 @@
   (match rep
     [(? (lambda (e) (or (Filter? e)
                         (Object? e)
-                        (PathElem? e)))
+                        (PathElem? e)
+                        (MeasureUnit? e)))
         (app (lambda (v) (vector->list (struct->vector v))) (list-rest tag seq fv fi stx vals)))
      vals]
     [(? Type?

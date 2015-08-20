@@ -3,7 +3,7 @@
 (require typed-racket/utils/tc-utils
          (for-template racket/base))
 
-(provide typed-renaming un-rename)
+(provide typed-indirection typed-renaming un-rename)
 
 ;; FIXME: use `make-variable-like-transformer` to abstract this pattern once
 ;;        it gets an option to supply a function instead of syntax to operate
@@ -26,6 +26,15 @@
                         stx
                         stx)]))
 
+;; this sets up a second indirection that just informs TR that there
+;; was a renaming established that can be checked by
+;; syntax-local-value/immediate
+(define-struct rename-indirect (target)
+  #:property prop:rename-transformer 0)
+
+(define (typed-indirection id)
+  (rename-indirect (syntax-property id 'not-free-identifier=? #t)))
+
 (define-struct typed-renaming (target alternate)
   #:property prop:syntax-local-value
   (λ (obj)
@@ -42,7 +51,7 @@
 (define (un-rename id)
   (if (syntax-transforming?)
       (let-values (((binding new-id) (syntax-local-value/immediate id (lambda () (values #f #f)))))
-        (if (typed-renaming? binding)
+        (if (rename-indirect? binding)
             new-id
             id))
       id))

@@ -9,8 +9,5 @@
 (define-syntax (def-export stx)
   (syntax-parse stx
     [(def-export export-id:identifier id:identifier cnt-id:identifier)
-     #'(define-syntax export-id
-         (let ([c #'cnt-id])
-           (if (unbox typed-context?)
-               (renamer #'id c)
-               (renamer c))))]))
+     #'(define-syntax export-id (typed-renaming (syntax-property #'id 'not-free-identifier=? #t)
+                                                (syntax-property #'cnt-id 'not-free-identifier=? #t)))]))

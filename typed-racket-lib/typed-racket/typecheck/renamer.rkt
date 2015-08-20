@@ -1,16 +1,24 @@
 #lang racket/base
 
-(provide renamer un-rename)
+(require typed-racket/utils/tc-utils)
+
+(provide typed-renaming un-rename)
 
 ;; target : identifier
 ;; alternate : identifier
 (define-struct typed-renaming (target alternate)
-  #:property prop:rename-transformer 0)
-
-(define (renamer id [alt #f])
-  (if alt
-      (make-typed-renaming (syntax-property id 'not-free-identifier=? #t) alt)
-      (make-rename-transformer (syntax-property id 'not-free-identifier=? #t))))
+  ;; prevent the rename transformer from expanding in
+  ;; module-begin context because the typed context flag
+  ;; will not be set until the module-begin
+  #:property prop:expansion-contexts
+  '(expression top-level module definition-context)
+  ;; delay the rename transformer target selection until
+  ;; expansion time when the typed context flag is set correctly
+  #:property prop:rename-transformer
+  (λ (obj)
+    (if (unbox typed-context?)
+        (typed-renaming-target obj)
+        (typed-renaming-alternate obj))))
 
 ;; Undo renaming for type lookup.
 ;; Used because of macros that mark the identifier used as the binding such as

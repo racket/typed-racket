@@ -1670,6 +1670,7 @@
 [syntax-local-lift-expression (-> (-Syntax Univ) (-Syntax Sym))]
 [syntax-local-lift-values-expression (-> -Nat (-Syntax Univ) (-lst (-Syntax Sym)))]
 [syntax-local-lift-context (-> Univ)]
+[syntax-local-lift-module (-> (-Syntax Univ) -Void)]
 [syntax-local-lift-module-end-declaration (-> (-Syntax Univ) -Void)]
 [syntax-local-lift-require (-poly (a) (-> Univ (-Syntax a) (-Syntax a)))]
 [syntax-local-lift-provide (-> Univ -Void)]
@@ -1677,14 +1678,20 @@
 [syntax-local-context (-> (Un (-val 'expression) (-val 'top-level) (-val 'module) (-val 'module-begin) (-lst Univ)))]
 [syntax-local-phase-level (-> -Int)]
 [syntax-local-module-exports (-> -Module-Path (-values (list (-lst Sym) (-lst Sym) (-lst Sym))))]
-[syntax-local-get-shadower (-> (-Syntax Sym) (-Syntax Sym))]
+[syntax-local-submodules (-> (-lst -Symbol))]
+[syntax-local-get-shadower (->opt (-Syntax Sym) [Univ] (-Syntax Sym))]
 [syntax-local-certifier (->opt [B] (-poly (a) (->opt (-Syntax a) [Univ (-opt (-poly (b) (-> (-Syntax b) (-Syntax b))))] (-Syntax a))))]
 [syntax-transforming? (-> B)]
+[syntax-transforming-module-expression? (-> B)]
 
 [syntax-local-identifier-as-binding (-> (-Syntax -Symbol) (-Syntax -Symbol))]
 [syntax-local-introduce (-poly (a) (-> (-Syntax a) (-Syntax a)))]
-[make-syntax-introducer (-> (-poly (a) (-> (-Syntax a) (-Syntax a))))]
-[make-syntax-delta-introducer (->opt (-Syntax Univ) [(-opt (-Syntax Univ)) (-opt -Int)] (-poly (a) (-> (-Syntax a) (-Syntax a))))]
+[make-syntax-introducer
+ (-> (-poly (a) (->opt (-Syntax a) [(one-of/c 'flip 'add 'remove)] (-Syntax a))))]
+[make-syntax-delta-introducer
+ (->opt (-Syntax Univ) (-opt (-Syntax Univ))
+        [(-opt -Int)]
+        (-poly (a) (->opt (-Syntax a) [(one-of/c 'flip 'add 'remove)] (-Syntax a))))]
 
 [syntax-local-transforming-module-provides? (-> B)]
 [syntax-local-module-defined-identifiers (-> (-HT (Un (-val #f) -Int) (-lst (-Syntax Sym))))]

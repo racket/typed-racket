@@ -128,13 +128,15 @@
        [(_ vars:maybe-type-vars nm:struct-name (fs:fld-spec ...)
            opts:struct-options)
         (let ([mutable? (if (attribute opts.mutable?) #'(#:mutable) #'())]
-              [cname (second (build-struct-names #'nm.name null #t #t))])
+              [cname (second (build-struct-names #'nm.name null #t #t))]
+              [prefab? (if (attribute opts.prefab?) #'(#:prefab) #'())])
           (with-syntax ([d-s (ignore-some
                                (syntax/loc stx (define-struct nm (fs.fld ...) . opts)))]
                         [dtsi (quasisyntax/loc stx
                                 (dtsi* (vars.vars ...) nm (fs.form ...)
                                        #:maker #,cname
-                                       #,@mutable?))])
+                                       #,@mutable?
+                                       #,@prefab?))])
             #'(begin d-s dtsi)))]))
    (lambda (stx)
      (syntax-parse stx

@@ -42,12 +42,12 @@
   #:literal-sets (kernel-literals)
   (pattern (#%plain-app op:unary-extflonum-op t:opt-expr)
     #:do [(log-extfl-opt "unary extflonum")]
-    #:with opt #'(op.unsafe t.opt))
+    #:with opt (syntax/loc this-syntax (op.unsafe t.opt)))
   (pattern (#%plain-app op:binary-extflonum-op t1:opt-expr t2:opt-expr)
     #:do [(log-extfl-opt "binary extflonum")]
-    #:with opt #'(op.unsafe t1.opt t2.opt))
+    #:with opt (syntax/loc this-syntax (op.unsafe t1.opt t2.opt)))
 
   (pattern (#%plain-app :fx->extfl-op f:fixnum-expr)
     #:do [(log-extfl-opt "fixnum to extflonum conversion")]
-    #:with opt #'(unsafe-fx->extfl f.opt))
+    #:with opt (syntax/loc this-syntax (unsafe-fx->extfl f.opt)))
   )

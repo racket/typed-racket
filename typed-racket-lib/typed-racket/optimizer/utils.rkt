@@ -51,11 +51,12 @@
 
 ;; unlike their safe counterparts, unsafe binary operators can only take 2 arguments
 ;; this works on operations that are (A A -> A)
-(define (n-ary->binary op stx)
+(define (n-ary->binary src-stx op stx)
   (for/fold ([o (stx-car stx)]) ([e (in-syntax (stx-cdr stx))])
-    #`(#,op #,o #,e)))
+    (quasisyntax/loc src-stx
+      (#,op #,o #,e))))
 ;; this works on operations that are (A A -> B)
-(define (n-ary-comp->binary op arg1 arg2 rest)
+(define (n-ary-comp->binary src-stx op arg1 arg2 rest)
   ;; First, generate temps to bind the result of each arg2 args ...
   ;; to avoid computing them multiple times.
   (define lifted (stx-map (lambda (x) (generate-temporary)) #`(#,arg2 #,@rest)))
@@ -69,10 +70,11 @@
                         (car l)
                         (cdr l))])))
   ;; Finally, build the whole thing.
-  #`(let #,(for/list ([lhs (in-list lifted)]
+  (quasisyntax/loc src-stx
+    (let #,(for/list ([lhs (in-list lifted)]
                       [rhs (in-syntax #`(#,arg2 #,@rest))])
              #`(#,lhs #,rhs))
-      (and #,@tests)))
+      (and #,@tests))))
 
 ;; to avoid mutually recursive syntax classes
 ;; will be set to the actual optimization function at the entry point

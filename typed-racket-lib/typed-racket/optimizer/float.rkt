@@ -192,7 +192,7 @@
                          this-syntax extra-precision-subexprs)))
                     safe-to-opt?)
            #:do [(log-fl-opt "binary float")]
-           #:with opt (n-ary->binary #'op.unsafe #'(fs.opt ...)))
+           #:with opt (n-ary->binary this-syntax #'op.unsafe #'(fs.opt ...)))
   (pattern (#%plain-app op:binary-float-comp f1:float-expr f2:float-expr)
     #:do [(log-fl-opt "binary float comp")]
     #:with opt #'(op.unsafe f1.opt f2.opt))
@@ -201,7 +201,7 @@
                         f2:float-expr
                         fs:float-expr ...)
     #:do [(log-fl-opt "multi float comp")]
-    #:with opt (n-ary-comp->binary #'op.unsafe #'f1.opt #'f2.opt #'(fs.opt ...)))
+    #:with opt (n-ary-comp->binary this-syntax #'op.unsafe #'f1.opt #'f2.opt #'(fs.opt ...)))
   (pattern (#%plain-app op:binary-float-comp args:opt-expr ...)
     ;; some args, but not all (otherwise above would have matched) are floats
     ;; mixed-type comparisons are slow and block futures

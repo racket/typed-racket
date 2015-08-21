@@ -145,7 +145,7 @@
     #:with (bindings ...)
       #`(cs.bindings ... ...
          #,@(let ()
-               (define (fl-sum cs) (n-ary->binary #'unsafe-fl+ cs))
+               (define (fl-sum cs) (n-ary->binary this-syntax #'unsafe-fl+ cs))
                (list
                 #`((real-binding) #,(fl-sum #'(cs.real-binding ...)))
                 #`((imag-binding) #,(fl-sum #'(cs.imag-binding ...)))))))
@@ -161,7 +161,7 @@
     #:with (bindings ...)
       #`(cs.bindings ... ...
          #,@(let ()
-              (define (fl-subtract cs) (n-ary->binary #'unsafe-fl- cs))
+              (define (fl-subtract cs) (n-ary->binary this-syntax #'unsafe-fl- cs))
               (list
                #`((real-binding) #,(fl-subtract #'(cs.real-binding ...)))
                #`((imag-binding) #,(fl-subtract #'(cs.imag-binding ...)))))))

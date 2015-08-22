@@ -4,12 +4,12 @@
   "../utils/utils.rkt"
   (typecheck signatures tc-app-helper check-below)
   (types utils abbrev classes type-table)
-  (rep type-rep)
+  (rep type-rep measure-unit-rep)
   (utils tc-utils)
   (env index-env tvar-env scoped-tvar-env)
   (private syntax-properties parse-type)
   typed-racket/base-env/prims-measures/parse-measure-unit
-  (only-meta-in 0 (for-template typed-racket/base-env/prims-measures/prims-measures))
+  typed-racket/base-env/prims-measures/measure-unit-functions
   (for-template (only-in racket/base #%plain-app quote + - * / expt))
   racket/format
   racket/match
@@ -157,12 +157,12 @@
      (match-define (list (tc-results: (list tys) _ _) ...) (stx-map tc-expr #'(a ...)))
      (match-define (list (Distinction: 'Measure-Type us ts) ...) tys)
      (match-define (tc-results: (list n-ty) fs os) (tc-expr stx))
-     (ret (list (-Measure n-ty (apply -u* us))) fs os)]
+     (ret (list (-Measure n-ty (apply u*/F us))) fs os)]
     [(#%plain-app expt ~! a:expr (quote b:integer))
      (match-define (tc-results: (list ty) _ _) (tc-expr #'a))
      (match-define (Distinction: 'Measure-Type u t) ty)
      (match-define (tc-results: (list n-ty) fs os) (tc-expr stx))
-     (ret (list (-Measure n-ty (-u^ u (syntax-e #'b)))) fs os)]
+     (ret (list (-Measure n-ty (u^/F u (syntax-e #'b)))) fs os)]
     [(#%plain-app + ~! a:expr ...+)
      (match-define (list (tc-results: (list tys) _ _) ...) (stx-map tc-expr #'(a ...)))
      (match-define (list (Distinction: 'Measure-Type us ts) ...) tys)

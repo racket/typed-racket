@@ -18,3 +18,8 @@
 (define x*t (m* x t))
 (define x/t (m/ x t))
 (define 2x/t (m+ (f x t) x/t))
+(: g : (All (u) (Measure Real u) -> (Measure Real u)))
+(define (g m)
+  (m* (measure 2 (u*)) m))
+(define 10m (g (measure 5 m)))
+(ann 10m Real-Meters)

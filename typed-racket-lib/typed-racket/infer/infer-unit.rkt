@@ -11,14 +11,15 @@
          (except-in
           (combine-in
            (utils tc-utils)
-           (rep free-variance type-rep filter-rep object-rep rep-utils)
+           (rep free-variance type-rep filter-rep object-rep measure-unit-rep rep-utils)
            (types utils abbrev numeric-tower union subtype resolve
-                  substitute generalize prefab)
+                  substitute generalize prefab match-expanders)
            (env index-env tvar-env))
           make-env -> ->* one-of/c)
          "constraint-structs.rkt"
          "signatures.rkt" "fail.rkt"
          "promote-demote.rkt"
+         "../base-env/prims-measures/measure-unit-functions.rkt"
          racket/match
          mzlib/etc
          (contract-req)
@@ -418,6 +419,9 @@
   (define/cond-contract (cg/inv S T)
    (Type/c Type/c . -> . (or/c #f cset?))
    (cgen/inv context S T))
+  (define/cond-contract (cg/measure-unit u1 u2)
+   (MeasureUnit? MeasureUnit? . -> . (or/c #f cset?))
+   (cgen/measure-unit context u1 u2))
   ;; this places no constraints on any variables
   (define empty (empty-cset/context context))
   ;; this constrains just x (which is a single var)
@@ -544,6 +548,10 @@
           [((Distinction: nm1 id1 S) (app resolve (Distinction: nm2 id2 T)))
            #:when (and (equal? nm1 nm2) (equal? id1 id2))
            (cg S T)]
+          [((Measure: S u1) (app resolve (Measure: T u2)))
+           (% cset-meet
+              (cg/measure-unit u1 u2)
+              (cg S T))]
           [((Distinction: _ _ S) T)
            (cg S T)]
 
@@ -887,6 +895,35 @@
    (define m (cset-meet cs expected-cset))
    #:return-unless m #f
    (subst-gen m X (list dotted-var) R)))
+
+;; cgen/measure-unit
+(define (cgen/measure-unit context u1 u2)
+  ;; this places no constraints on any variables
+  (define empty (empty-cset/context context))
+  ;; this constrains just x (which is a single var)
+  (define (singleton S x T)
+    (insert empty x S T))
+  ;; u2/u1 should be constrained so that it is 1
+  (define u2/u1 (u*/F u2 (u^/F u1 -1)))
+  (match u2/u1
+    [(measure-unit: (hash-table)) empty]
+    [(measure-unit: _) #f] ; u1/u2 can never be 1; fail
+    [(measure-unit/F: _ (measure-unit: (hash-table))) empty]
+    [(measure-unit/F: deps (measure-unit: u2/u1-hsh))
+     (define (in-deps? k)
+       (match k [(list _ id) (member id deps)]))
+     (define lhs (for/hash ([(k v) (in-hash u2/u1-hsh)]
+                            #:when (in-deps? k))
+                   (values k v)))
+     (define rhs (for/hash ([(k v) (in-hash u2/u1-hsh)]
+                            #:when (not (in-deps? k)))
+                   (values k (- v)))) ; becasue they are divided to the other side
+     (match lhs
+       [(hash-table [(list _ sym) n])
+        (define u (u^ (make-measure-unit rhs) (/ n)))
+        (define t (-Measure -One u))
+        (singleton t sym t)]
+       [_ #f])]))
 
 
 ;(trace subst-gen)

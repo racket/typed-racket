@@ -5,8 +5,13 @@
 (require syntax/parse
          syntax/stx
          racket/syntax
+         racket/list
+         racket/match
+         unstable/match
          "../../rep/measure-unit-rep.rkt"
+         "../../rep/type-rep.rkt"
          "../../env/measure-unit-env.rkt"
+         "../../env/tvar-env.rkt"
          (for-template "base-measure-unit.rkt")
          )
 
@@ -15,10 +20,19 @@
     [(base-measure-unit nm:id id:id)
      (make-base-measure-unit (syntax-e #'nm) (syntax-e #'id))]
     [u:id
-     (lookup-measure-unit #'u parse-measure-unit)]
+     (cond
+       ;; if it's a type variable, we take the corresponding reference in the HT
+       ;;   and put it in an F-measure-unit
+       [(bound-tvar? (syntax-e #'u))
+        (define tvar (lookup-tvar (syntax-e #'u)))
+        (match tvar
+          [(F: (? symbol? sym))
+           (make-F-measure-unit sym)])]
+       [else
+        (lookup-measure-unit #'u parse-measure-unit)])]
     [n:integer
      (syntax-e #'n)]
     [(f:expr arg:expr ...)
      (define f* (parse-measure-unit #'f))
      (define args (stx-map parse-measure-unit #'(arg ...)))
-     (apply f* args)]))
+     (apply/F-measure-units f* args)]))

@@ -14,6 +14,7 @@
                   "types/utils.rkt"
                   "types/resolve.rkt"
                   "types/prefab.rkt"
+                  "base-env/prims-measures/print-measure-unit.rkt"
                   "utils/utils.rkt"
                   "utils/tc-utils.rkt")
          (for-syntax racket/base syntax/parse))
@@ -520,6 +521,8 @@
      `(Sequenceof ,@(map t->s ts))]
     [(Error:) 'Error]
     [(fld: t a m) `(fld ,(type->sexp t))]
+    [(Measure: t u)
+     `(Measure ,(t->s t) ,(measure-unit->sexp u))]
     [(Distinction: name sym ty) ; from define-new-subtype
      name]
     [else `(Unknown Type: ,(struct->vector type))]

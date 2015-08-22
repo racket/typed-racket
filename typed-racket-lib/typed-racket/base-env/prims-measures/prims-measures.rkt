@@ -11,7 +11,7 @@
          m/
          m+
          m-
-         (for-syntax -u* -u^))
+         )
 
 (require (submod "../../typecheck/internal-forms.rkt" forms)
          "../base-types-extra.rkt"
@@ -31,6 +31,7 @@
                      "../../env/measure-unit-env.rkt"
                      "../../private/syntax-properties.rkt"
                      "../../typecheck/internal-forms.rkt"
+                     (prefix-in - "measure-unit-functions.rkt")
                      ))
 
 (define-syntax define-base-measure-unit
@@ -53,24 +54,6 @@
 (def-measure-unit-stx-err u* u^)
 
 (begin-for-syntax
-  (define-values (-u* -u^)
-    (let ()
-      (define u*
-        (case-lambda
-          [() (make-measure-unit (hash))]
-          [(u1 . rst)
-           (match-define (measure-unit: ht1) u1)
-           (match-define (list (measure-unit: rst-hts) ...) rst)
-           (make-measure-unit (apply hash-union ht1 rst-hts #:combine +))]))
-      (define (u^ u1 n)
-        (match-define (measure-unit: ht) u1)
-        (make-measure-unit
-         (for/hash ([(k v) (in-hash ht)])
-           (define v*n (* v n))
-           (unless (integer? v*n)
-             (error 'u^ "non-integer result exponent: ~v" v*n))
-           (values k v*n))))
-      (values u* u^)))
   (register-resolved-measure-unit #'u* -u*)
   (register-resolved-measure-unit #'u^ -u^)
 

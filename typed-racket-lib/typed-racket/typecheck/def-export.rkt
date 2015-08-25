@@ -9,7 +9,5 @@
 (define-syntax (def-export stx)
   (syntax-parse stx
     [(def-export export-id:identifier id:identifier cnt-id:identifier)
-     (with-syntax ([(indirection) (generate-temporaries (list 1))])
-       #'(begin
-           (define-syntax indirection (typed-indirection #'id))
-           (define-syntax export-id (typed-renaming #'indirection #'cnt-id))))]))
+     #'(define-syntax export-id (typed-renaming (syntax-property #'id 'not-free-identifier=? #t)
+                                                (syntax-property #'cnt-id 'not-free-identifier=? #t)))]))

@@ -3783,6 +3783,13 @@
        [tc-err (let ()
                  (define x (eval 0))
                  x)]
+
+       ;; PR 15138
+       [tc-e (for*/lists: ((xs : (Listof Symbol))) ((x '(a b c))) x)
+             #:ret (ret (-lst -Symbol) (-FS -top -bot) -empty-obj)]
+       [tc-e (for*/fold: ((xs : (Listof Symbol) '())) ((x '(a b c)))
+               (cons x xs))
+             (-lst -Symbol)]
        )
 
   (test-suite

@@ -481,14 +481,17 @@ the typed racket language.
         clause:for-clauses
         a2:optional-standalone-annotation*
         c ...)
+     (define all-typed? (andmap values (attribute var.ty)))
+     (define for-stx
+       (quasisyntax/loc stx
+         (for/lists (var.ann-name ...)
+             (clause.expand* ... ...)
+           c ...)))
      ((attribute a1.annotate)
       ((attribute a2.annotate)
-       (add-ann
-        (quasisyntax/loc stx
-          (for/lists (var.ann-name ...)
-              (clause.expand* ... ...)
-            c ...))
-        #'(values var.ty ...))))]))
+       (if all-typed?
+           (add-ann for-stx #'(values var.ty ...))
+           for-stx)))]))
 (define-syntax (for*/fold: stx)
   (syntax-parse stx #:literals (:)
     [(_ a1:optional-standalone-annotation*
@@ -496,14 +499,17 @@ the typed racket language.
         clause:for-clauses
         a2:optional-standalone-annotation*
         c ...)
+     (define all-typed? (andmap values (attribute var.ty)))
+     (define for-stx
+       (quasisyntax/loc stx
+         (for/fold ((var.ann-name init) ...)
+             (clause.expand* ... ...)
+           c ...)))
      ((attribute a1.annotate)
       ((attribute a2.annotate)
-       (add-ann
-        (quasisyntax/loc stx
-          (for/fold ((var.ann-name init) ...)
-              (clause.expand* ... ...)
-            c ...))
-        #'(values var.ty ...))))]))
+       (if all-typed?
+           (add-ann for-stx #'(values var.ty ...))
+           for-stx)))]))
 
 (define-for-syntax (define-for/acc:-variant for*? for/folder: for/folder op initial final)
   (lambda (stx)

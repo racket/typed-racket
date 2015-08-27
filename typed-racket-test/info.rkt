@@ -13,7 +13,7 @@
                "racket-index"
                "pconvert-lib"
                "compatibility-lib"
-               "unstable-flonum-lib"))
+               "math-lib"))
 (define build-deps '("scheme-lib"
                      "base"
                      "racket-benchmarks"

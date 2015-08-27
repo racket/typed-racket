@@ -1,6 +1,6 @@
 #lang racket
 
-(require unstable/flonum)
+(require math/flonum)
 
 (provide random-exponential random-laplace
          random-flonum random-single-flonum

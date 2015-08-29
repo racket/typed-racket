@@ -73,11 +73,7 @@
       [(measure n:expr u:expr)
        (add-measure-prop #'n #'u)])))
 
-(define-syntax m*
-  (lambda (stx)
-    (syntax-parse stx
-      [(m* a:expr ...)
-       (add-measure-arith-prop #'(* a ...))])))
+(define m* *)
 
 (define-syntax m^
   (lambda (stx)
@@ -85,27 +81,9 @@
       [(m^ a:expr b:integer)
        (add-measure-arith-prop #'(expt a b))])))
 
-(define-syntax m/
-  (lambda (stx)
-    (syntax-parse stx
-      [(m/ a:expr)
-       #'(m^ a -1)]
-      [(m/ a:expr b:expr ...+)
-       #'(m* a (m/ (m* b ...)))])))
+(define m/ /)
 
-(define-syntax m+
-  (lambda (stx)
-    (syntax-parse stx
-      [(m+)
-       #'(measure 0 (u*))]
-      [(m+ a:expr ...+)
-       (add-measure-arith-prop #'(+ a ...))])))
+(define m+ +)
 
-(define-syntax m-
-  (lambda (stx)
-    (syntax-parse stx
-      [(m- a:expr)
-       #'(m* a (measure -1 (u*)))]
-      [(m- a:expr b:expr ...+)
-       #'(m+ a (m- (m+ b ...)))])))
+(define m- -)
 

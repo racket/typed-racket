@@ -788,7 +788,7 @@
   (define positive-integer/sc (numeric/sc Positive-Integer (and/c exact-integer? positive?)))
   (define natural/sc (numeric/sc Natural exact-nonnegative-integer?))
   (define negative-integer/sc (numeric/sc Negative-Integer (and/c exact-integer? negative?)))
-  (define nonpositive-integer/sc (numeric/sc Nonpositive-Integer (and/c exact-integer? nonpostive?)))
+  (define nonpositive-integer/sc (numeric/sc Nonpositive-Integer (and/c exact-integer? nonpositive?)))
   (define integer/sc (numeric/sc Integer exact-integer?))
   (define positive-rational/sc (numeric/sc Positive-Rational (and/c t:exact-rational? positive?)))
   (define nonnegative-rational/sc (numeric/sc Nonnegative-Rational (and/c t:exact-rational? nonnegative?)))

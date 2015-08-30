@@ -206,10 +206,10 @@
     [(measure-unit: ht) u]
     [(measure-unit/F: deps (measure-unit: ht))
      (define subst*
-       (for/hash ([(k v) (in-hash subst)] #:when (member k deps))
+       (for/hash ([(k v) (in-hash subst)] #:when (set-member? deps k))
          (values k v)))
      (define deps*
-       (for/list ([dep (in-list deps)] #:unless (hash-has-key? subst* dep))
+       (for/set ([dep (in-set deps)] #:unless (hash-has-key? subst* dep))
          dep))
      (apply u*/F
             (make-measure-unit/maybe-F deps* (u*))

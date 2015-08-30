@@ -54,6 +54,10 @@
 ;; extend : type-env symbol option<symbol> -> type-env
 ;; extend type environment with a free type reference
 (define (extend env var [fresh-var #f])
+  (when (not (symbol-interned? var))
+    (printf "warning: tvar-env.rkt: uninterned symbol: ~v\n" var))
+  (when (and fresh-var (not (symbol-interned? fresh-var)))
+    (printf "warning: tvar-env.rkt: uninterned fresh-var symbol: ~v\n" fresh-var))
   (dict-set env var (make-F (or fresh-var var))))
 
 ;; extend/many : type-env list<symbol> option<list<symbol>> -> type-env

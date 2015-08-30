@@ -27,6 +27,7 @@
            racket/base
            syntax/parse)
          racket/dict
+         racket/set
          racket/hash racket/list)
 
 (import dmap^ constraints^)
@@ -905,19 +906,21 @@
     (insert empty x S T))
   ;; u2/u1 should be constrained so that it is 1
   (define u2/u1 (u*/F u2 (u^/F u1 -1)))
+  (printf "cgen/measure-unit\n  u1: ~v, u2: ~v, u2/u1: ~v\n  context: ~v\n" u1 u2 u2/u1 context)
   (match u2/u1
     [(measure-unit: (hash-table)) empty]
     [(measure-unit: _) #f] ; u1/u2 can never be 1; fail
     [(measure-unit/F: _ (measure-unit: (hash-table))) empty]
     [(measure-unit/F: deps (measure-unit: u2/u1-hsh))
      (define (in-deps? k)
-       (match k [(list _ id) (member id deps)]))
+       (match k [(list _ id) (set-member? deps id)]))
      (define lhs (for/hash ([(k v) (in-hash u2/u1-hsh)]
                             #:when (in-deps? k))
                    (values k v)))
      (define rhs (for/hash ([(k v) (in-hash u2/u1-hsh)]
                             #:when (not (in-deps? k)))
                    (values k (- v)))) ; becasue they are divided to the other side
+     (printf "  ~v = ~v\n" (make-measure-unit lhs) (make-measure-unit rhs))
      (match lhs
        [(hash-table [(list _ sym) n])
         (define u (u^ (make-measure-unit rhs) (/ n)))

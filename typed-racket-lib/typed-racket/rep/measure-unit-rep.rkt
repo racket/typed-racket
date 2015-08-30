@@ -2,11 +2,13 @@
 
 (provide make-measure-unit make-base-measure-unit measure-unit:
          make-measure-unit/F make-F-measure-unit measure-unit/F: make-measure-unit/maybe-F
-         apply/F-measure-units app/F-measure-units)
+         apply/F-measure-units app/F-measure-units
+         measure-unit=?)
 
 (require racket/match
          racket/contract/base
          racket/list
+         racket/set
          "rep-utils.rkt"
          "free-variance.rkt"
          (for-syntax racket/base
@@ -23,10 +25,10 @@
 
 ;; analogous to F in type-rep.rkt
 (def-measure-unit Measure-Unit/F
-  ([deps (listof symbol?)] [u Measure-Unit?])
+  ([deps (and/c set? (set/c symbol? #:kind 'immutable))] [u Measure-Unit?])
   ;; deps is a list of symbols which will match the second symbol of a
   ;;   base-measure-unit/c in u
-  [#:frees (λ (f) (combine-frees (list* (f u) (map single-free-var deps))))])
+  [#:frees (λ (f) (combine-frees (list* (f u) (set-map deps single-free-var))))])
 
 (define (make-measure-unit ht)
   (*Measure-Unit
@@ -37,14 +39,14 @@
   (*Measure-Unit/F deps u))
 
 (define (make-measure-unit/maybe-F deps u)
-  (cond [(empty? deps) u]
+  (cond [(set-empty? deps) u]
         [else (make-measure-unit/F deps u)]))
 
 (define (make-base-measure-unit name id)
   (make-measure-unit (hash (list name id) 1)))
 
 (define (make-F-measure-unit id)
-  (make-measure-unit/F (list id) (make-base-measure-unit id id)))
+  (make-measure-unit/F (set id) (make-base-measure-unit id id)))
 
 (define-match-expander measure-unit:
   (syntax-parser
@@ -63,9 +65,32 @@
         [(measure-unit/F: deps a)
          (values deps a)]
         [a
-         (values '() a)])))
-  (define deps (remove-duplicates (append* depss)))
+         (values (set) a)])))
+  (define deps (apply set-union (set) depss))
   (make-measure-unit/maybe-F deps (apply f args*)))
 
 (define (app/F-measure-units f . args)
   (apply/F-measure-units f args))
+
+(define (measure-unit=? a b)
+  (or
+   (equal? a b)
+   (match* [a b]
+     [[(measure-unit: a) (measure-unit: b)]
+      (equal? a b)]
+     [[(measure-unit/F: a-deps a) (measure-unit/F: b-deps b)]
+      (printf "measure-unit-rep.rkt measure-unit=? measure-unit/F:\n")
+      (printf "  a-deps: ~v\n  b-deps: ~v\n  a: ~v\n  b: ~v\n"
+              a-deps b-deps a b)
+      (and (or (set=? a-deps b-deps)
+               (and (printf "  a-deps /= b-deps\n")
+                    (when (not (and (andmap symbol? (set->list a-deps))
+                                    (andmap symbol-interned? (set->list a-deps))))
+                      (printf "  a-deps isn't made of interned symbols!\n"))
+                    (when (not (and (andmap symbol? (set->list b-deps))
+                                    (andmap symbol-interned? (set->list b-deps))))
+                      (printf "  b-deps isn't made of inderned symbols!\n"))
+                    #f))
+           (printf "  a-deps = b-deps\n")
+           (measure-unit=? a b))])))
+

@@ -27,6 +27,8 @@
         (define tvar (lookup-tvar (syntax-e #'u)))
         (match tvar
           [(F: (? symbol? sym))
+           (when (not (symbol-interned? sym))
+             (printf "warning: parse-measure-unit.rkt: uninterned symbol: ~v, from: ~v\n" sym #'u))
            (make-F-measure-unit sym)])]
        [else
         (lookup-measure-unit #'u parse-measure-unit)])]

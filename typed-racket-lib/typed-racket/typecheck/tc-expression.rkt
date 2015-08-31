@@ -4,10 +4,13 @@
   "../utils/utils.rkt"
   (typecheck signatures tc-app-helper check-below)
   (types utils abbrev classes type-table)
-  (rep type-rep)
+  (rep type-rep measure-unit-rep)
   (utils tc-utils)
   (env index-env tvar-env scoped-tvar-env)
   (private syntax-properties parse-type)
+  typed-racket/base-env/prims-measures/parse-measure-unit
+  typed-racket/base-env/prims-measures/measure-unit-functions
+  (for-template (only-in racket/base #%plain-app quote + - * / expt))
   racket/format
   racket/match
   syntax/stx
@@ -25,6 +28,10 @@
     [(exp:type-ascription^ e)
      (add-scoped-tvars #'e (parse-literal-alls (attribute exp.value)))
      (tc-expr/check #'e (parse-tc-results (attribute exp.value)))]
+    [(exp:measure^ e)
+     (add-measure-unit/tc-results (tc-expr #'e) (attribute exp.value))]
+    [(exp:measure-arith^ e)
+     (handle-measure-arith/tc-results #'e)]
     [(exp:ignore-some-expr^ e)
      (register-ignored! #'e)
      (check-subforms/ignore #'e)
@@ -124,4 +131,46 @@
          (~a "Cannot instantiate row with member " name
              " that the given row variable requires to be absent"))))
      (instantiate-poly ty (list row))]))
+
+;; add-measure-unit/tc-results : tc-results? syntax? -> tc-results?
+(define (add-measure-unit/tc-results tc-res u)
+  (define (error-case number)
+    (tc-error/expr
+      "Cannot instantiate expression that produces ~a values"
+      number))
+  (match tc-res
+    [(tc-results: tys fs os)
+     (match tys
+      [(list ty)
+       (ret (list (add-measure-unit ty u)) fs os)]
+      [_ (error-case (if (null? tys) 0 "multiple"))])]
+    [_ (error-case "multiple")]))
+
+;; add-measure-unit : Type Syntax -> Type
+(define (add-measure-unit ty u)
+  (-Measure ty (parse-measure-unit u)))
+
+;; handle-measure-arith/tc-results : syntax? -> tc-results?
+(define (handle-measure-arith/tc-results stx)
+  (syntax-parse stx #:literals (#%plain-app quote + - * / expt)
+    [(#%plain-app * ~! a:expr ...)
+     (match-define (list (tc-results: (list tys) _ _) ...) (stx-map tc-expr #'(a ...)))
+     (match-define (list (Distinction: 'Measure-Type us ts) ...) tys)
+     (match-define (tc-results: (list n-ty) fs os) (tc-expr stx))
+     (ret (list (-Measure n-ty (apply u*/F us))) fs os)]
+    [(#%plain-app expt ~! a:expr (quote b:integer))
+     (match-define (tc-results: (list ty) _ _) (tc-expr #'a))
+     (match-define (Distinction: 'Measure-Type u t) ty)
+     (match-define (tc-results: (list n-ty) fs os) (tc-expr stx))
+     (ret (list (-Measure n-ty (u^/F u (syntax-e #'b)))) fs os)]
+    [(#%plain-app + ~! a:expr ...+)
+     (match-define (list (tc-results: (list tys) _ _) ...) (stx-map tc-expr #'(a ...)))
+     (match-define (list (Distinction: 'Measure-Type us ts) ...) tys)
+     (match-define (tc-results: (list n-ty) fs os) (tc-expr stx))
+     (match-define (list-rest u us*) us)
+     (for ([u* (in-list us*)])
+       (unless (equal? u u*)
+         (tc-error/expr "m+ mismatched units: cannot add ~v and ~v" u u*)))
+     (ret (list (-Measure n-ty u)) fs os)]
+    [_ (tc-error/expr "unrecognized measure arithmetic form")]))
 

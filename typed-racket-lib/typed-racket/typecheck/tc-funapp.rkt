@@ -97,6 +97,11 @@
       ;; Only try to infer the free vars of the rng (which includes the vars
       ;; in filters/objects).
       (λ (dom rng rest kw? a)
+        (printf "tc-funapp.rkt tc/funapp Poly: 100\n")
+        (printf "  vars: ~v\n  argtys: ~v\n  expected: ~v\n"
+                vars argtys expected)
+        (printf "  dom: ~v\n  rng\n: ~v\n  rest: ~v\n  kw?: ~v\n  a: ~v\n"
+                dom rng rest kw? a)
         (extend-tvars vars
                       (infer/vararg vars null argtys dom rest rng
                                     (and expected (tc-results->values expected)))))

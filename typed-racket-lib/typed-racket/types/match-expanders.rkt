@@ -11,7 +11,7 @@
          (for-syntax racket/base syntax/parse))
 
 (provide Listof: List: MListof: AnyPoly: AnyPoly-names: Function/arrs:
-         PredicateFilter:)
+         PredicateFilter: Measure:)
 
 
 (define-match-expander Listof:
@@ -102,3 +102,8 @@
     (syntax-parse stx
       [(_ fs)
        #'(Function: (list (arr: (list _) (Values: (list (Result: _ fs _))) _ _ _)))])))
+
+(define-match-expander Measure:
+  (syntax-parser
+    [(Measure: t u)
+     #'(Distinction: 'Measure-Type (? MeasureUnit? u) t)]))

@@ -582,10 +582,10 @@
 ;; Distinction
 ;; comes from define-new-subtype
 ;; nm: a symbol representing the name of the type
-;; id: a symbol created with gensym
+;; id: anything
 ;; ty: a type for the representation, where this will be a subtype of ty
-(def-type Distinction ([nm symbol?] [id symbol?] [ty Type/c])
-  [#:frees (λ (f) (f ty))]
+(def-type Distinction ([nm symbol?] [id any/c] [ty Type/c])
+  [#:frees (λ (f) (if (Rep? id) (combine-frees (list (f id) (f ty))) (f ty)))]
   [#:intern (list (Rep-seq ty) nm id)]
   [#:fold-rhs (*Distinction nm id (type-rec-id ty))]
   [#:key (Type-key ty)])

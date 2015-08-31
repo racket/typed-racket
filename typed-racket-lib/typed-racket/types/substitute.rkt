@@ -7,7 +7,8 @@
          (only-in (types base-abbrev) -Tuple* -lst -Null -result ManyUniv)
          (rep type-rep rep-utils)
          (utils tc-utils)
-         (rep free-variance)
+         (rep free-variance measure-unit-rep)
+         (base-env prims-measures/measure-unit-functions)
          (env tvar-env))
 (lazy-require ("union.rkt" (Un)))
 
@@ -48,6 +49,15 @@
                  target
                  [#:Union tys (apply Un (map sb tys))]
                  [#:F name (hash-ref subst name target)]
+                 [#:Distinction nm id ty
+                                (cond [(MeasureUnit? id)
+                                       (make-Distinction nm
+                                                         (substitute-many/measure-unit subst id)
+                                                         (sb ty))]
+                                      [else
+                                       (make-Distinction nm
+                                                         id
+                                                         (sb ty))])]
                  [#:arr dom rng rest drest kws
                         (cond
                           [(and (pair? drest)
@@ -189,3 +199,28 @@
        (substitute-dots imgs rest v t)]
       [(i-subst/dotted imgs dty dbound)
        (substitute-dotted imgs dty dbound v t)])))
+
+;; substitute-many/measure-unit : Hash[Name,Type] MeasureUnit -> MeasureUnit
+(define (substitute-many/measure-unit subst u)
+  (match u
+    [(measure-unit: ht) u]
+    [(measure-unit/F: deps (measure-unit: ht))
+     (define subst*
+       (for/hash ([(k v) (in-hash subst)] #:when (set-member? deps k))
+         (values k v)))
+     (define deps*
+       (for/set ([dep (in-set deps)] #:unless (hash-has-key? subst* dep))
+         dep))
+     (apply u*/F
+            (make-measure-unit/maybe-F deps* (u*))
+            (for/list ([(k v) (in-hash ht)])
+              (match-define (list nm id) k)
+              (define k*
+                (cond
+                  [(hash-has-key? subst* id)
+                   (match (hash-ref subst* id)
+                     [(Distinction: 'Measure-Type u (Value: 1)) u])]
+                  [else
+                   (make-base-measure-unit nm id)]))
+              (u^/F k* v)))]))
+

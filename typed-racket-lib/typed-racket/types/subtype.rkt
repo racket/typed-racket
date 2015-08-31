@@ -2,7 +2,7 @@
 (require (except-in "../utils/utils.rkt" infer)
          racket/match racket/function racket/lazy-require racket/list
          (prefix-in c: (contract-req))
-         (rep type-rep filter-rep object-rep rep-utils)
+         (rep type-rep filter-rep object-rep measure-unit-rep rep-utils)
          (utils tc-utils early-return)
          (types utils resolve base-abbrev match-expanders
                 numeric-tower substitute current-seen prefab)
@@ -294,7 +294,12 @@
           #f]
          ;; from define-new-subtype
          [((Distinction: nm1 id1 t1) (app resolve (Distinction: nm2 id2 t2)))
-          #:when (and (equal? nm1 nm2) (equal? id1 id2))
+          #:when (or (equal? id1 id2)
+                     (and (MeasureUnit? id1) (MeasureUnit? id2)
+                          (printf "subtype.rkt Distinction: 299\n")
+                          (let ([x (measure-unit=? id1 id2)])
+                            (if x x (begin (printf "subtype.rkt Distinction: 301\n") #f)))))
+          (printf "subtype.rkt Distinction: 302\n")
           (subtype* A0 t1 t2)]
          [((Distinction: _ _ t1) t2)
           (subtype* A0 t1 t2)]

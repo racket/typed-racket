@@ -12,7 +12,7 @@
          racket/function
 
          (prefix-in c: (contract-req))
-         (rename-in (rep type-rep filter-rep object-rep)
+         (rename-in (rep type-rep filter-rep object-rep measure-unit-rep)
                     [make-Base make-Base*])
          (types union numeric-tower prefab)
          ;; Using this form so all-from-out works
@@ -289,6 +289,14 @@
 ;; from define-new-subtype
 (define (-Distinction name sym ty)
   (make-Distinction name sym ty))
+
+(define (-Measure ty u)
+  (-Distinction 'Measure-Type u ty))
+
+(define-syntax-rule (-poly/measure-unit (u ...) body ...)
+  (-poly (u ...)
+         (let ([u (make-F-measure-unit (F-n u))] ...)
+           body ...)))
 
 ;; class utilities
 

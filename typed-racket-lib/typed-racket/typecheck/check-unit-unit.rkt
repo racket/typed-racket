@@ -122,8 +122,8 @@
   ;; build a mapping of import-tags to import signatures
   ;; since init-depends are referenced by the tags only
   ;; this map is used to determine the init-depends of the unit
-  (define tag-map (map cons import-tags import-sigs))
-  (define lookup-temp (λ (temp) (lookup-type temp export-temp-internal-map)))
+  (define tag-map (make-immutable-free-id-table (map cons import-tags import-sigs)))
+  (define lookup-temp (λ (temp) (free-id-table-ref export-temp-internal-map temp #f)))
   
   (values (for/list ([sig-id  (in-list import-sigs)]
                      [sig-internal-ids (in-list import-internal-ids)])
@@ -145,7 +145,7 @@
                                                   (map lookup-temp (take temp-ids len)))
                                         sig-infos)))])
             (reverse si))
-          (map (λ (x) (lookup-type x tag-map)) init-depend-tags)))
+          (map (λ (x) (free-id-table-ref tag-map x #f)) init-depend-tags)))
 
 ;; The following three syntax classes are used to parse specific pieces of
 ;; information from parts of the expansion of units
@@ -388,10 +388,6 @@
     (map cdr (Signature-mapping sig)))
   (map cons internal-names sig-types))
 
-(define (lookup-type name mapping)
-  (let ([v (assoc name mapping free-identifier=?)])
-    (and v (cdr v))))
-
 ;; Syntax Option<TCResults> -> TCResults
 ;; Type-check a unit form
 (define (check-unit form [expected #f])
@@ -460,7 +456,11 @@
     (parse-compound-unit form))
   (define (lookup-link-id id) (dict-ref link-mapping id #f))
   (define (lookup-sig-id id) 
-    (lookup-type id (map (lambda (k/v) (cons (cdr k/v) (car k/v))) link-mapping)))
+    (free-id-table-ref
+     (make-immutable-free-id-table
+      (map (lambda (k/v) (cons (cdr k/v) (car k/v))) link-mapping))
+     id
+     #f))
   
   (define-values (check _ init-depends)
     (for/fold ([check -Void]
@@ -582,7 +582,8 @@
      (define export-temp-ids (attribute u.export-temp-ids))
      (define init-depend-tags (attribute u.init-depend-tags))
      (define export-temp-internal-map
-       (trawl-for-property body-stx export-map-elem? extract-export-map-elem))
+       (make-immutable-free-id-table
+        (trawl-for-property body-stx export-map-elem? extract-export-map-elem)))
      (define-values (imports-info exports-info init-depends)
        (process-unit-syntax import-sigs import-internal-ids import-tags
                             export-sigs export-temp-ids export-temp-internal-map

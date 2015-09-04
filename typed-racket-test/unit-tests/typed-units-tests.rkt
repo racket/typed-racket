@@ -412,7 +412,7 @@
                a^1))) (import)))
     -Integer]
 
-    [tc-e
+   [tc-e
     (let ()
       (define-signature a^ ([a : Integer]))
       (define-unit u@ (import) (export a^) (define a 5))
@@ -645,16 +645,16 @@
       (unit (import b^ c^) (export))
       (error ""))]
 
-   ;; uses of locally defined signature bodies are not allowed to escape into
-   ;; wider scopes
+   ;; invoking a unit which imports a locally defined signature is a type error
+   ;; even if it is invoked with an import of the same name
    [tc-err
     (let ()
+      (define-signature bad^ ())
       (define bad
         (let ()
-          (define-signature bad^ ([bad : Symbol]))
-          (unit (import) 
-            (export bad^)
-            (define bad 'BAD))))
+          (define-signature bad^ ())
+          (unit (import bad^) (export))))
+      (invoke-unit bad (import bad^))
       (error ""))]
    
    ;; This tests that the linking clauses in compound-unit forms

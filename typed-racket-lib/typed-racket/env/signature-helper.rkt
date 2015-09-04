@@ -19,7 +19,8 @@
 
 ;; parse-signature : Syntax -> Signature
 ;; parses the internal syntax of a signature form to build the internal representation
-;; of a typed signature
+;; of a typed signature and registers the internal representation with the
+;; Signature environment
 ;; The parsed syntax is created by uses of `define-signature-internal` which are
 ;; inserted by the typed version of the `define-signature` macro, this function
 ;; uses that syntax to created a Typed Representation of the signature to
@@ -33,9 +34,6 @@
 ;; - The check field indicates that this syntax came from a use of require/typed
 ;;   using the #:signature clause, and listed bindings muct be checked to ensure
 ;;   they are consistent with the statically known signature variables
-;;
-;; This function registers the parsed Signature with the signature environment
-;; and then returns that signature
 (define (parse-and-register-signature! form)
   (syntax-parse form
     #:literal-sets (kernel-literals)
@@ -67,8 +65,7 @@
                          (fix-order #'name pre-mapping)
                          pre-mapping))
      (define signature (make-Signature #'name extends mapping))
-     (register-signature! #'name signature)
-     signature]))
+     (register-signature! #'name signature)]))
 
 ;; check-signature-bindings : Identifier (Listof Identifier) -> Void
 ;; checks that the bindings of a signature identifier are consistent with

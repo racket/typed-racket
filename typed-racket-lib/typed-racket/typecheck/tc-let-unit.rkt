@@ -4,7 +4,6 @@
          (except-in (types utils abbrev filter-ops remove-intersect type-table)
                     -> ->* one-of/c)
          (only-in (types abbrev) (-> t:->) [->* t:->*])
-         (types units)
          (private type-annotation parse-type syntax-properties)
          (env lexical-env type-alias-helper mvar-env
               global-env scoped-tvar-env 
@@ -146,10 +145,7 @@
   (for ([n (in-list names)] [b (in-list exprs)])
     (syntax-case n ()
       [(var) (add-scoped-tvars b (lookup-scoped-tvars #'var))]
-      [_ (void)]))
-  ;; return the list of signatures to check that none of them can
-  ;; escape the let-body
-  signatures)
+      [_ (void)])))
 
 ;; The `thunk` argument is run only for its side effects 
 ;; It is used to perform additional context-dependent checking
@@ -160,7 +156,7 @@
   (let* ([names (stx-map syntax->list namess)]
          [orig-flat-names (apply append names)]
          [exprs (syntax->list exprs)])
-    (define signatures (regsiter-aliases-and-declarations names exprs))
+    (regsiter-aliases-and-declarations names exprs)
     
     ;; First look at the clauses that do not bind the letrec names
     (define all-clauses
@@ -194,13 +190,6 @@
                      (map (λ (l) (map tc-result (map get-type l))) remaining-names)
                      remaining-exprs body expected
                      check-thunk)]))))
-
-    (unless (empty? signatures)
-      (define (check type) (signatures-escape? signatures type))
-      (match letrec-result
-        [(tc-results: tps) (map check tps)]
-        [else (void)]))
-
     letrec-result))
 
 ;; An lr-clause is a

@@ -66,7 +66,8 @@
           (not (Values? e))
           (not (ValuesDots? e))
           (not (AnyValues? e))
-          (not (Result? e)))))
+          (not (Result? e))
+          (not (Signature? e)))))
 
 ;; (or/c Type/c Values? Results?)
 ;; Anything that can be treated as a Values by sufficient expansion
@@ -77,7 +78,8 @@
           (not (arr? e))
           (not (fld? e))
           (not (ValuesDots? e))
-          (not (AnyValues? e)))))
+          (not (AnyValues? e))
+          (not (Signature? e)))))
 
 (define Type/c (flat-named-contract 'Type Type/c?))
 (define Values/c (flat-named-contract 'Values Values/c?))
@@ -563,7 +565,6 @@
 (def-type Signature ([name identifier?]
                      [extends (or/c Signature? #f)]
                      [mapping (listof (cons/c identifier? Type/c))])
-  ;; TODO: is this correct?
   [#:frees (lambda (f) null)]
   [#:fold-rhs (*Signature name extends mapping)])
 
@@ -579,7 +580,6 @@
                 [exports (listof Signature?)]
                 [init-depends (listof Signature?)]
                 [result SomeValues/c])
-  ;; TODO: is this correct?
   [#:frees (lambda (f) (f result))]
   [#:fold-rhs (*Unit (map type-rec-id imports)
                      (map type-rec-id exports)

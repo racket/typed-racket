@@ -36,7 +36,7 @@
     (pattern :sig-var-form
              #:attr kind 'var)
     ;; The define-type form is explicitly disallowed until I can figure out how
-    ;; to sensibly support them in signature definitions
+    ;; to sensibly support them in signature definitions - dfeltey
     (pattern :sig-type-form
              #:fail-when #t "type definitions are not allowed within signature definitions"
              #:attr kind 'type))
@@ -49,15 +49,15 @@
 
   ;; Preliminary support for type definitions in signatures
   ;; The form is allowed in signature definitions, but currently
-  ;; is ignored
+  ;; fails on parsing.
+  ;; In the future supporting type definitions inside of signatures
+  ;; would be a worthwhile feature, but their implemention is not obvious
   (define-syntax-class sig-type-form
     #:literals (define-type)
     (pattern (define-type t ty)
-             #:with internal-form #'(t ty)
-             ;; FIXME: the right thing to do for untyped code
-             ;; might be to add it as syntax into the signature 
-             ;; so that the types will error on use in untyped code?
-             #:with erased #'t)) ;; WRONG WRONG
+             ;; These attributes are dummy values
+             #:attr internal-form #f
+             #:attr erased #f))
   
   (define-splicing-syntax-class extends-form
     #:literals (extends)
@@ -71,35 +71,39 @@
              #:attr form '())))
 
 
-;; process-signature-forms : (listof syntax?) -> (values (pairof id id) any)
+;; process-signature-forms : (listof syntax?) -> (listof (pairof id id))
 ;; Processes the raw syntax of signature forms and returns two values
 ;; - a list of pairs representing names and types bound by the signature
 ;; - information about type aliases bound by a signature (currently unused)
 (define-for-syntax (process-signature-forms forms)
-  (define-values (members-raw aliases-raw) 
-    (for/fold ([members-raw null]
-               [aliases-raw null])
-              ([form (in-list forms)])
-      (syntax-parse form
-        [alias:sig-type-form (values members-raw null)]
-        [member:sig-var-form
-         (values (cons (syntax-e #'member.internal-form) members-raw) null)])))
-  (values (reverse members-raw) (reverse aliases-raw)))
+  (for/list ([form (in-list forms)])
+    (syntax-parse form
+      [member:sig-var-form
+       (syntax-e #'member.internal-form)])))
 
 
 ;; typed define-signature macro
+;; This expands into the untyped define-signature syntax as well as an
+;; internal form used by TR to register signatures in the signature environment
+;; The `define-signature-internal` form specifies
+;; - the `name` of the signature being defined
+;; - it's parent-signature, or #f if this signature does not extend another signature
+;; - the list of member variables contained in this signature along with their types
+;; - and a boolean flag indicating whether the signature came from an instance of
+;;   require/typed in which case additional checking must occur when the internal
+;;   form is parsed
 (define-syntax (define-signature stx)
   (syntax-parse stx
     [(_ sig-name:id super-form:extends-form forms:signature-forms)
-     (define-values (members aliases)
-       (process-signature-forms (syntax->list #'forms)))
+     (define members (process-signature-forms (syntax->list #'forms)))
      (define erased-members (map car members))
      #`(begin
          #,(ignore (quasisyntax/loc stx
                      (untyped-define-signature sig-name #,@(attribute super-form.form)
                                                (#,@erased-members))))
          #,(internal (quasisyntax/loc stx
-                       (define-signature-internal sig-name super-form.internal-form
+                       (define-signature-internal sig-name
+                         #:parent-signature super-form.internal-form
                          (#,@members)
                          ;; no need to further check parent information
-                         #f))))]))
+                         #:check? #f))))]))

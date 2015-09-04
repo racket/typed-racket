@@ -1,35 +1,49 @@
 #lang racket/base
 
-;; This module provides helper functions for typed signatures needed for subtyping
+;; This module provides helper functions for typed signatures needed for 
+;; checking subtyping and parsing unit types
 
 (require "../utils/utils.rkt"
          (env signature-env)
-        (rep type-rep)
-        ; (private parse-type)
+         (rep type-rep)
          syntax/parse
+         syntax/id-set
          racket/list
+         racket/set
          (only-in racket/set subset?)
          (for-template racket/base
                        (typecheck internal-forms)))
 
 (provide check-sub-signatures?
-         valid-signatures?
-         flatten-sigs)
+         distinct-signatures?
+         flatten-sigs
+         check-imports/exports
+         check-init-depends/imports)
 
-;; check-subsignatures? : (listof Signature) (listof Signature) -> boolean?
-;; checks that the first list of signatures is a valid "subtype"/extensions
-;; of the second list of signatures
+;; (listof Signature?) procedure? -> (listof Signature?)
+;; given a list of imported/exported signatures
+;; and a parse-error procedure, ensures that the signatures are
+;; valid in that there are no overlapping signatures
+;; Returns the given list or raises an error
+(define (check-imports/exports sigs error-proc)
+  (unless (distinct-signatures? sigs) (error-proc))
+  sigs)
+
+;; (listof Signature?) (listof Signature?) procedure? -> (listof Signature?)
+;; Ensures that the init-depends signatures are a subset of the import signatures
+;; an equal? based subset check is the right thing, since each init-depend
+;; must be equal to an imported signature
+(define (check-init-depends/imports init-depends imports error-proc)
+  (unless (subset? init-depends imports) (error-proc))
+  init-depends)
+
+;; check-sub-signatures? : (listof Signature) (listof Signature) -> boolean?
+;; checks that the first list of signatures can be used to implement the second
+;; list of signatures
 (define (check-sub-signatures? sub-sigs sup-sigs)
-  (define sub-exts (append-map signature-extensions sub-sigs))
-  (define sup-exts (append-map signature-extensions sup-sigs))
-  ;(printf "sub-exts: ~a\n" sub-exts)
-  ;(printf "sup-exts: ~a\n" sup-exts)
-  (define (subset? s1 s2)
-    (andmap
-     (lambda (s1-elem) (member s1-elem s2 free-identifier=?))
-     s1))
-  
-  (subset? sup-exts sub-exts))
+  (define sub-exts (immutable-free-id-set (append-map signature-extensions sub-sigs)))
+  (define sup-exts (immutable-free-id-set (append-map signature-extensions sup-sigs)))
+  (free-id-subset? sup-exts sub-exts))
 
 ;; signature-extensions : (or/c #f Signature) -> (listof identifier?)
 ;; returns the list (chain) of names of each signature that
@@ -48,16 +62,15 @@
       null))
 
 
-;; valid-sigs : (listof Signature) -> boolean
+;;  : (listof Signature) -> boolean
 ;; returns true iff the list of signatures contains no duplicates under
 ;; extension
-(define (valid-signatures? sigs)
-  (define sig-ids (apply append (map signature-extensions sigs)))
-  (distinct? sig-ids))
+(define (distinct-signatures? sigs)
+  (define sig-ids (append-map signature-extensions sigs))
+  (distinct-ids? sig-ids))
 
-;; distinct? : (listof id) -> boolean?
+;; distinct-ids? : (listof id) -> boolean?
 ;; returns true iff the signature ids are all distinct
-(define (distinct? sigs)
-  (or (empty? sigs)
-      (and (not (member (first sigs) (rest sigs) free-identifier=?))
-           (distinct? (rest sigs)))))
+(define (distinct-ids? sigs)
+  (= (length sigs)
+     (length (free-id-set->list (immutable-free-id-set sigs)))))

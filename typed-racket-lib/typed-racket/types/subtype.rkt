@@ -693,6 +693,10 @@
                         (sub init-rest init-rest*))
                    (and (not init-rest) (not init-rest*))))]
          [((? Unit?) (UnitTop:)) A0]
+         ;; For Unit types invoke-types are covariant
+         ;; imports and init-depends are covariant in that importing fewer
+         ;; signatures results in a subtype
+         ;; exports conversely are contravariant, subtypes export more signatures
          [((Unit: imports exports init-depends t) (Unit: imports* exports* init-depends* t*))
           (and (check-sub-signatures? imports* imports)
                (check-sub-signatures? exports exports*)

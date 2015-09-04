@@ -125,8 +125,9 @@
              #:with (constructor-parts ...) #'constructor.value))
 
   (define-syntax-class signature-clause
-    #:attributes (sig-name [member 1])
-    (pattern [#:signature sig-name:id (member ...)]))
+    #:literals (:)
+    #:attributes (sig-name [var 1] [type 1])
+    (pattern [#:signature sig-name:id ([var:id : type] ...)]))
 
   (define-syntax-class opaque-clause
     ;#:literals (opaque)
@@ -142,8 +143,8 @@
      #`(require/opaque-type oc.ty oc.pred #,lib . oc.opt))
    (pattern (~var strc (struct-clause legacy)) #:attr spec
      #`(require-typed-struct strc.nm (strc.body ...) strc.constructor-parts ... #,lib))
-   (pattern (~var sig signature-clause) #:attr spec
-            #`(require-typed-signature sig.sig-name (sig.member ...) #,lib))
+   (pattern sig:signature-clause #:attr spec
+     #`(require-typed-signature sig.sig-name (sig.var ...) (sig.type ...) #,lib))
    (pattern sc:simple-clause #:attr spec
      #`(require/typed #:internal sc.nm sc.ty #,lib)))
 
@@ -455,13 +456,14 @@
 (define (require-typed-signature stx)
   (syntax-parse stx
     #:literals (:)
-    [(_ sig-name:id ([var:id : ty] ...) lib)
+    [(_ sig-name:id (var ...) (type ...) lib)
      (quasisyntax/loc stx
        (begin
          (require (only-in lib sig-name))
          #,(internal (quasisyntax/loc stx
-                       (define-signature-internal sig-name #f
-                         ([var ty] ...)
+                       (define-signature-internal sig-name
+                         #:parent-signature #f
+                         ([var type] ...)
                          ;; infer parent relationships using the static information
                          ;; bound to this signature
-                         #t)))))]))
+                         #:check? #t)))))]))

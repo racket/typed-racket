@@ -18,12 +18,12 @@
 
 (require  "../utils/utils.rkt"
           "colon.rkt"
-          "../private/unit-literals.rkt"
           (for-syntax syntax/parse
                       racket/base
                       racket/list
                       racket/match
                       racket/syntax
+                      racket/sequence
                       syntax/context
                       syntax/flatten-begin
                       syntax/kerncase
@@ -67,6 +67,11 @@
 (begin-for-syntax
   (define-literal-set colon #:for-label (:))
 
+  ;; process-definition-form handles all of the `define-` style unit macros
+  ;; such as define-unit, define-compound-unit, define-unit-from-context. but
+  ;; not the corresponding unit, compound-unit, etc forms
+  ;; Performs local expansion in order to apply a syntax property to the
+  ;; correct subexpression of the `define-*` form
   (define (process-definition-form apply-property stx)
     (define exp-stx (local-expand stx (syntax-local-context) (kernel-form-identifier-list)))
     (syntax-parse exp-stx
@@ -74,16 +79,18 @@
       [(begin e ...)
        (quasisyntax/loc stx
          (begin #,@(map (λ (e) (process-definition-form apply-property e))
-                        (syntax->list (syntax/loc stx (e ...))))))]
+                        (syntax->list #'(e ...)))))]
       [(define-values (name ...) rhs)
        (quasisyntax/loc stx (define-values (name ...) #,(ignore (apply-property #'rhs))))]
+      ;; define-syntaxes that actually create the binding given in the
+      ;; `define-*` macro will fall through to this case, and should be left as-is
       [_ exp-stx]))
 
 
   (define-splicing-syntax-class init-depend-form
     #:literals (init-depend)
-    (pattern (init-depend sig:id ...)
-             #:attr form (list #'(init-depend sig ...))
+    (pattern (~and this-syntax (init-depend sig:id ...))
+             #:attr form (list #'this-syntax)
              #:with names #'(sig ...))
     (pattern (~seq)
              #:attr form '()
@@ -107,27 +114,22 @@
     (pattern (rename sig:sig-spec (new:id old:id) ...)
              #:attr rename 
              (lambda (id)
-               (define mapping  (map cons  
-                                     (syntax->list #'(old ...))
-                                     (syntax->list #'(new ...))))
-               (define (lookup id) 
-                 (define lu (member id mapping 
-                                    (lambda (x y) 
-                                      (free-identifier=? x (car y)))))
-                 (and lu (cdar lu)))
-
+               (define (lookup id)
+                 (for/first ([old-id (in-syntax #'(old ...))]
+                             [new-id (in-syntax #'(new ...))]
+                             #:when (free-identifier=? id old-id))
+                   new-id))
                (define rn ((attribute sig.rename) id))
                (or (lookup rn) rn))
              #:with sig-name #'sig.sig-name)))
 
 
 ;; imports/members : identifier? -> syntax?
-;; given an identifier representing a signature
+;; given an identifier bound to a signature
 ;; returns syntax containing the signature name and the names of each variable contained
 ;; in the signature, this is needed to typecheck define-values/invoke-unit forms
 (define-for-syntax (imports/members sig-id)
-  (match-define-values (_ (list imp-mem ...) _ _)
-                       (signature-members sig-id sig-id))
+  (define-values (_1 imp-mem _2 _3) (signature-members sig-id sig-id))
   #`(#,sig-id #,@(map (lambda (id)
                         (local-expand
                          id
@@ -135,14 +137,16 @@
                          (kernel-form-identifier-list)))
                       imp-mem)))
 
+;; Given a list of signature specs
+;; Processes each signature spec to determine the variables exported
+;; and produces syntax containing the signature id and the exported variables
 (define-for-syntax (process-dv-exports es)
   (for/list ([e (in-list es)])
     (syntax-parse e
       [s:sig-spec
        (define sig-id #'s.sig-name)
        (define renamer (attribute s.rename))
-       (match-define-values (_ (list ex-mem ...) _ _)
-                            (signature-members sig-id sig-id))
+       (define-values (_1 ex-mem _2 _3) (signature-members sig-id sig-id))
        #`(#,sig-id #,@(map renamer ex-mem))])))
 
 ;; Typed macro for define-values/invoke-unit
@@ -173,41 +177,64 @@
                                                         (import isig ...)
                                                         (export esig ...)))))]))
 (begin-for-syntax
+  ;; comparable signatures allow easy comparisons of whether one
+  ;; such comparable-signature implements another
+  ;; - name is the identifier corresponding to the signatures name
+  ;; - implements is a free-id-set of this signature and all its ancestors
+  (struct comparable-signature (name implements) #:transparent)
+
+  ;; implements : comparable-signature? comparable-signature? -> Boolean
+  ;; true iff signature sig1 implements signature sig2
+  (define (implements sig1 sig2)
+    (match* (sig1 sig2)
+      [((comparable-signature name1 impls1) (comparable-signature name2 impls2))
+       (free-id-subset? impls2 impls1)]))
+
+  ;; Return two lists, the list of imports of all units in unit-ids
+  ;; and the list of all exports in unit-ids
+  ;; The returned lists contain comparable-signatures
   (define (get-imports/exports unit-ids)
-    (for/fold ([imports null]
-               [exports null])
-              ([unit-id (in-list unit-ids)])
-      (match-define-values ((list (cons _ new-imports) ...)
-                            (list (cons _ new-exports) ...))
-                           (unit-static-signatures unit-id unit-id))
-      (values (append imports new-imports) (append exports new-exports))))
+    (define-values (imports exports) 
+      (for/fold ([imports null]
+                 [exports null])
+                ([unit-id (in-list unit-ids)])
+        (match-define-values ((list (cons _ new-imports) ...)
+                              (list (cons _ new-exports) ...))
+                             (unit-static-signatures unit-id unit-id))
+        (values (append imports new-imports) (append exports new-exports))))
+    (values (map make-comparable-signature imports)
+            (map make-comparable-signature exports)))
+
+  ;; Given the id of a signature, return a corresponding comparable-signature
+  (define (make-comparable-signature sig-name)
+    (comparable-signature sig-name (get-signature-ancestors sig-name)))
+
+  ;; Walk the chain of parent signatures to build a list, and convert it to
+  ;; a free-id-set
+  (define (get-signature-ancestors sig)
+    (immutable-free-id-set
+     (with-handlers ([exn:fail:syntax? (λ (e) null)])
+       (let loop ([sig sig] [ancestors null])
+         (define-values (parent _1 _2 _3) (signature-members sig sig)) 
+         (if parent
+             (loop parent (cons sig ancestors))
+             (cons sig ancestors))))))
   
+  ;; Calculate the set of inferred imports for a list of units
+  ;; The inferred imports are those which are not provided as
+  ;; exports from any of the units taking signature subtyping into account
   (define (infer-imports unit-ids)
     (define-values (imports exports) (get-imports/exports unit-ids))
-    (free-id-set->list (free-id-set-subtract (immutable-free-id-set imports)
-                                             (immutable-free-id-set exports))))
+    (define remaining-imports (remove* exports imports implements))
+    (map comparable-signature-name remaining-imports))
 
   ;; infer-exports returns all the exports from linked
   ;; units rather than just those that are not also
   ;; imported
   (define (infer-exports unit-ids)
     (define-values (imports exports) (get-imports/exports unit-ids))
-    exports)
-  
-  (define-syntax-class define/invoke/infer-form
-    #:literals (define-values/invoke-unit/infer)
-    (pattern (define-values/invoke-unit/infer 
-               exports:maybe-exports
-               us:unit-spec)
-             #:with untyped-stx
-             #`(untyped-define-values/invoke-unit/infer
-                #,@#'exports us)
-             #:attr inferred-imports
-             (infer-imports (attribute us.unit-ids))
-             #:attr inferred-exports
-             (or (attribute exports.exports)
-                 (infer-exports (attribute us.unit-ids)))))
-  
+    (map comparable-signature-name exports))
+
   (define-splicing-syntax-class maybe-exports
     #:literals (export)
     (pattern (~seq)
@@ -215,10 +242,10 @@
     (pattern (export sig:id ...)
              #:attr exports (syntax->list #'(sig ...))))
   
-  (define-syntax-class unit-spec
+  (define-syntax-class dviu/infer-unit-spec
     #:literals (link)
     (pattern unit-id:id
-             #:attr unit-ids (syntax->list #'(unit-id)))
+             #:attr unit-ids (list #'unit-id))
     (pattern (link uid-inits:id ...)
              #:attr unit-ids (syntax->list #'(uid-inits ...)))))
 
@@ -226,24 +253,26 @@
 ;; define-values/invoke-unit/infer
 ;; inferred imports and exports are handled in the following way
 ;; - the exports of ALL units being linked are added to the export list
-;;   to be registered in tc-toplevel
-;; - imports are the set-difference of the union of all imports and the
-;;   union of all exports
+;;   to be registered in tc-toplevel, this appears to be how exports are treated
+;;   by the unit inference process
+;; - inferred imports are those imports which are not provided by
+;;   any of the exports
 ;; This seems to correctly handle both recursive and non-recursive
 ;; linking patterns
 (define-syntax (define-values/invoke-unit/infer stx)
   (syntax-parse stx
-    [dviui:define/invoke/infer-form
+    [(_ exports:maybe-exports us:dviu/infer-unit-spec)
+     (define inferred-imports (infer-imports (attribute us.unit-ids)))
+     (define inferred-exports (or (attribute exports.exports)
+                                  (infer-exports (attribute us.unit-ids))))
      #`(begin
          #,(internal (quasisyntax/loc stx
                        (define-values/invoke-unit-internal
-                         (#,@(map imports/members (attribute dviui.inferred-imports)))
-                         (#,@(process-dv-exports
-                              (attribute dviui.inferred-exports))))))
-         #,(ignore (quasisyntax/loc stx dviui.untyped-stx)))]))
+                         (#,@(map imports/members inferred-imports))
+                         (#,@(process-dv-exports inferred-exports)))))
+         #,(ignore
+            (quasisyntax/loc stx (untyped-define-values/invoke-unit/infer #,@#'exports us))))]))
 
-
-;; Macros for the typed versions of invoke-unit and invoke-unit/infer
 (define-syntax (invoke-unit/infer stx)
   (syntax-parse stx 
     [(_ . rest)
@@ -259,10 +288,17 @@
        (quasisyntax/loc stx
          (untyped-invoke-unit . rest)) #t))]))
 
-
+;; Trampolining macro that cooperates with the unit macro in order
+;; to add information needed for typechecking units
+;; Essentailly head expands each expression in the body of a unit
+;;  - leaves define-syntaxes forms alone, to allow for macro definitions in unit bodies
+;;  - Inserts syntax into define-values forms that allow mapping the names of deifnitions
+;;    to their bodies during type checking
+;;  - Also specially handles type annotations in order to correctly associate variables
+;;    with their types
+;;  - All other expressions are marked as 'expr for typechecking
 (define-syntax (add-tags stx)
   (syntax-parse stx
-    [(_) #'(begin)]
     [(_ e)
      (define exp-e (local-expand #'e (syntax-local-context) (kernel-form-identifier-list)))
      (syntax-parse exp-e
@@ -271,21 +307,28 @@
         #'(add-tags b ...)]
        [(define-syntaxes (name:id ...) rhs:expr)
         exp-e]
+       ;; Annotations must be handled specially
+       ;; Exported variables are renamed internally in units, which leads
+       ;; to them not being correctly associated with their type annotations
+       ;; This extra bit of inserted syntax allows the typechecker to
+       ;; properly associate all annotated variables with their types
        [(define-values () (colon-helper (: name:id type) rest ...))
-        #`(define-values ()
+        (quasisyntax/loc stx
+          (define-values ()
             #,(tr:unit:body-exp-def-type-property
                #`(#%expression
-                  (begin (void (lambda () #,(syntax-local-introduce #'name)))
+                  (begin (void (lambda () name))
                          (colon-helper (: name type) rest ...)))
-               'def/type))]
+               'def/type)))]
        [(define-values (name:id ...) rhs)
-        #`(define-values (name ...)
+        (quasisyntax/loc stx
+          (define-values (name ...)
             #,(tr:unit:body-exp-def-type-property
                #'(#%expression
                   (begin
-                    (void (lambda () name) ...)
+                    (void (lambda () name ... (void)))
                     rhs))
-               'def/type))]
+               'def/type)))]
        [_
         (tr:unit:body-exp-def-type-property exp-e 'expr)])]
     [(_ e ...)
@@ -304,7 +347,6 @@
           #,@(attribute init-depends.form)
           (add-tags e ...)))))]))
 
-;; define-unit macro
 (define-syntax (define-unit stx)
   (syntax-parse stx
     #:literals (import export)
@@ -322,8 +364,6 @@
           #,@(attribute init-depends.form)
           (add-tags e ...))))]))
 
-
-;; Syntax classes and macro for typed compound-unit
 (begin-for-syntax
   (define-syntax-class compound-imports
     #:literals (import)
@@ -343,16 +383,26 @@
   (define-syntax-class link-binding
     (pattern (link-id:id : sig-id:id)))
 
+  ;; build-compound-unit-prop : (listof id) (listof (listof id?)) (listof id?)
+  ;;                         -> (list (listof symbol?) 
+  ;;                                  (listof (listof symbol?))
+  ;;                                  (listof (listof symbol?)))
+  ;; Process the link bindings of a compound-unit form
+  ;; to return a syntax property used for typechecking compound-unit forms
+  ;; The return value is a list to be attached as a syntax property to compound-unit
+  ;; forms.
+  ;; The list contains 3 elements
+  ;; - The first element is a list of symbols corresponding to the link-ids of
+  ;;   the compound-unit's imports
+  ;; - The second element is a list of lists of symbols, corresponding to the
+  ;;   link-ids exported by units in the compound-unit's linking clause
+  ;; - The last element is also a list of lists of symbols, corresponding to the
+  ;;   link-ids being imported by units in the compound-unit's linking clause
   (define (build-compound-unit-prop import-tags all-import-links all-export-links)
     (define table
       (make-immutable-free-id-table
-       (append
-        (map cons
-             import-tags
-             (map (compose gensym syntax-e) import-tags))
-        (map cons
-             (flatten all-export-links)
-             (map (compose gensym syntax-e) (flatten all-export-links))))))
+       (for/list ([link (in-list (append import-tags (flatten all-export-links)))])
+         (cons link (gensym (syntax-e link))))))
     (define imports-tags
       (map (λ (id) (free-id-table-ref table id #f)) import-tags))
     (define units-exports
@@ -360,9 +410,9 @@
        (λ (lst) (map (λ (id) (free-id-table-ref table id #f)) lst))
        all-export-links))
     (define units-imports
-      (map
-       (λ (lst) (map (λ (id) (free-id-table-ref table id #f)) lst))
-       all-import-links))
+      (for/list ([unit-links (in-list all-import-links)])
+        (for/list ([unit-link (in-list unit-links)])
+          (free-id-table-ref table unit-link #f))))
     (list imports-tags units-exports units-imports)))
 
 (define-syntax (compound-unit stx)
@@ -377,7 +427,6 @@
      (ignore (tr:unit:compound-property
               (quasisyntax/loc stx (untyped-compound-unit imports exports links))
               prop))]))
-
 
 (define-syntax (define-compound-unit stx)
   (syntax-parse stx
@@ -394,8 +443,6 @@
       (quasisyntax/loc stx
         (untyped-define-compound-unit uid imports exports links)))]))
 
-
-;; compound-unit/infer
 (define-syntax (compound-unit/infer stx)
   (syntax-parse stx
     #:literals (import export link)
@@ -413,7 +460,6 @@
       (λ (stx) (tr:unit:compound-property stx'infer))
       (quasisyntax/loc stx (untyped-define-compound-unit/infer . rest)))]))
 
-;; unit-from-context forms
 (define-syntax (unit-from-context stx)
   (syntax-parse stx
     [(_ . rest)

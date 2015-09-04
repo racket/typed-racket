@@ -119,7 +119,7 @@
        #:when (contract-lifted-property #'expr)
        (list)]
       
-      ;; handle top-level define-values/invoke-unit
+      ;; register types of variables defined by define-values/invoke-unit forms
       [dviu:typed-define-values/invoke-unit
        (for ([export-sig (in-list (syntax->list #'(dviu.export.sig ...)))]
              [export-ids (in-list (syntax->list #'(dviu.export.members ...)))])
@@ -220,17 +220,14 @@
     (syntax-parse form
       #:literal-sets (kernel-literals)
       ;; need to special case this to avoid errors at top-level
-      [stx:tr:class^
+      [(~or stx:tr:class^
+            stx:tr:unit^
+            stx:tr:unit:invoke^
+            stx:tr:unit:compound^
+            stx:tr:unit:from-context^)
        (tc-expr #'stx)]
-      [stx:tr:unit^
-       (tc-expr #'stx)]
-      [stx:tr:unit:invoke^
-       (tc-expr #'stx)]
-      [stx:tr:unit:compound^
-       (tc-expr #'stx)]
-      [stx:tr:unit:from-context^
-       (tc-expr #'stx)]
-      ;; This may not make sense since define-values/invoke-unit isn't really an expression
+      ;; Handle define-values/invoke-unit form typechecking, by making sure that
+      ;; inferred imports have the correct types
       [dviu:typed-define-values/invoke-unit
        (for ([import-sig (in-list (syntax->list #'(dviu.import.sig ...)))]
              [import-ids (in-list (syntax->list #'(dviu.import.members ...)))])
@@ -346,8 +343,7 @@
   ;; Register signatures once all type aliases and struct types
   ;; have been added to the type table
   (for ([sig-form signature-defs])
-    (define-values (name sig) (parse-signature sig-form))
-    (register-signature! name sig))
+    (parse-and-register-signature! sig-form))
   
   (do-time "starting struct handling")
   ;; Parse and register the structure types
@@ -358,7 +354,6 @@
       parsed))
 
   (refine-struct-variance! parsed-structs)
-
 
   ;; register the bindings of the structs
   (define struct-bindings (map register-parsed-struct-bindings! parsed-structs))

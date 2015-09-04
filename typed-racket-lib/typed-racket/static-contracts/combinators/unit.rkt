@@ -41,7 +41,6 @@
          (define (sc->contract v f)
            (unit/sc->contract v f))
          (define (sc->constraints v f)
-           ;; FIXME: is this correct?
            (merge-restricts* 'chaperone (map f (unit-spec->list (combinator-args v)))))])
 
 (define unit-spec->list
@@ -49,7 +48,7 @@
    [(unit-spec imports exports init-depends invoke)
     (flatten (append (filter-map signature-spec-scs imports)
                      (filter-map signature-spec-scs exports)
-                     ;; Should the init-depends go here?
+                     ;; init-depends do not show up because
                      ;; there are no contracts attached
                      (filter-map (lambda (x) x) invoke)))]))
 
@@ -63,7 +62,7 @@
      (unit-spec
       (map (signature-spec-sc-map f) imports)
       (map (signature-spec-sc-map f) exports)
-      ;; Should the init-depends change at all???
+      ;; leave init-depends alone since they don't contain contracts
       init-depends
       (map (lambda (invoke) (and invoke (f invoke 'covariant))) invokes))]))
 

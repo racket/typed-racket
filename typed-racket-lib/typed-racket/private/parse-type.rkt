@@ -387,36 +387,31 @@
                           #:defaults ([(init-depend 1) null]))
                (~optional result
                           #:defaults ([result #f])))
+       ;; Lookup an identifier in the signature environment
+       ;; Fail with a parse error, if the lookup returns #f
        (define (id->sig id)
-         (define sig (lookup-signature id))
-         (unless sig
-           (parse-error #:stx id
-                        #:delayed? #t
-                        "Unknown signature used in Unit type"
-                        "signature" (syntax-e id)))
-         sig)
-       ;; handle the case where signatures in imports/exports are not distinct
-       (define (check-init-depends/imports? s1 s2)
-         (unless (and (andmap values s1)
-                      (andmap values s2)
-                      (andmap (lambda (id)
-                                (member (Signature-name id)
-                                        (map Signature-name s2)
-                                        free-identifier=?)) s1))
-           (parse-error
+         (or (lookup-signature id)
+             (parse-error #:stx id
+                          #:delayed? #f
+                          "Unknown signature used in Unit type"
+                          "signature" (syntax-e id))))
+       (define (import/export-error)
+         (parse-error #:stx stx
+                      #:delayed? #f
+                      "Unit types must import and export distinct signatures"))
+       (define (init-depend-error)
+         (parse-error
             #:stx stx
-            #:delayed? #t
-            "Unit type initialization dependencies must be a subset of imports")))
-       (define (check-signatures sigs)
-         (unless (and (andmap values sigs) (valid-signatures? sigs))
-           (parse-error #:stx stx
-                        #:delayed? #t
-                        "Unit types must import and export distinct signatures"))
-         sigs)
-       (define imports (check-signatures (map id->sig (syntax->list #'(import ...)))))
-       (define exports (check-signatures (map id->sig (syntax->list #'(export ...)))))
-       (define init-depends (map id->sig (syntax->list #'(init-depend ...))))
-       (check-init-depends/imports? init-depends imports)
+            #:delayed? #f
+            "Unit type initialization dependencies must be a subset of imports"))
+       (define imports
+         (check-imports/exports (stx-map id->sig #'(import ...)) import/export-error))
+       (define exports
+         (check-imports/exports (stx-map id->sig #'(export ...)) import/export-error))
+       (define init-depends
+         (check-init-depends/imports (stx-map id->sig #'(init-depend ...))
+                                     imports
+                                     init-depend-error))
        (define res (attribute result))
        (make-Unit imports
                   exports

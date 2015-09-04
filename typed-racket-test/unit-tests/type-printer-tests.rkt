@@ -140,6 +140,22 @@
                                      "(->* (Any #:x String) (String) #:rest String Void))"))
     (check-prints-as? (make-Unit null null null -String)
                       "(Unit (import) (export) (init-depend) String)")
+    ;; Setup for slightly more complex unit printing test
+    (let* ([a^ (make-Signature #'a^ #f null)]
+           [a-sub^ (make-Signature #'a-sub^ a^ (list (cons #'a -String)))]
+           [b^ (make-Signature #'b^ #f (list (cons #'b -Integer)))])
+      (check-prints-as? (make-Unit (list a^) null null -String)
+                        "(Unit (import a^) (export) (init-depend) String)")
+      (check-prints-as? (make-Unit (list a^) (list b^) null -String)
+                        "(Unit (import a^) (export b^) (init-depend) String)")
+      (check-prints-as? (make-Unit (list a^) (list b^) (list a^) -String)
+                        "(Unit (import a^) (export b^) (init-depend a^) String)")
+      (check-prints-as? (make-Unit (list a-sub^) null null -String)
+                        "(Unit (import a-sub^) (export) (init-depend) String)")
+      (check-prints-as? (make-Unit (list a-sub^) null (list a-sub^)  -String)
+                        "(Unit (import a-sub^) (export) (init-depend a-sub^) String)")
+      (check-prints-as? (make-Unit null (list a-sub^) null -String)
+                        "(Unit (import) (export a-sub^) (init-depend) String)"))
     (check-prints-as? (make-UnitTop) "UnitTop"))
    (test-suite
     "Pretty printing tests"

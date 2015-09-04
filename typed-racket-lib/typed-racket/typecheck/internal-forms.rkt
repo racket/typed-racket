@@ -163,7 +163,7 @@
   ;; is inferred from static information bound to the signature
   ;; identifier
   [typed-define-signature
-   (define-signature-internal name super (binding ...) check)]
+   (define-signature-internal name #:parent-signature super (binding ...) #:check? check)]
   ;; This should be a decent initial attempt at making
   ;; define-values/invoke-unit work, the unit-expr is
   ;; unnecessary at this point since it will be handled

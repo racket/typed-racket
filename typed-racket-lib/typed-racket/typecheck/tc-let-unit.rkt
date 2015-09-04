@@ -98,7 +98,7 @@
           (match results
             [(list (tc-result: ts fs os) ...)
              (expr->type expr (ret ts fs os))]))
-        ;; call the check-thunk argument
+        ;; Perform additional checking by running the thunk argument
         (check-thunk)
         ;; typecheck the body
         (tc-body/check body (and expected (erase-filter expected)))))))
@@ -134,10 +134,7 @@
   ;; TODO: Should signatures be registered before or after aliases?
   (define signatures
     (for/list ([sig-form (in-list (reverse signature-forms))])
-      (define-values (name signature)
-        (parse-signature sig-form))
-      (register-signature! name signature)
-      signature))
+      (parse-and-register-signature! sig-form)))
   
   (for ([declaration declarations])
     (match-define (list id type) declaration)
@@ -150,12 +147,15 @@
     (syntax-case n ()
       [(var) (add-scoped-tvars b (lookup-scoped-tvars #'var))]
       [_ (void)]))
-  ;; return signatures to ensure they do not escape a let body
+  ;; return the list of signatures to check that none of them can
+  ;; escape the let-body
   signatures)
 
 ;; The `thunk` argument is run only for its side effects 
-;; It is needed to typecheck units, and ensure that exported
-;; variables are exported with the correct types
+;; It is used to perform additional context-dependent checking
+;; within the context of a letrec body.
+;; For example, it is used  to typecheck units and ensure that exported
+;; variables are exported at the correct types
 (define (tc/letrec-values namess exprs body [expected #f] [check-thunk void])
   (let* ([names (stx-map syntax->list namess)]
          [orig-flat-names (apply append names)]

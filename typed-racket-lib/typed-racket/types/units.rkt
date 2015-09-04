@@ -15,6 +15,9 @@
 ;; (Listof Signature) Type -> Boolean
 ;; Returns true if the type contains an instance of one
 ;; of the signatures
+;; A simple escape analysis for use in tc/letrec-values
+;; to ensure that signatures may not be referenced outside
+;; of their scope of definition
 (define (signatures-escape? sigs type)
   (define escaping-names (map Signature-name sigs))
   (define (check-signatures type)

@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"type mismatch")
+(exn-pred (regexp-quote "type mismatch\n  expected: Integer\n  given: String"))
 #lang typed/racket
 
 (require (for-syntax syntax/parse))

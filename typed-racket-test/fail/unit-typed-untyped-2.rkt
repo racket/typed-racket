@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"contract violation")
+(exn-pred #rx"u: contract violation\n  expected: Integer")
 #lang racket
 
 (module typed typed/racket

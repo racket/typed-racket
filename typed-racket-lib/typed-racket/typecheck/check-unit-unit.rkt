@@ -20,6 +20,7 @@
          racket/unit-exptime
          "signatures.rkt"
          (private parse-type syntax-properties type-annotation)
+         (base-env base-special-env)
          (env lexical-env tvar-env global-env 
               signature-env signature-helper)
          (types utils abbrev union subtype resolve generalize signatures)
@@ -33,16 +34,6 @@
 
 (import tc-let^ tc-expr^)
 (export check-unit^)
-
-;; Helper Macro that traverses syntax and performs simple rewriting
-(define-syntax-rule (syntax-rewrite expr #:literals (lit ...) [pattern body ...] ...)
-  (let loop ([expr expr])
-    (syntax-parse expr
-      #:literal-sets (kernel-literals)
-      #:literals (lit ...)
-      [pattern body ...] ...
-      [_ (define sub-exprs (syntax->list expr))
-         (if sub-exprs (quasisyntax/loc expr (#,@(map loop sub-exprs))) expr)])))
 
 ;; Syntax class definitions
 ;; variable annotations are modified by the expansion of the typed unit
@@ -97,6 +88,7 @@
        ;; Duplicate annotations from imports
        ;; are not currently detected due to a bug
        ;; in tc/letrec-values
+       ;; See Problem Report: 15145
        (define fixed (attribute a.fixed-form))
        (values #`(#,@names ()) #`(#,@exprs #,fixed))]
       [d:unit-body-definition
@@ -245,12 +237,14 @@
 (define extract-export-map-elem
   (syntax-parser [e:export-temp-internal-map-elem (cons #'e.temp-id #'e.internal-id)]))
 
+(define invoke-unit/core (make-template-identifier 'invoke-unit/core 'racket/unit))
+
 ;; Syntax class for all the various expansions of invoke-unit forms
 ;; This also includes the syntax for the invoke-unit/infer forms
 (define-syntax-class invoke-unit-expansion
   #:literal-sets (kernel-literals)
-  #:literals ()
-  (pattern (#%plain-app invoke-unit/core:id unit-expr)
+  (pattern (#%plain-app iu/c unit-expr)
+           #:when (free-identifier=? #'iu/c invoke-unit/core)
            #:attr units '()
            #:attr expr #'unit-expr
            #:attr imports '())
@@ -263,14 +257,14 @@
 
 (define-syntax-class invoke-unit-linkings
   #:literal-sets (kernel-literals)
-  #:literals ()
   (pattern
    (let-values ([(u-temp:id)
                  (let-values ([(deps) _]
                               [(sig-provider) _] ...
                               [(temp) ie:invoked-expr])
                    _ ...)])
-     (#%plain-app invoke-unit/core:id (#%plain-app values _)))
+     (#%plain-app iu/c (#%plain-app values _)))
+   #:when (free-identifier=? #'iu/c invoke-unit/core)
    #:attr units '()
    #:attr expr (if (tr:unit:compound-property #'ie) #'ie #'ie.invoke-expr)
    #:attr imports '())
@@ -609,7 +603,7 @@
             exports-info))
 
      ;; Thunk to pass to tc/letrec-values to check export subtyping
-     ;; These subtype checks can only checked within the dynamic extent
+     ;; These subtype checks can only be checked within the dynamic extent
      ;; of the call to tc/letrec-values because they need to lookup
      ;; variables in the type environment as modified by typechecking
      (define (check-exports-thunk)

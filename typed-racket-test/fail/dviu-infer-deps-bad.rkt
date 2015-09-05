@@ -1,6 +1,9 @@
 #;
-(exn-pred #rx"depends")
+(exn-pred #rx"unit depends on initialization of later unit")
 #lang typed/racket
+
+;; This program errors at compile time, but the check is from
+;; the untyped implementation of define-values/invoke-unit/infer
 
 (define-signature s^ ([a : Integer]))
 (define-signature t^ ([b : Integer]))

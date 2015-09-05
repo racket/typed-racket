@@ -1,5 +1,5 @@
 #;
-(exn-pred "initialization dependency")
+(exn-pred #rx"x@: broke its own contract;\n contract does not list initialization dependency x\\^")
 #lang racket
 
 

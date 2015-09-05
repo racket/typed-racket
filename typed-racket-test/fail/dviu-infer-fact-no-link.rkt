@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"expects an untagged import")
+(exn-pred #rx"define-values/invoke-unit: unit argument expects an untagged import with signature fact\\^")
 #lang typed/racket
 
 (define-signature fact^ ([fact : (-> Natural Natural)]))
@@ -15,6 +15,8 @@
         (* n (i:fact (sub1 n))))))
 
 ;; without link this should fail
+;; see the corresponging successful test
+;; dviu-infer-fact.rkt in the succeed directory
 (define-values/invoke-unit/infer fact@)
 
 (fact 5)

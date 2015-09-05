@@ -383,6 +383,10 @@
            ((Class #:row-var r a b c) -> (Class #:row-var r)))]
    
    ;; parsing tests for Unit types
+   ;; These are only simple tests because checking types
+   ;; with signatures requires interaction with the Signature
+   ;; environment. Additionally, more complex tests of Unit
+   ;; type parsing happens in unit-tests and integrations tests as well
    [(Unit (import) (export) (init-depend) String)
     (make-Unit null null null (-values (list -String)))]
    [(Unit (import) (export) String)

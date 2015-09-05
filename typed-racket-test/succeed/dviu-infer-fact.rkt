@@ -13,6 +13,8 @@
         (* n (i:fact (sub1 n))))))
 
 ;; without link this should fail
+;; see the corresponding failing test
+;; dviu-infer-fact-no-link.rkt in the fail directory
 (define-values/invoke-unit/infer (link fact@))
 
 (fact 5)

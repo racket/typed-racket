@@ -475,6 +475,28 @@
         (import)))
      -Integer]
 
+    ;; Make sure body annotations for exports are checked
+    [tc-err
+     (let ()
+       (define-signature a^ ([a : Integer]))
+       (unit
+         (import)
+         (export a^)
+         (: a String)
+         (define a 5))
+       (error ""))]
+    ;; and for non-exports as well
+    [tc-err
+     (let ()
+       (define-signature a^ ([a : Integer]))
+       (unit
+         (import)
+         (export a^)
+         (: b String)
+         (define b 12)
+         (define a 5))
+       (error ""))]
+
    ;; init-depends type errors with compound-unit/define-compound-unit
    [tc-err
     (let ()

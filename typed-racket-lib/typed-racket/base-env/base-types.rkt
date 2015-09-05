@@ -126,6 +126,7 @@
 [Continuation-Mark-KeyTop -Continuation-Mark-KeyTop]
 [Struct-TypeTop (make-StructTypeTop)]
 [ClassTop (make-ClassTop)]
+[UnitTop (make-UnitTop)]
 [Keyword -Keyword]
 [Thread -Thread]
 [Resolved-Module-Path -Resolved-Module-Path]

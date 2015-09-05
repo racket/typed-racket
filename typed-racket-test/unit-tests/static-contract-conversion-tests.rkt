@@ -48,7 +48,6 @@
            (with-check-info (['static sc])
              (fail-check "Type was incorrectly converted to contract"))))]))
 
-
 (define tests
   (test-suite "Conversion Tests"
     (t/sc (-Number . -> . -Number))
@@ -70,4 +69,11 @@
     (t/sc (-mu a (-box a)))
     (t/sc (-mu sexp (Un -Null -Symbol (-pair sexp sexp) (-vec sexp) (-box sexp))))
     (t/sc (-mu a (-> a a)))
-    (t/sc (-seq -Symbol))))
+    (t/sc (-seq -Symbol))
+    ;; These tests for unit static contracts are insufficient, but
+    ;; in order to test Unit types the signature environment must be
+    ;; set up correctly. More complex cases of compilation to unit/c
+    ;; contracts are tested by integration tests.
+    (t/sc (-unit null null null (-values (list -String))))
+    (t/sc (-unit null null null (-values (list -Symbol -String))))
+    (t/fail (-unit null null null ManyUniv))))

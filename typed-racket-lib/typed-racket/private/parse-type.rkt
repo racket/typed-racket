@@ -5,13 +5,14 @@
 (require "../utils/utils.rkt"
          (except-in (rep type-rep object-rep) make-arr)
          (rename-in (types abbrev union utils filter-ops resolve
-                           classes prefab)
+                           classes prefab signatures)
                     [make-arr* make-arr])
          (utils tc-utils stxclass-util literal-syntax-class)
          syntax/stx (prefix-in c: (contract-req))
          syntax/parse racket/sequence
          (env tvar-env type-alias-env mvar-env
-              lexical-env index-env row-constraint-env)
+              lexical-env index-env row-constraint-env
+              signature-env)
          racket/dict
          racket/list
          racket/promise
@@ -20,6 +21,7 @@
          "parse-classes.rkt"
          (for-label
            (except-in racket/base case-lambda)
+           racket/unit
            "../base-env/colon.rkt"
            "../base-env/base-types-extra.rkt"
            ;; match on the `case-lambda` binding in the TR primitives
@@ -79,6 +81,10 @@
 (define-literal-syntax-class #:for-label cons)
 (define-literal-syntax-class #:for-label Class)
 (define-literal-syntax-class #:for-label Object)
+(define-literal-syntax-class #:for-label Unit)
+(define-literal-syntax-class #:for-label import)
+(define-literal-syntax-class #:for-label export)
+(define-literal-syntax-class #:for-label init-depend)
 (define-literal-syntax-class #:for-label Refinement)
 (define-literal-syntax-class #:for-label Instance)
 (define-literal-syntax-class #:for-label List)
@@ -375,6 +381,42 @@
                                  "given" v)
                     (make-Instance (Un)))
              (make-Instance v)))]
+      [(:Unit^ (:import^ import:id ...)
+               (:export^ export:id ...)
+               (~optional (:init-depend^ init-depend:id ...) 
+                          #:defaults ([(init-depend 1) null]))
+               (~optional result
+                          #:defaults ([result #f])))
+       ;; Lookup an identifier in the signature environment
+       ;; Fail with a parse error, if the lookup returns #f
+       (define (id->sig id)
+         (or (lookup-signature id)
+             (parse-error #:stx id
+                          #:delayed? #f
+                          "Unknown signature used in Unit type"
+                          "signature" (syntax-e id))))
+       (define (import/export-error)
+         (parse-error #:stx stx
+                      #:delayed? #f
+                      "Unit types must import and export distinct signatures"))
+       (define (init-depend-error)
+         (parse-error
+            #:stx stx
+            #:delayed? #f
+            "Unit type initialization dependencies must be a subset of imports"))
+       (define imports
+         (check-imports/exports (stx-map id->sig #'(import ...)) import/export-error))
+       (define exports
+         (check-imports/exports (stx-map id->sig #'(export ...)) import/export-error))
+       (define init-depends
+         (check-init-depends/imports (stx-map id->sig #'(init-depend ...))
+                                     imports
+                                     init-depend-error))
+       (define res (attribute result))
+       (make-Unit imports
+                  exports
+                  init-depends
+                  (if res (parse-values-type res) (-values (list -Void))))]
       [(:List^ ts ...)
        (parse-list-type stx)]
       [(:List*^ ts ... t)

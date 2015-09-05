@@ -13,6 +13,7 @@
  (rename-in (types abbrev numeric-tower union) [make-arr* make-arr])
  (for-syntax racket/base syntax/parse
              (only-in racket/syntax syntax-local-eval)))
+(provide make-template-identifier)
 
 (define (make-template-identifier what where)
   (let ([name (module-path-index-resolve (module-path-index-join where #f))])

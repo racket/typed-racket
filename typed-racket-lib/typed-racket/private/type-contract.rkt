@@ -284,7 +284,10 @@
                [else
                 (define sc (match type match-clause ...))
                 (define fvs (fv type))
-                (unless (or (ormap (λ (n) (member n fvs)) (bound-names))
+                ;; Only cache closed terms, otherwise open terms may show up
+                ;; out of context.
+                ;; TODO this used `bound-names`, get rid of it
+                (unless (or (not (null? fv))
                             ;; Don't cache types with applications of Name types because
                             ;; it does the wrong thing for recursive references
                             (has-name-app? type))

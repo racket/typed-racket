@@ -2108,7 +2108,7 @@
 [pretty-print (Univ [-Output-Port (one-of/c 0 1)] . ->opt . -Void)]
 [pretty-write (Univ [-Output-Port] . ->opt . -Void)]
 [pretty-display (Univ [-Output-Port] . ->opt . -Void)]
-[pretty-format (Univ [-Nat] . ->opt . -String)]
+[pretty-format (Univ [-Nat] #:mode -Symbol #f . ->optkey . -String)]
 [pretty-print-handler (-> Univ -Void)]
 
 [pretty-print-columns (-Param (Un -Nat (-val 'infinity)) (Un -Nat (-val 'infinity)))]

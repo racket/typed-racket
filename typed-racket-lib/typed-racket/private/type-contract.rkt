@@ -267,9 +267,6 @@
 (define (same sc)
   (triple sc sc sc))
 
-;; Keep track of the bound names and don't cache types where those are free
-(define bound-names (make-parameter null))
-
 ;; Macro to simplify (and avoid reindentation) of the match below
 ;;
 ;; The sc-cache hashtable is used to memoize static contracts. The keys are
@@ -286,7 +283,6 @@
                 (define fvs (fv type))
                 ;; Only cache closed terms, otherwise open terms may show up
                 ;; out of context.
-                ;; TODO this used `bound-names`, get rid of it
                 (unless (or (not (null? fv))
                             ;; Don't cache types with applications of Name types because
                             ;; it does the wrong thing for recursive references
@@ -421,13 +417,11 @@
          (case typed-side
            [(both) (recursive-sc
                      (list both-n*)
-                     (parameterize ([bound-names (cons n (bound-names))])
-                       (list (loop b 'both rv)))
+                     (list (loop b 'both rv))
                      (recursive-sc-use both-n*))]
            [(typed untyped)
             (define (rec b side rv)
-              (parameterize ([bound-names (cons n (bound-names))])
-                (loop b side rv)))
+              (loop b side rv))
             ;; TODO not fail in cases that don't get used
             (define untyped (rec b 'untyped rv))
             (define typed (rec b 'typed rv))
@@ -695,9 +689,8 @@
           (define rv (for/fold ((rv recursive-values)) ((temp temporaries)
                                                         (v-nm vs-nm))
                        (hash-set rv v-nm (same (parametric-var/sc temp)))))
-          (parameterize ([bound-names (append (bound-names) vs-nm)])
-            (parametric->/sc temporaries
-              (t->sc b #:recursive-values rv)))))))
+          (parametric->/sc temporaries
+            (t->sc b #:recursive-values rv))))))
 
 ;; Generate a contract for a variable-arity polymorphic function type
 (define (t->sc/polydots type fail typed-side recursive-values t->sc)
@@ -735,12 +728,11 @@
                                ([temp temporaries]
                                 [v-nm vs-nm])
                        (hash-set rv v-nm (same (sealing-var/sc temp)))))
-          (parameterize ([bound-names (append (bound-names) vs-nm)])
-            ;; Only the first three sets of constraints seem to be needed
-            ;; since augment clauses don't make sense without a corresponding
-            ;; public method too. This invariant has to be enforced though.
-            (sealing->/sc temporaries (take constraints 3)
-              (t->sc b #:recursive-values rv)))))))
+          ;; Only the first three sets of constraints seem to be needed
+          ;; since augment clauses don't make sense without a corresponding
+          ;; public method too. This invariant has to be enforced though.
+          (sealing->/sc temporaries (take constraints 3)
+            (t->sc b #:recursive-values rv))))))
 
 ;; Predicate that checks for an App type with a recursive
 ;; Name type in application position

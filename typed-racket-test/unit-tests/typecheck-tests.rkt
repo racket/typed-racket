@@ -2844,6 +2844,15 @@
                (display "hello" accumulator/not-thread-safe))
              -Void]
 
+       ;; Writing
+       [tc-e (writeln   "hello") -Void]
+       [tc-e (writeln   "hello" (current-output-port)) -Void]
+       [tc-e (displayln "hello") -Void]
+       [tc-e (displayln "hello" (current-output-port)) -Void]
+       [tc-e (println   "hello") -Void]
+       [tc-e (println   "hello" (current-output-port)) -Void]
+       [tc-e (println   "hello" (current-output-port) 1) -Void]
+
        ;; Additional tests for recursive type aliases
        [tc-e ;; The types here are valid, but uninhabitable.
              (let () (define-type-alias A (Listof B))

@@ -147,7 +147,8 @@
       typed-racket/utils/opaque-object
       typed-racket/utils/evt-contract
       typed-racket/utils/sealing-contract
-      unstable/contract racket/contract/parametric))
+      racket/sequence
+      racket/contract/parametric))
 
 ;; Should the above requires be included in the output?
 ;;   This box is only used for contracts generated for `require/typed`

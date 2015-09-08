@@ -5,7 +5,6 @@
 
 (require "../structures.rkt" "../constraints.rkt"
          racket/list racket/match
-         unstable/contract
          racket/contract
          (for-template racket/base racket/contract/base)
          (for-syntax racket/base syntax/parse))
@@ -14,8 +13,8 @@
   (contract-out
     [case->/sc ((listof arr-combinator?) . -> . static-contract?)]
     [arr/sc (-> (listof static-contract?)
-                (maybe/c static-contract?)
-                (maybe/c (listof static-contract?))
+                (or/c static-contract? #f)
+                (or/c (listof static-contract?) #f)
                 static-contract?)])
   case->/sc:
   arr/sc:

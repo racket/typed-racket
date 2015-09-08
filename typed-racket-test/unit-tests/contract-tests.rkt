@@ -63,7 +63,7 @@
 (define (ctc-namespace)
   (parameterize ([current-namespace (make-base-namespace)])
     (namespace-require 'racket/contract)
-    (namespace-require 'unstable/contract)
+    (namespace-require 'racket/sequence)
     (namespace-require 'typed-racket/utils/any-wrap)
     (namespace-require 'typed-racket/utils/evt-contract)
     (namespace-require 'typed-racket/utils/opaque-object)

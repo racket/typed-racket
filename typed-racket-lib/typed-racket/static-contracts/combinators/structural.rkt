@@ -8,12 +8,12 @@
          racket/match
          (for-syntax racket/base racket/syntax syntax/stx syntax/parse)
          racket/set
-         unstable/contract
+         racket/sequence
          (for-template racket/base
                        racket/contract/base
                        racket/set
                        racket/async-channel
-                       unstable/contract
+                       racket/sequence
                        racket/promise
                        "../../utils/evt-contract.rkt")
          racket/contract

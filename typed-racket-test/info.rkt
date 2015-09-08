@@ -7,7 +7,6 @@
                "typed-racket-lib"
                "typed-racket-more"
                "typed-racket-compatibility"
-               "unstable-lib"
                "2d"
                "rackunit-lib"
                "racket-index"
@@ -21,8 +20,7 @@
                      "compiler-lib"
                      "redex-lib"
                      "htdp-lib"
-                     "sandbox-lib"
-                     "unstable-lib"))
+                     "sandbox-lib"))
 (define update-implies '("typed-racket-lib"
                          "typed-racket-more"
                          "typed-racket-compatibility"))

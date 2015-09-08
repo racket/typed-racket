@@ -5,14 +5,13 @@
 
 (require "../structures.rkt" "../constraints.rkt"
          racket/list racket/match
-         unstable/contract
          racket/contract
          (for-template racket/base racket/contract/base)
          (for-syntax racket/base syntax/parse))
 
 (provide
   (contract-out
-    [prompt-tag/sc ((listof static-contract?) (maybe/c (listof static-contract?)) . -> . static-contract?)])
+    [prompt-tag/sc ((listof static-contract?) (or/c (listof static-contract?) #f) . -> . static-contract?)])
   prompt-tag/sc:)
 
 (struct prompt-tag-combinator combinator ()

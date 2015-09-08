@@ -1,6 +1,6 @@
 
-#lang unstable/2d typed/racket/base
-(require unstable/2d/match)
+#lang 2d typed/racket/base
+(require 2d/match)
 
 (: f : Integer Integer -> Integer)
 (define (f x y)

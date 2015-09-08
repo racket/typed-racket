@@ -8,7 +8,7 @@
                "typed-racket-more"
                "typed-racket-compatibility"
                "unstable-lib"
-               "unstable-2d"
+               "2d"
                "rackunit-lib"
                "racket-index"
                "pconvert-lib"

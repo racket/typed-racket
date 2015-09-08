@@ -21,6 +21,8 @@
 
 @defidform[Any]{Any Racket value. All other types are subtypes of @racket[Any].}
 
+@defidform[AnyValues]{Any number of Racket values of any type.}
+
 @defidform[Nothing]{The empty type.  No values inhabit this type, and
 any expression of this type will not evaluate to a value.}
 

@@ -1,12 +1,19 @@
 #lang racket/base
 
-(require typed-racket/utils/tc-utils)
+(require typed-racket/utils/tc-utils
+         (for-syntax syntax/parse racket/base))
 
-(provide typed-renaming un-rename)
+(provide make-typed-renaming un-rename)
+
+;; a constructor for typed renamings that attach the required
+;; 'not-free-identifier properties
+(define (make-typed-renaming target alternate)
+  (typed-renaming (syntax-property target 'not-free-identifier=? #t)
+                  (syntax-property alternate 'not-free-identifier=? #t)))
 
 ;; target : identifier
 ;; alternate : identifier
-(define-struct typed-renaming (target alternate)
+(struct typed-renaming (target alternate)
   ;; prevent the rename transformer from expanding in
   ;; module-begin context because the typed context flag
   ;; will not be set until the module-begin

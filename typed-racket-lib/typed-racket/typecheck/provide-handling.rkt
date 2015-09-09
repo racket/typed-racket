@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
+         "renamer.rkt"
          racket/sequence syntax/id-table racket/dict racket/syntax
          racket/struct-info racket/match syntax/parse
          (only-in (private type-contract) include-extra-requires?)
@@ -8,7 +9,7 @@
          (typecheck renamer def-binding)
          (utils tc-utils)
          (for-syntax racket/base)
-         (for-template racket/base "def-export.rkt"))
+         (for-template racket/base))
 
 (provide remove-provides provide? generate-prov)
 
@@ -136,7 +137,8 @@
                 #,(if type-is-constructor?
                       #'(make-struct-info-self-ctor constr* info)
                       #'info)))
-            (def-export export-id protected-id protected-id))
+            (define-syntax export-id
+              (make-rename-transformer #'protected-id)))
         #'export-id
         (cons (list #'export-id internal-id)
               (apply append constr-aliases aliases)))))
@@ -154,7 +156,8 @@
        #`(begin 
            (define-syntax (untyped-id stx)
              (tc-error/stx stx "Macro ~a from typed module used in untyped code" 'untyped-id))
-           (def-export export-id id untyped-id))
+           (define-syntax export-id
+             (make-typed-renaming #'id #'untyped-id)))
        new-id
        (list (list #'export-id #'id)))))
 
@@ -175,7 +178,8 @@
        #`(begin definitions (provide untyped-id))
        ;; For the main module
        #`(begin (define-syntax local-untyped-id (#,mk-redirect-id (quote-syntax untyped-id)))
-                (def-export export-id id local-untyped-id))
+                (define-syntax export-id
+                  (make-typed-renaming #'id #'local-untyped-id)))
        new-id
        null)))
 

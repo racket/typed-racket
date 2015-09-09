@@ -1,7 +1,6 @@
 #lang racket/base
 
-(require typed-racket/utils/tc-utils
-         (for-syntax syntax/parse racket/base))
+(require typed-racket/utils/tc-utils)
 
 (provide make-typed-renaming un-rename)
 

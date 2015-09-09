@@ -4,6 +4,54 @@
 ;; The general strategy for typechecking all of the racket/unit forms
 ;; is to match the entire expanded syntax and parse out the relevant
 ;; pieces of information.
+;;
+;; Each typing rule knows the expected expansion of the form being checked
+;; and specifically parses that syntax. This implementation is extremely
+;; brittle and will require changes should the expansion of any of the unit
+;; forms change.
+;;
+;; For unit forms the general idea is to parse expanded syntax to find information
+;; related to:
+;; - imports
+;; - exports
+;; - init-depend
+;; - subexpressions that require typechecking
+;; And use these pieces to typecheck the entire form
+;;
+;; For the `unit` form imports, exports, and init-depends are parsed to generate
+;; the type of the expression and to typecheck the body of the unit since imported signatures
+;; introduce bindings of variables to types, and exported variables must be defined
+;; with subtypes of their expected types.
+;;
+;; The `invoke-unit` expansion is more complex and depends on whether or not
+;; imports were specified. In the case of no imports, the strategy is simply to
+;; find the expression being invoked and ensure it has the type of a unit with
+;; no imports. When there are imports to an `invoke-unit` form, the syntax contains
+;; local definitions of units defined using `unit-from-context`. These forms
+;; are parsed to determine which imports were declared to check subtyping on the
+;; invoked expression and to ensure that imports pulled from the current context
+;; have the correct types.
+;;
+;; The `compound-unit` expansion contains information about the imports and exports
+;; of each unit expression being linked. Additionally the typed `compound-unit` macro
+;; attaches a syntax property that specifies the exact linking structure of the compound
+;; unit. These pieces of information enable the calculation of init-depends for the entire
+;; compound unit and to properly check subtyping on each linked expression.
+;;
+;; `unit-from-context` is handled similarly to `invoke-unit`, the expansion is exactly
+;; that of a unit created using the `unit` form, but lacks the annotations that are placed
+;; there by the typed `unit` macro. In this case the body of the unit is searched for
+;; syntax corresponding to definitions which are checked against the declared exports
+;; to ensure the form is well typed.
+;;
+;; The handling of the various `infer` forms (invoke-unit/infer compound-unit/infer)
+;; is generally identical to the corresponding form lacking inference, however, in these
+;; cases typechecking can be more lax. In particular, the unit implementation knows that
+;; only valid unit expressions are used in these forms and so there is no need to typecheck
+;; each unit subexpression unless it is needed to determine the result type. The
+;; `compund-unit/infer` form, however, requires the cooperation of the unit implementation
+;; to attach a syntax property that specified the init-depends of the compound unit, otherwise
+;; this information is extremely difficult to obtain from the syntax alone.
 
 (require "../utils/utils.rkt"
          syntax/id-set
@@ -103,6 +151,7 @@
 ;;   and in the Siganture representation
 ;; - internal names are the internal renamings of those variables in fully expanded
 ;;   unit syntax, this renaming is performed by the untyped unit macro
+;; - All references within a unit body use the internal names
 (struct sig-info (name externals internals) #:transparent)
 
 ;; Process the various pieces of the fully expanded unit syntax to produce
@@ -112,8 +161,9 @@
                              export-sigs export-temp-ids export-temp-internal-map
                              init-depend-tags)
   ;; build a mapping of import-tags to import signatures
-  ;; since init-depends are referenced by the tags only
-  ;; this map is used to determine the init-depends of the unit
+  ;; since init-depends are referenced by the tags only in the expanded syntax
+  ;; this map is used to determine the actual signatures corresponding to the
+  ;; given signature tags of the init-depends
   (define tag-map (make-immutable-free-id-table (map cons import-tags import-sigs)))
   (define lookup-temp (λ (temp) (free-id-table-ref export-temp-internal-map temp #f)))
   
@@ -266,7 +316,7 @@
      (#%plain-app iu/c (#%plain-app values _)))
    #:when (free-identifier=? #'iu/c invoke-unit/core)
    #:attr units '()
-   #:attr expr (if (tr:unit:compound-property #'ie) #'ie #'ie.invoke-expr)
+   #:attr expr (if (tr:unit:invoke-expr-property #'ie) #'ie #'ie.invoke-expr)
    #:attr imports '())
   (pattern
    (let-values ([(temp-id) u:unit-expansion])
@@ -319,7 +369,7 @@
    #:attr compound-imports (syntax->list #'import-vector.sigs)
    #:attr compound-exports (syntax->list #'export-vector.sigs)))
 
-;; A cu-expr-info is associated with each element of the link clause in
+;; A cu-expr-info represents an element of the link clause in
 ;; a compound-unit form
 ;; - expr : the unit expression being linked
 ;; - import-sigs : the Signatures specified as imports for this link-element
@@ -508,7 +558,7 @@
       -Bottom))
 
 (define (parse-and-check-compound/infer form expected-type)
-  (define init-depend-refs (syntax-property form 'inferred-init-depends))
+  (define init-depend-refs (syntax-property form 'unit:inferred-init-depends))
   (syntax-parse form
     [cu:compound-unit-expansion
      (define unit-exprs (attribute cu.unit-exprs))
@@ -636,9 +686,9 @@
      ;; get expression forms, if the body was empty or ended with
      ;; a definition insert a `(void)` expression to be typechecked
      ;; This is necessary because we defer to tc/letrec-values for typechecking
-     ;; unit bodies, but a unit body may contain only definitions, in this case we
-     ;; insert dummy syntax representing a call to the void function in order
-     ;; to correctly type the body of the unit
+     ;; unit bodies, but a unit body may contain only definitions whereas letrec bodies
+     ;; cannot, in this case we insert dummy syntax representing a call to the void 
+     ;; function in order to correctly type the body of the unit.
      (define expression-forms
        (let ([exprs 
               (filter
@@ -652,7 +702,7 @@
      
      
      ;; Filter out the annotation and definition syntax from the unit body
-     ;; For the purposes of typechecking annotations and definitions
+     ;; For the purposes of typechecking, annotations and definitions
      ;; are essentially lifted to the top of the body and all expressions
      ;; are placed at the end (possibly with the addition of a (void) expression
      ;; as described above), since the types of definitions and annotations

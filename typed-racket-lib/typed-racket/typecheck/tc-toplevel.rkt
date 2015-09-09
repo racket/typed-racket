@@ -325,6 +325,11 @@
      typed-define-signature?))
   (do-time "Form splitting done")
 
+  ;; Register signatures in the signature environment
+  ;; but defer type parsing
+  (for ([sig-form signature-defs])
+    (parse-and-register-signature! sig-form))
+
   (define-values (type-alias-names type-alias-map)
     (get-type-alias-info type-aliases))
 
@@ -339,12 +344,8 @@
   (do-time "after adding type names")
 
   (register-all-type-aliases type-alias-names type-alias-map)
+  (finalize-signatures!)
 
-  ;; Register signatures once all type aliases and struct types
-  ;; have been added to the type table
-  (for ([sig-form signature-defs])
-    (parse-and-register-signature! sig-form))
-  
   (do-time "starting struct handling")
   ;; Parse and register the structure types
   (define parsed-structs

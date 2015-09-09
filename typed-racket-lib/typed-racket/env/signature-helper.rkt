@@ -11,6 +11,7 @@
          syntax/parse
          racket/list
          racket/match
+         racket/promise
          racket/unit-exptime
          (for-template racket/base
                        (submod "../typecheck/internal-forms.rkt" forms)))
@@ -95,7 +96,7 @@
    [check?
     (match-define-values (inferred-super _ _ _) (signature-members name name))
     (and inferred-super
-         (or (lookup-signature inferred-super)
+         (or (and (lookup-signature inferred-super) inferred-super)
              (tc-error/fields "required signature extends an untyped signature"
                               "required signature" (syntax-e name)
                               "extended signature" (syntax-e inferred-super)
@@ -103,7 +104,7 @@
    [(not (syntax->datum super)) #f]
    ;; This case should probably be an error, because if the signature was not false
    ;; the lookup may still silently fail which should not be allowed here
-   [else (or (lookup-signature super)
+   [else (or (and (lookup-signature super) super)
              (tc-error/fields "signature definition extends untyped signature"
                               "in the definition of signature" (syntax-e name)
                               "which extends signature" (syntax-e super)
@@ -112,12 +113,10 @@
 ;; parse-signature-binding : Syntax -> (list/c identifier? syntax?)
 ;; parses the binding forms inside of a define signature into the 
 ;; form used by the Signature type representation
-(define (parse-signature-binding binding-stx [make-binding? #t])
+(define (parse-signature-binding binding-stx)
   (syntax-parse binding-stx
     [[name:id type]
-     (if make-binding?
-         (cons #'name (parse-type #'type))
-         #'(type))]))
+     (cons #'name (delay (parse-type #'type)))]))
 
 ;; signature->bindings : identifier? -> (listof (cons/c identifier? type?))
 ;; GIVEN: a signature name
@@ -129,7 +128,9 @@
              [mapping (Signature-mapping sig)]
              [bindings null])
     (if sig
-        (loop (Signature-extends sig) (Signature-mapping sig) (append mapping bindings))
+        (loop (Signature-extends (lookup-signature sig))
+              (Signature-mapping (lookup-signature sig))
+              (append mapping bindings))
         (append mapping bindings))))
 
 ;; (listof identifier?) -> (listof (cons/c identifier? type?))
@@ -141,7 +142,7 @@
 
 ;; get-signature-mapping : (Option Signature) -> (Listof (Cons Id Type))
 (define (get-signature-mapping sig)
-  (if sig (Signature-mapping sig) null))
+  (if sig (Signature-mapping (lookup-signature sig)) null))
 
 ;; fix-order : id (listof (cons/c id type?)) -> (listof (cons/c id type?)
 ;; Returns a reordered list of signature bindings to match the order given

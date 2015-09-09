@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"type mismatch")
+(exn-pred (regexp-quote "type mismatch\n  expected: (Unit (import bad^) (export) (init-depend bad^) AnyValues)\n  given: (Unit (import bad^) (export) (init-depend) Void)\n  in: (invoke-unit bad (import bad^))"))
 #lang typed/racket
 
 ;; The full error message for this prorgam is

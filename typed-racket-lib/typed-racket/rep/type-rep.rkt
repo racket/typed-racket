@@ -563,8 +563,8 @@
 ;; mapping maps variables in a signature to their types
 ;; This is not a type because signatures are not values
 (def-type Signature ([name identifier?]
-                     [extends (or/c Signature? #f)]
-                     [mapping (listof (cons/c identifier? Type/c))])
+                     [extends (or/c identifier? #f)]
+                     [mapping (listof (cons/c identifier? (or/c promise? Type/c)))])
   [#:frees (lambda (f) null)]
   [#:fold-rhs (*Signature name extends mapping)])
 

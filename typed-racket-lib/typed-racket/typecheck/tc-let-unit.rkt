@@ -97,7 +97,8 @@
           (match results
             [(list (tc-result: ts fs os) ...)
              (expr->type expr (ret ts fs os))]))
-        ;; Perform additional checking by running the thunk argument
+        ;; Perform additional context-dependent checking that needs to be done
+        ;; in the context of the letrec body
         (check-thunk)
         ;; typecheck the body
         (tc-body/check body (and expected (erase-filter expected)))))))
@@ -124,17 +125,14 @@
            (values aliases declarations (cons #'t signature-forms))]
         [_ (values aliases declarations signature-forms)])))
 
+  ;; add signature names to the signature environment, deferring type parsing
+  ;; until after aliases are registered
+  (for/list ([sig-form (in-list (reverse signature-forms))])
+    (parse-and-register-signature! sig-form))
+
   (define-values (alias-names alias-map) (get-type-alias-info type-aliases))
   (register-all-type-aliases alias-names alias-map)
 
-  ;; add local signature definitions to the signature environment
-  ;; the list must be traversed in reverse order to make sure
-  ;; sub-signatures can reference their parents
-  ;; TODO: Should signatures be registered before or after aliases?
-  (define signatures
-    (for/list ([sig-form (in-list (reverse signature-forms))])
-      (parse-and-register-signature! sig-form)))
-  
   (for ([declaration declarations])
     (match-define (list id type) declaration)
     (register-type-if-undefined id (parse-type type))
@@ -145,12 +143,15 @@
   (for ([n (in-list names)] [b (in-list exprs)])
     (syntax-case n ()
       [(var) (add-scoped-tvars b (lookup-scoped-tvars #'var))]
-      [_ (void)])))
+      [_ (void)]))
+
+  ;; Finalize signatures, by parsing member types
+  (finalize-signatures!))
 
 ;; The `thunk` argument is run only for its side effects 
 ;; It is used to perform additional context-dependent checking
 ;; within the context of a letrec body.
-;; For example, it is used  to typecheck units and ensure that exported
+;; For example, it is used to typecheck units and ensure that exported
 ;; variables are exported at the correct types
 (define (tc/letrec-values namess exprs body [expected #f] [check-thunk void])
   (let* ([names (stx-map syntax->list namess)]

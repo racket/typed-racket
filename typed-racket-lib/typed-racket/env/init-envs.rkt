@@ -13,7 +13,7 @@
          (rep type-rep object-rep filter-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
          (types abbrev union)
-         racket/dict racket/list
+         racket/dict racket/list racket/promise
          mzlib/pconvert racket/match)
 
 (provide ;; convenience form for defining an initial environment
@@ -124,11 +124,11 @@
      (define (serialize-mapping m)
        (map (lambda (id/ty) 
               (define id (car id/ty))
-              (define ty (cdr id/ty))
+              (define ty (force (cdr id/ty)))
               `(cons (quote-syntax ,id) ,(sub ty)))
             m))
      `(make-Signature (quote-syntax ,name)
-                      ,(sub extends)
+                      (quote-syntax ,extends)
                       (list ,@(serialize-mapping mapping)))]
     [(arr: dom rng rest drest kws)
      `(make-arr ,(sub dom) ,(sub rng) ,(sub rest) ,(sub drest) ,(sub kws))]

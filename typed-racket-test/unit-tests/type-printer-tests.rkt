@@ -143,7 +143,9 @@
     ;; Setup for slightly more complex unit printing test
     (let* ([a^ (make-Signature #'a^ #f null)]
            [a-sub^ (make-Signature #'a-sub^ a^ (list (cons #'a -String)))]
-           [b^ (make-Signature #'b^ #f (list (cons #'b -Integer)))])
+           [b^ (make-Signature #'b^ #f (list (cons #'b -Integer)))]
+           [c^ (make-Signature #'c^ #f (list (cons #'c -Symbol)))]
+           [d^ (make-Signature #'d^ #f (list (cons #'d -String)))])
       (check-prints-as? (make-Unit (list a^) null null -String)
                         "(Unit (import a^) (export) (init-depend) String)")
       (check-prints-as? (make-Unit (list a^) (list b^) null -String)
@@ -155,7 +157,17 @@
       (check-prints-as? (make-Unit (list a-sub^) null (list a-sub^)  -String)
                         "(Unit (import a-sub^) (export) (init-depend a-sub^) String)")
       (check-prints-as? (make-Unit null (list a-sub^) null -String)
-                        "(Unit (import) (export a-sub^) (init-depend) String)"))
+                        "(Unit (import) (export a-sub^) (init-depend) String)")
+      (check-prints-as? (make-Unit (list a^ b^) (list c^ d^) null -String)
+                        "(Unit (import a^ b^) (export c^ d^) (init-depend) String)")
+      (check-prints-as? (make-Unit (list a^ b^) null null -String)
+                        "(Unit (import a^ b^) (export) (init-depend) String)")
+      (check-prints-as? (make-Unit null (list c^ d^) null -String)
+                        "(Unit (import) (export c^ d^) (init-depend) String)")
+      (check-prints-as? (make-Unit (list a^ b^) (list c^ d^) (list b^) -String)
+                        "(Unit (import a^ b^) (export c^ d^) (init-depend b^) String)")
+      (check-prints-as? (make-Unit (list a^ b^) (list c^ d^) (list b^ a^) -String)
+                        "(Unit (import a^ b^) (export c^ d^) (init-depend b^ a^) String)"))
     (check-prints-as? (make-UnitTop) "UnitTop"))
    (test-suite
     "Pretty printing tests"

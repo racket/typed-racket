@@ -31,7 +31,27 @@
 (define tests
   (test-suite
    "unit typechecking tests"
-   
+   [tc-e
+    (let ()
+      (define-signature a^ ([a : Integer]))
+      (define-type-alias Foo (Unit (import a^) (export) Integer))
+      (define a 17)
+      (: u (Unit (import a^) (export) Integer))
+      (define u (unit (import a^) (export) a))
+      (invoke-unit u (import a^)))
+    -Integer]
+
+   [tc-e
+    (let ()
+      (define-type-alias Foo (U Integer (Unit (import a^) (export) Foo)))
+      (define-signature a^ ([a : Foo]))
+      (: u Foo)
+      (define u (unit (import a^) (export) a))
+      (define a 11)
+      (invoke-unit (assert u unit?) (import a^))
+      (void))
+    -Void]
+
    #|
    This should typecheck, but doesn't because fact has no type annotation
    

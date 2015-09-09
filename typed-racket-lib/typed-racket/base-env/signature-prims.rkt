@@ -72,9 +72,8 @@
 
 
 ;; process-signature-forms : (listof syntax?) -> (listof (pairof id id))
-;; Processes the raw syntax of signature forms and returns two values
-;; - a list of pairs representing names and types bound by the signature
-;; - information about type aliases bound by a signature (currently unused)
+;; Processes the raw syntax of signature forms and returns a list
+;; of pairs representing names and types bound by the signature
 (define-for-syntax (process-signature-forms forms)
   (for/list ([form (in-list forms)])
     (syntax-parse form

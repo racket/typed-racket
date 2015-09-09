@@ -71,7 +71,10 @@
   ;; such as define-unit, define-compound-unit, define-unit-from-context. but
   ;; not the corresponding unit, compound-unit, etc forms
   ;; Performs local expansion in order to apply a syntax property to the
-  ;; correct subexpression of the `define-*` form
+  ;; subexpression of the `define-*` form correpsonding to the body of the
+  ;; definition being created
+  ;; - eg for a define-unit form, a syntax property will be attached to the
+  ;;   subexpression that creates the unit
   (define (process-definition-form apply-property stx)
     (define exp-stx (local-expand stx (syntax-local-context) (kernel-form-identifier-list)))
     (syntax-parse exp-stx
@@ -177,22 +180,27 @@
                                                         (import isig ...)
                                                         (export esig ...)))))]))
 (begin-for-syntax
-  ;; comparable signatures allow easy comparisons of whether one
-  ;; such comparable-signature implements another
+  ;; flat signatures allow easy comparisons of whether one
+  ;; such flat-signature implements another
   ;; - name is the identifier corresponding to the signatures name
   ;; - implements is a free-id-set of this signature and all its ancestors
-  (struct comparable-signature (name implements) #:transparent)
+  ;; flat-signatures enable a comparison of whether one signature implements
+  ;; another as a subset comparison on their contained sets of parent signatures
+  (struct flat-signature (name implements) #:transparent)
 
-  ;; implements : comparable-signature? comparable-signature? -> Boolean
+  ;; implements? : flat-signature? flat-signature? -> Boolean
   ;; true iff signature sig1 implements signature sig2
-  (define (implements sig1 sig2)
+  (define (implements? sig1 sig2)
     (match* (sig1 sig2)
-      [((comparable-signature name1 impls1) (comparable-signature name2 impls2))
+      [((flat-signature name1 impls1) (flat-signature name2 impls2))
        (free-id-subset? impls2 impls1)]))
 
-  ;; Return two lists, the list of imports of all units in unit-ids
-  ;; and the list of all exports in unit-ids
-  ;; The returned lists contain comparable-signatures
+  ;; Given: a list of idneitifers bound to static unit informations
+  ;; Returns: two lists
+  ;; 1. A list of flat-signatures representing the signatures imported by
+  ;;    the given units
+  ;; 2. A list of flat-signatures representing the signatures exported by
+  ;;    the given units
   (define (get-imports/exports unit-ids)
     (define-values (imports exports) 
       (for/fold ([imports null]
@@ -202,12 +210,12 @@
                               (list (cons _ new-exports) ...))
                              (unit-static-signatures unit-id unit-id))
         (values (append imports new-imports) (append exports new-exports))))
-    (values (map make-comparable-signature imports)
-            (map make-comparable-signature exports)))
+    (values (map make-flat-signature imports)
+            (map make-flat-signature exports)))
 
-  ;; Given the id of a signature, return a corresponding comparable-signature
-  (define (make-comparable-signature sig-name)
-    (comparable-signature sig-name (get-signature-ancestors sig-name)))
+  ;; Given the id of a signature, return a corresponding flat-signature
+  (define (make-flat-signature sig-name)
+    (flat-signature sig-name (get-signature-ancestors sig-name)))
 
   ;; Walk the chain of parent signatures to build a list, and convert it to
   ;; a free-id-set
@@ -225,15 +233,15 @@
   ;; exports from any of the units taking signature subtyping into account
   (define (infer-imports unit-ids)
     (define-values (imports exports) (get-imports/exports unit-ids))
-    (define remaining-imports (remove* exports imports implements))
-    (map comparable-signature-name remaining-imports))
+    (define remaining-imports (remove* exports imports implements?))
+    (map flat-signature-name remaining-imports))
 
   ;; infer-exports returns all the exports from linked
   ;; units rather than just those that are not also
   ;; imported
   (define (infer-exports unit-ids)
     (define-values (imports exports) (get-imports/exports unit-ids))
-    (map comparable-signature-name exports))
+    (map flat-signature-name exports))
 
   (define-splicing-syntax-class maybe-exports
     #:literals (export)
@@ -282,17 +290,19 @@
 
 (define-syntax (invoke-unit stx)
   (syntax-parse stx
-    [(invoke-unit . rest)
+    [(invoke-unit expr . rest)
      (ignore
       (tr:unit:invoke-property
        (quasisyntax/loc stx
-         (untyped-invoke-unit . rest)) #t))]))
+         (untyped-invoke-unit
+          #,(tr:unit:invoke-expr-property #'expr #t)
+          . rest)) #t))]))
 
 ;; Trampolining macro that cooperates with the unit macro in order
 ;; to add information needed for typechecking units
-;; Essentailly head expands each expression in the body of a unit
+;; Essentially head expands each expression in the body of a unit
 ;;  - leaves define-syntaxes forms alone, to allow for macro definitions in unit bodies
-;;  - Inserts syntax into define-values forms that allow mapping the names of deifnitions
+;;  - Inserts syntax into define-values forms that allow mapping the names of definitions
 ;;    to their bodies during type checking
 ;;  - Also specially handles type annotations in order to correctly associate variables
 ;;    with their types
@@ -311,7 +321,10 @@
        ;; Exported variables are renamed internally in units, which leads
        ;; to them not being correctly associated with their type annotations
        ;; This extra bit of inserted syntax allows the typechecker to
-       ;; properly associate all annotated variables with their types
+       ;; properly associate all annotated variables with their types.
+       ;; The inserted lambda expression will be expanded to the internal
+       ;; name of the variable being annotated, this internal name
+       ;; can then be associated with the type annotation during typechecking
        [(define-values () (colon-helper (: name:id type) rest ...))
         (quasisyntax/loc stx
           (define-values ()

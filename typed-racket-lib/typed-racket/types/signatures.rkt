@@ -9,7 +9,6 @@
          syntax/parse
          syntax/id-set
          racket/list
-         racket/set
          (only-in racket/set subset?)
          (for-template racket/base
                        (typecheck internal-forms)))
@@ -45,21 +44,22 @@
   (define sup-exts (immutable-free-id-set (append-map signature-extensions sup-sigs)))
   (free-id-subset? sup-exts sub-exts))
 
-;; signature-extensions : (or/c #f Signature) -> (listof identifier?)
+;; signature-extensions : (or/c #f identifier?) -> (listof identifier?)
 ;; returns the list (chain) of names of each signature that
 ;; the given signature extends including itself
 ;; returns '() when given #f
-(define (signature-extensions sig)
-  (if sig
-      (cons (Signature-name sig)
-            (signature-extensions (Signature-extends sig)))
-      null))
+(define (signature-extensions sig*)
+  (let ([sig (and sig* (if (Signature? sig*) sig* (lookup-signature sig*)))])
+    (if sig
+        (cons (Signature-name sig)
+              (signature-extensions (Signature-extends sig)))
+        null)))
 
-(define (flatten-sigs sig)
-  (if sig
-      (cons sig
-            (flatten-sigs (Signature-extends sig)))
-      null))
+(define (flatten-sigs sig*)
+  (let ([sig (and sig* (if (Signature? sig*) sig* (lookup-signature sig*)))])
+    (if sig
+        (cons sig (flatten-sigs (Signature-extends sig)))
+        null)))
 
 
 ;;  : (listof Signature) -> boolean
@@ -72,5 +72,4 @@
 ;; distinct-ids? : (listof id) -> boolean?
 ;; returns true iff the signature ids are all distinct
 (define (distinct-ids? sigs)
-  (= (length sigs)
-     (length (free-id-set->list (immutable-free-id-set sigs)))))
+  (not (check-duplicates sigs free-identifier=?)))

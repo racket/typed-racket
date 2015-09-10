@@ -195,7 +195,7 @@
       [((flat-signature name1 impls1) (flat-signature name2 impls2))
        (free-id-subset? impls2 impls1)]))
 
-  ;; Given: a list of idneitifers bound to static unit informations
+  ;; Given: a list of identifiers bound to static unit information
   ;; Returns: two lists
   ;; 1. A list of flat-signatures representing the signatures imported by
   ;;    the given units
@@ -288,6 +288,10 @@
       (tr:unit:invoke-property
        (quasisyntax/loc stx (untyped-invoke-unit/infer . rest)) 'infer))]))
 
+;; The typed invoke-unit macro must attach a syntax property to the expression
+;; being invoked in order to reliably find it during typechecking.
+;; Otherwise the expanded syntax may be confused for that of invoke-unit/infer
+;; and be typechecked incorrectly
 (define-syntax (invoke-unit stx)
   (syntax-parse stx
     [(invoke-unit expr . rest)
@@ -295,7 +299,7 @@
       (tr:unit:invoke-property
        (quasisyntax/loc stx
          (untyped-invoke-unit
-          #,(tr:unit:invoke-expr-property #'expr #t)
+          #,(tr:unit:invoke:expr-property #'expr #t)
           . rest)) #t))]))
 
 ;; Trampolining macro that cooperates with the unit macro in order

@@ -31,6 +31,50 @@
 (define tests
   (test-suite
    "unit typechecking tests"
+   ;; simple tests that annotations work appropriately
+   [tc-e
+    (let ()
+      (define-signature a^ ([a : Integer]))
+      (unit
+        (import)
+        (export a^)
+        (: a Natural)
+        (define a 5))
+      (void))
+    -Void]
+   [tc-err
+    (let ()
+      (define-signature a^ ([a : Integer]))
+      (unit
+        (import)
+        (export a^)
+        (: a String)
+        (define a 5))
+      (error ""))]
+   [tc-e
+    (let ()
+      (define-signature a^ ([a : Integer]))
+      (unit
+        (import)
+        (export a^)
+        (: a Integer)
+        (define a 5)
+        (: b String)
+        (define b "foo"))
+      (void))
+    -Void]
+   [tc-err
+    (let ()
+      (define-signature a^ ([a : Integer]))
+      (unit
+        (import)
+        (export a^)
+        (: a Integer)
+        (define a 5)
+        (: b String)
+        (define b 5)e)
+      (error ""))]
+
    [tc-e
     (let ()
       (define-signature a^ ([a : Integer]))

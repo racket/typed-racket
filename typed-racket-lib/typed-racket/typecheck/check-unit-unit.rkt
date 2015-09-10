@@ -68,7 +68,7 @@
          racket/unit-exptime
          "signatures.rkt"
          (private parse-type syntax-properties type-annotation)
-         (base-env base-special-env)
+         (only-in (base-env base-special-env) make-template-identifier)
          (env lexical-env tvar-env global-env 
               signature-env signature-helper)
          (types utils abbrev union subtype resolve generalize signatures)
@@ -287,6 +287,8 @@
 (define extract-export-map-elem
   (syntax-parser [e:export-temp-internal-map-elem (cons #'e.temp-id #'e.internal-id)]))
 
+;; get a reference to the actual `invoke-unit/core` function to properly parse
+;; the fully expanded syntax of `invoke-unit` forms
 (define invoke-unit/core (make-template-identifier 'invoke-unit/core 'racket/unit))
 
 ;; Syntax class for all the various expansions of invoke-unit forms
@@ -316,7 +318,7 @@
      (#%plain-app iu/c (#%plain-app values _)))
    #:when (free-identifier=? #'iu/c invoke-unit/core)
    #:attr units '()
-   #:attr expr (if (tr:unit:invoke-expr-property #'ie) #'ie #'ie.invoke-expr)
+   #:attr expr (if (tr:unit:invoke:expr-property #'ie) #'ie #'ie.invoke-expr)
    #:attr imports '())
   (pattern
    (let-values ([(temp-id) u:unit-expansion])
@@ -498,14 +500,8 @@
                   export-sigs
                   cu-exprs)
     (parse-compound-unit form))
-  (define (lookup-link-id id) (dict-ref link-mapping id #f))
-  (define (lookup-sig-id id) 
-    (free-id-table-ref
-     (make-immutable-free-id-table
-      (map (lambda (k/v) (cons (cdr k/v) (car k/v))) link-mapping))
-     id
-     #f))
   
+  (define (lookup-link-id id) (dict-ref link-mapping id #f))
   (define-values (check _ init-depends)
     (for/fold ([check -Void]
                [seen-init-depends import-syms]

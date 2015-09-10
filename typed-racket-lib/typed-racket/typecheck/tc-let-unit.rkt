@@ -126,7 +126,8 @@
         [_ (values aliases declarations signature-forms)])))
 
   ;; add signature names to the signature environment, deferring type parsing
-  ;; until after aliases are registered
+  ;; until after aliases are registered to allow mutually recursive references
+  ;; between signatures and type aliases
   (for/list ([sig-form (in-list (reverse signature-forms))])
     (parse-and-register-signature! sig-form))
 
@@ -173,25 +174,22 @@
         (values name expr)))
 
     ;; Check those and then check the rest in the extended environment
-    ;; define result to traverse the result type for escaping signatures
-    (define letrec-result
-      (check-non-recursive-clauses
-       ordered-clauses
-       (lambda ()
-         (cond
-          ;; after everything, check the body expressions
-          [(null? remaining-names)
-           (check-thunk)
-           (tc-body/check body (and expected (erase-filter expected)))]
-          [else
-           (define flat-names (apply append remaining-names))
-           (do-check tc-expr/check
-                     remaining-names
-                     ;; types the user gave.
-                     (map (λ (l) (map tc-result (map get-type l))) remaining-names)
-                     remaining-exprs body expected
-                     check-thunk)]))))
-    letrec-result))
+    (check-non-recursive-clauses
+     ordered-clauses
+     (lambda ()
+       (cond
+         ;; after everything, check the body expressions
+         [(null? remaining-names)
+          (check-thunk)
+          (tc-body/check body (and expected (erase-filter expected)))]
+         [else
+          (define flat-names (apply append remaining-names))
+          (do-check tc-expr/check
+                    remaining-names
+                    ;; types the user gave.
+                    (map (λ (l) (map tc-result (map get-type l))) remaining-names)
+                    remaining-exprs body expected
+                    check-thunk)])))))
 
 ;; An lr-clause is a
 ;;   (lr-clause (Listof Identifier) Syntax)

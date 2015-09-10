@@ -113,6 +113,9 @@
 ;; parse-signature-binding : Syntax -> (list/c identifier? syntax?)
 ;; parses the binding forms inside of a define signature into the 
 ;; form used by the Signature type representation
+;; The call to `parse-type` is delayed to allow signatures and type aliases
+;; to be mutually recursive, after aliases are registered in the environment
+;; the promise will be forced to perform the actual type parsing
 (define (parse-signature-binding binding-stx)
   (syntax-parse binding-stx
     [[name:id type]

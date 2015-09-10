@@ -326,7 +326,8 @@
   (do-time "Form splitting done")
 
   ;; Register signatures in the signature environment
-  ;; but defer type parsing
+  ;; but defer type parsing to allow mutually recursive refernces
+  ;; between signatures and type aliases
   (for ([sig-form signature-defs])
     (parse-and-register-signature! sig-form))
 

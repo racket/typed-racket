@@ -11,6 +11,7 @@
          racket/match racket/list
          racket/contract
          racket/lazy-require
+         racket/promise
          (for-syntax racket/base syntax/parse))
 
 (provide Mu-name:

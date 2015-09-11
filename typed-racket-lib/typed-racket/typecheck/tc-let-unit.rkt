@@ -41,10 +41,11 @@
 ;; The `check-thunk` argument serves the same purpose as in tc/letrec-values
 (define/cond-contract (do-check expr->type namess expected-results exprs body expected 
                                 [check-thunk void])
-  ((syntax? tc-results/c . -> . any/c)
-   (listof (listof identifier?)) (listof (listof tc-result?))
-   (listof syntax?) syntax? (or/c #f tc-results/c)
-   . -> .
+  (((syntax? tc-results/c . -> . any/c)
+    (listof (listof identifier?)) (listof (listof tc-result?))
+    (listof syntax?) syntax? (or/c #f tc-results/c))
+   ((-> any/c))
+   . ->* .
    tc-results/c)
   (with-cond-contract t/p ([expected-types (listof (listof Type/c))]
                            [objs           (listof (listof Object?))]

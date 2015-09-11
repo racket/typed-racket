@@ -15,13 +15,13 @@
 @title{Typed Units}
 
 @bold{Warning}: the features described in this section are experimental
-and may not work correctly. Some of the features will change by
-the next release. 
+and may not work correctly. Some of the features may change by
+the next release.
 
-Typed Racket provides support for modular programming with the  units
+Typed Racket provides support for modular programming with the units
 and signatures provided by the @racketmodname[racket/unit] library.
 
-@section{Special forms}
+@section[#:tag "unit-forms"]{Special forms}
 
 @defmodule[typed/racket/unit]
 
@@ -69,12 +69,15 @@ additionally provides all other bindings from @racketmodname[racket/unit].
 
    [sig-elem  [id : type]])]{
 
-Binds an identifier to a signature and registers the identifier in the signature environment with the specified type bindings.
-Signatures in Typed Racket only allow a specification of variables and their types, variable and syntax definitions are not
-allowed in the in the @racket[define-signature] form.
+Binds an identifier to a signature and registers the identifier in the signature
+environment with the specified type bindings. Sigantures in Typed Racket allow
+only specifications of variables and their types. Variable and syntax definitions
+are not allowed in the @racket[define-signature] form. This is only a limitation
+of the @racket[define-signature] form in Typed Racket.
 
-As in Racket, the @racket[extends] clause includes all elements of extended signature and any implementation of the new signature
-can be used as an implementation of the extended signature/}
+As in untyped Racket, the @racket[extends] clause includes all elements of
+extended signature and any implementation of the new signature can be used
+as an implementation of the extended signature.}
 
 @defform[
 #:literals (import export prefix rename only except init-depend)
@@ -94,7 +97,8 @@ can be used as an implementation of the extended signature/}
  	    [init-depends-decl
   	    code:blank
   	    (init-depend sig-id ...)])]{
-The typed version of the Racket @ut:unit form. Unit expressions in Typed Racket do not support tagged signatures with the @racket[tag] keyword.}
+The typed version of the Racket @ut:unit form. Unit expressions in Typed Racket
+do not support tagged signatures with the @racket[tag] keyword.}
 
 @defform*[
 #:literals (import)
@@ -111,8 +115,9 @@ The typed version of the Racket @ut:invoke-unit form.}
 	    sig-id
 	    (prefix id def-sig-spec)
 	    (rename def-sig-spec (id id) ...)])]{
-The typed version of the Racket @ut:define-values/invoke-unit form. In Typed Racket @racket[define-values/invoke-unit] is only allowed at the toplevel
-of a module. }
+The typed version of the Racket @ut:define-values/invoke-unit form. In Typed
+Racket @racket[define-values/invoke-unit] is only allowed at the top-level
+of a module.}
 
 @defform[
 #:literals (: import export link tag)
@@ -190,8 +195,9 @@ The typed version of the Racket @ut:invoke-unit/infer form.}
 	   [unit-spec
 	     unit-id
 	     (link link-unit-id ...)])]{
-The typed version of the Racket @ut:define-values/invoke-unit/infer form. Like the @racket[define-values/invoke-unit] form above, this form
-is only allowed at the toplevel of a module.}
+The typed version of the Racket @ut:define-values/invoke-unit/infer form. Like
+the @racket[define-values/invoke-unit] form above, this form is only allowed at
+the toplevel of a module.}
 
 @defform[
 (unit-from-context sig-spec)]{
@@ -202,7 +208,7 @@ The typed version of the Racket @ut:unit-from-context form.}
 The typed version of the Racket @ut:define-unit-from-context form.}
 
 
-@section{Types}
+@section[#:tag "unit-types"]{Types}
 
 @defform[
 #:literals (import export init-depend Values)
@@ -218,11 +224,12 @@ The typed version of the Racket @ut:define-unit-from-context form.}
              code:blank
 	     type
 	     (Values type ...)])]{
-The type of a unit with the given imports, exports, initialization dependencies, and body type.
-Omitting the init-depend clause is equivalent to an init-depend clause that contains no signatures.
-The body type is the the type that results from executing the body of the unit, if a unit contains no
-expressions its body type would be @racket[Void]. Similarly, omitting the body type is equivalent to
-specifying a body type of @racket[Void].
+The type of a unit with the given imports, exports, initialization dependencies,
+and body type. Omitting the init-depend clause is equivalent to an
+@racket[init-depend] clause that contains no signatures. The body type is the
+type of the last expression in the unit's body. If a unit contains only
+definitions and no expressions its body type is @racket[Void]. Omitting the body
+type is equivalent to specifying a body type of @racket[Void].
 
 @ex[(module Unit-Types typed/racket
       (define-signature fact^ ([fact : (-> Natural Natural)]))
@@ -234,15 +241,92 @@ specifying a body type of @racket[Void].
 }
 
 @defidform[UnitTop]{
-The supertype of all unit types. Values of this type cannot be linked or invoked. The primary use of is for the reflective operation @racket[unit?]}
+The supertype of all unit types. Values of this type cannot be linked or invoked.
+The primary use of is for the reflective operation @racket[unit?]}
+
+@section[#:tag "unit-typed/untyped-interactions"]{Interacting with Untyped Code}
+
+@defform/subs[#:link-target? #f
+#:literals (struct)
+(require/typed m rt-clause ...)
+([rt-clause [maybe-renamed t]
+            [#:struct name ([f : t] ...)
+                 struct-option ...]
+            [#:struct (name parent) ([f : t] ...)
+                 struct-option ...]
+            [#:opaque t pred]
+	    [#:signature name ([id : t] ...)]]
+ [maybe-renamed id
+                (orig-id new-id)]
+ [struct-option
+   (code:line #:constructor-name constructor-id)
+   (code:line #:extra-constructor-name constructor-id)])]
+
+
+The @racket[#:signature] clause of @racket[require/typed] requires the given
+signature and registers it in the signature environment with the specified
+bindings. Unlike other identifiers required with @racket[require/typed], signatures
+are not protected by contracts.
+@margin-note{Signatures are not runtime values and therefore fo not need to be protected by contracts.}
+
+@ex[
+(module UNTYPED-1 racket
+  (provide a^)  
+  (define-signature a^ (a)))
+
+(module TYPED-1 typed/racket
+  (require/typed 'UNTYPED-1
+                 [#:signature a^ ([a : Integer])])
+  (unit (import a^) (export) (add1 a)))]
+
+
+Typed Racket will infer whether the named signature @racket[extends]
+another signature. It is an error to require a signature that extends a signature
+not present in the signature environment.
+
+@ex[
+(module UNTYPED-2 racket
+  (provide a-sub^)
+  (define-signature a^ (a1))
+  (define-signature a-sub^ extends a^ (a2)))
+
+(module TYPED-2 typed/racket
+  (require/typed 'UNTYPED-2
+                 [#:signature a-sub^
+		   ([a1 : Integer]
+		    [a2 : String])]))]
+
+
+Requiring a signature from an untyped module that contains variable definitions is an error
+in Typed Racket.
+
+@ex[
+(module UNTYPED racket
+  (provide bad^)
+  (define-signature bad^ (bad (define-values (bad-ref) (car bad)))))
+
+(module TYPED typed/racket
+  (require/typed 'UNTYPED
+                 [#:signature bad^
+		   ([bad : (Pairof Integer Integer)]
+		    [bad-ref : Integer])]))]
+
+
+
+
+
+
 
 
 @section{Limitations}
 
 @subsection{Signature Forms}
-Unlike Racket's @ut:define-signature form, in Typed Racket @racket[define-signature] only supports one kind of signature element that specifies
-the types of variables in the signature. In particular Typed Racket's @racket[define-signature] form does not support uses of @ut:define-syntaxes,
-@ut:define-values, or @ut:define-values-for-export . Requiring an untyped signature that contains definitions in a typed module will result in an error.
+Unlike Racket's @ut:define-signature form, in Typed Racket
+@racket[define-signature] only supports one kind of signature element that
+specifies the types of variables in the signature. In particular Typed Racket's
+@racket[define-signature] form does not support uses of @ut:define-syntaxes,
+@ut:define-values, or @ut:define-values-for-export . Requiring an untyped
+signature that contains definitions in a typed module will result in an error.
 
 @ex[(module UNTYPED racket
       (provide bad^)
@@ -252,9 +336,12 @@ the types of variables in the signature. In particular Typed Racket's @racket[de
                      [#:signature bad^ ([bad : Integer])]))]
 
 @subsection{Contracts and Unit Static Information}
-Unit values that flow between typed and untyped contexts are wrapped in @racket[unit/c] contracts to guard the unit's imports, exports, and result upon invocation.
-When identifers that are additionally bound to static information about a unit flow between typed and untyped contexts the result of contract wrapping results in the
-unit static information becoming inaccessible.
+Unit values that flow between typed and untyped contexts are wrapped in
+@racket[unit/c] contracts to guard the unit's imports, exports, and result upon
+invocation. When identifers that are additionally bound to static information
+about a unit, such as those defined by @racket[define-unit], flow between typed
+and untyped contexts contract application can result the static information
+becoming inaccessible.
 
 @ex[
 (module UNTYPED racket
@@ -265,8 +352,10 @@ unit static information becoming inaccessible.
                  [u@ (Unit (import) (export) String)])
   (invoke-unit/infer u@))]
 
-When an identifier bound to static unit information flows from a typed module to an untyped module, however, the situation is worse. Since unit static information
-is bound to an identifier as a macro definition, any use of the typed unit is disallowed in untyped contexts.
+When an identifier bound to static unit information flows from a typed module to
+an untyped module, however, the situation is worse. Because unit static
+information is bound to an identifier as a macro definition, any use of the
+typed unit is disallowed in untyped contexts.
 
 @ex[
 (module TYPED typed/racket
@@ -277,8 +366,9 @@ is bound to an identifier as a macro definition, any use of the typed unit is di
   u@)]
 
 @subsection{Signatures and Internal Definition Contexts}
-Typed Racket's @racket[define-signature] form is allowed in both toplevel and internal definition contexts, however, defining signatures in internal definition contexts
-can be problematic.
+Typed Racket's @racket[define-signature] form is allowed in both top-level and
+internal definition contexts. As the following example shows, defining
+signatures in internal definiition contexts can be problematic.
 
 @ex[
 (module TYPED typed/racket
@@ -289,16 +379,21 @@ can be problematic.
       (unit (import a^) (export) (init-depend a^) 5)))
   (invoke-unit u@ (import a^)))]
 
-  Even though the unit imports a signature named @racket[a^], the @racket[a^] provided for the import refers to the
-toplevel @racket[a^] signature and the type system prevents invoking the unit. This issue can be avoided by defining signatures
-only at the toplevel of a module.
+  Even though the unit imports a signature named @racket[a^], the @racket[a^]
+provided for the import refers to the top-level @racket[a^] signature and the
+type system prevents invoking the unit. This issue can be avoided by defining
+signatures only at the top-level of a module.
 
 @subsection{Tagged Signatures}
 
-Various unit forms in Racket allow for signatures to be tagged to support the deifnition of units that import or export the same signature multiple times.
-Typed Racket does not support the use of tagged signatures, using the @racket[tag] keyword, anywhere in the various unit forms described above.
+Various unit forms in Racket allow for signatures to be tagged to support the
+definition of units that import or export the same signature multiple times.
+Typed Racket does not support the use of tagged signatures, using the
+@racket[tag] keyword, anywhere in the various unit forms described above.
 
 @subsection{Structural Matching and Other Unit Forms}
 
-Typed Racket supports Only those unit forms described above. All other bindings exported by @racketmodname[racket/unit] are not supported in the type system.
-In particular, the structural matching forms including @ut:unit/new-import-export and @ut:unit/s are unsupported.
+Typed Racket supports only those unit forms described above. All other bindings
+exported by @racketmodname[racket/unit] are not supported in the type system. In
+particular, the structural matching forms including @ut:unit/new-import-export
+and @ut:unit/s are unsupported.

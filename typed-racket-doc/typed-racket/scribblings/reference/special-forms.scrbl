@@ -631,27 +631,14 @@ Opaque types must be required lexically before they are used.
     evt?
     (sync (alarm-evt (+ 100 (current-inexact-milliseconds))))]
 
-@index["signature"]{The fifth case} registers the given signature name in the signature environment
-with the specified bindings. If the named signature is an extension of a second signature this the
-relationship between the two signatures is inferred. It is an error to require a signature that
-extends a signature not present in the signature environment. As with opaque types, signatures must
-be required lexically before they are used. Although untyped signatures allow definitions inside of
-signatures, this is not allowed in Typed Racket and requiring signatures containing definitions results
-in an error.
+@index["signature"]{The @racket[#:signature] keyword} registers the required
+signature in the signature environment. For more information on the use of
+signatures in Typed Racket see the documentation for
+@racketmodname[typed/racket/unit].
 
-@ex[(module UNTYPED racket
-      (define-signature fact^ (fact))
-      (provide fact^))
-
-    (module TYPED typed/racket
-      (require/typed 'UNTYPED
-                     [#:signature fact^ ([fact : (-> Natural Natural)])])
-      (unit (import fact^) (export) (fact 5)))]
-
-Except for signatures, the identifiers are protected with @rtech{contracts} which
+In all cases, the identifiers are protected with @rtech{contracts} which
 enforce the specified types.  If this contract fails, the module
-@racket[m] is blamed. Signatures are not runtime values and therefore do not need to
-be protected by contracts.
+@racket[m] is blamed.
 
 Some types, notably the types of predicates such as @racket[number?],
 cannot be converted to contracts and raise a static error when used in

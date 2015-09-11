@@ -267,7 +267,7 @@ The @racket[#:signature] clause of @racket[require/typed] requires the given
 signature and registers it in the signature environment with the specified
 bindings. Unlike other identifiers required with @racket[require/typed], signatures
 are not protected by contracts.
-@margin-note{Signatures are not runtime values and therefore fo not need to be protected by contracts.}
+@margin-note{Signatures are not runtime values and therefore do not need to be protected by contracts.}
 
 @ex[
 (module UNTYPED-1 racket

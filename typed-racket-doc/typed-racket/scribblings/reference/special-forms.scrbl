@@ -579,7 +579,8 @@ optionally-renamed identifier.
                  struct-option ...]
             [#:struct (name parent) ([f : t] ...)
                  struct-option ...]
-            [#:opaque t pred]]
+            [#:opaque t pred]
+	    [#:signature name ([id : t] ...)]]
  [maybe-renamed id
                 (orig-id new-id)]
  [struct-option
@@ -629,6 +630,11 @@ Opaque types must be required lexically before they are used.
                    [sync (Evt -> Any)])
     evt?
     (sync (alarm-evt (+ 100 (current-inexact-milliseconds))))]
+
+@index["signature"]{The @racket[#:signature] keyword} registers the required
+signature in the signature environment. For more information on the use of
+signatures in Typed Racket see the documentation for
+@racketmodname[typed/racket/unit].
 
 In all cases, the identifiers are protected with @rtech{contracts} which
 enforce the specified types.  If this contract fails, the module

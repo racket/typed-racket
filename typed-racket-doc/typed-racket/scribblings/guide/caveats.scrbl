@@ -99,9 +99,6 @@ illustrates a type for which a predicate can't be generated:
 
 @section{Unsupported features}
 
-Units are not currently supported at all in Typed Racket, but they
-will potentially be supported in a future version.
-
 Most structure type properties do not work in Typed Racket, including
 support for generic interfaces.
 

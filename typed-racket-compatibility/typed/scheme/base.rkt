@@ -17,7 +17,8 @@
          (rename-in
            (except-in typed-racket/base-env/prims
              require-typed-struct
-             require/typed)
+             require/typed
+             require-typed-signature)
            (require-typed-struct-legacy require-typed-struct)
            (require/typed-legacy require/typed))
          typed-racket/base-env/base-types

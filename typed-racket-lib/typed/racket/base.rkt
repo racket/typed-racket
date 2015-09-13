@@ -16,7 +16,8 @@
 (require typed-racket/base-env/extra-procs
          (except-in typed-racket/base-env/prims
            require-typed-struct-legacy
-           require/typed-legacy)
+           require/typed-legacy
+           require-typed-signature)
          typed-racket/base-env/base-types
          (except-in typed-racket/base-env/base-types-extra Distinction))
 (provide (rename-out [define-type-alias define-type])

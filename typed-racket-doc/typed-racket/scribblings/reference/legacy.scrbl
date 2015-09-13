@@ -181,11 +181,6 @@ keyword with @racket[require/typed].}
 keyword with @racket[require/typed].}
 @defidform[require-typed-struct/provide]{Similar to
 @racket[require-typed-struct], but also provides the imported identifiers.}
-@defform[
-(require-typed-signature sig-name (id ...) (type ...) module)]{
-Similar to using the @racket[#:signature] keyword with @racket[require/typed].
-Signature variables are matched with their types positionally, the two lists
-must have the same length.}
 @defidform[pdefine:]{Defines a polymorphic function.}
 @defform[(pred t)]{Equivalent to @racket[(Any -> Boolean : t)].}
 

@@ -7,10 +7,11 @@
          "global-env.rkt"
          "type-name-env.rkt"
          "type-alias-env.rkt"
+         "measure-unit-env.rkt"
          "mvar-env.rkt"
          "signature-env.rkt"
          (rename-in racket/private/sort [sort raw-sort])
-         (rep type-rep object-rep filter-rep rep-utils free-variance)
+         (rep type-rep object-rep filter-rep measure-unit-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
          (types abbrev union)
          racket/dict racket/list racket/promise
@@ -26,6 +27,7 @@
          tname-env-init-code
          tvariance-env-init-code
          talias-env-init-code
+         measure-unit-env-init-code
          env-init-code
          mvar-env-init-code
          signature-env-init-code)
@@ -186,6 +188,11 @@
   (make-init-code
     type-alias-env-map
     (λ (id ty) #`(register-resolved-type-alias #'#,id #,(quote-type ty)))))
+
+(define (measure-unit-env-init-code)
+  (make-init-code
+    measure-unit-env-map
+    (λ (id u) #`(register-resolved-measure-unit #'#,id #,(quote-type u)))))
 
 (define (env-init-code)
   (make-init-code

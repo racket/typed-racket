@@ -17,7 +17,7 @@
 (define-other-types
   -> ->* case-> U Rec All Opaque Vector
   Parameterof List List* Class Object Unit Values AnyValues Instance Refinement
-  pred Struct Struct-Type Prefab Top Bot Distinction)
+  pred Struct Struct-Type Prefab Top Bot Distinction Measure)
 
 (provide (rename-out [All ∀]
                      [U Un]

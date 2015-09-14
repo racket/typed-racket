@@ -5,6 +5,11 @@
          measure
          u*
          u^
+         m*
+         m^
+         m/
+         m+
+         m-
          )
 
 (require (submod "../../typecheck/internal-forms.rkt" forms)
@@ -55,6 +60,10 @@
     (quasisyntax/loc stx
       (#,(measure-property #'#%expression u-stx)
        #,expr-stx)))
+  (define (add-measure-arith-prop stx expr-stx)
+    (quasisyntax/loc stx
+      (#,(measure-arith-property #'#%expression #t)
+       #,expr-stx)))
   )
 
 (define-syntax measure
@@ -62,4 +71,40 @@
     (syntax-parse stx
       [(measure n:expr u:expr)
        (add-measure-prop stx #'n #'u)])))
+
+(define-syntax m*
+  (lambda (stx)
+    (syntax-parse stx
+      [(m* a:expr ...)
+       (add-measure-arith-prop stx #'(* a ...))])))
+
+(define-syntax m^
+  (lambda (stx)
+    (syntax-parse stx
+      [(m^ a:expr b:integer)
+       (add-measure-arith-prop stx #'(expt a b))])))
+
+(define-syntax m/
+  (lambda (stx)
+    (syntax-parse stx
+      [(m/ a:expr)
+       (syntax/loc stx (m^ a -1))]
+      [(m/ a:expr b:expr ...+)
+       (syntax/loc stx (m* a (m/ (m* b ...))))])))
+
+(define-syntax m+
+  (lambda (stx)
+    (syntax-parse stx
+      [(m+)
+       (syntax/loc stx (measure 0 (u*)))]
+      [(m+ a:expr ...+)
+       (add-measure-arith-prop stx #'(+ a ...))])))
+
+(define-syntax m-
+  (lambda (stx)
+    (syntax-parse stx
+      [(m- a:expr)
+       (syntax/loc stx (m* a (measure -1 (u*))))]
+      [(m- a:expr b:expr ...+)
+       (syntax/loc stx (m+ a (m- (m+ b ...))))])))
 

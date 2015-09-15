@@ -203,10 +203,9 @@ the typed racket language.
   (let ([mk (lambda (form)
               (lambda (stx)
                 (syntax-parse stx
+                  #:context (datum->syntax stx `(,form) stx stx)
                   [(_ (bs:optionally-annotated-binding ...) . body)
-                   (quasisyntax/loc stx (#,form (bs.binding ...) . body))]
-                  [(_) (raise-syntax-error (syntax-e form) "bad syntax: expected more forms"
-                                           (datum->syntax stx `(,form) stx stx))])))])
+                   (quasisyntax/loc stx (#,form (bs.binding ...) . body))])))])
     (values (mk #'let) (mk #'let*) (mk #'letrec))))
 
 (define-syntaxes (-let-values -let*-values -letrec-values)

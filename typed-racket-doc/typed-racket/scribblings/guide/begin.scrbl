@@ -34,7 +34,7 @@ This defines a new structure, named @racket[pt], with two fields,
 @racket[Real], which corresponds to the @rtech{real numbers}.
  The
 @racket[struct] form corresponds to its untyped counterpart from
-from @racketmodname[racket]---when porting a program from
+@racketmodname[racket]---when porting a program from
 @racketmodname[racket] to @racketmodname[typed/racket], simply add
 type annotations to existing field declarations.
 

@@ -11,7 +11,7 @@
          (except-in
           (combine-in
            (utils tc-utils)
-           (rep free-variance type-rep filter-rep object-rep rep-utils)
+           (rep free-variance type-rep filter-rep object-rep measure-unit-rep rep-utils)
            (types utils abbrev numeric-tower union subtype resolve
                   substitute generalize prefab)
            (env index-env tvar-env))
@@ -420,6 +420,9 @@
    (cgen/inv context S T))
   ;; this places no constraints on any variables
   (define empty (empty-cset/context context))
+  (define/cond-contract (cg/measure-unit u1 u2)
+   (MeasureUnit? MeasureUnit? . -> . (or/c #f cset?))
+   (cgen/measure-unit context u1 u2))
   ;; this constrains just x (which is a single var)
   (define (singleton S x T)
     (insert empty x S T))
@@ -546,6 +549,10 @@
            (cg S T)]
           [((Distinction: _ _ S) T)
            (cg S T)]
+          [((Measure: S u1) (app resolve (Measure: T u2)))
+           (% cset-meet
+              (cg/measure-unit u1 u2)
+              (cg S T))]
 
           ;; two structs with the same name
           ;; just check pairwise on the fields
@@ -887,6 +894,44 @@
    (define m (cset-meet cs expected-cset))
    #:return-unless m #f
    (subst-gen m X (list dotted-var) R)))
+
+;; cgen/measure-unit
+(define (cgen/measure-unit context u1 u2)
+  ;; this places no constraints on any variables
+  (define empty (empty-cset/context context))
+  ;; this constrains just x (which is a single var)
+  (define (singleton S x T)
+    (insert empty x S T))
+  (define (inferable-F? v)
+    (match v
+      [(F: (? (inferable-var? context))) #t]
+      [_ #f]))
+  ;; u2/u1 should be constrained so that it is 1
+  (define u2/u1 (u* u2 (u^ u1 -1)))
+  (match u2/u1
+    [(measure-unit: 1 (hash-table) (hash-table))
+     empty]
+    [(measure-unit: _ _ (hash-table [(not (? inferable-F?)) _] ...))
+     #f] ; u1/u2 can never be 1; fail
+    [(measure-unit: s u2/u1-ht u2/u1-tbd)
+     ;; there will always be at least one inferable var,
+     ;; because otherwise the previous clause would have failed
+     (define t (findf inferable-F? (hash-keys u2/u1-tbd)))
+     (define n (hash-ref u2/u1-tbd t))
+     (define lhs
+       t)
+     (define rhs
+       (make-measure-unit (/ s)
+                          (for/hash ([(k v) (in-hash u2/u1-ht)])
+                            (values k (/ (- v) n)))
+                          ; - because they were divided to the other side
+                          ; /n because both sides were taken to the 1/n power
+                          (for/hash ([(k v) (in-hash (hash-remove u2/u1-tbd t))])
+                            (values k (/ (- v) n)))))
+     (define rhs-t (-Measure -One rhs))
+     (match lhs
+       [(F: sym)
+        (singleton rhs-t sym rhs-t)])]))
 
 
 ;(trace subst-gen)

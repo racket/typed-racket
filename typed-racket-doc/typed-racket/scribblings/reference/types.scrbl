@@ -558,6 +558,11 @@ functions and continuation mark functions.
 @ex[(lambda: ([x : Any]) (if (continuation-mark-key? x) x (error "not a mark key!")))]
 }
 
+@section{Measures}
+
+@defform[(Measure t u)]{
+  A measure type with the measure-unit @racket[u] added on to the type @racket[t].
+}
 
 @section{Other Type Constructors}
 

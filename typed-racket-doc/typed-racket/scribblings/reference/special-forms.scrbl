@@ -484,6 +484,51 @@ file or module.
     (f (radians 0))]
 }
 
+@section{Measures and measure-units}
+
+@defform[(measure expr unit)]{
+Annotates @racket[expr] with a @racket[Measure] type with @racket[unit].
+}
+
+@defform[(m+ expr ...)]{
+Adds measures together.
+}
+
+@defform[(m* expr ...)]{
+Multiplies measures together.
+}
+
+@defform*[[(m- expr)
+           (m- expr expr ...+)]]{
+The first form negates the measure, and the second form subtracts the measures.
+}
+
+@defform*[[(m/ expr)
+           (m/ expr expr ...+)]]{
+The first form inverts the measure, and the second form divides the measures.
+}
+
+@defform[(m^ expr n)]{
+Takes @racket[expr] to the @racket[n]th power. For now, @racket[n] must be a
+literal exact integer, but that might be more general in the future.
+}
+
+@defform[(define-base-measure-unit name)]{
+Defines @racket[name] as a base unit.
+}
+
+@defform[(define-measure-unit name unit)]{
+Defines @racket[name] as a unit aliased to @racket[unit].
+}
+
+@defform[(u* u ...)]{
+Multiplies measure-units together.
+}
+
+@defform[(u^ u n)]{
+Raises @racket[u] to the @racket[n]th power.
+}
+
 @section{Generating Predicates Automatically}
 
 @defform[(make-predicate t)]{

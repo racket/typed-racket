@@ -5,8 +5,8 @@
          "utils.rkt"
          syntax/parse syntax/stx racket/match
          (typecheck signatures tc-funapp)
-         (types abbrev union utils)
-         (rep type-rep)
+         (types abbrev filter-ops union utils)
+         (rep type-rep object-rep)
 
          (for-label racket/base racket/bool))
 
@@ -53,6 +53,12 @@
         (alt eqv? eqv?-able)
         (alt equal? equal?-able)))
   (match* ((single-value v1) (single-value v2))
+    [((tc-result1: (Value: (? ok? val1)) _ o1)
+      (tc-result1: (Value: (? ok? val2)) _ o2))
+     (ret -Boolean (-FS (-and (-filter (-val val2) o1)
+                              (-filter (-val val1) o2))
+                        (-and (-not-filter (-val val1) o1)
+                              (-not-filter (-val val2) o2))))]
     [((tc-result1: t _ o) (tc-result1: (Value: (? ok? val))))
      (ret -Boolean (-FS (-filter (-val val) o) (-not-filter (-val val) o)))]
     [((tc-result1: (Value: (? ok? val))) (tc-result1: t _ o))

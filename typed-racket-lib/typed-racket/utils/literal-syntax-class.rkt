@@ -39,4 +39,5 @@
            #:commit
            #:literal-sets ([literal-set])
            (pattern (~and op (~or pattern-literals ...))
-                    #:do [(add-disappeared-use (syntax-local-introduce #'op))]))))))
+                    #:do [(and (syntax-transforming?)
+                               (add-disappeared-use (syntax-local-introduce #'op)))]))))))

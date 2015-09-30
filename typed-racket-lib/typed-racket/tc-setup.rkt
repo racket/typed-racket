@@ -76,9 +76,8 @@
   (tc-setup orig-stx stx 'top-level
             local-expand/capture* (kernel-form-identifier-list)
             (λ (head-expanded-stx)
-              (parameterize ([orig-module-stx (or (orig-module-stx) orig-stx)])
-                (do-time "Trampoline the top-level checker")
-                (tc-toplevel-start head-expanded-stx)))))
+              (do-time "Trampoline the top-level checker")
+              (tc-toplevel-start (or (orig-module-stx) orig-stx) head-expanded-stx))))
 
 (define (tc-module/full orig-stx stx k)
   (tc-setup orig-stx stx 'module-begin local-expand (list #'module*)

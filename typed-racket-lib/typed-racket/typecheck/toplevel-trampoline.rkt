@@ -18,15 +18,18 @@
 ;; entrypoint for typechecking a top-level interaction
 ;; this is defined in this module (instead of tc-top-level.rkt) in
 ;; order to avoid cyclic dependency issues
-;; syntax -> syntax
-(define (tc-toplevel-start stx)
+;; syntax syntax -> syntax
+(define (tc-toplevel-start orig-stx stx)
   (syntax-parse stx
     #:literal-sets (kernel-literals)
     ;; Don't open up `begin`s that are supposed to be ignored
     [(~and (begin e ... e-last)
            (~not (~or _:ignore^ _:ignore-some^)))
-     #'(begin (tc-toplevel-trampoline e) ...
-              (tc-toplevel-trampoline/report e-last))]))
+     ;; the original syntax is threaded through for error message reporting
+     ;; later in `trampoline-core`
+     #`(begin (tc-toplevel-trampoline (quote-syntax #,orig-stx) e) ...
+              (tc-toplevel-trampoline/report
+               (quote-syntax #,orig-stx) e-last))]))
 
 (module trampolines racket/base
   (require "../utils/utils.rkt"
@@ -56,7 +59,7 @@
 
   (define-for-syntax (trampoline-core stx report? kont)
     (syntax-parse stx
-      [(_ e)
+      [(_ orig-stx e)
        (define head-expanded
          (disarm*
           (local-expand/capture* #'e 'top-level (kernel-form-identifier-list))))
@@ -78,7 +81,8 @@
           ;; Unlike the `begin` cases, we probably don't need to trampoline back
           ;; to the top-level because we're not catching lifts from macros at the
           ;; top-level context but instead from expression context.
-          (parameterize ([expanded-module-stx fully-expanded])
+          (parameterize ([orig-module-stx #'orig-stx]
+                         [expanded-module-stx fully-expanded])
             (syntax-parse fully-expanded
               #:literal-sets (kernel-literals)
               [(begin form ...)

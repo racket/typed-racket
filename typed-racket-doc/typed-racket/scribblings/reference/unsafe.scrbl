@@ -18,6 +18,8 @@ behavior and may even crash Typed Racket.
   Unlike @racket[require/typed], this form is unsafe and will not generate
   contracts that correspond to the specified types to check that the values
   actually match their types.
+
+  @history[#:added "1.3"]
 }
 
 @defform[(unsafe-provide provide-spec ...)]{
@@ -27,4 +29,6 @@ behavior and may even crash Typed Racket.
   Unlike @racket[provide], this form is unsafe and Typed Racket will not generate
   any contracts that correspond to the specified types. This means that uses of the
   exports in other modules may circumvent the type system's invariants.
+
+  @history[#:added "1.3"]
 }

@@ -69,11 +69,12 @@
           #'e]
          ;; keep trampolining on begins
          [(begin (define-values (n) e-rhs) ... (begin e ... e-last))
-          #`(begin (tc-toplevel-trampoline (define-values (n) e-rhs)) ...
-                   (tc-toplevel-trampoline e) ...
+          #`(begin (tc-toplevel-trampoline orig-stx (define-values (n) e-rhs))
+                   ...
+                   (tc-toplevel-trampoline orig-stx e) ...
                    #,(if report?
-                         #'(tc-toplevel-trampoline/report e-last)
-                         #'(tc-toplevel-trampoline e-last)))]
+                         #'(tc-toplevel-trampoline/report orig-stx e-last)
+                         #'(tc-toplevel-trampoline orig-stx e-last)))]
          [_
           (define fully-expanded
             ;; a non-begin form can still cause lifts, so still have to catch them

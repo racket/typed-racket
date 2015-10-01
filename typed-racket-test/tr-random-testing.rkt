@@ -239,7 +239,13 @@
 (call-with-limits
  #f max-mem
  (lambda ()
-   (redex-check tr-arith E (check-all-reals (term E))
+   ;; start with 1000 small, deterministic test cases, to catch regressions
+   (redex-check tr-arith E #:in-order (check-all-reals (term E))
+                #:attempts 1000
+                #:prepare exp->real-exp
+                #:keep-going? #t)
+   ;; then switch to purely random to get different ones every run
+   (redex-check tr-arith E #:ad-hoc (check-all-reals (term E))
                 #:attempts n-attempts
                 #:prepare exp->real-exp
                 #:keep-going? #t)))

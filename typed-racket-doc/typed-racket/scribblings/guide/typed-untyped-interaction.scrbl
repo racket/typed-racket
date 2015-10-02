@@ -104,7 +104,7 @@ function:
 (module increment racket
   (provide increment)
 
-  (code:contract "increment : exact-integer? -> exact-integer?")
+  (code:contract increment : exact-integer? -> exact-integer?)
   (define (increment x) "this is broken"))
 ]
 

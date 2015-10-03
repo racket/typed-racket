@@ -48,8 +48,11 @@
 ;; self-fields : (Listof Type)
 ;; tvars : (Listof Symbol)
 ;; mutable: Any
+;; parent-mutable: Any
 ;; proc-ty: (Option Type)
-(struct struct-desc (parent-fields self-fields tvars mutable proc-ty) #:transparent)
+(struct struct-desc (parent-fields self-fields tvars
+                     mutable parent-mutable proc-ty)
+        #:transparent)
 
 (define (struct-desc-all-fields fields)
   (append (struct-desc-parent-fields fields) (struct-desc-self-fields fields)))
@@ -147,8 +150,10 @@
 
   (define tvars (struct-desc-tvars desc))
   (define all-fields (struct-desc-all-fields desc))
+  (define parent-fields (struct-desc-parent-fields desc))
   (define self-fields (struct-desc-self-fields desc))
   (define mutable (struct-desc-mutable desc))
+  (define parent-mutable (struct-desc-parent-mutable desc))
   (define parent-count (struct-desc-parent-count desc))
 
 
@@ -161,12 +166,15 @@
         (make-App name-type (map make-F tvars) #f)))
 
   ;; is this structure covariant in *all* arguments?
-  (define covariant?
+  (define (covariant-for? fields mutable)
     (for*/and ([var (in-list tvars)]
-               [t (in-list all-fields)])
+               [t (in-list fields)])
       (let ([variance (hash-ref (free-vars-hash (free-vars* t)) var Constant)])
         (or (eq? variance Constant)
             (and (not mutable) (eq? variance Covariant))))))
+  (define covariant?
+    (and (covariant-for? self-fields mutable)
+         (covariant-for? parent-fields parent-mutable)))
 
   (define (poly-wrapper t) (make-Poly tvars t))
   (define bindings
@@ -296,7 +304,14 @@
          (define key
            (normalize-prefab-key (append key-prefix parent-key)
                                  (+ (length fld-names) (length parent-fields))))
-         (define desc (struct-desc parent-fields types tvars mutable #f))
+         (define parent-mutable
+           (match parent-key
+             [(list-rest _ num-fields _ mutable _)
+              (= num-fields (vector-length mutable))]
+             ;; no parent, so trivially true
+             ['() #t]))
+         (define desc
+           (struct-desc parent-fields types tvars mutable parent-mutable #f))
          (parsed-struct (make-Prefab key (append parent-fields types))
                         names desc (struct-info-property nm/par) #f)]
         [else
@@ -305,11 +320,19 @@
 	 ;; ensure that the prop:procedure argument is really a procedure
 	 (when maybe-parsed-proc-ty
 	   (check-below maybe-parsed-proc-ty top-func))
+
+         (define parent-mutable
+           ;; Only valid as long as typed structs must be
+           ;; either fully mutable or fully immutable
+           (or (not parent)
+               (andmap fld-mutable? (get-flds concrete-parent))))
+
          (define desc (struct-desc
                         (map fld-t (get-flds concrete-parent))
                         types
                         tvars
                         mutable
+                        parent-mutable
 			maybe-parsed-proc-ty))
          (define sty (mk/inner-struct-type names desc concrete-parent))
 
@@ -330,7 +353,8 @@
   (define parent-tys (map fld-t (get-flds parent-type)))
 
   (define names (get-struct-names nm nm fld-names #f #f))
-  (define desc (struct-desc parent-tys tys null #f #f))
+  ;; built-in structs are assumed to be immutable with immutable parents
+  (define desc (struct-desc parent-tys tys null #f #f #f))
   (define sty (mk/inner-struct-type names desc parent-type))
 
   (register-sty! sty names desc)

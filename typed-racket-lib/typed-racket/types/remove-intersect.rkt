@@ -88,8 +88,8 @@
          [(list (Struct: n #f flds _ _ _)
                 (StructTop: (Struct: n* #f flds* _ _ _)))
           #f]
-         [(list (and t1 (Struct: _ _ _ _ _ _))
-                (and t2 (Struct: _ _ _ _ _ _)))
+         [(list (and t1 (Struct: _ _ _ _ #f _))
+                (and t2 (Struct: _ _ _ _ #f _)))
           (or (subtype t1 t2) (subtype t2 t1))]
          [else #t])])))
 

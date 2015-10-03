@@ -43,7 +43,12 @@
 ;; setters : Listof[Id] or #f
 (struct struct-names (struct-name type-name struct-type constructor extra-constructor predicate getters setters) #:transparent)
 
-;;struct-fields: holds all the relevant information about a struct type's types
+;; struct-desc holds all the relevant information about a struct type's types
+;; parent-fields : (Listof Type)
+;; self-fields : (Listof Type)
+;; tvars : (Listof Symbol)
+;; mutable: Any
+;; proc-ty: (Option Type)
 (struct struct-desc (parent-fields self-fields tvars mutable proc-ty) #:transparent)
 
 (define (struct-desc-all-fields fields)

@@ -330,7 +330,7 @@
   (define parent-tys (map fld-t (get-flds parent-type)))
 
   (define names (get-struct-names nm nm fld-names #f #f))
-  (define desc (struct-desc parent-tys tys null #t #f))
+  (define desc (struct-desc parent-tys tys null #f #f))
   (define sty (mk/inner-struct-type names desc parent-type))
 
   (register-sty! sty names desc)

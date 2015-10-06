@@ -39,7 +39,6 @@
 (define test-timeouts
   '(("optimizer/run.rkt" 1200)
     ("run.rkt" 1800)
-    ("tr-random-testing.rkt" 300)
     ("with-tr-contracts.rkt" 1500)))
 
 

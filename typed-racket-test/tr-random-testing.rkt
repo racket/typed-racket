@@ -236,19 +236,22 @@
 (printf "seed: ~s~n" seed)
 (flush-output) ; DrDr doesn't print the above if the testing segfaults.
 
-(call-with-limits
- #f max-mem
- (lambda ()
-   ;; start with 1000 small, deterministic test cases, to catch regressions
-   (redex-check tr-arith E #:in-order (check-all-reals (term E))
-                #:attempts 1000
-                #:prepare exp->real-exp
-                #:keep-going? #t)
-   ;; then switch to purely random to get different ones every run
-   (redex-check tr-arith E #:ad-hoc (check-all-reals (term E))
-                #:attempts n-attempts
-                #:prepare exp->real-exp
-                #:keep-going? #t)))
+;; because some of the generated expressions comute gigantic bignums, running
+;; out of resources is expected, so just ignore that case
+(with-handlers ([exn:fail:resource? values])
+  (call-with-limits
+   300 max-mem
+   (lambda ()
+     ;; start with 1000 small, deterministic test cases, to catch regressions
+     (redex-check tr-arith E #:in-order (check-all-reals (term E))
+                  #:attempts 1000
+                  #:prepare exp->real-exp
+                  #:keep-going? #t)
+     ;; then switch to purely random to get different ones every run
+     (redex-check tr-arith E #:ad-hoc (check-all-reals (term E))
+                  #:attempts n-attempts
+                  #:prepare exp->real-exp
+                  #:keep-going? #t))))
 
 (printf "bad tests (usually typechecking failed): ~v~n" num-exceptions)
 

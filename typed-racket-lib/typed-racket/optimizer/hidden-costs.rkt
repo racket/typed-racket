@@ -4,7 +4,7 @@
          (for-template racket/base)
          "../utils/utils.rkt"
          (optimizer utils logging)
-         (types abbrev struct-table))
+         (types abbrev numeric-tower struct-table))
 
 (provide hidden-cost-log-expr)
 
@@ -64,4 +64,12 @@
     #:when (not (or (subtypeof? #'pattern-arg -Regexp)
                     (subtypeof? #'pattern-arg -Byte-Regexp)))
     #:do [(log-optimization-info "non-regexp pattern" #'pattern-arg)]
-    #:with opt (syntax/loc this-syntax (op pattern-arg.opt args.opt ...))))
+    #:with opt (syntax/loc this-syntax (op pattern-arg.opt args.opt ...)))
+
+  ;; vectors of floats can be replaced with flvectors in most cases
+  ;; need to deconstruct to not infinite loop
+  (pattern (#%plain-app es ...)
+    #:when (subtypeof? this-syntax (-vec -Flonum))
+    #:with (es*:opt-expr ...) #'(es ...)
+    #:do [(log-optimization-info "vector of floats" this-syntax)]
+    #:with opt (syntax/loc this-syntax (es*.opt ...))))

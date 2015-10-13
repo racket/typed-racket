@@ -10,3 +10,10 @@
 
 (define (slicef-at [force? #f])
   #f)
+
+
+;; Similar issue, with static call sites for keyword argument functions.
+(define (validate-txexpr-element #:context [txexpr-context #f])
+  #f)
+(define (validate-txexpr x)
+  (validate-txexpr-element #:context x))

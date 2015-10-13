@@ -7,7 +7,7 @@
          syntax/stx
          racket/sequence
          (typecheck signatures tc-funapp)
-         (types abbrev utils)
+         (types abbrev type-table utils)
          (private type-annotation)
          (rep type-rep filter-rep)
          (utils tc-utils)
@@ -26,6 +26,7 @@
   ;; parameterize
   (pattern (extend-parameterization pmz (~seq params args) ...)
     (begin
+      (register-ignored! #'pmz)
       (for ([param (in-syntax #'(params ...))]
             [arg (in-syntax #'(args ...))])
         (match (single-value param)

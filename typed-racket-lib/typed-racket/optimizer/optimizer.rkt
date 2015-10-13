@@ -24,9 +24,9 @@
   (pattern opt:ignore-table^)
 
   ;; Can't optimize the body of this code because it isn't typechecked
-  (pattern (~and _:kw-lambda^
-             ((~and op let-values)
-              ([(i:id) e-rhs:opt-expr]) e-body:expr ...))
+  (pattern (~and (~or _:kw-lambda^ _:opt-lambda^)
+                 ((~and op let-values)
+                  ([(i:id) e-rhs:opt-expr]) e-body:expr ...))
            #:with opt (quasisyntax/loc/origin this-syntax #'op
                         (op ([(i) e-rhs.opt]) e-body ...)))
 

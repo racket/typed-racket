@@ -21,6 +21,7 @@
          racket/extflonum
          ;; Needed for current implementation of typechecking letrec-syntax+values
          (for-template (only-in racket/base letrec-values)
+                       (only-in racket/base list)
                        ;; see tc-app-contracts.rkt
                        racket/contract/private/provide)
 
@@ -273,8 +274,38 @@
        (ret (opt-unconvert (tc-expr/t #'fun)
                            (syntax->list #'(formals ...))))]
       ;; let
-      [(let-values ([(name ...) expr] ...) . body)
-       (tc/let-values #'((name ...) ...) #'(expr ...) #'body expected)]
+      [(let-values bindings . body)
+       (define bindings*
+         (syntax-parse #'body
+           #:literal-sets (kernel-literals)
+           ;; special case: let-values that originates from an application of a
+           ;; kw function. we may need to ignore contract-related arguments
+           [((kw-app1 (kw-app2 cpce s-kp fn kpe kws num) ; see tc-app/tc-app-keywords.rkt
+                      kw-list
+                      (kw-app3 list . kw-arg-list)
+                      . *pos-args))
+            #:declare cpce (id-from 'checked-procedure-check-and-extract 'racket/private/kw)
+            #:declare s-kp (id-from 'struct:keyword-procedure 'racket/private/kw)
+            #:declare kpe  (id-from 'keyword-procedure-extract 'racket/private/kw)
+            #:declare kw-app1  (id-from '#%app 'racket/private/kw)
+            #:declare kw-app2  (id-from '#%app 'racket/private/kw)
+            #:declare kw-app3  (id-from '#%app 'racket/private/kw)
+            #:declare list (id-from 'list 'racket/private/kw)
+            #:when (contract-neg-party-property #'fn) ; contracted
+            ;; ignore the rhs which refers to a contract-lifted definition
+            ;; this code may compute the negative blame party, which may involve
+            ;; things that are not typecheckable
+            (syntax-parse #'bindings
+              [(c1 [(contract-lhs) contract-rhs] cs ...)
+               ;; give up on optimizing the whole let, part of it is missing type info
+               ;; (not that this expansion could be optimized anyway)
+               (register-ignored! form)
+               #'(c1 cs ...)])]
+           [_ ; not the special case, leave bindings as is
+            #'bindings]))
+       (syntax-parse bindings*
+         [([(name ...) expr] ...)
+          (tc/let-values #'((name ...) ...) #'(expr ...) #'body expected)])]
       [(letrec-values ([(name ...) expr] ...) . body)
        (tc/letrec-values #'((name ...) ...) #'(expr ...) #'body expected)]
       ;; other

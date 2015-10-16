@@ -193,11 +193,15 @@
                   #,(internal #'(require/typed-internal hidden ty . sm))
                   #,(ignore #`(require/contract nm.spec hidden #,cnt* lib))))]
              [else
+              (define/with-syntax hidden2 (generate-temporary #'nm.nm))
               (quasisyntax/loc stx
                 (begin
                   (require (only-in lib [nm.orig-nm hidden]))
-                  (rename-without-provide nm.nm hidden)
-                  #,(internal #'(require/typed-internal hidden ty . sm))))])]))
+                  ;; need this indirection since `hidden` may expand
+                  ;; to a different identifier that TR doesn't know about
+                  #,(ignore #'(define hidden2 hidden))
+                  (rename-without-provide nm.nm hidden2)
+                  #,(internal #'(require/typed-internal hidden2 ty . sm))))])]))
   (values (r/t-maker #t #f) (r/t-maker #f #f) (r/t-maker #f #t))))
 
 

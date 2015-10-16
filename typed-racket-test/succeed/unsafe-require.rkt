@@ -24,6 +24,13 @@
   (require typed/racket/unsafe)
   (unsafe-require/typed racket/base
                         [string-append (-> String String Integer)])
+  (unsafe-require/typed racket/list
+                        ;; test a keyword function, which expands differently
+                        [check-duplicates
+                         (->* [(Listof Any)] [(-> Any Any Any) #:key (-> Any Any)] Any)])
+
+  ;; not unbound
+  check-duplicates
 
   ;; UNSAFE
   (with-handlers ([(negate exn:fail:contract:blame?) void])

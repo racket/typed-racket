@@ -7,7 +7,7 @@
          racket/format
          racket/list
          (typecheck signatures)
-         (types base-abbrev resolve subtype union utils)
+         (types base-abbrev resolve subtype type-table union utils)
          (rep type-rep)
          (utils tc-utils)
 
@@ -25,10 +25,21 @@
 (define-tc/app-syntax-class (tc/app-objects expected)
   #:literal-sets (kernel-literals object-literals)
   (pattern (dmo b cl
-            (#%plain-app list . pos-args)
-            (#%plain-app list (#%plain-app cons (quote names) named-args) ...))
+            (~and pos-arg-list (#%plain-app list . pos-args))
+            (~and named-arg-list (#%plain-app list (#%plain-app cons (quote names) named-args) ...)))
      #:declare dmo (id-from 'do-make-object 'racket/private/class-internal)
-     (check-do-make-object #'cl #'pos-args #'(names ...) #'(named-args ...)))
+     (begin0
+       (check-do-make-object #'cl #'pos-args #'(names ...) #'(named-args ...))
+       ;; synthesize a type for #'pos-arg-list, for the optimizer
+       (add-typeof-expr #'pos-arg-list
+                        (ret (for/fold ([res (-val '())])
+                                 ([a (in-list (reverse (syntax->list #'pos-args)))])
+                               (-pair (match (type-of a) [(tc-result1: t) t])
+                                      res))))
+       ;; making the optimizer ignore named args is conservative, but safe
+       ;; if we could give #'named-arg-list a type, then we'd be able to
+       ;; optimize it
+       (register-ignored! #'named-arg-list)))
   (pattern (dmo . args)
      #:declare dmo (id-from 'do-make-object 'racket/private/class-internal)
      (int-err "unexpected arguments to do-make-object"))

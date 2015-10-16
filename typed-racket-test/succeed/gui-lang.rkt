@@ -5,4 +5,4 @@
 (define (f #{x : Integer}) (add1 x))
 (f 3)
 
-(make-object bitmap% 300 300)
+(make-object bitmap% (+ 300 300) 300)

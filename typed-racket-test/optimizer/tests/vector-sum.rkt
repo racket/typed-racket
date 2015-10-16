@@ -1,5 +1,6 @@
 #;#;
 #<<END
+TR info: vector-sum.rkt 7:30 (make-vector l 0.0) -- vector of floats
 TR opt: vector-sum.rkt 10:2 (for: ((i : Nonnegative-Fixnum (in-range l))) (vector-set! v i (sin (exact->inexact i)))) -- binary fixnum comp
 TR opt: vector-sum.rkt 10:2 (for: ((i : Nonnegative-Fixnum (in-range l))) (vector-set! v i (sin (exact->inexact i)))) -- dead else branch
 TR opt: vector-sum.rkt 10:2 (for: ((i : Nonnegative-Fixnum (in-range l))) (vector-set! v i (sin (exact->inexact i)))) -- dead else branch

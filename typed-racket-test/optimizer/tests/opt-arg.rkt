@@ -1,4 +1,10 @@
+#;#;
+#<<END
+END
+""
+
 #lang typed/racket/base
+#reader typed-racket-test/optimizer/reset-port
 
 ;; The optimizer now looks at all expressions regardless of shape (to log
 ;; all expressions with type (Vectorof Float) as candidates for uses of

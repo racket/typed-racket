@@ -1,5 +1,6 @@
 #;#;
 #<<END
+TR info: sqrt-segfault.rkt 10:14 (assert (* dist2 (sqrt dist2)) flonum?) -- vector of floats
 TR missed opt: sqrt-segfault.rkt 10:31 (sqrt dist2) -- unexpected complex type
 TR opt: sqrt-segfault.rkt 8:14 (- 0.0 0.0) -- binary float
 TR opt: sqrt-segfault.rkt 9:14 (* dx dx) -- binary float

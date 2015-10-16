@@ -1,5 +1,6 @@
 #;#;
 #<<END
+TR info: dead-substructs.rkt 13:14 (error "eh?") -- vector of floats
 TR info: dead-substructs.rkt 15:4 make-child1 -- struct constructor
 TR info: dead-substructs.rkt 16:4 make-child2 -- struct constructor
 END

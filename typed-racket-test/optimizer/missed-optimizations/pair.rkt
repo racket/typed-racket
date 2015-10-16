@@ -1,5 +1,6 @@
 #;#;
 #<<END
+TR info: pair.rkt 29:17 (mcar (quote ())) -- vector of floats
 TR missed opt: pair.rkt 12:16 (cdr (cdr (cdr (cdr (list 1 2 3))))) -- car/cdr on a potentially empty list -- caused by: 12:21 (cdr (cdr (cdr (list 1 2 3))))
 TR missed opt: pair.rkt 15:0 (mcar (values (ann (mlist 1) (MListof Byte)))) -- car/cdr on a potentially empty list -- caused by: 15:6 (values (ann (mlist 1) (MListof Byte)))
 TR missed opt: pair.rkt 17:0 (mcdr (values (ann (mlist 1) (MListof Byte)))) -- car/cdr on a potentially empty list -- caused by: 17:6 (values (ann (mlist 1) (MListof Byte)))

@@ -2083,4 +2083,14 @@
                 (: get-a (-> String))
                 (define/public (get-a) a)))
             (error "foo"))
-          #:msg #rx"expected: String.*given: Integer"]))
+          #:msg #rx"expected: String.*given: Integer"]
+  ;; Make sure `send` works on a recursively typed object
+  [tc-e (let ()
+          (: o (Rec X (Object [m (-> Void)] [n (-> X Void)])))
+          (define o
+            (make-object (class object%
+                           (super-new)
+                           (define/public (m) (void))
+                           (define/public (n x) (void)))))
+          (send o m))
+        -Void]))

@@ -49,7 +49,9 @@
           "send: type mismatch"
           "expected" "an object"
           "given" rcvr-type)]))
-  (define final-ret (do-check (tc-expr/t rcvr)))
+  ;; Make sure to resolve before `do-check` because the type might
+  ;; be a Name type or recursive type and thus unable to match Instance:
+  (define final-ret (do-check (resolve (tc-expr/t rcvr))))
   (add-typeof-expr form final-ret)
   final-ret)
 

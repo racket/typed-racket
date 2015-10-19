@@ -1,6 +1,7 @@
 #;#;
 #<<END
 TR info: float-real.rkt 3:15 (* (ann 2 Integer) 3.2) -- possible exact real arith
+TR info: float-real.rkt 3:7 (assert (* (ann 2 Integer) 3.2) positive?) -- vector of floats
 TR info: float-real.rkt 4:0 (* 2.3 (* (ann 2 Integer) 3.1)) -- possible exact real arith
 TR info: float-real.rkt 4:7 (* (ann 2 Integer) 3.1) -- possible exact real arith
 TR missed opt: float-real.rkt 3:15 (* (ann 2 Integer) 3.2) -- all args float-arg-expr, result not Float -- caused by: 3:23 2

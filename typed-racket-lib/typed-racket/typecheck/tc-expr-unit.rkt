@@ -300,7 +300,9 @@
                ;; give up on optimizing the whole let, part of it is missing type info
                ;; (not that this expansion could be optimized anyway)
                (register-ignored! form)
-               #'(c1 cs ...)])]
+               #'(c1 cs ...)]
+              [_
+               (int-err "malformed kw arg let-values ~a" #'bindings)])]
            [_ ; not the special case, leave bindings as is
             #'bindings]))
        (syntax-parse bindings*

@@ -57,8 +57,8 @@
       (tc-result1: (Value: (? ok? val2)) _ o2))
      (ret -Boolean (-FS (-and (-filter (-val val2) o1)
                               (-filter (-val val1) o2))
-                        (-and (-not-filter (-val val1) o1)
-                              (-not-filter (-val val2) o2))))]
+                        (-and (-not-filter (-val val2) o1)
+                              (-not-filter (-val val1) o2))))]
     [((tc-result1: t _ o) (tc-result1: (Value: (? ok? val))))
      (ret -Boolean (-FS (-filter (-val val) o) (-not-filter (-val val) o)))]
     [((tc-result1: (Value: (? ok? val))) (tc-result1: t _ o))

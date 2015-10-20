@@ -205,5 +205,5 @@
            #,(ignore
               #'(define constructor (lambda (x) x)))
            #,(internal (syntax/loc stx
-                         (define-new-subtype-internal ty (constructor rep-ty) #:gen-id gen-id))))])))
+                         (unsafe-:-internal constructor (-> rep-ty ty)))))])))
 

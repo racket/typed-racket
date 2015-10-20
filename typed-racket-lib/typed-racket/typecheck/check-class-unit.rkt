@@ -550,21 +550,10 @@
         #:when (set-member? (hash-ref parse-info 'private-fields) name))
     (hash-set! private-field-types name (list type)))
 
-  ;; Hash<Syntax -> Listof<Listof<Syntax>, Listof<Type>>>
-  ;; Maps the outermost `let-values` expressions introduced by the expansion of
-  ;;  `define-values` within the class body to a list of identifier syntaxes
-  ;;  that represent variables and a list of corresponding types.
-  ;;  The variables temporarily hold the values of the initializer expression;
-  ;;  a field mutator is called on each one in the body of the `let-values`.
-  ;;  Typechecking of these calls is done in `check-field-set!s` and requires
-  ;;  the types of the initial values.
-  (define inits-temporaries-types (make-hasheq))
-
   (define synthesized-init-val-stxs
     (synthesize-private-field-types private-field-stxs
                                     local-private-field-table
-                                    private-field-types
-                                    inits-temporaries-types))
+                                    private-field-types))
 
   ;; Detect mutation of private fields for occurrence typing
   (for ([stx (in-sequences
@@ -609,8 +598,7 @@
   (with-lexical-env/extend-types lexical-names/top-level lexical-types/top-level
     (check-field-set!s (hash-ref parse-info 'initializer-body)
                        synthesized-init-val-stxs
-                       inits
-                       inits-temporaries-types))
+                       inits))
   (do-timestamp "checked field initializers")
   (define checked-method-types
     (with-lexical-env/extend-types lexical-names lexical-types
@@ -1035,11 +1023,11 @@
            (tc-expr/t xformed-stx)])))
 
 ;; check-field-set!s : Syntax Listof<Syntax> Dict<Symbol, Type>
-;;                     Dict<Syntax, List<Listof<Syntax>, Listof<Type>> -> Void
+;;                     -> Void
 ;; Check that fields are initialized to the correct type
 ;; FIXME: use syntax classes for matching and clearly separate the handling
 ;;        of field initialization and set! uses
-(define (check-field-set!s stx synthed-stxs inits inits-temporaries-types)
+(define (check-field-set!s stx synthed-stxs inits)
   (for ([form (syntax->list stx)])
     (syntax-parse form
       #:literal-sets (kernel-literals)
@@ -1106,12 +1094,21 @@
          (tc-expr/check processed (ret type)))]
       ;; multiple private fields
       [(let-values ([(names:id ...) val-expr]) begins ... (#%plain-app _))
-       (match-define (list t-names t-types)
-         (hash-ref inits-temporaries-types form (list empty empty)))
+       ;; This seems like it's duplicating work since the synthesis pass
+       ;; earlier had to do this, but it needs to be re-checked in this context
+       ;; so that it has the right environment. An earlier approach did
+       ;; check this only in the synthesis stage, but caused some regressions.
+       (define temp-names (syntax->list #'(names ...)))
+       (define init-types
+         (match (tc-expr #'val-expr)
+           [(tc-results: xs ) xs]))
+       (unless (= (length temp-names) (length init-types))
+         (tc-error/expr "wrong number of values: expected ~a but got ~a"
+                        (length temp-names) (length init-types)))
        ;; Extend lexical type env with temporaries introduced in the
        ;; expansion of the field initialization or setter
-       (with-lexical-env/extend-types t-names t-types
-         (check-field-set!s #'(begins ...) synthed-stxs inits inits-temporaries-types))]
+       (with-lexical-env/extend-types temp-names init-types
+         (check-field-set!s #'(begins ...) synthed-stxs inits))]
       [_ (void)])))
 
 ;; setter->type : Id -> Type
@@ -1144,11 +1141,11 @@
           [else
            (tc-expr/check init-val (ret init-type))])))
 
-;; synthesize-private-field-types : Listof<Syntax> Dict Hash Hash -> Listof<Syntax>
+;; synthesize-private-field-types : Listof<Syntax> Dict Hash -> Listof<Syntax>
 ;; Given top-level expressions in the class, synthesize types from
 ;; the initialization expressions for private fields. Returns the initial
 ;; value expressions that were type synthesized.
-(define (synthesize-private-field-types stxs locals types inits-temporaries-types)
+(define (synthesize-private-field-types stxs locals types)
   (for/fold ([synthed-stxs null])
             ([stx (in-list stxs)])
     (syntax-parse stx
@@ -1186,23 +1183,18 @@
        (define field-names (map syntax-e (syntax-e (tr:class:def-property stx))))
        (define temporary-stxs (syntax-e #'(initial-value-name ...)))
        (define init-types
-         (match (tc-expr/check #'initial-values #f)
-           [(tc-results: xs ) xs]))
-       (unless (= (length field-names) (length init-types))
-         (tc-error/expr "wrong number of values: expected ~a but got ~a"
-                        (length field-names) (length init-types)))
-       (define temporaries-types
-         (for/list
-              ([name (in-list field-names)]
-               [temp-stx (in-list temporary-stxs)]
-               [type (in-list init-types)])
-           (define type-table-val (generalize type))
-           (unless (hash-has-key? types name)
-             (hash-set! types name (list type-table-val)))
-           (cons temp-stx type-table-val)))
-       (hash-set! inits-temporaries-types stx
-                  (list (map car temporaries-types)
-                        (map cdr temporaries-types)))
+         ;; this gets re-checked later, so don't throw any errors yet
+         (match (tc-expr/check? #'initial-values #f)
+           [(tc-results: xs ) xs]
+           ;; We have to return something here so use the most conservative type
+           [#f (make-list (length field-names) Univ)]))
+       (for ([name (in-list field-names)]
+             [temp-stx (in-list temporary-stxs)]
+             [type (in-list init-types)])
+         (define type-table-val (generalize type))
+         (unless (hash-has-key? types name)
+           (hash-set! types name (list type-table-val)))
+         (cons temp-stx type-table-val))
        (cons #'initial-values synthed-stxs)])))
 
 ;; Syntax -> Dict<Symbol, Id> Dict<Symbol, Id>

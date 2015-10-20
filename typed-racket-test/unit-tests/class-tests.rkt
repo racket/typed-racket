@@ -2073,7 +2073,7 @@
                 (: get-a (-> String))
                 (define/public (get-a) a)))
             (error "foo"))
-          #:msg #rx"expected: String.*given: Integer"]
+          #:msg #rx"expected: String.*given: One"]
   [tc-err (let ()
             (define c%
               (class object%
@@ -2083,7 +2083,7 @@
                 (: get-a (-> String))
                 (define/public (get-a) a)))
             (error "foo"))
-          #:msg #rx"expected: String.*given: Integer"]
+          #:msg #rx"expected: String.*given: One"]
   ;; Make sure `send` works on a recursively typed object
   [tc-e (let ()
           (: o (Rec X (Object [m (-> Void)] [n (-> X Void)])))
@@ -2093,4 +2093,20 @@
                            (define/public (m) (void))
                            (define/public (n x) (void)))))
           (send o m))
+        -Void]
+  ;; A test for GH issue #218. Make sure that multiple private fields
+  ;; are typechecked in the right context.
+  [tc-e (let ()
+          (define-type-alias C%
+            (Class (init-field (path Path-String))))
+          (: c% C%)
+          (define c%
+            (class object%
+              (init-field path)
+              (: in Input-Port)
+              (: out Output-Port)
+              (define-values (in out)
+                (values (open-input-file path) (open-output-file path)))
+              (super-new)))
+          (void))
         -Void]))

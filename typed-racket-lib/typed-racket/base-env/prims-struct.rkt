@@ -205,5 +205,14 @@
            #,(ignore
               #'(define constructor (lambda (x) x)))
            #,(internal (syntax/loc stx
-                         (unsafe-:-internal constructor (-> rep-ty ty)))))])))
+                         (unsafe-:-internal constructor (-> rep-ty ty)))))]
+      [(define-new-subtype (ty:id arg:id ...) (constructor:id rep-ty:expr))
+       #:with gen-id (generate-temporary #'ty)
+       #`(begin
+           (define-type-alias (ty arg ...) (Distinction ty gen-id rep-ty))
+           #,(ignore
+              #'(define constructor (lambda (x) x)))
+           #,(internal (syntax/loc stx
+                         (unsafe-:-internal constructor (All (arg ...) (-> rep-ty (ty arg ...)))))))]
+      )))
 

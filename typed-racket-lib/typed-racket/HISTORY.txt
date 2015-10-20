@@ -1,5 +1,13 @@
-(add1 6.2)
+6.3
 - Startup time reduction
+- Tightening and cleanup of numeric types
+- Sealing contracts for row polymorphic types
+- `define-new-subtype`
+- More robust compound pair operations optimizations
+- Redesign of top-level support, using trampolining macros
+- Static contract caching more conservative, causes contract generation slowdowns
+- Experimental unit support
+- `typed/racket/unsafe`, with `unsafe-require/typed` and `unsafe-provide`
 6.2
 - Use submodules to avoid allocating contract wrappers when not needed.
 - Class types and contract generation are significantly improved, but still experimental.

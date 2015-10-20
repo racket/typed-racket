@@ -2,8 +2,8 @@
 
 ;; This module provides unsafe operations for Typed Racket
 
-(provide unsafe-provide
-         unsafe-require/typed)
+(provide (protect-out unsafe-provide
+                      unsafe-require/typed))
 
 (require (for-syntax racket/base
                      typed-racket/private/syntax-properties

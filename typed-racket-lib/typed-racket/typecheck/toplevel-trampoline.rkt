@@ -65,8 +65,14 @@
           (local-expand/capture* #'e 'top-level (kernel-form-identifier-list))))
        (syntax-parse head-expanded
          #:literal-sets (kernel-literals)
-         [(begin (define-values (n) _) ... (~or _:ignore^ _:ignore-some^))
-          #'e]
+         [(begin (define-values (n) _) ...
+                 (~and (~or _:ignore^ _:ignore-some^)
+                       (~not (~or _:tr:class^
+                                  _:tr:unit^
+                                  _:tr:unit:invoke^
+                                  _:tr:unit:compound^
+                                  _:tr:unit:from-context^))))
+          head-expanded]
          ;; keep trampolining on begins
          [(begin (define-values (n) e-rhs) ... (begin e ... e-last))
           #`(begin (tc-toplevel-trampoline orig-stx (define-values (n) e-rhs))

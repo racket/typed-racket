@@ -1,6 +1,10 @@
 #lang scribble/manual
 
-@begin[(require (for-label (only-meta-in 0 [except-in typed/racket for])))]
+@(require scribble/eval
+          (for-label (only-meta-in 0 [except-in typed/racket for])))
+
+@(define eval (make-base-eval))
+@(eval '(require typed/racket/base))
 
 @title{Unsafe Typed Racket operations}
 
@@ -19,6 +23,14 @@ behavior and may even crash Typed Racket.
   contracts that correspond to the specified types to check that the values
   actually match their types.
 
+  @examples[#:eval eval
+    (require typed/racket/unsafe)
+    (code:comment "import with a bad type")
+    (unsafe-require/typed racket/base [values (-> String Integer)])
+    (code:comment "unchecked call, the result type is wrong")
+    (values "foo")
+  ]
+
   @history[#:added "1.3"]
 }
 
@@ -30,5 +42,23 @@ behavior and may even crash Typed Racket.
   any contracts that correspond to the specified types. This means that uses of the
   exports in other modules may circumvent the type system's invariants.
 
+  @examples[#:eval eval
+    (module t typed/racket/base
+      (require typed/racket/unsafe)
+      (: f (-> Integer Integer))
+      (define (f x) (add1 x))
+      (code:comment "unsafe export, does not install checks")
+      (unsafe-provide f))
+
+    (module u racket/base
+      (require 't)
+      (code:comment "bad call that's unchecked")
+      (f "foo"))
+
+    (require 'u)
+  ]
+
   @history[#:added "1.3"]
 }
+
+@close-eval[eval]

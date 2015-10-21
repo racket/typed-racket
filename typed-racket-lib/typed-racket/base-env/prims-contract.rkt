@@ -334,6 +334,10 @@
      (with-syntax ([hidden (generate-temporary #'pred)])
        (quasisyntax/loc stx
          (begin
+           ;; register the identifier for the top-level (see require/typed)
+           #,@(if (eq? (syntax-local-context) 'top-level)
+                  (list #'(define-syntaxes (hidden) (values)))
+                  null)
            #,(ignore #'(define pred-cnt (any/c . c-> . boolean?)))
            #,(internal #'(require/typed-internal hidden (Any -> Boolean : (Opaque pred))))
            #,(if (attribute ne)

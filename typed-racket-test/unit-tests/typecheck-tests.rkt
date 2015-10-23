@@ -2370,6 +2370,57 @@
        [tc-e (vector-memq 3 #(a b c)) (t:Un (-val #f) -Index)]
        [tc-e (vector-memv 3 #(a b c)) (t:Un (-val #f) -Index)]
        [tc-e (vector-member 3 #(a b c)) (t:Un (-val #f) -Index)]
+       ;; Test that (member v lst is-equal?) always passes v as the first
+       ;; argument to is-equal? . If this is not the case, the type for the
+       ;; is-equal? argument should be (→ (U a b) (U a b) Any) instead of
+       ;; (→ b a Any).
+       ;; We use a random needle to prevent some of optimization (but not all):
+       (let ([needle : Integer (floor (inexact->exact (* (random) 200)))])
+         (member needle
+                 (range 1000)
+                 (λ ([x : Integer] [y : Integer])
+                   ;; Check the needle is always the first argument
+                   (check-equal? x needle)
+                   ;; Check y = needle implies x = needle
+                   (check-true (or (not (= y needle)) (= x needle)))
+                   (= x y))))
+       ;; Test that (assoc v lst is-equal?) always passes v as the first
+       ;; argument to is-equal? . If this is not the case, the type for the
+       ;; is-equal? argument should be (→ (U a c) (U a c) Any) instead of
+       ;; (→ c a Any).
+       ;; We use a random needle to prevent some of optimization (but not all):
+       (let ([needle : Integer (floor (inexact->exact (* (random) 200)))])
+         (assoc3 needle
+                 (ann (map (λ ([x : Integer]) (cons x (format "~a" x))) (range 1000))
+                      (Listof (Pairof Integer String)))
+                 (λ ([x : Integer] [y : Integer])
+                   ;; Check the needle is always the first argument
+                   (check-equal? x needle)
+                   ;; Check y = needle implies x = needle
+                   (check-true (or (not (= y needle)) (= x needle)))
+                   (= x y))))
+       ;; Test output of member with third is-equal? argument:
+       (check-equal? (member "x"
+                             '("bb" "c" "ddd" "x")
+                             (lambda ([s1 : String] [s2 : String])
+                               (= (string-length s1) (string-length s2))))
+                     '("c" "ddd" "x"))
+       ;; Test output of assoc with third is-equal? argument:
+       (check-equal? (assoc "x"
+                            '(("bb" . 1) ("c" . 2) ("ddd" . 3) ("x" . 4))
+                            (lambda ([s1 : String] [s2 : String])
+                              (= (string-length s1) (string-length s2))))
+                     '("c" . 2))
+       ;; Test `member` with needle not included in is-equal?'s argument type:
+       [tc-err (member (ann 123 Number)
+                       '("bb" "c" "ddd")
+                       (lambda ([s1 : String] [s2 : String])
+                         (= (string-length s1) (string-length s2))))]
+       ;; Test `assoc` with needle not included in is-equal?'s argument type:
+       [tc-err (assoc (ann 123 Number)
+                      '(("bb" . 123) ("c" . 123) ("ddd" . 123))
+                       (lambda ([s1 : String] [s2 : String])
+                         (= (string-length s1) (string-length s2))))]
 
        ;; tests for struct type types
        [tc-e (let-values ([(_1 _2 _3 _4 _5 _6 parent _7)

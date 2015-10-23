@@ -640,7 +640,10 @@
 
 [assq  (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
 [assv  (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
-[assoc (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
+[assoc (-poly (a b c)
+              (cl->* (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b)))
+                     (c (-lst (-pair a b)) (-> c a Univ)
+                        . -> . (-opt (-pair a b)))))]
 [assf  (-poly (a b) ((a . -> . Univ) (-lst (-pair a b))
                      . -> . (-opt (-pair a b))))]
 

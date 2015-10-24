@@ -49,11 +49,16 @@
 ;; Normalizes representation by sorting types.
 ;; Type * -> Type
 ;; The input types can overlap and be union types
+(define Un-cache (make-weak-hash))
 (define Un
   (case-lambda 
     [() -Bottom]
     [(t) t]
     [args 
-     (define ts (foldr merge '()
-                       (remove-dups (sort (append-map flat args) type<?))))
-     (make-union* ts)]))
+     (cond [(hash-ref Un-cache args #f)]
+           [else
+            (define ts (foldr merge '()
+                              (remove-dups (sort (append-map flat args) type<?))))
+            (define type (make-union* ts))
+            (hash-set! Un-cache args type)
+            type])]))

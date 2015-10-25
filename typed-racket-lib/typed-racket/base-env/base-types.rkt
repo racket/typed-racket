@@ -183,7 +183,7 @@
 [HashTable (-poly (a b) (Un (-Mutable-HT a b) (-Immutable-HT a b) (-Weak-HT a b)))]
 [Promise (-poly (a) (-Promise a))]
 [Pair (-poly (a b) (-pair a b))]
-[Boxof (-poly (a) (make-Box a))]
+[Boxof (-poly (a) (-box a))]
 [Weak-Boxof (-poly (a) (-weak-box a))]
 [Channelof (-poly (a) (make-Channel a))]
 [Async-Channelof (-poly (a) (make-Async-Channel a))]

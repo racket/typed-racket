@@ -164,7 +164,7 @@
   ((mutable-hash/sc (#:invariant) (#:invariant)) mutable-hash/c #:chaperone)
   ((immutable-hash/sc (#:covariant) (#:covariant)) immutable-hash/c #:flat)
   ((weak-hash/sc (#:invariant) (#:invariant)) weak-hash/c #:chaperone)
-  ((box/sc (#:invariant)) box/c #:chaperone)
+  ((box/sc (#:contravariant) (#:covariant)) box/c #:chaperone)
   ((parameter/sc (#:contravariant) (#:covariant)) parameter/c #:chaperone)
   ((sequence/sc . (#:covariant)) sequence/c #:impersonator)
   ((channel/sc . (#:invariant)) channel/c #:chaperone)

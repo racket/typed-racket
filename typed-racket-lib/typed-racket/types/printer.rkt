@@ -652,7 +652,7 @@
     [(? Arrow?) `(Arrow ,(arr->sexp type))]
     [(Vector: e) `(Vectorof ,(t->s e))]
     [(HeterogeneousVector: e) `(Vector ,@(map t->s e))]
-    [(Box: e) `(Boxof ,(t->s e))]
+    [(Box: e e) `(Boxof ,(t->s e))]
     [(Weak-Box: e) `(Weak-Boxof ,(t->s e))]
     [(Future: e) `(Futureof ,(t->s e))]
     [(Channel: e) `(Channelof ,(t->s e))]

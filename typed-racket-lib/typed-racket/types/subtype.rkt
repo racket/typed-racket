@@ -647,10 +647,12 @@
                   ([b (in-list (BaseUnion-bases t1))]
                    #:break (not A))
           (subtype* A b t2 obj))])]
-  [(case: Box (Box: elem1))
+  [(case: Box (Box: elem1-w elem1-r))
    (match t2
      [(? BoxTop?) A]
-     [(Box: elem2) (type≡? A elem1 elem2)]
+     [(Box: elem2-w elem2-r)
+      (and (subtype* A elem2-w elem1-w)
+           (subtype* A elem1-r elem2-r))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Channel (Channel: elem1))
    (match t2

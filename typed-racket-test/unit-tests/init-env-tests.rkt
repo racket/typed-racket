@@ -38,7 +38,10 @@
         '(make-Path (list -car) (cons 0 0)))
       (check-equal?
         (convert-type (-mu x (-lst* Univ (-box x))))
-        '(make-Mu 'x (make-Pair Univ (make-Pair (make-Box (make-F 'x)) -Null))))
+        '(make-Mu 'x
+                  (make-Pair Univ
+                             (make-Pair (make-Box (make-F 'x) (make-F 'x))
+                                        -Null))))
       (check-equal?
         (convert-type -StructTypeTop)
         '-StructTypeTop)

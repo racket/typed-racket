@@ -242,7 +242,7 @@
   [#:mask mask:box]
   [#:singleton -BoxTop])
 
-(def-structural Box ([elem #:invariant])
+(def-structural Box ([elem-w #:contravariant] [elem-r #:covariant])
   [#:mask mask:box])
 
 ;;----------

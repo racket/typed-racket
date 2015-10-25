@@ -118,8 +118,8 @@
      `(make-Vector ,(type->sexp ty))]
     [(HeterogeneousVector: elems)
      `(-vec* ,@(map type->sexp elems))]
-    [(Box: ty)
-     `(make-Box ,(type->sexp ty))]
+    [(Box: ty-w ty-r)
+     `(make-Box ,(type->sexp ty-w) ,(type->sexp ty-r))]
     [(Channel: ty)
      `(make-Channel ,(type->sexp ty))]
     [(Async-Channel: ty)

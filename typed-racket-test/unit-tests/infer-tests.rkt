@@ -98,8 +98,8 @@
    (pd-t (-vec (-lst (-v a))) (a) (-vec -Bottom) (-vec Univ))
    (pd-t (-vec (-v a)) (b) (-vec (-v a)) (-vec (-v a)))
 
-   (pd-t (-box (-v a)) (a) (-box -Bottom) (-box Univ))
-   (pd-t (-box (-lst (-v a))) (a) (-box -Bottom) (-box Univ))
+   (pd-t (-box (-v a)) (a) (-box Univ -Bottom) (-box -Bottom Univ))
+   (pd-t (-box (-lst (-v a))) (a) (-box (-lst Univ) (-lst -Bottom)) (-box (-lst -Bottom) (-lst Univ)))
    (pd-t (-box (-v a)) (b) (-box (-v a)) (-box (-v a)))
 
    (pd-t (-channel (-v a)) (a) (-channel -Bottom) (-channel Univ))

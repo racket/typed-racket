@@ -32,7 +32,7 @@
     ;; can call continuations and thus be useful even if they cannot return values.
     ;[(vectorof/sc: (none/sc:)) empty-vector/sc]
     ;[(vector/sc: sc1 ... (none/sc:) sc2 ...) none/sc]
-    ;[(box/sc: (none/sc:)) none/sc]
+    ;[(box/sc: (none/sc:) (none/sc:)) none/sc]
     ;[(promise/sc: (none/sc:)) none/sc]
     ;[(hash/sc: (none/sc:) value/sc) empty-hash/sc]
     ;[(hash/sc: key/sc (none/sc:)) empty-hash/sc]
@@ -44,7 +44,7 @@
     [(vectorof/sc: (any/sc:)) vector?/sc]
     [(vector/sc: (and scs (any/sc:)) ...) (vector-length/sc (length scs))]
     [(set/sc: (any/sc:)) set?/sc]
-    [(box/sc: (any/sc:)) box?/sc]
+    [(box/sc: (any/sc:) (any/sc:)) box?/sc]
     [(syntax/sc: (any/sc:)) syntax?/sc]
     [(promise/sc: (any/sc:)) promise?/sc]
     [(hash/sc: (any/sc:) (any/sc:)) hash?/sc]
@@ -213,7 +213,7 @@
    [(or (->/sc: _ _ _ _ _ _)
         (arr/sc: _ _ _)
         (async-channel/sc: _)
-        (box/sc: _)
+        (box/sc: _ _)
         (channel/sc: _)
         (cons/sc: _ _)
         (continuation-mark-key/sc: _)

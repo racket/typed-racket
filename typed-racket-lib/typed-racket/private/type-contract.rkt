@@ -534,7 +534,7 @@
        [(Sequence: ts) (apply sequence/sc (map t->sc ts))]
        [(Vector: t) (vectorof/sc (t->sc/both t))]
        [(HeterogeneousVector: ts) (apply vector/sc (map t->sc/both ts))]
-       [(Box: t) (box/sc (t->sc/both t))]
+       [(Box: t1 t2) (box/sc (t->sc/neg t1) (t->sc t2))]
        [(Pair: t1 t2)
         (cons/sc (t->sc t1) (t->sc t2))]
        [(Async-Channel: t) (async-channel/sc (t->sc t))]

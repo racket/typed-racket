@@ -8,11 +8,12 @@
          (types utils abbrev type-table struct-table)
          (private parse-type type-annotation syntax-properties type-contract)
          (env global-env init-envs type-name-env type-alias-env
-              lexical-env env-req mvar-env scoped-tvar-env
+              lexical-env env-req mvar-env scoped-tvar-env measure-unit-env
               type-alias-helper signature-env signature-helper)
          (utils tc-utils redirect-contract)
          "provide-handling.rkt" "def-binding.rkt" "tc-structs.rkt"
          "typechecker.rkt" "internal-forms.rkt"
+         "../base-env/measures/parse-measure-unit.rkt"
          (typecheck provide-handling def-binding tc-structs
                     typechecker internal-forms 
                     check-below)
@@ -318,16 +319,20 @@
 (define (type-check forms0)
   (define forms (syntax->list forms0))
   (do-time "before form splitting")
-  (define-values (type-aliases struct-defs stx-defs0 val-defs0 provs signature-defs)
+  (define-values (type-aliases measure-unit-defs struct-defs stx-defs0 val-defs0 provs signature-defs)
     (filter-multiple
      forms
      type-alias? 
+     measure-unit-def?
      (lambda (e) (or (typed-struct? e) (typed-struct/exec? e)))
      parse-syntax-def
      parse-def
      provide?
      typed-define-signature?))
   (do-time "Form splitting done")
+
+  (for-each handle-measure-unit-def measure-unit-defs)
+  (resolve-measure-units parse-measure-unit)
 
   ;; Register signatures in the signature environment
   ;; but defer type parsing to allow mutually recursive refernces
@@ -460,6 +465,7 @@
                          typed-racket/types/struct-table typed-racket/types/abbrev
                          (rename-in racket/private/sort [sort raw-sort]))
                 #,(env-init-code)
+                #,(measure-unit-env-init-code)
                 #,(talias-env-init-code)
                 #,(tname-env-init-code)
                 #,(tvariance-env-init-code)
@@ -591,4 +597,11 @@
      (define rep-ty (parse-type (attribute form.rep-type)))
      (register-type (attribute form.constructor) (-> rep-ty ty))
      (list)]))
+
+;; handle-measure-unit-def : Syntax -> Void
+(define (handle-measure-unit-def form)
+  (syntax-parse form
+    [form:measure-unit-def
+     ;; (define-measure-unit-internal name measure-unit)
+     (register-measure-unit #'form.name #'form.measure-unit)]))
 

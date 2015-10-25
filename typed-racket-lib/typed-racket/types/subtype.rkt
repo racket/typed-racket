@@ -2,7 +2,7 @@
 (require (except-in "../utils/utils.rkt" infer)
          racket/match racket/function racket/lazy-require racket/list
          (prefix-in c: (contract-req))
-         (rep type-rep filter-rep object-rep rep-utils)
+         (rep type-rep filter-rep object-rep measure-unit-rep rep-utils)
          (utils tc-utils early-return)
          (types utils resolve base-abbrev match-expanders
                 numeric-tower substitute current-seen prefab signatures)
@@ -297,6 +297,11 @@
           #:when (and (equal? nm1 nm2) (equal? id1 id2))
           (subtype* A0 t1 t2)]
          [((Distinction: _ _ t1) t2)
+          (subtype* A0 t1 t2)]
+         [((Measure: t1 u1) (app resolve (Measure: t2 u2)))
+          #:when (measure-unit=? u1 u2)
+          (subtype* A0 t1 t2)]
+         [((Measure: t1 _) t2)
           (subtype* A0 t1 t2)]
          ;; sequences are covariant
          [((Sequence: ts) (Sequence: ts*))

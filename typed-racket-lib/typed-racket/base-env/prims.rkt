@@ -38,6 +38,7 @@ the typed racket language.
          (all-from-out "top-interaction.rkt")
          (all-from-out "case-lambda.rkt")
          (all-from-out (submod "prims-contract.rkt" forms))
+         (all-from-out "measures/prims-measures.rkt")
          define-type-alias
          define-new-subtype
          define-typed-struct
@@ -111,6 +112,7 @@ the typed racket language.
          "case-lambda.rkt"
          "prims-struct.rkt"
          "ann-inst.rkt"
+         "measures/prims-measures.rkt"
          racket/unsafe/ops
          racket/flonum ; for for/flvector and for*/flvector
          racket/extflonum ; for for/extflvector and for*/extflvector

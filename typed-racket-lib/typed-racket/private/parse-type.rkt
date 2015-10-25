@@ -13,6 +13,7 @@
          (env tvar-env type-alias-env mvar-env
               lexical-env index-env row-constraint-env
               signature-env)
+         (base-env measures/parse-measure-unit)
          racket/dict
          racket/list
          racket/promise
@@ -108,6 +109,7 @@
 (define-literal-syntax-class #:for-label Top)
 (define-literal-syntax-class #:for-label Bot)
 (define-literal-syntax-class #:for-label Distinction)
+(define-literal-syntax-class #:for-label Measure)
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
@@ -473,6 +475,8 @@
        (make-Opaque #'p?)]
       [(:Distinction^ name:id unique-id:id rep-ty:expr)
        (-Distinction (syntax-e #'name) (syntax-e #'unique-id) (parse-type #'rep-ty))]
+      [(:Measure^ t:expr unit:expr)
+       (-Measure (parse-type #'t) (parse-measure-unit #'unit))]
       [(:Parameter^ t)
        (let ([ty (parse-type #'t)])
          (-Param ty ty))]

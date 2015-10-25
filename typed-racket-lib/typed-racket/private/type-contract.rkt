@@ -5,7 +5,7 @@
 (require
  "../utils/utils.rkt"
  syntax/parse
- (rep type-rep filter-rep object-rep)
+ (rep type-rep filter-rep object-rep measure-unit-rep)
  (utils tc-utils)
  (env type-name-env row-constraint-env)
  (rep rep-utils)
@@ -352,6 +352,8 @@
         [(Base: sym cnt _ _)
          (flat/sc #`(flat-named-contract '#,sym (flat-contract-predicate #,cnt)) sym)]
         [(Distinction: _ _ t) ; from define-new-subtype
+         (t->sc t)]
+        [(Measure: t (measure-unit: 1 (hash-table) (hash-table)))
          (t->sc t)]
         [(Refinement: par p?)
          (and/sc (t->sc par) (flat/sc p?))]

@@ -8,7 +8,7 @@
          racket/list
          racket/set
          (path-up "rep/type-rep.rkt" "rep/filter-rep.rkt" "rep/object-rep.rkt"
-                  "rep/rep-utils.rkt" "types/subtype.rkt"
+                  "rep/rep-utils.rkt" "types/subtype.rkt" "rep/measure-unit-rep.rkt"
                   "types/match-expanders.rkt"
                   "types/kw-types.rkt"
                   "types/utils.rkt"
@@ -27,8 +27,9 @@
                              [debug-printer print-filter]
                              [debug-printer print-object]
                              [debug-printer print-pathelem]
+                             [debug-printer print-measure-unit]
                              [debug-pretty-format-type pretty-format-type]))
-      #'(provide print-type print-filter print-object print-pathelem
+      #'(provide print-type print-filter print-object print-pathelem print-measure-unit
                  pretty-format-type)))
 (provide-printer)
 
@@ -81,6 +82,9 @@
 
 (define (print-object obj port write?)
   (display (object->sexp obj) port))
+
+(define (print-measure-unit type port write?)
+  (display (measure-unit->sexp type) port))
 
 ;; Table for formatting pretty-printed types
 (define type-style-table
@@ -143,6 +147,19 @@
     [(Empty:) '-]
     [(Path: pes i) (append (map pathelem->sexp pes) (list i))]
     [else `(Unknown Object: ,(struct->vector object))]))
+
+(struct base-measure-unit (name id) #:prefab)
+
+(define (measure-unit->sexp u)
+  (match u
+    [(measure-unit: s ht tbd)
+     `(u* ,@(if (= s 1) '() (list s))
+          ,@(for/list ([(k v) ht])
+              (match-define (base-measure-unit nm id) k)
+              (if (= v 1) nm `(u^ ,nm ,v)))
+          ,@(for/list ([(k v) tbd])
+              (define nm (type->sexp k))
+              (if (= v 1) nm `(u^ ,nm ,v))))]))
 
 ;; cover-union : Type LSet<Type> -> Listof<Symbol> Listof<Type>
 ;; Unions are represented as a flat list of branches. In some cases, it would
@@ -530,6 +547,8 @@
     [(fld: t a m) `(fld ,(type->sexp t))]
     [(Distinction: name sym ty) ; from define-new-subtype
      name]
+    [(Measure: t u)
+     `(Measure ,(t->s t) ,(measure-unit->sexp u))]
     [else `(Unknown Type: ,(struct->vector type))]
     ))
 

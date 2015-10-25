@@ -58,6 +58,8 @@
   (type-inst type-inst)
   (type-label type-label)
   (type-dotted type-dotted)
+  (measure measure)
+  (measure-arith measure-arith)
   (exn-predicate typechecker:exn-predicate)
   (exn-handler typechecker:exn-handler)
   (exn-body typechecker:exn-body #:mark)

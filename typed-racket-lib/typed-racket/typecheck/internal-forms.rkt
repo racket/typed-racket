@@ -23,6 +23,7 @@
   type-alias
   new-subtype-def
   type-refinement
+  measure-unit-def
   typed-struct
   typed-struct/exec
   typed-require
@@ -35,6 +36,7 @@
 
   type-alias?
   new-subtype-def?
+  measure-unit-def?
   typed-struct?
   typed-struct/exec?
   typed-define-signature?
@@ -58,6 +60,7 @@
                   define-type-alias-internal
                   define-new-subtype-internal
                   define-type-internal
+                  define-measure-unit-internal
                   define-typed-struct-internal
                   define-typed-struct/exec-internal
                   assert-predicate-internal
@@ -145,6 +148,8 @@
     (define-new-subtype-internal name (constructor rep-type) #:gen-id gen-id)]
   [type-refinement
     (declare-refinement-internal predicate)]
+  [measure-unit-def
+    (define-measure-unit-internal name measure-unit)]
   [typed-struct
     (define-typed-struct-internal . :define-typed-struct-body)]
   [typed-struct/exec

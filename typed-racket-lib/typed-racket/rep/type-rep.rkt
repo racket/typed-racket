@@ -7,9 +7,10 @@
 
 ;; TODO use contract-req
 (require (utils tc-utils)
-         "rep-utils.rkt" "object-rep.rkt" "filter-rep.rkt" "free-variance.rkt"
+         "rep-utils.rkt" "object-rep.rkt" "filter-rep.rkt" "measure-unit-rep.rkt" "free-variance.rkt"
          racket/match racket/list
          racket/contract
+         racket/hash
          racket/lazy-require
          racket/promise
          (for-syntax racket/base syntax/parse))
@@ -32,7 +33,7 @@
          free-vars*
          type-equal?
          remove-dups
-         sub-t sub-f sub-o sub-pe
+         sub-t sub-f sub-o sub-pe sub-measure-unit
          Name/simple: Name/struct:
          (rename-out [Class:* Class:]
                      [Class* make-Class]
@@ -622,6 +623,16 @@
   [#:fold-rhs (*Distinction nm id (type-rec-id ty))]
   [#:key (Type-key ty)])
 
+;; Measure
+;; for quantities with units such as meters, seconds, etc.
+;; t: a type for the number (not necessarily a number type though)
+;; u: the measure-unit
+(def-type Measure ([t Type/c] [u MeasureUnit?])
+  [#:frees (λ (f) (combine-frees (list (f t) (f u))))]
+  [#:intern (list (Rep-seq t) (Rep-seq u))]
+  [#:fold-rhs (*Measure (type-rec-id t) (measure-unit-rec-id u))]
+  [#:key (Type-key t)])
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; remove-dups: List[Type] -> List[Type]
@@ -667,6 +678,10 @@
                          #:PathElem (sub-pe st))
                  e))
 
+(define ((sub-measure-unit st) e)
+  (measure-unit-case (#:Type st #:MeasureUnit (sub-measure-unit st))
+                     e))
+
 (define ((sub-t st) e)
   (type-case (#:Type st
               #:Filter (sub-f st))
@@ -690,7 +705,7 @@
                     (f (+ (cdr pr) outer)))]
               [else default]))
       (type-case
-        (#:Type sb #:Filter (sub-f sb) #:Object (sub-o sb))
+        (#:Type sb #:Filter (sub-f sb) #:Object (sub-o sb) #:MeasureUnit (sub-measure-unit sb))
        ty
        [#:F name* (transform name* *B ty)]
        ;; necessary to avoid infinite loops
@@ -748,7 +763,7 @@
       (define (sb t) (loop outer t))
       (define sf (sub-f sb))
       (type-case
-       (#:Type sb #:Filter sf #:Object (sub-o sb))
+       (#:Type sb #:Filter sf #:Object (sub-o sb) #:MeasureUnit (sub-measure-unit sb))
        ty
        [#:B idx (transform idx values ty)]
        ;; necessary to avoid infinite loops

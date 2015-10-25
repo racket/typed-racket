@@ -364,6 +364,41 @@ corresponding to @racket[trest], where @racket[bound]
 
 @ex[(box "hello world")]
 
+@defform[(Boxof/Read t)]{
+  A @rtech{box} of @racket[t] that only supports read-only operations
+  such as @racket[unbox]. A @racket[(Boxof/Read t)] is a subtype of
+  @racket[(Boxof t)], and a @racket[(Boxof/Read a)] is a subtype of
+  @racket[(Boxof/Read b)] if @racket[a] is a subtype of @racket[b]. It
+  is equivalent to @racket[(Boxof/Write-Read Nothing t)].}
+
+@ex[(box-immutable "hello world")
+    (code:comment "though this does not necessarily imply immutability:")
+    (define b : (Boxof Integer) (box 3))
+    (define b-read-only : (Boxof/Read Integer) b)
+    (set-box! b-read-only 5)
+    (unbox b-read-only)
+    (set-box! b 5)
+    (unbox b-read-only)]
+
+@defform[(Boxof/Write t)]{
+  A @rtech{box} that could contain anything, but can only take
+  @racket[t] for write operations such as @racket[set-box!].
+  A @racket[(Boxof/Write t)] is a supertype of @racket[(Boxof t)], and
+  it is equivalent to @racket[(Boxof/Write-Read t Any)].}
+
+@defform[(Boxof/Write-Read write-t read-t)]{
+  A @rtech{box} that supports write operations like @racket[set-box!]
+  taking @racket[write-t], and read operations like @racket[unbox]
+  returning @racket[read-t]. For this type to make sense,
+  @racket[write-t] should be a subtype of @racket[read-t].
+
+  The type @racket[(Boxof t)] is equivalent to
+  @racket[(Boxof/Write-Read t t)], the type
+  @racket[(Boxof/Read t)] is equivalent to
+  @racket[(Boxof/Write-Read Nothing t)], and the type
+  @racket[(Boxof/Write t)] is equivalent to
+  @racket[(Boxof/Write-Read t Any)].}
+
 @defidform[BoxTop]{is the type of a @rtech{box} with an unknown element
   type and is the supertype of all box types. Only read-only box operations
   (e.g. @racket[unbox]) are allowed on values of this type. This type

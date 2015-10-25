@@ -31,6 +31,8 @@
 (define -mpair make-MPair)
 (define (-Param t1 [t2 t1]) (make-Param t1 t2))
 (define (-box t1 [t2 t1]) (make-Box t1 t2))
+(define (-Boxof/Read t) (-box -Bottom t))
+(define (-Boxof/Write t) (-box t Univ))
 (define -channel make-Channel)
 (define -async-channel make-Async-Channel)
 (define -thread-cell make-ThreadCell)

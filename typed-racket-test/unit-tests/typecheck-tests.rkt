@@ -1435,6 +1435,19 @@
                 (define: x : Any 7)
                 (if (box? x) (unbox x) (+ 1)))
               Univ]
+        [tc-e (if (zero? (random 2)) (box "hello") (box 'hello))
+              (-box -Bottom (t:Un -String -Symbol))]
+        [tc-e (unbox (if (zero? (random 2)) (box "hello") (box 'hello)))
+              (t:Un -String -Symbol)]
+        [tc-e (if (zero? (random 2)) ((inst box Natural) 3) ((inst box Integer) -5))
+              (-box -Nat -Int)]
+        [tc-e (unbox (if (zero? (random 2)) ((inst box Natural) 3) ((inst box Integer) -5)))
+              -Int]
+        [tc-e (set-box!
+               (if (zero? (random 2)) ((inst box Natural) 3) ((inst box Integer) -5))
+               1)
+              -Void]
+        [tc-err (set-box! (if (zero? (random 2)) ((inst box Natural) 3) ((inst box Integer) -5)) -1)]
         [tc-e (floor 1/2) -Nat]
         [tc-e (ceiling 1/2) -PosInt]
         [tc-e (truncate 0.5) -NonNegFlonum]

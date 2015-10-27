@@ -1,6 +1,5 @@
 #;#;
 #<<END
-TR info: invalid-fxquotient.rkt 2:41 (assert (- (expt 2 30)) fixnum?) -- vector of floats
 TR info: invalid-fxquotient.rkt 5:14 (fxquotient 3 0) -- non-optimized fixnum op
 TR missed opt: invalid-fxquotient.rkt 3:21 (quotient fixnum-min -1) -- out of fixnum range
 END

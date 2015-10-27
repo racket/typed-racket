@@ -6,7 +6,7 @@
          "utils.rkt"
          syntax/parse syntax/stx racket/match racket/set
          (typecheck signatures tc-app-helper tc-funapp tc-metafunctions)
-         (types abbrev utils substitute subtype type-table)
+         (types abbrev utils substitute subtype)
          (rep type-rep)
          (utils tc-utils)
          (r:infer infer)
@@ -35,7 +35,6 @@
     ;; If #t, then the contract system has inserted an extra argument which we
     ;; need to ignore
     #:attr boundary-ctc? (contract-neg-party-property #'fn)
-    #:do [(for-each register-ignored! (syntax->list #'form))] ; no type info, so can't optimize
     #:with pos-args (if (attribute boundary-ctc?)
                         (stx-cdr #'*pos-args)
                         #'*pos-args)

@@ -117,7 +117,6 @@
       ;; definitions lifted from contracts should be ignored
       [(define-values (lifted) expr)
        #:when (contract-lifted-property #'expr)
-       #:do [(register-ignored! #'expr)]
        (list)]
       
       ;; register types of variables defined by define-values/invoke-unit forms
@@ -178,7 +177,6 @@
       ;; definitions lifted from contracts should be ignored
       [(define-values (lifted) expr)
        #:when (contract-lifted-property #'expr)
-       #:do [(register-ignored! #'expr)]
        (list)]
 
       [(define-values (var ...) expr)
@@ -237,7 +235,6 @@
                [expected-type (in-list (map cdr (signature->bindings import-sig)))])
            (define lexical-type (lookup-type/lexical member))
            (check-below lexical-type expected-type)))
-       (register-ignored! #'dviu)
        'no-type]
       ;; these forms we have been instructed to ignore
       [stx:ignore^
@@ -259,7 +256,6 @@
       ;; definitions lifted from contracts should be ignored
       [(define-values (lifted) expr)
        #:when (contract-lifted-property #'expr)
-       #:do [(register-ignored! #'expr)]
        'no-type]
 
       ;; definitions just need to typecheck their bodies

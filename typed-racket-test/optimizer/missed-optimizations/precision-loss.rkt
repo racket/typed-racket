@@ -1,7 +1,6 @@
 #;#;
 #<<END
 TR info: precision-loss.rkt 10:3 (- 3/4) -- possible exact real arith
-TR info: precision-loss.rkt 12:31 (assert (+ 1/4 3/4) exact-integer?) -- vector of floats
 TR info: precision-loss.rkt 12:39 (+ 1/4 3/4) -- possible exact real arith
 TR info: precision-loss.rkt 18:0 (* (* (r 3/4) 2/3) (car (list (* 2.0 (* (r 3/4) 2/3)))) 2.0) -- possible exact real arith
 TR info: precision-loss.rkt 18:3 (* (r 3/4) 2/3) -- possible exact real arith

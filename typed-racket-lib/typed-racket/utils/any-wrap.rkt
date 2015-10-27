@@ -120,4 +120,10 @@
    #:projection (λ (blame) (λ (val) (((val-first-projection blame) val) #f)))
    #:val-first-projection val-first-projection))
 
-(provide any-wrap/c)
+;; Contract for "safe" struct predicate procedures.
+;; We can trust that these obey the type (-> Any Boolean).
+(define (struct-predicate-procedure?/c x)
+  (and (struct-predicate-procedure? x)
+       (not (impersonator? x))))
+
+(provide any-wrap/c struct-predicate-procedure?/c)

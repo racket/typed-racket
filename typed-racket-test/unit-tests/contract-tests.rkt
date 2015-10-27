@@ -224,6 +224,44 @@
               (t-sc (-lst Univ) (listof/sc any-wrap/sc))
               (t-sc (Un (-lst Univ) -Number) (or/sc number/sc (listof/sc any-wrap/sc)))
 
+              ;; Github pull request #226
+              (let ([ctc (-> Univ -Boolean)])
+                ;; Ordinary functions should have a contract
+                (t-int ctc
+                       (lambda (f) (f 6))
+                       (lambda (x) #t)
+                       #:untyped)
+                (t-int/fail ctc
+                            (lambda (f) (f 6))
+                            (lambda (x) 'bad)
+                            #:untyped
+                            #:msg #rx"promised: \\(or/c #f #t\\).*produced: 'bad.*blaming: untyped")
+                ;; Struct predicates should not have a contract
+                (t-int ctc
+                       (lambda (foo?)
+                         (when (has-contract? foo?)
+                           (error "Regression failed for PR #266: struct predicate has a contract"))
+                         (foo? foo?))
+                       (let-values ([(_t _c foo? _a _m) (make-struct-type 'foo #f 0 0)])
+                         foo?)
+                       #:untyped)
+                ;; Unless the struct predicate is guarded by an untyped chaperone
+                (t-int/fail ctc
+                            (lambda (foo?) (foo? string-append))
+                            (let-values ([(_t _c foo? _a _m) (make-struct-type 'foo #f 0 0)])
+                              (chaperone-procedure foo? (lambda (x) (x 0) x)))
+                            #:untyped
+                            #:msg #rx"broke its own contract")
+                ;; Typed chaperones are okay, though
+                (t-int ctc
+                       (lambda (foo?)
+                         (when (has-contract? foo?)
+                           (error "Regression failed for PR #266: typed chaperone has a contract"))
+                         (foo? foo?))
+                       (let-values ([(_t _c foo? _a _m) (make-struct-type 'foo #f 0 0)])
+                         (chaperone-procedure foo? #f))
+                       #:typed))
+
               ;; classes
               (t-sc (-class) (class/sc #f null null))
               (t-sc (-class #:init ([x -Number #f] [y -Number #f]))

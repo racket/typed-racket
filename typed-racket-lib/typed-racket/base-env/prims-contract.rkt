@@ -72,6 +72,7 @@
          racket/struct-info
          syntax/struct
          syntax/location
+         (for-template "../utils/any-wrap.rkt")
          "../utils/tc-utils.rkt"
          "../private/syntax-properties.rkt"
          "../typecheck/internal-forms.rkt"
@@ -467,7 +468,7 @@
                                   si))
 
                          (dtsi* () spec ([fld : ty] ...) #:maker maker-name #:type-only)
-                         #,(ignore #'(require/contract pred hidden (any/c . c-> . boolean?) lib))
+                         #,(ignore #'(require/contract pred hidden (or/c struct-predicate-procedure?/c (c-> any-wrap/c boolean?)) lib))
                          #,(internal #'(require/typed-internal hidden (Any -> Boolean : nm)))
                          (require/typed #:internal (maker-name real-maker) nm lib
                                         #:struct-maker parent

@@ -16,7 +16,7 @@
  racket/format
  racket/dict
  syntax/flatten-begin
- (only-in (types abbrev) -Bottom)
+ (only-in (types abbrev) -Bottom -Boolean)
  (static-contracts instantiate optimize structures combinators)
  ;; TODO make this from contract-req
  (prefix-in c: racket/contract)
@@ -361,6 +361,17 @@
          (if numeric-sc
              (apply or/sc numeric-sc (map t->sc non-numeric))
              (apply or/sc (map t->sc elems)))]
+        [(and t (Function: arrs))
+         #:when (any->bool? arrs)
+         ;; Avoid putting (-> any boolean) contracts on struct predicates
+         ;; Optimization: if the value is typed, we can assume it's not wrapped
+         ;;  in a type-unsafe chaperone/impersonator and use the unsafe contract
+         (let* ([unsafe-spp/sc (flat/sc #'struct-predicate-procedure?)]
+                [safe-spp/sc (flat/sc #'struct-predicate-procedure?/c)]
+                [optimized/sc (if (from-typed? typed-side)
+                                  unsafe-spp/sc
+                                  safe-spp/sc)])
+           (or/sc optimized/sc (t->sc/fun t)))]
         [(and t (Function: _)) (t->sc/fun t)]
         [(Set: t) (set/sc (t->sc t))]
         [(Sequence: ts) (apply sequence/sc (map t->sc ts))]
@@ -768,6 +779,15 @@
           [(Name: _ _ #f) (escape #t)]
           [_ type])]))
     #f))
+
+;; True if the arities `arrs` are what we'd expect from a struct predicate
+(define (any->bool? arrs)
+  (match arrs
+    [(list (arr: (list (Univ:))
+                 (Values: (list (Result: (== -Boolean) _ _)))
+                 #f #f '()))
+     #t]
+    [_ #f]))
 
 (module predicates racket/base
   (require racket/extflonum)

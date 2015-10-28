@@ -111,7 +111,7 @@
                     (λ (#:reason [reason #f]) (set! failure-reason reason))))
   (syntax-parse stx
     #:literal-sets (kernel-literals)
-    [(define-values ctc-id _)
+    [(define-values (ctc-id) _)
      ;; no need for ignore, the optimizer doesn't run on this code
      (cond [failure-reason
             #`(define-syntax (#,untyped-id stx)
@@ -123,7 +123,7 @@
            [else
             (match-define (list defs ctc) result)
             #`(begin #,@defs
-                     (define ctc-id #,ctc)
+                     (define-values (ctc-id) #,ctc)
                      (define-module-boundary-contract #,untyped-id
                        #,orig-id ctc-id
                        #:pos-source #,blame-id

@@ -122,16 +122,35 @@
                                  "type" #,(pretty-format-type type #:indent 8)))]
            [else
             (match-define (list defs ctc) result)
+            (define maybe-inline-val
+              (should-inline-contract? ctc cache))
             #`(begin #,@defs
-                     (define-values (ctc-id) #,ctc)
+                     #,@(if maybe-inline-val
+                            null
+                            (list #`(define-values (ctc-id) #,ctc)))
                      (define-module-boundary-contract #,untyped-id
-                       #,orig-id ctc-id
+                       #,orig-id
+                       #,(or maybe-inline-val #'ctc-id)
                        #:pos-source #,blame-id
                        #:srcloc (vector (quote #,(syntax-source orig-id))
                                         #,(syntax-line orig-id)
                                         #,(syntax-column orig-id)
                                         #,(syntax-position orig-id)
                                         #,(syntax-span orig-id))))])]))
+
+;; Syntax (Dict Static-Contract (Cons Id Syntax)) -> (Option Syntax)
+;; A helper for generate-contract-def/provide that helps inline contract
+;; expressions when needed to cooperate with the contract system's optimizations
+(define (should-inline-contract? ctc-stx cache)
+  (and (identifier? ctc-stx)
+       (let ([match? (assoc ctc-stx (hash-values cache) free-identifier=?)])
+         (and match?
+              ;; ->* are handled specially by the contract system
+              (let ([sexp (syntax-e (cdr match?))])
+                (and (pair? sexp)
+                     (or (free-identifier=? (car sexp) #'->)
+                         (free-identifier=? (car sexp) #'->*))))
+              (cdr match?)))))
 
 ;; The below requires are needed since they provide identifiers that
 ;; may appear in the residual program.

@@ -529,8 +529,8 @@
            ;; indirection here (see the implementation in
            ;; provide-handling.rkt).
            ;;
-           ;; First, we generate a macro that expands to a
-           ;; `local-require` of the contracted identifier in the
+           ;; First, we generate a macro that lifts a
+           ;; `require` of the contracted identifier in the
            ;; #%contract-defs submodule:
            ;;    (define-syntax con-f (mk-redirect f))
            ;;
@@ -542,7 +542,7 @@
            ;; because it's important for `export-f` to be a
            ;; rename-transformer (making things like
            ;; `syntax-local-value` work right), but `con-f` can't be,
-           ;; since it expands to a `local-require`.
+           ;; since it lifts a `require`
            new-export-defs ...
 
            ;; Finally, we do the export:

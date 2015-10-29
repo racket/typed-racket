@@ -127,8 +127,9 @@
               (define ty (force (cdr id/ty)))
               `(cons (quote-syntax ,id) ,(sub ty)))
             m))
+     (define serialized-extends (and extends `(quote-syntax ,extends)))
      `(make-Signature (quote-syntax ,name)
-                      (quote-syntax ,extends)
+                      ,serialized-extends
                       (list ,@(serialize-mapping mapping)))]
     [(arr: dom rng rest drest kws)
      `(make-arr ,(sub dom) ,(sub rng) ,(sub rest) ,(sub drest) ,(sub kws))]

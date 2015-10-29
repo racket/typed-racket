@@ -8,15 +8,15 @@
 (let ([needle : Integer
               ;; Use a random needle to prevent some optimizations (but not all)
               (floor (inexact->exact (* (random) 200)))])
-  (assoc3 needle
-          (ann (map (λ ([x : Integer]) (cons x (format "~a" x))) (range 1000))
-               (Listof (Pairof Integer String)))
-          (λ ([x : Integer] [y : Integer])
-            ;; Check the needle is always the first argument
-            (check-equal? x needle)
-            ;; Check y = needle implies x = needle
-            (check-true (or (not (= y needle)) (= x needle)))
-            (= x y))))
+  (assoc needle
+         (ann (map (λ ([x : Integer]) (cons x (format "~a" x))) (range 1000))
+              (Listof (Pairof Integer String)))
+         (λ ([x : Integer] [y : Integer])
+           ;; Check the needle is always the first argument
+           (check-equal? x needle)
+           ;; Check y = needle implies x = needle
+           (check-true (or (not (= y needle)) (= x needle)))
+           (= x y))))
 
 ;; Test that the third is-equal? argument is taken into account. If it is taken
 ;; into account, it will return '("c" . 2). If it isn't, it will return

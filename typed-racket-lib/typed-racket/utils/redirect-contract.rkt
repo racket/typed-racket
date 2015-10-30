@@ -31,9 +31,9 @@
       (with-syntax ([mp (collapse-module-path-index
                          contract-defs-submod-modidx)]
                     [i (datum->syntax id (syntax-e id) stx stx)])
-        #`(let ()
-            (local-require (only-in mp [#,(datum->syntax #'mp (syntax-e #'i)) i]))
-            i))]
+        (syntax-local-lift-require
+         #`(rename mp i #,(datum->syntax #'mp (syntax-e #'i)))
+         #'i))]
      [else
       (datum->syntax stx
                      (cons (redirect (car (syntax-e stx)))

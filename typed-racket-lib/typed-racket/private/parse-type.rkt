@@ -478,6 +478,11 @@
          (-Param ty ty))]
       [(:Parameter^ t1 t2)
        (-Param (parse-type #'t1) (parse-type #'t2))]
+      [((~and p :Parameter^) args ...)
+       (parse-error
+        #:stx stx
+        (~a (syntax-e #'p) " expects one or two type arguments, given "
+            (sub1 (length (syntax->list #'(args ...))))))]
       ;; curried function notation
       [((~and dom:non-keyword-ty (~not :->^)) ...
         :->^

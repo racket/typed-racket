@@ -111,7 +111,7 @@
                       [#:opaque Evt evt?]
                       [alarm-evt (Real -> Evt)]
                       [sync (Evt -> Any)])
-       evt?))
+       (void evt?)))
 
     ;; PR 14380
     (test-form-not-exn (begin - (void)))

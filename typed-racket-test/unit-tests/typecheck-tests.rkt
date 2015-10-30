@@ -2374,13 +2374,15 @@
        ;; The result type shouldn't be widened to include that type though.
        [tc-e (member 3
                      '(a b c)
-                     (lambda: ([s1 : (U Number Symbol String)] [s2 : String])
-                       (= (string-length (format "~a" s1)) (string-length s2))))
+                     (lambda: ([s1 : (U Number Symbol String)] [s2 : Symbol])
+                       (= (string-length (format "~a" s1))
+                          (string-length (symbol->string s2)))))
              (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
        [tc-e (assoc 3
                     '((a . #(a)) (b . #(b)) (c . #(c)))
                     (lambda: ([s1 : (U Number Symbol String)] [s2 : String])
-                      (= (string-length (format "~a" s1)) (string-length s2))))
+                      (= (string-length (format "~a" s1))
+                         (string-length (symbol->string s2)))))
              (t:Un (-val #f) (-pair (one-of/c 'a 'b 'c) (-vec -Symbol)))]
        ;; Reject `member` when needle not included in is-equal?'s argument type:
        [tc-err (member (ann 123 Number)

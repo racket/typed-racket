@@ -2370,12 +2370,24 @@
        [tc-e (vector-memq 3 #(a b c)) (t:Un (-val #f) -Index)]
        [tc-e (vector-memv 3 #(a b c)) (t:Un (-val #f) -Index)]
        [tc-e (vector-member 3 #(a b c)) (t:Un (-val #f) -Index)]
-       ;; Test `member` with needle not included in is-equal?'s argument type:
+       ;; Allow needle to be a subtype of the first argument of is-equal?
+       ;; The result type shouldn't be widened to include that type though.
+       [tc-e (member 3
+                     '(a b c)
+                     (lambda: ([s1 : (U Number Symbol String)] [s2 : String])
+                       (= (string-length (format "~a" s1)) (string-length s2))))
+             (t:Un (-val #f) (-lst (one-of/c 'a 'b 'c)))]
+       [tc-e (assoc 3
+                    '((a . #(a)) (b . #(b)) (c . #(c)))
+                    (lambda: ([s1 : (U Number Symbol String)] [s2 : String])
+                      (= (string-length (format "~a" s1)) (string-length s2))))
+             (t:Un (-val #f) (-pair (one-of/c 'a 'b 'c) (-vec -Symbol)))]
+       ;; Reject `member` when needle not included in is-equal?'s argument type:
        [tc-err (member (ann 123 Number)
                        '("bb" "c" "ddd")
                        (lambda ([s1 : String] [s2 : String])
                          (= (string-length s1) (string-length s2))))]
-       ;; Test `assoc` with needle not included in is-equal?'s argument type:
+       ;; Reject `assoc` when needle not included in is-equal?'s argument type:
        [tc-err (assoc (ann 123 Number)
                       '(("bb" . 123) ("c" . 123) ("ddd" . 123))
                        (lambda ([s1 : String] [s2 : String])

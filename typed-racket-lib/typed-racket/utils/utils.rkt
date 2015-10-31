@@ -100,7 +100,8 @@ at least theoretically.
          define/cond-contract/provide
          define-for-cond-contract
          provide-for-cond-contract
-         require-for-cond-contract)
+         require-for-cond-contract
+         begin-for-cond-contract)
 
 (define-require-syntax contract-req
   (if enable-contracts?
@@ -125,6 +126,12 @@ at least theoretically.
       (make-rename-transformer #'require)
       (syntax-parser
         [(_ require-spec:expr ...) #'(begin)])))
+
+(define-syntax begin-for-cond-contract
+  (if enable-contracts?
+      (make-rename-transformer #'begin)
+      (syntax-parser
+        [(_ e:expr ...) #'(begin)])))
 
 
 (define-syntax-rule (define/cond-contract/provide (name . args) c . body)

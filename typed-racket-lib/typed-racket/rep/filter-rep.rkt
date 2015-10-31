@@ -1,20 +1,22 @@
 #lang racket/base
 
-;;TODO use contract-req
-(require "rep-utils.rkt" "free-variance.rkt" racket/contract/base
-         racket/lazy-require)
+(require "../utils/utils.rkt" "rep-utils.rkt" "free-variance.rkt")
 
-;; TODO use something other than lazy-require.
-(lazy-require ["type-rep.rkt" (Type/c Univ? Bottom?)]
-              ["object-rep.rkt" (Path?)])
+(provide hash-name filter-equal?)
 
-(provide Filter/c FilterSet/c name-ref/c hash-name filter-equal?)
+(begin-for-cond-contract
+  (require racket/contract/base racket/lazy-require)
+  (lazy-require ["type-rep.rkt" (Type/c Univ? Bottom?)]
+                ["object-rep.rkt" (Path?)]))
 
-(define (Filter/c-predicate? e)
+(provide-for-cond-contract Filter/c FilterSet/c name-ref/c)
+
+(define-for-cond-contract (Filter/c-predicate? e)
   (and (Filter? e) (not (NoFilter? e)) (not (FilterSet? e))))
-(define Filter/c (flat-named-contract 'Filter Filter/c-predicate?))
+(define-for-cond-contract Filter/c
+  (flat-named-contract 'Filter Filter/c-predicate?))
 
-(define FilterSet/c
+(define-for-cond-contract FilterSet/c
   (flat-named-contract
    'FilterSet
    (λ (e) (or (FilterSet? e) (NoFilter? e)))))
@@ -22,10 +24,11 @@
 ;; A Name-Ref is any value that represents an object.
 ;; As an identifier, it represents a free variable in the environment
 ;; As a list, it represents a De Bruijn indexed bound variable
-(define name-ref/c (or/c identifier? (list/c integer? integer?)))
+(define-for-cond-contract name-ref/c
+  (or/c identifier? (list/c integer? integer?)))
 (define (hash-name v) (if (identifier? v) (hash-id v) (list v)))
 
-(define ((length>=/c len) l)
+(define-for-cond-contract ((length>=/c len) l)
   (and (list? l)
        (>= (length l) len)))
 

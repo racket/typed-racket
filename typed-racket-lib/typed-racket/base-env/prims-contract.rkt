@@ -83,11 +83,10 @@
 
 ;; Lazily loaded b/c they're only used sometimes, so we save a lot
 ;; of loading by not having them when they are unneeded
-(lazy-require ["../rep/type-rep.rkt" (make-Opaque Error?)]
+(lazy-require ["../rep/type-rep.rkt" (Error?)]
               ["../types/utils.rkt" (fv)]
               [syntax/define (normalize-definition)]
-              [typed-racket/private/parse-type (parse-type)]
-              [typed-racket/env/type-alias-env (register-resolved-type-alias)])
+              [typed-racket/private/parse-type (parse-type)])
 
 (define (with-type* expr ty)
   (with-type #`(ann #,expr #,ty)))
@@ -326,11 +325,6 @@
     (pattern #:name-exists))
   (syntax-parse stx
     [(_ ty:id pred:id lib (~optional ne:name-exists-kw) ...)
-     ;; This line appears redundant with the use of `define-type-alias` below, but
-     ;; it's actually necessary for top-level uses because this opaque type may appear
-     ;; in subsequent `require/typed` clauses, which needs to parse the types at
-     ;; expansion-time, not at typechecking time when aliases are installed.
-     (register-resolved-type-alias #'ty (make-Opaque #'pred))
      (with-syntax ([hidden (generate-temporary #'pred)])
        (quasisyntax/loc stx
          (begin

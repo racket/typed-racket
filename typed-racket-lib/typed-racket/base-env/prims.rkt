@@ -157,11 +157,7 @@ the typed racket language.
 ;; Lazily loaded b/c they're only used sometimes, so we save a lot
 ;; of loading by not having them when they are unneeded
 (begin-for-syntax 
-  (lazy-require ["../rep/type-rep.rkt" (make-Opaque Error?)]
-                ["../types/utils.rkt" (fv)]
-                [syntax/define (normalize-definition)]
-                [typed-racket/private/parse-type (parse-type)]
-                [typed-racket/env/type-alias-env (register-resolved-type-alias)]))
+  (lazy-require [syntax/define (normalize-definition)]))
 
 (define-for-syntax (with-type* expr ty)
   (with-type #`(ann #,expr #,ty)))

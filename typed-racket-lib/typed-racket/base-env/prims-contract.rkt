@@ -85,7 +85,6 @@
 ;; of loading by not having them when they are unneeded
 (lazy-require ["../rep/type-rep.rkt" (Error?)]
               ["../types/utils.rkt" (fv)]
-              [syntax/define (normalize-definition)]
               [typed-racket/private/parse-type (parse-type)])
 
 (define (with-type* expr ty)

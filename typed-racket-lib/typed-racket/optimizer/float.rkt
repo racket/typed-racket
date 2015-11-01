@@ -1,7 +1,8 @@
 #lang racket/base
 
-(require syntax/parse racket/sequence racket/dict racket/flonum racket/promise
+(require syntax/parse racket/sequence racket/flonum racket/promise
          syntax/parse/experimental/specialize
+         syntax/id-table
          (for-template racket/base racket/flonum racket/unsafe/ops racket/math)
          "../utils/utils.rkt"
          (utils tc-utils)
@@ -17,7 +18,7 @@
 (define binary-float-ops
   (mk-float-tbl (list #'+ #'- #'* #'/ #'min #'max #'expt)))
 (define binary-float-comps
-  (dict-set*
+  (free-id-table-set*
     (mk-float-tbl (list #'= #'<= #'< #'> #'>=))
     ;; not a comparison, but takes 2 floats and does not return a float,
     ;; unlike binary-float-ops
@@ -25,7 +26,7 @@
     #'make-flrectangular #'unsafe-make-flrectangular))
 
 (define unary-float-ops
-  (dict-set
+  (free-id-table-set
     (mk-float-tbl (list #'abs #'sin #'cos #'tan #'asin #'acos #'atan #'log #'exp
                         #'sqrt #'round #'floor #'ceiling #'truncate))
     #'magnitude #'unsafe-flabs))
@@ -46,9 +47,9 @@
 (define-syntax-class (float-op tbl)
   #:commit
   (pattern i:id
-           #:when (dict-ref tbl #'i #f)
+           #:when (free-id-table-ref tbl #'i #f)
            #:with unsafe (begin (add-disappeared-use #'i)
-                                (dict-ref tbl #'i))))
+                                (free-id-table-ref tbl #'i))))
 
 (define-syntax-class/specialize float-expr (subtyped-expr -Flonum))
 (define-syntax-class/specialize single-float-expr (subtyped-expr -SingleFlonum))

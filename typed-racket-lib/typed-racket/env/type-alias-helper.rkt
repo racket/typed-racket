@@ -9,7 +9,6 @@
          (private parse-type)
          (typecheck internal-forms)
          (types resolve base-abbrev)
-         racket/dict
          racket/list
          racket/match
          syntax/id-table
@@ -39,7 +38,8 @@
 ;; Returns the components in topologically sorted order
 (define (find-strongly-connected-type-aliases dep-map)
   (define vertex-map (make-free-id-table))
-  (for ([(id adjacent) (in-dict dep-map)])
+  (for ([entry (in-list dep-map)])
+    (match-define (cons id adjacent) entry)
     (free-id-table-set! vertex-map id (make-vertex id adjacent)))
   (define components (tarjan vertex-map))
   ;; extract the identifiers out of the results since we
@@ -111,7 +111,8 @@
   ;; recursive type aliases should be initialized.
   (define-values (type-alias-dependency-map type-alias-class-map)
     (for/lists (_1 _2)
-      ([(name alias-info) (in-dict type-alias-map)])
+      ([entry (in-list type-alias-map)])
+      (match-define (cons name alias-info) entry)
       (define links-box (box null))
       (define class-box (box null))
       (define type
@@ -143,7 +144,7 @@
   (define (has-self-cycle? component [map type-alias-dependency-map])
     (define id (car component))
     (memf (λ (id2) (free-identifier=? id id2))
-          (dict-ref map id)))
+          (cdr (assoc id map))))
 
   ;; A singleton component can be either a self-cycle or a node that
   ;; that does not participate in cycles, so we disambiguate
@@ -184,8 +185,8 @@
   ;; Actually register recursive type aliases
   (define name-types
     (for/list ([id (in-list recursive-aliases)])
-      (define record (dict-ref type-alias-map id))
-      (match-define (list _ args) record)
+      (define record (assoc id type-alias-map))
+      (match-define (list _ _ args) record)
       (define name-type (make-Name id (length args) #f))
       (register-resolved-type-alias id name-type)
       ;; The `(make-placeholder-type id)` expression is used to make sure
@@ -207,7 +208,7 @@
   ;; in topologically sorted order, so we want to go through in the
   ;; reverse order of that to avoid unbound type aliases.
   (for ([id (in-list acyclic-singletons)])
-    (define type-stx (car (dict-ref type-alias-map id)))
+    (define type-stx (cadr (assoc id type-alias-map)))
     (register-resolved-type-alias id (parse-type type-stx)))
 
   ;; Clear the resolver cache of Name types from this block
@@ -228,8 +229,8 @@
   (define-values (names-to-refine types-to-refine tvarss)
     (for/lists (_1 _2 _3)
       ([id (in-list (append other-recursive-aliases class-aliases))])
-      (define record (dict-ref type-alias-map id))
-      (match-define (list type-stx args) record)
+      (define record (assoc id type-alias-map))
+      (match-define (list _ type-stx args) record)
       (define type
         ;; make sure to reject the type if it uses polymorphic
         ;; recursion (see resolve.rkt)

@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/parse racket/dict syntax/id-table
+(require syntax/parse syntax/id-table
          (for-template racket/base racket/flonum racket/fixnum racket/unsafe/ops)
          "../utils/utils.rkt"
          (types numeric-tower)
@@ -31,7 +31,7 @@
 (define-syntax-class arith-op
   (pattern
    op:id
-   #:when (dict-ref arith-ops #'op (lambda () #f))))
+   #:when (free-id-table-ref arith-ops #'op (lambda () #f))))
 ;; limited to operation that actually perform arithmeric
 ;; so, no comparisons, or coercions, or constructors (make-rectangular), accessors, etc.
 (define arith-ops

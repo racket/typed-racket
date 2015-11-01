@@ -30,7 +30,6 @@
                       "../private/syntax-properties.rkt"
                       (typecheck internal-forms)
                       syntax/id-table
-                      racket/dict
                       racket/unit-exptime
                       syntax/strip-context
                       (utils tc-utils)

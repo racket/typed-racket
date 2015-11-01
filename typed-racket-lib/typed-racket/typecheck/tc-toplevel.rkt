@@ -2,7 +2,7 @@
 
 (require (rename-in "../utils/utils.rkt" [infer r:infer])
          racket/syntax syntax/parse syntax/stx syntax/id-table
-         racket/list racket/dict racket/match racket/sequence
+         racket/list racket/match racket/sequence
          (prefix-in c: (contract-req))
          (rep core-rep type-rep values-rep)
          (types utils abbrev type-table struct-table resolve)
@@ -150,7 +150,7 @@
          [(v:typed-id^ ...)
           (define top-level? (eq? (syntax-local-context) 'top-level))
           (for ([var (in-list vars)])
-            (when (dict-has-key? unann-defs var)
+            (when (free-id-table-ref unann-defs var #f)
               (free-id-table-remove! unann-defs var))
             (finish-register-type var top-level?))
           (stx-map make-def-binding #'(v ...) (attribute v.type))]
@@ -398,7 +398,7 @@
           [(plain-stx-binding? def) other-def]
           [(plain-stx-binding? other-def) def]
           [else (int-err "Two conflicting definitions: ~a ~a" def other-def)]))
-      (dict-update h (binding-name def) merge-def-bindings #f)))
+      (free-id-table-update h (binding-name def) merge-def-bindings #f)))
   (do-time "computed def-tbl")
   ;; check that all parsed apps are sensible
   (check-registered-apps!)
@@ -430,10 +430,10 @@
            (let loop ([f f])
              (syntax-parse f
                [i:id
-                (values (dict-update h #'i (lambda (tail) (cons #'i tail)) '())
+                (values (free-id-table-update h #'i (lambda (tail) (cons #'i tail)) '())
                         extra)]
                [((~datum rename) in out)
-                (values (dict-update h #'in (lambda (tail) (cons #'out tail)) '())
+                (values (free-id-table-update h #'in (lambda (tail) (cons #'out tail)) '())
                         extra)]
                [((~datum for-meta) 0 fm)
                 (values (loop #'fm) extra)]

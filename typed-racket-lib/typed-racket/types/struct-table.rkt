@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require racket/dict syntax/id-table racket/match
+(require syntax/id-table racket/match
          racket/syntax
          "../utils/utils.rkt"
          (prefix-in c: (contract-req))
@@ -11,18 +11,19 @@
 
 (define struct-fn-table (make-free-id-table))
 
-(define (add-struct-fn! id pe mut?) (dict-set! struct-fn-table id (list pe mut?)))
+(define (add-struct-fn! id pe mut?)
+  (free-id-table-set! struct-fn-table id (list pe mut?)))
 
 (define-values (struct-accessor? struct-mutator?)
   (let ()
     (define ((mk mut?) id)
-      (cond [(dict-ref struct-fn-table id #f)
+      (cond [(free-id-table-ref struct-fn-table id #f)
              => (match-lambda [(list pe m) (and (eq? m mut?) pe)] [_ #f])]
             [else #f]))
     (values (mk #f) (mk #t))))
 
 (define (struct-fn-idx id)
-  (match (dict-ref struct-fn-table id #f)
+  (match (free-id-table-ref struct-fn-table id #f)
     [(list (StructPE: _ idx) _) idx]
     [_ (int-err (format "no struct fn table entry for ~a" (syntax->datum id)))]))
 

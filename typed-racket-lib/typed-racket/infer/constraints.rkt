@@ -26,7 +26,8 @@
 (define (insert cs var S T)
   (match cs
     [(struct cset (maps))
-     (make-cset (for/list ([(map dmap) (in-dict maps)])
+     (make-cset (for/list ([map-entry (in-list maps)])
+                  (match-define (cons map dmap) map-entry)
                   (cons (hash-set map var (make-c S T))
                         dmap)))]))
 

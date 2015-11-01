@@ -1,7 +1,7 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
-         racket/dict racket/list syntax/parse syntax/stx
+         racket/list syntax/parse syntax/stx
          racket/match syntax/id-table racket/set
          racket/sequence
          (contract-req)
@@ -33,9 +33,9 @@
   #:attributes (mapping flag-mapping)
   (pattern (#%expression :rebuild-let*))
   (pattern (let-values ([(new-id) e:cl-rhs]) body:rebuild-let*)
-           #:attr mapping (dict-set (attribute body.mapping) #'e.i #'new-id)
+           #:attr mapping (free-id-table-set (attribute body.mapping) #'e.i #'new-id)
            #:attr flag-mapping (if (attribute e.cond)
-                                   (dict-set (attribute body.flag-mapping) #'e.i #'e.cond)
+                                   (free-id-table-set (attribute body.flag-mapping) #'e.i #'e.cond)
                                    (attribute body.flag-mapping)))
   (pattern body:expr
            #:attr mapping (make-immutable-free-id-table)
@@ -162,17 +162,17 @@
   (define arg-types
     (for/list ([a (in-list arg-list)])
       (get-type a #:default (lambda ()
-                              (define id (dict-ref aux-table a #f))
+                              (define id (free-id-table-ref aux-table a #f))
                               (if id
                                   (get-type id #:default Univ)
                                   Univ)))))
 
   ;; new-arg-types: Listof[Listof[Type?]]
   (define new-arg-types
-    (if (= 0 (dict-count flag-table))
+    (if (= 0 (free-id-table-count flag-table))
         (list arg-types)
         (apply append
-               (for/list ([(k v) (in-dict flag-table)])
+               (for/list ([(k v) (in-free-id-table flag-table)])
                  (list
                   (for/list ([i (in-list arg-list)]
                              [t (in-list arg-types)])
@@ -203,7 +203,8 @@
   (define-values (aux-table flag-table)
     (syntax-parse body
       [(b:rebuild-let*) (values (attribute b.mapping) (attribute b.flag-mapping))]
-      [_ (values #hash() #hash())]))
+      [_ (values (make-immutable-free-id-table)
+                 (make-immutable-free-id-table))]))
 
   (define arg-list (formals-positional formals))
   (define rest-id (formals-rest formals))
@@ -218,7 +219,7 @@
       [_ #f]))
   
   (cond
-    [(and (> (dict-count aux-table) 0) (not rest-id))
+    [(and (> (free-id-table-count aux-table) 0) (not rest-id))
      (tc/opt-lambda-clause arg-list body aux-table flag-table)]
     [else
      (define arg-types (get-types arg-list #:default (lambda () #f)))

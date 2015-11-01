@@ -14,7 +14,6 @@
  (private parse-type syntax-properties)
  racket/match racket/syntax racket/list
  racket/format
- racket/dict
  syntax/flatten-begin
  (only-in (types abbrev) -Bottom -Boolean)
  (static-contracts instantiate optimize structures combinators)
@@ -564,7 +563,7 @@
             (unit/sc imports-specs exports-specs init-depends-ids (map t->sc rngs))])]
         [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred?)
          (cond
-           [(dict-ref recursive-values nm #f)]
+           [(hash-ref recursive-values nm #f)]
            [proc (fail #:reason "procedural structs are not supported")]
            [poly?
             (define nm* (generate-temporary #'n*))

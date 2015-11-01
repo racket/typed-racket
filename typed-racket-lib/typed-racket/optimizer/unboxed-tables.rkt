@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/id-table syntax/parse racket/dict 
+(require syntax/id-table syntax/parse
          "../utils/utils.rkt"
          (utils tc-utils))
 
@@ -15,13 +15,13 @@
 (define unboxed-vars-table (make-free-id-table))
 
 (define (add-unboxed-var! orig-binding real-binding imag-binding)
-  (dict-set! unboxed-vars-table orig-binding
-             (list real-binding imag-binding orig-binding)))
+  (free-id-table-set! unboxed-vars-table orig-binding
+                      (list real-binding imag-binding orig-binding)))
 
 (define-syntax-class unboxed-var
   #:attributes (real-binding imag-binding)
   (pattern v:id
-    #:with unboxed-info (dict-ref unboxed-vars-table #'v #f)
+    #:with unboxed-info (free-id-table-ref unboxed-vars-table #'v #f)
     #:when (syntax->datum #'unboxed-info)
     #:with (real-binding imag-binding orig-binding) #'unboxed-info
     ;; we need to introduce both the binding and the use at the same time
@@ -38,12 +38,12 @@
 (define unboxed-funs-table (make-free-id-table))
 
 (define (add-unboxed-fun! fun-name unboxed-args)
-  (dict-set! unboxed-funs-table fun-name unboxed-args))
+  (free-id-table-set! unboxed-funs-table fun-name unboxed-args))
 
 (define-syntax-class unboxed-fun
   #:attributes ((unboxed 1) unboxed-info)
   (pattern op:id
-    #:do [(define unboxed-args (dict-ref unboxed-funs-table #'op #f))]
+    #:do [(define unboxed-args (free-id-table-ref unboxed-funs-table #'op #f))]
     #:when unboxed-args
     #:with ((unboxed ...) (boxed ...))
            (list

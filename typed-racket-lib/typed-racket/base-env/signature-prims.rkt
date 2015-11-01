@@ -14,7 +14,6 @@
                      "../private/syntax-properties.rkt"
                      (typecheck internal-forms)
                      syntax/id-table
-                     racket/dict
                      racket/unit-exptime
                      (utils tc-utils))
          (only-in racket/unit

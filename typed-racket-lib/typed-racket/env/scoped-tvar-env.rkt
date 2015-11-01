@@ -6,8 +6,7 @@
          (private syntax-properties)
          syntax/parse
          syntax/id-table
-         racket/match
-         racket/dict)
+         racket/match)
 
 (provide register-scoped-tvars lookup-scoped-tvars
          add-scoped-tvars lookup-scoped-tvar-layer)
@@ -52,10 +51,10 @@
 ;; lookup-scoped-tvars: identifier -> (or/c #f tvar-annotation?)
 ;; Lookup an indentifier in the scoped tvar-mapping.
 (define (lookup-scoped-tvars id)
-  (dict-ref tvar-mapping id #f))
+  (free-id-table-ref tvar-mapping id #f))
 
 ;; Register type variables for an indentifier in the scoped tvar-mapping.
 ;; register-scoped-tvars: identifier? tvar-annotation? -> void?
 (define (register-scoped-tvars id tvars)
-  (dict-set! tvar-mapping id tvars))
+  (free-id-table-set! tvar-mapping id tvars))
 

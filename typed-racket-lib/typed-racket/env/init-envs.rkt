@@ -13,8 +13,9 @@
          (rep type-rep object-rep filter-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
          (types abbrev union)
-         racket/dict racket/list racket/promise
-         mzlib/pconvert racket/match)
+         racket/list racket/promise
+         mzlib/pconvert racket/match
+         syntax/id-table)
 
 (provide ;; convenience form for defining an initial environment
          ;; used by "base-special-env.rkt" and "base-contracted.rkt"
@@ -99,7 +100,7 @@
                                             (quote ,c) ,(sub b))]
     [(Class: row inits fields methods augments init-rest)
      (cond [(and (current-class-cache)
-                 (dict-ref (unbox (current-class-cache)) v #f)) => car]
+                 (assoc v (unbox (current-class-cache)))) => cadr]
            [else
             ;; FIXME: there's probably a better way to do this
             (define (convert members [inits? #f])
@@ -118,7 +119,7 @@
             (define cache-box (current-class-cache))
             (when cache-box
               (set-box! cache-box
-                        (dict-set (unbox cache-box) v (list name class-type))))
+                        (cons (list v name class-type) (unbox cache-box))))
             (if cache-box name class-type)])]
     [(Signature: name extends mapping)
      (define (serialize-mapping m)
@@ -153,7 +154,7 @@
           (not mp))
         #f)))
 
-(define (make-init-code map f)
+(define (make-init-code env-map f)
   (define class-type-cache (box '()))
   (define (bound-f id v)
     (and (bound-in-this-module id) (f id v)))
@@ -163,9 +164,10 @@
                  (current-build-share-hook (λ (v basic sub) 'atomic))
                  (show-sharing #f)
                  (booleans-as-true/false #f))
-    (define aliases (filter values (map bound-f)))
+    (define aliases (filter values (env-map bound-f)))
+    (define cache-values (reverse (map cdr (unbox class-type-cache))))
     #`(begin
-        #,@(for/list ([name+type (dict-values (unbox class-type-cache))])
+        #,@(for/list ([name+type (in-list cache-values)])
              (match-define (list name type) name+type)
              (datum->syntax #'here `(define ,name ,type)))
         #,@aliases)))
@@ -195,7 +197,7 @@
 
 (define (mvar-env-init-code mvar-env)
   (make-init-code
-    (λ (f) (dict-map mvar-env f))
+    (λ (f) (free-id-table-map mvar-env f))
     (lambda (id v) (and v #`(register-mutated-var #'#,id)))))
 
 (define (signature-env-init-code)

@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require racket/match racket/sequence
-         racket/dict syntax/id-table racket/syntax syntax/stx
+         syntax/id-table racket/syntax syntax/stx
          syntax/parse
          syntax/parse/experimental/specialize
          racket/promise
@@ -47,7 +47,7 @@
 (define (mk-unsafe-tbl generic safe-pattern unsafe-pattern)
   (for/fold ([h (make-immutable-free-id-table)]) ([g (in-list generic)])
     (let ([f (format-id g safe-pattern g)] [u (format-id g unsafe-pattern g)])
-      (dict-set (dict-set h g u) f u))))
+      (free-id-table-set (free-id-table-set h g u) f u))))
 
 ;; unlike their safe counterparts, unsafe binary operators can only take 2 arguments
 ;; this works on operations that are (A A -> A)

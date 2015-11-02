@@ -57,7 +57,11 @@
 
 ;; a+bi / c+di, names for real and imag parts of result -> one let-values binding clause
 (define (unbox-one-complex-/ a b c d res-real res-imag)
-  (define both-real? (and (0.0? b) (0.0? d)))
+  (define first-arg-real? (syntax-property b 'was-real?))
+  (define second-arg-real? (syntax-property d 'was-real?))
+  ;; if both are real, we can short-circuit a lot
+  (define both-real? (and first-arg-real? second-arg-real?))
+
   ;; we have the same cases as the Racket `/' primitive (except for the non-float ones)
   (define d=0-case
     #`(values (unsafe-fl+ (unsafe-fl/ #,a #,c)
@@ -85,10 +89,17 @@
                         (unsafe-fl/ (unsafe-fl- (unsafe-fl* b r) a) den))])
         (values (unsafe-fl/ (unsafe-fl+ b (unsafe-fl* a r)) den)
                 i)))
+
   (cond [both-real?
          #`[(#,res-real #,res-imag)
             (values (unsafe-fl/ #,a #,c)
                     0.0)]] ; currently not propagated
+        [second-arg-real?
+         #`[(#,res-real #,res-imag)
+            (values (unsafe-fl/ #,a #,c)
+                    (unsafe-fl/ #,b #,c))]]
+        [first-arg-real?
+         (unbox-one-float-complex-/ a c d res-real res-imag)]
         [else
          #`[(#,res-real #,res-imag)
             (cond [(unsafe-fl= #,d 0.0) #,d=0-case]
@@ -112,7 +123,7 @@
     #`(let* ([cm    (unsafe-flabs #,c)]
              [dm    (unsafe-flabs #,d)]
              [swap? (unsafe-fl< cm dm)]
-             [a     #,a]
+             [a     #,a] ; don't swap with `b` (`0`) here, but handle below
              [c     (if swap? #,d #,c)]
              [d     (if swap? #,c #,d)]
              [r     (unsafe-fl/ c d)]
@@ -332,10 +343,14 @@
          ((real-binding) (unsafe-flreal-part e*))
          ((imag-binding) (unsafe-flimag-part e*))))
 
-  ;; The following optimization is incorrect and causes bugs because it turns exact numbers into inexact
   (pattern e:number-expr
     #:with e* (generate-temporary)
-    #:with (real-binding imag-binding) (binding-names)
+    #:with (real-binding imag-binding*) (binding-names)
+    #:with imag-binding (if (subtypeof? #'e -Real)
+                            ;; values that were originally reals may need to be
+                            ;; handled specially
+                            (syntax-property #'imag-binding 'was-real? #t)
+                            #'imag-binding)
     #:do [(log-unboxing-opt
             (if (subtypeof? #'e -Flonum)
                 "float in complex ops"

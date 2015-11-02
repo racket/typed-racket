@@ -450,6 +450,7 @@
         (tc-e (min (ann 3 Fixnum) (ann 3 Fixnum)) -Fixnum)
         (tc-e (min (ann -2 Negative-Fixnum) (ann 3 Fixnum)) -NegFixnum)
         (tc-e (min (ann 3 Fixnum) (ann -2 Negative-Fixnum)) -NegFixnum)
+        (tc-e (fl/ 1.7976931348623157e+308 -0.0e0) -Flonum)
         (tc-e (exact->inexact (ann 3 Number)) (t:Un -InexactReal -InexactComplex))
         (tc-e (exact->inexact 3) -PosFlonum)
         (tc-e (exact->inexact -3) -NegFlonum)

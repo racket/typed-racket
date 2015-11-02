@@ -362,8 +362,8 @@
                 [PathElem def-pathelem #:PathElem pathelem-case print-pathelem pathelem-name-ht pathelem-rec-id])
 
 ;; NOTE: change these if the definitions above change, or everything will segfault
-(define-syntax-rule (unsafe-Rep-seq v) (unsafe-struct*-ref v 0))
-(define-syntax-rule (unsafe-Type-key v) (unsafe-struct*-ref v 4))
+(define-syntax-rule (unsafe-Rep-seq v) (Rep-seq v))
+(define-syntax-rule (unsafe-Type-key v) (Type-key v))
 (provide unsafe-Rep-seq unsafe-Type-key)
 
 (define (Rep-values rep)

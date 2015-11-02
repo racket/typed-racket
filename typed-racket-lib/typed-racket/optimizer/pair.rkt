@@ -137,6 +137,7 @@
                             [(tc-result1: t) t])]
                      [res #'e.arg])
               ([accessor (in-list (reverse (syntax->list #'e.alt)))])
+            #:break (not t)
             (cond
              [(subtype t (-pair Univ Univ)) ; safe to optimize this one layer
               (syntax-parse accessor

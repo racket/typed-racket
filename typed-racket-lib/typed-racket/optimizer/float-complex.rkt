@@ -50,10 +50,6 @@
       "The optimizer could optimize it better if it had type Float-Complex.")
     this-syntax))
 
-;; If a part is 0.0?
-(define (0.0? stx)
-  (equal? (syntax->datum stx) 0.0))
-
 
 ;; a+bi / c+di, names for real and imag parts of result -> one let-values binding clause
 (define (unbox-one-complex-/ a b c d res-real res-imag)
@@ -209,27 +205,33 @@
                                               #'(cs.imag-binding ...))
                                      (list #'imag-binding))]
                          [res '()])
-                (if (null? e1)
-                    (reverse res)
-                    (loop (car rs) (car is) (cdr e1) (cdr e2) (cdr rs) (cdr is)
-                          ;; complex multiplication, imag part, then real part (reverse)
-                          ;; we eliminate operations on the imaginary parts of reals
-                          (let ((o-real? (0.0? o2))
-                                (e-real? (0.0? (car e2))))
-                            (list* #`((#,(car is))
-                                      #,(cond ((and o-real? e-real?) #'0.0)
-                                              (o-real? #`(unsafe-fl* #,o1 #,(car e2)))
-                                              (e-real? #`(unsafe-fl* #,o2 #,(car e1)))
-                                              (else
-                                               #`(unsafe-fl+ (unsafe-fl* #,o2 #,(car e1))
-                                                             (unsafe-fl* #,o1 #,(car e2))))))
-                                   #`((#,(car rs))
-                                      #,(cond ((or o-real? e-real?)
-                                               #`(unsafe-fl* #,o1 #,(car e1)))
-                                              (else
-                                               #`(unsafe-fl- (unsafe-fl* #,o1 #,(car e1))
-                                                             (unsafe-fl* #,o2 #,(car e2))))))
-                                 res))))))))
+                (cond
+                 [(null? e1)
+                  (reverse res)]
+                 [else
+                  (define o-real? (syntax-property o2 'was-real?))
+                  (define e-real? (syntax-property (car e2) 'was-real?))
+                  (define both-real? (and o-real? e-real?))
+                  (define new-imag-id (if both-real?
+                                          (syntax-property (car is) 'was-real? #t)
+                                          (car is)))
+                  (loop (car rs) new-imag-id (cdr e1) (cdr e2) (cdr rs) (cdr is)
+                        ;; complex multiplication, imag part, then real part (reverse)
+                        ;; we eliminate operations on the imaginary parts of reals
+                        (list* #`((#,new-imag-id)
+                                  #,(cond ((and o-real? e-real?) #'0.0)
+                                          (o-real? #`(unsafe-fl* #,o1 #,(car e2)))
+                                          (e-real? #`(unsafe-fl* #,o2 #,(car e1)))
+                                          (else
+                                           #`(unsafe-fl+ (unsafe-fl* #,o2 #,(car e1))
+                                                         (unsafe-fl* #,o1 #,(car e2))))))
+                               #`((#,(car rs))
+                                  #,(cond ((or o-real? e-real?)
+                                           #`(unsafe-fl* #,o1 #,(car e1)))
+                                          (else
+                                           #`(unsafe-fl- (unsafe-fl* #,o1 #,(car e1))
+                                                         (unsafe-fl* #,o2 #,(car e2))))))
+                               res))])))))
   (pattern (#%plain-app op:*^ :unboxed-float-complex-opt-expr)
     #:when (subtypeof? this-syntax -FloatComplex)
     #:do [(log-unboxing-opt "unboxed unary float complex")])

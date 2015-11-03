@@ -7,7 +7,6 @@
          "interning.rkt"
          racket/lazy-require
          racket/stxparam
-         racket/unsafe/ops
          (for-syntax
           racket/match
           (except-in syntax/parse id identifier keyword)

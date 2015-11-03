@@ -32,9 +32,9 @@
 (define-struct Rep (seq free-vars free-idxs stx) #:transparent
                #:methods gen:equal+hash
                [(define (equal-proc x y recur)
-                  (eq? (unsafe-Rep-seq x) (unsafe-Rep-seq y)))
-                (define (hash-proc x recur) (unsafe-Rep-seq x))
-                (define (hash2-proc x recur) (unsafe-Rep-seq x))])
+                  (eq? (Rep-seq x) (Rep-seq y)))
+                (define (hash-proc x recur) (Rep-seq x))
+                (define (hash2-proc x recur) (Rep-seq x))])
 
 ;; evil tricks for hygienic yet unhygienic-looking reference
 ;; in say def-type for type-ref-id
@@ -359,11 +359,6 @@
                 [Filter def-filter #:Filter filter-case print-filter filter-name-ht filter-rec-id]
                 [Object def-object #:Object object-case print-object object-name-ht object-rec-id]
                 [PathElem def-pathelem #:PathElem pathelem-case print-pathelem pathelem-name-ht pathelem-rec-id])
-
-;; NOTE: change these if the definitions above change, or everything will segfault
-(define-syntax-rule (unsafe-Rep-seq v) (Rep-seq v))
-(define-syntax-rule (unsafe-Type-key v) (Type-key v))
-(provide unsafe-Rep-seq unsafe-Type-key)
 
 (define (Rep-values rep)
   (match rep

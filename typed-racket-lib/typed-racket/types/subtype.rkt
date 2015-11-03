@@ -237,8 +237,8 @@
 ;; is s a subtype of t, taking into account previously seen pairs A
 (define/cond-contract (subtype* A s t)
   (c:-> (c:listof (c:cons/c fixnum? fixnum?)) Type? Type? c:any/c)
-  (define ss (unsafe-Rep-seq s))
-  (define st (unsafe-Rep-seq t))
+  (define ss (Rep-seq s))
+  (define st (Rep-seq t))
   (early-return
    #:return-when (or (eq? ss st) (seen? ss st A)) A
    (define cr (let ([inner (hash-ref subtype-cache st #f)])
@@ -246,8 +246,8 @@
                     (hash-ref inner ss 'missing)
                     'missing)))
    #:return-when (boolean? cr) (and cr A)
-   (define ks (unsafe-Type-key s))
-   (define kt (unsafe-Type-key t))
+   (define ks (Type-key s))
+   (define kt (Type-key t))
    #:return-when (and (symbol? ks) (symbol? kt) (not (eq? ks kt))) #f
    #:return-when (and (symbol? ks) (pair? kt) (not (memq ks kt))) #f
    #:return-when 

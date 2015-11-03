@@ -24,5 +24,5 @@
       A))
 (define (seen? ss st cs)
   (for/or ([i (in-list cs)])
-    (and (eq? ss (unsafe-car i)) (eq? st (unsafe-cdr i)))))
+    (and (pair? i) (eq? ss (unsafe-car i)) (eq? st (unsafe-cdr i)))))
 

@@ -1377,16 +1377,16 @@
                          (-Int -Int . -> . -Int))]
 
 [bitwise-and
- (let ([mix-with-int
+ (let ([mix-with-nat
         (lambda (t)
           (list (->* (list t) t t) ; closed
-                (->* (list -Int t) t t) ; brings result down
-                (->* (list t -Int) t t)))])
+                (->* (list -Nat t) t t) ; brings result down
+                (->* (list t -Nat) t t)))])
    (from-cases (-> -NegFixnum) ; no args -> -1
-               (map mix-with-int (list -Zero -Byte -Index -NonNegFixnum))
+               (map mix-with-nat (list -Zero -Byte -Index -NonNegFixnum))
                ;; closed on negatives, but not closed if we mix with positives
-               (map varop-1+ (list -NegFixnum -NonPosFixnum))
-               (map mix-with-int (list -Fixnum -Nat))
+               (map varop-1+ (list -NegFixnum -NonPosFixnum -Fixnum))
+               (map mix-with-nat (list -Nat))
                (map varop-1+ (list -NegInt -NonPosInt))
                (null -Int . ->* . -Int)))]
 [bitwise-ior

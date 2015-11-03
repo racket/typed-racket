@@ -453,6 +453,7 @@
         (tc-e (fl/ 1.7976931348623157e+308 -0.0e0) -Flonum)
         (tc-e (expt (make-rectangular 3 -1.7976931348623157e+308) (flacos (real->double-flonum 59.316513f0))) (t:Un -Flonum -FloatComplex))
         (tc-e (exact->inexact (ann 3 Number)) (t:Un -InexactReal -InexactComplex))
+        (tc-e (/ (round (exact-round -2.7393196f0)) (real->double-flonum (inexact->exact (real->single-flonum -0.0)))) -Real)
         (tc-e (exact->inexact 3) -PosFlonum)
         (tc-e (exact->inexact -3) -NegFlonum)
         (tc-e (real->double-flonum 0.0) -FlonumPosZero)

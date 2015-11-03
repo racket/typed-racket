@@ -1166,10 +1166,10 @@
     ;; reals
     (varop-1+ -NonNegReal -NonNegReal)
     (-> -NonPosReal -NonPosReal)
-    (-> -NonPosReal -NonPosReal -NonNegReal)
-    (-> -NonPosReal -NonNegReal -NonPosReal)
-    (-> -NonNegReal -NonPosReal -NonPosReal)
-    (-> -NonPosReal -NonPosReal -NonPosReal -NonPosReal)
+    (-> -NegReal -NegReal -NonNegReal) ; 0.0 is non-neg, but doesn't preserve sign
+    (-> -NegReal -PosReal -NonPosReal) ; idem
+    (-> -PosReal -NegReal -NonPosReal) ; idem
+    (-> -NegReal -NegReal -NegReal -NonPosReal) ; idem
     (varop-1+ -Real)
     ;; complexes
     (varop-1+ -FloatComplex)

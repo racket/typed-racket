@@ -1,5 +1,5 @@
 #lang racket/base
-(require "../utils/utils.rkt" racket/unsafe/ops)
+(require "../utils/utils.rkt")
 (require (rep type-rep) (contract-req))
 
 (provide (except-out (all-defined-out) current-seen-mark))
@@ -24,5 +24,5 @@
       A))
 (define (seen? ss st cs)
   (for/or ([i (in-list cs)])
-    (and (eq? ss (car i)) (eq? st (unsafe-cdr i)))))
+    (and (eq? ss (car i)) (eq? st (cdr i)))))
 

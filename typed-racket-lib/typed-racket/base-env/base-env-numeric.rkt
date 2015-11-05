@@ -1635,7 +1635,6 @@
              (-FloatComplex -InexactComplex . -> . -FloatComplex)
              (-SingleFlonumComplex -SingleFlonumComplex . -> . -SingleFlonumComplex)
              (-SingleFlonumComplex -SingleFlonum . -> . (Un -SingleFlonumComplex -SingleFlonum))
-             ((Un -InexactReal -InexactComplex) -InexactComplex . -> . -InexactComplex)
              (-InexactComplex (Un -InexactReal -InexactComplex) . -> . -InexactComplex)
              (N N . -> . N))]
 [sqrt

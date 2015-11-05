@@ -458,6 +458,7 @@
         (tc-e (flexpt -0.0 -1.0) -Flonum)
         (tc-e (expt -0.0f0 -3.0) -InexactReal)
         (tc-e (expt -8.665778974912815f+107 -677460115195106837726964554590085563061636191189747) -Number)
+        (tc-e (expt (sin +inf.f) +nan.0+nan.0i) -Number)
         (tc-e (exact->inexact 3) -PosFlonum)
         (tc-e (exact->inexact -3) -NegFlonum)
         (tc-e (real->double-flonum 0.0) -FlonumPosZero)

@@ -1165,7 +1165,7 @@
     (commutative-case -InexactReal (Un -PosRat -NegRat -InexactReal) -InexactReal)
     (varop-1+ -InexactReal)
     ;; reals
-    (varop-1+ -NonNegReal -NonNegReal)
+    (varop-1+ -PosReal -NonNegReal)
     (-> -NonPosReal -NonPosReal)
     (-> -NegReal -NegReal -NonNegReal) ; 0.0 is non-neg, but doesn't preserve sign
     (-> -NegReal -PosReal -NonPosReal) ; idem

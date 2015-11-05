@@ -19,7 +19,7 @@
            require/typed-legacy
            require-typed-signature)
          typed-racket/base-env/base-types
-         (except-in typed-racket/base-env/base-types-extra Distinction))
+         (except-in typed-racket/base-env/base-types-extra Distinction Unit))
 (provide (rename-out [define-type-alias define-type])
          (all-from-out typed-racket/base-env/prims)
          (all-from-out typed-racket/base-env/base-types)

@@ -1795,7 +1795,8 @@
 
     ))
 
-(for ([c counterexamples])
-  (unless (check-all-reals c)
-    (displayln c (current-error-port))
-    (newline (current-error-port))))
+(parameterize ([current-output-port (current-error-port)])
+  (for ([c counterexamples])
+    (unless (check-all-reals c)
+      (displayln c)
+      (newline))))

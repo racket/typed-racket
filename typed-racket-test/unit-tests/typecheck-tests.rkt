@@ -456,6 +456,7 @@
         (tc-e (/ (round (exact-round -2.7393196f0)) (real->double-flonum (inexact->exact (real->single-flonum -0.0)))) -Real)
         (tc-e (bitwise-and (exact-round 1.7976931348623157e+308) (exact-round -29)) -Int)
         (tc-e (flexpt -0.0 -1.0) -Flonum)
+        (tc-e (expt -0.0f0 -3.0) -InexactReal)
         (tc-e (exact->inexact 3) -PosFlonum)
         (tc-e (exact->inexact -3) -NegFlonum)
         (tc-e (real->double-flonum 0.0) -FlonumPosZero)

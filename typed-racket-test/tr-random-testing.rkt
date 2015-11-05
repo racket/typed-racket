@@ -15,6 +15,8 @@
 (require (prefix-in b: (base-env base-env))
          (prefix-in n: (base-env base-env-numeric)))
 
+(provide check-all-reals)
+
 (b:init) (n:init)
 (define-namespace-anchor anch)
 
@@ -190,7 +192,7 @@
 (define racket-eval (mk-eval 'racket))
 (define tr-eval     (mk-eval 'typed/racket))
 
-(define (check-all-reals sexp)
+(define (check-all-reals sexp [verbose? #f])
   (when verbose? (displayln sexp))
   (or (with-handlers
           ;; something went wrong, almost certainly typechecking failed
@@ -223,37 +225,38 @@
                           ;; for NaN, which is not = to itself
                           (equal? racket-result tr-result))))))))
 
-(define n-attempts 1000)
-(define seed       (+ 1 (random (expt 2 30))))
-(define verbose?   #f)
-(command-line
- #:once-each
- [("-n") n "Number of attempts" (set! n-attempts (string->number n))]
- [("-s") s "RNG seed"           (set! seed (string->number s))]
- [("-v")   "Print test cases"   (set! verbose? #t)])
+(module+ main
+  (define n-attempts 1000)
+  (define seed       (+ 1 (random (expt 2 30))))
+  (define verbose?   #f)
+  (command-line
+   #:once-each
+   [("-n") n "Number of attempts" (set! n-attempts (string->number n))]
+   [("-s") s "RNG seed"           (set! seed (string->number s))]
+   [("-v")   "Print test cases"   (set! verbose? #t)])
 
-(random-seed seed)
-(printf "seed: ~s~n" seed)
-(flush-output) ; DrDr doesn't print the above if the testing segfaults.
+  (random-seed seed)
+  (printf "seed: ~s~n" seed)
+  (flush-output) ; DrDr doesn't print the above if the testing segfaults.
 
-;; because some of the generated expressions comute gigantic bignums, running
-;; out of resources is expected, so just ignore that case
-(with-handlers ([exn:fail:resource? values])
-  (call-with-limits
-   300 max-mem
-   (lambda ()
-     ;; start with 1000 small, deterministic test cases, to catch regressions
-     (redex-check tr-arith E #:in-order (check-all-reals (term E))
-                  #:attempts 1000
-                  #:prepare exp->real-exp
-                  #:keep-going? #t)
-     ;; then switch to purely random to get different ones every run
-     (redex-check tr-arith E #:ad-hoc (check-all-reals (term E))
-                  #:attempts n-attempts
-                  #:prepare exp->real-exp
-                  #:keep-going? #t))))
+  ;; because some of the generated expressions comute gigantic bignums, running
+  ;; out of resources is expected, so just ignore that case
+  (with-handlers ([exn:fail:resource? values])
+    (call-with-limits
+     300 max-mem
+     (lambda ()
+       ;; start with 1000 small, deterministic test cases, to catch regressions
+       (redex-check tr-arith E #:in-order (check-all-reals (term E) verbose?)
+                    #:attempts 1000
+                    #:prepare exp->real-exp
+                    #:keep-going? #t)
+       ;; then switch to purely random to get different ones every run
+       (redex-check tr-arith E #:ad-hoc (check-all-reals (term E) verbose?)
+                    #:attempts n-attempts
+                    #:prepare exp->real-exp
+                    #:keep-going? #t))))
 
-(printf "bad tests (usually typechecking failed): ~v~n" num-exceptions)
+  (printf "bad tests (usually typechecking failed): ~v~n" num-exceptions))
 
 (module+ test
   (module config info

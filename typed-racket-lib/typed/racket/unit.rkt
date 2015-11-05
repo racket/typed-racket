@@ -18,6 +18,7 @@
          typed-racket/base-env/signature-prims)
 
 (provide define-signature
+         Unit
          unit
          invoke-unit
          invoke-unit/infer

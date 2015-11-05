@@ -15,6 +15,7 @@
                     unit-from-context
                     define-unit-from-context)
          typed-racket/base-env/unit-prims
+         typed-racket/base-env/base-types-extra
          typed-racket/base-env/signature-prims)
 
 (provide define-signature

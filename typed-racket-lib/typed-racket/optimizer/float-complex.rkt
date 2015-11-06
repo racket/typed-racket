@@ -5,7 +5,8 @@
          "../utils/utils.rkt" racket/unsafe/ops racket/sequence
          (for-template racket/base racket/math racket/flonum racket/unsafe/ops)
          (types numeric-tower subtype type-table utils)
-         (optimizer utils numeric-utils logging float unboxed-tables))
+         (optimizer utils numeric-utils logging float unboxed-tables)
+         (utils tc-utils))
 
 (provide float-complex-opt-expr
          float-complex-expr
@@ -90,6 +91,12 @@
   (define second-arg-real? (was-real? d))
   ;; if both are real, we can short-circuit a lot
   (define both-real? (and first-arg-real? second-arg-real?))
+  (define first-non-float (as-non-float a))
+  (define second-non-float (as-non-float c))
+
+  (when (and first-non-float (not second-non-float))
+    ;; we're going from non-float to float operands, so need to coerce the first
+    (set! a #`(real->double-flonum #,a)))
 
   ;; we have the same cases as the Racket `/' primitive (except for the non-float ones)
   (define d=0-case
@@ -119,7 +126,16 @@
         (values (unsafe-fl/ (unsafe-fl+ b (unsafe-fl* a r)) den)
                 i)))
 
-  (cond [both-real?
+  (cond [(and first-non-float second-non-float)
+         ;; we haven't hit float operands, so we shouldn't coerce to float yet
+         ;; (implies that they're both real)
+         (unless both-real?
+           (int-err "optimizer: complex division, non-floats not real"))
+         #`[(#,(mark-as-non-float res-real res-real)
+             #,(mark-as-real res-imag)) ; this case implies real
+            (values (/ #,first-non-float #,second-non-float)
+                    0.0)]]
+        [both-real?
          #`[(#,res-real #,(mark-as-real res-imag))
             (values (unsafe-fl/ #,a #,c)
                     0.0)]] ; currently not propagated
@@ -267,6 +283,8 @@
                                            ;; we haven't seen float operands yet, so
                                            ;; shouldn't prematurely convert to floats
                                            ;; (implies that they're both real)
+                                           (unless (and o-real? e-real?)
+                                             (int-err "optimizer: complex division, non-floats not real"))
                                            (mark-as-non-float (car rs) (car rs))
                                            #`(* #,o-nf #,e-nf)]
                                           [(or o-real? e-real?)

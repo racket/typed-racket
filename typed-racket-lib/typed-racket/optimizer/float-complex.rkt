@@ -357,8 +357,8 @@
     #:with imag-binding (if (subtypeof? #'e -Real)
                             ;; values that were originally reals may need to be
                             ;; handled specially
-                            (mark-as-real #'imag-binding)
-                            #'imag-binding)
+                            (mark-as-real #'imag-binding*)
+                            #'imag-binding*)
     #:do [(log-unboxing-opt
             (if (subtypeof? #'e -Flonum)
                 "float in complex ops"

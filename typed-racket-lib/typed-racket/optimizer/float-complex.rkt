@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/parse syntax/stx racket/promise
+(require syntax/parse syntax/stx syntax/id-table racket/promise
          racket/syntax racket/match syntax/parse/experimental/specialize
          "../utils/utils.rkt" racket/unsafe/ops racket/sequence
          (for-template racket/base racket/math racket/flonum racket/unsafe/ops)
@@ -50,11 +50,17 @@
       "The optimizer could optimize it better if it had type Float-Complex.")
     this-syntax))
 
+(define real-id-table (make-free-id-table))
+(define (was-real? stx)
+  (free-id-table-ref real-id-table stx #f))
+(define (mark-as-real stx)
+  (free-id-table-set! real-id-table stx #t)
+  stx)
 
 ;; a+bi / c+di, names for real and imag parts of result -> one let-values binding clause
 (define (unbox-one-complex-/ a b c d res-real res-imag)
-  (define first-arg-real? (syntax-property b 'was-real?))
-  (define second-arg-real? (syntax-property d 'was-real?))
+  (define first-arg-real? (was-real? b))
+  (define second-arg-real? (was-real? d))
   ;; if both are real, we can short-circuit a lot
   (define both-real? (and first-arg-real? second-arg-real?))
 
@@ -87,7 +93,7 @@
                 i)))
 
   (cond [both-real?
-         #`[(#,res-real #,res-imag)
+         #`[(#,res-real #,(mark-as-real res-imag))
             (values (unsafe-fl/ #,a #,c)
                     0.0)]] ; currently not propagated
         [second-arg-real?
@@ -209,11 +215,11 @@
                  [(null? e1)
                   (reverse res)]
                  [else
-                  (define o-real? (syntax-property o2 'was-real?))
-                  (define e-real? (syntax-property (car e2) 'was-real?))
+                  (define o-real? (was-real? o2))
+                  (define e-real? (was-real? (car e2)))
                   (define both-real? (and o-real? e-real?))
                   (define new-imag-id (if both-real?
-                                          (syntax-property (car is) 'was-real? #t)
+                                          (mark-as-real (car is))
                                           (car is)))
                   (loop (car rs) new-imag-id (cdr e1) (cdr e2) (cdr rs) (cdr is)
                         ;; complex multiplication, imag part, then real part (reverse)
@@ -351,7 +357,7 @@
     #:with imag-binding (if (subtypeof? #'e -Real)
                             ;; values that were originally reals may need to be
                             ;; handled specially
-                            (syntax-property #'imag-binding 'was-real? #t)
+                            (mark-as-real #'imag-binding)
                             #'imag-binding)
     #:do [(log-unboxing-opt
             (if (subtypeof? #'e -Flonum)

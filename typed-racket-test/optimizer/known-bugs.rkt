@@ -46,13 +46,6 @@
              (fail-check "Optimizer regression"))))]))
 
 
-;; TODO add this as a test
-;; type-before = Single-Flonum-Complex
-;; type-after = Float-Complex
-;; redex-check: <collects>/typed-racket-test/tr-random-testing.rkt:258
-;; counterexample found after 499 attempts:
-;(log (make-rectangular -inf.f -inf.f))
-
 (define tests
   (test-suite "Known bugs"
 

@@ -247,6 +247,8 @@
                   (define o-real? (was-real? o2))
                   (define e-real? (was-real? (car e2)))
                   (define both-real? (and o-real? e-real?))
+                  (define o-nf (as-non-float o1))
+                  (define e-nf (as-non-float (car e1)))
                   (define new-imag-id (if both-real?
                                           (mark-as-real (car is))
                                           (car is)))
@@ -261,11 +263,22 @@
                                            #`(unsafe-fl+ (unsafe-fl* #,o2 #,(car e1))
                                                          (unsafe-fl* #,o1 #,(car e2))))))
                                #`((#,(car rs))
-                                  #,(cond ((or o-real? e-real?)
-                                           #`(unsafe-fl* #,o1 #,(car e1)))
-                                          (else
+                                  #,(cond [(and o-nf e-nf)
+                                           ;; we haven't seen float operands yet, so
+                                           ;; shouldn't prematurely convert to floats
+                                           ;; (implies that they're both real)
+                                           (mark-as-non-float (car rs) (car rs))
+                                           #`(* #,o-nf #,e-nf)]
+                                          [(or o-real? e-real?)
+                                           #`(unsafe-fl*
+                                              #,(if (as-non-float o1)
+                                                    ;; we hit floats, need to coerce
+                                                    #`(real->double-flonum #,o1)
+                                                    o1)
+                                              #,(car e1))]
+                                          [else
                                            #`(unsafe-fl- (unsafe-fl* #,o1 #,(car e1))
-                                                         (unsafe-fl* #,o2 #,(car e2))))))
+                                                         (unsafe-fl* #,o2 #,(car e2)))]))
                                res))])))))
   (pattern (#%plain-app op:*^ :unboxed-float-complex-opt-expr)
     #:when (subtypeof? this-syntax -FloatComplex)

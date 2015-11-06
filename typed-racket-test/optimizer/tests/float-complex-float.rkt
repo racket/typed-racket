@@ -1,6 +1,7 @@
 #;#;
 #<<END
 TR missed opt: float-complex-float.rkt 11:3 (make-polar 4.8063810141303426e-57 -1.9082319f0) -- non-complex value in complex arithmetic
+TR missed opt: float-complex-float.rkt 12:63 (make-rectangular 1.4291365847030308e-64 -0.76987815f0) -- generic comparison -- caused by: 12:104 -0.76987815f0
 TR opt: float-complex-float.rkt 10:0 (/ 2.3454025f0 (flmin (real->double-flonum 1.797693134862315e+308) (real->double-flonum -1.2848677f+32)) (make-rectangular +nan.0 0.0)) -- unboxed binary float complex
 TR opt: float-complex-float.rkt 10:105 (make-rectangular +nan.0 0.0) -- make-rectangular elimination
 TR opt: float-complex-float.rkt 10:15 (flmin (real->double-flonum 1.797693134862315e+308) (real->double-flonum -1.2848677f+32)) -- binary float
@@ -10,6 +11,10 @@ TR opt: float-complex-float.rkt 10:3 2.3454025f0 -- non float complex in complex
 TR opt: float-complex-float.rkt 11:0 (+ (make-polar 4.8063810141303426e-57 -1.9082319f0) -0.8414709848078965) -- unboxed binary float complex
 TR opt: float-complex-float.rkt 11:3 (make-polar 4.8063810141303426e-57 -1.9082319f0) -- non float complex in complex ops
 TR opt: float-complex-float.rkt 11:52 -0.8414709848078965 -- float in complex ops
+TR opt: float-complex-float.rkt 12:0 (+ 1.5245886f+12 (max (exact-round 2) (exact-round 5/4)) (tanh (make-rectangular 1.4291365847030308e-64 -0.76987815f0))) -- unboxed binary float complex
+TR opt: float-complex-float.rkt 12:17 (max (exact-round 2) (exact-round 5/4)) -- non float complex in complex ops
+TR opt: float-complex-float.rkt 12:3 1.5245886f+12 -- non float complex in complex ops
+TR opt: float-complex-float.rkt 12:57 (tanh (make-rectangular 1.4291365847030308e-64 -0.76987815f0)) -- unbox float-complex
 TR opt: float-complex-float.rkt 4:0 (+ 1.0+2.0i 2.0 3.0+6.0i) -- unboxed binary float complex
 TR opt: float-complex-float.rkt 4:12 2.0 -- float in complex ops
 TR opt: float-complex-float.rkt 4:16 3.0+6.0i -- unboxed literal
@@ -43,6 +48,7 @@ END
 -inf.0-1.0688403264087485i
 +nan.0+0.0i
 -0.8414709848078965-4.5353337789114595e-57i
+5.381428268223429e-17-0.9694319337396835i
 
 END
 #lang typed/scheme
@@ -59,3 +65,4 @@ END
 (* -0.9263371220283309 3/2 (make-rectangular +inf.f 0.7692234292042541))
 (/ 2.3454025f0 (flmin (real->double-flonum 1.797693134862315e+308) (real->double-flonum -1.2848677f+32)) (make-rectangular +nan.0 0.0))
 (+ (make-polar 4.8063810141303426e-57 -1.9082319f0) -0.8414709848078965)
+(+ 1.5245886f+12 (max (exact-round 2) (exact-round 5/4)) (tanh (make-rectangular 1.4291365847030308e-64 -0.76987815f0)))

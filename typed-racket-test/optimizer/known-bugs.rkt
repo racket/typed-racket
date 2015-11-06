@@ -82,7 +82,7 @@
     (bad-opt (* (expt 10 500) (expt 10 -500) 1.0+1.0i))
 
     ;; Addition of multiple args should keep exact semantics for exact args
-    (bad-opt (+ (expt 10 501) (expt -10 501) 1.0+1.0i))
+    (good-opt (+ (expt 10 501) (expt -10 501) 1.0+1.0i))
 
     ;; Magnitude should not overflow unless necessary
     (bad-opt (magnitude 3.0e300+4.0e300i))

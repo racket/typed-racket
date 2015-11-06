@@ -50,12 +50,39 @@
       "The optimizer could optimize it better if it had type Float-Complex.")
     this-syntax))
 
+;; keep track of operands that were reals (and thus had exact 0 as imaginary part)
 (define real-id-table (make-free-id-table))
 (define (was-real? stx)
   (free-id-table-ref real-id-table stx #f))
 (define (mark-as-real stx)
   (free-id-table-set! real-id-table stx #t)
   stx)
+;; keep track of operands that were not floats (i.e. rationals and single floats)
+;; to avoid prematurely converting to floats, which may change results
+(define non-float-table (make-hash))
+(define (as-non-float stx)
+  (hash-ref non-float-table stx #f))
+(define (mark-as-non-float stx orig)
+  (hash-set! non-float-table stx orig)
+  stx)
+
+(define (n-ary->binary/non-floats op unsafe this-syntax cs)
+  (let loop ([o (stx-car cs)] [cs (stx-cdr cs)])
+    ;; we're guaranteed to hit non-"non-float" operands before
+    ;; we hit the end of the list. otherwise we wouldn't be doing
+    ;; float-complex optimizations
+    (define c1 (stx-car cs))
+    (define o-nf (as-non-float o))
+    (define c1-nf (as-non-float c1))
+    (if (and o-nf c1-nf)
+        ;; can't convert those to floats just yet, or may change
+        ;; the result
+        (let ([new-o (quasisyntax/loc this-syntax
+                       (#,+ #,o-nf #,c1-nf))])
+          (loop (mark-as-non-float new-o new-o)
+                (stx-cdr cs)))
+        ;; we've hit floats, can start coercing
+        (n-ary->binary this-syntax unsafe (cons o cs)))))
 
 ;; a+bi / c+di, names for real and imag parts of result -> one let-values binding clause
 (define (unbox-one-complex-/ a b c d res-real res-imag)
@@ -158,7 +185,8 @@
     #:with (bindings ...)
       #`(cs.bindings ... ...
          #,@(let ()
-               (define (fl-sum cs) (n-ary->binary this-syntax #'unsafe-fl+ cs))
+              (define (fl-sum cs)
+                (n-ary->binary/non-floats #'+ #'unsafe-fl+ this-syntax cs))
                (list
                 #`((real-binding) #,(fl-sum #'(cs.real-binding ...)))
                 #`((imag-binding) #,(fl-sum #'(cs.imag-binding ...)))))))
@@ -174,7 +202,8 @@
     #:with (bindings ...)
       #`(cs.bindings ... ...
          #,@(let ()
-              (define (fl-subtract cs) (n-ary->binary this-syntax #'unsafe-fl- cs))
+              (define (fl-subtract cs)
+                (n-ary->binary/non-floats #'- #'unsafe-fl- this-syntax cs))
               (list
                #`((real-binding) #,(fl-subtract #'(cs.real-binding ...)))
                #`((imag-binding) #,(fl-subtract #'(cs.imag-binding ...)))))))
@@ -353,7 +382,14 @@
 
   (pattern e:number-expr
     #:with e* (generate-temporary)
-    #:with (real-binding imag-binding*) (binding-names)
+    #:with (real-binding* imag-binding*) (binding-names)
+    #:with real-binding (if (and (subtypeof? #'e -Real)
+                                 (not (subtypeof? #'e -Flonum)))
+                            ;; values that were originally non-floats (e.g.
+                            ;; rationals or single floats) may need to be
+                            ;; handled specially
+                            (mark-as-non-float #'real-binding* #'e*)
+                            #'real-binding*)
     #:with imag-binding (if (subtypeof? #'e -Real)
                             ;; values that were originally reals may need to be
                             ;; handled specially

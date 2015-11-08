@@ -185,7 +185,16 @@
   (for/list ([arg-types (in-list new-arg-types)])
     (tc-lambda-body arg-list arg-types body)))
 
-
+;; restrict-to-arity : arr? nat -> (or/c #f arr?)
+;; either produces a new arity which is a subtype of arr with arity n,
+;; or #f is that is not possible
+(define (restrict-to-arity arr n)
+  (match arr
+    ;; currently does not handle rest arguments
+    [(arr: args ret #f #f '())
+     #:when (= n (length args))
+     arr]
+    [_ #f]))
 
 ;; formals syntax -> listof[arr?]
 (define (tc/lambda-clause formals body)
@@ -196,11 +205,21 @@
 
   (define arg-list (formals-positional formals))
   (define rest-id (formals-rest formals))
+
+  (define eta-expanded?
+    (syntax-parse body
+      [((~literal #%plain-app) fun:expr j:id ...)
+       #:when (equal? (length arg-list)
+                      (length (syntax->list #'(j ...))))
+       #:when (andmap free-identifier=? arg-list (syntax->list #'(j ...)))
+       #'fun]
+      [_ #f]))
+  
   (cond
     [(and (> (dict-count aux-table) 0) (not rest-id))
      (tc/opt-lambda-clause arg-list body aux-table flag-table)]
     [else
-     (define arg-types (get-types arg-list #:default Univ))
+     (define arg-types (get-types arg-list #:default (lambda () #f)))
      (define rest-type
        (cond
          ;; Lambda with poly dotted rest argument
@@ -217,11 +236,31 @@
           (get-type rest-id #:default Univ)]
          ;; Lambda with no rest argument
          [else #f]))
-
-     (list
-       (tc-lambda-body arg-list arg-types
-         #:rest (and rest-type (list rest-id rest-type))
-         body))]))
+     (cond 
+      ;; special case for un-annotated eta-expansions
+      [(and eta-expanded? (not rest-id) (andmap not arg-types)
+            ;; FIXME: should also handle polymorphic types
+            ;; but we can't return anything but a (listof arr?) here 
+            ;; FIXME: sometimes will typecheck the relevant code twice if it doesn't match
+            ;; FIXME: misses optimization opportunities of this code
+            (match (tc-expr eta-expanded?)
+              [(tc-result1: (Function: arrs))
+               (define possibles (for*/list ([arr (in-list arrs)]
+                                             [restricted (in-value (restrict-to-arity arr (length arg-list)))]
+                                             #:when restricted)
+                                   restricted))
+               (if (null? possibles)
+                   #f
+                   possibles)]))
+       =>
+       (lambda (x)
+         (register-ignored! (car (syntax-e body)))
+         x)]
+      [else
+       (list
+        (tc-lambda-body arg-list (map (lambda (v) (or v Univ)) arg-types)
+                        #:rest (and rest-type (list rest-id rest-type))
+                        body))])]))
 
 
 ;; positional: natural? - the number of positional arguments

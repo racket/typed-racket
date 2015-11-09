@@ -434,11 +434,11 @@
                (tan (real->double-flonum 6))
                (lcm (*) (exact-round -1.7976931348623153e+308) 6))
               -Number)
-        (tc-e (flexpt 0.5 0.3) -Flonum)
-        (tc-e (flexpt 0.00000000001 100000000000.0) -Flonum)
+        (tc-e (flexpt 0.5 0.3) -NonNegFlonum)
+        (tc-e (flexpt 0.00000000001 100000000000.0) -NonNegFlonum)
         (tc-e (flexpt -2.0 -0.5) -Flonum) ; NaN
-        (tc-e (extflexpt 0.5t0 0.3t0) -ExtFlonum)
-        (tc-e (extflexpt 0.00000000001t0 100000000000.0t0) -ExtFlonum)
+        (tc-e (extflexpt 0.5t0 0.3t0) -NonNegExtFlonum)
+        (tc-e (extflexpt 0.00000000001t0 100000000000.0t0) -NonNegExtFlonum)
         (tc-e (extflexpt -2.0t0 -0.5t0) -ExtFlonum) ; NaN
         (tc-e (let-values ([(x y) (integer-sqrt/remainder 0)]) (+ x y)) -Zero)
         (tc-e (tanh (ann 0 Nonnegative-Integer)) -NonNegReal)

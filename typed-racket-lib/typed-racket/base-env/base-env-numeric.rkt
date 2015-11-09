@@ -569,7 +569,7 @@
       (from-cases (-FlZero -PosFl . -> . -FlZero) ; (flexpt -0.0 0.1) -> 0.0 ; not sign preserving
                   ((Un -PosFl -NegFl) -FlZero . -> . -PosFl) ; always returns 1.0
                   ;; can underflow, and -0.0 breaks sign, so 1st arg can't be non-neg
-                  (-Pos -Fl . -> . -NonNegFl)
+                  (-PosFl -Fl . -> . -NonNegFl)
                   (-Fl -Fl . -> . -Fl))))
 
   (define fx->fl-type

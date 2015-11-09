@@ -79,7 +79,7 @@
         ;; can't convert those to floats just yet, or may change
         ;; the result
         (let ([new-o (quasisyntax/loc this-syntax
-                       (#,+ #,o-nf #,c1-nf))])
+                       (#,op #,o-nf #,c1-nf))])
           (loop (mark-as-non-float new-o)
                 (stx-cdr cs)))
         ;; we've hit floats, can start coercing

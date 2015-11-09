@@ -3,6 +3,7 @@
 TR missed opt: float-complex-float.rkt 11:3 (make-polar 4.8063810141303426e-57 -1.9082319f0) -- non-complex value in complex arithmetic
 TR missed opt: float-complex-float.rkt 12:63 (make-rectangular 1.4291365847030308e-64 -0.76987815f0) -- generic comparison -- caused by: 12:104 -0.76987815f0
 TR missed opt: float-complex-float.rkt 14:17 (floor -2.2441852f0) -- all args float-arg-expr, result not Float -- caused by: 14:24 -2.2441852f0
+TR missed opt: float-complex-float.rkt 21:3 (+ 1 -0.17853218f0) -- all args float-arg-expr, result not Float -- caused by: 21:6 1, 21:8 -0.17853218f0
 TR opt: float-complex-float.rkt 10:0 (/ 2.3454025f0 (flmin (real->double-flonum 1.797693134862315e+308) (real->double-flonum -1.2848677f+32)) (make-rectangular +nan.0 0.0)) -- unboxed binary float complex
 TR opt: float-complex-float.rkt 10:105 (make-rectangular +nan.0 0.0) -- make-rectangular elimination
 TR opt: float-complex-float.rkt 10:15 (flmin (real->double-flonum 1.797693134862315e+308) (real->double-flonum -1.2848677f+32)) -- binary float
@@ -53,6 +54,21 @@ TR opt: float-complex-float.rkt 19:61 (- 0.0 16 (make-rectangular -inf.0 0.0)) -
 TR opt: float-complex-float.rkt 19:64 0.0 -- float in complex ops
 TR opt: float-complex-float.rkt 19:68 16 -- non float complex in complex ops
 TR opt: float-complex-float.rkt 19:71 (make-rectangular -inf.0 0.0) -- make-rectangular elimination
+TR opt: float-complex-float.rkt 20:0 (- 0.8214678f0 3 -741.732021720279+inf.0i) -- unboxed binary float complex
+TR opt: float-complex-float.rkt 20:15 3 -- non float complex in complex ops
+TR opt: float-complex-float.rkt 20:17 -741.732021720279+inf.0i -- unboxed literal
+TR opt: float-complex-float.rkt 20:3 0.8214678f0 -- non float complex in complex ops
+TR opt: float-complex-float.rkt 21:0 (- (+ 1 -0.17853218f0) (bitwise-ior (max (exact-round 3)) (exact-round 0.0f0)) (make-rectangular (log 7.4109846876187e-323) (abs -inf.0))) -- unboxed binary float complex
+TR opt: float-complex-float.rkt 21:124 (abs -inf.0) -- unary float
+TR opt: float-complex-float.rkt 21:23 (bitwise-ior (max (exact-round 3)) (exact-round 0.0f0)) -- binary fixnum
+TR opt: float-complex-float.rkt 21:23 (bitwise-ior (max (exact-round 3)) (exact-round 0.0f0)) -- non float complex in complex ops
+TR opt: float-complex-float.rkt 21:3 (+ 1 -0.17853218f0) -- non float complex in complex ops
+TR opt: float-complex-float.rkt 21:36 (max (exact-round 3)) -- unary number
+TR opt: float-complex-float.rkt 21:6 1 -- non float complex in complex ops
+TR opt: float-complex-float.rkt 21:6 1 -- non float complex in complex ops
+TR opt: float-complex-float.rkt 21:79 (make-rectangular (log 7.4109846876187e-323) (abs -inf.0)) -- make-rectangular elimination
+TR opt: float-complex-float.rkt 21:8 -0.17853218f0 -- non float complex in complex ops
+TR opt: float-complex-float.rkt 21:97 (log 7.4109846876187e-323) -- unary float
 TR opt: float-complex-float.rkt 4:0 (+ 1.0+2.0i 2.0 3.0+6.0i) -- unboxed binary float complex
 TR opt: float-complex-float.rkt 4:12 2.0 -- float in complex ops
 TR opt: float-complex-float.rkt 4:16 3.0+6.0i -- unboxed literal
@@ -94,6 +110,8 @@ END
 +nan.0-0.0i
 +nan.0-0.0i
 +nan.0-0.0i
+739.5534895967133-inf.0i
+739.5534895967133-inf.0i
 
 END
 #lang typed/scheme
@@ -118,3 +136,5 @@ END
 (+ +inf.0-0.0i +nan.0)
 (+ (- 0.0 16 -inf.0+0.0i) +nan.0)
 (+ (floor (+ (exact-round -25.263502f0) (exact-round -1/2))) (- 0.0 16 (make-rectangular -inf.0 0.0)) +nan.0)
+(- 0.8214678f0 3 -741.732021720279+inf.0i)
+(- (+ 1 -0.17853218f0) (bitwise-ior (max (exact-round 3)) (exact-round 0.0f0)) (make-rectangular (log 7.4109846876187e-323) (abs -inf.0)))

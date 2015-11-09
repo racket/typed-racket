@@ -63,7 +63,7 @@
 (define non-float-table (make-hash))
 (define (as-non-float stx)
   (hash-ref non-float-table stx #f))
-(define (mark-as-non-float stx orig)
+(define (mark-as-non-float stx [orig stx])
   (hash-set! non-float-table stx orig)
   stx)
 
@@ -80,7 +80,7 @@
         ;; the result
         (let ([new-o (quasisyntax/loc this-syntax
                        (#,+ #,o-nf #,c1-nf))])
-          (loop (mark-as-non-float new-o new-o)
+          (loop (mark-as-non-float new-o)
                 (stx-cdr cs)))
         ;; we've hit floats, can start coercing
         (n-ary->binary this-syntax unsafe (cons #`(real->double-flonum #,o) cs)))))
@@ -131,7 +131,7 @@
          ;; (implies that they're both real)
          (unless both-real?
            (int-err "optimizer: complex division, non-floats not real"))
-         #`[(#,(mark-as-non-float res-real res-real)
+         #`[(#,(mark-as-non-float res-real)
              #,(mark-as-real res-imag)) ; this case implies real
             (values (/ #,first-non-float #,second-non-float)
                     0.0)]]
@@ -285,7 +285,7 @@
                                            ;; (implies that they're both real)
                                            (unless (and o-real? e-real?)
                                              (int-err "optimizer: complex division, non-floats not real"))
-                                           (mark-as-non-float (car rs) (car rs))
+                                           (mark-as-non-float (car rs))
                                            #`(* #,o-nf #,e-nf)]
                                           [(or o-real? e-real?)
                                            #`(unsafe-fl*

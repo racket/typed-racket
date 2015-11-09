@@ -219,13 +219,22 @@
          #,@(let ()
               (define (fl-sum cs)
                 (n-ary->binary/non-floats #'+ #'unsafe-fl+ this-syntax cs))
+              (define non-0-imags
+                ;; to preserve result sign, ignore exact 0s
+                ;; o/w, can have (+ -0.0 (->fl 0)) => 0.0, but would be -0.0
+                ;; without the coercion
+                (for/list ([i (syntax->list #'(cs.imag-binding ...))]
+                           #:unless (was-real? i))
+                  i))
                (list
                 #`((real-binding) #,(fl-sum #'(cs.real-binding ...)))
-                #`((imag-binding) #,(fl-sum #'(cs.imag-binding ...)))))))
+                #`((imag-binding)
+                   #,(if (null? (cdr non-0-imags)) ; only one actual imag part
+                         (car non-0-imags)
+                         (fl-sum non-0-imags)))))))
   (pattern (#%plain-app op:+^ :unboxed-float-complex-opt-expr)
     #:when (subtypeof? this-syntax -FloatComplex)
     #:do [(log-unboxing-opt "unboxed unary float complex")])
-
 
   (pattern (#%plain-app op:-^ (~between cs:unboxed-float-complex-opt-expr 2 +inf.0) ...)
     #:when (subtypeof? this-syntax -FloatComplex)
@@ -238,7 +247,17 @@
                 (n-ary->binary/non-floats #'- #'unsafe-fl- this-syntax cs))
               (list
                #`((real-binding) #,(fl-subtract #'(cs.real-binding ...)))
-               #`((imag-binding) #,(fl-subtract #'(cs.imag-binding ...)))))))
+               #`((imag-binding)
+                  ;; can't ignore exact 0 imag parts from real numbers, as with
+                  ;; addition, because the first value is special
+                  ;; so just conservatively use generic subtraction
+                  #,(if (ormap was-real? (syntax->list #'(cs.imag-binding ...)))
+                        (n-ary->binary
+                         this-syntax
+                         #'-
+                         (for/list ([i (syntax->list #'(cs.imag-binding ...))])
+                           (if (was-real? i) #'0 i)))
+                        (fl-subtract #'(cs.imag-binding ...))))))))
   (pattern (#%plain-app op:-^ c1:unboxed-float-complex-opt-expr) ; unary -
     #:when (subtypeof? this-syntax -FloatComplex)
     #:with (real-binding imag-binding) (binding-names)

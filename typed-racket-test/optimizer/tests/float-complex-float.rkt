@@ -37,6 +37,22 @@ TR opt: float-complex-float.rkt 16:51 2.0324421f-21 -- non float complex in comp
 TR opt: float-complex-float.rkt 16:6 (exact-round 1.8655746f+35) -- non float complex in complex ops
 TR opt: float-complex-float.rkt 16:6 (exact-round 1.8655746f+35) -- non float complex in complex ops
 TR opt: float-complex-float.rkt 16:65 (make-rectangular 4 1.7976931348623157e+308) -- make-rectangular elimination
+TR opt: float-complex-float.rkt 17:0 (+ +inf.0-0.0i +nan.0) -- unboxed binary float complex
+TR opt: float-complex-float.rkt 17:15 +nan.0 -- float in complex ops
+TR opt: float-complex-float.rkt 17:3 +inf.0-0.0i -- unboxed literal
+TR opt: float-complex-float.rkt 18:0 (+ (- 0.0 16 -inf.0+0.0i) +nan.0) -- unboxed binary float complex
+TR opt: float-complex-float.rkt 18:10 16 -- non float complex in complex ops
+TR opt: float-complex-float.rkt 18:13 -inf.0+0.0i -- unboxed literal
+TR opt: float-complex-float.rkt 18:26 +nan.0 -- float in complex ops
+TR opt: float-complex-float.rkt 18:3 (- 0.0 16 -inf.0+0.0i) -- unboxed binary float complex
+TR opt: float-complex-float.rkt 18:6 0.0 -- float in complex ops
+TR opt: float-complex-float.rkt 19:0 (+ (floor (+ (exact-round -25.263502f0) (exact-round -1/2))) (- 0.0 16 (make-rectangular -inf.0 0.0)) +nan.0) -- unboxed binary float complex
+TR opt: float-complex-float.rkt 19:102 +nan.0 -- float in complex ops
+TR opt: float-complex-float.rkt 19:3 (floor (+ (exact-round -25.263502f0) (exact-round -1/2))) -- non float complex in complex ops
+TR opt: float-complex-float.rkt 19:61 (- 0.0 16 (make-rectangular -inf.0 0.0)) -- unboxed binary float complex
+TR opt: float-complex-float.rkt 19:64 0.0 -- float in complex ops
+TR opt: float-complex-float.rkt 19:68 16 -- non float complex in complex ops
+TR opt: float-complex-float.rkt 19:71 (make-rectangular -inf.0 0.0) -- make-rectangular elimination
 TR opt: float-complex-float.rkt 4:0 (+ 1.0+2.0i 2.0 3.0+6.0i) -- unboxed binary float complex
 TR opt: float-complex-float.rkt 4:12 2.0 -- float in complex ops
 TR opt: float-complex-float.rkt 4:16 3.0+6.0i -- unboxed literal
@@ -75,6 +91,9 @@ END
 -5.84330415295662e+36-2.521848811753627e+37i
 -inf.0-0.0i
 +nan.0+nan.0i
++nan.0-0.0i
++nan.0-0.0i
++nan.0-0.0i
 
 END
 #lang typed/scheme
@@ -96,3 +115,6 @@ END
 (/ 3.2993203f+37 (floor -2.2441852f0) (make-polar 0.42484267570553375 4.940078147009648))
 (/ -5 2/7 (make-polar -0.0 (fltan (real->double-flonum -3.833043f+21))))
 (/ (+ (exact-round 1.8655746f+35) (exact-round 1)) 2.0324421f-21 (make-rectangular 4 1.7976931348623157e+308))
+(+ +inf.0-0.0i +nan.0)
+(+ (- 0.0 16 -inf.0+0.0i) +nan.0)
+(+ (floor (+ (exact-round -25.263502f0) (exact-round -1/2))) (- 0.0 16 (make-rectangular -inf.0 0.0)) +nan.0)

@@ -3,7 +3,7 @@
 (require "tr-random-testing.rkt")
 
 ;; list of all the counterexamples that the random tester found on drdr,
-;; as of drdr run #32242
+;; as of drdr run #32529
 ;; we test that there has been no regression, and print any that are still bugs
 
 (define counterexamples
@@ -1792,7 +1792,28 @@
 (/
  (round (exact-round -2.7393196f0))
  (real->double-flonum (inexact->exact (real->single-flonum -0.0))))
-
+(log (make-rectangular (real->single-flonum 3.8130515f0)
+                       (real->single-flonum -2.8845456304823365e+289)))
+(/ (abs (exact-round 1.8327790416478524))
+   (unsafe-flsqrt (real->double-flonum -0.0)) 1)
+(- (real->single-flonum +nan.0)
+   (bitwise-xor)
+   (make-polar (flatan (real->double-flonum 0.0))
+               (flsin (real->double-flonum 0)))
+   (flacos (sin (real->double-flonum 4)))
+   (real->double-flonum (real->single-flonum -1.5582163f-23))
+   (flsqrt (real->double-flonum 0))
+   (make-polar (tan (real->double-flonum +inf.0)) (real->single-flonum 0.0))
+   (flmin (real->double-flonum 0)
+          (fl+ (real->double-flonum 5.2413393729292645e-161)
+               (real->double-flonum 1)))
+   (real->single-flonum -7.370759632814253e+46))
+(expt -3.8097968f0
+      (lcm (exact-round 4)
+           (exact-round 1.7976931348623151e+308)
+           (exact-round 3311118.8f0)))
+(+ (sqrt (make-polar -1.3828875524272957e+166 -0.12420556f0))
+   -7.977045912134898e+298)
     ))
 
 (parameterize ([current-output-port (current-error-port)])

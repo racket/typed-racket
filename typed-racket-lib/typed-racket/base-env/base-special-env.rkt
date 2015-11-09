@@ -46,6 +46,10 @@
          (cl->*
           (-> (-lst a) -Null (-lst a))
           (-> (-lst a) (-lst b) (-lst (Un a b)))))]
+  ;; normalise-inputs
+  [(make-template-identifier 'normalise-inputs 'racket/private/for)
+   (-poly (a)
+          (-> -Symbol -String (-> a -Boolean) (-> a -Nat) a -Nat (Un (-val #f) -Nat) -Nat (-values (list a -Index -Index -Index))))]
   ;; make-sequence
   [(make-template-identifier 'make-sequence 'racket/private/for)
    (-poly (a b)

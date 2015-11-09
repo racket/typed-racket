@@ -139,14 +139,18 @@
          #`[(#,res-real #,(if both-real?
                               (mark-as-real res-imag)
                               res-imag))
-            ;; TODO could optimize computation of `res-div` when one or the other is real
             (let-values ([(res-div)
-                          (/ (make-rectangular #,a
-                                               #,(if first-arg-real? #'0 b))
-                             (make-rectangular #,second-non-float
-                                               #,(if second-arg-real? #'0 d)))])
-              (values (real-part res-div)
-                      (imag-part res-div)))]]
+                          (/ #,(if first-arg-real?
+                                   a
+                                   #`(make-rectangular #,a #,b))
+                             #,(if second-arg-real?
+                                   second-non-float
+                                   #`(make-rectangular #,second-non-float
+                                                       #,d)))])
+              #,(if both-real?
+                    #'(values res-div 0.0)
+                    #'(values (real-part res-div)
+                              (imag-part res-div))))]]
         [both-real?
          #`[(#,res-real #,(mark-as-real res-imag))
             (values (unsafe-fl/ #,a #,c)

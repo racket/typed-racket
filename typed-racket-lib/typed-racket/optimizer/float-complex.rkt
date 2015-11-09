@@ -126,14 +126,23 @@
         (values (unsafe-fl/ (unsafe-fl+ b (unsafe-fl* a r)) den)
                 i)))
 
-  (cond [(and first-non-float second-non-float)
-         ;; we haven't hit float operands, so we shouldn't coerce to float yet
-         ;; (implies that they're both real)
-         (unless both-real?
-           (int-err "optimizer: complex division, non-floats not real"))
+  (cond [second-non-float
+         ;; two possibilities:
+         ;; - if first-non-float:
+         ;;   we haven't hit float operands, so we shouldn't coerce to float yet
+         ;;   (implies that they're both real)
+         ;; - if not first-non-float:
+         ;;   we're dividing by something that is not a float, and thus may be
+         ;;   exact 0, so we shouldn't coerce, to trigger a div-by-0 error if
+         ;;   need be
+         ;; so either way, don't optimize
+         (when first-non-float
+           (unless both-real?
+             (int-err "optimizer: complex division, non-floats not real")))
          #`[(#,(mark-as-non-float res-real res-real)
-             #,(mark-as-real res-imag)) ; this case implies real
-            (values (/ #,first-non-float #,second-non-float)
+             #,(mark-as-real res-imag)) ; this case implies a real result
+            (values (/ #,(or first-non-float a)
+                       #,second-non-float)
                     0.0)]]
         [both-real?
          #`[(#,res-real #,(mark-as-real res-imag))

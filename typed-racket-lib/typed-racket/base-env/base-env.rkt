@@ -632,15 +632,18 @@
 [memq (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
 [memv (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
 [memf (-poly (a) ((a . -> . Univ) (-lst a) . -> . (-opt (-ne-lst a))))]
-[member (-poly (a)
+[member (-poly (a b)
           (cl->* (Univ (-lst a) . -> . (-opt (-ne-lst a)))
-                 (Univ (-lst a) (-> a a Univ)
+                 (b (-lst a) (-> b a Univ)
                        . -> . (-opt (-ne-lst a)))))]
 [findf (-poly (a) ((a . -> . B) (-lst a) . -> . (-opt a)))]
 
 [assq  (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
 [assv  (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
-[assoc (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
+[assoc (-poly (a b c)
+              (cl->* (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b)))
+                     (c (-lst (-pair a b)) (-> c a Univ)
+                        . -> . (-opt (-pair a b)))))]
 [assf  (-poly (a b) ((a . -> . Univ) (-lst (-pair a b))
                      . -> . (-opt (-pair a b))))]
 

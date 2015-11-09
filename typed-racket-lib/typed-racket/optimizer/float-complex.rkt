@@ -132,6 +132,21 @@
              #,(mark-as-real res-imag)) ; this case implies real
             (values (/ #,first-non-float #,second-non-float)
                     0.0)]]
+        [second-non-float
+         ;; may be dividing by exact 0, be conservative to preserve error
+         ;; (res-real can't be non-float, since we've hit a float, so we either
+         ;; error or coerce)
+         #`[(#,res-real #,(if both-real?
+                              (mark-as-real res-imag)
+                              res-imag))
+            ;; TODO could optimize computation of `res-div` when one or the other is real
+            (let-values ([(res-div)
+                          (/ (make-rectangular #,a
+                                               #,(if first-arg-real? #'0 b))
+                             (make-rectangular #,second-non-float
+                                               #,(if second-arg-real? #'0 d)))])
+              (values (real-part res-div)
+                      (imag-part res-div)))]]
         [both-real?
          #`[(#,res-real #,(mark-as-real res-imag))
             (values (unsafe-fl/ #,a #,c)

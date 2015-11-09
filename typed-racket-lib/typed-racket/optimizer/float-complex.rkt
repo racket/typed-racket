@@ -126,11 +126,8 @@
         (values (unsafe-fl/ (unsafe-fl+ b (unsafe-fl* a r)) den)
                 i)))
 
-  (cond [(and first-non-float second-non-float)
+  (cond [(and first-non-float second-non-float both-real?)
          ;; we haven't hit float operands, so we shouldn't coerce to float yet
-         ;; (implies that they're both real)
-         (unless both-real?
-           (int-err "optimizer: complex division, non-floats not real"))
          #`[(#,(mark-as-non-float res-real)
              #,(mark-as-real res-imag)) ; this case implies real
             (values (/ #,first-non-float #,second-non-float)
@@ -279,12 +276,9 @@
                                            #`(unsafe-fl+ (unsafe-fl* #,o2 #,(car e1))
                                                          (unsafe-fl* #,o1 #,(car e2))))))
                                #`((#,(car rs))
-                                  #,(cond [(and o-nf e-nf)
+                                  #,(cond [(and o-nf e-nf both-real?)
                                            ;; we haven't seen float operands yet, so
                                            ;; shouldn't prematurely convert to floats
-                                           ;; (implies that they're both real)
-                                           (unless (and o-real? e-real?)
-                                             (int-err "optimizer: complex division, non-floats not real"))
                                            (mark-as-non-float (car rs))
                                            #`(* #,o-nf #,e-nf)]
                                           [(or o-real? e-real?)

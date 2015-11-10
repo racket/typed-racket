@@ -213,9 +213,8 @@
       (tr-eval sexp)))
   (or both-failed?
       (and (not racket-failed?)
-           (or (= racket-result tr-result)
-               ;; for NaN, which is not = to itself
-               (equal? racket-result tr-result)))))
+           ;; for NaN, which is not = to itself
+           (equal? racket-result tr-result))))
 
 
 (define num-exceptions 0)

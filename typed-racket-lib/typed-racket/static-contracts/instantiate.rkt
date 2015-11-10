@@ -47,9 +47,25 @@
             (contract-restrict-recursive-values (compute-constraints sc kind)))
           cache))))
 
+;; computes the definitions that are in `sc`
+;; `(get-all-name-defs)` is not what we want directly, since it also includes
+;; definitions that were optimized away
+;; we restrict it to only variables bound in `sc`
+(define (compute-defs sc)
+  (define bound '())
+  ;; ignores its second argument (variance, passed by sc-traverse)
+  (let loop ([sc sc] [_ #f])
+    (match sc
+      [(name/sc: name*) (set! bound (cons name* bound))]
+      [else (sc-traverse sc loop)]))
+  (for*/hash ([b (in-list bound)]
+              [v (in-value (dict-ref (get-all-name-defs) b #f))]
+              #:when v)
+    (values b v)))
+
 (define (compute-constraints sc max-kind)
   (define memo-table (make-hash))
-  (define name-defs (get-all-name-defs))
+  (define name-defs (compute-defs sc))
   (define (recur sc)
     (cond [(hash-ref memo-table sc #f)]
           [else
@@ -138,7 +154,7 @@
       [(? sc? sc)
        (sc->contract sc recur)]))
   (define ctc (recur sc))
-  (define name-defs (get-all-name-defs))
+  (define name-defs (compute-defs sc))
   ;; These are extra contract definitions for the name static contracts
   ;; that are used for this type. Since these are shared across multiple
   ;; contracts from a single contract fixup pass, we use the name-defined

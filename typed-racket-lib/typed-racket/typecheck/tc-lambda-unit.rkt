@@ -62,7 +62,6 @@
 ;; body: The body of the lambda to typecheck.
 (define/cond-contract
   (tc-lambda-body arg-names arg-types #:rest [raw-rest #f] #:expected [expected #f]
-                  #:body-type [body-type #f]
                   body)
   (->* ((listof identifier?) (listof Type/c) syntax?)
        (#:rest (or/c #f (list/c identifier? (or/c Type/c (cons/c Type/c symbol?))))
@@ -88,7 +87,7 @@
       (with-lexical-env/extend-types
         (append rest-names arg-names)
         (append rest-types arg-types)
-        (or body-type (tc-body/check body expected)))
+        (tc-body/check body expected))
       arg-names #:rest-id rest-id)
     #:rest (and (Type? rest) rest)
     #:drest (and (cons? rest) rest)))
@@ -212,7 +211,7 @@
 
   (define eta-expanded?
     (syntax-parse body
-      [(((~literal #%plain-app) fun:expr j:id ...))
+      [(((~literal #%plain-app) fun:id j:id ...)) ;; restricted to ids to avoid re-typechecking
        #:when (equal? (length arg-list)
                       (length (syntax->list #'(j ...))))
        #:when (andmap free-identifier=? arg-list (syntax->list #'(j ...)))
@@ -240,14 +239,13 @@
           (get-type rest-id #:default Univ)]
          ;; Lambda with no rest argument
          [else #f]))
-     (define body-t (and eta-expanded? (tc-expr eta-expanded?)))
      (cond 
       ;; special case for un-annotated eta-expansions
       [(and eta-expanded? (not rest-id) (andmap not arg-types)
             ;; FIXME: should also handle polymorphic types
             ;; but we can't return anything but a (listof arr?) here 
             ;; FIXME: misses optimization opportunities in this code
-            (match body-t
+            (match (tc-expr eta-expanded?)
               [(tc-result1: (Function: arrs))
                (define possibles (for*/list ([arr (in-list arrs)]
                                              [restricted (in-value (restrict-to-arity arr (length arg-list)))]
@@ -265,7 +263,6 @@
        (list
         (tc-lambda-body arg-list (map (lambda (v) (or v Univ)) arg-types)
                         #:rest (and rest-type (list rest-id rest-type))
-                        #:body-type body-t
                         body))])]))
 
 

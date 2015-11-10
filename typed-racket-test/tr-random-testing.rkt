@@ -1,6 +1,6 @@
 #lang racket
 
-;; Random testing of type preservation for reals.
+;; Random testing of the TR numeric base environment, and numeric optimizations
 
 (require redex/reduction-semantics
          racket/flonum racket/unsafe/ops
@@ -147,6 +147,25 @@
      ])
 ;; generated from: (map car (file->list "base-env-parts"))
 
+;; Redex can't generate reals, so we convert ints to reals.
+(define (exp->real-exp E) ; numbers or symbols or lists
+  (cond [(number? E)
+         (random-integer->random-real
+          (exact-round
+           ;; doesn't handle non-rationals
+           ;; not a problem, we generate those specially
+           (if (rational? E)
+               E
+               0)))] ; arbitrary
+        [(list? E)
+         (map exp->real-exp E)]
+        [else
+         E]))
+
+
+;; big-step preservation: is the type of the result consistent with the type
+;; predicted by the typechecker
+
 (define (get-type e [typecheck (compose tc-expr expand)])
   (parameterize ([delay-errors? #f]
                  [current-namespace (namespace-anchor->namespace anch)]
@@ -165,25 +184,10 @@
            (printf "type-before = ~v~ntype-after = ~v~n" type-before type-after))
          subtype?]))
 
-;; Redex can't generate reals, so we convert ints to reals.
-(define (exp->real-exp E) ; numbers or symbols or lists
-  (cond [(number? E)
-         (random-integer->random-real
-          (exact-round
-           ;; doesn't handle non-rationals
-           ;; not a problem, we generate those specially
-           (if (rational? E)
-               E
-               0)))] ; arbitrary
-        [(list? E)
-         (map exp->real-exp E)]
-        [else
-         E]))
+
+;; do we get the same result with and without optimization?
 
 (define max-mem 1000)
-
-(define num-exceptions 0)
-
 (define (mk-eval lang)
   (call-with-trusted-sandbox-configuration
    (λ ()
@@ -192,6 +196,30 @@
 (define racket-eval (mk-eval 'racket))
 (define tr-eval     (mk-eval 'typed/racket))
 
+(define (same-result-as-untyped? sexp)
+  (define racket-failed?  #f)
+  (define both-failed?    #f)
+  (define racket-result
+    (with-handlers
+        ;; something went wrong, e.g. division by zero
+        ;; TR must fail too
+        ([exn? (λ (e) (set! racket-failed? #t))])
+      (racket-eval sexp)))
+  (define tr-result
+    (with-handlers
+        ;; did Racket error too?
+        ([exn? (λ (e) (when racket-failed?
+                        (set! both-failed? #t)))])
+      (tr-eval sexp)))
+  (or both-failed?
+      (and (not racket-failed?)
+           (or (= racket-result tr-result)
+               ;; for NaN, which is not = to itself
+               (equal? racket-result tr-result)))))
+
+
+(define num-exceptions 0)
+
 (define (check-all-reals sexp [verbose? #f])
   ;; because some of the generated expressions comute gigantic bignums, running
   ;; out of resources is expected, so just ignore that case
@@ -199,36 +227,16 @@
     (with-limits
      5 max-mem
      (when verbose? (displayln sexp))
-     (or (with-handlers
+     (or (with-handlers ; attempt to typecheck
              ;; something went wrong, almost certainly typechecking failed
              ;; in which case we ignore the expression
              ([exn?  (λ (e)
                        (set! num-exceptions (+ num-exceptions 1))
                        #t)])
            (get-type sexp)
-           #f) ; go on and check preservation
+           #f) ; go on and check properties
          (and (right-type? sexp)
-              ;; do we get the same result with and without optimization?
-              (let ()
-                (define racket-failed?  #f)
-                (define both-failed?    #f)
-                (define racket-result
-                  (with-handlers
-                      ;; something went wrong, e.g. division by zero
-                      ;; TR must fail too
-                      ([exn? (λ (e) (set! racket-failed? #t))])
-                    (racket-eval sexp)))
-                (define tr-result
-                  (with-handlers
-                      ;; did Racket error too?
-                      ([exn? (λ (e) (when racket-failed?
-                                      (set! both-failed? #t)))])
-                    (tr-eval sexp)))
-                (or both-failed?
-                    (and (not racket-failed?)
-                         (or (=      racket-result tr-result)
-                             ;; for NaN, which is not = to itself
-                             (equal? racket-result tr-result))))))))))
+              (same-result-as-untyped? sexp))))))
 
 (module+ main
   (define n-attempts 1000)

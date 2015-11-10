@@ -15,8 +15,8 @@
          (typecheck signatures tc-metafunctions tc-subst)
          (env lexical-env tvar-env index-env scoped-tvar-env)
          (utils tc-utils)
-         (for-syntax
-           racket/base))
+         (for-template racket/base)
+         (for-syntax racket/base))
 
 (import tc-expr^)
 (export tc-lambda^)
@@ -208,7 +208,7 @@
 
   (define eta-expanded?
     (syntax-parse body
-      [((~literal #%plain-app) fun:expr j:id ...)
+      [(((~literal #%plain-app) fun:expr j:id ...))
        #:when (equal? (length arg-list)
                       (length (syntax->list #'(j ...))))
        #:when (andmap free-identifier=? arg-list (syntax->list #'(j ...)))

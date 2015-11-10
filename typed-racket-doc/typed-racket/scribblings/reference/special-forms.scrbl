@@ -228,9 +228,9 @@ variants.
 @defform[(for/hash type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/hasheq type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/hasheqv type-ann-maybe (for-clause ...) expr ...+)]
-@;defform[(for/vector type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for/vector type-ann-maybe (for-clause ...) expr ...+)]
 @;defform[(for/flvector type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/extflvector type-ann-maybe (for-clause ...) expr ...+)]
+@;defform[(for/extflvector type-ann-maybe (for-clause ...) expr ...+)]
 @;defform[(for/and type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/or   type-ann-maybe (for-clause ...) expr ...+)]
 @;defform[(for/first type-ann-maybe (for-clause ...) expr ...+)]
@@ -259,7 +259,7 @@ that @racket[#:when] clauses can only appear as the last
 type @racket[u]. For example, a @racket[for/list] form would be
 annotated with a @racket[Listof] type. All annotations are optional.
 
-Deliberately omitted from the above list are @racket[for/vector], @racket[for/flvector], 
+Deliberately omitted from the above list are @racket[for/flvector], @racket[for/extflvector],
 @racket[for/first], @racket[for/last], and @racket[for/and], which aren't yet supported by the typechecker.
 }
 

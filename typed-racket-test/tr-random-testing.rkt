@@ -193,37 +193,42 @@
 (define tr-eval     (mk-eval 'typed/racket))
 
 (define (check-all-reals sexp [verbose? #f])
-  (when verbose? (displayln sexp))
-  (or (with-handlers
-          ;; something went wrong, almost certainly typechecking failed
-          ;; in which case we ignore the expression
-          ([exn?  (λ (e)
-                    (set! num-exceptions (+ num-exceptions 1))
-                    #t)])
-        (get-type sexp)
-        #f) ; go on and check preservation
-      (and (right-type? sexp)
-           ;; do we get the same result with and without optimization?
-           (let ()
-             (define racket-failed?  #f)
-             (define both-failed?    #f)
-             (define racket-result
-               (with-handlers
-                   ;; something went wrong, e.g. division by zero
-                   ;; TR must fail too
-                   ([exn? (λ (e) (set! racket-failed? #t))])
-                 (racket-eval sexp)))
-             (define tr-result
-               (with-handlers
-                   ;; did Racket error too?
-                   ([exn? (λ (e) (when racket-failed?
-                                   (set! both-failed? #t)))])
-                 (tr-eval sexp)))
-             (or both-failed?
-                 (and (not racket-failed?)
-                      (or (=      racket-result tr-result)
-                          ;; for NaN, which is not = to itself
-                          (equal? racket-result tr-result))))))))
+  ;; because some of the generated expressions comute gigantic bignums, running
+  ;; out of resources is expected, so just ignore that case
+  (with-handlers ([exn:fail:resource? values])
+    (with-limits
+     5 max-mem
+     (when verbose? (displayln sexp))
+     (or (with-handlers
+             ;; something went wrong, almost certainly typechecking failed
+             ;; in which case we ignore the expression
+             ([exn?  (λ (e)
+                       (set! num-exceptions (+ num-exceptions 1))
+                       #t)])
+           (get-type sexp)
+           #f) ; go on and check preservation
+         (and (right-type? sexp)
+              ;; do we get the same result with and without optimization?
+              (let ()
+                (define racket-failed?  #f)
+                (define both-failed?    #f)
+                (define racket-result
+                  (with-handlers
+                      ;; something went wrong, e.g. division by zero
+                      ;; TR must fail too
+                      ([exn? (λ (e) (set! racket-failed? #t))])
+                    (racket-eval sexp)))
+                (define tr-result
+                  (with-handlers
+                      ;; did Racket error too?
+                      ([exn? (λ (e) (when racket-failed?
+                                      (set! both-failed? #t)))])
+                    (tr-eval sexp)))
+                (or both-failed?
+                    (and (not racket-failed?)
+                         (or (=      racket-result tr-result)
+                             ;; for NaN, which is not = to itself
+                             (equal? racket-result tr-result))))))))))
 
 (module+ main
   (define n-attempts 1000)
@@ -239,22 +244,16 @@
   (printf "seed: ~s~n" seed)
   (flush-output) ; DrDr doesn't print the above if the testing segfaults.
 
-  ;; because some of the generated expressions comute gigantic bignums, running
-  ;; out of resources is expected, so just ignore that case
-  (with-handlers ([exn:fail:resource? values])
-    (call-with-limits
-     300 max-mem
-     (lambda ()
-       ;; start with 1000 small, deterministic test cases, to catch regressions
-       (redex-check tr-arith E #:in-order (check-all-reals (term E) verbose?)
-                    #:attempts 1000
-                    #:prepare exp->real-exp
-                    #:keep-going? #t)
-       ;; then switch to purely random to get different ones every run
-       (redex-check tr-arith E #:ad-hoc (check-all-reals (term E) verbose?)
-                    #:attempts n-attempts
-                    #:prepare exp->real-exp
-                    #:keep-going? #t))))
+  ;; start with 1000 small, deterministic test cases, to catch regressions
+  (redex-check tr-arith E #:in-order (check-all-reals (term E) verbose?)
+               #:attempts 1000
+               #:prepare exp->real-exp
+               #:keep-going? #t)
+  ;; then switch to purely random to get different ones every run
+  (redex-check tr-arith E #:ad-hoc (check-all-reals (term E) verbose?)
+               #:attempts n-attempts
+               #:prepare exp->real-exp
+               #:keep-going? #t)
 
   (printf "bad tests (usually typechecking failed): ~v~n" num-exceptions))
 

@@ -251,7 +251,8 @@
                                    restricted))
                (if (null? possibles)
                    #f
-                   possibles)]))
+                   possibles)]
+              [_ #f]))
        =>
        (lambda (x)
          (register-ignored! (car (syntax-e body)))

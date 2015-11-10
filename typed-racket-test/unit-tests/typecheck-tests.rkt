@@ -3463,12 +3463,11 @@
           (raise "foo"))
         #:ret (ret -String)
         #:msg #rx"expected: String.*given: Any"]
-       [tc-err
+       [tc-e
         (with-handlers ([string? (lambda: ([e : String]) (string-append e "bar"))]
                         [symbol? (lambda (x) (symbol->string x))])
           (raise 'foo))
-        #:ret (ret -String)
-        #:msg #rx"expected: Symbol.*given: Any"]
+        #:ret (ret -String)]
 
        [tc-err
         (raise (λ ([x : Number]) (add1 x)))]

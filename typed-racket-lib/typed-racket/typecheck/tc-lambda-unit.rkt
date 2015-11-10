@@ -58,15 +58,12 @@
 ;; raw-rest: Either #f for no rest argument or (list rest-id rest-type) where rest-id is the
 ;;           identifier of the rest arg, and rest-type is the type.
 ;; expected: The expected type of the body forms.
-;; body-type: if provided, the result of type checking the body (because someone else already did it)
 ;; body: The body of the lambda to typecheck.
 (define/cond-contract
-  (tc-lambda-body arg-names arg-types #:rest [raw-rest #f] #:expected [expected #f]
-                  body)
+  (tc-lambda-body arg-names arg-types #:rest [raw-rest #f] #:expected [expected #f] body)
   (->* ((listof identifier?) (listof Type/c) syntax?)
        (#:rest (or/c #f (list/c identifier? (or/c Type/c (cons/c Type/c symbol?))))
-        #:expected (or/c #f tc-results/c)
-        #:body-type (or/c #f tc-results/c))
+        #:expected (or/c #f tc-results/c))
        arr?)
   (define-values (rest-id rest)
     (if raw-rest

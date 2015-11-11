@@ -332,7 +332,8 @@
            #,@(if (eq? (syntax-local-context) 'top-level)
                   (list #'(define-syntaxes (hidden) (values)))
                   null)
-           #,(ignore #'(define pred-cnt (any/c . c-> . boolean?)))
+           (require typed-racket/utils/any-wrap) ;;bg; this is a problem
+           #,(ignore #'(define pred-cnt (or/c struct-predicate-procedure?/c (c-> any-wrap/c any/c))))
            #,(internal #'(require/typed-internal hidden (Any -> Boolean : (Opaque pred))))
            #,(if (attribute ne)
                  (internal (syntax/loc stx (define-type-alias-internal ty (Opaque pred))))

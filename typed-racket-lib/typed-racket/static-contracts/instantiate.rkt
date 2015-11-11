@@ -58,10 +58,17 @@
     (match sc
       [(name/sc: name*) (set! bound (cons name* bound))]
       [else (sc-traverse sc loop)]))
+  (define all-name-defs (get-all-name-defs))
+  ;; all-name-defs maps lists of ids to defs
+  ;; we want to match if any id in the list matches
+  (define (ref b) (for/first ([(k v) (in-dict all-name-defs)]
+                              #:when (for/or ([k* (in-list k)])
+                                       (free-identifier=? b k*)))
+                    (cons k v)))
   (for*/hash ([b (in-list bound)]
-              [v (in-value (dict-ref (get-all-name-defs) b #f))]
+              [v (in-value (ref b))]
               #:when v)
-    (values b v)))
+    (values (car v) (cdr v))))
 
 (define (compute-constraints sc max-kind)
   (define memo-table (make-hash))

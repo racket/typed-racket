@@ -39,7 +39,7 @@
 (define test-timeouts
   '(("optimizer/run.rkt" 1200)
     ("run.rkt" 1800)
-    ("with-tr-contracts.rkt" 1500)))
+    ("with-tr-contracts.rkt" 2000)))
 
 
 ;; No need to compile the actual integration tests, just the harness.

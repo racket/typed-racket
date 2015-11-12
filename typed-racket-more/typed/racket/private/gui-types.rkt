@@ -1214,6 +1214,7 @@
                [demand-callback
                 ((Instance Checkable-Menu-Item%) -> Any)
                 #:optional]
+               [checked Boolean #:optional]
                [shortcut-prefix (Listof (U 'alt 'cmd 'meta 'ctl
                                            'shift 'option))
                                 #:optional])

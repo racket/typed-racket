@@ -75,13 +75,16 @@
     (define c1 (stx-car cs))
     (define o-nf (as-non-float o))
     (define c1-nf (as-non-float c1))
-    (if (and o-nf c1-nf)
+    (if (or o-nf c1-nf)
         ;; can't convert those to floats just yet, or may change
         ;; the result
-        (let ([new-o (quasisyntax/loc this-syntax
-                       (#,op #,o-nf #,c1-nf))])
-          (loop (mark-as-non-float new-o)
-                (stx-cdr cs)))
+        (let ([new-o (mark-as-non-float
+                      (quasisyntax/loc this-syntax
+                        (#,op #,(or o-nf o) #,(or c1-nf c1))))])
+          (if (stx-null? (stx-cdr cs))
+              new-o
+              (loop new-o
+                    (stx-cdr cs))))
         ;; we've hit floats, can start coercing
         (n-ary->binary this-syntax unsafe (cons #`(real->double-flonum #,(or o-nf o)) cs)))))
 

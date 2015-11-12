@@ -12,6 +12,9 @@
 
 (provide tests)
 
+;; Test suite that makes sure that TR+opt returns the same results as Racket.
+;; Historically contained bugs that we knew about, but had not fixed.
+;; Now those are all fixed.
 
 (define (mk-eval lang)
   (call-with-trusted-sandbox-configuration
@@ -89,7 +92,7 @@
 
     ;; Negation should correctly compute sign of 0.0
     (good-opt (- 0.0+0.0i))
-    (bad-opt (- 0+0i 0.0+0.0i))
+    (good-opt (- 0+0i 0.0+0.0i))
 
     ;; Conjugate should correctly compute sign of 0.0
     (good-opt (conjugate 0.0+0.0i))))

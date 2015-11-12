@@ -83,7 +83,7 @@
           (loop (mark-as-non-float new-o)
                 (stx-cdr cs)))
         ;; we've hit floats, can start coercing
-        (n-ary->binary this-syntax unsafe (cons #`(real->double-flonum #,o) cs)))))
+        (n-ary->binary this-syntax unsafe (cons #`(real->double-flonum #,(or o-nf o)) cs)))))
 
 ;; a+bi / c+di, names for real and imag parts of result -> one let-values binding clause
 (define (unbox-one-complex-/ a b c d res-real res-imag)

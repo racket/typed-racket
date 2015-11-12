@@ -565,9 +565,11 @@
           [(#%plain-app op:magnitude^ c:unboxed-float-complex-opt-expr)
            (log-unboxing-opt "unboxed unary float complex")
            #`(let*-values (c.bindings ...)
-               (unsafe-flsqrt
-                 (unsafe-fl+ (unsafe-fl* c.real-binding c.real-binding)
-                             (unsafe-fl* c.imag-binding c.imag-binding))))])))
+               ;; reuses the algorithm used by the Racket runtime
+               (let-values ([(q) (unsafe-fl/ c.real-binding c.imag-binding)])
+                 (unsafe-fl* c.imag-binding
+                             (unsafe-flsqrt (unsafe-fl+ 1.0
+                                                        (unsafe-fl* q q))))))])))
 
 
   (pattern (#%plain-app op:float-complex-op e:expr ...)

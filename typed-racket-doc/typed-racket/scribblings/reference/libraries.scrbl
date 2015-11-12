@@ -79,7 +79,6 @@ The following libraries are included with Typed Racket in the
 @defmodule/incl[typed/openssl]
 @defmodule/incl[typed/pict]
 @defmodule[typed/racket/async-channel #:no-declare @history[#:added "1.1"]]
-@defmodule/incl[typed/openssl]
 @defmodule/incl[typed/racket/date]
 @defmodule/incl[typed/racket/draw]
 @defmodule/incl[typed/racket/gui]

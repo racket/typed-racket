@@ -49,7 +49,7 @@ typed/racket
                [#:struct pt ([x : Real] [y : Real])]
                [distance (-> pt pt Real)])
 
-(distance (pt 3 5) (p 7 0))
+(distance (pt 3 5) (pt 7 0))
 ]
 
 The @racket[require/typed] form has several kinds of clauses. The

@@ -434,6 +434,8 @@
                (tan (real->double-flonum 6))
                (lcm (*) (exact-round -1.7976931348623153e+308) 6))
               -Number)
+        (tc-e (exact->inexact (expt 10 (/ -120.0 20))) ; from rsound
+              -NonNegInexactReal)
         (tc-e (flexpt 0.5 0.3) -NonNegFlonum)
         (tc-e (flexpt 0.00000000001 100000000000.0) -NonNegFlonum)
         (tc-e (flexpt -2.0 -0.5) -Flonum) ; NaN

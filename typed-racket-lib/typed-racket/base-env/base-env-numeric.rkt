@@ -1624,7 +1624,7 @@
              (-SingleFlonum -SingleFlonum . -> . (Un -SingleFlonum -SingleFlonumComplex))
              (-PosInexactReal (Un -NegFixnum -PosFixnum) . -> . -NonNegInexactReal)
              (-NonNegInexactReal (Un -NegFixnum -PosFixnum) . -> . -InexactReal)
-             (-PosReal -Fixnum . -> . -NonNegReal)
+             (-PosReal -Real . -> . -NonNegReal)
              (-NonNegReal -Fixnum . -> . -Real)
              (-InexactReal (Un -NegFixnum -PosFixnum) . -> . -InexactReal)
              (-InexactReal -InexactReal . -> . (Un -InexactReal -InexactComplex))

@@ -407,22 +407,26 @@
   ;; provide-tbl : hash[id, listof[id]]
   ;; maps internal names to all the names they're provided as
   ;; XXX: should the external names be symbols instead of identifiers?
-  (define provide-tbl
-    (for/fold ([h (make-immutable-free-id-table)]) ([p (in-list provs)])
+  ;; extra-provs : listof[stx]
+  (define-values (provide-tbl extra-provs)
+    (for/fold ([h (make-immutable-free-id-table)] [extra null])
+              ([p (in-list provs)])
       (syntax-parse p #:literal-sets (kernel-literals)
         [(#%provide form ...)
-         (for/fold ([h h]) ([f (in-syntax #'(form ...))])
+         (for/fold ([h h] [extra extra]) ([f (in-syntax #'(form ...))])
            (let loop ([f f])
              (syntax-parse f
                [i:id
-                (dict-update h #'i (lambda (tail) (cons #'i tail)) '())]
+                (values (dict-update h #'i (lambda (tail) (cons #'i tail)) '())
+                        extra)]
                [((~datum rename) in out)
-                (dict-update h #'in (lambda (tail) (cons #'out tail)) '())]
+                (values (dict-update h #'in (lambda (tail) (cons #'out tail)) '())
+                        extra)]
                [((~datum for-meta) 0 fm)
-                (loop #'fm)]
-               ;; is this safe?
+                (values (loop #'fm) extra)]
+               ;; `(void)` is for all the things that we just pass along
                [((~datum for-meta) _ fm)
-                h]
+                (values h (cons f extra))]
                [(name:unknown-provide-form . _)
                 (parameterize ([current-orig-stx f])
                   (tc-error "provide: ~a not supported by Typed Racket" (syntax-e #'name.name)))]
@@ -547,7 +551,9 @@
 
            ;; Finally, we do the export:
            ;;    (provide (rename-out [export-f f]))
-           new-provs ...))))
+           new-provs ...
+           ;; At the end, include the extra provides
+           (#%provide #,@extra-provs)))))
   (do-time "finished provide generation")
   (values new-stx/pre new-stx/post))
 

@@ -2,7 +2,8 @@
 
 ;; Environment for type names
 
-(require "../utils/utils.rkt")
+(require "../utils/utils.rkt"
+         "env-utils.rkt")
 
 (require syntax/id-table
          (contract-req)
@@ -58,7 +59,7 @@
 ;; map over the-mapping, producing a list
 ;; (id type -> T) -> listof[T]
 (define (type-name-env-map f)
-  (free-id-table-map the-mapping f))
+  (sorted-dict-map the-mapping f id<))
 
 (define (add-alias from to)
   (when (lookup-type-name to (lambda () #f))
@@ -83,7 +84,7 @@
 ;; map over the-mapping, producing a list
 ;; (id variance -> T) -> listof[T]
 (define (type-variance-env-map f)
-  (free-id-table-map variance-mapping f))
+  (sorted-dict-map variance-mapping f id<))
 
 ;; Refines the variance of a type in the name environment
 (define (refine-variance! names types tvarss)

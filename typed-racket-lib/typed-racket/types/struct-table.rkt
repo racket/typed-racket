@@ -6,7 +6,7 @@
          (prefix-in c: (contract-req))
          (rep type-rep filter-rep object-rep)
          (utils tc-utils)
-         (env init-envs))
+         (env init-envs env-utils))
 
 (define struct-fn-table (make-free-id-table))
 (define struct-constructor-table (make-free-id-table))
@@ -33,7 +33,7 @@
   (parameterize ([current-print-convert-hook converter]
                  [show-sharing #f])
     (define/with-syntax (adds ...)      
-      (for/list ([(k v) (in-dict struct-fn-table)]
+      (for/list ([(k v) (in-sorted-dict struct-fn-table id<)]
                  #:when (bound-in-this-module k))
         (match v
           [(list pe mut?)

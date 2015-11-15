@@ -5,6 +5,7 @@
 
 (require "../types/tc-error.rkt"
          "../utils/tc-utils.rkt"
+         "env-utils.rkt"
          syntax/parse
          syntax/id-table
          racket/lazy-require) 
@@ -102,4 +103,4 @@
 ;; map over the-mapping, producing a list
 ;; (id type -> T) -> listof[T]
 (define (type-env-map f)
-  (free-id-table-map the-mapping f))
+  (sorted-dict-map the-mapping f id<))

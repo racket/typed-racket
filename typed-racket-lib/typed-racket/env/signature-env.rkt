@@ -13,6 +13,7 @@
          racket/match
          racket/promise
          (for-syntax syntax/parse racket/base)
+         "env-utils.rkt"
          "../utils/utils.rkt"
          (utils tc-utils)
          (rep type-rep))
@@ -66,4 +67,4 @@
   (free-id-table-ref (signature-env) id #f))
 
 (define (signature-env-map f)
-  (free-id-table-map (signature-env) f))
+  (sorted-dict-map (signature-env) f id<))

@@ -8,6 +8,7 @@
          (private syntax-properties)
          (typecheck renamer def-binding)
          (utils tc-utils)
+         (env env-utils)
          (for-syntax racket/base)
          (for-template racket/base))
 
@@ -186,9 +187,10 @@
        new-id
        null)))
 
-
   ;; Build the final provide with auxilliary definitions
-  (for/lists (defs export-defs provides aliases) ([(internal-id external-ids) (in-dict provs)])
+  (for/lists (defs export-defs provides aliases)
+    ;; sort provs to generate deterministic output
+    ([(internal-id external-ids) (in-sorted-dict provs id<)])
     (define-values (defs export-def id alias) (mk internal-id))
     (define provide-forms
       (for/list ([external-id (in-list external-ids)])

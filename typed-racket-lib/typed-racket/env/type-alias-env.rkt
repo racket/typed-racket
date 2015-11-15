@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
+         "env-utils.rkt"
          syntax/id-table racket/dict
          (utils tc-utils)
          (typecheck renamer)
@@ -61,6 +62,6 @@
 ;; map over the-mapping, producing a list
 ;; (id type -> T) -> listof[T]
 (define (type-alias-env-map f)  
-  (for/list ([(id t) (in-dict the-mapping)]
+  (for/list ([(id t) (in-sorted-dict the-mapping id<)]
              #:when (resolved? t))
     (f id (resolved-ty t))))

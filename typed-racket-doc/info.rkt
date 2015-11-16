@@ -15,7 +15,8 @@
                      ("typed-racket-lib" #:version "1.3")
                      "typed-racket-compatibility"
                      "typed-racket-more"
-                     "racket-doc"))
+                     "racket-doc"
+                     "draw-lib"))
 (define deps '("base"))
 (define update-implies '("typed-racket-lib"))
 

@@ -213,7 +213,7 @@
   (make-Base 'Special-Comment #'special-comment? special-comment?))
 (define/decl -Custodian (make-Base 'Custodian #'custodian? custodian?))
 (define/decl -Parameterization (make-Base 'Parameterization #'parameterization? parameterization?))
-(define/decl -Inspector (make-Base 'Inspector #'inspector inspector?))
+(define/decl -Inspector (make-Base 'Inspector #'inspector? inspector?))
 (define/decl -Namespace-Anchor (make-Base 'Namespace-Anchor #'namespace-anchor? namespace-anchor?))
 (define/decl -Variable-Reference (make-Base 'Variable-Reference #'variable-reference? variable-reference?))
 (define/decl -Internal-Definition-Context

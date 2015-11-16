@@ -252,6 +252,7 @@
 (define (make-contract-def-rhs type flat? maker?)
   (contract-def-property #'#f `#s(contract-def ,type ,flat? ,maker? untyped)))
 
+
 (define (define-predicate stx)
   (syntax-parse stx
     [(_ name:id ty:expr)
@@ -324,20 +325,25 @@
   (define-syntax-class name-exists-kw
     (pattern #:name-exists))
   (syntax-parse stx
+    [_ #:when (eq? 'module-begin (syntax-local-context))
+       ;; it would be inconvenient to find the correct #%module-begin here, so we rely on splicing
+       #`(begin #,stx (begin))]
     [(_ ty:id pred:id lib (~optional ne:name-exists-kw) ...)
      (with-syntax ([hidden (generate-temporary #'pred)])
+       (define pred-cnt
+         (syntax-local-lift-expression
+          (make-contract-def-rhs #'(-> Any Boolean) #f #f)))
        (quasisyntax/loc stx
          (begin
            ;; register the identifier for the top-level (see require/typed)
            #,@(if (eq? (syntax-local-context) 'top-level)
                   (list #'(define-syntaxes (hidden) (values)))
                   null)
-           #,(ignore #'(define pred-cnt (any/c . c-> . boolean?)))
            #,(internal #'(require/typed-internal hidden (Any -> Boolean : (Opaque pred))))
            #,(if (attribute ne)
                  (internal (syntax/loc stx (define-type-alias-internal ty (Opaque pred))))
                  (syntax/loc stx (define-type-alias ty (Opaque pred))))
-           #,(ignore #'(require/contract pred hidden pred-cnt lib)))))]))
+           #,(ignore #`(require/contract pred hidden #,pred-cnt lib)))))]))
 
 
 

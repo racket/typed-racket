@@ -116,6 +116,17 @@
     ;; PR 14380
     (test-form-not-exn (begin - (void)))
 
+    ;; bug that delayed 6.3
+    (test-form-exn #rx"Any"
+     (let ((x : Any 0))
+       (define (f) (set! x #t))
+       (when (number? x)
+         (add1 x))))
+
+    (test-form-not-exn
+     (let ((x 0))
+       (set! x 1)))
+
     ;; test message for undefined id
     (test-form-exn #rx"either undefined or missing a type annotation"
       (a-name-that-isnt-bound))

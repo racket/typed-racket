@@ -182,7 +182,9 @@
        #'(lambda (stx)
            (raise-syntax-error
             'type-check
-            "type name used out of context"
+            (format "type name ~a used out of context in ~a"
+                    (syntax->datum (if (stx-pair? stx) (stx-car stx) stx))
+                    (syntax->datum stx))
             stx
             (and (stx-pair? stx) (stx-car stx)))))
      #`(begin

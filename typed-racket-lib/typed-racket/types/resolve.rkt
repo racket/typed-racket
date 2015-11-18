@@ -43,8 +43,10 @@
     (match rator
       [(Poly-unsafe: n _)
        (unless (= n (length rands))
-         (tc-error "wrong number of arguments to polymorphic type: expected ~a and got ~a"
-                   n (length rands)))]
+         (tc-error (~a "wrong number of arguments to polymorphic type " rator
+                       ": expected " n
+                       " and got " (length rands)
+                       ", arguments were: " rands)))]
       [(Name/struct: n)
        (when (and (current-poly-struct)
                   (free-identifier=? n (poly-name (current-poly-struct))))
@@ -61,7 +63,8 @@
                           " structure type constructor " rator
                           " does not match the given number:"
                           " expected " num-poly
-                          ", given " num-rands))))]
+                          ", given " num-rands
+                          ", arguments were: " rands))))]
       [(Name: name-id num-args #f)
        (cond [(> num-args 0)
               (define num-rands (length rands))
@@ -69,7 +72,8 @@
                 (tc-error (~a "The expected number of arguments for "
                               rator " does not match the given number:"
                               " expected " num-args
-                              ", given " num-rands)))
+                              ", given " num-rands
+                              ", arguments were: " rands)))
               ;; Does not allow polymorphic recursion since both type
               ;; inference and equirecursive subtyping for polymorphic
               ;; recursion are difficult.
@@ -98,7 +102,8 @@
                       (not (member (syntax-e arg-name) (fv given-type)))))
                 (unless ok?
                   (tc-error (~a "Recursive type " rator " cannot be applied at"
-                                " a different type in its recursive invocation"))))
+                                " a different type in its recursive invocation,"
+                                " new arguments were: " rands))))
               (match (current-check-polymorphic-recursion)
                 [`#s(poly-rec-info ,same-component? ,current-vars)
                  #:when (same-component? name-id)
@@ -125,7 +130,8 @@
       [(Poly: _ _) (instantiate-poly rator rands)]
       [(Mu: _ _) (resolve-app (unfold rator) rands stx)]
       [(App: r r* s) (resolve-app (resolve-app r r* s) rands stx)]
-      [_ (tc-error "cannot apply a non-polymorphic type: ~a" rator)])))
+      [_ (tc-error (~a "cannot apply a non-polymorphic type: " rator
+                       " with arguments: " rands))])))
 
 
 (define (needs-resolving? t)

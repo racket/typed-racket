@@ -43,7 +43,8 @@
                        (types utils abbrev printer generalize)
                        (typecheck tc-toplevel tc-app-helper)
                        (private type-contract syntax-properties)
-                       (utils disarm lift utils timing tc-utils arm)))
+                       (env mvar-env)
+                       (utils disarm lift utils timing tc-utils arm mutated-vars)))
 
   (provide tc-toplevel-trampoline
            tc-toplevel-trampoline/report)
@@ -85,6 +86,7 @@
           (define fully-expanded
             ;; a non-begin form can still cause lifts, so still have to catch them
             (disarm* (local-expand/capture* #'e 'top-level (list #'module*))))
+          (find-mutated-vars fully-expanded mvar-env)
           ;; Unlike the `begin` cases, we probably don't need to trampoline back
           ;; to the top-level because we're not catching lifts from macros at the
           ;; top-level context but instead from expression context.

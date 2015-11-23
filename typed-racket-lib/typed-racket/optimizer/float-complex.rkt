@@ -569,8 +569,10 @@
            (log-unboxing-opt "unboxed unary float complex")
            #`(let*-values (c.bindings ...)
                ;; reuses the algorithm used by the Racket runtime
-               (let-values ([(q) (unsafe-fl/ c.real-binding c.imag-binding)])
-                 (unsafe-fl* c.imag-binding
+               (let*-values ([(r) (unsafe-flabs c.real-binding)]
+                             [(i) (unsafe-flabs c.imag-binding)]
+                             [(q) (unsafe-fl/ r i)])
+                 (unsafe-fl* i
                              (unsafe-flsqrt (unsafe-fl+ 1.0
                                                         (unsafe-fl* q q))))))])))
 

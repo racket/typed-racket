@@ -10,7 +10,8 @@
 ;; at different scopes
 
 (require "../utils/utils.rkt"
-         (rep type-rep))
+         (rep type-rep)
+         racket/dict)
 
 (provide initial-tvar-env
          current-tvars
@@ -43,17 +44,17 @@
 ;; bound-tvar? : symbol -> boolean
 ;; returns #t if the given type variable is bound
 (define (bound-tvar? v)
-  (and (assoc v (current-tvars)) #t))
+  (dict-has-key? (current-tvars) v))
 
 ;; lookup-tvar : symbol -> type
 ;; returns the mapped-to type or #f
 (define (lookup-tvar var)
-  (cdr (assoc var (current-tvars))))
+  (dict-ref (current-tvars) var #f))
 
 ;; extend : type-env symbol option<symbol> -> type-env
 ;; extend type environment with a free type reference
 (define (extend env var [fresh-var #f])
-  (cons (cons var (make-F (or fresh-var var))) env))
+  (dict-set env var (make-F (or fresh-var var))))
 
 ;; extend/many : type-env list<symbol> option<list<symbol>> -> type-env
 ;; extend type environment for many symbols

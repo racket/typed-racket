@@ -13,7 +13,7 @@
          (rep type-rep object-rep filter-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
          (types abbrev union)
-         racket/list racket/promise
+         racket/dict racket/list racket/promise
          mzlib/pconvert racket/match
          syntax/id-table)
 
@@ -100,7 +100,7 @@
                                             (quote ,c) ,(sub b))]
     [(Class: row inits fields methods augments init-rest)
      (cond [(and (current-class-cache)
-                 (assoc v (unbox (current-class-cache)))) => cadr]
+                 (dict-ref (unbox (current-class-cache)) v #f)) => car]
            [else
             ;; FIXME: there's probably a better way to do this
             (define (convert members [inits? #f])
@@ -119,7 +119,7 @@
             (define cache-box (current-class-cache))
             (when cache-box
               (set-box! cache-box
-                        (cons (list v name class-type) (unbox cache-box))))
+                        (dict-set (unbox cache-box) v (list name class-type))))
             (if cache-box name class-type)])]
     [(Signature: name extends mapping)
      (define (serialize-mapping m)
@@ -154,7 +154,7 @@
           (not mp))
         #f)))
 
-(define (make-init-code env-map f)
+(define (make-init-code map f)
   (define class-type-cache (box '()))
   (define (bound-f id v)
     (and (bound-in-this-module id) (f id v)))
@@ -164,10 +164,9 @@
                  (current-build-share-hook (λ (v basic sub) 'atomic))
                  (show-sharing #f)
                  (booleans-as-true/false #f))
-    (define aliases (filter values (env-map bound-f)))
-    (define cache-values (reverse (map cdr (unbox class-type-cache))))
+    (define aliases (filter values (map bound-f)))
     #`(begin
-        #,@(for/list ([name+type (in-list cache-values)])
+        #,@(for/list ([name+type (dict-values (unbox class-type-cache))])
              (match-define (list name type) name+type)
              (datum->syntax #'here `(define ,name ,type)))
         #,@aliases)))

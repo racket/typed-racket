@@ -2971,7 +2971,9 @@
 [will-try-execute (-> -Will-Executor ManyUniv)]
 
 ;; Section 16.4
-[collect-garbage (-> -Void)]
+[collect-garbage (cl->*
+                  (-> -Void)
+                  (-> (Un (-val 'minor) (-val 'major) (-val 'incremental)) -Void))]
 [current-memory-use (-> -Nat)]
 [dump-memory-stats (-> Univ)]
 

@@ -3,7 +3,7 @@
 ;; This module provides typechecking for `send` method calls
 
 (require "../utils/utils.rkt"
-         racket/match syntax/stx
+         racket/match syntax/stx racket/syntax
          syntax/parse
          (env lexical-env)
          (typecheck signatures tc-funapp tc-metafunctions)
@@ -65,16 +65,16 @@
     #:literals (list)
     [(#%plain-app meth obj arg ...)
      (with-lexical-env/extend-types vars types
-       (tc-expr/check #'(#%plain-app meth arg ...)
+       (tc-expr/check (syntax/loc app-stx (#%plain-app meth arg ...))
                       expected))]
     [(let-values ([(arg-var) arg] ...)
-       (#%plain-app (#%plain-app cpce s-kp meth kpe kws num)
-                    kws2 kw-args
-                    obj pos-arg ...))
+       (~and outer-loc (#%plain-app (~and inner-loc (#%plain-app cpce s-kp meth kpe kws num))
+                                    kws2 kw-args
+                                    obj pos-arg ...)))
      (with-lexical-env/extend-types vars types
        (tc-expr/check
-        #'(let-values ([(arg-var) arg] ...)
-            (#%plain-app (#%plain-app cpce s-kp meth kpe kws num)
-                         kws2 kw-args
-                         pos-arg ...))
+        (with-syntax* ([inner-app (syntax/loc app-stx (#%plain-app cpce s-kp meth kpe kws num))]
+                       [outer-app (syntax/loc app-stx
+                                    (#%plain-app inner-app kws2 kw-args pos-arg ...))])
+          (syntax/loc app-stx (let-values ([(arg-var) arg] ...) outer-app)))
         expected))]))

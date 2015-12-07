@@ -72,12 +72,15 @@
 
   (define-splicing-syntax-class struct-options
     #:description "typed structure type options"
-    #:attributes (guard mutable? transparent? prefab? ecname
+    #:attributes (guard mutable? transparent? prefab? cname ecname
                   [prop 1] [prop-val 1])
     (pattern (~seq (~or (~optional (~seq (~and #:mutable mutable?)))
                         (~optional (~seq (~and #:transparent transparent?)))
                         (~optional (~seq (~and #:prefab prefab?)))
-                        (~optional (~seq #:extra-constructor-name ecname))
+                        (~optional (~or (~and (~seq #:constructor-name cname)
+                                              (~bind [ecname #f]))
+                                        (~and (~seq #:extra-constructor-name ecname)
+                                              (~bind [cname #f]))))
                         ;; FIXME: unsound, but relied on in core libraries
                         ;; #:guard ought to be supportable with some work
                         ;; #:property is harder
@@ -132,10 +135,11 @@
                        #'nm
                        (list #'nm))
                 (fs ...)
-                ;; If there's already an extra constructor name supplied,
+                ;; If there's already a (extra) constructor name supplied,
                 ;; then Racket's `define-struct` doesn't define a `make-`
                 ;; constructor either so don't pass anything extra.
-                #,@(if (attribute opts.ecname)
+                #,@(if (or (attribute opts.cname)
+                           (attribute opts.ecname))
                        null
                        (list #'#:extra-constructor-name
                              (second (build-struct-names #'nm.name null #t #t))))
@@ -147,6 +151,9 @@
         opts:struct-options)
      (let ([mutable? (if (attribute opts.mutable?) #'(#:mutable) #'())]
            [prefab? (if (attribute opts.prefab?) #'(#:prefab) #'())]
+           [maker (if (attribute opts.cname)
+                      #`(#:maker #,(attribute opts.cname))
+                      #'())]
            [extra-maker (if (attribute opts.ecname)
                             #`(#:extra-maker #,(attribute opts.ecname))
                             #'())])
@@ -158,6 +165,7 @@
                                     nm.old-spec (fs.form ...)
                                     #,@mutable?
                                     #,@prefab?
+                                    #,@maker
                                     #,@extra-maker))])
          #'(begin d-s dtsi)))]))
 

@@ -382,7 +382,9 @@ those functions.
 (struct maybe-type-vars name-spec ([f : t] ...) options ...)
 ([maybe-type-vars code:blank (v ...)]
  [name-spec name (code:line name parent)]
- [options #:transparent #:mutable #:prefab])]{
+ [options #:transparent #:mutable #:prefab
+          (code:line #:constructor-name constructor-id)
+          (code:line #:extra-constructor-name constructor-id)])]{
  Defines a @rtech{structure} with the name @racket[name], where the
  fields @racket[f] have types @racket[t], similar to the behavior of @|struct-id|
  from @racketmodname[racket/base].

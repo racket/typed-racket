@@ -39,6 +39,7 @@
        (tc/struct (attribute t.tvars) #'t.nm (syntax->list #'(t.fields ...)) (syntax->list #'(t.types ...))
                   #:mutable (attribute t.mutable)
                   #:maker (attribute t.maker)
+                  #:extra-maker (attribute t.extra-maker)
                   #:type-only (attribute t.type-only)
                   #:prefab? (attribute t.prefab))]
       [t:typed-struct/exec

@@ -3,7 +3,7 @@
 @begin[(require "../utils.rkt" scribble/eval)
        (require (for-label (only-meta-in 0 [except-in typed/racket for])))]
 
-@(define the-top-eval (make-base-eval))
+@(define the-top-eval (make-base-eval #:lang 'typed/racket))
 @(define-syntax-rule (ex . args)
    (examples #:eval the-top-eval . args))
 
@@ -27,6 +27,13 @@ The @racket[constructor] is defined as a function that takes a value of type
 @racket[t] and produces a value of the new type @racket[name].
 A @racket[define-new-subtype] definition is only allowed at the top level of a
 file or module.
+
+This is purely a type-level distinction, with no way to distinguish the new type
+from the base type at runtime. Predicates made by @racket[make-predicate]
+won't be able distinguish them properly, so they will return true for all values
+that the base type's predicate would return true for. This is usually not what
+you want, so you shouldn't use @racket[make-predicate] with these types.
+
 @ex[(module m typed/racket
       (provide Radians radians f)
       (define-new-subtype Radians (radians Real))

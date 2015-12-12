@@ -1,7 +1,7 @@
 #lang scribble/manual
 
 @(require "../utils.rkt"
-          scribble/eval
+          scribble/examples
           (for-label (only-meta-in 0 typed/racket)))
 
 @(define the-eval (make-base-eval))
@@ -100,7 +100,7 @@ function:
 @margin-note{For general information on Racket's contract system
 , see @secref[#:doc '(lib "scribblings/guide/guide.scrbl")]{contracts}.}
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
 (module increment racket
   (provide increment)
 
@@ -110,7 +110,7 @@ function:
 
 and a typed module that uses it:
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
 (module client typed/racket
 
   (require/typed 'increment [increment (-> Integer Integer)])
@@ -127,7 +127,7 @@ strings.
 
 On the other hand, when the program is run:
 
-@interaction[#:eval the-eval (require 'client)]
+@examples[#:label #f #:eval the-eval (eval:error (require 'client))]
 
 we find that the contract system checks the assumption made by the typed
 module and correctly finds that the assumption failed because of the

@@ -2,7 +2,7 @@
 
 @begin[(require "../utils.rkt"
                 "numeric-tower-pict.rkt"
-                scribble/eval
+                scribble/examples
                 racket/sandbox)
        (require (for-label (only-meta-in 0 [except-in typed/racket for])
                            racket/async-channel))]
@@ -722,7 +722,7 @@ functions and continuation mark functions.
   @ex[
     (: my-list Procedure)
     (define my-list list)
-    (my-list "zwiebelkuchen" "socca")
+    (eval:error (my-list "zwiebelkuchen" "socca"))
   ]
 }
 

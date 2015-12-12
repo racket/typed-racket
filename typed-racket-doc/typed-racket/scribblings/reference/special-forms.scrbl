@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@begin[(require "../utils.rkt" scribble/eval racket/sandbox)
+@begin[(require "../utils.rkt" scribble/examples racket/sandbox)
        (require (for-label (only-meta-in 0 [except-in typed/racket])
                            (only-in racket/base)))]
 
@@ -417,7 +417,7 @@ structure type cannot extend a prefab structure type.
 @ex[
   (struct a-prefab ([x : String]) #:prefab)
   (:type a-prefab)
-  (struct not-allowed a-prefab ())
+  (eval:error (struct not-allowed a-prefab ()))
 ]
 }
 
@@ -468,8 +468,8 @@ back to itself.
 However, the recursive reference may not occur immediately inside
 the type:
 
-@ex[(define-type Foo Foo)
-    (define-type Bar (U Bar False))]
+@ex[(eval:error (define-type Foo Foo))
+    (eval:error (define-type Bar (U Bar False)))]
 }
 
 @section{Generating Predicates Automatically}
@@ -526,7 +526,7 @@ returned by @racket[e], protected by a contract ensuring that it has type
 @racket[t]. This is legal only in expression contexts.
 
 @ex[(cast 3 Integer)
-(cast 3 String)
+(eval:error (cast 3 String))
 (cast (lambda: ([x : Any]) x) (String -> String))
 ]
 }

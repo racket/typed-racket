@@ -675,6 +675,7 @@ but provides additional annotations to assist the typechecker.
   prompt tag. If the wrapped value is used in untyped code, a contract error
   will be raised.
 
+  @;{
   @ex[
     (module typed typed/racket
       (provide do-abort)
@@ -692,7 +693,7 @@ but provides additional annotations to assist the typechecker.
         (code:comment "the function cannot be passed an argument")
         (λ (f) (f 3))))
     (require 'untyped)
-  ]
+  ]}
 }
 
 @defform[(#%module-begin form ...)]{

@@ -1,7 +1,7 @@
 #lang scribble/manual
 
 @begin[(require "../utils.rkt"
-		scribble/core scribble/eval
+		scribble/core scribble/example
 		(for-label (only-meta-in 0 typed/racket)))]
 
 @(define the-eval (make-base-eval))
@@ -18,7 +18,7 @@ fails.
 
 To illustrate, consider the following code:
 
-@racketblock+eval[#:eval the-eval
+@examples[#:no-result #:eval the-eval
   (: flexible-length (-> (U String (Listof Any)) Integer))
   (define (flexible-length str-or-lst)
     (if (string? str-or-lst)
@@ -64,7 +64,7 @@ information is gained when a predicate check succeeds or fails.
 
 For example, consider the REPL's type printout for @racket[string?]:
 
-@interaction[#:eval the-eval string?]
+@examples[#:label #f #:eval the-eval string?]
 
 The type @racket[(-> Any Boolean : String)] has three parts. The first
 two are the same as any other function type and indicate that the
@@ -93,7 +93,7 @@ control flow constructs that are present in Racket such as
 For example, the @racket[_flexible-length] function from earlier can
 be re-written to use @racket[cond] with no additional effort:
 
-@racketblock+eval[#:eval the-eval
+@examples[#:no-result #:eval the-eval
   (: flexible-length/cond (-> (U String (Listof Any)) Integer))
   (define (flexible-length/cond str-or-lst)
     (cond [(string? str-or-lst) (string-length str-or-lst)]
@@ -104,13 +104,13 @@ In some cases, the type system does not have enough information or is
 too conservative to typecheck an expression. For example, consider
 the following interaction:
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
 (: a Positive-Integer)
 (define a 15)
 (: b Positive-Integer)
 (define b 20)
 (: c Positive-Integer)
-(define c (- b a))
+(eval:error (define c (- b a)))
 ]
 
 In this case, the type system only knows that @racket[_a] and
@@ -119,7 +119,7 @@ difference will always be positive in defining @racket[_c].  In cases
 like this, occurrence typing can be used to make the code type-check
 using an @emph{assertion}. For example,
 
-@racketblock+eval[#:eval the-eval
+@examples[#:no-result #:eval the-eval
 (: d Positive-Integer)
 (define d (assert (- b a) positive?))
 ]
@@ -133,7 +133,7 @@ Note that @racket[assert] is a derived concept in Typed Racket and is
 a natural consequence of occurrence typing. The assertion above is
 essentially equivalent to the following:
 
-@racketblock+eval[#:eval the-eval
+@examples[#:no-result #:eval the-eval
 (: e Positive-Integer)
 (define e (let ([diff (- b a)])
             (if (positive? diff)
@@ -165,7 +165,7 @@ by let-expressions alias other values (e.g. when they alias non-mutated identifi
 This allows programs which explicitly rely on occurrence typing and aliasing to 
 typecheck:
 
-@racketblock+eval[#:eval the-eval
+@examples[#:no-result #:eval the-eval
 (: f (Any -> Number))
 (define (f x) 
   (let ([y x])
@@ -180,7 +180,7 @@ typecheck:
 It also allows the typechecker to check programs which use macros 
 that heavily rely on let-bindings internally (such as @racket[match]):
 
-@racketblock+eval[#:eval the-eval
+@examples[#:no-result #:eval the-eval
 (: g (Any -> Number))
 (define (g x) 
   (match x

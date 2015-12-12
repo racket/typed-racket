@@ -1,7 +1,7 @@
 #lang scribble/manual
 
 @(require "../utils.rkt"
-          scribble/eval
+          scribble/example
           (for-label (only-meta-in 0 typed/racket)))
 
 @(define the-eval (make-base-eval))
@@ -38,19 +38,19 @@ on higher-order arguments that are themselves polymorphic.
 For example, the following program results in a type error
 that demonstrates this limitation:
 
-@interaction[#:eval the-eval
-  (map cons '(a b c d) '(1 2 3 4))
+@examples[#:label #f #:eval the-eval
+  (eval:error (map cons '(a b c d) '(1 2 3 4)))
 ]
 
 The issue is that the type of @racket[cons] is also polymorphic:
 
-@interaction[#:eval the-eval cons]
+@examples[#:label #f #:eval the-eval cons]
 
 To make this expression type-check, the @racket[inst] form can
 be used to instantiate the polymorphic argument (e.g., @racket[cons])
 at a specific type:
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
   (map (inst cons Symbol Integer) '(a b c d) '(1 2 3 4))
 ]
 
@@ -69,10 +69,11 @@ fixed in a future release.
 The following illustrates an example type that cannot be
 converted to a contract:
 
-@interaction[#:eval the-eval
-  (require/typed racket/base
-    [object-name (case-> (-> Struct-Type-Property Symbol)
-                         (-> Regexp (U String Bytes)))])
+@examples[#:label #f #:eval the-eval
+  (eval:error
+   (require/typed racket/base
+     [object-name (case-> (-> Struct-Type-Property Symbol)
+                          (-> Regexp (U String Bytes)))]))
 ]
 
 This function type by cases is a valid type, but a corresponding
@@ -83,7 +84,7 @@ supported with dependent contracts.
 A more approximate type will work for this case, but with a loss
 of type precision at use sites:
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
   (require/typed racket/base
     [object-name (-> (U Struct-Type-Property Regexp)
                      (U String Bytes Symbol))])
@@ -94,8 +95,8 @@ Use of @racket[define-predicate] also involves contract generation, and
 so some types cannot have predicates generated for them. The following
 illustrates a type for which a predicate can't be generated:
 
-@interaction[#:eval the-eval
-  (define-predicate p? (All (A) (Listof A)))]
+@examples[#:label #f #:eval the-eval
+  (eval:error (define-predicate p? (All (A) (Listof A))))]
 
 @section{Unsupported features}
 
@@ -109,7 +110,7 @@ To make programming with invariant type constructors (such as @racket[Boxof])
 easier, Typed Racket generalizes types that are used as arguments to invariant
 type constructors. For example:
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
   0
   (define b (box 0))
   b
@@ -123,7 +124,7 @@ initialize it with @racket[0]. Type generalization does exactly that.
 
 In some cases, however, type generalization can lead to unexpected results:
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
   (box (ann 1 Fixnum))
 ]
 
@@ -131,7 +132,7 @@ The intent of this code may be to create of box of @racket[Fixnum], but Typed
 Racket will generalize it anyway. To create a box of @racket[Fixnum], the box
 itself should have a type annotation:
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
   (ann (box 1) (Boxof Fixnum))
   ((inst box Fixnum) 1)
 ]
@@ -146,22 +147,24 @@ occur inside macros---are not checked.
 Concretely, this means that expressions inside, for example, a
 @racket[begin-for-syntax] block are not checked:
 
-@interaction[#:eval the-eval
-  (begin-for-syntax (+ 1 "foo"))
+@examples[#:label #f #:eval the-eval
+  (eval:error (begin-for-syntax (+ 1 "foo")))
 ]
 
 Similarly, expressions inside of macros defined in Typed Racket are
 not type-checked. On the other hand, the macro's expansion is always
 type-checked:
 
-@defs+int[#:eval the-eval
-  ((define-syntax (example-1 stx)
+@examples[#:label #f #:eval the-eval
+  (eval:no-prompt
+   (define-syntax (example-1 stx)
      (+ 1 "foo")
-     #'1)
+     #'1))
+  (eval:no-prompt
    (define-syntax (example-2 stx)
      #'(+ 1 "foo")))
-  (example-1)
-  (example-2)
+  (eval:error (example-1))
+  (eval:error (example-2))
 ]
 
 Note that functions defined in Typed Racket that are used at

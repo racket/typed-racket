@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@begin[(require "../utils.rkt" scribble/eval racket/sandbox)
+@begin[(require "../utils.rkt" scribble/example racket/sandbox)
        (require (for-label (only-meta-in 0 [except-in typed/racket for]))
        (for-label (only-in racket/unit tag unit/c)))]
 
@@ -290,11 +290,12 @@ not present in the signature environment.
   (define-signature a^ (a1))
   (define-signature a-sub^ extends a^ (a2)))
 
-(module TYPED-2 typed/racket
-  (require/typed 'UNTYPED-2
-                 [#:signature a-sub^
-		   ([a1 : Integer]
-		    [a2 : String])]))]
+(eval:error
+ (module TYPED-2 typed/racket
+   (require/typed 'UNTYPED-2
+                  [#:signature a-sub^
+                    ([a1 : Integer]
+                     [a2 : String])])))]
 
 
 Requiring a signature from an untyped module that contains variable definitions is an error
@@ -305,11 +306,12 @@ in Typed Racket.
   (provide bad^)
   (define-signature bad^ (bad (define-values (bad-ref) (car bad)))))
 
-(module TYPED typed/racket
-  (require/typed 'UNTYPED
-                 [#:signature bad^
-		   ([bad : (Pairof Integer Integer)]
-		    [bad-ref : Integer])]))]
+(eval:error
+ (module TYPED typed/racket
+   (require/typed 'UNTYPED
+                  [#:signature bad^
+                    ([bad : (Pairof Integer Integer)]
+                     [bad-ref : Integer])])))]
 
 
 
@@ -331,9 +333,10 @@ signature that contains definitions in a typed module will result in an error.
 @ex[(module UNTYPED racket
       (provide bad^)
       (define-signature bad^ ((define-values (bad) 13))))
-    (module TYPED typed/racket
-      (require/typed 'UNTYPED
-                     [#:signature bad^ ([bad : Integer])]))]
+    (eval:error
+     (module TYPED typed/racket
+       (require/typed 'UNTYPED
+                      [#:signature bad^ ([bad : Integer])])))]
 
 @subsection{Contracts and Unit Static Information}
 Unit values that flow between typed and untyped contexts are wrapped in
@@ -347,10 +350,11 @@ becoming inaccessible.
 (module UNTYPED racket
   (provide u@)
   (define-unit u@ (import) (export) "Hello!"))
-(module TYPED typed/racket
-  (require/typed 'UNTYPED
-                 [u@ (Unit (import) (export) String)])
-  (invoke-unit/infer u@))]
+(eval:error
+ (module TYPED typed/racket
+   (require/typed 'UNTYPED
+                  [u@ (Unit (import) (export) String)])
+   (invoke-unit/infer u@)))]
 
 When an identifier bound to static unit information flows from a typed module to
 an untyped module, however, the situation is worse. Because unit static
@@ -361,9 +365,10 @@ typed unit is disallowed in untyped contexts.
 (module TYPED typed/racket
   (provide u@)
   (define-unit u@ (import) (export) "Hello!"))
-(module UNTYPED racket
-  (require 'TYPED)
-  u@)]
+(eval:error
+ (module UNTYPED racket
+   (require 'TYPED)
+   u@))]
 
 @subsection{Signatures and Internal Definition Contexts}
 Typed Racket's @racket[define-signature] form is allowed in both top-level and
@@ -371,13 +376,14 @@ internal definition contexts. As the following example shows, defining
 signatures in internal definiition contexts can be problematic.
 
 @ex[
-(module TYPED typed/racket
-  (define-signature a^ ())
-  (define u@
-    (let ()
-      (define-signature a^ ())
-      (unit (import a^) (export) (init-depend a^) 5)))
-  (invoke-unit u@ (import a^)))]
+(eval:error
+ (module TYPED typed/racket
+   (define-signature a^ ())
+   (define u@
+     (let ()
+       (define-signature a^ ())
+       (unit (import a^) (export) (init-depend a^) 5)))
+   (invoke-unit u@ (import a^))))]
 
   Even though the unit imports a signature named @racket[a^], the @racket[a^]
 provided for the import refers to the top-level @racket[a^] signature and the

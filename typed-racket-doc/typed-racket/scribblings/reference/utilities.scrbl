@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@begin[(require "../utils.rkt" scribble/eval racket/sandbox)
+@begin[(require "../utils.rkt" scribble/example racket/sandbox)
        (require (for-label (only-meta-in 0 [except-in typed/racket for])
                            typed/untyped-utils))]
 
@@ -30,7 +30,7 @@ x
 (define: y : (U String Symbol) "hello")
 y
 (assert y string?)
-(assert y boolean?)]
+(eval:error (assert y boolean?))]
 
 @defform*/subs[[(with-asserts ([id maybe-pred] ...) body ...+)]
               ([maybe-pred code:blank
@@ -64,10 +64,11 @@ the error message.
      #`(cond clause ... [else (typecheck-fail #,stx "incomplete coverage"
                                               #:covered-id x)])]))
 
-(define: (f [x  : (U String Integer)]) : Boolean
-  (cond* x
-         [(string? x) #t]
-         [(exact-nonnegative-integer? x) #f]))
+(eval:error
+ (define: (f [x  : (U String Integer)]) : Boolean
+   (cond* x
+          [(string? x) #t]
+          [(exact-nonnegative-integer? x) #f])))
 ]
 
 }

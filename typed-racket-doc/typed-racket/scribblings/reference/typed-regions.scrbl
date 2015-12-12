@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@begin[(require "../utils.rkt" scribble/eval racket/sandbox)
+@begin[(require "../utils.rkt" scribble/example racket/sandbox)
        (require (for-label (only-meta-in 0 [except-in typed/racket for])))]
 
 @(define the-eval (make-base-eval))
@@ -35,19 +35,21 @@ have the types ascribed to them; these types are converted to contracts and chec
 @examples[#:eval the-eval
 (with-type #:result Number 3)
 
-((with-type #:result (Number -> Number)
-   (lambda: ([x : Number]) (add1 x)))
- #f)
+(eval:error
+ ((with-type #:result (Number -> Number)
+    (lambda: ([x : Number]) (add1 x)))
+  #f))
 
 (let ([x "hello"])
   (with-type #:result String
     #:freevars ([x String])
     (string-append x ", world")))
 
-(let ([x 'hello])
-  (with-type #:result String
-    #:freevars ([x String])
-    (string-append x ", world")))
+(eval:error
+ (let ([x 'hello])
+   (with-type #:result String
+     #:freevars ([x String])
+     (string-append x ", world"))))
 
 (with-type ([fun (Number -> Number)]
             [val Number])

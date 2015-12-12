@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@begin[(require "../utils.rkt" scribble/eval racket/sandbox)
+@begin[(require "../utils.rkt" scribble/example racket/sandbox)
        (require (for-label (only-meta-in 0 [except-in typed/racket for])))]
 
 @(define the-eval (make-base-eval))
@@ -127,9 +127,10 @@ additional provides all other bindings from @racketmodname[racket/class].
   class form's clauses) are restricted.
 
   @ex[
-    (class object%
-      (code:comment "Note the missing `super-new`")
-      (init-field [x : Real 0] [y : Real 0]))
+    (eval:error
+     (class object%
+       (code:comment "Note the missing `super-new`")
+       (init-field [x : Real 0] [y : Real 0])))
   ]
 
   If any identifier with an optional type annotation is left without an

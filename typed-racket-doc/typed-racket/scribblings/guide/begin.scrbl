@@ -1,6 +1,7 @@
 #lang scribble/manual
 
-@begin[(require (for-label (only-meta-in 0 typed/racket)) scribble/eval
+@begin[(require (for-label (only-meta-in 0 typed/racket))
+                scribble/example
                 "../utils.rkt" (only-in "quick.scrbl" typed-mod))]
 
 @(define the-eval (make-base-eval))
@@ -23,7 +24,7 @@ are provided as well; for example, the
 @racketmodname[typed/racket/base] language corresponds to
 @racketmodname[racket/base].
 
-@racketblock+eval[#:eval the-eval (struct pt ([x : Real] [y : Real]))]
+@examples[#:no-result #:eval the-eval (struct pt ([x : Real] [y : Real]))]
 
 @margin-note{Typed Racket provides modified versions of core Racket forms,
 which permit type annotations. Previous versions of Typed Racket provided
@@ -38,7 +39,7 @@ This defines a new structure, named @racket[pt], with two fields,
 @racketmodname[racket] to @racketmodname[typed/racket], simply add
 type annotations to existing field declarations.
 
-@racketblock+eval[#:eval the-eval (: distance (-> pt pt Real))]
+@examples[#:no-result #:eval the-eval (: distance (-> pt pt Real))]
 
 This declares that @racket[distance] has the type @racket[(-> pt pt Real)].
 @;{@racket[distance] must be defined at the top-level of the module containing
@@ -54,7 +55,7 @@ function type, in this case @racket[Real].
 If you are familiar with @rtech{contracts}, the notation for function
 types is similar to function contract combinators.
 
-@racketblock+eval[#:eval the-eval
+@examples[#:no-result #:eval the-eval
 (define (distance p1 p2)
   (sqrt (+ (sqr (- (pt-x p2) (pt-x p1)))
            (sqr (- (pt-y p2) (pt-y p1))))))
@@ -71,14 +72,14 @@ the program is accepted.
 In the Typed Racket @gtech{REPL}, calling @racket[distance] will
 show the result as usual and will also print the result's type:
 
-@interaction[#:eval the-eval (distance (pt 0 0) (pt 3.1415 2.7172))]
+@examples[#:label #f #:eval the-eval (distance (pt 0 0) (pt 3.1415 2.7172))]
 
 Just evaluating the function name will print the function value and its type,
 which can be useful for discovering the types that Typed Racket ascribes to
 Racket functions. Alternatively, the @racket[:print-type] command will just
 print the type:
 
-@interaction[#:eval the-eval distance string-length (:print-type string-ref)]
+@examples[#:label #f #:eval the-eval distance string-length (:print-type string-ref)]
 
 @section{Datatypes and Unions}
 
@@ -141,14 +142,14 @@ When Typed Racket detects a type error in the module, it raises an
 error before running the program.
 
 @examples[#:eval the-eval
-(add1 "not a number")
+(eval:error (add1 "not a number"))
 ]
 
 @;{
 Typed Racket also attempts to detect more than one error in the module.
 
 @examples[#:eval the-eval
-(string-append "a string" (add1 "not a number"))
+(eval:error (string-append "a string" (add1 "not a number")))
 ]
 }
 

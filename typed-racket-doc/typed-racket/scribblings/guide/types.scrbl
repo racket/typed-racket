@@ -1,7 +1,7 @@
 #lang scribble/manual
 
 @begin[(require "../utils.rkt"
-		scribble/core scribble/eval
+		scribble/core scribble/example
 		(for-label (only-meta-in 0 typed/racket)))]
 
 @(define the-eval (make-base-eval))
@@ -18,7 +18,7 @@ The most basic types in Typed Racket are those for primitive data,
 such as @racket[True] and @racket[False] for booleans, @racket[String]
 for strings, and @racket[Char] for characters.
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
 '"hello, world"
 #\f
 #t
@@ -27,14 +27,14 @@ for strings, and @racket[Char] for characters.
 Each symbol is given a unique type containing only that symbol.  The
 @racket[Symbol] type includes all symbols.
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
 'foo
 'bar]
 
 Typed Racket also provides a rich hierarchy for describing particular
 kinds of numbers.
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
 0
 -7
 14
@@ -43,7 +43,7 @@ kinds of numbers.
 
 Finally, any value is itself a type:
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
 (ann 23 23)]
 
 @section{Function Types}
@@ -65,7 +65,7 @@ one argument, and produces  @rtech{multiple values}, of types
 @racket[String] and @racket[Natural].  Here are example functions for
 each of these types.
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
 (lambda ([x : Number]) x)
 (lambda ([a : String] [b : String]) (equal? a b))
 (lambda ([c : Char]) (values (string c) (char->integer c)))]
@@ -106,7 +106,7 @@ The result is two values of type @racket[Number].
 Sometimes a value can be one of several types.  To specify this, we
 can use a union type, written with the type constructor @racket[U].
 
-@interaction[#:eval the-eval
+@examples[#:label #f #:eval the-eval
 (let ([a-number 37])
   (if (even? a-number)
       'yes
@@ -141,9 +141,9 @@ type defintion could also be written like this.
 Of course, types which directly refer to themselves are not
 permitted. For example, both of these definitions are illegal.
 
-@interaction[#:eval the-eval
-(define-type BinaryTree BinaryTree)
-(define-type BinaryTree (U Number BinaryTree))]
+@examples[#:label #f #:eval the-eval
+(eval:error (define-type BinaryTree BinaryTree))
+(eval:error (define-type BinaryTree (U Number BinaryTree)))]
 
 @section{Structure Types}
 

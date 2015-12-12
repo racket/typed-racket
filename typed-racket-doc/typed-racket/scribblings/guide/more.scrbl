@@ -1,7 +1,7 @@
 #lang scribble/manual
 
 @begin[(require "../utils.rkt"
-                scribble/core scribble/eval
+                scribble/core scribble/example
                 (for-label (only-meta-in 0 typed/racket)
                            (prefix-in base: racket)))]
 
@@ -127,8 +127,8 @@ This ensures that the expression, here @racket[(+ 7 1)], has the
 desired type, here @racket[Number].  Otherwise, the type checker
 signals an error.  For example:
 
-@interaction[#:eval the-eval
-(ann "not a number" Number)]
+@examples[#:label #f #:eval the-eval
+(eval:error (ann "not a number" Number))]
 
 @section{Type Inference}
 

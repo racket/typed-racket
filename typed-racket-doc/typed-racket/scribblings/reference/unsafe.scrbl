@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@(require scribble/eval
+@(require scribble/example
           (for-label (only-meta-in 0 [except-in typed/racket for])))
 
 @(define eval (make-base-eval))
@@ -55,7 +55,7 @@ behavior and may even crash Typed Racket.
       (code:comment "bad call that's unchecked")
       (f "foo"))
 
-    (require 'u)
+    (eval:error (require 'u))
   ]
 
   @history[#:added "1.3"]

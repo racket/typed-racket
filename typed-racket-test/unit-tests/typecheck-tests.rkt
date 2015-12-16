@@ -3835,6 +3835,9 @@
        [tc-e (for*/fold: ((xs : (Listof Symbol) '())) ((x '(a b c)))
                (cons x xs))
              (-lst -Symbol)]
+
+       [tc-e (ann (in-hash (hash)) (Sequenceof Any Any))
+             (-seq Univ Univ)]
        )
 
   (test-suite

@@ -187,7 +187,6 @@
 [Pairof (-poly (a b) (-pair a b))]
 [MPairof (-poly (a b) (-mpair a b))]
 [MListof (-poly (a) (-mlst a))]
-[Sequenceof (-poly (a) (-seq a))]
 [Thread-Cellof (-poly (a) (-thread-cell a))]
 [Custodian-Boxof (-poly (a) (make-CustodianBox a))]
 

@@ -402,6 +402,7 @@
    [FAIL (Unit (init-depend) String)]
    [FAIL (Unit (import bad) (export) String)]
    [FAIL (Unit (import) (export bad) String)]
+   [(Sequenceof Any Any) (-seq Univ Univ)]
    ))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

@@ -108,6 +108,7 @@
 (define-literal-syntax-class #:for-label Top)
 (define-literal-syntax-class #:for-label Bot)
 (define-literal-syntax-class #:for-label Distinction)
+(define-literal-syntax-class #:for-label Sequenceof)
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
@@ -483,6 +484,8 @@
         #:stx stx
         (~a (syntax-e #'p) " expects one or two type arguments, given "
             (sub1 (length (syntax->list #'(args ...))))))]
+      [(:Sequenceof^ t ...)
+       (apply -seq (parse-types #'(t ...)))]
       ;; curried function notation
       [((~and dom:non-keyword-ty (~not :->^)) ...
         :->^

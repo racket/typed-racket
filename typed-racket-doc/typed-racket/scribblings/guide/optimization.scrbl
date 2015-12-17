@@ -1,7 +1,6 @@
 #lang scribble/manual
 
 @begin[(require (for-label (only-meta-in 0 typed/racket))
-                scribble/eval racket/sandbox
 		"../utils.rkt" (only-in "quick.scrbl" typed-mod))]
 
 @title[#:tag "optimization"]{Optimization in Typed Racket}

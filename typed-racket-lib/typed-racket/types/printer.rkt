@@ -440,7 +440,7 @@
     [(Base: n cnt _ _) n]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]
     [(Struct: nm       par (list (fld: t _ _) ...)       proc _ _)
-     `#(,(string->symbol (format "struct:~a" nm))
+     `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
         ,(map t->s t)
         ,@(if proc (list (t->s proc)) null))]
     [(Function: arities)

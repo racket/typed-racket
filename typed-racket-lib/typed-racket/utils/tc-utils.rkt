@@ -5,7 +5,7 @@ This file is for utilities that are only useful for Typed Racket, but
 don't depend on any other portion of the system
 |#
 
-(require syntax/source-syntax "disappeared-use.rkt"
+(require syntax/source-syntax "disappeared-use.rkt" racket/list
          racket/promise racket/string racket/lazy-require
          syntax/parse/pre (for-syntax racket/base syntax/parse/pre))
 
@@ -121,7 +121,7 @@ don't depend on any other portion of the system
     (raise-typecheck-error (err-msg f) (err-stx f))))
 
 (define (report-all-errors)
-  (define l (reverse delayed-errors))
+  (define l (remove-duplicates (reverse delayed-errors)))
   (cond [(null? l) (void)]
         ;; if there's only one, we don't need multiple-error handling
         [(null? (cdr l))

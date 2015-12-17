@@ -95,7 +95,10 @@
     (good-opt (- 0+0i 0.0+0.0i))
 
     ;; Conjugate should correctly compute sign of 0.0
-    (good-opt (conjugate 0.0+0.0i))))
+    (good-opt (conjugate 0.0+0.0i))
+
+    ;; Magnitude should always return positive results
+    (good-opt (magnitude -1.0-2i))))
 
 (module+ main
   (require rackunit/text-ui)

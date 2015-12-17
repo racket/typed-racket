@@ -1,10 +1,10 @@
 #lang racket/base
 
 (require rackunit rackunit/text-ui racket/file
-         mzlib/etc racket/port
+         racket/port
          compiler/compiler setup/setup racket/promise
          racket/match syntax/modcode
-         racket/promise
+         racket/promise racket/runtime-path
          "unit-tests/all-tests.rkt"
          "unit-tests/test-utils.rkt"
          "optimizer/run.rkt"
@@ -43,9 +43,11 @@
       [_
        (exn-matches ".*Type Checker.*" exn:fail:syntax?)])))
 
+(define-runtime-path src-dir ".")
+
 (define (mk-tests dir test #:error [error? #f])
   (lambda ()
-    (define path (build-path (this-expression-source-directory) dir))
+    (define path (build-path src-dir dir))
     (define prms
       (for/list ([p (directory-list path)]
                  #:when (scheme-file? p)

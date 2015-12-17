@@ -17,7 +17,7 @@
   racket/logging
   racket/private/stx
   (only-in mzscheme make-namespace)
-  (only-in racket/match/runtime match:error matchable? match-equality-test))
+  (only-in racket/match/runtime match:error matchable? match-equality-test syntax-srclocs))
  "base-structs.rkt"
  racket/file
  (only-in racket/private/pre-base new-apply-proc)
@@ -1173,6 +1173,7 @@
 ;[match:error (Univ . -> . (Un))]
 [match-equality-test (-Param (Univ Univ . -> . Univ) (Univ Univ . -> . Univ))]
 [matchable? (make-pred-ty (Un -String -Bytes))]
+[syntax-srclocs (Univ . -> . Univ)]
 
 ;; Section 10.1
 [values (-polydots (a b) (cl->*
@@ -2971,7 +2972,9 @@
 [will-try-execute (-> -Will-Executor ManyUniv)]
 
 ;; Section 16.4
-[collect-garbage (-> -Void)]
+[collect-garbage (cl->*
+                  (-> -Void)
+                  (-> (Un (-val 'minor) (-val 'major) (-val 'incremental)) -Void))]
 [current-memory-use (-> -Nat)]
 [dump-memory-stats (-> Univ)]
 

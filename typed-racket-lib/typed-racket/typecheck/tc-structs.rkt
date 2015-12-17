@@ -35,10 +35,11 @@
 ;; type-name : Id
 ;; struct-type : Id
 ;; constructor : Id
+;; extra-constructor : (Option Id)
 ;; predicate : Id
 ;; getters : Listof[Id]
 ;; setters : Listof[Id] or #f
-(struct struct-names (type-name struct-type constructor predicate getters setters) #:transparent)
+(struct struct-names (type-name struct-type constructor extra-constructor predicate getters setters) #:transparent)
 
 ;;struct-fields: holds all the relevant information about a struct type's types
 (struct struct-desc (parent-fields self-fields tvars mutable proc-ty) #:transparent)
@@ -79,9 +80,8 @@
 ;; generate struct names given type name, field names
 ;; and optional constructor name
 ;; all have syntax loc of name
-;; identifier listof[identifier] Option[identifier] ->
-;;   (values identifier identifier list[identifier] list[identifier])
-(define (get-struct-names nm flds maker*)
+;; identifier listof[identifier] Option[identifier] -> struct-names
+(define (get-struct-names nm flds maker* extra-maker)
   (define (split l)
     (let loop ([l l] [getters '()] [setters '()])
       (if (null? l)
@@ -90,7 +90,7 @@
   (match (build-struct-names nm flds #f #f nm #:constructor-name maker*)
     [(list sty maker pred getters/setters ...)
      (let-values ([(getters setters) (split getters/setters)])
-       (struct-names nm sty maker pred getters setters))]))
+       (struct-names nm sty maker extra-maker pred getters setters))]))
 
 ;; gets the fields of the parent type, if they exist
 ;; Option[Struct-Ty] -> Listof[Type]
@@ -192,12 +192,23 @@
             (make-def-binding s (poly-wrapper (->* (list poly-base t) -Void))))
           null))))
 
+  (define extra-constructor (struct-names-extra-constructor names))
+
   (add-struct-constructor! (struct-names-constructor names))
+  (when extra-constructor
+    (add-struct-constructor! extra-constructor))
 
   (define constructor-binding
-     (make-def-binding (struct-names-constructor names) (poly-wrapper (->* all-fields poly-base))))
+    (make-def-binding (struct-names-constructor names)
+                      (poly-wrapper (->* all-fields poly-base))))
+  (define constructor-bindings
+    (cons constructor-binding
+          (if extra-constructor
+              (list (make-def-binding extra-constructor
+                                      (poly-wrapper (->* all-fields poly-base))))
+              null)))
 
-  (for ([b (cons constructor-binding bindings)])
+  (for ([b (append constructor-bindings bindings)])
     (register-type (binding-name b) (def-binding-ty b)))
 
   (append
@@ -238,6 +249,7 @@
 (define (tc/struct vars nm/par fld-names tys
                    #:proc-ty [proc-ty #f]
                    #:maker [maker #f]
+                   #:extra-maker [extra-maker #f]
                    #:mutable [mutable #f]
                    #:type-only [type-only #f]
                    #:prefab? [prefab? #f])
@@ -265,7 +277,7 @@
   ;; create the actual structure type, and the types of the fields
   ;; that the outside world will see
   ;; then register it
-  (define names (get-struct-names nm fld-names maker))
+  (define names (get-struct-names nm fld-names maker extra-maker))
 
   (cond [prefab?
          (define-values (parent-key parent-fields)
@@ -310,7 +322,7 @@
     (and parent (resolve-name (make-Name parent 0 #t))))
   (define parent-tys (map fld-t (get-flds parent-type)))
 
-  (define names (get-struct-names nm fld-names #f))
+  (define names (get-struct-names nm fld-names #f #f))
   (define desc (struct-desc parent-tys tys null #t #f))
   (define sty (mk/inner-struct-type names desc parent-type))
 

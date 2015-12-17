@@ -61,7 +61,6 @@
 (define Type/c?
    (λ (e)
      (and (Type? e)
-          (not (Scope? e))
           (not (arr? e))
           (not (fld? e))
           (not (Values? e))
@@ -75,7 +74,6 @@
 (define Values/c?
    (λ (e)
      (and (Type? e)
-          (not (Scope? e))
           (not (arr? e))
           (not (fld? e))
           (not (ValuesDots? e))
@@ -92,19 +90,6 @@
 ;; Name = Symbol
 
 ;; Type is defined in rep-utils.rkt
-
-;; t must be a Type
-(def-type Scope ([t (or/c Type/c Scope?)]) [#:key (Type-key t)])
-
-(define (scope-depth k)
-  (flat-named-contract
-   (format "Scope of depth ~a" k)
-   (lambda (sc)
-     (define (f k sc)
-       (cond [(= 0 k) (Type/c? sc)]
-             [(not (Scope? sc)) #f]
-             [else (f (sub1 k) (Scope-t sc))]))
-     (f k sc))))
 
 ;; this is ONLY used when a type error ocurrs
 (def-type Error () [#:frees #f] [#:fold-rhs #:base])
@@ -239,48 +224,43 @@
                [(Keyword) 'keyword]
                [else #f]))])
 
-;; body is a Scope
-(def-type Mu ([body (scope-depth 1)]) #:no-provide [#:frees (λ (f) (f body))]
-  [#:fold-rhs (*Mu (*Scope (type-rec-id (Scope-t body))))]
+(def-type Mu ([body Type/c]) #:no-provide [#:frees (λ (f) (f body))]
+  [#:fold-rhs (*Mu (type-rec-id body))]
   [#:key (Type-key body)])
 
 ;; n is how many variables are bound here
-;; body is a Scope
+;; body is a type
 (def-type Poly (n body) #:no-provide
-  [#:contract (->i ([n natural-number/c]
-                    [body (n) (scope-depth n)])
+   [#:contract (->i ([n natural-number/c]
+                    [body Type/c])
                    (#:syntax [stx (or/c #f syntax?)])
                    [result Poly?])]
   [#:frees (λ (f) (f body))]
-  [#:fold-rhs (let ([body* (remove-scopes n body)])
-                (*Poly n (add-scopes n (type-rec-id body*))))]
+  [#:fold-rhs (*Poly n (type-rec-id body))]
   [#:key (Type-key body)])
 
 ;; n is how many variables are bound here
 ;; there are n-1 'normal' vars and 1 ... var
-;; body is a Scope
 (def-type PolyDots (n body) #:no-provide
   [#:contract (->i ([n natural-number/c]
-                    [body (n) (scope-depth n)])
+                    [body Type/c])
                    (#:syntax [stx (or/c #f syntax?)])
                    [result PolyDots?])]
   [#:key (Type-key body)]
   [#:frees (λ (f) (f body))]
-  [#:fold-rhs (let ([body* (remove-scopes n body)])
-                (*PolyDots n (add-scopes n (type-rec-id body*))))])
+  [#:fold-rhs (*PolyDots n (type-rec-id body))])
 
 ;; interp. A row polymorphic function type
 ;; constraints are row absence constraints, represented
 ;; as a set for each of init, field, methods
 (def-type PolyRow (constraints body) #:no-provide
   [#:contract (->i ([constraints (list/c list? list? list? list?)]
-                    [body (scope-depth 1)])
+                    [body Type/c])
                    (#:syntax [stx (or/c #f syntax?)])
                    [result PolyRow?])]
   [#:frees (λ (f) (f body))]
-  [#:fold-rhs (let ([body* (remove-scopes 1 body)])
-                (*PolyRow constraints
-                          (add-scopes 1 (type-rec-id body*))))]
+  [#:fold-rhs (*PolyRow constraints
+                        (type-rec-id body))]
   [#:key (Type-key body)])
 
 ;; pred : identifier
@@ -636,19 +616,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define (add-scopes n t)
-  (if (zero? n) t
-      (add-scopes (sub1 n) (*Scope t))))
-
-(define (remove-scopes n sc)
-  (if (zero? n)
-      sc
-      (match sc
-        [(Scope: sc*) (remove-scopes (sub1 n) sc*)]
-        [_ (int-err "Tried to remove too many scopes: ~a" sc)])))
-
-
 (define ((sub-f st) e)
   (filter-case (#:Type st
                 #:Filter (sub-f st)
@@ -673,7 +640,7 @@
               e))
 
 
-;; abstract-many : Names Type -> Scope^n
+;; abstract-many : Names Type -> Type
 ;; where n is the length of names
 (define (abstract-many names ty)
   ;; mapping : dict[Type -> Natural]
@@ -713,27 +680,23 @@
        [#:ListDots dty dbound
                    (*ListDots (sb dty)
                               (transform dbound values dbound))]
-       [#:Mu (Scope: body) (*Mu (*Scope (loop (add1 outer) body)))]
-       [#:PolyRow constraints body*
-                  (let ([body (remove-scopes 1 body*)])
-                    (*PolyRow constraints
-                              (add-scopes 1 (loop (+ 1 outer) body))))]
-       [#:PolyDots n body*
-                   (let ([body (remove-scopes n body*)])
-                     (*PolyDots n (add-scopes n (loop (+ n outer) body))))]
-       [#:Poly n body*
-               (let ([body (remove-scopes n body*)])
-                 (*Poly n (add-scopes n (loop (+ n outer) body))))])))
+       [#:Mu body (*Mu (loop (add1 outer) body))]
+       [#:PolyRow constraints body
+                  (*PolyRow constraints (loop (+ 1 outer) body))]
+       [#:PolyDots n body
+                   (*PolyDots n (loop (+ n outer) body))]
+       [#:Poly n body
+               (*Poly n (loop (+ n outer) body))])))
   (define n (length names))
   (define mapping (for/list ([nm (in-list names)]
                              [i (in-range n 0 -1)])
                     (cons nm (sub1 i))))
-  (add-scopes n (nameTo mapping ty)))
+  (nameTo mapping ty))
 
-;; instantiate-many : List[Type] Scope^n -> Type
+;; instantiate-many : List[Type] Type -> Type
 ;; where n is the length of types
 ;; all of the types MUST be Fs
-(define (instantiate-many images sc)
+(define (instantiate-many images ty)
   ;; mapping : dict[Natural -> Type]
   (define (replace mapping type)
     (let loop ([outer 0] [ty type])
@@ -770,21 +733,18 @@
        [#:ListDots dty dbound
                    (*ListDots (sb dty)
                               (transform dbound F-n dbound))]
-       [#:Mu (Scope: body) (*Mu (*Scope (loop (add1 outer) body)))]
-       [#:PolyRow constraints body*
-                  (let ([body (remove-scopes 1 body*)])
-                    (*PolyRow constraints (add-scopes 1 (loop (+ 1 outer) body))))]
-       [#:PolyDots n body*
-                   (let ([body (remove-scopes n body*)])
-                     (*PolyDots n (add-scopes n (loop (+ n outer) body))))]
-       [#:Poly n body*
-               (let ([body (remove-scopes n body*)])
-                 (*Poly n (add-scopes n (loop (+ n outer) body))))])))
+       [#:Mu body (*Mu (loop (add1 outer) body))]
+       [#:PolyRow constraints body
+                  (*PolyRow constraints (loop (+ 1 outer) body))]
+       [#:PolyDots n body
+                   (*PolyDots n (loop (+ n outer) body))]
+       [#:Poly n body
+               (*Poly n (loop (+ n outer) body))])))
   (define n (length images))
   (define mapping (for/list ([img (in-list images)]
                              [i (in-range n 0 -1)])
                     (cons (sub1 i) img)))
-  (replace mapping (remove-scopes n sc)))
+  (replace mapping ty))
 
 (define (abstract name ty)
   (abstract-many (list name) ty))
@@ -801,8 +761,8 @@
 ;; the 'smart' destructor
 (define (Mu-body* name t)
   (match t
-    [(Mu: scope)
-     (instantiate (*F name) scope)]))
+    [(Mu: body)
+     (instantiate (*F name) body)]))
 
 ;; the 'smart' constructor
 ;;
@@ -825,10 +785,10 @@
 ;; the 'smart' destructor
 (define (Poly-body* names t)
   (match t
-    [(Poly: n scope)
+    [(Poly: n body)
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-many (map *F names) scope)]))
+     (instantiate-many (map *F names) body)]))
 
 ;; the 'smart' constructor
 (define (PolyDots* names body)
@@ -840,10 +800,10 @@
 ;; the 'smart' destructor
 (define (PolyDots-body* names t)
   (match t
-    [(PolyDots: n scope)
+    [(PolyDots: n body)
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-many (map *F names) scope)]))
+     (instantiate-many (map *F names) body)]))
 
 ;; Constructor and destructor for row polymorphism
 ;;
@@ -858,15 +818,15 @@
 
 (define (PolyRow-body* names t)
   (match t
-    [(PolyRow: constraints scope)
-     (instantiate-many (map *F names) scope)]))
+    [(PolyRow: constraints body)
+     (instantiate-many (map *F names) body)]))
 
 (print-struct #t)
 
 (define-match-expander Mu-unsafe:
   (lambda (stx)
     (syntax-case stx ()
-      [(_ bp) #'(? Mu? (app (lambda (t) (Scope-t (Mu-body t))) bp))])))
+      [(_ bp) #'(? Mu? (app (lambda (t) (Mu-body t)) bp))])))
 
 (define-match-expander Poly-unsafe:
   (lambda (stx)

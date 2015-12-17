@@ -166,6 +166,7 @@
       typed-racket/utils/opaque-object
       typed-racket/utils/evt-contract
       typed-racket/utils/sealing-contract
+      typed-racket/utils/promise-not-name-contract
       racket/sequence
       racket/contract/parametric))
 

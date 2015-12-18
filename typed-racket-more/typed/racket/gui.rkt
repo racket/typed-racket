@@ -3,7 +3,8 @@
 ;; Defines a language analogous to #lang racket/gui but typed
 
 (require "gui/base.rkt"
-         typed/racket)
+         typed/racket
+         typed-racket/private/oc-button)
 
 (provide (all-from-out "gui/base.rkt")
          (all-from-out typed/racket))
@@ -20,10 +21,7 @@
   (define (make-info key default use-default)
     (case key
       [(drscheme:toolbar-buttons)
-       (with-handlers ([exn:fail:filesystem? (lambda _ '())])
-         (collection-path "optimization-coach")
-         (list (dynamic-require 'optimization-coach/tool
-                                'optimization-coach-drracket-button)))]
+       (maybe-show-OC)]
       [else (use-default key default)]))
 
   (require typed-racket/typed-reader))

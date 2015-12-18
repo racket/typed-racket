@@ -6,14 +6,11 @@ typed-scheme
 #:read-syntax r:read-syntax
 #:info make-info
 
-(require (prefix-in r: typed-racket/typed-reader))
+(require (prefix-in r: typed-racket/typed-reader)
+         typed-racket/private/oc-button)
 
 (define (make-info key default use-default)
   (case key
     [(drscheme:toolbar-buttons)
-     ;; If Optimization Coach is installed, load it.
-     (with-handlers ([exn:fail:filesystem? (lambda _ '())]) ; not found
-       (collection-path "optimization-coach")
-       (list (dynamic-require 'optimization-coach/tool
-                              'optimization-coach-drracket-button)))]
+     (maybe-show-OC)]
     [else (use-default key default)]))

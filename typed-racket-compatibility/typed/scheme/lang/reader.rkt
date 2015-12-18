@@ -7,7 +7,7 @@ typed/scheme
 #:info make-info
 #:language-info make-language-info
 
-(requie typed-racket/private/oc-button)
+(require typed-racket/private/oc-button)
 
 (define (make-info key default use-default)
   (case key

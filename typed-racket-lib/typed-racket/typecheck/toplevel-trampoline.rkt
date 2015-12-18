@@ -66,22 +66,23 @@
           (local-expand/capture* #'e 'top-level (kernel-form-identifier-list))))
        (syntax-parse head-expanded
          #:literal-sets (kernel-literals)
-         [(begin (define-values (n) _) ...
-                 (~and (~or _:ignore^ _:ignore-some^)
-                       (~not (~or _:tr:class^
-                                  _:tr:unit^
-                                  _:tr:unit:invoke^
-                                  _:tr:unit:compound^
-                                  _:tr:unit:from-context^))))
-          head-expanded]
-         ;; keep trampolining on begins
-         [(begin (define-values (n) e-rhs) ... (begin e ... e-last))
-          #`(begin (tc-toplevel-trampoline orig-stx (define-values (n) e-rhs))
-                   ...
-                   (tc-toplevel-trampoline orig-stx e) ...
-                   #,(if report?
-                         #'(tc-toplevel-trampoline/report orig-stx e-last)
-                         #'(tc-toplevel-trampoline orig-stx e-last)))]
+         ;; keep trampolining on begins, transfer syntax properties so that ignore
+         ;; properties are retained in the begin subforms
+         [(begin (define-values (n) e-rhs) ...
+                 (~and the-begin (begin e ... e-last)))
+          (define e*s
+            (for/list ([e (in-list (syntax->list #'(e ...)))])
+              (syntax-track-origin e #'the-begin #'begin)))
+          (define e-last*
+            (syntax-track-origin #'e-last #'the-begin #'begin))
+          (with-syntax ([(e ...) e*s]
+                        [e-last e-last*])
+            #`(begin (tc-toplevel-trampoline orig-stx (define-values (n) e-rhs))
+                     ...
+                     (tc-toplevel-trampoline orig-stx e) ...
+                     #,(if report?
+                           #'(tc-toplevel-trampoline/report orig-stx e-last)
+                           #'(tc-toplevel-trampoline orig-stx e-last))))]
          [_
           (define fully-expanded
             ;; a non-begin form can still cause lifts, so still have to catch them

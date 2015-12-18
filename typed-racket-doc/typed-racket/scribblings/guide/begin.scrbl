@@ -1,7 +1,7 @@
 #lang scribble/manual
 
 @begin[(require (for-label (only-meta-in 0 typed/racket))
-                scribble/examples
+                scribble/example
                 "../utils.rkt" (only-in "quick.scrbl" typed-mod))]
 
 @(define the-eval (make-base-eval))

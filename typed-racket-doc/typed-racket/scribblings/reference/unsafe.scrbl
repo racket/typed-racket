@@ -1,6 +1,6 @@
 #lang scribble/manual
 
-@(require scribble/examples
+@(require scribble/example
           (for-label (only-meta-in 0 [except-in typed/racket for])))
 
 @(define eval (make-base-eval))

@@ -2,7 +2,7 @@
 
 @begin[(require "../utils.rkt"
                 "numeric-tower-pict.rkt"
-                scribble/examples
+                scribble/example
                 racket/sandbox)
        (require (for-label (only-meta-in 0 [except-in typed/racket for])
                            racket/async-channel))]

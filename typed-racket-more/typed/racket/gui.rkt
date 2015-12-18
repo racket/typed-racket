@@ -3,8 +3,7 @@
 ;; Defines a language analogous to #lang racket/gui but typed
 
 (require "gui/base.rkt"
-         typed/racket
-         typed-racket/private/oc-button)
+         typed/racket)
 
 (provide (all-from-out "gui/base.rkt")
          (all-from-out typed/racket))
@@ -16,6 +15,8 @@
   #:language 'typed/racket/gui
   #:language-info #(typed-racket/language-info get-info ())
   #:info make-info
+
+  (require typed-racket/private/oc-button)
 
   ;; see typed/racket/lang/reader.rkt
   (define (make-info key default use-default)

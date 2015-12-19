@@ -95,9 +95,8 @@ Use of @racket[define-predicate] also involves contract generation, and
 so some types cannot have predicates generated for them. The following
 illustrates a type for which a predicate can't be generated:
 
-@; FIXME: this should have eval:error but a TR bug makes it succeed
 @examples[#:label #f #:eval the-eval
-  (define-predicate p? (All (A) (Listof A)))]
+  (eval:error (define-predicate p? (All (A) (Listof A))))]
 
 @section{Unsupported features}
 

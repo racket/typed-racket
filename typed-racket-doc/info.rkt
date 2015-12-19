@@ -10,7 +10,7 @@
                      "r6rs-lib"
                      "sandbox-lib"
                      "at-exp-lib"
-                     ("scribble-lib" #:version "1.15")
+                     ("scribble-lib" #:version "1.16")
                      "pict-lib"
                      ("typed-racket-lib" #:version "1.3")
                      "typed-racket-compatibility"

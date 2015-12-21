@@ -13,10 +13,7 @@
   (make-env
    [ru:check-around
     (-poly (a) (-> (-> a) a))]
-   ;; current-test-case-around
-   [(syntax-parse (local-expand #'(ru:test-begin 0) 'expression null)
-      #:context #'ru:test-begin
-      [(_ _ . _) #'ctca])
+   [ru:current-test-case-around
     (-poly (a) (-> (-> a) a))]))
 
 (begin-for-syntax (initialize-type-env unit-env))

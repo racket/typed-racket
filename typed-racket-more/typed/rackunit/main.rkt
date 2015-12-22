@@ -64,6 +64,11 @@
     (-> Void)
     (String -> Void))])
 
+(require/typed rackunit/log
+  [test-log! (Any -> Any)])
+(require/typed rackunit/private/check
+  [check-around (All (A) ((-> A) -> A))])
+
 ; 3.2.1
 (require-typed-struct check-info
                       ([name : Symbol] [value : Any])
@@ -90,16 +95,37 @@
 ; 3.3
 (require (prefix-in t: (except-in rackunit struct:check-info struct:exn:test struct:exn:test:check struct:test-result struct:test-failure
                                   struct:test-error struct:test-success)))
-(define-rewriter t:test-begin test-begin
-  [t:current-test-case-around current-test-case-around]
-  [t:check-around check-around]
-  [t:current-check-handler current-check-handler]
-  [t:current-check-around current-check-around])
+(define-syntax (test-begin stx)
+  (syntax-case stx ()
+    [(_ expr ...)
+     (syntax/loc stx
+       ((current-test-case-around)
+        (lambda ()
+          (with-handlers ([(λ (e)
+                             (and (exn:fail? e)
+                                  (not (exn:test? e))))
+                           (λ ([e : exn:fail])
+                             (test-log! #f)
+                             (raise e))])
+          (parameterize
+              ([current-check-handler raise]
+               [current-check-around  check-around])
+            (void)
+            expr ...)))))]
+    [_
+     (raise-syntax-error
+      #f
+      "Correct form is (test-begin expr ...)"
+      stx)]))
 
-(define-syntax-rule (test-case name expr ...)
-  (parameterize
-      ([current-test-name (ann name String)])
-    (test-begin expr ...)))
+(define-syntax (test-case stx)
+  (syntax-case stx ()
+    [(_ name expr ...)
+     (quasisyntax/loc stx
+       (parameterize
+           ([current-test-name
+             (ensure-string name (quote-syntax #,(datum->syntax #f 'loc #'name)))])
+         (test-begin expr ...)))]))
 
 (provide test-begin test-case)
 

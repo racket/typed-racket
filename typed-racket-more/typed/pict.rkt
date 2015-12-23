@@ -207,6 +207,7 @@
          (-> -pict -Real -Real -pict)
          (-> -pict -Real -Real -Real -Real -pict))]
  [black-and-white (-Param Univ -Boolean)]
+ [freeze (-> -pict -pict)]
 
  ;; 5 Bounding Box Adjusters
  [inset

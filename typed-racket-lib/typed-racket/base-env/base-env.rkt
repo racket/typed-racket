@@ -771,6 +771,8 @@
                      ((-lst b) b) . ->... .(-lst c)))]
 [append*
  (-poly (a) ((-lst (-lst a)) . -> . (-lst a)))]
+[flatten
+ (Univ . -> . (-lst Univ))]
 [permutations (-poly (a) (-> (-lst a) (-lst (-lst a))))]
 [in-permutations (-poly (a) (-> (-lst a) (-seq (-lst a))))]
 [argmin (-poly (a) ((a . -> . -Real) (-lst a) . -> . a))]

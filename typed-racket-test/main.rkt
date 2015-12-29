@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require rackunit rackunit/text-ui racket/file
-         racket/port
+         racket/port rackunit/log
          compiler/compiler setup/setup racket/promise
          racket/match syntax/modcode
          racket/promise racket/runtime-path
@@ -49,7 +49,8 @@
   (lambda ()
     (define path (build-path src-dir dir))
     (define prms
-      (for/list ([p (directory-list path)]
+      (for/list ([i (in-naturals)]
+                 [p (directory-list path)]
                  #:when (scheme-file? p)
 		 ;; skip backup files
 		 #:when (not (regexp-match #rx".*~" (path->string p))))
@@ -57,13 +58,17 @@
         (define prm (list path p 
                           (if (places)
                               (delay/thread
-                                (run-in-other-place p* error?))
+                                (begin0 (run-in-other-place p* error?)
+                                        (when (zero? (modulo i 10))
+                                          (eprintf "."))))
                               (delay 
                                 (parameterize ([read-accept-reader #t]
                                                [current-load-relative-directory path]
                                                [current-directory path]
                                                [current-output-port (open-output-nowhere)])
-                                  (dr p))))))
+                                  (begin0 (dr p)
+                                          (when (zero? (modulo i 10))
+                                            (eprintf "."))))))))
         prm))
     (define tests
       (for/list ([e prms])
@@ -166,3 +171,57 @@
          verbose?
          int-tests unit-tests compile-benchmarks compile-math
          optimization-tests missed-optimization-tests)
+
+(module+ main
+  (require racket/vector racket/gui/dynamic rackunit racket/cmdline)
+
+  (define exec (make-parameter go/text))
+  (define nightly? (make-parameter #f))
+  (define unit? (make-parameter #f))
+  (define int? (make-parameter #f))
+  (define opt? (make-parameter #f))
+  (define missed-opt? (make-parameter #f))
+  (define bench? (make-parameter #f))
+  (define math? (make-parameter #f))
+  (define single (make-parameter #f))
+  (current-namespace (make-base-namespace))
+  (command-line
+   #:once-each
+   ["-v" "verbose" (verbose? #t)]
+   ["--unit" "run the unit tests" (unit? #t)]
+   ["--int" "run the integration tests" (int? #t)]
+   ["--opt" "run the optimization tests" (opt? #t)]
+   ["--missed-opt" "run the missed optimization tests" (missed-opt? #t)]
+   ["--benchmarks" "compile the typed benchmarks" (bench? #t)]
+   ["--math" "compile the math library" (math? #t)]
+   ["--just" path "run only this test" (single (just-one path))]
+   ["--nightly" "for the nightly builds" (begin (nightly? #t) (unit? #t) (opt? #t) (missed-opt? #t) (places 1))]
+   ["--all" "run all tests" (begin (unit? #t) (int? #t) (opt? #t) (missed-opt? #t) (bench? #t) (math? #t))]
+   ["-j" num "number of places to use" 
+    (let ([n (string->number num)])
+      (places (and (integer? n) (> n 1) n)))]
+   ["--gui" "run using the gui"
+    (if (gui-available?)
+        (exec go)
+        (error "GUI not available"))])
+
+  (start-workers)
+
+  (if (and (nightly?) (eq? 'cgc (system-type 'gc)))
+      (printf "Skipping Typed Racket tests.\n")
+      (let ([to-run (cond [(single) (single)]
+                          [else
+                           (make-test-suite
+                            "Typed Racket Tests"
+                            (append (if (unit?)       (list unit-tests)                  '())
+                                    (if (int?)        (list (int-tests))                 '())
+                                    (if (opt?)        (list (optimization-tests))        '())
+                                    (if (missed-opt?) (list (missed-optimization-tests)) '())
+                                    (if (bench?)      (list (compile-benchmarks))        '())
+                                    (if (math?)       (list (compile-math))              '())))])])
+        (unless (= 0 ((exec) to-run))
+          (eprintf "Typed Racket Tests did not pass.\n")
+          (exit 1)))))
+
+;; nightly tests in `run.rkt` for drdr chart continuity
+(module test racket/base)

@@ -20,12 +20,12 @@ install:
 - raco setup typed typed-racket typed-racket-test typed-scheme
 
 script:
-- racket -l typed-racket-test/run -- --unit
-- racket -l typed-racket-test/run -- --int
-- racket -l typed-racket-test/run -- --opt
-- racket -l typed-racket-test/run -- --missed-opt
+- racket -l typed-racket-test -- --unit
+- racket -l typed-racket-test -- --int
+- racket -l typed-racket-test -- --opt
+- racket -l typed-racket-test -- --missed-opt
 - raco setup -j 1 math
-- racket -l typed-racket-test/run -- --math
+- racket -l typed-racket-test -- --math
 - racket -l typed-racket-test/test-docs-complete
 - echo "done"
 

@@ -52,8 +52,7 @@
 (define (name-of-struct stx)
   (syntax-parse stx
     [(~or t:typed-struct t:typed-struct/exec)
-     #:with nm/par:parent #'t.nm
-     #'nm/par.name]))
+     #'t.type-name]))
 
 
 ;; parse name field of struct, determining whether a parent struct was specified
@@ -81,7 +80,7 @@
 ;; and optional constructor name
 ;; all have syntax loc of name
 ;; identifier listof[identifier] Option[identifier] -> struct-names
-(define (get-struct-names nm flds maker* extra-maker)
+(define (get-struct-names type-name nm flds maker* extra-maker)
   (define (split l)
     (let loop ([l l] [getters '()] [setters '()])
       (if (null? l)
@@ -90,7 +89,7 @@
   (match (build-struct-names nm flds #f #f nm #:constructor-name maker*)
     [(list sty maker pred getters/setters ...)
      (let-values ([(getters setters) (split getters/setters)])
-       (struct-names nm sty maker extra-maker pred getters setters))]))
+       (struct-names type-name sty maker extra-maker pred getters setters))]))
 
 ;; gets the fields of the parent type, if they exist
 ;; Option[Struct-Ty] -> Listof[Type]
@@ -246,7 +245,7 @@
 ;; tc/struct : Listof[identifier] (U identifier (list identifier identifier))
 ;;             Listof[identifier] Listof[syntax]
 ;;             -> void
-(define (tc/struct vars nm/par fld-names tys
+(define (tc/struct vars nm/par type-name fld-names tys
                    #:proc-ty [proc-ty #f]
                    #:maker [maker #f]
                    #:extra-maker [extra-maker #f]
@@ -262,7 +261,7 @@
   (define types
     ;; add the type parameters of this structure to the tvar env
     (extend-tvars tvars
-      (parameterize ([current-poly-struct `#s(poly ,nm ,new-tvars)])
+      (parameterize ([current-poly-struct `#s(poly ,type-name ,new-tvars)])
         ;; parse the field types
         (map parse-type tys))))
   ;; instantiate the parent if necessary, with new-tvars
@@ -277,7 +276,7 @@
   ;; create the actual structure type, and the types of the fields
   ;; that the outside world will see
   ;; then register it
-  (define names (get-struct-names nm fld-names maker extra-maker))
+  (define names (get-struct-names type-name nm fld-names maker extra-maker))
 
   (cond [prefab?
          (define-values (parent-key parent-fields)
@@ -322,7 +321,7 @@
     (and parent (resolve-name (make-Name parent 0 #t))))
   (define parent-tys (map fld-t (get-flds parent-type)))
 
-  (define names (get-struct-names nm fld-names #f #f))
+  (define names (get-struct-names nm nm fld-names #f #f))
   (define desc (struct-desc parent-tys tys null #t #f))
   (define sty (mk/inner-struct-type names desc parent-type))
 

@@ -89,10 +89,10 @@
 
 
 (define-syntax-class define-typed-struct-body
-  #:attributes (name mutable prefab type-only maker extra-maker nm
+  #:attributes (name type-name mutable prefab type-only maker extra-maker nm
                 (tvars 1) (fields 1) (types 1))
   (pattern ((~optional (tvars:id ...) #:defaults (((tvars 1) null)))
-            nm:struct-name ([fields:id : types:expr] ...) options:dtsi-fields)
+            nm:struct-name type-name:id ([fields:id : types:expr] ...) options:dtsi-fields)
            #:attr name #'nm.nm
            #:attr mutable (attribute options.mutable)
            #:attr prefab (attribute options.prefab)
@@ -151,7 +151,7 @@
   [typed-struct
     (define-typed-struct-internal . :define-typed-struct-body)]
   [typed-struct/exec
-    (define-typed-struct/exec-internal nm ([fields:id : types] ...) proc-type)]
+    (define-typed-struct/exec-internal nm type-name ([fields:id : types] ...) proc-type)]
   [typed-require
     (require/typed-internal name type)]
   [typed-require/struct

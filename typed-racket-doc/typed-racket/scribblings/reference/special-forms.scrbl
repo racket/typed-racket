@@ -378,16 +378,19 @@ those functions.
 
 
 @section{Structure Definitions}
-@defform/subs[
+@defform/subs[#:literals (:)
 (struct maybe-type-vars name-spec ([f : t] ...) options ...)
 ([maybe-type-vars code:blank (v ...)]
- [name-spec name (code:line name parent)]
+ [name-spec name-id (code:line name-id parent)]
  [options #:transparent #:mutable #:prefab
           (code:line #:constructor-name constructor-id)
-          (code:line #:extra-constructor-name constructor-id)])]{
- Defines a @rtech{structure} with the name @racket[name], where the
+          (code:line #:extra-constructor-name constructor-id)
+          (code:line #:type-name type-id)])]{
+ Defines a @rtech{structure} with the name @racket[name-id], where the
  fields @racket[f] have types @racket[t], similar to the behavior of @|struct-id|
- from @racketmodname[racket/base].
+ from @racketmodname[racket/base]. If @racket[type-id] is specified, then it will
+ be used for the name of the type associated with instances of the declared
+ structure, otherwise @racket[name-id] will be used for both.
   When @racket[parent] is present, the
 structure is a substructure of @racket[parent].
 
@@ -408,32 +411,43 @@ amount it needs.
 ]
 
 Options provided have the same meaning as for the @|struct-id| form
-from @racketmodname[racket/base].
+from @racketmodname[racket/base] (with the exception of @racket[#:type-name], as
+described above).
 
-A prefab structure type declaration will bind the given @racket[name] to a
-@racket[Prefab] type. Unlike in @racketmodname[racket/base], a non-prefab
-structure type cannot extend a prefab structure type.
+A prefab structure type declaration will bind the given @racket[name-id]
+or @racket[type-id] to a @racket[Prefab] type. Unlike the @|struct-id| form from
+@racketmodname[racket/base], a non-prefab structure type cannot extend
+a prefab structure type.
 
 @ex[
   (struct a-prefab ([x : String]) #:prefab)
   (:type a-prefab)
   (eval:error (struct not-allowed a-prefab ()))
 ]
+
+@history[#:changed "1.4" @elem{Added the @racket[#:type-name] option.}]
 }
 
 
-@defform/subs[
+@defform/subs[#:literals (:)
 (define-struct maybe-type-vars name-spec ([f : t] ...) options ...)
 ([maybe-type-vars code:blank (v ...)]
- [name-spec name (name parent)]
- [options #:transparent #:mutable])]{Legacy version of @racket[struct],
-corresponding to @|define-struct-id| from @racketmodname[racket/base].}
+ [name-spec name-id (code:line name-id parent)]
+ [options #:transparent #:mutable
+          (code:line #:type-name type-id)])]{
+Legacy version of @racket[struct], corresponding to @|define-struct-id|
+from @racketmodname[racket/base].
+@history[#:changed "1.4" @elem{Added the @racket[#:type-name] option.}]}
 
-@defform/subs[
-(define-struct/exec name-spec ([f : t] ...) [e : proc-t])
-([name-spec name (name parent)])]{
+@defform/subs[#:literals (:)
+(define-struct/exec name-spec ([f : t] ...) [e : proc-t] maybe-type-name)
+([name-spec name-id (code:line name-id parent)]
+ [maybe-type-name (code:line)
+                  (code:line #:type-name type-id)])]{
  Like @racket[define-struct], but defines a procedural structure.
- The procdure @racket[e] is used as the value for @racket[prop:procedure], and must have type @racket[proc-t].}
+ The procedure @racket[e] is used as the value for @racket[prop:procedure],
+ and must have type @racket[proc-t].
+@history[#:changed "1.4" @elem{Added the @racket[#:type-name] option.}]}
 
 @section{Names for Types}
 @defform*[[(define-type name t maybe-omit-def)
@@ -560,12 +574,12 @@ Here, @racket[_m] is a module spec, @racket[_pred] is an identifier
 naming a predicate, and @racket[_maybe-renamed] is an
 optionally-renamed identifier.
 
-@defform/subs[#:literals (struct)
+@defform/subs[#:literals (struct :)
 (require/typed m rt-clause ...)
 ([rt-clause [maybe-renamed t]
-            [#:struct name ([f : t] ...)
+            [#:struct name-id ([f : t] ...)
                  struct-option ...]
-            [#:struct (name parent) ([f : t] ...)
+            [#:struct (name-id parent) ([f : t] ...)
                  struct-option ...]
             [#:opaque t pred]
 	    [#:signature name ([id : t] ...)]]
@@ -573,21 +587,21 @@ optionally-renamed identifier.
                 (orig-id new-id)]
  [struct-option
    (code:line #:constructor-name constructor-id)
-   (code:line #:extra-constructor-name constructor-id)])]
+   (code:line #:extra-constructor-name constructor-id)
+   (code:line #:type-name type-id)])]
 This form requires identifiers from the module @racket[m], giving
 them the specified types.
 
-The first case requires @racket[_maybe-renamed], giving it type
-@racket[t].
+The first case requires @racket[_maybe-renamed], giving it type @racket[t].
 
-@index["struct"]{The second and third cases} require the struct with name @racket[name]
-with fields @racket[f ...], where each field has type @racket[t].  The
-third case allows a @racket[parent] structure type to be specified.
-The parent type must already be a structure type known to Typed
-Racket, either built-in or via @racket[require/typed].  The
-structure predicate has the appropriate Typed Racket filter type so
-that it may be used as a predicate in @racket[if] expressions in Typed
-Racket.
+@index["struct"]{The second and third cases} require the struct with name
+@racket[name-id] and creates a new type with the name @racket[type-id], or
+@racket[name-id] if no @racket[type-id] is provided, with fields @racket[f ...],
+where each field has type @racket[t]. The third case allows a @racket[parent]
+structure type to be specified. The parent type must already be a structure type
+known to Typed Racket, either built-in or via @racket[require/typed]. The
+structure predicate has the appropriate Typed Racket filter type so that it may
+be used as a predicate in @racket[if] expressions in Typed Racket.
 
 
 @ex[(module UNTYPED racket/base
@@ -646,7 +660,9 @@ a @racket[require/typed] form. Here is an example of using
                             Any])]))
 
 @racket[file-or-directory-modify-seconds] has some arguments which are optional,
-so we need to use @racket[case->].}
+so we need to use @racket[case->].
+
+@history[#:changed "1.4" @elem{Added the @racket[#:type-name] option.}]}
 
 @defform[(require/typed/provide m rt-clause ...)]{
 Similar to @racket[require/typed], but also provides the imported identifiers.

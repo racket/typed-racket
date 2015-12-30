@@ -46,7 +46,7 @@
              (format "field `~a' requires a type annotation"
                      (syntax-e #'fld))
              #:with form 'dummy))
-
+  
   (define-syntax-class struct-name
     #:description "struct name (with optional super-struct name)"
     #:attributes (name super)
@@ -72,7 +72,7 @@
 
   (define-splicing-syntax-class struct-options
     #:description "typed structure type options"
-    #:attributes (guard mutable? transparent? prefab? cname ecname
+    #:attributes (guard mutable? transparent? prefab? cname ecname type untyped
                   [prop 1] [prop-val 1])
     (pattern (~seq (~or (~optional (~seq (~and #:mutable mutable?)))
                         (~optional (~seq (~and #:transparent transparent?)))
@@ -81,12 +81,22 @@
                                               (~bind [ecname #f]))
                                         (~and (~seq #:extra-constructor-name ecname)
                                               (~bind [cname #f]))))
+                        (~optional (~seq #:type-name type:id))
                         ;; FIXME: unsound, but relied on in core libraries
                         ;; #:guard ought to be supportable with some work
                         ;; #:property is harder
                         (~optional (~seq #:guard guard:expr))
                         (~seq #:property prop:expr prop-val:expr))
-                   ...)))
+                   ...)
+             #:attr untyped #`(#,@(if (attribute mutable?) #'(#:mutable) #'())
+                               #,@(if (attribute transparent?) #'(#:transparent) #'())
+                               #,@(if (attribute prefab?) #'(#:prefab) #'())
+                               #,@(if (attribute cname) #'(#:constructor-name cname) #'())
+                               #,@(if (attribute ecname) #'(#:extra-constructor-name ecname) #'())
+                               #,@(if (attribute guard) #'(#:guard guard) #'())
+                               #,@(append* (for/list ([prop (in-list (attribute prop))]
+                                                      [prop-val (in-list (attribute prop-val))])
+                                             (list #'#:property prop prop-val))))))
 
   (define-syntax-class dtsi-struct-name
     #:description "struct name (with optional super-struct name)"
@@ -99,13 +109,27 @@
 
 (define-syntax (define-typed-struct/exec stx)
   (syntax-parse stx #:literals (:)
-    [(_ nm ((~describe "field specification" [fld:optionally-annotated-name]) ...) [proc : proc-ty])
+    [(_ nm:struct-name ((~describe "field specification" [fld:optionally-annotated-name]) ...)
+        [proc : proc-ty] (~optional (~seq #:type-name type:id)))
      (with-syntax*
-      ([proc* (with-type* #'proc #'proc-ty)]
+      ([type (or (attribute type) #'nm.name)]
+       [proc* (with-type* #'proc #'proc-ty)]
        [d-s (ignore-some (syntax/loc stx (define-struct nm (fld.name ...)
                                       #:property prop:procedure proc*)))]
-       [dtsi (quasisyntax/loc stx (dtsi/exec* () nm (fld ...) proc-ty))])
-      #'(begin d-s dtsi))]))
+       [stx-err-fun (if (not (free-identifier=? #'nm.name #'type))
+                        (syntax/loc stx
+                          (define-syntax type
+                            (lambda (stx)
+                              (raise-syntax-error
+                               'type-check
+                               (format "type name ~a used out of context in ~a"
+                                       (syntax->datum (if (stx-pair? stx) (stx-car stx) stx))
+                                       (syntax->datum stx))
+                               stx
+                               (and (stx-pair? stx) (stx-car stx))))))
+                        #'(begin))]
+       [dtsi (quasisyntax/loc stx (dtsi/exec* () nm.name type (fld ...) proc-ty))])
+      #'(begin d-s stx-err-fun dtsi))]))
 
 (define-syntaxes (dtsi* dtsi/exec*)
   (let ()
@@ -157,18 +181,32 @@
            [extra-maker (if (attribute opts.ecname)
                             #`(#:extra-maker #,(attribute opts.ecname))
                             #'())])
-       (with-syntax ([d-s (ignore (quasisyntax/loc stx
-                                    (struct #,@(attribute nm.new-spec) (fs.fld ...)
-                                            . opts)))]
-                     [dtsi (quasisyntax/loc stx
-                             (dtsi* (vars.vars ...)
-                                    nm.old-spec (fs.form ...)
-                                    #,@mutable?
-                                    #,@prefab?
-                                    #,@maker
-                                    #,@extra-maker))])
-         #'(begin d-s dtsi)))]))
-
+       (with-syntax* ([type (or (attribute opts.type) #'nm.name)]
+                      [d-s (ignore (quasisyntax/loc stx
+                                     (struct #,@(attribute nm.new-spec) (fs.fld ...)
+                                       . opts.untyped)))]
+                      [stx-err-fun (if (not (free-identifier=? #'nm.name #'type))
+                                       (syntax/loc stx
+                                         (define-syntax type
+                                           (lambda (stx)
+                                             (raise-syntax-error
+                                              'type-check
+                                              (format "type name ~a used out of context in ~a"
+                                                      (syntax->datum (if (stx-pair? stx)
+                                                                         (stx-car stx)
+                                                                         stx))
+                                                      (syntax->datum stx))
+                                              stx
+                                              (and (stx-pair? stx) (stx-car stx))))))
+                                       #'(begin))]
+                      [dtsi (quasisyntax/loc stx
+                              (dtsi* (vars.vars ...)
+                                     nm.old-spec type (fs.form ...)
+                                     #,@mutable?
+                                     #,@prefab?
+                                     #,@maker
+                                     #,@extra-maker))])
+         #'(begin d-s stx-err-fun dtsi)))]))
 
 ;; this has to live here because it's used below
 (define-syntax (define-type-alias stx)

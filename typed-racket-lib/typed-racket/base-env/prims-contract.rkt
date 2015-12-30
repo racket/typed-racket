@@ -115,23 +115,24 @@
     #:attributes (nm ty)
     (pattern [nm:opt-rename ty]))
 
-  (define-splicing-syntax-class (opt-constructor legacy struct-name)
-   #:attributes (value)
-   (pattern (~seq)
-            #:attr value (if legacy
-                             #`(#:extra-constructor-name
-                                #,(format-id struct-name "make-~a" struct-name))
-                             #'()))
-   (pattern (~seq (~and key (~or #:extra-constructor-name #:constructor-name)) name:id)
-            #:attr value #'(key name)))
+  (define-splicing-syntax-class (struct-opts legacy struct-name)
+     #:attributes (ctor-value type)
+     (pattern (~seq (~optional (~seq (~and key (~or #:extra-constructor-name #:constructor-name))
+                                     name:id))
+                    (~optional (~seq #:type-name type:id) #:defaults ([type struct-name])))
+              #:attr ctor-value (if (attribute key) #'(key name)
+                                    (if legacy
+                                        #`(#:extra-constructor-name
+                                           #,(format-id struct-name "make-~a" struct-name))
+                                        #'()))))
 
   (define-syntax-class (struct-clause legacy)
-    ;#:literals (struct)
-    #:attributes (nm (body 1) (constructor-parts 1))
+    #:attributes (nm type (body 1) (constructor-parts 1))
     (pattern [(~or (~datum struct) #:struct)
               nm:opt-parent (body ...)
-              (~var constructor (opt-constructor legacy #'nm.nm))]
-             #:with (constructor-parts ...) #'constructor.value))
+              (~var opts (struct-opts legacy #'nm.nm))]
+             #:with (constructor-parts ...) #'opts.ctor-value
+             #:attr type #'opts.type))
 
   (define-syntax-class signature-clause
     #:literals (:)
@@ -152,6 +153,7 @@
      #`(require/opaque-type oc.ty oc.pred #,lib . oc.opt))
    (pattern (~var strc (struct-clause legacy)) #:attr spec
      #`(require-typed-struct strc.nm (strc.body ...) strc.constructor-parts ...
+                             #:type-name strc.type
                              #,@(if unsafe? #'(unsafe-kw) #'())
                              #,lib))
    (pattern sig:signature-clause #:attr spec
@@ -391,6 +393,7 @@
       [(_ name:opt-parent
           ([fld : ty] ...)
           (~var input-maker (constructor-term legacy #'name.nm))
+          (~optional (~seq #:type-name type:id) #:defaults ([type #'name.nm]))
           unsafe:unsafe-clause
           lib)
        (with-syntax* ([nm #'name.nm]
@@ -468,24 +471,38 @@
                                   (make-struct-info-self-ctor #'internal-maker si)
                                   si))
 
-                         (dtsi* () spec ([fld : ty] ...) #:maker maker-name #:type-only)
+                         (dtsi* () spec type ([fld : ty] ...) #:maker maker-name #:type-only)
                          #,(ignore #'(require/contract pred hidden (or/c struct-predicate-procedure?/c (c-> any-wrap/c boolean?)) lib))
-                         #,(internal #'(require/typed-internal hidden (Any -> Boolean : nm)))
-                         (require/typed #:internal (maker-name real-maker) nm lib
+                         #,(internal #'(require/typed-internal hidden (Any -> Boolean : type)))
+                         (require/typed #:internal (maker-name real-maker) type lib
                                         #:struct-maker parent
                                         #,@(if (attribute unsafe.unsafe?) #'(unsafe-kw) #'()))
 
                          ;This needs to be a different identifier to meet the specifications
                          ;of struct (the id constructor shouldn't expand to it)
                          #,(if (syntax-e #'extra-maker)
-                               #`(require/typed #:internal (maker-name extra-maker) nm lib
+                               #`(require/typed #:internal (maker-name extra-maker) type lib
                                                 #:struct-maker parent
                                                 #,@(if (attribute unsafe.unsafe?) #'(unsafe-kw) #'()))
                                #'(begin))
 
+                         #,(if (not (free-identifier=? #'nm #'type))
+                               #'(define-syntax type
+                                   (lambda (stx)
+                                     (raise-syntax-error
+                                      'type-check
+                                      (format "type name ~a used out of context in ~a"
+                                              (syntax->datum (if (stx-pair? stx)
+                                                                 (stx-car stx)
+                                                                 stx))
+                                              (syntax->datum stx))
+                                      stx
+                                      (and (stx-pair? stx) (stx-car stx)))))
+                               #'(begin))
+
                          #,@(if (attribute unsafe.unsafe?)
-                                #'((require/typed #:internal sel (nm -> ty) lib unsafe-kw) ...)
-                                #'((require/typed lib [sel (nm -> ty)]) ...)))))]))
+                                #'((require/typed #:internal sel (type -> ty) lib unsafe-kw) ...)
+                                #'((require/typed lib [sel (type -> ty)]) ...)))))]))
 
   (values (rts #t) (rts #f))))
 

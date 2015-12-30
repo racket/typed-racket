@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
          "renamer.rkt"
-         racket/sequence syntax/id-table racket/dict racket/syntax
+         racket/sequence syntax/id-table racket/syntax
          racket/struct-info racket/match syntax/parse
          (only-in (private type-contract) include-extra-requires?)
          (private syntax-properties)
@@ -73,11 +73,11 @@
     (define new-id (freshen-id internal-id))
     (cond
       ;; if it's already done, do nothing
-      [(dict-ref mapping internal-id
-                 ;; if it wasn't there, put it in, and skip this case
-                 (λ () (dict-set! mapping internal-id new-id) #f))
+      [(free-id-table-ref mapping internal-id
+                          ;; if it wasn't there, put it in, and skip this case
+                          (λ () (free-id-table-set! mapping internal-id new-id) #f))
        => mk-ignored-quad]
-      [(dict-ref defs internal-id #f)
+      [(free-id-table-ref defs internal-id #f)
        =>
        (match-lambda
          [(def-binding _ ty)

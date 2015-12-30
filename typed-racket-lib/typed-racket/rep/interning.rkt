@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/id-table racket/dict (for-syntax racket/base syntax/parse))
+(require syntax/id-table (for-syntax racket/base syntax/parse))
 
 (provide defintern hash-id)
 
@@ -37,9 +37,9 @@
 (define identifier-table (make-free-id-table))
 
 (define (hash-id id)
-  (dict-ref
+  (free-id-table-ref
    identifier-table
    id
    (lambda () (let ([c (id-count!)])
-                (dict-set! identifier-table id c)
+                (free-id-table-set! identifier-table id c)
                 c))))

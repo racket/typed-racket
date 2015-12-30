@@ -8,7 +8,6 @@
   "structures.rkt"
   racket/set
   racket/syntax
-  racket/dict
   syntax/id-table
   racket/list
   racket/contract
@@ -139,12 +138,12 @@
     (define (recur sc variance)
       (match sc
         [(recursive-sc-use id)
-         (dict-set! table id #t)]
+         (free-id-table-set! table id #t)]
         [(recursive-sc names values body)
          (recur body 'covariant)
          (for ([name (in-list names)]
                [value (in-list values)])
-          (dict-set! main-table name ((search) value)))]
+          (free-id-table-set! main-table name ((search) value)))]
         [else
           (sc-traverse sc recur)]))
     (lambda (sc)
@@ -153,13 +152,13 @@
   (define reachable ((search) sc))
   (define seen (make-free-id-table reachable))
   (let loop ((to-look-at reachable))
-    (unless (zero? (dict-count to-look-at))
+    (unless (zero? (free-id-table-count to-look-at))
       (define new-table (make-free-id-table))
-      (for ([(id _) (in-dict to-look-at)])
-        (for ([(id _) (in-dict (dict-ref main-table id))])
-          (unless (dict-has-key? seen id)
-            (dict-set! seen id #t)
-            (dict-set! new-table id #t))))
+      (for ([(id _) (in-free-id-table to-look-at)])
+        (for ([(id _) (in-free-id-table (free-id-table-ref main-table id))])
+          (unless (free-id-table-ref seen id #f)
+            (free-id-table-set! seen id #t)
+            (free-id-table-set! new-table id #t))))
       (loop new-table)))
 
   ;; Determine if the recursive name is referenced in the static contract
@@ -182,7 +181,7 @@
        (define new-name-values
          (for/list ([name (in-list names)]
                     [value (in-list values)]
-                    #:when (dict-ref seen name #f))
+                    #:when (free-id-table-ref seen name #f))
             (list name value)))
        (define new-names (map first new-name-values))
        (define new-values (map (λ (v) (trim v 'covariant))

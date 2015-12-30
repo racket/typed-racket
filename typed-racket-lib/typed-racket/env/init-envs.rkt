@@ -14,7 +14,8 @@
          (for-syntax syntax/parse racket/base)
          (types abbrev union)
          racket/dict racket/list racket/promise
-         mzlib/pconvert racket/match)
+         mzlib/pconvert racket/match
+         syntax/id-table)
 
 (provide ;; convenience form for defining an initial environment
          ;; used by "base-special-env.rkt" and "base-contracted.rkt"
@@ -195,7 +196,7 @@
 
 (define (mvar-env-init-code mvar-env)
   (make-init-code
-    (λ (f) (dict-map mvar-env f))
+    (λ (f) (free-id-table-map mvar-env f))
     (lambda (id v) (and v #`(register-mutated-var #'#,id)))))
 
 (define (signature-env-init-code)

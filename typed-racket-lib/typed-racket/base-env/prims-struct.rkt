@@ -235,7 +235,7 @@
        #'(lambda (stx)
            (raise-syntax-error
             'type-check
-            (format "type name ~a used out of context in ~a"
+            (format "type name used out of context\n  type: ~a\n in: ~a"
                     (syntax->datum (if (stx-pair? stx) (stx-car stx) stx))
                     (syntax->datum stx))
             stx

@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"does not match the given number:")
+(exn-pred #rx"wrong number of arguments to polymorphic type")
 #lang typed/racket
 
 ;; Check bad arity for recursive invocation of Foo

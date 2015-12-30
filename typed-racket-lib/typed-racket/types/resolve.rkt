@@ -43,10 +43,11 @@
     (match rator
       [(Poly-unsafe: n _)
        (unless (= n (length rands))
-         (tc-error (~a "wrong number of arguments to polymorphic type " rator
-                       ": expected " n
-                       " and got " (length rands)
-                       ", arguments were: " rands)))]
+         (tc-error (~a "wrong number of arguments to polymorphic type"
+                       "\n  type: " rator
+                       "\n  expected: " n
+                       "\n  given: " (length rands)
+                       "\n  arguments...: " rands)))]
       [(Name/struct: n)
        (when (and (current-poly-struct)
                   (free-identifier=? n (poly-name (current-poly-struct))))
@@ -57,23 +58,23 @@
             (when (not (or (ormap Error? rands)
                            (andmap type-equal? rands
                                    (poly-vars (current-poly-struct)))))
-                  (tc-error (~a "Structure type constructor " rator
-                                " applied to non-regular arguments " rands)))
-            (tc-error (~a "The expected number of arguments for"
-                          " structure type constructor " rator
-                          " does not match the given number:"
-                          " expected " num-poly
-                          ", given " num-rands
-                          ", arguments were: " rands))))]
+                  (tc-error (~a "structure type constructor applied to non-regular arguments"
+                                "\n  type: " rator
+                                "\n  arguments...: " rands)))
+            (tc-error (~a "wrong number of arguments to structure type constructor"
+                          "\n  type: " rator
+                          "\n  expected: " num-poly
+                          "\n  given: " num-rands
+                          "\n  arguments...: " rands))))]
       [(Name: name-id num-args #f)
        (cond [(> num-args 0)
               (define num-rands (length rands))
               (unless (= num-rands num-args)
-                (tc-error (~a "The expected number of arguments for "
-                              rator " does not match the given number:"
-                              " expected " num-args
-                              ", given " num-rands
-                              ", arguments were: " rands)))
+                (tc-error (~a "wrong number of arguments to polymorphic type"
+                              "\n  type: " rator
+                              "\n  expected: " num-args
+                              "\n  given: " num-rands
+                              "\n  arguments...: " rands)))
               ;; Does not allow polymorphic recursion since both type
               ;; inference and equirecursive subtyping for polymorphic
               ;; recursion are difficult.
@@ -101,9 +102,12 @@
                   (or (F? given-type)
                       (not (member (syntax-e arg-name) (fv given-type)))))
                 (unless ok?
-                  (tc-error (~a "Recursive type " rator " cannot be applied at"
-                                " a different type in its recursive invocation,"
-                                " new arguments were: " rands))))
+                  (tc-error (~a "recursive type cannot be applied at a"
+                                " different type in its recursive invocation"
+                                "\n  type: " rator
+                                "\n  new argument name: " arg-name
+                                "\n  new argument: " given-type
+                                "\n  new arguments...: " rands))))
               (match (current-check-polymorphic-recursion)
                 [`#s(poly-rec-info ,same-component? ,current-vars)
                  #:when (same-component? name-id)
@@ -112,11 +116,15 @@
                    (check-argument rand var))]
                 [_ (void)])]
              [else
-              (tc-error "Type ~a cannot be applied, arguments were: ~a" rator rands)])]
+              (tc-error (~a "type cannot be applied"
+                            "\n  type: " rator
+                            "\n  arguments...: " rands))])]
       [(Mu: _ _) (void)]
       [(App: _ _ _) (void)]
       [(Error:) (void)]
-      [_ (tc-error/delayed "Type ~a cannot be applied, arguments were: ~a" rator rands)])))
+      [_ (tc-error/delayed (~a "type cannot be applied"
+                               "\n  type: " rator
+                               "\n  arguments...: " rands))])))
 
 
 (define (resolve-app rator rands stx)
@@ -130,8 +138,9 @@
       [(Poly: _ _) (instantiate-poly rator rands)]
       [(Mu: _ _) (resolve-app (unfold rator) rands stx)]
       [(App: r r* s) (resolve-app (resolve-app r r* s) rands stx)]
-      [_ (tc-error (~a "cannot apply a non-polymorphic type: " rator
-                       " with arguments: " rands))])))
+      [_ (tc-error (~a "cannot apply a non-polymorphic type"
+                       "\n  type: " rator
+                       "\n  arguments: " rands))])))
 
 
 (define (needs-resolving? t)

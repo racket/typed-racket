@@ -17,7 +17,7 @@
       ;; introduce bounded polymorphism for Flvector/Fxvector.
       (flvector? e) (fxvector? e) (extflvector? e)))
 
-(define (val-first-projection b)
+(define (late-neg-projection b)
   (define (fail neg-party v)
     (raise-blame-error 
      (blame-swap b) #:missing-party neg-party
@@ -37,13 +37,13 @@
               ;; field is immutable
               (values
                (list* (make-struct-field-accessor ref n)
-                      (lambda (s v) (any-wrap/traverse neg-party v))
+                      (lambda (s v) (any-wrap/traverse v neg-party))
                       res)
                (cdr imms))
               ;; field is mutable
               (values
                (list* (make-struct-field-accessor ref n)
-                      (lambda (s v) (any-wrap/traverse neg-party v))
+                      (lambda (s v) (any-wrap/traverse v neg-party))
                       (make-struct-field-mutator set! n)
                       (lambda (s v) (fail neg-party s))
                       res)
@@ -55,17 +55,17 @@
     (when skipped? (fail neg-party s));  "Opaque struct type!"
     (apply chaperone-struct s (extract-functions type)))
  
-  (define (any-wrap/traverse neg-party v)
+  (define (any-wrap/traverse v neg-party)
     (match v
       [(? base-val?)
        v]
-      [(cons x y) (cons (any-wrap/traverse neg-party x) (any-wrap/traverse neg-party y))]
+      [(cons x y) (cons (any-wrap/traverse x neg-party) (any-wrap/traverse y neg-party))]
       [(? vector? (? immutable?))
        ;; fixme -- should have an immutable for/vector
        (vector->immutable-vector
         (for/vector #:length (vector-length v)
-          ([i (in-vector v)]) (any-wrap/traverse neg-party i)))]
-      [(? box? (? immutable?)) (box-immutable (any-wrap/traverse neg-party (unbox v)))]
+          ([i (in-vector v)]) (any-wrap/traverse i neg-party)))]
+      [(? box? (? immutable?)) (box-immutable (any-wrap/traverse (unbox v) neg-party))]
       ;; fixme -- handling keys properly makes it not a chaperone
       ;; [(? hasheq? (? immutable?))
       ;;  (for/hasheq ([(k v) (in-hash v)]) (values k v))]
@@ -75,26 +75,26 @@
       [(? (λ (e) 
             (and (hash? e) (immutable? e) 
                  (not (hash-eqv? e)) (not (hash-eq? e)))))
-       (for/hash ([(k v) (in-hash v)]) (values (any-wrap/traverse neg-party k)
-                                               (any-wrap/traverse neg-party v)))]
+       (for/hash ([(k v) (in-hash v)]) (values (any-wrap/traverse k neg-party)
+                                               (any-wrap/traverse v neg-party)))]
       [(? vector?) (chaperone-vector v
-                                     (lambda (v i e) (any-wrap/traverse neg-party e))
+                                     (lambda (v i e) (any-wrap/traverse e neg-party))
                                      (lambda (v i e) (fail neg-party v)))]
       [(? box?) (chaperone-box v
-                               (lambda (v e) (any-wrap/traverse neg-party e))
+                               (lambda (v e) (any-wrap/traverse e neg-party))
                                (lambda (v e) (fail neg-party v)))]
       [(? hash?) (chaperone-hash v
                                  (lambda (h k)
-                                   (values k (lambda (h k v) (any-wrap/traverse neg-party v)))) ;; ref
+                                   (values k (lambda (h k v) (any-wrap/traverse v neg-party)))) ;; ref
                                  (lambda (h k n)
                                    (if (immutable? v) 
                                        (values k n)
                                        (fail neg-party v))) ;; set
                                  (lambda (h v) v) ;; remove
-                                 (lambda (h k) (any-wrap/traverse neg-party k)))] ;; key
-      [(? evt?) (chaperone-evt v (lambda (e) (values e (λ (v) (any-wrap/traverse neg-party v)))))]
+                                 (lambda (h k) (any-wrap/traverse k neg-party)))] ;; key
+      [(? evt?) (chaperone-evt v (lambda (e) (values e (λ (v) (any-wrap/traverse v neg-party)))))]
       [(? set?)
-       (for/set ([i (in-set v)]) (any-wrap/traverse neg-party i))]
+       (for/set ([i (in-set v)]) (any-wrap/traverse i neg-party))]
       ;; could do something with generic sets here if they had
       ;; chaperones, or if i could tell if they were immutable.
       [(? struct?) (wrap-struct neg-party v)]
@@ -108,17 +108,16 @@
           (chaperone-procedure
            proc
            (λ (promise)
-             (values (λ (val) (any-wrap/traverse neg-party val))
+             (values (λ (val) (any-wrap/traverse val neg-party))
                      promise)))))]
       [_ (fail neg-party v)]))
-  (λ (v) (λ (neg-party) (any-wrap/traverse neg-party v))))
+  any-wrap/traverse)
 
 (define any-wrap/c
   (make-chaperone-contract
    #:name 'Any
    #:first-order (lambda (x) #t)
-   #:projection (λ (blame) (λ (val) (((val-first-projection blame) val) #f)))
-   #:val-first-projection val-first-projection))
+   #:late-neg-projection late-neg-projection))
 
 ;; Contract for "safe" struct predicate procedures.
 ;; We can trust that these obey the type (-> Any Boolean).

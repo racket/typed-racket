@@ -15,13 +15,13 @@
     (raise-argument-error 'evt/c "chaperone-contract?" ctc))
   (make-tr-evt/c ctc))
 
-;; evt/c-proj : Contract -> (Blame -> Any -> Any)
-(define (evt/c-proj ctc)
+;; evt/c-proj : Contract -> (Blame -> Any Any -> Any)
+(define (evt/c-late-neg-proj ctc)
   (define real-evt/c (evt/c (tr-evt/c-ctc ctc)))
-  (define real-proj (contract-projection real-evt/c))
+  (define real-late-neg-proj (contract-late-neg-projection real-evt/c))
   (λ (blame)
-    (define real-proj* (real-proj blame))
-    (λ (v)
+    (define real-late-neg-proj* (real-late-neg-proj blame))
+    (λ (v neg-party)
       ;; Must not allow a value of type (Evtof X) to be used as
       ;; a value of any type that is invariant in X (i.e., has a
       ;; writing end). For now, this is just channels.
@@ -29,15 +29,16 @@
       ;; If we support custom evts via struct properties, then
       ;; we may need to tighten this restrictions.
       (if (channel? v)
-          (real-proj*
+          (real-late-neg-proj*
            (chaperone-channel
             v
             (λ (ch) (values ch values))
             (λ (ch val)
               (raise-blame-error
-               blame ch
-               "cannot put on a channel used as a typed evt"))))
-          (real-proj* v)))))
+               blame ch #:missing-party neg-party
+               "cannot put on a channel used as a typed evt")))
+           neg-party)
+          (real-late-neg-proj* v neg-party)))))
 
 ;; evt/c-first-order : Contract -> Any -> Boolean
 (define ((evt/c-first-order ctc) v) (evt? v))
@@ -55,7 +56,7 @@
 (define-struct tr-evt/c (ctc)
   #:property prop:chaperone-contract
   (build-chaperone-contract-property
-   #:projection evt/c-proj
+   #:late-neg-projection evt/c-late-neg-proj
    #:first-order evt/c-first-order
    #:stronger evt/c-stronger?
    #:name evt/c-name))

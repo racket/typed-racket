@@ -37,15 +37,15 @@
 (provide object/c-opaque)
 
 ;; projection for base-object/c-opaque
-(define ((object/c-opaque-proj ctc) blame)
-  (λ (obj)
+(define ((object/c-opaque-late-neg-proj ctc) blame)
+  (λ (obj neg-party)
     (match-define (base-object/c-opaque
                    base-ctc
                    methods method-ctcs
                    fields field-ctcs)
                   ctc)
     (when (not (object? obj))
-      (raise-blame-error blame obj "expected an object got ~a" obj))
+      (raise-blame-error blame #:missing-party neg-party obj "expected an object got ~a" obj))
     (define actual-fields (field-names obj))
     (define actual-methods
       (interface->method-names (object-interface obj)))
@@ -65,7 +65,7 @@
     ;; FIXME: this is a bit sketchy because we have to construct
     ;;        a contract that depends on the actual object that we got
     ;;        since we don't know its methods beforehand
-    (((contract-projection guard/c) blame) obj)))
+    (((contract-late-neg-projection guard/c) blame) obj neg-party)))
 
 (struct base-object/c-opaque
   (obj/c ; keep a copy of the normal object/c for first-order checks
@@ -76,7 +76,7 @@
                    (define obj/c (base-object/c-opaque-obj/c ctc))
                    (λ (val)
                      (contract-first-order-passes? obj/c val)))
-   #:projection object/c-opaque-proj))
+   #:late-neg-projection object/c-opaque-late-neg-proj))
 
 (begin-for-syntax
  (define-syntax-class object/c-clause
@@ -107,17 +107,17 @@
 ;; This contract combinator prevents the method call if the target
 ;; method is typed (assuming that the caller is untyped or the receiving
 ;; object went through untyped code)
-(define (((restrict-typed->-projection ctc) blame) val)
+(define (((restrict-typed->-late-neg-projection ctc) blame) val neg-party)
   (chaperone-procedure val
                        (make-keyword-procedure
                         (λ (_ kw-args . rst)
                           (when (typed-method? val)
-                            (raise-blame-error (blame-swap blame) val
+                            (raise-blame-error (blame-swap blame) val #:missing-party neg-party
                                                "cannot call uncontracted typed method"))
                           (apply values kw-args rst))
                         (λ args
                           (when (typed-method? val)
-                            (raise-blame-error (blame-swap blame) val
+                            (raise-blame-error (blame-swap blame) val #:missing-party neg-party
                                                "cannot call uncontracted typed method"))
                           (apply values args)))))
 
@@ -125,9 +125,9 @@
         #:property prop:chaperone-contract
         (build-chaperone-contract-property
          #:name (λ (ctc) '<hidden-method>) ; FIXME
-         #:projection restrict-typed->-projection))
+         #:late-neg-projection restrict-typed->-late-neg-projection))
 
-(define (restrict-typed-field-proj ctc)
+(define (restrict-typed-field-late-neg-proj ctc)
   (define name (restrict-typed-field/c-name ctc))
   (λ (*blame)
     (define blame
@@ -137,13 +137,13 @@
       (if (blame-swapped? *blame)
           *blame
           (blame-swap *blame)))
-    (λ (val)
+    (λ (val neg-party)
       (raise-blame-error
-       blame val
+       blame val #:missing-party neg-party
        "cannot read or write field hidden by Typed Racket"))))
 
 (struct restrict-typed-field/c (obj name)
         #:property prop:flat-contract
         (build-flat-contract-property
          #:name (λ (ctc) '<hidden-field>) ; FIXME
-         #:projection restrict-typed-field-proj))
+         #:late-neg-projection restrict-typed-field-late-neg-proj))

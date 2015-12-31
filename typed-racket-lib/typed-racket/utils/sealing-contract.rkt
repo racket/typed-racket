@@ -51,28 +51,28 @@
                                          sealer/unsealer))]
                    [else #f])]
             [else #f]))
-         #:projection
+         #:late-neg-projection
          (λ (ctc)
            (define unsealed (sealing-contract-unsealed ctc))
            (define body (sealing-contract-proc ctc))
            (λ (blame)
              (define negative? (blame-swapped? blame))
-             (define (make-seal-function orig-fun)
+             (define (make-seal-function orig-fun neg-party)
                (define sealing-key (gensym))
                (define sealer/unsealer
                  (seal/unseal sealing-key negative? unsealed))
                (define body-proj
-                 (contract-projection (body sealer/unsealer)))
-               ((body-proj blame) orig-fun))
-             (λ (val)
+                 (contract-late-neg-projection (body sealer/unsealer)))
+               ((body-proj blame) orig-fun neg-party))
+             (λ (val neg-party)
                (unless (procedure? val)
                  (raise-blame-error
-                  blame val
+                  blame #:missing-party neg-party val
                   '(expected "a procedure" given: "~e") val))
                ;; ok to return an unrelated function since this
                ;; is an impersonator contract
                (make-keyword-procedure (λ (kws kw-args . rst)
-                                         (keyword-apply (make-seal-function val)
+                                         (keyword-apply (make-seal-function val neg-party)
                                                         kws kw-args rst))))))))
 
 ;; represents a contract for each polymorphic seal/unseal corresponding
@@ -89,39 +89,39 @@
                                ,(seal/unseal-unsealed ctc))
                       '(unseal/c ,(seal/unseal-key ctc))))
          #:stronger (λ (this that) (eq? this that))
-         #:projection
+         #:late-neg-projection
          (λ (ctc)
            (define sealing-key (seal/unseal-key ctc))
            (define unsealed (seal/unseal-unsealed ctc))
            (λ (blame)
-             (λ (val)
+             (λ (val neg-party)
                (unless (class? val)
                  (raise-blame-error
-                  blame val
+                  blame #:missing-party neg-party val
                   '(expected: "a class" given: "~e") val))
                (match-define (list init field method) unsealed)
                (if (equal? (blame-original? blame)
                            (seal/unseal-positive? ctc))
                    (class-seal val sealing-key init field method
-                               (inst-err val blame)
-                               (subclass-err val blame))
+                               (inst-err val blame neg-party)
+                               (subclass-err val blame neg-party))
                    (class-unseal val sealing-key
-                                 (unseal-err val blame))))))))
+                                 (unseal-err val blame neg-party))))))))
 
 ;; error functions for use with class-seal, class-unseal
-(define ((inst-err val blame) cls)
+(define ((inst-err val blame neg-party) cls)
   (raise-blame-error
-   blame val
+   blame #:missing-party neg-party val
    "cannot instantiated a row polymorphic class"))
 
-(define ((subclass-err val blame) cls names)
+(define ((subclass-err val blame neg-party) cls names)
   (raise-blame-error
-   blame val
+   blame #:missing-party neg-party val
    "cannot subclass a row polymorphic class with disallowed members ~a"
    names))
 
-(define ((unseal-err val blame) cls)
+(define ((unseal-err val blame neg-party) cls)
   (raise-blame-error
-   blame val
+   blame #:missing-party neg-party val
    '(expected "matching row polymorphic class"
      given: "an unrelated class")))

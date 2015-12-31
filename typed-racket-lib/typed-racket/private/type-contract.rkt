@@ -10,7 +10,7 @@
  (env type-name-env row-constraint-env)
  (rep rep-utils)
  (types resolve union utils printer)
- (prefix-in t: (types abbrev numeric-tower))
+ (prefix-in t: (types abbrev numeric-tower subtype))
  (private parse-type syntax-properties)
  racket/match racket/syntax racket/list
  racket/format
@@ -383,7 +383,7 @@
              (apply or/sc (map t->sc elems)))]
         [(and t (Function: arrs))
          #:when (any->bool? arrs)
-         ;; Avoid putting (-> any boolean) contracts on struct predicates
+         ;; Avoid putting (-> any T) contracts on struct predicates (where Boolean <: T)
          ;; Optimization: if the value is typed, we can assume it's not wrapped
          ;;  in a type-unsafe chaperone/impersonator and use the unsafe contract
          (let* ([unsafe-spp/sc (flat/sc #'struct-predicate-procedure?)]
@@ -804,9 +804,9 @@
 (define (any->bool? arrs)
   (match arrs
     [(list (arr: (list (Univ:))
-                 (Values: (list (Result: (== -Boolean) _ _)))
+                 (Values: (list (Result: t _ _)))
                  #f #f '()))
-     #t]
+     (t:subtype -Boolean t)]
     [_ #f]))
 
 (module predicates racket/base

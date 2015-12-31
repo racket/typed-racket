@@ -1,21 +1,65 @@
 #lang racket/base
 
 (require racket/match racket/contract/combinator
+         racket/class racket/unit
          racket/fixnum racket/flonum racket/extflonum
          racket/set
          racket/undefined
+         (only-in racket/async-channel async-channel?)
+         (only-in racket/future future? fsemaphore?)
+         (only-in racket/pretty pretty-print-style-table?)
+         (only-in racket/udp udp?)
          (only-in (combine-in racket/private/promise)
                   promise?
                   prop:force promise-forcer))
 
 (define (base-val? e)
   (or (number? e) (string? e) (char? e) (symbol? e)
-      (null? e) (regexp? e) (eq? undefined e) (path? e)
-      (regexp? e) (keyword? e) (bytes? e) (boolean? e) (void? e)
+      (null? e) (eq? undefined e) (path? e) (eof-object? e)
+      (regexp? e) (pregexp? e) (byte-regexp? e) (byte-pregexp? e)
+      (keyword? e) (bytes? e) (boolean? e) (void? e)
+      (bytes-converter? e)
+      (impersonator-property? e)
+      (inspector? e)
+      (logger? e)
+      (module-path? e) (resolved-module-path? e)
+      (pretty-print-style-table? e)
+      (pseudo-random-generator? e)
+      (semaphore? e) (fsemaphore? e)
+      (thread-group? e)
+      (udp? e)
       ;; Base values because you can only store flonums/fixnums in these
       ;; and not any higher-order values. This isn't sound if we ever
       ;; introduce bounded polymorphism for Flvector/Fxvector.
-      (flvector? e) (fxvector? e) (extflvector? e)))
+      (flvector? e) (fxvector? e) (extflvector? e) (extflonum? e)))
+
+(define (unsafe-val? e)
+  (or ;; TODO: async-channel and special-comment should be safe
+      (async-channel? e)
+      (special-comment? e)
+      ;; --
+      (class? e)
+      (compiled-expression? e)
+      (compiled-module-expression? e)
+      (continuation-mark-key? e) ;; Stricter than necessary if key holds a base value
+      (continuation-mark-set? e)
+      (continuation-prompt-tag? e)
+      (custodian-box? e)
+      (custodian? e)
+      (ephemeron? e)
+      (future? e)
+      (internal-definition-context? e)
+      (mpair? e)
+      (namespace-anchor? e)
+      (namespace? e)
+      (parameterization? e)
+      (security-guard? e)
+      (struct-type-property? e)
+      (syntax? e)
+      (thread-cell? e)
+      (unit? e)
+      (variable-reference? e)
+      (weak-box? e)))
 
 (define (late-neg-projection b)
   (define (fail neg-party v)
@@ -28,7 +72,6 @@
     (define (extract-functions struct-type)
       (define-values (sym init auto ref set! imms par skip?)
         (struct-type-info struct-type))
-      (when skip? (fail neg-party s)) ;; "Opaque struct type!")
       (define-values (fun/chap-list _)
         (for/fold ([res null]
                    [imms imms])
@@ -52,13 +95,15 @@
         [par (append fun/chap-list (extract-functions par))]
         [else fun/chap-list]))
     (define-values (type skipped?) (struct-info s))
-    (when skipped? (fail neg-party s));  "Opaque struct type!"
+    ;; It's ok to just ignore skipped? -- see https://github.com/racket/typed-racket/issues/203
     (apply chaperone-struct s (extract-functions type)))
  
   (define (any-wrap/traverse v neg-party)
     (match v
       [(? base-val?)
        v]
+      [(? unsafe-val?)
+       (fail neg-party v)]
       [(cons x y) (cons (any-wrap/traverse x neg-party) (any-wrap/traverse y neg-party))]
       [(? vector? (? immutable?))
        ;; fixme -- should have an immutable for/vector
@@ -66,6 +111,9 @@
         (for/vector #:length (vector-length v)
           ([i (in-vector v)]) (any-wrap/traverse i neg-party)))]
       [(? box? (? immutable?)) (box-immutable (any-wrap/traverse (unbox v) neg-party))]
+      [(? box?) (chaperone-box v
+                               (lambda (v e) (any-wrap/traverse e neg-party))
+                               (lambda (v e) (fail neg-party v)))]
       ;; fixme -- handling keys properly makes it not a chaperone
       ;; [(? hasheq? (? immutable?))
       ;;  (for/hasheq ([(k v) (in-hash v)]) (values k v))]
@@ -80,9 +128,6 @@
       [(? vector?) (chaperone-vector v
                                      (lambda (v i e) (any-wrap/traverse e neg-party))
                                      (lambda (v i e) (fail neg-party v)))]
-      [(? box?) (chaperone-box v
-                               (lambda (v e) (any-wrap/traverse e neg-party))
-                               (lambda (v e) (fail neg-party v)))]
       [(? hash?) (chaperone-hash v
                                  (lambda (h k)
                                    (values k (lambda (h k v) (any-wrap/traverse v neg-party)))) ;; ref
@@ -110,7 +155,12 @@
            (λ (promise)
              (values (λ (val) (any-wrap/traverse val neg-party))
                      promise)))))]
-      [_ (fail neg-party v)]))
+      [(? channel?)
+       ;;bg; Should be able to take `Any` from the channel, but can't put anything in
+       (chaperone-channel v
+                          (lambda (e) (values v (any-wrap/traverse v neg-party)))
+                          (lambda (e) (fail neg-party v)))]
+      [_ (chaperone-struct v)]))
   any-wrap/traverse)
 
 (define any-wrap/c

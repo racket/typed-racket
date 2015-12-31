@@ -264,7 +264,7 @@
  (Struct-TypeTop . #f)
  (Module-Path-Index . #f)
  (Compiled-Module-Expression . #f)
- (Namespace-Anchor . "See `variation-6` for PR https://github.com/racket/typed-racket/pull/248")
+ (Namespace-Anchor . #f)
 ))
 
 (define-values-for-syntax (poly-untyped* poly-typed*)

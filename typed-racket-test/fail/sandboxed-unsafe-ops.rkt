@@ -7,7 +7,7 @@
 
 (require racket/sandbox)
 
-(parameterize ([sandbox-memory-limit 1000])
+(parameterize ([sandbox-memory-limit 5000])
   (define eval (make-evaluator 'typed/racket))
   (eval '(require typed/racket/unsafe))
 

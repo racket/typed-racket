@@ -407,7 +407,7 @@ amount it needs.
 
 @ex[
   (struct (X Y) 2-tuple ([first : X] [second : Y]))
-  (struct (X Y Z) 3-tuple 2-tuple ([first : X] [second : Y] [third :  Z]))
+  (struct (X Y Z) 3-tuple 2-tuple ([third :  Z]))
 ]
 
 Options provided have the same meaning as for the @|struct-id| form

@@ -29,9 +29,9 @@ Racket idioms. However, it does a better job on some idioms than on
 others. By writing your programs using the right idioms, you can help
 the optimizer help you.
 
-To best take advantage of the Typed Racket optimizer, keep the following in
-mind. The @emph{Optimization Coach} package provides optimization coaching
-support to help you in this task.
+To best take advantage of the Typed Racket optimizer, consult
+@other-doc['(lib "optimization-coach/scribblings/optimization-coach.scrbl")
+#:indirect "Optimization Coach"]{}.
 
 
 @subsection{Numeric types}

@@ -1946,7 +1946,7 @@
  (->opt -Output-Port -String (-opt -Bytes) [Univ Univ (-opt -Bytes) (-> -String -Output-Port ManyUniv)] -Output-Port)]
 
 [dup-input-port (-Input-Port (B) . ->opt . -Input-Port)]
-[dup-output-port (-Output-Port (B) . ->opt . -Input-Port)]
+[dup-output-port (-Output-Port (B) . ->opt . -Output-Port)]
 
 [relocate-input-port (->opt -Input-Port (-opt -PosInt) (-opt -Nat) -PosInt [Univ] -Input-Port)]
 [relocate-output-port (->opt -Output-Port (-opt -PosInt) (-opt -Nat) -PosInt [Univ] -Output-Port)]

@@ -2610,8 +2610,14 @@
                              -Void)]
 [delete-directory/files (->key -Pathlike #:must-exist? Univ #f -Void)]
 
-[find-files (->optkey (-> -Path Univ) [(-opt -Pathlike)] #:follow-links? Univ #f (-lst -Path))]
-[pathlist-closure (->key (-lst -Pathlike) #:follow-links? Univ #f (-lst -Path))]
+[find-files (->optkey (-> -Path Univ) [(-opt -Pathlike)]
+                      #:skip-filtered-directories? Univ #f
+                      #:follow-links? Univ #f
+                      (-lst -Path))]
+[pathlist-closure (->key (-lst -Pathlike)
+                         #:path-filter (Un (-val #f) (-Path . -> . Univ)) #f
+                         #:follow-links? Univ #f
+                         (-lst -Path))]
 
 [fold-files
  (-poly

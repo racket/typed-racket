@@ -145,11 +145,14 @@
   (and (identifier? ctc-stx)
        (let ([match? (assoc ctc-stx (hash-values cache) free-identifier=?)])
          (and match?
-              ;; ->* are handled specially by the contract system
-              (let ([sexp (syntax-e (cdr match?))])
-                (and (pair? sexp)
-                     (or (free-identifier=? (car sexp) #'->)
-                         (free-identifier=? (car sexp) #'->*))))
+              (or
+               ;; no need to generate an extra def for things that are already identifiers
+               (identifier? match?)
+               ;; ->* are handled specially by the contract system
+               (let ([sexp (syntax-e (cdr match?))])
+                 (and (pair? sexp)
+                      (or (free-identifier=? (car sexp) #'->)
+                          (free-identifier=? (car sexp) #'->*)))))
               (cdr match?)))))
 
 ;; The below requires are needed since they provide identifiers that

@@ -144,7 +144,7 @@
            (make-contract sc)]
           [else
            (define ctc (make-contract sc))
-           (cond [cache
+           (cond [(and (not (identifier? ctc)) cache)
                   (define fresh-id (generate-temporary))
                   (hash-set! cache sc (cons fresh-id ctc))
                   (set! sc-queue (cons sc sc-queue))

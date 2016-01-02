@@ -399,8 +399,11 @@ corresponding to @racket[trest], where @racket[bound]
 @ex[(lambda: ([x : Any]) (if (hash? x) x (error "not a hash table!")))]
 }
 
-@defform[(Setof t)]{is the type of a @rtech{set} of @racket[t].
+@defform[(Setof t)]{is the type of a @rtech{hash set} of
+@racket[t]. This includes custom hash sets, but not sets that are
+implemented using @racket[gen:set].
 @ex[(set 0 1 2 3)]
+@ex[(seteq 0 1 2 3)]
 }
 
 @defform[(Channelof t)]{A @rtech{channel} on which only @racket[t]s can be sent.

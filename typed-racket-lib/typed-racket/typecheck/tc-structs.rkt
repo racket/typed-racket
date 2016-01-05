@@ -193,10 +193,6 @@
 
   (define extra-constructor (struct-names-extra-constructor names))
 
-  (add-struct-constructor! (struct-names-constructor names))
-  (when extra-constructor
-    (add-struct-constructor! extra-constructor))
-
   (define constructor-binding
     (make-def-binding (struct-names-constructor names)
                       (poly-wrapper (->* all-fields poly-base))))

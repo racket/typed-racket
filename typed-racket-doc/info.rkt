@@ -12,7 +12,7 @@
                      "at-exp-lib"
                      ("scribble-lib" #:version "1.16")
                      "pict-lib"
-                     ("typed-racket-lib" #:version "1.3")
+                     ("typed-racket-lib" #:version "1.5")
                      "typed-racket-compatibility"
                      "typed-racket-more"
                      "racket-doc"
@@ -24,4 +24,4 @@
 
 (define pkg-authors '(samth stamourv))
 
-(define version "1.3")
+(define version "1.5")

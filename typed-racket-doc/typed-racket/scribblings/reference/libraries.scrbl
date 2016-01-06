@@ -173,6 +173,7 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/racket/date]
 @defmodule/incl[typed/racket/draw]
 @defmodule/incl[typed/racket/gui]
+@defmodule[typed/racket/random #:no-declare @history[#:added "1.5"]]
 @defmodule/incl[typed/racket/sandbox]
 @defmodule/incl[typed/racket/snip]
 @defmodule/incl[typed/racket/system]

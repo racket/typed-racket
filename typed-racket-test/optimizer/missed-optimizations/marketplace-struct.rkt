@@ -1,9 +1,5 @@
 #;#;
 #<<END
-TR info: marketplace-struct.rkt 38:9 vm -- struct constructor
-TR info: marketplace-struct.rkt 38:9 vm -- struct constructor
-TR info: marketplace-struct.rkt 89:39 process -- struct constructor
-TR info: marketplace-struct.rkt 96:3 vm -- struct constructor
 TR missed opt: marketplace-struct.rkt 118:34 (in-hash-keys (vm-processes state)) -- non-specialized for clause
 TR missed opt: marketplace-struct.rkt 127:32 (in-hash-keys (vm-processes state)) -- non-specialized for clause
 TR missed opt: marketplace-struct.rkt 132:46 (in-hash-keys (process-endpoints p)) -- non-specialized for clause

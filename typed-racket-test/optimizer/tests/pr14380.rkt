@@ -1,6 +1,5 @@
 #;#;
 #<<END
-TR info: pr14380.rkt 11:15 foo -- struct constructor
 END
 #<<END
 #<procedure:unbox>

@@ -372,7 +372,10 @@ corresponding to @racket[trest], where @racket[bound]
 @defidform[FlVector]{An @rtech{flvector}.
   @ex[(flvector 1.0 2.0 3.0)]}
 @defidform[ExtFlVector]{An @rtech{extflvector}.
-  @ex[(extflvector 1.0t0 2.0t0 3.0t0)]}
+  @ex[(eval:alts (extflvector 1.0t0 2.0t0 3.0t0)
+                 (eval:result @racketresultfont{#<extflvector>}
+                              "- : ExtFlVector"
+                              ""))]}
 @defidform[FxVector]{An @rtech{fxvector}.
   @ex[(fxvector 1 2 3)]}
 

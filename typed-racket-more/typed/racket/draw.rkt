@@ -116,6 +116,7 @@
  [make-brush
   (->key #:color (Un -String (-inst -Color%)) #f
          #:style -Brush-Style #f
+         #:stipple (-opt (-inst (parse-type #'Bitmap%))) #f
          #:gradient (Un (-val #f)
                         (-inst (parse-type #'Linear-Gradient%))
                         (-inst (parse-type #'Radial-Gradient%)))

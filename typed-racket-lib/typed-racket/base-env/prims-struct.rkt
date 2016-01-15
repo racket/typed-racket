@@ -128,7 +128,7 @@
                                stx
                                (and (stx-pair? stx) (stx-car stx))))))
                         #'(begin))]
-       [dtsi (quasisyntax/loc stx (dtsi/exec* () nm.name type (fld ...) proc-ty))])
+       [dtsi (quasisyntax/loc stx (dtsi/exec* () nm type (fld ...) proc-ty))])
       #'(begin d-s stx-err-fun dtsi))]))
 
 (define-syntaxes (dtsi* dtsi/exec*)

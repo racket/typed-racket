@@ -2,6 +2,12 @@
 (require racket/unsafe/ops racket/contract/base racket/contract/combinator
          racket/format)
 
+;; An optimized contract combinator for (-> any/c <flat-contract?>)
+;; This avoids the extra checks for the `any/c` projection, which
+;; can be significant if the function and result contract are both
+;; very simple. Also simplifies the code relative to the full power
+;; of `->`.
+
 (provide simple-result->)
 
 (define (simple-result-> c)
@@ -14,6 +20,8 @@
    #:late-neg-projection
    (λ (blm)
      (lambda (v neg)
+       ;; We could have separate kinda-fast paths for when one of these conditions
+       ;; is true, but that is unlikely to be an important case in practice.
        (if (and (equal? 1 (procedure-arity v))
                 (equal? 1 (procedure-result-arity v)))
            (unsafe-chaperone-procedure
@@ -27,20 +35,29 @@
               res))
            (unsafe-chaperone-procedure
             v
-            (case-lambda 
+            ;; use `make-keyword-procedure` to cover cases
+            ;; where a keyword-accepting procedure is imported with a type that
+            ;; doesn't mention the keywords
+            (make-keyword-procedure
+             (λ (kws vals . args) (raise-blame-error
+                   blm #f
+                   (list 'expected: "one non-keyword argument"
+                         'given: (~a (length args) " arguments and " (length vals)
+                                     " keyword arguments"))))
+             (case-lambda
               [(arg)
                (call-with-values (λ () (v arg))
                  (case-lambda [(res)
                                (unless (with-contract-continuation-mark
                                            (cons blm neg)
                                            (pred res))
-                               (raise-blame-error
-                                blm #f
-                                (list 'expected: (~s n) 'given: (~s res))))
+                                 (raise-blame-error
+                                  blm #f
+                                  (list 'expected: (~s n) 'given: (~s res))))
                                res]
                               [results
                                (raise-blame-error 
-                                v results
+                                blm results
                                 (list 'expected "one value"
                                       'given (~a (length results)
                                                  " values")))]))]
@@ -48,7 +65,7 @@
                (raise-blame-error
                 blm #f
                 (list 'expected: "one argument"
-                      'given: (~a (length args) " arguments")))])))))))
+                      'given: (~a (length args) " arguments")))]))))))))
 
 (module+ test
   (struct m (x))

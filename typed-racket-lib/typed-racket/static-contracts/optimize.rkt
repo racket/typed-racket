@@ -93,6 +93,7 @@
           (fail))
         ;; All the checks passed
         (function/sc
+          #t
           (take longest-args (length shortest-args))
           (drop longest-args (length shortest-args))
           empty
@@ -110,7 +111,7 @@
 (define (trusted-side-reduce sc)
   (match sc
     [(->/sc: mand-args opt-args mand-kw-args opt-kw-args rest-arg (list (any/sc:) ...))
-     (function/sc mand-args opt-args mand-kw-args opt-kw-args rest-arg #f)]
+     (function/sc #t mand-args opt-args mand-kw-args opt-kw-args rest-arg #f)]
     [(arr/sc: args rest (list (any/sc:) ...))
      (arr/sc args rest #f)]
     [(none/sc:) any/sc]

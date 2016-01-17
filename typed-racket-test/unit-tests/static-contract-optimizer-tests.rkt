@@ -220,42 +220,48 @@
       #:neg (promise/sc (box/sc set?/sc)))
 
     (check-optimize
-      (function/sc (list (listof/sc any/sc))
+      (function/sc #t
+                   (list (listof/sc any/sc))
                    (list)
                    (list)
                    (list)
                    #f
                    (list (listof/sc any/sc)))
       #:pos
-      (function/sc (list list?/sc)
+      (function/sc #t
+                   (list list?/sc)
                    (list)
                    (list)
                    (list)
                    #f
                    #f)
       #:neg
-      (function/sc (list any/sc)
+      (function/sc #t
+                   (list any/sc)
                    (list)
                    (list)
                    (list)
                    #f
                    (list list?/sc)))
     (check-optimize
-      (function/sc (list (listof/sc any/sc))
+      (function/sc #t
+                   (list (listof/sc any/sc))
                    (list)
                    (list)
                    (list)
                    #f
                    (list any/sc))
       #:pos
-      (function/sc (list list?/sc)
+      (function/sc #t
+                   (list list?/sc)
                    (list)
                    (list)
                    (list)
                    #f
                    #f)
       #:neg
-      (function/sc (list any/sc)
+      (function/sc #t
+                   (list any/sc)
                    (list)
                    (list)
                    (list)
@@ -323,7 +329,8 @@
         (list
           (arr/sc empty #f (list set?/sc))
           (arr/sc (list identifier?/sc) #f (list (listof/sc set?/sc)))))
-      #:pos  (function/sc (list)
+      #:pos  (function/sc #t
+                          (list)
                           (list identifier?/sc)
                           (list)
                           (list)

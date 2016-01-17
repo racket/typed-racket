@@ -67,6 +67,7 @@
     (namespace-require 'typed-racket/utils/any-wrap)
     (namespace-require 'typed-racket/utils/evt-contract)
     (namespace-require 'typed-racket/utils/opaque-object)
+    (namespace-require 'typed-racket/utils/simple-result-arrow)
     (namespace-require '(submod typed-racket/private/type-contract predicates))
     (namespace-require 'typed/racket/class)
     (current-namespace)))

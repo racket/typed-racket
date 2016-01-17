@@ -170,6 +170,7 @@
       typed-racket/utils/evt-contract
       typed-racket/utils/sealing-contract
       typed-racket/utils/promise-not-name-contract
+      typed-racket/utils/simple-result-arrow
       racket/sequence
       racket/contract/parametric))
 
@@ -664,7 +665,7 @@
                      (map conv opt-kws))))
          (define range (map t->sc rngs))
          (define rest (and rst (listof/sc (t->sc/neg rst))))
-         (function/sc (process-dom mand-args) opt-args mand-kws opt-kws rest range))
+         (function/sc (from-typed? typed-side) (process-dom mand-args) opt-args mand-kws opt-kws rest range))
        (handle-range first-arr convert-arr)]
       [else
        (define ((f case->) a)
@@ -681,6 +682,7 @@
                           (and rst (listof/sc (t->sc/neg rst)))
                           (map t->sc rngs))
                   (function/sc
+                    (from-typed? typed-side)
                     (process-dom (map t->sc/neg dom))
                     null
                     (map conv mand-kws)

@@ -31,6 +31,8 @@
 (read my-output-reader)
 (get-output-bytes my-error-port)
 
+(file-position my-input eof)
+
 (close-input-port my-input)
 (close-input-port my-output-reader)
 (close-output-port my-output)

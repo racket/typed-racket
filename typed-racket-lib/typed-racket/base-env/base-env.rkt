@@ -1762,7 +1762,7 @@
 [file-stream-buffer-mode (cl-> [(-Port) (one-of/c 'none 'line 'block #f)]
                                [(-Port (one-of/c 'none 'line 'block)) -Void])]
 [file-position (cl-> [(-Port) -Nat]
-                     [(-Port -Integer) -Void])]
+                     [(-Port (Un -Integer (-val eof))) -Void])]
 [file-position* (-> -Port (Un -Nat (-val #f)))]
 
 ;; Section 13.1.4

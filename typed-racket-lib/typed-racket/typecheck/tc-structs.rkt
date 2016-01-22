@@ -9,7 +9,7 @@
          (types abbrev utils resolve substitute struct-table prefab)
          (env global-env type-name-env type-alias-env tvar-env)
          (utils tc-utils)
-         (typecheck def-binding internal-forms)
+         (typecheck def-binding internal-forms check-below)
          (for-syntax syntax/parse racket/base))
 
 (require-for-cond-contract racket/struct-info)
@@ -293,12 +293,17 @@
          (parsed-struct (make-Prefab key (append parent-fields types))
                         names desc (struct-info-property nm/par) #f)]
         [else
+	 (define maybe-parsed-proc-ty
+	   (and proc-ty (parse-type proc-ty)))
+	 ;; ensure that the prop:procedure argument is really a procedure
+	 (when maybe-parsed-proc-ty
+	   (check-below maybe-parsed-proc-ty top-func))
          (define desc (struct-desc
                         (map fld-t (get-flds concrete-parent))
                         types
                         tvars
                         mutable
-                        (and proc-ty (parse-type proc-ty))))
+			maybe-parsed-proc-ty))
          (define sty (mk/inner-struct-type names desc concrete-parent))
 
          (parsed-struct sty names desc (struct-info-property nm/par) type-only)]))

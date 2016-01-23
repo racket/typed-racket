@@ -957,13 +957,19 @@
 [equal-hash-code (-> Univ -Fixnum)]
 [equal-secondary-hash-code (-> Univ -Fixnum)]
 [hash-iterate-first (-poly (a b)
-                           ((-HT a b) . -> . (Un (-val #f) -Integer)))]
+                           (cl->*
+                            ((-HT a b) . -> . (Un (-val #f) -Integer))
+                            (-> -HashTop (Un (-val #f) -Integer))))]
 [hash-iterate-next (-poly (a b)
-                           ((-HT a b) -Integer . -> . (Un (-val #f) -Integer)))]
+                           (cl->*
+                            ((-HT a b) -Integer . -> . (Un (-val #f) -Integer))
+                            (-> -HashTop -Integer (Un (-val #f) -Integer))))]
 [hash-iterate-key (-poly (a b)
-                           ((-HT a b) -Integer . -> . a))]
+                           (cl->* ((-HT a b) -Integer . -> . a)
+                                  (-> -HashTop -Integer Univ)))]
 [hash-iterate-value (-poly (a b)
-                           ((-HT a b) -Integer . -> . b))]
+                           (cl->* ((-HT a b) -Integer . -> . b)
+                                  (-> -HashTop -Integer Univ)))]
 
 [make-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]
 [make-immutable-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]

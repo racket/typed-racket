@@ -970,6 +970,12 @@
 [hash-iterate-value (-poly (a b)
                            (cl->* ((-HT a b) -Integer . -> . b)
                                   (-> -HashTop -Integer Univ)))]
+[hash-iterate-pair (-poly (a b)
+                           (cl->* ((-HT a b) -Integer . -> . (-pair a b))
+                                  (-> -HashTop -Integer Univ)))]
+[hash-iterate-key+value (-poly (a b)
+                           (cl->* ((-HT a b) -Integer . -> . (-values (list a b)))
+                                  (-> -HashTop -Integer Univ)))]
 
 [make-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]
 [make-immutable-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]

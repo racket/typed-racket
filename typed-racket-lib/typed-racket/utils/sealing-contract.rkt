@@ -69,11 +69,14 @@
                  (raise-blame-error
                   blame #:missing-party neg-party val
                   '(expected "a procedure" given: "~e") val))
+               (define blame+neg-party (cons blame neg-party))
                ;; ok to return an unrelated function since this
                ;; is an impersonator contract
                (make-keyword-procedure (λ (kws kw-args . rst)
-                                         (keyword-apply (make-seal-function val neg-party)
-                                                        kws kw-args rst))))))))
+                                         (with-contract-continuation-mark
+                                          blame+neg-party
+                                          (keyword-apply (make-seal-function val neg-party)
+                                                         kws kw-args rst)))))))))
 
 ;; represents a contract for each polymorphic seal/unseal corresponding
 ;; to a variable
@@ -95,18 +98,20 @@
            (define unsealed (seal/unseal-unsealed ctc))
            (λ (blame)
              (λ (val neg-party)
-               (unless (class? val)
-                 (raise-blame-error
-                  blame #:missing-party neg-party val
-                  '(expected: "a class" given: "~e") val))
-               (match-define (list init field method) unsealed)
-               (if (equal? (blame-original? blame)
-                           (seal/unseal-positive? ctc))
-                   (class-seal val sealing-key init field method
-                               (inst-err val blame neg-party)
-                               (subclass-err val blame neg-party))
-                   (class-unseal val sealing-key
-                                 (unseal-err val blame neg-party))))))))
+               (with-contract-continuation-mark
+                (cons blame neg-party)
+                (unless (class? val)
+                  (raise-blame-error
+                   blame #:missing-party neg-party val
+                   '(expected: "a class" given: "~e") val))
+                (match-define (list init field method) unsealed)
+                (if (equal? (blame-original? blame)
+                            (seal/unseal-positive? ctc))
+                    (class-seal val sealing-key init field method
+                                (inst-err val blame neg-party)
+                                (subclass-err val blame neg-party))
+                    (class-unseal val sealing-key
+                                  (unseal-err val blame neg-party)))))))))
 
 ;; error functions for use with class-seal, class-unseal
 (define ((inst-err val blame neg-party) cls)

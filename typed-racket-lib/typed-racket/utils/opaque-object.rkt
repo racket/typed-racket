@@ -108,18 +108,23 @@
 ;; method is typed (assuming that the caller is untyped or the receiving
 ;; object went through untyped code)
 (define (((restrict-typed->-late-neg-projection ctc) blame) val neg-party)
+  (define blame+neg-party (cons blame neg-party))
   (chaperone-procedure val
                        (make-keyword-procedure
                         (λ (_ kw-args . rst)
-                          (when (typed-method? val)
-                            (raise-blame-error (blame-swap blame) val #:missing-party neg-party
-                                               "cannot call uncontracted typed method"))
-                          (apply values kw-args rst))
+                          (with-contract-continuation-mark
+                           blame+neg-party
+                           (when (typed-method? val)
+                             (raise-blame-error (blame-swap blame) val #:missing-party neg-party
+                                                "cannot call uncontracted typed method"))
+                           (apply values kw-args rst)))
                         (λ args
-                          (when (typed-method? val)
-                            (raise-blame-error (blame-swap blame) val #:missing-party neg-party
-                                               "cannot call uncontracted typed method"))
-                          (apply values args)))))
+                          (with-contract-continuation-mark
+                           blame+neg-party
+                           (when (typed-method? val)
+                             (raise-blame-error (blame-swap blame) val #:missing-party neg-party
+                                                "cannot call uncontracted typed method"))
+                           (apply values args))))))
 
 (struct restrict-typed->/c ()
         #:property prop:chaperone-contract

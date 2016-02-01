@@ -1,3 +1,9 @@
+6.4
+- Contract performance improvements, including generating code that
+  the contract system can optimize
+- Make `any-wrap/c` more permissive on opaque structs.
+- Soundly check opaque predicates.
+- Add `#:type-name` option to `struct`.
 6.3
 - Startup time reduction
 - Tightening and cleanup of numeric types

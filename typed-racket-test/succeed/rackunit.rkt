@@ -19,3 +19,5 @@
 (test-begin
  (check-equal? (my-+ 1 1) 2 "Simple addition")
  (check-equal? (my-* 2 2) 4 "Simple multiplication"))
+
+(test-case "name")

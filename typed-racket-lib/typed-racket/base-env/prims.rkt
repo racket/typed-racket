@@ -34,6 +34,7 @@ the typed racket language.
                      def-redirect
                      define-for*-variants with-handlers: define-for/acc:-variants
                      base-for/flvector: base-for/vector -lambda -define -do -let
+                     provide-typed-vars
                      -let* -let*-values -let-values -let/cc -let/ec -letrec -letrec-values)
          (all-from-out "top-interaction.rkt")
          (all-from-out "case-lambda.rkt")
@@ -125,6 +126,7 @@ the typed racket language.
           syntax/parse/pre
           syntax/stx
           racket/list
+          racket/provide-transform
           racket/syntax
           racket/base
           (only-in "../typecheck/internal-forms.rkt" internal)
@@ -635,6 +637,59 @@ the typed racket language.
      (syntax/loc stx
        (begin (: i* t) ...
               (provide (rename-out [i* i] ...))))]))
+
+(begin-for-syntax
+  (define-syntax-class (type-out-spec stx)
+    #:attributes (type-decl* provide-spec*)
+    #:datum-literals (rename struct type)
+    (pattern [n:id t]
+     #:attr type-decl* (syntax/loc stx ((: n t)))
+     #:attr provide-spec* (syntax/loc stx (n)))
+    (pattern [rename old-n:id new-n:id t]
+     #:attr type-decl* (syntax/loc stx ((: old-n t)))
+     #:attr provide-spec* (syntax/loc stx ((rename-out (old-n new-n)))))
+    (pattern [struct n:id e* ...
+               (~or
+                (~seq #:constructor-name c-id opt-1* ... #:omit-constructor opt-2* ...)
+                (~seq #:omit-constructor opt-1* ... #:constructor-name c-id opt-2* ...))]
+     #:attr type-decl*
+            (syntax/loc stx ((-struct n e* ... #:constructor-name c-id opt-1* ... opt-2* ...)))
+     #:attr provide-spec*
+            (syntax/loc stx ((except-out (struct-out n) c-id))))
+    (pattern [struct n:id e* ... #:omit-constructor opt* ...]
+     #:attr type-decl*
+            (syntax/loc stx ((-struct n e* ... opt* ...)))
+     #:attr provide-spec*
+            (syntax/loc stx ((except-out (struct-out n) n))))
+    (pattern [struct n:id e* ...]
+     #:attr type-decl* (syntax/loc stx ((-struct n e* ...)))
+     #:attr provide-spec* (syntax/loc stx ((struct-out n))))
+    (pattern [type t e]
+     #:attr type-decl* (syntax/loc stx ((define-type-alias t e)))
+     #:attr provide-spec* (syntax/loc stx (t)))))
+
+(define-syntax provide-typed-vars
+  (make-provide-transformer
+    (λ (stx modes)
+      (for*/list ([provide-clause (in-list (syntax->list stx))]
+                  [export (in-list (expand-export provide-clause modes))])
+        export))))
+
+(define-syntax type-out
+  (make-provide-pre-transformer
+    (lambda (stx modes)
+      (syntax-parse stx
+       [(_ (~var e* (type-out-spec stx)) ...)
+        ;; Move type declarations to the toplevel
+        (for ([t* (in-list (syntax->list #'(e*.type-decl* ...)))])
+          (syntax-local-lift-module-end-declaration
+            (quasisyntax/loc stx (begin #,@t*))))
+        ;; Collect a flat list of provide specs & expand
+        (with-syntax ([(name* ...)
+                       (for*/list ([decl* (in-list (syntax->list #'(e*.provide-spec* ...)))]
+                                   [decl  (in-list (syntax->list decl*))])
+                         decl)])
+          (syntax/loc stx (provide-typed-vars name* ...)))]))))
 
 (define-syntax (declare-refinement stx)
   (syntax-parse stx

@@ -127,6 +127,12 @@
              (ensure-string name (quote-syntax #,(datum->syntax #f 'loc #'name)))])
          (test-begin expr ...)))]))
 
+(: ensure-string : Any Any -> String)
+(define (ensure-string name src-stx)
+  (unless (string? name)
+    (raise-argument-error 'test-case "string?" name))
+  name)
+
 (provide test-begin test-case)
 
 (require/opaque-type TestCase test-case? rackunit)

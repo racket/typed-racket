@@ -168,7 +168,6 @@ and the @racket[URL] and @racket[Path/Param] types from
 
 @defmodule/incl[typed/openssl/md5]
 @defmodule/incl[typed/openssl/sha1]
-@defmodule/incl[typed/pict]
 @defmodule[typed/racket/async-channel #:no-declare @history[#:added "1.1"]]
 @defmodule/incl[typed/racket/date]
 @defmodule/incl[typed/racket/draw]
@@ -211,7 +210,11 @@ written in Typed Racket or have adapter modules that are typed:
    @defmodule[name #:no-declare #:link-target? #f #:indirect])
 
 @defmodule/also[math]
-@defmodule/also[plot/typed]
+@defmodule/also[plot]
+@defmodule/incl[typed/pict]
+@defmodule/also[images/flomap]
+@defmodule/incl[images/logos]
+@defmodule/incl[images/icons]
 
 @section{Porting Untyped Modules to Typed Racket}
 

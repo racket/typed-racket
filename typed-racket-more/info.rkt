@@ -13,6 +13,7 @@
                "typed-racket-lib"
                "gui-lib"
                "pict-lib"
+               "images-lib"
                "racket-index"
                "sandbox-lib"))
 

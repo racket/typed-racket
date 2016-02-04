@@ -49,76 +49,152 @@
 (require 'rename)
 
 ;; -----------------------------------------------------------------------------
+;; begin-for-syntax
+;; Can 'type-out' at a different phase level
+
+(module bfs typed/racket/base
+  (require (for-syntax typed/racket/base))
+
+  (begin-for-syntax
+    (provide
+      (type-out (f (-> String Boolean))))
+    (define (f s)
+      (= 8 (string-length s)))))
+(require 'bfs)
+
+;; -----------------------------------------------------------------------------
 ;; struct
 
-;; basic struct definition
-(module defstruct typed/racket/base
+;; basic struct definitions, order of declarations does not matter
+(module defstruct-1 typed/racket/base
+  (struct foo-1 ([a : Natural] [b : (-> Boolean String)]))
   (provide
-    (type-out
-      [struct foo ([a : Natural] [b : (-> Boolean String)])]))
-  (define f foo))
-(require 'defstruct)
+    (type-out [struct foo-1 ([a : Natural] [b : (-> Boolean String)])]))
+  (define f foo-1))
+(require 'defstruct-1)
 
-;; compatible with struct #:type-name
-;; (but not cooperative -- need to provide new name explicitly)
-(module defstruct/type-name typed/racket/base
+(module defstruct-2 typed/racket/base
   (provide
-    Bar
-    (type-out
-      [struct bar () #:type-name Bar])))
-(module defstruct/type-name-user typed/racket/base
-  (require (submod ".." defstruct/type-name))
-  (: barry Bar)
-  (define barry (bar)))
-(require 'defstruct/type-name-user)
+    (type-out [struct foo-2 ([a : Natural] [b : (-> Boolean String)])]))
+  (struct foo-2 ([a : Natural] [b : (-> Boolean String)]))
+  (define f foo-2))
+(require 'defstruct-2)
 
 ;; struct with parent
 (module struct/parent typed/racket/base
   (provide (type-out
     (struct bar ([x : Natural] [y : Boolean]))
-    (struct baz bar ([z : MyType]))
-  ))
-  (define-type MyType (-> Natural Boolean String)))
+    (struct (baz bar) ([x : Natural] [y : Boolean] [z : MyType]))))
+  (define-type MyType (-> Natural Boolean String))
+  (struct bar ([x : Natural] [y : Boolean]))
+  (struct baz bar ([z : MyType]) #:property prop:procedure (struct-field-index z)))
 (require 'struct/parent)
 
 ;; struct, #:omit-constructor
 (module omit-constructor-1 typed/racket/base
+  (struct qux ([x : Natural] [y : Boolean]))
   (provide (type-out
     (struct qux ([x : Natural] [y : Boolean]) #:omit-constructor))))
 (require 'omit-constructor-1)
 
-;; can re-order #:omit-constructor relative to other options
-(module omit-constructor-2 typed/racket/base
-  (provide (type-out
-    (struct quux () #:type-name Quux #:omit-constructor)
-    (struct quuux () #:omit-constructor #:type-name Quuux))))
-(require 'omit-constructor-2)
+;; compatible with type-name
+(module type-name typed/racket/base
+  (provide
+   (type-out (struct secret ([x : Key]))))
+  (define-type Key String)
+  (struct secret ([x : Key]) #:type-name SecretKey))
+(require 'type-name)
+
+;; compatible with polymorphic type-name? wait for issue #304
+;(module type-name-poly typed/racket/base
+;  (struct (A) secret-poly ([x : A]) #:type-name SecretPoly)
+;  (provide
+;   (type-out (struct (A) secret-poly ([x : A])))))
+;(require 'type-name-poly)
+
+;; more intense use of type variables
+;(module type-var typed/racket/base
+;  (provide
+;   (type-out
+;    (struct (A B C) ski ([S : (-> (-> A B C) (-> A B) A C)]
+;                         [K : (-> A B A)]
+;                         [I : (-> A A)]))))
+;  (struct (A B C) ski ([S : (-> (-> A B C) (-> A B) A C)]
+;                       [K : (-> A B A)]
+;                       [I : (-> A A)])
+;    #:type-name SKI
+;    #:extra-constructor-name make-SKI
+;    #:property prop:procedure
+;      (struct-field-index S)))
+;(require 'type-var)
 
 ;; -----------------------------------------------------------------------------
-;; type
+;; Example class
 
-(module deftype typed/racket/base
-  (provide (type-out
-    (type Person (Pairof String Natural))
-    (person<? (-> Person Person Boolean))))
-  (define (person<? p1 p2)
-    (string<? (car p1) (car p2))))
-(require 'deftype)
+(module class typed/racket/base
+  ;; Example OO code
+  (require typed/racket/class)
 
-(module deftype-user typed/racket/base
-  (require (submod ".." deftype))
-  (provide person<?*)
+  (define-type State Natural)
+  (define-type Payoff Natural)
+  (define-type Transition* (Vectorof (Vectorof Payoff)))
+  (define-type oAutomaton (Instance Automaton))
+  (define-type Automaton
+    (Class
+     (init-field [current State]
+                 [payoff Payoff]
+                 [table Transition*]
+                 [original State #:optional])
+     [match-pair (-> oAutomaton Natural (values oAutomaton oAutomaton))]
+     [jump (-> State Payoff Void)]
+     [pay (-> Payoff)]
+     [reset (-> oAutomaton)]
+     [clone (-> oAutomaton)]
+     [equal (-> oAutomaton Boolean)]))
 
-  (define-type People (Listof Person))
+  (define automaton%
+    (let ()
+      (class object%
+        (init-field
+         current
+         payoff
+         table
+         (original current))
+        (super-new)
 
-  (: person<?* (-> People People Boolean))
-  (define (person<?* p1* p2*)
-    (for/fold : Boolean
-              ([acc #t])
-              ([p1 (in-list p1*)]
-               [p2 (in-list p2*)])
-      (and acc (person<? p1 p2)))))
-(require 'deftype-user)
+        (define/public (match-pair other r)
+          ;; Implementation omitted
+          (values this other))
+
+        (define/public (jump input delta)
+          (set! current (vector-ref (vector-ref table current) input))
+          (set! payoff (+ payoff delta)))
+
+        (define/public (pay)
+          payoff)
+
+        (define/public (reset)
+          (new automaton% [current original][payoff 0][table table]))
+
+        (define/public (clone)
+          (new automaton% [current original][payoff 0][table table]))
+
+        (: compute-payoffs (-> State [cons Payoff Payoff]))
+        (define/private (compute-payoffs other-current)
+          (vector-ref (vector-ref #(#()) current) other-current))
+
+        (define/public (equal other)
+          (and (= current (get-field current other))
+               (= original (get-field original other))
+               (= payoff (get-field payoff other))
+               (equal? table (get-field table other)))))))
+
+   (define a (new automaton% (current 0) (payoff 999) (table '#(#(0 0) #(1 1)))))
+
+   (provide (type-out
+     (automaton% Automaton)
+     (a oAutomaton))))
+(require 'class)
 
 ;; -----------------------------------------------------------------------------
 ;; test compatibility with #:opaque types
@@ -129,11 +205,12 @@
    [#:opaque Str string?]
    [string-length (-> Str Natural)])
 
-  (provide (type-out
-    (type MyTuple (Pairof String Natural))
-    (a (-> MyTuple Boolean))))
+  (provide
+    MyTuple
+    (type-out (and-cdr (-> MyTuple Boolean))))
+  (define-type MyTuple (Pairof String Natural))
 
-  (define (a x)
+  (define (and-cdr x)
     (and (cdr x) #t)))
 (require 'opaque-1)
 
@@ -162,17 +239,19 @@
     #t))
 (require 'opaque-3)
 
-;; -----------------------------------------------------------------------------
+;;; -----------------------------------------------------------------------------
 ;; compatible with #:constructor-name
 
 (module constr-name-1 typed/racket/base
   (provide (type-out
-    (struct s () #:constructor-name makes)))
-  makes)
+    (struct s ())))
+  (struct s () #:constructor-name makes)
+  (define f makes))
 (require 'constr-name-1)
 
 (module constr-name-2 typed/racket/base
   (provide (type-out
-    (struct r () #:omit-constructor #:constructor-name maker)))
-  maker)
+    (struct r () #:omit-constructor)))
+  (struct r () #:constructor-name maker)
+  (define f maker))
 (require 'constr-name-2)

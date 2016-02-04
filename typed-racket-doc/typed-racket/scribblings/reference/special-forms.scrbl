@@ -686,13 +686,16 @@ the types @racket[t], and also provides all of the @racket[v]s.}
 ([type-out-spec
   (id t)
   (rename orig-id id t)
-  (struct maybe-type-vars name-spec ([f : t] ...) struct-option ...)
-  (type id t)]
- [struct-option (code:line options)
+  (struct maybe-type-vars id/super ((id : t) ...)
+    struct-option)]
+ [maybe-type-vars code:blank
+                  (v ...)]
+ [id/super id
+           (id super-id)]
+ [struct-option (code:line)
                 #:omit-constructor])]{
 A @racket[_provide-spec] similar to @racket[contract-out] for use in @racket[provide]
  (currently only for the same phase level as the enclosing @racket[provide] form).
-Declarations in a @racket[type-out] are visible within the module and exported to clients.
 
 The basic @racket[(id t)] form applies the type annotation @racket[t] to the identifier
  @racket[id] and exports @racket[id].
@@ -702,13 +705,8 @@ The @racket[rename] form assigns @racket[orig-id] the type @racket[t] and export
  @racket[orig-id] under the name @racket[id].
 Within the module only @racket[orig-id] is visible, but clients may only use @racket[id].
 
-The @racket[struct] form accepts the same syntax as Typed Racket's @racket[struct] form
- along with the @racket[#:omit-constructor] option from @racket[contract-out].
-This form defines a new structure type and exports the newly generated bindings;
- if @racket[#:omit-constructor] is given the constructor name is not exported.
-
-The @racket[type] form defines @racket[id] as an alias for type @racket[t]
- (using @racket[define-type]) and exports @racket[id].
+The @racket[struct] form describes the name and public fields of an existing structure type.
+When the @racket[#:omit-constructor] option is given, the constructor name is not exported.
 }
 
 

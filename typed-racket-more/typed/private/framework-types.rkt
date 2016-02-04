@@ -109,7 +109,7 @@
                  [style (Listof (U 'no-border 'control-border 'combo
                                    'no-hscroll 'no-vscroll
                                    'hide-hscroll 'hide-vscroll
-                                   'auto-vscoll 'auto-hscroll
+                                   'auto-vscroll 'auto-hscroll
                                    'resize-corner 'no-focus 'deleted
                                    'transparent))
                         #:optional]

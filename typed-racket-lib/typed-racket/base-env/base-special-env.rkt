@@ -132,6 +132,22 @@
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq (-pair a b))]
                 [(-HashTop) (-seq (-pair Univ Univ))]))]
+  [(make-template-identifier 'default-in-hash-key+values 'racket/private/for)
+   (-poly (a b)
+          (cl-> [((-HT a b)) (-seq a b)]
+                [(-HashTop) (-seq Univ Univ)]))]
+  [(make-template-identifier 'default-in-hash-keys 'racket/private/for)
+   (-poly (a b)
+          (cl-> [((-HT a b)) (-seq a)]
+                [(-HashTop) (-seq Univ)]))]
+  [(make-template-identifier 'default-in-hash-values 'racket/private/for)
+   (-poly (a b)
+          (cl-> [((-HT a b)) (-seq b)]
+                [(-HashTop) (-seq Univ)]))]
+  [(make-template-identifier 'default-in-hash-pairs 'racket/private/for)
+   (-poly (a b)
+          (cl-> [((-HT a b)) (-seq (-pair a b))]
+                [(-HashTop) (-seq (-pair Univ Univ))]))]
   ;; in-port
   [(make-template-identifier 'in-port 'racket/private/for)
    (->opt [(-> -Input-Port Univ) -Input-Port] (-seq Univ))]

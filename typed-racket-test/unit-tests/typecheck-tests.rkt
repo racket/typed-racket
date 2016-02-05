@@ -2535,6 +2535,19 @@
                      (values v k)))
                  h)
                (-HT Univ Univ)]
+       [tc-e/t (let ()
+                 (tr:define h : (HashTable Any Any)
+                   (for/hash ([k (in-hash-keys #hash(("a" . a)))]
+                              [v (in-hash-values #hash(("a" . a)))])
+                     (values v k)))
+                 h)
+               (-HT Univ Univ)]
+       [tc-e/t (let ()
+                 (tr:define h : (HashTable Any Any)
+                   (for/hash ([k+v (in-hash-pairs #hash(("a" . a)))])
+                     (values (cdr k+v) (car k+v))))
+                 h)
+               (-HT Univ Univ)]
 
        ;; call-with-input-string and friends - PR 14050
        [tc-e (call-with-input-string "abcd" (lambda: ([input : Input-Port]) (values 'a 'b)))
@@ -3838,6 +3851,12 @@
 
        [tc-e (ann (in-hash (hash)) (Sequenceof Any Any))
              (-seq Univ Univ)]
+       [tc-e (ann (in-hash-keys (hash)) (Sequenceof Any))
+             (-seq Univ)]
+       [tc-e (ann (in-hash-values (hash)) (Sequenceof Any))
+             (-seq Univ)]
+       [tc-e (ann (in-hash-pairs (hash)) (Sequenceof (Pairof Any Any)))
+             (-seq (-pair Univ Univ))]
        )
 
   (test-suite

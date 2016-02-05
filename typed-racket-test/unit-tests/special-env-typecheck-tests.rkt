@@ -59,6 +59,7 @@
    [tc-e (in-hash #hash((1 . 2))) (-seq -Integer -Integer)]
    [tc-e (in-hash-keys #hash((1 . 2))) (-seq -Integer)]
    [tc-e (in-hash-values #hash((1 . 2))) (-seq -Integer)]
+   [tc-e (in-hash-pairs #hash((1 . 2))) (-seq (-pair -Integer -Integer))]
 
    (tc-e (file->string "tmp") -String)
    (tc-e (file->string "tmp" #:mode 'binary) -String)

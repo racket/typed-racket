@@ -116,22 +116,6 @@
   [(make-template-identifier 'in-bytes 'racket/private/for)
    (->opt -Bytes [-Int (-opt -Int) -Int] (-seq -Byte))]
   ;; in-hash and friends
-  [(make-template-identifier 'in-hash 'racket/private/for)
-   (-poly (a b)
-          (cl-> [((-HT a b)) (-seq a b)]
-                [(-HashTop) (-seq Univ Univ)]))]
-  [(make-template-identifier 'in-hash-keys 'racket/private/for)
-   (-poly (a b)
-          (cl-> [((-HT a b)) (-seq a)]
-                [(-HashTop) (-seq Univ)]))]
-  [(make-template-identifier 'in-hash-values 'racket/private/for)
-   (-poly (a b)
-          (cl-> [((-HT a b)) (-seq b)]
-                [(-HashTop) (-seq Univ)]))]
-  [(make-template-identifier 'in-hash-pairs 'racket/private/for)
-   (-poly (a b)
-          (cl-> [((-HT a b)) (-seq (-pair a b))]
-                [(-HashTop) (-seq (-pair Univ Univ))]))]
   [(make-template-identifier 'default-in-hash-key+values 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq a b)]

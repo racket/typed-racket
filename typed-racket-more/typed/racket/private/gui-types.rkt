@@ -2115,7 +2115,7 @@
          [get-flattened-text (-> String)]
          [get-focus-snip (-> (Option (Instance Snip%)))]
          [get-inactive-caret-threshold (-> (U 'no-caret 'show-inactive-caret 'show-caret))]
-         [get-keymap (-> (Option Keymap%))]
+         [get-keymap (-> (Option (Instance Keymap%)))]
          [get-load-overwrites-styles (-> Boolean)]
          [get-max-height (-> (U Nonnegative-Real 'none))]
          [get-max-undo-history (-> (U Natural 'forever))]
@@ -2311,7 +2311,7 @@
          [set-inactive-caret-threshold
           ((U 'no-caret 'show-inactive-caret 'show-caret) -> Void)]
          [set-keymap
-          (case-> (-> Void) ((Option Keymap%) -> Void))]
+          (case-> (-> Void) ((Option (Instance Keymap%)) -> Void))]
          [set-load-overwrites-styles (Any -> Void)]
          [set-max-height ((U Integer 'none) -> Void)]
          [set-max-undo-history ((U Integer 'forever) -> Void)]
@@ -2836,7 +2836,7 @@
          [get-flags (-> (Listof Symbol))]
          [get-num-scroll-steps (-> Natural)]
          [get-scroll-step-offset (Natural -> Nonnegative-Real)]
-         [get-snipclass (-> (Option Snip-Class%))]
+         [get-snipclass (-> (Option (Instance Snip-Class%)))]
          [get-style (-> (Instance Style<%>))]
          [get-text
           (case-> (Natural Natural -> String)

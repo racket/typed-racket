@@ -131,7 +131,7 @@ the typed racket language.
           racket/provide-transform
           racket/syntax
           racket/base
-          (only-in racket/string string-split)
+          (only-in racket/string string-prefix? string-split)
           (only-in "../typecheck/tc-structs.rkt" name-of-struct)
           (only-in "../typecheck/internal-forms.rkt" internal)
           (only-in "../typecheck/find-annotation.rkt" find-annotation)
@@ -662,39 +662,20 @@ the typed racket language.
        ;; Also:
        ;; - check that supertype information is correct
        ;; - check that all struct fields have an annotation (including super fields)
-       (let ([struct-info (syntax-local-value #'n (lambda () #f))])
-         (if (not struct-info)
-           (raise-syntax-error
-             'type-out
-             "unknown struct type. (Make sure struct definitions come before their use in a type-out form)"
-             stx
-             (syntax-e #'n))
-       (let*-values ([(_struct-type constr n? n-acc* _mut* super)
+       (let*-values ([(struct-info)
+                      (or
+                       (syntax-local-value #'n (lambda () #f))
+                       (raise-syntax-error 'type-out "unknown struct type. (Make sure struct definitions come before their use in a type-out form)" stx (syntax-e #'n)))]
+                     [(_struct-type constr _n? all-acc* _mut* super)
                       (apply values (extract-struct-info struct-info))]
-                     [(acc*)
-                      ;; Recursively collect all known struct fields / parent fields
-                      (let loop ([acc* n-acc*]
-                                 [super super])
-                        (define-values (acc-prefix* acc-last)
-                          (let loop ([acc* acc*]
-                                     [pre* '()])
-                            (cond
-                             [(null? acc*)  (values '() #t)]
-                             [(null? (cdr acc*))  (values pre* (car acc*))]
-                             [else  (loop (cdr acc*) (cons (car acc*) pre*))])))
-                        (if acc-last
-                          ;; then: list is reliable indicator of fields
-                          acc*
-                          ;; else: look for fields in supertype
-                          (case super
-                           [(#t) ;; No supertype
-                            (error 'type-out "Internal Error: list of fields ~a is not exact, but struct has no supertype." acc*)]
-                           [(#f) ;; Unknown supertype
-                            (raise-syntax-error 'type-out (format "cannot determine field information for struct type '~a' (use struct-out instead)" (syntax-e #'n)) stx)]
-                           [else ;; Recurse with parent struct-type-info
-                            (define info (extract-struct-info (syntax-local-value super)))
-                            (append acc-prefix*
-                                    (loop (cadddr info) (last info)))])))])
+                     [(acc*) ;; Reverse, filter superclass accessors, remove sentinel
+                      (let ([n-str (symbol->string (syntax-e #'n))])
+                        (for/fold ([out* '()])
+                                  ([acc (in-list all-acc*)])
+                          (if (and acc
+                                   (string-prefix? (symbol->string (syntax-e acc)) n-str))
+                            (cons acc out*)
+                            out*)))])
          ;; check parent, if given
          (when (and (attribute parent)
                     (or (boolean? super) (not (free-identifier=? super #'parent))))
@@ -703,9 +684,7 @@ the typed racket language.
              (format "struct type ~a is not a subtype of ~a" (syntax-e #'n) (syntax-e #'parent))
              stx))
          ;; match known accessors with field information
-         (let* ([f+t* (sort (map syntax-e (syntax->list #'((f* . t*) ...)))
-                            symbol<?
-                            #:key (lambda (f+t) (syntax-e (car f+t))))]
+         (let* ([f+t* (map syntax-e (syntax->list #'((f* . t*) ...)))]
                 [_check-dup ;; Check for duplicate field annotations
                  (for/fold ([prev #f])
                            ([f+t (in-list f+t*)])
@@ -713,19 +692,21 @@ the typed racket language.
                      (raise-syntax-error 'type-out "duplicate annotation for struct field" (car f+t) stx))
                    (car f+t))]
                 [acc+type*
-                 (for/list ([acc (in-list (sort acc* symbol<? #:key syntax-e))])
+                 (for/list ([acc (in-list acc*)])
                    (define acc-id
                      (format-id stx "~a" (last (string-split (symbol->string (syntax-e acc)) "-"))))
                    (define f+t
                      (if (null? f+t*)
                        #f
                        (begin0 (car f+t*) (set! f+t* (cdr f+t*)))))
-                   (unless (and f+t (free-identifier=? acc-id (car f+t)))
+                   (unless f+t
                      (raise-syntax-error 'type-out "missing annotation for struct field" stx (syntax-e acc-id)))
+                   (unless (free-identifier=? acc-id (car f+t))
+                     (raise-syntax-error 'type-out (format "expected annotation for struct field '~a'" (syntax-e acc-id)) stx (cons (syntax-e (car f+t)) (syntax-e (cdr f+t)))))
                    (quasisyntax/loc stx (ann #,acc (-> n #,(cdr f+t)))))])
            (unless (null? f+t*)
-             (raise-syntax-error 'type-out "struct field does not exist" stx (map (lambda (f+t) (syntax-e (car f+t))) f+t*)))
-           (quasisyntax/loc stx (let () #,@acc+type* (void)))))))
+             (raise-syntax-error 'type-out "struct field does not exist (supertype fields cannot be annotated in type-out)" stx (map (lambda (f+t) (syntax-e (car f+t))) f+t*)))
+           (quasisyntax/loc stx (let () #,@acc+type* (void)))))
       #:attr provide-spec*
        (if (attribute omit?)
          (with-syntax ([constr (cadr (extract-struct-info (syntax-local-value #'n)))])

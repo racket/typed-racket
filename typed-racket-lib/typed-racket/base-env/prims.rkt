@@ -125,12 +125,16 @@ the typed racket language.
          (for-syntax
           racket/lazy-require
           syntax/parse/pre
+          racket/struct-info
           syntax/stx
           racket/list
           racket/provide-transform
           racket/syntax
           racket/base
+          (only-in racket/string string-split)
+          (only-in "../typecheck/tc-structs.rkt" name-of-struct)
           (only-in "../typecheck/internal-forms.rkt" internal)
+          (only-in "../typecheck/find-annotation.rkt" find-annotation)
           "annotate-classes.rkt"
           "../utils/literal-syntax-class.rkt"
           "../private/parse-classes.rkt"
@@ -644,27 +648,93 @@ the typed racket language.
     #:attributes (type-decl* provide-spec*)
     #:datum-literals (rename struct type :) ;; 2016-02-03 'type' is unused for now
     (pattern [n:id t]
-     #:attr type-decl* (syntax/loc stx ((: n t)))
-     #:attr provide-spec* (syntax/loc stx (n)))
+     #:attr type-decl* (syntax/loc stx (: n t))
+     #:attr provide-spec* (syntax/loc stx n))
     (pattern [rename old-n:id new-n:id t]
-     #:attr type-decl* (syntax/loc stx ((: old-n t)))
-     #:attr provide-spec* (syntax/loc stx ((rename-out (old-n new-n)))))
+     #:attr type-decl* (syntax/loc stx (: old-n t))
+     #:attr provide-spec* (syntax/loc stx (rename-out (old-n new-n))))
     (pattern [struct (~optional (~seq (v*:id ...)))
-                     (~or n:id (n:id parent:id))
+                     (~or n:id (n:id parent:id) (~seq n:id parent:id))
                      ((f*:id : t*) ...)
                      (~optional (~and #:omit-constructor omit?))]
       #:attr type-decl*
-       (syntax/loc stx
-         ((let ()
-           ;; TODO
-           ;; 1. If parent given, check that struct is supertype of parent
-           ;; 2. Check all field types
-           (void))))
+       ;; Make type annotations for each struct field accessor
+       ;; Also:
+       ;; - check that supertype information is correct
+       ;; - check that all struct fields have an annotation (including super fields)
+       (let ([struct-info (syntax-local-value #'n (lambda () #f))])
+         (if (not struct-info)
+           (raise-syntax-error
+             'type-out
+             "unknown struct type. (Make sure struct definitions come before their use in a type-out form)"
+             stx
+             (syntax-e #'n))
+       (let*-values ([(_struct-type constr n? n-acc* _mut* super)
+                      (apply values (extract-struct-info struct-info))]
+                     [(acc*)
+                      ;; Recursively collect all known struct fields / parent fields
+                      (let loop ([acc* n-acc*]
+                                 [super super])
+                        (define-values (acc-prefix* acc-last)
+                          (let loop ([acc* acc*]
+                                     [pre* '()])
+                            (cond
+                             [(null? acc*)  (values '() #t)]
+                             [(null? (cdr acc*))  (values pre* (car acc*))]
+                             [else  (loop (cdr acc*) (cons (car acc*) pre*))])))
+                        (if acc-last
+                          ;; then: list is reliable indicator of fields
+                          acc*
+                          ;; else: look for fields in supertype
+                          (case super
+                           [(#t) ;; No supertype
+                            (error 'type-out "Internal Error: list of fields ~a is not exact, but struct has no supertype." acc*)]
+                           [(#f) ;; Unknown supertype
+                            (raise-syntax-error 'type-out (format "cannot determine field information for struct type '~a' (use struct-out instead)" (syntax-e #'n)) stx)]
+                           [else ;; Recurse with parent struct-type-info
+                            (define info (extract-struct-info (syntax-local-value super)))
+                            (append acc-prefix*
+                                    (loop (cadddr info) (last info)))])))])
+         ;; check parent, if given
+         (when (and (attribute parent)
+                    (or (boolean? super) (not (free-identifier=? super #'parent))))
+           (raise-syntax-error
+             'type-out
+             (format "struct type ~a is not a subtype of ~a" (syntax-e #'n) (syntax-e #'parent))
+             stx))
+         ;; match known accessors with field information
+         (let* ([f+t* (sort (map syntax-e (syntax->list #'((f* . t*) ...)))
+                            symbol<?
+                            #:key (lambda (f+t) (syntax-e (car f+t))))]
+                [_check-dup ;; Check for duplicate field annotations
+                 (for/fold ([prev #f])
+                           ([f+t (in-list f+t*)])
+                   (when (and prev (free-identifier=? prev (car f+t)))
+                     (raise-syntax-error 'type-out "duplicate annotation for struct field" (car f+t) stx))
+                   (car f+t))]
+                [acc+type*
+                 (for/list ([acc (in-list (sort acc* symbol<? #:key syntax-e))])
+                   (define acc-id
+                     (format-id stx "~a" (last (string-split (symbol->string (syntax-e acc)) "-"))))
+                   (define f+t
+                     (if (null? f+t*)
+                       #f
+                       (begin0 (car f+t*) (set! f+t* (cdr f+t*)))))
+                   (unless (and f+t (free-identifier=? acc-id (car f+t)))
+                     (raise-syntax-error 'type-out "missing annotation for struct field" stx (syntax-e acc-id)))
+                   (quasisyntax/loc stx (ann #,acc (-> n #,(cdr f+t)))))])
+           (unless (null? f+t*)
+             (raise-syntax-error 'type-out "struct field does not exist" stx (map (lambda (f+t) (syntax-e (car f+t))) f+t*)))
+           (quasisyntax/loc stx (let () #,@acc+type* (void)))))))
       #:attr provide-spec*
-       ;; TODO `n` is not always the constructor name. See `contract-out` for help.
        (if (attribute omit?)
-         (syntax/loc stx ((except-out (struct-out n) n)))
-         (syntax/loc stx ((struct-out n)))))))
+         (with-syntax ([constr (cadr (extract-struct-info (syntax-local-value #'n)))])
+           (if (free-identifier=? #'constr #'n)
+             ;; Type is only constructor
+             (syntax/loc stx (except-out (struct-out n) constr))
+             ;; We have 2 constructors (can't tell when struct name is not a constructor)
+             (syntax/loc stx (except-out (struct-out n) n constr))))
+         (syntax/loc stx (struct-out n))))))
 
 (define-syntax provide-typed-vars
   (make-provide-transformer
@@ -679,14 +749,14 @@ the typed racket language.
       (syntax-parse stx
        [(_ (~var e* (type-out-spec stx)) ...)
         ;; Move type declarations to the toplevel
-        (with-syntax ([((t** ...) ...) #'(e*.type-decl* ...)])
+        (with-syntax ([(t* ...) #'(e*.type-decl* ...)])
           (syntax-local-lift-module-end-declaration
             (syntax-property ;; Mark, so we can lift to beginning of module later
-              (quasisyntax/loc stx (begin t** ... ...))
+              (quasisyntax/loc stx (begin t* ...))
               tr:type-out:type-annotation-property #t)))
         ;; Collect a flat list of provide specs & expand
-        (with-syntax ([((spec** ...) ...) #'(e*.provide-spec* ...)])
-          (syntax/loc stx (provide-typed-vars spec** ... ...)))]))))
+        (with-syntax ([(spec* ...) #'(e*.provide-spec* ...)])
+          (syntax/loc stx (provide-typed-vars spec* ...)))]))))
 
 (define-syntax (declare-refinement stx)
   (syntax-parse stx

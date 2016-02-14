@@ -691,10 +691,11 @@ the typed racket language.
                    (when (and prev (free-identifier=? prev (car f+t)))
                      (raise-syntax-error 'type-out "duplicate annotation for struct field" (car f+t) stx))
                    (car f+t))]
+                [n-len (+ 1 (string-length (symbol->string (syntax-e #'n))))] ;; To infer field names
                 [acc+type*
                  (for/list ([acc (in-list acc*)])
                    (define acc-id
-                     (format-id stx "~a" (last (string-split (symbol->string (syntax-e acc)) "-"))))
+                     (format-id stx "~a" (substring (symbol->string (syntax-e acc)) n-len)))
                    (define f+t
                      (if (null? f+t*)
                        #f

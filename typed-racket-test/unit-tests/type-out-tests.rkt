@@ -321,6 +321,14 @@
          (struct A ((a : String)) #:type-name Foo)
          (provide (type-out
            (struct A ((a : String)) #:type-name Foo))))))
+    ;; Works with hyphenated struct/field names
+    (eval/pass
+      '(begin
+        (module t typed/racket/base
+          (struct a-b ([c-d : Natural]))
+          (provide (type-out
+            (struct a-b ([c-d : Natural])))))
+        (require 't)))
   )
   (test-suite "class" ;; ------------------------------------------------------
 

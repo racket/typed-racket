@@ -70,7 +70,10 @@
     ([message : -String] [continuation-marks : -Cont-Mark-Set])
 
     (define-hierarchy exn:break (#:kernel-maker k:exn:break)
-     ([continuation : top-func]))
+     ([continuation : top-func])
+
+     (define-hierarchy exn:break:hang-up (#:kernel-maker k:exn:break:hang-up) ())
+     (define-hierarchy exn:break:terminate (#:kernel-maker k:exn:break:terminate) ()))
 
     (define-hierarchy exn:fail (#:kernel-maker k:exn:fail) ()
 

@@ -2004,6 +2004,8 @@
                     exn:fail:unsupported
                     exn:fail:user
                     exn:break
+                    exn:break:hang-up
+                    exn:break:terminate
                     arity-at-least
                     date
                     srcloc)

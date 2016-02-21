@@ -84,7 +84,10 @@
         (define-hierarchy exn:fail:contract:continuation (#:kernel-maker k:exn:fail:contract:continuation) ())
         (define-hierarchy exn:fail:contract:variable (#:kernel-maker k:exn:fail:contract:variable) ()))
 
-      (define-hierarchy exn:fail:syntax (#:kernel-maker k:exn:fail:syntax) ([exprs : (-lst Any-Syntax)]))
+      (define-hierarchy exn:fail:syntax (#:kernel-maker k:exn:fail:syntax) ([exprs : (-lst Any-Syntax)])
+        (define-hierarchy exn:fail:syntax:unbound (#:kernel-maker k:exn:fail:syntax:unbound) ())
+        (define-hierarchy exn:fail:syntax:missing-module (#:kernel-maker k:exn:fail:syntax:missing-module)
+          ([path : -Module-Path])))
 
       (define-hierarchy exn:fail:read (#:kernel-maker k:exn:fail:read)
         ([srclocs : (-lst Univ)]) ;; cce: Univ here should be srcloc
@@ -93,9 +96,15 @@
 
       (define-hierarchy exn:fail:filesystem (#:kernel-maker k:exn:fail:filesystem) ()
         (define-hierarchy exn:fail:filesystem:exists (#:kernel-maker k:exn:fail:filesystem:exists) ())
-        (define-hierarchy exn:fail:filesystem:version (#:kernel-maker k:exn:fail:filesystem:version) ()))
+        (define-hierarchy exn:fail:filesystem:version (#:kernel-maker k:exn:fail:filesystem:version) ())
+        (define-hierarchy exn:fail:filesystem:errno (#:kernel-maker k:exn:fail:filesystem:errno)
+          ([errno : (-pair -Integer (one-of/c 'posix 'windows 'gai))]))
+        (define-hierarchy exn:fail:filesystem:missing-module (#:kernel-maker k:exn:fail:filesystem:missing-module)
+          ([path : -Module-Path])))
 
-      (define-hierarchy exn:fail:network (#:kernel-maker k:exn:fail:network) ())
+      (define-hierarchy exn:fail:network (#:kernel-maker k:exn:fail:network) ()
+        (define-hierarchy exn:fail:network:errno (#:kernel-maker k:exn:fail:network:errno)
+          ([errno : (-pair -Integer (one-of/c 'posix 'windows 'gai))])))
 
       (define-hierarchy exn:fail:out-of-memory (#:kernel-maker k:exn:fail:out-of-memory) ())
 

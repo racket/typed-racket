@@ -1993,13 +1993,18 @@
                     exn:fail:contract:continuation
                     exn:fail:contract:variable
                     exn:fail:syntax
+                    exn:fail:syntax:unbound
+                    exn:fail:syntax:missing-module
                     exn:fail:read
                     exn:fail:read:eof
                     exn:fail:read:non-char
                     exn:fail:filesystem
                     exn:fail:filesystem:exists
                     exn:fail:filesystem:version
+                    exn:fail:filesystem:errno
+                    exn:fail:filesystem:missing-module
                     exn:fail:network
+                    exn:fail:network:errno
                     exn:fail:out-of-memory
                     exn:fail:unsupported
                     exn:fail:user

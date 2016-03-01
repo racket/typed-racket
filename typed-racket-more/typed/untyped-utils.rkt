@@ -4,7 +4,8 @@
                      syntax/parse
                      syntax/stx
                      racket/syntax
-                     typed-racket/utils/tc-utils)
+                     typed-racket/utils/tc-utils
+                     typed-racket/typecheck/renamer)
          typed-racket/utils/tc-utils)
 
 (provide syntax-local-typed-context?
@@ -14,22 +15,12 @@
 (define (syntax-local-typed-context?)
   (unbox typed-context?))
 
-(define-for-syntax (rename-head stx id)
-  (syntax-case stx ()
-    [(_ . args)  (quasisyntax/loc stx (#,id . args))]
-    [_  (quasisyntax/loc stx #,id)]))
-
-(define-for-syntax ((typed/untyped-renamer typed-name untyped-name) stx)
-  (if (unbox typed-context?)
-      (rename-head stx typed-name)
-      (rename-head stx untyped-name)))
-
 (define-syntax (define-typed/untyped-identifier stx)
   (syntax-parse stx
     [(_ name:id typed-name:id untyped-name:id)
      (syntax/loc stx
        (define-syntax name
-         (typed/untyped-renamer #'typed-name #'untyped-name)))]))
+         (make-typed-renaming #'typed-name #'untyped-name)))]))
 
 (define-for-syntax (freshen ids)
   (stx-map (lambda (id) ((make-syntax-introducer) id)) ids))

@@ -202,12 +202,14 @@ don't depend on any other portion of the system
 
 ;; Produce a type error using modern Racket error syntax.
 ;; Avoid using format directives in the `msg`, `more`, and `field`
-;; strings in the rest argument (may cause unexpected errors)
-(define (tc-error/fields msg
-                         #:more [more #f]
+;; strings in the rest argument because they will be escaped.
+(define (tc-error/fields *msg
+                         #:more [*more #f]
                          #:stx [stx (current-orig-stx)]
                          #:delayed? [delayed? #f]
                          . rst)
+  (define msg (escape-~ *msg))
+  (define more (and *more (escape-~ *more)))
   (unless (even? (length rst))
     (raise-argument-error
      'tc-error/fields
@@ -216,7 +218,7 @@ don't depend on any other portion of the system
   (define-values (field-strs vals)
     (for/fold ([field-strs null] [vals null])
               ([field+value (in-slice 2 rst)])
-      (define field (car field+value))
+      (define field (escape-~ (car field+value)))
       (define value (cadr field+value))
       (define field-strs*
         (cons (format "  ~a: ~~a" field) field-strs))
@@ -228,6 +230,10 @@ don't depend on any other portion of the system
   (if delayed?
       (apply tc-error/delayed #:stx stx final-msg (reverse vals))
       (apply tc-error/stx stx final-msg (reverse vals))))
+
+;; escape "~" to avoid breaking `format` down the line
+(define (escape-~ str)
+  (regexp-replace #rx"~" str "~~"))
 
 ;; produce a type error, using the current syntax
 (define (tc-error msg . rest)

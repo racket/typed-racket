@@ -403,6 +403,9 @@
    [FAIL (Unit (import bad) (export) String)]
    [FAIL (Unit (import) (export bad) String)]
    [(Sequenceof Any Any) (-seq Univ Univ)]
+
+   ;; GH issue #314
+   [FAIL ~> #:msg "unbound"]
    ))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

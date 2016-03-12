@@ -6,6 +6,7 @@
 (provide register-signature!
          finalize-signatures!
          lookup-signature
+         lookup-signature/check
          signature-env-map
          with-signature-env/extend)
 
@@ -65,6 +66,16 @@
 ;; in the signature environment
 (define (lookup-signature id)
   (free-id-table-ref (signature-env) id #f))
+
+;; lookup-signature/check : identifier? -> Signature?
+;; lookup the identifier in the signature environment
+;; errors if there is no such typed signature
+(define (lookup-signature/check id)
+  (or (lookup-signature id)
+      (tc-error/fields "use of untyped signature in typed code"
+                       #:more "consider using `require/typed' to import it"
+                       "signature" (syntax-e id)
+                       #:stx id)))
 
 (define (signature-env-map f)
   (sorted-dict-map (signature-env) f id<))

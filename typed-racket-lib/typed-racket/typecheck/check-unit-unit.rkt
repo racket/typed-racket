@@ -70,7 +70,7 @@
          (private parse-type syntax-properties type-annotation)
          (only-in (base-env base-special-env) make-template-identifier)
          (env lexical-env tvar-env global-env 
-              signature-env signature-helper)
+              signature-env)
          (types utils abbrev union subtype resolve generalize signatures)
          (typecheck check-below internal-forms)
          (utils tc-utils)
@@ -170,7 +170,7 @@
   (values (for/list ([sig-id  (in-list import-sigs)]
                      [sig-internal-ids (in-list import-internal-ids)])
             (sig-info sig-id
-                      (map car (Signature-mapping (lookup-signature sig-id)))
+                      (map car (Signature-mapping (lookup-signature/check sig-id)))
                       sig-internal-ids))
           ;; export-temp-ids is a flat list which must be processed
           ;; sequentially to map them to the correct internal/external identifiers
@@ -179,7 +179,7 @@
                                    [sig-infos '()])
                                   ([sig (in-list export-sigs)])
                           (define external-ids
-                            (map car (Signature-mapping (lookup-signature sig))))
+                            (map car (Signature-mapping (lookup-signature/check sig))))
                           (define len (length external-ids))
                           (values (drop temp-ids len)
                                   (cons (sig-info sig
@@ -391,7 +391,7 @@
 ;; Returns a mapping of link-ids to sig-ids, a list of imported sig ids
 ;; a list of exported link-ids
 (define (parse-compound-unit stx)
-  (define (list->sigs l) (map lookup-signature l))
+  (define (list->sigs l) (map lookup-signature/check l))
   (syntax-parse stx
     [cu:compound-unit-expansion
      (define link-binding-info (tr:unit:compound-property stx))
@@ -407,7 +407,7 @@
        (let ()
          (define link-syms (append cu-import-syms (flatten unit-export-syms)))
          (define sig-ids (append compound-imports (flatten unit-exports)))
-         (map cons link-syms (map lookup-signature sig-ids))))
+         (map cons link-syms (map lookup-signature/check sig-ids))))
      (define cu-exprs
        (for/list ([unit-expr (in-list unit-exprs)]
                   [import-sigs (in-list unit-imports)]
@@ -428,7 +428,7 @@
 ;; GIVEN: signature information
 ;; RETURNS: a mapping from internal names to types
 (define (make-local-type-mapping si)
-  (define sig (lookup-signature (sig-info-name si)))
+  (define sig (lookup-signature/check (sig-info-name si)))
   (define internal-names (sig-info-internals si))
   (define sig-types 
     (map cdr (Signature-mapping sig)))
@@ -475,7 +475,7 @@
 (define (parse-and-check-unit-from-context form expected-type)
   (syntax-parse form
     [u:unit-expansion
-     (define export-sigs (map lookup-signature (attribute u.export-sigs)))
+     (define export-sigs (map lookup-signature/check (attribute u.export-sigs)))
      (define body-stx (attribute u.body-stx))
      (for ([sig (in-list export-sigs)])
        (define ids (extract-definitions body-stx))
@@ -558,8 +558,8 @@
   (syntax-parse form
     [cu:compound-unit-expansion
      (define unit-exprs (attribute cu.unit-exprs))
-     (define compound-imports (map lookup-signature (attribute cu.compound-imports)))
-     (define compound-exports (map lookup-signature (attribute cu.compound-exports)))
+     (define compound-imports (map lookup-signature/check (attribute cu.compound-imports)))
+     (define compound-exports (map lookup-signature/check (attribute cu.compound-exports)))
      (define import-vector (apply vector compound-imports))
      (define import-length (vector-length import-vector))
      (unless (and (list? init-depend-refs)
@@ -579,7 +579,7 @@
     [iu:invoke-unit-expansion
      (define infer? (eq? 'infer (tr:unit:invoke-property form)))
      (define invoked-unit (attribute iu.expr))
-     (define import-sigs (map lookup-signature (attribute iu.imports)))
+     (define import-sigs (map lookup-signature/check (attribute iu.imports)))
      (define linking-units (attribute iu.units))
      (define unit-expr-type (tc-expr/t invoked-unit))
      ;; TODO: Better error message/handling when the folling check-below "fails"
@@ -630,9 +630,9 @@
                             init-depend-tags))
 
      ;; Get Signatures to build Unit type
-     (define import-signatures (map lookup-signature (map sig-info-name imports-info)))
-     (define export-signatures (map lookup-signature (map sig-info-name exports-info)))
-     (define init-depend-signatures (map lookup-signature init-depends))
+     (define import-signatures (map lookup-signature/check (map sig-info-name imports-info)))
+     (define export-signatures (map lookup-signature/check (map sig-info-name exports-info)))
+     (define init-depend-signatures (map lookup-signature/check init-depends))
 
      (unless (distinct-signatures? import-signatures)
        (tc-error/expr "unit expressions must import distinct signatures"))

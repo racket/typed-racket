@@ -66,11 +66,13 @@
    [(and (null? mand-kws) (null? opt-kws)
          (null? opt-ctcs)
          (not rest-ctc)
-         (= 1 (length mand-ctcs))
+         ;; currently simple-result-> only handles up to arity 3
+         (member (length mand-ctcs) '(1 0 2 3) #;(list 0 1))
          (and range-ctcs (= 1 (length range-ctcs)))
          (eq? 'flat (sc-terminal-kind (last args)))
+         ;(for/and ([a args]) (eq? 'flat (sc-terminal-kind a)))
          (not typed-side?))
-    #`(simple-result-> #,@range-ctcs)]
+    #`(simple-result-> #,@range-ctcs #,(length mand-ctcs))]
    [else
     #`((#,@mand-ctcs #,@mand-kws-stx)
        (#,@opt-ctcs #,@opt-kws-stx) 

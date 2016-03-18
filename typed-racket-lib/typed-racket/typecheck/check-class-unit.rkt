@@ -1597,7 +1597,7 @@
      (make-PolyRow ns constraints (method->function type))]
     [_ (tc-error/expr #:return -Bottom "expected a function type for method")]))
 
-;; process-method-syntax : Syntax (Option Type) -> Syntax
+;; process-method-syntax : Syntax Type (Option Type) -> Syntax
 ;; Register types for identifiers in a method that don't come with types and
 ;; propagate syntax properties as needed
 (define (process-method-syntax stx self-type method-type)

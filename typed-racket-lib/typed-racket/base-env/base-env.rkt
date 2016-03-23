@@ -876,6 +876,7 @@
                    ((-box a) . -> . a)
                    ((make-BoxTop) . -> . Univ)))]
 [set-box! (-poly (a) ((-box a) a . -> . -Void))]
+[box-cas! (-poly (a) ((-box a) a a . -> . -Boolean))]
 [unsafe-unbox (-poly (a) (cl->*
                           ((-box a) . -> . a)
                           ((make-BoxTop) . -> . Univ)))]
@@ -884,6 +885,7 @@
                            ((-box a) . -> . a)
                            ((make-BoxTop) . -> . Univ)))]
 [unsafe-set-box*! (-poly (a) ((-box a) a . -> . -Void))]
+[unsafe-box*-cas! (-poly (a) ((-box a) a a . -> . -Boolean))]
 [box? (make-pred-ty (make-BoxTop))]
 
 ;; Section 4.13 (Hash Tables)

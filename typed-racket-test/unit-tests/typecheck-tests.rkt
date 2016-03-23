@@ -301,6 +301,7 @@
   racket/system
   racket/tcp
   racket/udp
+  racket/unsafe/ops
   racket/vector
   syntax/stx
 
@@ -1950,6 +1951,10 @@
                              (make-struct-type-property 'prop)))
                (struct-type-property? prop))
               #:ret (ret -Boolean -true-filter))
+
+        ;; Boxes
+        [tc-e (box-cas! (box "foo") "bar" "baz") -Boolean]
+        [tc-e (unsafe-box*-cas! (box "foo") "bar" "baz") -Boolean]
 
         ;; Weak boxes
         [tc-e (make-weak-box "foo") (-weak-box -String)]

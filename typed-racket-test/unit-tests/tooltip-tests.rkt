@@ -100,4 +100,10 @@
                    (has-types-at? (list (list "^Integer$" 74 75))))
     (check-tooltip (values 1 2)
                    (has-types-at? (list (list #rx"Value 1:.*One.*Value 2:.*Positive-Byte"
-                                              23 24))))))
+                                              23 24))))
+    (check-tooltip (identity 1)
+                   (has-types-at? (list (list #rx"^\\(-> One One\\)$"
+                                              24 32))))
+    (check-tooltip (+ 1 2)
+                   (has-types-at? (list (list #rx"^\\(-> Positive-Byte Positive-Byte Positive-Index\\)$"
+                                              24 25))))))

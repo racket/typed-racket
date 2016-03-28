@@ -7,7 +7,7 @@
          (typecheck check-below tc-subst tc-metafunctions possible-domains)
          (utils tc-utils)
          (rep type-rep filter-rep)
-         (except-in (types utils abbrev subtype)
+         (except-in (types utils abbrev subtype type-table)
                     -> ->* one-of/c))
 (require-for-cond-contract
   syntax/stx)
@@ -18,6 +18,8 @@
      (#:check boolean?)
      . ->* . full-tc-results/c)])
 (define (tc/funapp1 f-stx args-stx ftype0 argtys expected #:check [check? #t])
+  ;; update tooltip-table with inferred function type
+  (add-typeof-expr f-stx (ret (make-Function (list ftype0))))
   (match* (ftype0 argtys)
     ;; we check that all kw args are optional
     [((arr: dom rng rest #f (and kws (list (Keyword: _ _ #f) ...)))

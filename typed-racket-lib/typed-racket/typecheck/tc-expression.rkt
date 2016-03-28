@@ -2,7 +2,7 @@
 
 (require
   "../utils/utils.rkt"
-  (typecheck signatures tc-app-helper check-below)
+  (typecheck signatures possible-domains check-below)
   (types utils abbrev classes type-table)
   (rep type-rep)
   (utils tc-utils)

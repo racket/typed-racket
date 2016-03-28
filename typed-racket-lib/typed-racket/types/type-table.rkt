@@ -11,7 +11,7 @@
          (contract-req)
          (rep type-rep)
          (types utils union printer)
-         (typecheck tc-app-helper)
+         (typecheck possible-domains)
          (utils tc-utils)
          (for-template racket/base))
 

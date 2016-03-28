@@ -41,7 +41,7 @@
                        (rep type-rep)
                        (optimizer optimizer)
                        (types utils abbrev printer generalize)
-                       (typecheck tc-toplevel tc-app-helper)
+                       (typecheck tc-toplevel possible-domains)
                        (private type-contract syntax-properties)
                        (env mvar-env)
                        (utils disarm lift utils timing tc-utils arm mutated-vars)))

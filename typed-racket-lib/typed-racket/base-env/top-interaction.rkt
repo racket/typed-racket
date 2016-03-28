@@ -43,7 +43,7 @@
     "../tc-setup.rkt"
     (private parse-type syntax-properties)
     (types utils abbrev printer)
-    (typecheck tc-app-helper typechecker)
+    (typecheck possible-domains typechecker)
     (rep type-rep)
     (utils tc-utils)
     (for-syntax racket/base syntax/parse)

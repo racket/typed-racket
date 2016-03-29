@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
+         (contract-req)
          racket/list
          racket/match
          (rep type-rep filter-rep)

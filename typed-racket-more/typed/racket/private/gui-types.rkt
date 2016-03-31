@@ -2111,7 +2111,7 @@
           ((Option (Boxof Real)) (Option (Boxof Real)) -> Void)]
          [get-file ((Option Path) -> (Option Path-String))]
          [get-filename
-          ((Option (Boxof Any)) -> (Option Path-String))]
+          (->* () ((Option (Boxof Any))) (Option Path-String))]
          [get-flattened-text (-> String)]
          [get-focus-snip (-> (Option (Instance Snip%)))]
          [get-inactive-caret-threshold (-> (U 'no-caret 'show-inactive-caret 'show-caret))]

@@ -140,7 +140,7 @@
          #:weight -Font-Weight #f
          #:underlined? Univ #f
          #:smoothing -Font-Smoothing #f
-         #:size-in-pizels? Univ #f
+         #:size-in-pixels? Univ #f
          #:hinting -Font-Hinting #f
          (-inst (parse-type #'Font%)))]
  [make-monochrome-bitmap

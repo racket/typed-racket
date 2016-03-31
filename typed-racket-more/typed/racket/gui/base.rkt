@@ -81,6 +81,7 @@
             #:lock-while-reading? Univ #f
             -Input-Port)]
  ;; Editor classes
+ [editor-snip% (parse-type #'Editor-Snip%)]
  [editor-admin% (parse-type #'Editor-Admin%)]
  [editor-canvas% (parse-type #'Editor-Canvas%)]
  [editor-data% (parse-type #'Editor-Data%)]

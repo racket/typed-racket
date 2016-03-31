@@ -5,10 +5,13 @@
          racket/list
          racket/match
          (rep type-rep filter-rep)
-         (types abbrev subtype tc-result))
+         (except-in (types abbrev subtype tc-result)
+                    -> ->* one-of/c))
 
-(provide possible-domains
-         cleanup-type)
+(provide possible-domains)
+
+(provide/cond-contract
+  [cleanup-type ((Type/c) ((or/c #f Type/c) any/c) . ->* . Type/c)])
 
 ;; to avoid long and confusing error messages, in the case of functions with
 ;; multiple similar domains (<, >, +, -, etc.), we show only the domains that
@@ -144,8 +147,6 @@
            list)]))
 
 ;; Wrapper over possible-domains that works on types.
-(provide/cond-contract
-  [cleanup-type ((Type/c) ((or/c #f Type/c) any/c) . ->* . Type/c)])
 (define (cleanup-type t [expected #f] [permissive? #t])
   (match t
     ;; function type, prune if possible.

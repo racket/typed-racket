@@ -75,9 +75,11 @@
 (define (make-printable t)
   (match t
     [(tc-result1: t) (cleanup-type t)]
-    [(tc-results: ts) (-values (map cleanup-type ts))]
+    [(or (tc-results: ts)
+         (tc-results: ts _ _ _ _))
+     (-values (map cleanup-type ts))]
     [(tc-any-results: f) (-AnyValues -top)]
-    [_ (cleanup-type t)]))
+    [_ t]))
 
 (define (stringify-domain dom rst drst [rng #f])
   (let ([doms-string (if (null? dom) "" (string-append (stringify (map make-printable dom)) " "))]
@@ -178,13 +180,12 @@
                 return]
                [else
                 ;; if not, print the message as usual
-                (define pdoms* (map make-printable pdoms))
                 (define err-doms
                   (string-append
                    label
                    (stringify (if expected
-                                  (map stringify-domain pdoms* rests drests rngs)
-                                  (map stringify-domain pdoms* rests drests))
+                                  (map stringify-domain pdoms rests drests rngs)
+                                  (map stringify-domain pdoms rests drests))
                               nl+spc)
                    "\nArguments: "
                    arguments-str

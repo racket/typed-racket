@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"struct:: expected the literal")
+(exn-pred #rx"struct:: expected one of these literals")
 
 #lang typed/racket
 

@@ -31,7 +31,8 @@ behavior and may even crash Typed Racket.
     (values "foo")
   ]
 
-  @history[#:added "1.3"]
+  @history[#:added "1.3"
+           #:changed "1.6" "Added support for struct type variables"]
 }
 
 @defform[(unsafe-provide provide-spec ...)]{

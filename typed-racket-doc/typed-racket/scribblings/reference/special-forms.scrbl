@@ -586,14 +586,16 @@ optionally-renamed identifier.
 @defform/subs[#:literals (struct :)
 (require/typed m rt-clause ...)
 ([rt-clause [maybe-renamed t]
-            [#:struct name-id ([f : t] ...)
+            [#:struct maybe-tvars name-id ([f : t] ...)
                  struct-option ...]
-            [#:struct (name-id parent) ([f : t] ...)
+            [#:struct maybe-tvars (name-id parent) ([f : t] ...)
                  struct-option ...]
             [#:opaque t pred]
 	    [#:signature name ([id : t] ...)]]
  [maybe-renamed id
                 (orig-id new-id)]
+ [maybe-tvars (code:line)
+              (type-variable ...)]
  [struct-option
    (code:line #:constructor-name constructor-id)
    (code:line #:extra-constructor-name constructor-id)
@@ -671,7 +673,8 @@ a @racket[require/typed] form. Here is an example of using
 @racket[file-or-directory-modify-seconds] has some arguments which are optional,
 so we need to use @racket[case->].
 
-@history[#:changed "1.4" @elem{Added the @racket[#:type-name] option.}]}
+@history[#:changed "1.4" @elem{Added the @racket[#:type-name] option.}
+         #:changed "1.6" "Added syntax for struct type variables, only works in unsafe requires"]}
 
 @defform[(require/typed/provide m rt-clause ...)]{
 Similar to @racket[require/typed], but also provides the imported identifiers.

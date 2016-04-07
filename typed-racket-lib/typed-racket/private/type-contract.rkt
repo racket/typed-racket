@@ -88,9 +88,14 @@
   (syntax-parse stx #:literals (define-values)
     [(define-values (n) _)
      (define typ
-       (if maker?
-           ((map fld-t (Struct-flds (lookup-type-name (Name-id *typ)))) #f . t:->* . *typ)
-           *typ))
+       (cond [maker?
+              (match (lookup-type-name (Name-id *typ))
+                [(Poly-names: names body)
+                 (make-Poly names
+                   ((map fld-t (Struct-flds body)) #f . t:->* . *typ))]
+                [ty
+                 ((map fld-t (Struct-flds ty)) #f . t:->* . *typ)])]
+             [else *typ]))
      (match-define (list defs ctc)
        (type->contract
         typ

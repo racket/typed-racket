@@ -2300,8 +2300,8 @@
          [set-active-canvas ((Instance Editor-Canvas%) -> Void)]
          [set-admin ((Option (Instance Editor-Admin%)) -> Void)]
          [set-caret-owner
-          (case-> ((Option Snip%) -> Void)
-                  ((Option Snip%) (U 'immediate 'display 'global) -> Void))]
+          (case-> ((Option (Instance Snip%)) -> Void)
+                  ((Option (Instance Snip%)) (U 'immediate 'display 'global) -> Void))]
          [set-cursor
           (case-> ((Option (Instance Cursor%)) -> Void)
                   ((Option (Instance Cursor%)) Any -> Void))]

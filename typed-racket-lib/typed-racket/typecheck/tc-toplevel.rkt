@@ -97,8 +97,13 @@
 
       [r:typed-require/struct
        (let* ([t (parse-type #'r.type)]
-              [flds (map fld-t (Struct-flds (lookup-type-name (Name-id t))))]
-              [mk-ty (flds #f . ->* . t)])
+              [struct-type (lookup-type-name (Name-id t))]
+              [mk-ty (match struct-type
+                       [(Poly-names: ns body)
+                        (make-Poly ns
+                          ((map fld-t (Struct-flds body)) #f . ->* . (make-App t (map make-F ns) #f)))]
+                       [else
+                        ((map fld-t (Struct-flds struct-type)) #f . ->* . t)])])
          (register-type #'r.name mk-ty)
          (list (make-def-binding #'r.name mk-ty)))]
 

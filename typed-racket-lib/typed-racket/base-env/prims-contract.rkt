@@ -139,8 +139,9 @@
                                         #'()))))
 
   (define-syntax-class (struct-clause legacy)
-    #:attributes (nm type (body 1) (constructor-parts 1))
+    #:attributes (nm type (body 1) (constructor-parts 1) (tvar 1))
     (pattern [(~or (~datum struct) #:struct)
+              (~optional (~seq (tvar ...)) #:defaults ([(tvar 1) '()]))
               nm:opt-parent (body ...)
               (~var opts (struct-opts legacy #'nm.nm))]
              #:with (constructor-parts ...) #'opts.ctor-value
@@ -164,7 +165,8 @@
    (pattern oc:opaque-clause #:attr spec
      #`(require/opaque-type oc.ty oc.pred #,lib . oc.opt))
    (pattern (~var strc (struct-clause legacy)) #:attr spec
-     #`(require-typed-struct strc.nm (strc.body ...) strc.constructor-parts ...
+     #`(require-typed-struct strc.nm (strc.tvar ...)
+                             (strc.body ...) strc.constructor-parts ...
                              #:type-name strc.type
                              #,@(if unsafe? #'(unsafe-kw) #'())
                              #,lib))
@@ -444,6 +446,7 @@
   (define ((rts legacy) stx)
     (syntax-parse stx #:literals (:)
       [(_ name:opt-parent
+          (~optional (~seq (tvar:id ...)) #:defaults ([(tvar 1) '()]))
           ([fld : ty] ...)
           (~var input-maker (constructor-term legacy #'name.nm))
           (~optional (~seq #:type-name type:id) #:defaults ([type #'name.nm]))
@@ -468,7 +471,13 @@
                       [real-maker (if (syntax-e #'id-is-ctor?) #'internal-maker #'maker-name)]
                       [extra-maker (and (attribute input-maker.extra)
                                         (not (bound-identifier=? #'make-name #'nm))
-                                        #'maker-name)])
+                                        #'maker-name)]
+                      ;; the type for a polymorphic use of the struct name
+                      [poly-type #`(type tvar ...)]
+                      ;; the struct type to use for the constructor/selectors
+                      [self-type (if (null? (syntax->list #'(tvar ...)))
+                                     #'type
+                                     #'poly-type)])
                      (define (maybe-add-quote-syntax stx)
                        (if (and stx (syntax-e stx)) #`(quote-syntax #,stx) stx))
 
@@ -524,7 +533,7 @@
                                   (make-struct-info-self-ctor #'internal-maker si)
                                   si))
 
-                         (dtsi* () spec type ([fld : ty] ...) #:maker maker-name #:type-only)
+                         (dtsi* (tvar ...) spec type ([fld : ty] ...) #:maker maker-name #:type-only)
                          #,(ignore #'(require/contract pred hidden (or/c struct-predicate-procedure?/c (c-> any-wrap/c boolean?)) lib))
                          #,(internal #'(require/typed-internal hidden (Any -> Boolean : type)))
                          (require/typed #:internal (maker-name real-maker) type lib
@@ -544,8 +553,8 @@
                                #'(begin))
 
                          #,@(if (attribute unsafe.unsafe?)
-                                #'((require/typed #:internal sel (type -> ty) lib unsafe-kw) ...)
-                                #'((require/typed lib [sel (type -> ty)]) ...)))))]))
+                                #'((require/typed #:internal sel (All (tvar ...) (self-type -> ty)) lib unsafe-kw) ...)
+                                #'((require/typed lib [sel (All (tvar ...) (self-type -> ty))]) ...)))))]))
 
   (values (rts #t) (rts #f))))
 

@@ -586,14 +586,16 @@ optionally-renamed identifier.
 @defform/subs[#:literals (struct :)
 (require/typed m rt-clause ...)
 ([rt-clause [maybe-renamed t]
-            [#:struct name-id ([f : t] ...)
+            [#:struct maybe-tvars name-id ([f : t] ...)
                  struct-option ...]
-            [#:struct (name-id parent) ([f : t] ...)
+            [#:struct maybe-tvars (name-id parent) ([f : t] ...)
                  struct-option ...]
             [#:opaque t pred]
 	    [#:signature name ([id : t] ...)]]
  [maybe-renamed id
                 (orig-id new-id)]
+ [maybe-tvars (code:line)
+              (type-variable ...)]
  [struct-option
    (code:line #:constructor-name constructor-id)
    (code:line #:extra-constructor-name constructor-id)

@@ -66,8 +66,8 @@
 
 ;; Section 4.2.2.7 (Random Numbers)
 [random
-  (cl->* (->opt -PosFixnum [-Pseudo-Random-Generator] -NonNegFixnum)
-         (->opt -Int [-Pseudo-Random-Generator] -Nat)
+  (cl->* (->opt -Int -Int [-Pseudo-Random-Generator] -NonNegFixnum)
+         (->opt -Int [-Pseudo-Random-Generator] -NonNegFixnum)
          (->opt [-Pseudo-Random-Generator] -Flonum))]
 
 [random-seed (-> -PosInt -Void)]

@@ -1942,6 +1942,8 @@
         (tc-e (let: ((pg : Pseudo-Random-Generator (make-pseudo-random-generator)))
                 (pseudo-random-generator->vector pg))
               (make-HeterogeneousVector (list -PosInt -PosInt -PosInt -PosInt -PosInt -PosInt)))
+        (tc-e (random 1 5 (make-pseudo-random-generator))
+              -NonNegFixnum)
 
         ;Structure Type Properties
         (tc-e (make-struct-type-property 'prop)

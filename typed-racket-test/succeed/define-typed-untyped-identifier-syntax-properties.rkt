@@ -12,12 +12,10 @@
            (for-syntax syntax/strip-context))
   
   (define-require-syntax (typed/untyped-typed stx)
-    (displayln 'typed)
     (syntax-case stx ()
       [(_ m s) (replace-context stx #'(submod m s typed))]))
   
   (define-require-syntax (typed/untyped-untyped stx)
-    (displayln 'untyped)
     (syntax-case stx ()
       [(_ m s) (replace-context stx #'(submod m s untyped))]))
   

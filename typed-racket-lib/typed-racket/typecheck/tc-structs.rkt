@@ -32,14 +32,16 @@
 ;; type-only : Boolean
 (struct parsed-struct (sty names desc struct-info type-only) #:transparent)
 
-;; type-name : Id
-;; struct-type : Id
+;; struct-name : Id  (the identifier for the static struct info,
+;;                    usually the same as the type-name)
+;; type-name : Id    (the identifier for the type name)
+;; struct-type : Id  (the identifier for the struct type binding)
 ;; constructor : Id
 ;; extra-constructor : (Option Id)
 ;; predicate : Id
 ;; getters : Listof[Id]
 ;; setters : Listof[Id] or #f
-(struct struct-names (type-name struct-type constructor extra-constructor predicate getters setters) #:transparent)
+(struct struct-names (struct-name type-name struct-type constructor extra-constructor predicate getters setters) #:transparent)
 
 ;;struct-fields: holds all the relevant information about a struct type's types
 (struct struct-desc (parent-fields self-fields tvars mutable proc-ty) #:transparent)
@@ -89,7 +91,7 @@
   (match (build-struct-names nm flds #f #f nm #:constructor-name maker*)
     [(list sty maker pred getters/setters ...)
      (let-values ([(getters setters) (split getters/setters)])
-       (struct-names type-name sty maker extra-maker pred getters setters))]))
+       (struct-names nm type-name sty maker extra-maker pred getters setters))]))
 
 ;; gets the fields of the parent type, if they exist
 ;; Option[Struct-Ty] -> Listof[Type]
@@ -109,7 +111,7 @@
                                [g (in-list (struct-names-getters names))])
                        (make-fld t g (struct-desc-mutable desc)))]
          [flds (append (get-flds parent) this-flds)])
-    (make-Struct (struct-names-type-name names)
+    (make-Struct (struct-names-struct-name names)
                  parent flds (struct-desc-proc-ty desc)
                  (not (null? (struct-desc-tvars desc)))
                  (struct-names-predicate names))))

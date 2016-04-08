@@ -320,7 +320,7 @@
           (% move-dotted-rest-to-dmap (cgen (context-add-var context dbound) s-dty t-dty) dbound dbound*)))]
     [((seq ss (dotted-end s-dty dbound))
       (seq ts (dotted-end t-dty dbound*)))
-     #:when (inferable-index? context dbound*)
+     #:return-unless (inferable-index? context dbound*) #f
      #:return-unless (= (length ss) (length ts)) #f
      (% cset-meet
         (cgen/list context ss ts)

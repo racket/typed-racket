@@ -14,7 +14,7 @@
              #'((early-return rhs ...))))
  (syntax-parse stx
   [(_ e [c . r:rhs] ...)
-   #'(match* e [c . r.r] ...)]))
+   (syntax/loc stx (match* e [c . r.r] ...))]))
 
 (begin-for-syntax
   (define-splicing-syntax-class arg

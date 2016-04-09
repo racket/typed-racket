@@ -425,6 +425,30 @@
         (tc-e (expt -0.0 -1.0) -NonNegFlonum)
         (tc-e (expt 0 (flabs (cos (real->double-flonum 2))))
               -Real)
+        (tc-e/t ;; Github issue #115
+           (let ([x : Flonum 5.0])
+             (if (fl>= x (ann -4.0 Nonpositive-Flonum))
+               x
+               -3.0))
+           -Flonum)
+        (tc-e/t ;; Github issue #115
+          (let ([x : ExtFlonum 5.0t1])
+            (if (extfl>= x (ann -4.0t1 Nonpositive-ExtFlonum))
+              x
+              -3.0t1))
+          -ExtFlonum)
+        (tc-e ;; Github issue #114
+          (fx- 0 5)
+          -NegFixnum)
+        (tc-err ;; Github issue #113
+          ((lambda ([f : (-> Byte Byte Positive-Index)]) 0)
+           fl+))
+        (tc-e/t ;; Github issue #111
+          (let ([x : Nonnegative-Flonum 0.0])
+            (if (fl= (ann +nan.0 Flonum-Zero) x)
+              1.0
+              x))
+          -NonNegFlonum)
         (tc-e (expt
                (sub1 (gcd (exact-round 1)))
                (- (ceiling (real->double-flonum -2.6897657f0))))

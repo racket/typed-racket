@@ -69,8 +69,7 @@
                old)
            (tooltip (cons e seen) t)))
      (tooltip (list e) t)))
-  (when (optimize?)
-    (hash-update! type-table e (combine t) t)))
+  (hash-update! type-table e (combine t) t))
 
 ;; when typechecking a case-> type, types get added for
 ;; the same subexpression multiple times, combine them

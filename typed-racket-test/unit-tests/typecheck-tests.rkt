@@ -1044,6 +1044,9 @@
                                                                    (Syntaxof (U 1 2 'bar)))))
                 (-Syntax (make-Hashtable (t:Un (-val 1) (-val 2) (-val 'foo))
                                          (-Syntax (t:Un (-val 1) (-val 2) (-val 'bar)))))]
+        ;; syntax->list
+        [tc-e (syntax->list #'(2 3 4)) (-lst (-Syntax -PosByte))]
+        [tc-e (syntax->list #'not-a-list) (t:Un (-val #f) (-lst (-Syntax Univ)))]
 
         ;; testing some primitives
         [tc-e (let ([app apply]

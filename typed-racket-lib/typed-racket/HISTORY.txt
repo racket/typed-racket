@@ -1,3 +1,8 @@
+6.5
+- Added `simple-result->` to improve generated contract performance.
+- Improve error message printing.
+- Add `typed/racket/random`.
+- Internal: populate type table unconditionally, for use in tooltips.
 6.4
 - Contract performance improvements, including generating code that
   the contract system can optimize

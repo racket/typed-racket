@@ -634,6 +634,7 @@ the typed racket language.
      (define/with-syntax (i* ...) i*s)
      (syntax/loc stx
        (begin (: i* t) ...
+              (: i  t) ...
               (provide (rename-out [i* i] ...))))]))
 
 (define-syntax (declare-refinement stx)

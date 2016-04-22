@@ -1,3 +1,4 @@
+
 #lang racket/base
 
 ;; Module for providing recursive operations over types when the operation doesn't care about the
@@ -103,7 +104,7 @@
     #'(lambda (t)
         (or (type.pred? t) ...))]))
 
-;; Returns true if the type/filter/object supports structural operations.
+;; Returns true if the type/prop/object supports structural operations.
 (define structural? (gen-structural?))
 
 

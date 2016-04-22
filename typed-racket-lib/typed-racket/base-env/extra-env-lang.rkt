@@ -11,7 +11,7 @@
          (for-syntax racket/base
                      syntax/parse
                      syntax/stx)
-         (for-syntax (types abbrev numeric-tower union filter-ops)))
+         (for-syntax (types abbrev numeric-tower union prop-ops)))
 
 (provide type-environment
          (rename-out [-#%module-begin #%module-begin])
@@ -20,7 +20,7 @@
          (except-out (all-from-out racket/base) #%module-begin)
          (for-syntax (except-out (all-from-out racket/base) #%module-begin))
          types rep private utils
-         (for-syntax (types-out abbrev numeric-tower union filter-ops)))
+         (for-syntax (types-out abbrev numeric-tower union prop-ops)))
 
 ;; syntax classes for type clauses in the type-environment macro
 (begin-for-syntax

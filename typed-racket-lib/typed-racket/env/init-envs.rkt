@@ -10,7 +10,7 @@
          "mvar-env.rkt"
          "signature-env.rkt"
          (rename-in racket/private/sort [sort raw-sort])
-         (rep type-rep object-rep filter-rep rep-utils free-variance)
+         (rep type-rep object-rep prop-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
          (types abbrev union)
          racket/dict racket/list racket/promise
@@ -64,21 +64,25 @@
     [(? Rep? (app (lambda (v) (hash-ref predefined-type-table (Rep-seq v) #f)) (? values id))) id]
     [(Listof: elem-ty)
      `(-lst ,(sub elem-ty))]
-    [(Function: (list (arr: dom (Values: (list (Result: t (FilterSet: (Top:) (Top:)) (Empty:)))) #f #f '())))
+    [(Function: (list (arr: dom (Values: (list (Result: t
+                                                        (PropSet: (TrueProp:)
+                                                                  (TrueProp:))
+                                                        (Empty:))))
+                            #f #f '())))
      `(simple-> (list ,@(map sub dom)) ,(sub t))]
-    [(Function: (list (arr: dom (Values: (list (Result: t (FilterSet: (TypeFilter: ft pth)
-                                                                      (NotTypeFilter: ft pth))
+    [(Function: (list (arr: dom (Values: (list (Result: t (PropSet: (TypeProp: pth ft)
+                                                                     (NotTypeProp: pth ft))
                                                         (Empty:))))
                             #f #f '())))
      `(make-pred-ty (list ,@(map sub dom)) ,(sub t) ,(sub ft) ,(sub pth))]
-    [(Function: (list (arr: dom (Values: (list (Result: t (FilterSet: (NotTypeFilter: (== -False)
-                                                                                      (Path: pth (list 0 0)))
-                                                                      (TypeFilter: (== -False)
-                                                                                   (Path: pth (list 0 0))))
+    [(Function: (list (arr: dom (Values: (list (Result: t (PropSet: (NotTypeProp: (Path: pth (list 0 0))
+                                                                                  (== -False))
+                                                                      (TypeProp: (Path: pth (list 0 0))
+                                                                                 (== -False)))
                                                         (Path: pth (list 0 0)))))
                             #f #f '())))
      `(->acc (list ,@(map sub dom)) ,(sub t) ,(sub pth))]
-    [(Result: t (FilterSet: (Top:) (Top:)) (Empty:)) `(-result ,(sub t))]
+    [(Result: t (PropSet: (TrueProp:) (TrueProp:)) (Empty:)) `(-result ,(sub t))]
     [(Union: elems) (split-union elems)]
     [(Base: n cnt pred _) (int-err "Base type ~a not in predefined-type-table" n)]
     [(Name: stx args struct?)
@@ -133,10 +137,10 @@
                       (list ,@(serialize-mapping mapping)))]
     [(arr: dom rng rest drest kws)
      `(make-arr ,(sub dom) ,(sub rng) ,(sub rest) ,(sub drest) ,(sub kws))]
-    [(TypeFilter: t p)
-     `(make-TypeFilter ,(sub t) ,(sub p))]
-    [(NotTypeFilter: t p)
-     `(make-NotTypeFilter ,(sub t) ,(sub p))]
+    [(TypeProp: o t)
+     `(make-TypeProp ,(sub o) ,(sub t))]
+    [(NotTypeProp: o t)
+     `(make-NotTypeProp ,(sub o) ,(sub t))]
     [(Path: p i)
      `(make-Path ,(sub p) ,(if (identifier? i)
                                `(quote-syntax ,i)

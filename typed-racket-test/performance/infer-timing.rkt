@@ -2,7 +2,7 @@
 
 (require typed-racket/infer/infer
          typed-racket/types/union
-         typed-racket/types/filter-ops
+         typed-racket/types/prop-ops
          typed-racket/types/abbrev
          typed-racket/rep/type-rep
          typed-racket/types/numeric-tower
@@ -62,11 +62,11 @@
   ;; for fixnum-specific operations. if they return at all, we know
   ;; their args were fixnums. otherwise, an error would have been thrown
   ;; for the moment, this is only useful if the result is used as a test
-  ;; once we have a set of filters that are true/false based on reaching
+  ;; once we have a set of props that are true/false based on reaching
   ;; a certain point, this will be more useful
   (define (fx-from-cases . cases)
     (apply from-cases (map (lambda (x)
-                             (add-unconditional-filter-all-args
+                             (add-unconditional-prop-all-args
                               x -Fixnum))
                            (flatten cases))))
 
@@ -91,13 +91,13 @@
     (-> t1 t2 B))
   ;; simple case useful with equality predicates.
   ;; if the equality is true, we know that general arg is in fact of specific type.
-  (define (commutative-equality/filter general specific)
-    (list (-> general specific B : (-FS (-filter specific 0) -top))
-          (-> specific general B : (-FS (-filter specific 1) -top))))
+  (define (commutative-equality/prop general specific)
+    (list (-> general specific B : (-PS (-is-type 0 specific) -tt))
+          (-> specific general B : (-PS (-is-type 1 specific) -tt))))
 
   (define (exclude-zero non-neg pos [zero -Zero])
-    (list (-> zero non-neg B : (-FS (-filter zero 1) (-filter pos 1)))
-          (-> non-neg zero B : (-FS (-filter zero 0) (-filter pos 0)))))
+    (list (-> zero non-neg B : (-PS (-is-type 1 zero) (-is-type 1 pos)))
+          (-> non-neg zero B : (-PS (-is-type 0 zero) (-is-type 0 pos)))))
 
 
   (define round-type ; also used for truncate

@@ -78,8 +78,9 @@
     [((tc-result1: old-t) (tc-result1: t-t))
      (ret (Un old-t t-t))]
     [((tc-results: old-ts) (tc-results: t-ts))
-     ;; filters don't matter at this point, since only
+     ;; props don't matter at this point, since only
      ;; the optimizer reads this table
+     ;;  -- "I think [the above] comment is no longer true" -samth
      (unless (= (length old-ts) (length t-ts))
        (int-err
         "type table: number of values don't agree ~a ~a"

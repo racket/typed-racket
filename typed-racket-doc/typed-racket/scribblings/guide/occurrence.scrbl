@@ -51,7 +51,7 @@ have based on a predicate check in a conditional expression, it can
 narrow the type of the variable within the appropriate branch of the
 conditional.
 
-@section[#:tag "filters-and-predicates"]{Filters and Predicates}
+@section[#:tag "propositions-and-predicates"]{Propositions and Predicates}
 
 In the previous section, we demonstrated that a Typed Racket programmer
 can take advantage of occurrence typing to type-check functions
@@ -59,7 +59,7 @@ with union types and conditionals. This may raise the question: how
 does Typed Racket know how to narrow the type based on the predicate?
 
 The answer is that predicate types in Typed Racket are annotated
-with @deftech{filters} that tell the typechecker what additional
+with logical @deftech{propositions} that tell the typechecker what additional
 information is gained when a predicate check succeeds or fails.
 
 For example, consider the REPL's type printout for @racket[string?]:
@@ -69,16 +69,20 @@ For example, consider the REPL's type printout for @racket[string?]:
 The type @racket[(-> Any Boolean : String)] has three parts. The first
 two are the same as any other function type and indicate that the
 predicate takes any value and returns a boolean. The third part, after
-the @racket[_:], is a @tech{filter} that tells the typechecker two
-things:
+the @racket[_:], represents the logical @tech{propositions}
+the typechecker learns from the result of applying the function:
 
 @itemlist[#:style 'ordered
-  @item{If the predicate check succeeds, the argument variable has type @racket[String]}
-  @item{If the predicate check fails, the argument variable @emph{does not} have type @racket[String]}
-]
 
-Predicates for all built-in types are annotated with similar filters
-that allow the type system to reason about predicate checks.
+  @item{If the predicate check succeeds (i.e. produces a
+  non-@racket[#f] value), the argument variable has type
+  @racket[String]}
+
+@item{If the predicate check fails (i.e. produces @racket[#f]), the
+  argument variable @emph{does not} have type @racket[String]} ]
+
+Predicates for all built-in types are annotated with similar propositions
+that allow the type system to reason logically about predicate checks.
 
 @section{Other conditionals and assertions}
 
@@ -124,8 +128,8 @@ using an @emph{assertion}. For example,
 (define d (assert (- b a) positive?))
 ]
 
-Using the filter on @racket[positive?], Typed Racket can assign the
-type @racket[Positive-Integer] to the whole @racket[assert]
+Using the logical propositions on @racket[positive?], Typed Racket can
+assign the type @racket[Positive-Integer] to the whole @racket[assert]
 expression.  This type-checks, but note that the assertion may raise
 an exception at run-time if the predicate returns @racket[#f].
 

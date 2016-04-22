@@ -282,7 +282,7 @@
       [_ #f]))
 
   ;; clauses->names : (-> Clause Boolean) Listof<Clause> -> Listof<Id>
-  ;; filter clauses by some property and spit out the names in those clauses
+  ;; prop clauses by some property and spit out the names in those clauses
   (define (clauses->names prop clauses [keep-pair? #f])
     (apply append
            (for/list ([clause (in-list clauses)]

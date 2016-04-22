@@ -16,7 +16,7 @@
     [(Values: (list (Result: ts _ _) ...)) (ret ts)]
     [(ValuesDots: (list (Result: ts _ _) ...) dty dbound)
      (ret ts
-          (for/list ([t (in-list ts)]) -top-filter)
+          (for/list ([t (in-list ts)]) -tt-propset)
           (for/list ([t (in-list ts)]) -empty-obj)
           dty dbound)]
     [_ (int-err "do-ret fails: ~a" t)]))

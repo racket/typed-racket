@@ -213,7 +213,7 @@
 ;; typecheck the expressions of a module-top-level form
 ;; no side-effects
 ;; syntax? -> (or/c 'no-type tc-results/c)
-(define (tc-toplevel/pass2 form [expected (tc-any-results -top)])
+(define (tc-toplevel/pass2 form [expected (tc-any-results -tt)])
   
   (do-time (format "pass2 ~a line ~a"
                    (if #t

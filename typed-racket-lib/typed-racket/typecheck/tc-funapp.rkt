@@ -48,7 +48,7 @@
                   #:when (subtypes/varargs argtys dom rest))
         ;; then typecheck here
         ;; we call the separate function so that we get the appropriate
-        ;; filters/objects
+        ;; props/objects
         (tc/funapp1 f-stx args-stx a args-res expected #:check #f))
       ;; if nothing matched, error
       (domain-mismatches
@@ -70,7 +70,7 @@
                           (eq? dotted-var (cdr drest)))]
               [else (= (length dom) (length argtys))]))
       ;; Only try to infer the free vars of the rng (which includes the vars
-      ;; in filters/objects).
+      ;; in props/objects).
       (λ (dom rng rest drest a)
         (extend-tvars fixed-vars
           (cond
@@ -95,7 +95,7 @@
       (λ (dom _ rest kw? a) 
         (and (andmap not kw?) ((if rest <= =) (length dom) (length argtys))))
       ;; Only try to infer the free vars of the rng (which includes the vars
-      ;; in filters/objects).
+      ;; in props/objects).
       (λ (dom rng rest kw? a)
         (extend-tvars vars
                       (infer/vararg vars null argtys dom rest rng
@@ -145,9 +145,9 @@
       [(list) (ret out)]
       [(list t)
        (if (subtype t in)
-           (ret -Void -true-filter)
+           (ret -Void -true-propset)
            (tc-error/expr
-            #:return (ret -Void -true-filter)
+            #:return (ret -Void -true-propset)
             "Wrong argument to parameter - expected ~a and got ~a"
             in t))]
       [_ (tc-error/expr

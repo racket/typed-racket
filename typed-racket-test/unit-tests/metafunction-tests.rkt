@@ -3,8 +3,8 @@
 (require "test-utils.rkt"
          rackunit racket/format
          (typecheck tc-metafunctions tc-subst)
-         (rep filter-rep type-rep object-rep)
-         (types abbrev union filter-ops tc-result numeric-tower)
+         (rep prop-rep type-rep object-rep)
+         (types abbrev union prop-ops tc-result numeric-tower)
          (for-syntax racket/base syntax/parse))
 
 (provide tests)
@@ -29,17 +29,17 @@
     (test-suite "combine-props"
 
       (test-combine-props
-        (list (-or (-not-filter -String #'x) (-not-filter -String #'y)))
-        (list (-filter (Un -String -Symbol) #'x) (-filter (Un -String -Symbol) #'y))
-        (list (-or (-not-filter -String #'y) (-not-filter -String #'x))
-              (-filter (Un -String -Symbol) #'y) (-filter (Un -String -Symbol) #'x))
+        (list (-or (-not-type #'x -String) (-not-type #'y -String)))
+        (list (-is-type #'x (Un -String -Symbol)) (-is-type #'y (Un -String -Symbol)))
+        (list (-or (-not-type #'y -String) (-not-type #'x -String))
+              (-is-type #'y (Un -String -Symbol)) (-is-type #'x (Un -String -Symbol)))
         #t)
 
       (test-combine-props
-        (list (-or (-filter -String #'x) (-filter -String #'y)))
-        (list (-filter (Un -String -Symbol) #'x) (-filter (Un -String -Symbol) #'y))
-        (list (-or (-filter -String #'y) (-filter -String #'x))
-              (-filter (Un -String -Symbol) #'y) (-filter (Un -String -Symbol) #'x))
+        (list (-or (-is-type #'x -String) (-is-type #'y -String)))
+        (list (-is-type #'x (Un -String -Symbol)) (-is-type #'y (Un -String -Symbol)))
+        (list (-or (-is-type #'y -String) (-is-type #'x -String))
+              (-is-type #'y (Un -String -Symbol)) (-is-type #'x (Un -String -Symbol)))
         #t)
     )
 
@@ -51,20 +51,20 @@
         (merge-tc-results (list (ret Univ)))
         (ret Univ))
       (check-equal?
-        (merge-tc-results (list (ret Univ -top-filter (make-Path null #'x))))
-        (ret Univ -top-filter (make-Path null #'x)))
+        (merge-tc-results (list (ret Univ -tt-propset (make-Path null #'x))))
+        (ret Univ -tt-propset (make-Path null #'x)))
       (check-equal?
-        (merge-tc-results (list (ret -Bottom) (ret -Symbol -top-filter (make-Path null #'x))))
-        (ret -Symbol -top-filter (make-Path null #'x)))
+        (merge-tc-results (list (ret -Bottom) (ret -Symbol -tt-propset (make-Path null #'x))))
+        (ret -Symbol -tt-propset (make-Path null #'x)))
       (check-equal?
         (merge-tc-results (list (ret -String) (ret -Symbol)))
         (ret (Un -Symbol -String)))
       (check-equal?
-        (merge-tc-results (list (ret -String -true-filter) (ret -Symbol -true-filter)))
-        (ret (Un -Symbol -String) -true-filter))
+        (merge-tc-results (list (ret -String -true-propset) (ret -Symbol -true-propset)))
+        (ret (Un -Symbol -String) -true-propset))
       (check-equal?
-        (merge-tc-results (list (ret (-val #f) -false-filter) (ret -Symbol -true-filter)))
-        (ret (Un -Symbol (-val #f)) -top-filter))
+        (merge-tc-results (list (ret (-val #f) -false-propset) (ret -Symbol -true-propset)))
+        (ret (Un -Symbol (-val #f)) -tt-propset))
       (check-equal?
         (merge-tc-results (list (ret (list (-val 0) (-val 1))) (ret (list (-val 1) (-val 2)))))
         (ret (list (Un (-val 0) (-val 1)) (Un (-val 1) (-val 2)))))
@@ -85,97 +85,90 @@
         (ret (list -Symbol -String)))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result -Symbol (-FS -top -bot)))) (list -empty-obj) (list Univ))
-        (ret -Symbol (-FS -top -bot)))
+        (values->tc-results (make-Values (list (-result -Symbol (-PS -tt -ff)))) (list -empty-obj) (list Univ))
+        (ret -Symbol (-PS -tt -ff)))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result -Symbol (-FS -top -bot) (make-Path null '(0 0)))))
+        (values->tc-results (make-Values (list (-result -Symbol (-PS -tt -ff) (make-Path null '(0 0)))))
                             (list -empty-obj) (list Univ))
-        (ret -Symbol (-FS -top -bot)))
+        (ret -Symbol (-PS -tt -ff)))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-FS (-filter -String '(0 0)) -top))))
+        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-PS (-is-type '(0 0) -String) -tt))))
                             (list -empty-obj) (list Univ))
-        (ret (-opt -Symbol) -top-filter))
+        (ret (-opt -Symbol) -tt-propset))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-FS (-not-filter -String '(0 0)) -top))))
+        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-PS (-not-type '(0 0) -String) -tt))))
                             (list -empty-obj) (list Univ))
-        (ret (-opt -Symbol) -top-filter))
+        (ret (-opt -Symbol) -tt-propset))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-FS (-imp (-not-filter (-val #f) '(0 0))
-                                                                           (-not-filter -String #'x))
-                                                                     -top))))
-                            (list -empty-obj) (list Univ))
-        (ret (-opt -Symbol) -top-filter))
-
-      (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-FS (-not-filter -String '(0 0)) -top)
+        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-PS (-not-type '(0 0) -String) -tt)
                                                  (make-Path null '(0 0)))))
                             (list (make-Path null #'x)) (list Univ))
-        (ret (-opt -Symbol) (-FS (-not-filter -String #'x) -top) (make-Path null #'x)))
+        (ret (-opt -Symbol) (-PS (-not-type #'x -String) -tt) (make-Path null #'x)))
 
-      ;; Check additional filters
+      ;; Check additional props
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -String) (-FS -top (-not-filter -String '(0 0)))
+        (values->tc-results (make-Values (list (-result (-opt -String) (-PS -tt (-not-type '(0 0) -String))
                                                  (make-Path null '(0 0)))))
                             (list (make-Path null #'x)) (list -String))
-        (ret -String -true-filter (make-Path null #'x)))
+        (ret -String -true-propset (make-Path null #'x)))
 
       ;; Substitute into ranges correctly
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt (-> Univ -Boolean : (-FS (-filter -Symbol '(0 0)) -top))))))
+        (values->tc-results (make-Values (list (-result (-opt (-> Univ -Boolean : (-PS (-is-type '(0 0) -Symbol) -tt))))))
                             (list (make-Path null #'x)) (list Univ))
-        (ret (-opt (-> Univ -Boolean : (-FS (-filter -Symbol '(0 0)) -top)))))
+        (ret (-opt (-> Univ -Boolean : (-PS (-is-type '(0 0) -Symbol) -tt)))))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt (-> Univ -Boolean : (-FS (-filter -Symbol '(1 0)) -top))))))
+        (values->tc-results (make-Values (list (-result (-opt (-> Univ -Boolean : (-PS (-is-type '(1 0) -Symbol) -tt))))))
                             (list (make-Path null #'x)) (list Univ))
-        (ret (-opt (-> Univ -Boolean : (-FS (-filter -Symbol #'x) -top)))))
+        (ret (-opt (-> Univ -Boolean : (-PS (-is-type #'x -Symbol) -tt)))))
 
-      ;; Substitute into filter of any values
+      ;; Substitute into prop of any values
       (check-equal?
-        (values->tc-results (make-AnyValues (-filter -String '(0 0)))
+        (values->tc-results (make-AnyValues (-is-type '(0 0) -String))
                             (list (make-Path null #'x)) (list Univ))
-        (tc-any-results (-filter -String #'x)))
+        (tc-any-results (-is-type #'x -String)))
 
 
       (check-equal?
-        (values->tc-results (-values-dots null (-> Univ -Boolean : (-FS (-filter -String '(1 0)) -top)) 'b)
+        (values->tc-results (-values-dots null (-> Univ -Boolean : (-PS (-is-type '(1 0) -String) -tt)) 'b)
                             (list (make-Path null #'x)) (list Univ))
-        (ret null null null (-> Univ -Boolean : (-FS (-filter -String #'x) -top)) 'b))
+        (ret null null null (-> Univ -Boolean : (-PS (-is-type #'x -String) -tt)) 'b))
 
-      ;; Filter is restricted by type of object
+      ;; Prop is restricted by type of object
       (check-equal?
-        (values->tc-results (make-Values (list (-result -Boolean (-FS (-filter -PosReal '(0 0)) (-filter -NonPosReal '(0 0))))))
+        (values->tc-results (make-Values (list (-result -Boolean (-PS (-is-type '(0 0) -PosReal) (-is-type '(0 0) -NonPosReal)))))
                             (list (make-Path null #'x)) (list -Integer))
-        (ret -Boolean (-FS (-filter -PosInt #'x) (-filter -NonPosInt #'x))))
+        (ret -Boolean (-PS (-is-type #'x -PosInt) (-is-type #'x -NonPosInt))))
 
-      ;; Filter restriction accounts for paths
+      ;; Prop restriction accounts for paths
       (check-equal?
         (values->tc-results
          (make-Values
           (list (-result -Boolean
-                         (-FS (make-TypeFilter -PosReal
-                                               (make-Path (list -car) '(0 0)))
-                              (make-TypeFilter -NonPosReal
-                                               (make-Path (list -car) '(0 0)))))))
+                         (-PS (make-TypeProp (make-Path (list -car) '(0 0))
+                                             -PosReal)
+                              (make-TypeProp (make-Path (list -car) '(0 0))
+                                             -NonPosReal)))))
          (list (make-Path null #'x))
          (list (-lst -Integer)))
         (ret -Boolean
-             (-FS (make-TypeFilter -PosInt (make-Path (list -car) #'x))
-                  (make-TypeFilter -NonPosInt (make-Path (list -car) #'x)))))
+             (-PS (make-TypeProp (make-Path (list -car) #'x) -PosInt)
+                  (make-TypeProp (make-Path (list -car) #'x) -NonPosInt))))
     )
 
     (test-suite "replace-names"
       (check-equal?
         (replace-names (list (list #'x (make-Path null (list 0 0))))
-                       (ret Univ -top-filter (make-Path null #'x)))
-        (ret Univ -top-filter (make-Path null (list 0 0))))
+                       (ret Univ -tt-propset (make-Path null #'x)))
+        (ret Univ -tt-propset (make-Path null (list 0 0))))
       (check-equal?
         (replace-names (list (list #'x (make-Path null (list 0 0))))
-                       (ret (-> Univ Univ : -top-filter : (make-Path null #'x))))
-        (ret (-> Univ Univ : -top-filter : (make-Path null (list 1 0)))))
+                       (ret (-> Univ Univ : -tt-propset : (make-Path null #'x))))
+        (ret (-> Univ Univ : -tt-propset : (make-Path null (list 1 0)))))
     )
   ))

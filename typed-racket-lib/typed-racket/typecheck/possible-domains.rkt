@@ -4,7 +4,7 @@
          (contract-req)
          racket/list
          racket/match
-         (rep type-rep filter-rep)
+         (rep type-rep prop-rep)
          (except-in (types abbrev subtype tc-result)
                     -> ->* one-of/c))
 
@@ -18,7 +18,7 @@
 ;; are relevant to this specific error
 ;; this is done in several ways:
 ;; - if a case-lambda case is subsumed by another, we don't need to show it
-;;   (subsumed cases may be useful for their filter information, but this is
+;;   (subsumed cases may be useful for their prop information, but this is
 ;;   unrelated to error reporting)
 ;; - if we have an expected type, we don't need to show the domains for which
 ;;   the result type is not a subtype of the expected type
@@ -53,7 +53,7 @@
     (and expected
          (match expected
            [(tc-result1: t) t]
-           [(tc-any-results: (or (Top:) (NoFilter:))) #t] ; anything is a subtype of expected
+           [(tc-any-results: (or #f (TrueProp:))) #t] ; anything is a subtype of expected
            [_ #f]))) ; don't know what it is, don't do any pruning
   (define (returns-subtype-of-expected? fun-ty)
     (or (not expected) ; no expected type, anything is fine
@@ -74,8 +74,8 @@
   (define cases
     (map (compose make-Function list make-arr)
          doms
-         (map (match-lambda ; strip filters
-               [(AnyValues: f) (-AnyValues -top)]
+         (map (match-lambda ; strip props
+               [(AnyValues: f) (-AnyValues -tt)]
                [(Values: (list (Result: t _ _) ...))
                 (-values t)]
                [(ValuesDots: (list (Result: t _ _) ...) _ _)

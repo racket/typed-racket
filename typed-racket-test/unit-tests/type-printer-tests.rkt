@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; Tests for type, filter, object, etc. printers for Typed Racket
+;; Tests for type, prop, object, etc. printers for Typed Racket
 
 (require "test-utils.rkt"
          rackunit
@@ -74,29 +74,29 @@
     (check-prints-as? (-mu x (-lst x)) "(Rec x (Listof x))")
     (check-prints-as? (-seq -String -Symbol) "(Sequenceof String Symbol)")
     (check-prints-as? (-poly (a) (-> a -Void)) "(All (a) (-> a Void))")
-    (check-prints-as? (-> -Input-Port (make-Values (list (-result -String -true-filter)
-                                                         (-result -String -true-filter))))
+    (check-prints-as? (-> -Input-Port (make-Values (list (-result -String -true-propset)
+                                                         (-result -String -true-propset))))
                       "(-> Input-Port (values (String : (Top | Bot)) (String : (Top | Bot))))")
     (check-prints-as? (make-pred-ty -String)
                       "(-> Any Boolean : String)")
-    (check-prints-as? (asym-pred Univ -Boolean (-FS (-filter -String 0) -top))
+    (check-prints-as? (asym-pred Univ -Boolean (-PS (-is-type 0 -String) -tt))
                       "(-> Any Boolean : #:+ String)")
-    (check-prints-as? (-> Univ Univ -Boolean : (-FS (-filter -String 0) -top))
+    (check-prints-as? (-> Univ Univ -Boolean : (-PS (-is-type 0 -String) -tt))
                       "(-> Any Any Boolean)")
-    (check-prints-as? (-> Univ Univ -Boolean : (-FS (-filter -String 1) -top))
+    (check-prints-as? (-> Univ Univ -Boolean : (-PS (-is-type 1 -String) -tt))
                       "(-> Any Any Boolean)")
     ;; PR 14510 (next three tests)
-    (check-prints-as? (-> Univ (-> Univ -Boolean : (-FS (-filter -String '(1 0))
-                                                        (-not-filter -String '(1 0)))))
+    (check-prints-as? (-> Univ (-> Univ -Boolean : (-PS (-is-type '(1 0) -String)
+                                                        (-not-type '(1 0) -String))))
                       "(-> Any (-> Any Boolean))")
-    (check-prints-as? (-> Univ Univ -Boolean : (-FS (-filter -String '(0 1))
-                                                    (-not-filter -String '(0 1))))
+    (check-prints-as? (-> Univ Univ -Boolean : (-PS (-is-type '(0 1) -String)
+                                                    (-not-type '(0 1) -String)))
                       "(-> Any Any Boolean)")
-    (check-prints-as? (-> Univ Univ -Boolean : (-FS (-filter -String '(0 0))
-                                                    (-not-filter -String '(0 0))))
+    (check-prints-as? (-> Univ Univ -Boolean : (-PS (-is-type '(0 0) -String)
+                                                    (-not-type '(0 0) -String)))
                       "(-> Any Any Boolean)")
-    (check-prints-as? (-> Univ (make-Values (list (-result -String -top-filter -empty-obj)
-                                                  (-result -String -top-filter -empty-obj))))
+    (check-prints-as? (-> Univ (make-Values (list (-result -String -tt-propset -empty-obj)
+                                                  (-result -String -tt-propset -empty-obj))))
                       "(-> Any (values String String))")
     ;; this case tests that the Number union is printed with its name
     ;; rather than its expansion (a former bug)
@@ -114,11 +114,11 @@
                                      " 'append 'update 'replace 'truncate"
                                      " 'truncate/replace)] [#:mode (U"
                                      " 'binary 'text)] Void)"))
-    (check-prints-as? (-> Univ (-AnyValues -top)) "(-> Any AnyValues)")
-    (check-prints-as? (-> Univ (-AnyValues (-filter -String '(0 0))))
+    (check-prints-as? (-> Univ (-AnyValues -tt)) "(-> Any AnyValues)")
+    (check-prints-as? (-> Univ (-AnyValues (-is-type '(0 0) -String)))
                       "(-> Any AnyValues : (String @ (0 0)))")
-    (check-prints-as? (-AnyValues -top) "AnyValues")
-    (check-prints-as? (-AnyValues (-filter -String '(0 0)))
+    (check-prints-as? (-AnyValues -tt) "AnyValues")
+    (check-prints-as? (-AnyValues (-is-type '(0 0) -String))
                       "(AnyValues : (String @ (0 0)))")
 
     (check-prints-as? (->opt Univ [] -Void) "(-> Any Void)")

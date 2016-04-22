@@ -4,7 +4,7 @@
 
 (require "../utils/utils.rkt"
          (except-in (rep type-rep object-rep) make-arr)
-         (rename-in (types abbrev union utils filter-ops resolve
+         (rename-in (types abbrev union utils prop-ops resolve
                            classes prefab signatures)
                     [make-arr* make-arr])
          (utils tc-utils stxclass-util literal-syntax-class)
@@ -227,7 +227,7 @@
   #:attributes (type)
   (pattern (~optional (~seq #:rest type:non-keyword-ty))))
 
-;; syntax classes for filters, objects, and related things
+;; syntax classes for props, objects, and related things
 (define-syntax-class path-elem
   #:description "path element"
   (pattern :car^
@@ -244,8 +244,8 @@
   #:description "!"
   (pattern (~datum !)))
 
-(define-splicing-syntax-class simple-latent-filter
-  #:description "latent filter"
+(define-splicing-syntax-class simple-latent-prop
+  #:description "latent prop"
   (pattern (~seq t:expr :@ pe:path-elem ...)
            #:attr type (parse-type #'t)
            #:attr path (attribute pe.pe))
@@ -254,54 +254,54 @@
            #:attr path '()))
 
 (define-syntax-class (prop doms)
-  #:description "filter proposition"
+  #:description "proposition"
   #:attributes (prop)
-  (pattern :Top^ #:attr prop -top)
-  (pattern :Bot^ #:attr prop -bot)
+  (pattern :Top^ #:attr prop -tt)
+  (pattern :Bot^ #:attr prop -ff)
   ;; Here is wrong check
-  (pattern (t:expr :@ ~! pe:path-elem ... (~var o (filter-object doms)))
-           #:attr prop (-filter (parse-type #'t) (-acc-path (attribute pe.pe) (attribute o.obj))))
+  (pattern (t:expr :@ ~! pe:path-elem ... (~var o (prop-object doms)))
+           #:attr prop (-is-type (-acc-path (attribute pe.pe) (attribute o.obj)) (parse-type #'t)))
   ;; Here is wrong check
-  (pattern (:! t:expr :@ ~! pe:path-elem ... (~var o (filter-object doms)))
-           #:attr prop (-not-filter (parse-type #'t) (-acc-path (attribute pe.pe) (attribute o.obj))))
+  (pattern (:! t:expr :@ ~! pe:path-elem ... (~var o (prop-object doms)))
+           #:attr prop (-not-type (-acc-path (attribute pe.pe) (attribute o.obj)) (parse-type #'t)))
   (pattern (:! t:expr)
-           #:attr prop (-not-filter (parse-type #'t) 0))
+           #:attr prop (-not-type 0 (parse-type #'t)))
   (pattern ((~datum and) (~var p (prop doms)) ...)
            #:attr prop (apply -and (attribute p.prop)))
   (pattern ((~datum or) (~var p (prop doms)) ...)
            #:attr prop (apply -or (attribute p.prop)))
   (pattern ((~literal implies) (~var p1 (prop doms)) (~var p2 (prop doms)))
-           #:attr prop (-imp (attribute p1.prop) (attribute p2.prop)))
+           #:attr prop (-or (negate-prop (attribute p1.prop)) (attribute p2.prop)))
   (pattern t:expr
-           #:attr prop (-filter (parse-type #'t) 0)))
+           #:attr prop (-is-type 0 (parse-type #'t))))
 
-(define-splicing-syntax-class (filter-object doms)
-  #:description "filter object"
+(define-splicing-syntax-class (prop-object doms)
+  #:description "prop object"
   #:attributes (obj)
   (pattern i:id
            #:fail-unless (identifier-binding #'i)
-           "Filters for predicates may not reference identifiers that are unbound"
+           "Propositions for predicates may not reference identifiers that are unbound"
            #:fail-when (is-var-mutated? #'i)
-           "Filters for predicates may not reference identifiers that are mutated"
+           "Propositions for predicates may not reference identifiers that are mutated"
            #:attr obj (-id-path #'i))
   (pattern idx:nat
            #:do [(define arg (syntax-e #'idx))]
            #:fail-unless (< arg (length doms))
-           (format "Filter proposition's object index ~a is larger than argument length ~a"
+           (format "Proposition's object index ~a is larger than argument length ~a"
                    arg (length doms))
            #:attr obj (-arg-path arg 0))
   (pattern (~seq depth-idx:nat idx:nat)
            #:do [(define arg (syntax-e #'idx))
                  (define depth (syntax-e #'depth-idx))]
            #:fail-unless (<= depth (length (current-arities)))
-           (format "Index ~a used in a filter, but the use is only within ~a enclosing functions"
+           (format "Index ~a used in a proposition, but the use is only within ~a enclosing functions"
                    depth (length (current-arities)))
            #:do [(define actual-arg
                    (if (zero? depth)
                        (length doms)
                        (list-ref (current-arities) (sub1 depth))))]
            #:fail-unless (< arg actual-arg)
-           (format "Filter proposition's object index ~a is larger than argument length ~a"
+           (format "Proposition's object index ~a is larger than argument length ~a"
                    depth actual-arg)
            #:attr obj (-arg-path arg (syntax-e #'depth-idx))))
 
@@ -498,9 +498,9 @@
             (list (make-arr
                    doms
                    (parse-type (syntax/loc stx (rest-dom ...))))))))]
-      [(~or (:->^ dom rng :colon^ latent:simple-latent-filter)
-            (dom :->^ rng :colon^ latent:simple-latent-filter))
-       ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
+      [(~or (:->^ dom rng :colon^ latent:simple-latent-prop)
+            (dom :->^ rng :colon^ latent:simple-latent-prop))
+       ;; use parse-type instead of parse-values-type because we need to add the props from the pred-ty
        (with-arity 1
          (make-pred-ty (list (parse-type #'dom)) (parse-type #'rng) (attribute latent.type)
                        (-acc-path (attribute latent.path) (-arg-path 0))))]
@@ -560,11 +560,11 @@
              :colon^ (~var latent (full-latent (syntax->list #'(dom ...)))))
             (dom:non-keyword-ty ... :->^ rng:expr
              ~! :colon^ (~var latent (full-latent (syntax->list #'(dom ...))))))
-       ;; use parse-type instead of parse-values-type because we need to add the filters from the pred-ty
+       ;; use parse-type instead of parse-values-type because we need to add the props from the pred-ty
        (with-arity (length (syntax->list #'(dom ...)))
          (->* (parse-types #'(dom ...))
               (parse-type #'rng)
-              : (-FS (attribute latent.positive) (attribute latent.negative))
+              : (-PS (attribute latent.positive) (attribute latent.negative))
               : (attribute latent.object)))]
       [(:->*^ (~var mand (->*-args #t))
               (~optional (~var opt (->*-args #f))
@@ -924,11 +924,12 @@
 (define (parse-tc-results stx)
   (syntax-parse stx
     [((~or :Values^ :values^) t ...)
+     (define empties (stx-map (λ (x) #f) #'(t ...)))
      (ret (parse-types #'(t ...))
-          (stx-map (lambda (x) -no-filter) #'(t ...))
-          (stx-map (lambda (x) -no-obj) #'(t ...)))]
-    [:AnyValues^ (tc-any-results -no-filter)]
-    [t (ret (parse-type #'t) -no-filter -no-obj)]))
+          empties
+          empties)]
+    [:AnyValues^ (tc-any-results #f)]
+    [t (ret (parse-type #'t) #f #f)]))
 
 (define parse-type/id (parse/id parse-type))
 

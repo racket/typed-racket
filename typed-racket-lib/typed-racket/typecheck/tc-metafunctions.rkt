@@ -2,9 +2,9 @@
 
 (require "../utils/utils.rkt"
          racket/match racket/list
-         (except-in (types abbrev union utils filter-ops tc-result)
+         (except-in (types abbrev union utils prop-ops tc-result)
                     -> ->* one-of/c)
-         (rep type-rep filter-rep object-rep rep-utils)
+         (rep type-rep prop-rep object-rep rep-utils)
          (typecheck tc-subst check-below)
          (contract-req))
 
@@ -36,20 +36,20 @@
      (make-ValuesDots (map -result ts fs os) dty dbound)]))
 
 (define/cond-contract (resolve atoms prop)
-  ((listof Filter/c)
-   Filter/c
+  ((listof Prop?)
+   Prop?
    . -> .
-   Filter/c)
+   Prop?)
   (for/fold ([prop prop])
     ([a (in-list atoms)])
     (match prop
-      [(AndFilter: ps)
+      [(AndProp: ps)
        (let loop ([ps ps] [result null])
          (if (null? ps)
              (apply -and result)
              (let ([p (car ps)])
-               (cond [(contradictory? a p) -bot]
-                     [(implied-atomic? p a) (loop (cdr ps) result)]
+               (cond [(contradictory? a p) -ff]
+                     [(implies-atomic? a p) (loop (cdr ps) result)]
                      [else (loop (cdr ps) (cons p result))]))))]
       [_ prop])))
 
@@ -57,14 +57,14 @@
   (let loop ([ps ps])
     (match ps
       [(list) null]
-      [(cons (AndFilter: ps*) ps) (loop (append ps* ps))]
+      [(cons (AndProp: ps*) ps) (loop (append ps* ps))]
       [(cons p ps) (cons p (loop ps))])))
 
 (define/cond-contract (combine-props new-props old-props exit)
-  ((listof Filter/c) (listof Filter/c) (-> none/c)
+  ((listof Prop?) (listof Prop?) (-> none/c)
    . -> .
-   (values (listof (or/c ImpFilter? OrFilter?)) (listof (or/c TypeFilter? NotTypeFilter?))))
-  (define (atomic-prop? p) (or (TypeFilter? p) (NotTypeFilter? p)))
+   (values (listof OrProp?) (listof (or/c TypeProp? NotTypeProp?))))
+  (define (atomic-prop? p) (or (TypeProp? p) (NotTypeProp? p)))
   (define-values (new-atoms new-formulas) (partition atomic-prop? (flatten-props new-props)))
   (let loop ([derived-formulas null]
              [derived-atoms new-atoms]
@@ -74,12 +74,7 @@
         (let* ([p (car worklist)]
                [p (resolve derived-atoms p)])
           (match p
-            [(ImpFilter: a c)
-             (if (for/or ([p (in-list (append derived-formulas derived-atoms))])
-                   (implied-atomic? a p))
-                 (loop derived-formulas derived-atoms (cons c (cdr worklist)))
-                 (loop (cons p derived-formulas) derived-atoms (cdr worklist)))]
-            [(OrFilter: ps)
+            [(OrProp: ps)
              (let ([new-or
                     (let or-loop ([ps ps] [result null])
                       (cond
@@ -88,32 +83,32 @@
                            (contradictory? (car ps) other-p))
                          (or-loop (cdr ps) result)]
                         [(for/or ([other-p (in-list derived-atoms)])
-                           (implied-atomic? (car ps) other-p))
-                         -top]
+                           (implies-atomic? other-p (car ps)))
+                         -tt]
                         [else (or-loop (cdr ps) (cons (car ps) result))]))])
-               (if (OrFilter? new-or)
+               (if (OrProp? new-or)
                    (loop (cons new-or derived-formulas) derived-atoms (cdr worklist))
                    (loop derived-formulas derived-atoms (cons new-or (cdr worklist)))))]
-            [(or (? TypeFilter?) (? NotTypeFilter?)) (loop derived-formulas (cons p derived-atoms) (cdr worklist))]
+            [(or (? TypeProp?) (? NotTypeProp?)) (loop derived-formulas (cons p derived-atoms) (cdr worklist))]
 
-            [(AndFilter: ps) (loop derived-formulas derived-atoms (append ps (cdr worklist)))]
-            [(Top:) (loop derived-formulas derived-atoms (cdr worklist))]
-            [(Bot:) (exit)])))))
+            [(AndProp: ps) (loop derived-formulas derived-atoms (append ps (cdr worklist)))]
+            [(TrueProp:) (loop derived-formulas derived-atoms (cdr worklist))]
+            [(FalseProp:) (exit)])))))
 
 
 (define (unconditional-prop res)
   (match res
-    [(tc-any-results: f) f]
-    [(tc-results (list (tc-result: _ (FilterSet: f+ f-) _) ...) _)
-     (apply -and (map -or f+ f-))]))
+    [(tc-any-results: pset) pset]
+    [(tc-results (list (tc-result: _ (PropSet: p+ p-) _) ...) _)
+     (apply -and (map -or p+ p-))]))
 
 (define (merge-tc-results results)
   (define/match (merge-tc-result r1 r2)
-    [((tc-result: t1 (FilterSet: f1+ f1-) o1)
-      (tc-result: t2 (FilterSet: f2+ f2-) o2))
+    [((tc-result: t1 (PropSet: p1+ p1-) o1)
+      (tc-result: t2 (PropSet: p2+ p2-) o2))
      (tc-result
        (Un t1 t2)
-       (-FS (-or f1+ f2+) (-or f1- f2-))
+       (-PS (-or p1+ p2+) (-or p1- p2-))
        (if (equal? o1 o2) o1 -empty-obj))])
 
   (define/match (same-dty? r1 r2)

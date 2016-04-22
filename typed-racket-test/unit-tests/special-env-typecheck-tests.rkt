@@ -4,8 +4,8 @@
          "evaluator.rkt"
          (for-syntax racket/base)
          (for-template racket/base)
-         (rep type-rep filter-rep object-rep)
-         (for-syntax (rename-in (types utils union numeric-tower abbrev filter-ops)
+         (rep type-rep prop-rep object-rep)
+         (for-syntax (rename-in (types utils union numeric-tower abbrev prop-ops)
                                 [Un t:Un]
                                 [-> t:->]))
          (utils tc-utils utils)
@@ -27,7 +27,7 @@
 
 (begin-for-syntax (do-standard-inits))
 
-(define-syntax-rule (tc-e/t e t) (tc-e e #:ret (ret t -true-filter)))
+(define-syntax-rule (tc-e/t e t) (tc-e e #:ret (ret t -true-propset)))
 
 (define-syntax (tc-e stx)
   (syntax-parse stx
@@ -120,7 +120,7 @@
    ;; exception handling
    [tc-e (with-handlers ([void (λ (x) (values 0 0))]) (values  "" ""))
          #:ret (ret (list (t:Un -Zero -String) (t:Un -Zero -String))
-                    (list -true-filter -true-filter))]
+                    (list -true-propset -true-propset))]
 
    (tc-e (make-temporary-file) -Path)
    (tc-e (make-temporary-file "ee~a") -Path)

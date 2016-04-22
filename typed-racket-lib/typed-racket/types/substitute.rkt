@@ -44,7 +44,7 @@
   (define names (hash-keys subst))
   (define fvs (free-vars* target))
   (if (ormap (lambda (name) (free-vars-has-key? fvs name)) names)
-      (type-case (#:Type sb #:Filter (sub-f sb) #:Object (sub-o sb))
+      (type-case (#:Type sb #:Prop (sub-f sb) #:Object (sub-o sb))
                  target
                  [#:Union tys (apply Un (map sb tys))]
                  [#:F name (hash-ref subst name target)]
@@ -92,7 +92,7 @@
   (define (sb t) (substitute-dots images rimage name t))
   (if (or (set-member? (free-vars-names (free-idxs* target)) name)
           (set-member? (free-vars-names (free-vars* target)) name))
-      (type-case (#:Type sb #:Filter (sub-f sb)) target
+      (type-case (#:Type sb #:Prop (sub-f sb)) target
                  [#:ListDots dty dbound
                              (if (eq? name dbound)
                                  ;; We need to recur first, just to expand out any dotted usages of this.
@@ -140,7 +140,7 @@
   ;; We do a quick check on the free variables to see if we can short circuit the substitution
   (if (or (set-member? (free-vars-names (free-idxs* target)) name)
           (set-member? (free-vars-names (free-vars* target)) name))
-      (type-case (#:Type sb #:Filter (sub-f sb))
+      (type-case (#:Type sb #:Prop (sub-f sb))
                  target
                  [#:ValuesDots types dty dbound
                                (let ([extra-types (if (eq? name dbound) pre-image null)])

@@ -6,9 +6,9 @@
          "signatures.rkt"
          "check-below.rkt" "../types/kw-types.rkt"
          (types utils abbrev union subtype type-table path-type
-                filter-ops remove-intersect resolve generalize)
+                prop-ops remove-intersect resolve generalize)
          (private-in syntax-properties)
-         (rep type-rep filter-rep object-rep)
+         (rep type-rep prop-rep object-rep)
          (only-in (infer infer) restrict)
          (utils tc-utils)
          (env lexical-env)
@@ -55,8 +55,8 @@
   
   (ret ty
        (if (overlap ty (-val #f))
-           (-FS (-not-filter (-val #f) obj) (-filter (-val #f) obj))
-           -true-filter)
+           (-PS (-not-type obj (-val #f)) (-is-type obj (-val #f)))
+           -true-propset)
        obj))
 
 ;; typecheck an expression, but throw away the effect
@@ -140,21 +140,21 @@
       [t:typecheck-failure
        (explicit-fail #'t.stx #'t.message #'t.var)]
       ;; data
-      [(quote #f) (ret (-val #f) -false-filter)]
-      [(quote #t) (ret (-val #t) -true-filter)]
+      [(quote #f) (ret (-val #f) -false-propset)]
+      [(quote #t) (ret (-val #t) -true-propset)]
       [(quote val)
        (match expected
          [(tc-result1: t)
-          (ret (tc-literal #'val t) -true-filter)]
+          (ret (tc-literal #'val t) -true-propset)]
          [_
-          (ret (tc-literal #'val) -true-filter)])]
+          (ret (tc-literal #'val) -true-propset)])]
       ;; syntax
       [(quote-syntax datum . _)
        (define expected-type
          (match expected
            [(tc-result1: t) t]
            [_ #f]))
-       (ret (find-stx-type #'datum expected-type) -true-filter)]
+       (ret (find-stx-type #'datum expected-type) -true-propset)]
       ;; mutation!
       [(set! id val)
        (match-let* ([(tc-result1: id-t) (single-value #'id)]
@@ -200,7 +200,7 @@
       [(begin0 e . es)
        (begin0
          (tc-expr/check #'e expected)
-         (tc-body/check #'es (tc-any-results -top)))]
+         (tc-body/check #'es (tc-any-results -tt)))]
       ;; if
       [(if tst thn els) (tc/if-twoarm #'tst #'thn #'els expected)]
       ;; lambda
@@ -236,7 +236,7 @@
           (define actual-kws (attribute kw.value))
           (check-kw-arity actual-kws f)
           (tc-expr/check/type #'fun (kw-convert f actual-kws #:split #t))
-          (ret f -true-filter)]
+          (ret f -true-propset)]
          [(or (tc-results: _) (tc-any-results: _))
           (tc-expr/check form #f)])]
       ;; opt function def
@@ -344,14 +344,14 @@
              [else
               ;; Typecheck the first form.
               (define e (first es))
-              (define results (tc-expr/check e (tc-any-results -no-filter)))
+              (define results (tc-expr/check e (tc-any-results #f)))
               (define props
                 (match results
                   [(tc-any-results: f) (list f)]
-                  [(tc-results: _ (list (FilterSet: f+ f-) ...) _)
-                   (map -or f+ f-)]
-                  [(tc-results: _ (list (FilterSet: f+ f-) ...) _ _ _)
-                   (map -or f+ f-)]))
+                  [(tc-results: _ (list (PropSet: p+ p-) ...) _)
+                   (map -or p+ p-)]
+                  [(tc-results: _ (list (PropSet: p+ p-) ...) _ _ _)
+                   (map -or p+ p-)]))
               (with-lexical-env/extend-props
                props
                ;; If `e` bails out, mark the rest as ignored.

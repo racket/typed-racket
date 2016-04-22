@@ -1,14 +1,14 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
-         (except-in (types utils abbrev filter-ops remove-intersect type-table)
+         (except-in (types utils abbrev prop-ops remove-intersect type-table)
                     -> ->* one-of/c)
          (only-in (types abbrev) (-> t:->) [->* t:->*])
          (private type-annotation parse-type syntax-properties)
          (env lexical-env type-alias-helper mvar-env
               global-env scoped-tvar-env 
               signature-env signature-helper)
-         (rep filter-rep object-rep type-rep)
+         (rep prop-rep object-rep type-rep)
          syntax/free-vars
          (typecheck signatures tc-metafunctions tc-subst internal-forms tc-envops)
          (utils tarjan)
@@ -49,13 +49,13 @@
    tc-results/c)
   (with-cond-contract t/p ([expected-types (listof (listof Type/c))]
                            [objs           (listof (listof Object?))]
-                           [props          (listof (listof Filter?))])
+                           [props          (listof (listof Prop?))])
     (define-values (expected-types objs props)
       (for/lists (e o p)
         ([e-r   (in-list expected-results)]
          [names (in-list namess)])
         (match e-r
-          [(list (tc-result: e-ts (FilterSet: fs+ fs-) os) ...)
+          [(list (tc-result: e-ts (PropSet: fs+ fs-) os) ...)
            (values e-ts
                    (map (λ (o n t) (if (or (is-var-mutated? n) (F? t)) -empty-obj o)) os names e-ts)
                    (apply append
@@ -75,10 +75,10 @@
                               [(and (Path? o) (not (F? t))) (list)]
                               ;; n is being bound to an expression w/o an object (or whose
                               ;; type is a type variable) so create props about n
-                              [else (list (-or (-and (-not-filter (-val #f) n) f+)
-                                               (-and (-filter (-val #f) n) f-)))]))))]
+                              [else (list (-or (-and (-not-type n (-val #f)) f+)
+                                               (-and (-is-type n (-val #f)) f-)))]))))]
           ;; amk: does this case ever occur?
-          [(list (tc-result: e-ts (NoFilter:) _) ...)
+          [(list (tc-result: e-ts #f _) ...)
            (values e-ts (make-list (length e-ts) -empty-obj) null)]))))
   ;; extend the lexical environment for checking the body
   ;; with types and potential aliases
@@ -102,7 +102,7 @@
         ;; in the context of the letrec body
         (check-thunk)
         ;; typecheck the body
-        (tc-body/check body (and expected (erase-filter expected)))))))
+        (tc-body/check body (and expected (erase-props expected)))))))
 
 (define (tc-expr/maybe-expected/t e names)
   (syntax-parse names
@@ -182,7 +182,7 @@
          ;; after everything, check the body expressions
          [(null? remaining-names)
           (check-thunk)
-          (tc-body/check body (and expected (erase-filter expected)))]
+          (tc-body/check body (and expected (erase-props expected)))]
          [else
           (define flat-names (apply append remaining-names))
           (do-check tc-expr/check

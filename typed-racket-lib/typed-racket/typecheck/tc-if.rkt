@@ -1,7 +1,7 @@
 #lang racket/unit
 (require "../utils/utils.rkt"
-         (rep filter-rep)
-         (types utils filter-ops)
+         (rep prop-rep)
+         (types utils prop-ops)
          (utils tc-utils)
          (typecheck signatures tc-envops tc-metafunctions)
          (types type-table)
@@ -13,8 +13,8 @@
 
 (define (tc/if-twoarm tst thn els [expected #f])
   (match (single-value tst)
-    [(tc-result1: _ (FilterSet: fs+ fs-) _)
-     (define expected* (and expected (erase-filter expected)))
+    [(tc-result1: _ (PropSet: fs+ fs-) _)
+     (define expected* (and expected (erase-props expected)))
      (define results-t
        (with-lexical-env/extend-props (list fs+)
          #:unreachable (warn-unreachable thn)

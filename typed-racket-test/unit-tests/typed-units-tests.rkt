@@ -23,8 +23,8 @@
                               base-types base-types-extra)
                     define lambda λ case-lambda)
          (prefix-in tr: (only-in (base-env prims) define lambda λ case-lambda))
-         (for-syntax (rep type-rep filter-rep object-rep)
-                     (rename-in (types abbrev union numeric-tower filter-ops utils)
+         (for-syntax (rep type-rep prop-rep object-rep)
+                     (rename-in (types abbrev union numeric-tower prop-ops utils)
                                 [Un t:Un]
                                 [-> t:->])))
 

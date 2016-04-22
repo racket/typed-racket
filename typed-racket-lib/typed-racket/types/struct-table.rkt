@@ -4,7 +4,7 @@
          mzlib/pconvert racket/syntax
          "../utils/utils.rkt"
          (prefix-in c: (contract-req))
-         (rep type-rep filter-rep object-rep)
+         (rep type-rep prop-rep object-rep)
          (utils tc-utils)
          (env init-envs env-utils))
 

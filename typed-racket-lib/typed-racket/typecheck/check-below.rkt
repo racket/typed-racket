@@ -3,9 +3,9 @@
 (require "../utils/utils.rkt"
          racket/match (prefix-in - (contract-req))
          racket/format
-         (types utils union subtype filter-ops abbrev)
+         (types utils union subtype prop-ops abbrev)
          (utils tc-utils)
-         (rep type-rep object-rep filter-rep)
+         (rep type-rep object-rep prop-rep)
          (typecheck error-message))
 
 (provide/cond-contract
@@ -21,7 +21,7 @@
 
 (define (print-object o)
   (match o
-    [(or (NoObject:) (Empty:)) "no object"]
+    [(or #f (Empty:)) "no object"]
     [_ (format "object ~a" o)]))
 
 ;; If expected is #f, then just return tr1
@@ -45,37 +45,36 @@
     (value-string expected) (value-string actual)
     "mismatch in number of values"))
 
-;; fix-filter: FilterSet [FilterSet] -> FilterSet
-;; Turns NoFilter into the actual filter; leaves other filters alone.
-(define (fix-filter f [f2 -top-filter])
-  (match f
-    [(NoFilter:) f2]
-    [else f]))
+;; fix-props:
+;;  PropSet [PropSet] -> PropSet
+;;    or
+;;  Prop [Prop]       -> Prop
+;; Turns #f prop/propset into the actual prop; leaves other props alone.
+(define (fix-props p1 [p2 -tt-propset])
+  (or p1 p2))
 
 ;; fix-object: Object [Object] -> Object
-;; Turns NoObject into the actual object; leaves other objects alone.
-(define (fix-object o [o2 -empty-obj])
-  (match o
-    [(NoObject:) o2]
-    [else o]))
+;; Turns #f into the actual object; leaves other objects alone.
+(define (fix-object o1 [o2 -empty-obj])
+  (or o1 o2))
 
 ;; fix-results: tc-results -> tc-results
-;; Turns NoObject/NoFilter into the Empty/TopFilter
+;; Turns #f Prop or Obj into the Empty/Trivial
 (define (fix-results r)
   (match r
-    [(tc-any-results: f) (tc-any-results (fix-filter f -top))]
-    [(tc-results: ts fs os)
-     (ret ts (map fix-filter fs) (map fix-object os))]
-    [(tc-results: ts fs os dty dbound)
-     (ret ts (map fix-filter fs) (map fix-object os) dty dbound)]))
+    [(tc-any-results: f) (tc-any-results (fix-props f -tt))]
+    [(tc-results: ts ps os)
+     (ret ts (map fix-props ps) (map fix-object os))]
+    [(tc-results: ts ps os dty dbound)
+     (ret ts (map fix-props ps) (map fix-object os) dty dbound)]))
 
 (define (fix-results/bottom r)
   (match r
-    [(tc-any-results: f) (tc-any-results (fix-filter f -bot))]
-    [(tc-results: ts fs os)
-     (ret ts (for/list ([f fs]) (fix-filter f -bot-filter)) (map fix-object os))]
-    [(tc-results: ts fs os dty dbound)
-     (ret ts (for/list ([f fs]) (fix-filter f -bot-filter)) (map fix-object os) dty dbound)]))
+    [(tc-any-results: f) (tc-any-results (fix-props f -ff))]
+    [(tc-results: ts ps os)
+     (ret ts (for/list ([p ps]) (fix-props p -ff-propset)) (map fix-object os))]
+    [(tc-results: ts ps os dty dbound)
+     (ret ts (for/list ([p ps]) (fix-props p -ff-propset)) (map fix-object os) dty dbound)]))
 
 
 
@@ -84,74 +83,74 @@
 ;;                   (Type Results -> Type)
 ;;                   (Type Type -> Type))
 (define (check-below tr1 expected)
-  (define (filter-set-better? f1 f2)
-    (match* (f1 f2)
-      [(f f) #t]
-      [(f (NoFilter:)) #t]
-      [((FilterSet: f1+ f1-) (FilterSet: f2+ f2-))
-       (and (implied-atomic? f2+ f1+)
-            (implied-atomic? f2- f1-))]
+  (define (prop-set-better? p1 p2)
+    (match* (p1 p2)
+      [(p p) #t]
+      [(p #f) #t]
+      [((PropSet: p1+ p1-) (PropSet: p2+ p2-))
+       (and (implies-atomic? p1+ p2+)
+            (implies-atomic? p1- p2-))]
       [(_ _) #f]))
   (define (object-better? o1 o2)
     (match* (o1 o2)
       [(o o) #t]
-      [(o (or (NoObject:) (Empty:))) #t]
+      [(o (or #f (Empty:))) #t]
       [(_ _) #f]))
-  (define (filter-better? f1 f2)
-    (or (NoFilter? f2)
-        (implied-atomic? f2 f1)))
+  (define (prop-better? p1 p2)
+    (or (not p2)
+        (implies-atomic? p1 p2)))
 
   (match* (tr1 expected)
     ;; This case has to be first so that bottom (exceptions, etc.) can be allowed in cases
     ;; where multiple values are expected.
-    ;; We can ignore the filters and objects in the actual value because they would never be about a value
+    ;; We can ignore the props and objects in the actual value because they would never be about a value
     [((tc-result1: (? (lambda (t) (type-equal? t (Un))))) _)
      (fix-results/bottom expected)]
 
-    [((tc-any-results: f1) (tc-any-results: f2))
-     (unless (filter-better? f1 f2)
-       (type-mismatch f2 f1 "mismatch in filter"))
-     (tc-any-results (fix-filter f2 f1))]
+    [((tc-any-results: p1) (tc-any-results: p2))
+     (unless (prop-better? p1 p2)
+       (type-mismatch p2 p1 "mismatch in proposition"))
+     (tc-any-results (fix-props p2 p1))]
 
-    [((or (tc-results: _ (list (FilterSet: fs+ fs-) ...) _)
-          (tc-results: _ (list (FilterSet: fs+ fs-) ...) _ _ _))
-      (tc-any-results: f2))
-     (define merged-filter (apply -and (map -or fs+ fs-)))
-     (unless (filter-better? merged-filter f2)
-       (type-mismatch f2 merged-filter "mismatch in filter"))
-     (tc-any-results (fix-filter f2 merged-filter))]
+    [((or (tc-results: _ (list (PropSet: fs+ fs-) ...) _)
+          (tc-results: _ (list (PropSet: fs+ fs-) ...) _ _ _))
+      (tc-any-results: p2))
+     (define merged-prop (apply -and (map -or fs+ fs-)))
+     (unless (prop-better? merged-prop p2)
+       (type-mismatch p2 merged-prop "mismatch in proposition"))
+     (tc-any-results (fix-props p2 merged-prop))]
 
 
-    [((tc-result1: t1 f1 o1) (tc-result1: t2 f2 o2))
+    [((tc-result1: t1 p1 o1) (tc-result1: t2 p2 o2))
      (cond
        [(not (subtype t1 t2))
         (expected-but-got t2 t1)]
-       [(and (not (filter-set-better? f1 f2))
+       [(and (not (prop-set-better? p1 p2))
              (object-better? o1 o2))
-        (type-mismatch f2 f1 "mismatch in filter")]
-       [(and (filter-set-better? f1 f2)
+        (type-mismatch p2 p1 "mismatch in proposition")]
+       [(and (prop-set-better? p1 p2)
              (not (object-better? o1 o2)))
         (type-mismatch (print-object o2) (print-object o1) "mismatch in object")]
-       [(and (not (filter-set-better? f1 f2))
+       [(and (not (prop-set-better? p1 p2))
              (not (object-better? o1 o2)))
-        (type-mismatch (format "`~a' and `~a'" f2 (print-object o2))
-                       (format "`~a' and `~a'" f1 (print-object o1))
-                       "mismatch in filter and object")])
-     (ret t2 (fix-filter f2 f1) (fix-object o2 o1))]
+        (type-mismatch (format "`~a' and `~a'" p2 (print-object o2))
+                       (format "`~a' and `~a'" p1 (print-object o1))
+                       "mismatch in proposition and object")])
+     (ret t2 (fix-props p2 p1) (fix-object o2 o1))]
 
     ;; case where expected is like (Values a ... a) but got something else
-    [((tc-results: t1 f1 o1) (tc-results: t2 f2 o2 dty dbound))
+    [((tc-results: t1 p1 o1) (tc-results: t2 p2 o2 dty dbound))
      (value-mismatch expected tr1)
      (fix-results expected)]
 
     ;; case where you have (Values a ... a) but expected something else
-    [((tc-results: t1 f1 o1 dty dbound) (tc-results: t2 f2 o2))
+    [((tc-results: t1 p1 o1 dty dbound) (tc-results: t2 p2 o2))
      (value-mismatch expected tr1)
      (fix-results expected)]
 
-    [((tc-results: t1 f1 o1 dty1 dbound)
-      (tc-results: t2 (list (or (NoFilter:) (FilterSet: (Top:) (Top:))) ...)
-                      (list (or (NoObject:) (Empty:)) ...) dty2 dbound))
+    [((tc-results: t1 p1 o1 dty1 dbound)
+      (tc-results: t2 (list (or #f (PropSet: (TrueProp:) (TrueProp:))) ...)
+                      (list (or #f (Empty:)) ...) dty2 dbound))
      (cond
        [(= (length t1) (length t2))
         (unless (andmap subtype t1 t2)
@@ -162,7 +161,7 @@
          (value-mismatch expected tr1)])
      (fix-results expected)]
 
-    [((tc-results: t1 f1 o1 dty1 dbound) (tc-results: t2 f2 o2 dty2 dbound))
+    [((tc-results: t1 p1 o1 dty1 dbound) (tc-results: t2 p2 o2 dty2 dbound))
      (cond
        [(= (length t1) (length t2))
         (unless (andmap subtype t1 t2)
@@ -173,9 +172,9 @@
          (value-mismatch expected tr1)])
      (fix-results expected)]
 
-    [((tc-results: t1 f1 o1)
-      (tc-results: t2 (list (or (NoFilter:) (FilterSet: (Top:) (Top:))) ...)
-                      (list (or (NoObject:) (Empty:)) ...)))
+    [((tc-results: t1 p1 o1)
+      (tc-results: t2 (list (or #f (PropSet: (TrueProp:) (TrueProp:))) ...)
+                      (list (or #f (Empty:)) ...)))
      (unless (= (length t1) (length t2))
        (value-mismatch expected tr1))
      (unless (for/and ([t (in-list t1)] [s (in-list t2)]) (subtype t s))
@@ -189,7 +188,7 @@
        (expected-but-got (stringify t2) (stringify t1)))
      (fix-results expected)]
 
-    [((tc-results: t1 f1 o1) (tc-results: t2 f2 o2)) (=> continue)
+    [((tc-results: t1 p1 o1) (tc-results: t2 p2 o2)) (=> continue)
      (if (= (length t1) (length t2))
          (continue)
          (value-mismatch expected tr1))
@@ -204,5 +203,5 @@
        (expected-but-got t2 t1))
      expected]
     [((tc-results: ts fs os dty dbound) (tc-results: ts* fs* os* dty* dbound*))
-     (int-err "dotted types with different bounds/filters/objects in check-below nyi: ~a ~a" tr1 expected)]
+     (int-err "dotted types with different bounds/propositions/objects in check-below nyi: ~a ~a" tr1 expected)]
     [(a b) (int-err "unexpected input for check-below: ~a ~a" a b)]))

@@ -248,24 +248,24 @@
     (-polydots (c a b) (->... (list (->... (list a) (b b) c) (-vec a)) ((-vec b) b) (-vec c)))
     (->* (list (->* (list) -Symbol -Symbol)) (-vec -Symbol) (-vec -Symbol))]
 
-   [(-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
-    (-> Univ -Boolean : -top-filter)]
-   [(-> Univ -Boolean : -bot-filter)
-    (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))]
-   [(-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
-    (-> (Un -Symbol -String) -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))]
+   [(-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))
+    (-> Univ -Boolean : -tt-propset)]
+   [(-> Univ -Boolean : -ff-propset)
+    (-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))]
+   [(-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))
+    (-> (Un -Symbol -String) -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))]
    [FAIL
-    (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
-    (-> Univ -Boolean : (-FS (-filter -String 0) (-not-filter -String 0)))]
+    (-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))
+    (-> Univ -Boolean : (-PS (-is-type 0 -String) (-not-type 0 -String)))]
 
-   ;; subtyping for types inside filters
-   [(-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
-    (-> Univ -Boolean : (-FS (-filter (-opt -Symbol) 0) (-not-filter -Symbol 0)))]
-   [(-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter (-opt -Symbol) 0)))
-    (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))]
+   ;; subtyping for types inside propositions
+   [(-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))
+    (-> Univ -Boolean : (-PS (-is-type 0 (-opt -Symbol)) (-not-type 0 -Symbol)))]
+   [(-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 (-opt -Symbol))))
+    (-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))]
    [FAIL
-    (-> Univ -Boolean : (-FS (-filter (-opt -Symbol) 0) (-not-filter (-opt -Symbol) 0)))
-    (-> Univ -Boolean : (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))]
+    (-> Univ -Boolean : (-PS (-is-type 0 (-opt -Symbol)) (-not-type 0 (-opt -Symbol))))
+    (-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))]
 
    [FAIL (make-ListDots (-box (make-F 'a)) 'a) (-lst (-box Univ))]
    [(make-ListDots (-> -Symbol (make-F 'a)) 'a) (-lst (-> -Symbol Univ))]
@@ -276,7 +276,7 @@
    [(-> Univ -Bottom) (-> Univ (-values (list -String -Symbol)))]
    [(-> Univ -Bottom) (-> Univ (-values-dots null -String 'x))]
 
-   [FAIL (make-pred-ty -String) (-> Univ (-AnyValues (-filter -String 0)))]
+   [FAIL (make-pred-ty -String) (-> Univ (-AnyValues (-is-type 0 -String)))]
 
    ;; keyword function types
    [(->key #:x -Symbol #f Univ) (->key Univ)]
@@ -371,7 +371,7 @@
    [FAIL
     (-prefab '(foo #()) -String) (-prefab '(foo #(0)) (-opt -String))]
 
-   ;; Filter subtyping
+   ;; Proposition subtyping
    ((make-pred-ty (list -Real) -Boolean (Un (-val 0.0) (-val 0)))
     (make-pred-ty (list -Int) -Boolean (-val 0)))
 

@@ -1,13 +1,13 @@
 #lang racket/base
 
 ;; This module provides functions for printing types and related
-;; data structures such as filters and objects
+;; data structures such as propositions and objects
 
 (require racket/require racket/match racket/dict racket/string racket/promise
          racket/pretty
          racket/list
          racket/set
-         (path-up "rep/type-rep.rkt" "rep/filter-rep.rkt" "rep/object-rep.rkt"
+         (path-up "rep/type-rep.rkt" "rep/prop-rep.rkt" "rep/object-rep.rkt"
                   "rep/rep-utils.rkt" "types/subtype.rkt"
                   "types/match-expanders.rkt"
                   "types/kw-types.rkt"
@@ -24,15 +24,15 @@
 (define-syntax (provide-printer stx)
   (if (eq? printer-type 'debug)
       #'(provide (rename-out [debug-printer print-type]
-                             [debug-printer print-filter]
+                             [debug-printer print-prop]
                              [debug-printer print-object]
                              [debug-printer print-pathelem]
                              [debug-pretty-format-type pretty-format-type]))
-      #'(provide print-type print-filter print-object print-pathelem
+      #'(provide print-type print-prop print-object print-pathelem
                  pretty-format-type)))
 (provide-printer)
 
-(provide print-complex-filters? type-output-sexpr-tweaker
+(provide print-complex-props? type-output-sexpr-tweaker
          current-print-type-fuel current-print-unexpanded)
 
 
@@ -43,7 +43,7 @@
 (define print-aliases #t)
 
 (define type-output-sexpr-tweaker (make-parameter values))
-(define print-complex-filters? (make-parameter #f))
+(define print-complex-props? (make-parameter #f))
 
 ;; this parameter controls how far down the type to expand type names
 ;; interp. 0 -> don't expand
@@ -69,15 +69,15 @@
 ;; print-type also takes an optional (Listof Symbol)
 ;;
 ;; These four functions call the helpers below to print an
-;; s-expression representation of the given type/pathelem/filter/object.
+;; s-expression representation of the given type/pathelem/prop/object.
 (define (print-type type port write? [ignored-names '()])
   (display (type->sexp type ignored-names) port))
 
 (define (print-pathelem pe port write?)
   (display (pathelem->sexp pe) port))
 
-(define (print-filter filter port write?)
-  (display (filter->sexp filter) port))
+(define (print-prop prop port write?)
+  (display (prop->sexp prop) port))
 
 (define (print-object obj port write?)
   (display (object->sexp obj) port))
@@ -98,9 +98,9 @@
                     out))
   (string-trim #:left? #f (substring (get-output-string out) indent)))
 
-;; filter->sexp : Filter -> S-expression
-;; Print a Filter (see filter-rep.rkt) to the given port
-(define (filter->sexp filt)
+;; prop->sexp : Prop -> S-expression
+;; Print a Prop (see prop-rep.rkt) to the given port
+(define (prop->sexp filt)
   (define (name-ref->sexp name-ref)
     (if (syntax? name-ref)
         (syntax-e name-ref)
@@ -110,19 +110,16 @@
         '()
         (list (map pathelem->sexp path))))
   (match filt
-    [(FilterSet: thn els) `(,(filter->sexp thn) \| ,(filter->sexp els))]
-    [(NoFilter:) '-]
-    [(NotTypeFilter: type (Path: path nm))
+    [(PropSet: thn els) `(,(prop->sexp thn) \| ,(prop->sexp els))]
+    [(NotTypeProp: (Path: path nm) type)
      `(! ,(type->sexp type) @ ,@(path->sexps path) ,(name-ref->sexp nm))]
-    [(TypeFilter: type (Path: path nm))
+    [(TypeProp: (Path: path nm) type)
      `(,(type->sexp type) @ ,@(path->sexps path) ,(name-ref->sexp nm))]
-    [(Bot:) 'Bot]
-    [(Top:) 'Top]
-    [(ImpFilter: a c)
-     `(ImpFilter ,(filter->sexp a) ,(filter->sexp c))]
-    [(AndFilter: a) `(AndFilter ,@(map filter->sexp a))]
-    [(OrFilter: a) `(OrFilter ,@(map filter->sexp a))]
-    [else `(Unknown Filter: ,(struct->vector filt))]))
+    [(TrueProp:) 'Top]
+    [(FalseProp:) 'Bot]
+    [(AndProp: a) `(AndProp ,@(map prop->sexp a))]
+    [(OrProp: a) `(OrProp ,@(map prop->sexp a))]
+    [else `(Unknown Prop: ,(struct->vector filt))]))
 
 ;; pathelem->sexp : PathElem -> S-expression
 ;; Print a PathElem (see object-rep.rkt) to the given port
@@ -139,7 +136,6 @@
 ;; Print an Object (see object-rep.rkt) to the given port
 (define (object->sexp object)
   (match object
-    [(NoObject:) '-]
     [(Empty:) '-]
     [(Path: pes i) (append (map pathelem->sexp pes) (list i))]
     [else `(Unknown Object: ,(struct->vector object))]))
@@ -222,37 +218,37 @@
       (if rest  `(,(type->sexp rest) *)                       null)
       (if drest `(,(type->sexp (car drest)) ... ,(cdr drest)) null)
       (match rng
-        [(AnyValues: (Top:)) '(AnyValues)]
-        [(AnyValues: f) `(AnyValues : ,(filter->sexp f))]
-        [(Values: (list (Result: t (FilterSet: (Top:) (Top:)) (Empty:))))
+        [(AnyValues: (TrueProp:)) '(AnyValues)]
+        [(AnyValues: f) `(AnyValues : ,(prop->sexp f))]
+        [(Values: (list (Result: t (PropSet: (TrueProp:) (TrueProp:)) (Empty:))))
          (list (type->sexp t))]
         [(Values: (list (Result: t
-                                 (FilterSet: (TypeFilter: ft (Path: pth (list 0 0)))
-                                             (NotTypeFilter: ft (Path: pth (list 0 0))))
+                                 (PropSet: (TypeProp: (Path: pth (list 0 0)) ft)
+                                             (NotTypeProp: (Path: pth (list 0 0)) ft))
                                  (Empty:))))
-         ;; Only print a simple filter for single argument functions,
-         ;; since parse-type only accepts simple latent filters on single
+         ;; Only print a simple prop for single argument functions,
+         ;; since parse-type only accepts simple latent props on single
          ;; argument functions.
          #:when (= 1 (length dom))
          (if (null? pth)
              `(,(type->sexp t) : ,(type->sexp ft))
              `(,(type->sexp t) : ,(type->sexp ft) @
                ,@(map pathelem->sexp pth)))]
-        ;; Print asymmetric filters with only a positive filter as a
+        ;; Print asymmetric props with only a positive prop as a
         ;; special case (even when complex printing is off) because it's
-        ;; useful to users who use functions like `filter`.
+        ;; useful to users who use functions like `prop`.
         [(Values: (list (Result: t
-                                 (FilterSet: (TypeFilter: ft (Path: '() (list 0 0))) (Top:))
+                                 (PropSet: (TypeProp: (Path: '() (list 0 0)) ft) (TrueProp:))
                                  (Empty:))))
          #:when (= 1 (length dom))
          `(,(type->sexp t) : #:+ ,(type->sexp ft))]
         [(Values: (list (Result: t fs (Empty:))))
-         (if (print-complex-filters?)
-             `(,(type->sexp t) : ,(filter->sexp fs))
+         (if (print-complex-props?)
+             `(,(type->sexp t) : ,(prop->sexp fs))
              (list (type->sexp t)))]
         [(Values: (list (Result: t lf lo)))
-         (if (print-complex-filters?)
-             `(,(type->sexp t) : ,(filter->sexp lf) ,(object->sexp lo))
+         (if (print-complex-props?)
+             `(,(type->sexp t) : ,(prop->sexp lf) ,(object->sexp lo))
              (list (type->sexp t)))]
         [_ (list (type->sexp rng))]))]
     [else `(Unknown Function Type: ,(struct->vector arr))]))
@@ -468,8 +464,8 @@
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
     [(F: nm) nm]
     ;; FIXME (Values are not types and shouldn't need to be considered here
-    [(AnyValues: (Top:)) 'AnyValues]
-    [(AnyValues: f) `(AnyValues : ,(filter->sexp f))]
+    [(AnyValues: (TrueProp:)) 'AnyValues]
+    [(AnyValues: f) `(AnyValues : ,(prop->sexp f))]
     [(Values: (list v)) v]
     [(Values: (list v ...)) (cons 'values (map t->s v))]
     [(ValuesDots: v dty dbound)
@@ -518,9 +514,11 @@
        ,(t->s body))]
     [(Signature: name extends mapping)
      (syntax->datum name)]
-    [(Result: t (or (NoFilter:) (FilterSet: (Top:) (Top:))) (or (NoObject:) (Empty:))) (type->sexp t)]
-    [(Result: t fs (Empty:)) `(,(type->sexp t) : ,(filter->sexp fs))]
-    [(Result: t fs lo) `(,(type->sexp t) : ,(filter->sexp fs) : ,(object->sexp lo))]
+    [(Result: t
+              (or #f (PropSet: (TrueProp:) (TrueProp:)))
+              (or #f (Empty:))) (type->sexp t)]
+    [(Result: t fs (Empty:)) `(,(type->sexp t) : ,(prop->sexp fs))]
+    [(Result: t fs lo) `(,(type->sexp t) : ,(prop->sexp fs) : ,(object->sexp lo))]
     [(MPair: s t) `(MPairof ,(t->s s) ,(t->s t))]
     [(Refinement: parent p?)
      `(Refinement ,(t->s parent) ,(syntax-e p?))]

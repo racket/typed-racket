@@ -20,7 +20,7 @@
   (match t
     [(Mu: name b)
      (define (sb target)
-       (type-case (#:Type sb #:Filter (sub-f sb) #:Object (sub-o sb))
+       (type-case (#:Type sb #:Prop (sub-f sb) #:Object (sub-o sb))
          target
          [#:F name* (if (eq? name name*) t target)]))
      (sb b)]))

@@ -15,13 +15,13 @@
   (for/or ([e (in-list (append* (map fv ts)))])
     (memq e V)))
 
-;; get-filters : SomeValues -> FilterSet
-;; extract filters out of the range of a function type
-(define (get-filters rng)
+;; get-propset : SomeValues -> PropSet
+;; extract prop sets out of the range of a function type
+(define (get-propsets rng)
   (match rng
-    [(AnyValues: f) (list (-FS f f))]
-    [(Values: (list (Result: _ lf _) ...)) lf]
-    [(ValuesDots: (list (Result: _ lf _) ...) _ _) lf]))
+    [(AnyValues: p) (list (-PS p p))]
+    [(Values: (list (Result: _ propsets _) ...)) propsets]
+    [(ValuesDots: (list (Result: _ propsets _) ...) _ _) propsets]))
 
 
 (begin-encourage-inline
@@ -43,7 +43,7 @@
       (match arr
         [(arr: dom rng rest drest kws)
          (cond
-           [(apply V-in? V (get-filters rng))
+           [(apply V-in? V (get-propsets rng))
             #f]
            [(and drest (memq (cdr drest) V))
             (make-arr (map contra dom)
@@ -63,7 +63,7 @@
       [(Function: arrs)
        (make-Function (filter-map arr-change arrs))]
       [(? structural?) (structural-map T structural-recur)]
-      [(? Filter?) ((sub-f co) T)]
+      [(? Prop?) ((sub-f co) T)]
       [(? Object?) ((sub-o co) T)]
       [(? Type?) ((sub-t co) T)]))
   (define (var-promote T V)

@@ -12,7 +12,7 @@
          racket/function
 
          (prefix-in c: (contract-req))
-         (rename-in (rep type-rep filter-rep object-rep)
+         (rename-in (rep type-rep prop-rep object-rep)
                     [make-Base make-Base*])
          (types union numeric-tower prefab)
          ;; Using this form so all-from-out works
@@ -262,23 +262,23 @@
 ;; Function type constructors
 (define/decl top-func (make-Function (list)))
 
-(define (asym-pred dom rng filter)
-  (make-Function (list (make-arr* (list dom) rng #:filters filter))))
+(define (asym-pred dom rng prop)
+  (make-Function (list (make-arr* (list dom) rng #:props prop))))
 
 (define/cond-contract make-pred-ty
   (c:case-> (c:-> Type/c Type/c)
             (c:-> (c:listof Type/c) Type/c Type/c Type/c)
             (c:-> (c:listof Type/c) Type/c Type/c Object? Type/c))
   (case-lambda
-    [(in out t p)
-     (->* in out : (-FS (-filter t p) (-not-filter t p)))]
+    [(in out t o)
+     (->* in out : (-PS (-is-type o t) (-not-type o t)))]
     [(in out t)
      (make-pred-ty in out t (make-Path null (list 0 0)))]
     [(t)
      (make-pred-ty (list Univ) -Boolean t (make-Path null (list 0 0)))]))
 
-(define/decl -true-filter (-FS -top -bot))
-(define/decl -false-filter (-FS -bot -top))
+(define/decl -true-propset (-PS -tt -ff))
+(define/decl -false-propset (-PS -ff -tt))
 
 (define (opt-fn args opt-args result #:rest [rest #f] #:kws [kws null])
   (apply cl->* (for/list ([i (in-range (add1 (length opt-args)))])

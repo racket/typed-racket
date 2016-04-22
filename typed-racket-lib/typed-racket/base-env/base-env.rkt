@@ -672,7 +672,7 @@
                      [((a b c . -> . c) c (-lst a) (-lst b)) c]
                      [((a b c d . -> . d) d (-lst a) (-lst b) (-lst c)) d]))]
 [filter (-poly (a b) (cl->*
-                      ((asym-pred a Univ (-FS (-filter b 0) -top))
+                      ((asym-pred a Univ (-PS (-is-type 0 b) -tt))
                        (-lst a)
                        . -> .
                        (-lst b))
@@ -712,7 +712,7 @@
                    -Index))]
 [partition
  (-poly (a b) (cl->*
-               (-> (asym-pred b Univ (-FS (-filter a 0) -top)) (-lst b) (-values (list (-lst a) (-lst b))))
+               (-> (asym-pred b Univ (-PS (-is-type 0 a) -tt)) (-lst b) (-values (list (-lst a) (-lst b))))
                (-> (-> a Univ) (-lst a) (-values (list (-lst a) (-lst a))))))]
 
 [last   (-poly (a) ((-lst a) . -> . a))]
@@ -730,7 +730,7 @@
  (-poly (a b)
    (cl->*
     (-> (-lst a)
-        (asym-pred a Univ (-FS (-filter b 0) -top))
+        (asym-pred a Univ (-PS (-is-type 0 b) -tt))
         (-lst b))
     (-> (-lst a) (-> a Univ) (-lst a))))]
 [dropf (-poly (a) (-> (-lst a) (-> a Univ) (-lst a)))]
@@ -738,14 +738,14 @@
  (-poly (a b)
    (cl->*
     (-> (-lst a)
-        (asym-pred a Univ (-FS (-filter b 0) -top))
+        (asym-pred a Univ (-PS (-is-type 0 b) -tt))
         (-values (list (-lst b) (-lst a))))
     (-> (-lst a) (-> a Univ) (-values (list (-lst a) (-lst a))))))]
 [takef-right
  (-poly (a b)
    (cl->*
     (-> (-lst a)
-        (asym-pred a Univ (-FS (-filter b 0) -top))
+        (asym-pred a Univ (-PS (-is-type 0 b) -tt))
         (-lst b))
     (-> (-lst a) (-> a Univ) (-lst a))))]
 [dropf-right (-poly (a) (-> (-lst a) (-> a Univ) (-lst a)))]
@@ -753,7 +753,7 @@
  (-poly (a b)
    (cl->*
     (-> (-lst a)
-        (asym-pred a Univ (-FS (-filter b 0) -top))
+        (asym-pred a Univ (-PS (-is-type 0 b) -tt))
         (-values (list (-lst a) (-lst b))))
     (-> (-lst a) (-> a Univ) (-values (list (-lst a) (-lst a))))))]
 
@@ -842,7 +842,7 @@
                           . ->... .
                           -Index))]
 [vector-filter (-poly (a b) (cl->*
-                              ((asym-pred a Univ (-FS (-filter b 0) -top))
+                              ((asym-pred a Univ (-PS (-is-type 0 b) -tt))
                                (-vec a)
                                . -> .
                                (-vec b))
@@ -1030,7 +1030,7 @@
 [sequence-fold (-poly (a b) ((b a . -> . b) b (-seq a) . -> . b))]
 [sequence-count (-poly (a) ((a . -> . Univ) (-seq a) . -> . -Nat))]
 [sequence-filter (-poly (a b) (cl->*
-                                ((asym-pred a Univ (-FS (-filter b 0) -top))
+                                ((asym-pred a Univ (-PS (-is-type 0 b) -tt))
                                  (-seq a)
                                  . -> .
                                  (-seq b))
@@ -1060,7 +1060,7 @@
 [proper-subset? (-poly (e) (-> (-set e) (-set e) B))]
 [set-map (-poly (e b) (-> (-set e) (-> e b) (-lst b)))]
 [set-for-each (-poly (e b) (-> (-set e) (-> e b) -Void))]
-[generic-set? (asym-pred Univ B (-FS -top (-not-filter (-set Univ) 0)))]
+[generic-set? (asym-pred Univ B (-PS -tt (-not-type 0 (-set Univ))))]
 [set? (make-pred-ty (-set Univ))]
 [set-equal? (-poly (e) (-> (-set e) B))]
 [set-eqv? (-poly (e) (-> (-set e) B))]
@@ -1099,14 +1099,14 @@
 [identity (-poly (a) (->acc (list a) a null))]
 [const (-poly (a) (-> a (->* '() Univ a)))]
 [negate (-polydots (a b c d)
-          (cl->* (-> (-> c Univ : (-FS (-filter a 0) (-not-filter b 0)))
-                     (-> c -Boolean : (-FS (-not-filter b 0) (-filter a 0))))
-                 (-> (-> c Univ : (-FS (-filter a 0) (-filter b 0)))
-                     (-> c -Boolean : (-FS (-filter b 0) (-filter a 0))))
-                 (-> (-> c Univ : (-FS (-not-filter a 0) (-filter b 0)))
-                     (-> c -Boolean : (-FS (-filter b 0) (-not-filter a 0))))
-                 (-> (-> c Univ : (-FS (-not-filter a 0) (-not-filter b 0)))
-                     (-> c -Boolean : (-FS (-not-filter b 0) (-not-filter a 0))))
+          (cl->* (-> (-> c Univ : (-PS (-is-type 0 a) (-not-type 0 b)))
+                     (-> c -Boolean : (-PS (-not-type 0 b) (-is-type 0 a))))
+                 (-> (-> c Univ : (-PS (-is-type 0 a) (-is-type 0 b)))
+                     (-> c -Boolean : (-PS (-is-type 0 b) (-is-type 0 a))))
+                 (-> (-> c Univ : (-PS (-not-type 0 a) (-is-type 0 b)))
+                     (-> c -Boolean : (-PS (-is-type 0 b) (-not-type 0 a))))
+                 (-> (-> c Univ : (-PS (-not-type 0 a) (-not-type 0 b)))
+                     (-> c -Boolean : (-PS (-not-type 0 b) (-not-type 0 a))))
                  (-> ((list) [d d] . ->... . Univ)
                      ((list) [d d] . ->... . -Boolean))))]
 [conjoin (-polydots (a) (->* '() (->... '() (a a) Univ) (->... '() (a a) Univ)))]
@@ -1292,7 +1292,7 @@
 [call-with-continuation-barrier (-poly (a) (-> (-> a) a))]
 [continuation-prompt-available? (-> (make-Prompt-TagTop) B)]
 [continuation?
- (asym-pred Univ B (-FS (-filter top-func 0) -top))]
+ (asym-pred Univ B (-PS (-is-type 0 top-func) -tt))]
 [continuation-prompt-tag? (make-pred-ty (make-Prompt-TagTop))]
 [dynamic-wind (-poly (a) (-> (-> ManyUniv) (-> a) (-> ManyUniv) a))]
 
@@ -1413,7 +1413,7 @@
 [never-evt (-evt (Un))]
 [system-idle-evt (-> (-evt -Void))]
 [alarm-evt (-> -Real (-mu x (-evt x)))]
-[handle-evt? (asym-pred Univ B (-FS (-filter (-evt Univ) 0) -top))]
+[handle-evt? (asym-pred Univ B (-PS (-is-type 0 (-evt Univ)) -tt))]
 [current-evt-pseudo-random-generator
  (-Param -Pseudo-Random-Generator -Pseudo-Random-Generator)]
 
@@ -1424,7 +1424,7 @@
 [channel-try-get (-poly (a) ((-channel a) . -> . (Un a (-val #f))))]
 [channel-put (-poly (a) ((-channel a) a . -> . -Void))]
 [channel-put-evt (-poly (a) (-> (-channel a) a (-mu x (-evt x))))]
-[channel-put-evt? (asym-pred Univ B (-FS (-filter (-mu x (-evt x)) 0) -top))]
+[channel-put-evt? (asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt))]
 
 ;; Section 11.2.3 (Semaphores)
 [semaphore? (make-pred-ty -Semaphore)]
@@ -1434,7 +1434,7 @@
 [semaphore-try-wait? (-> -Semaphore B)]
 [semaphore-wait/enable-break (-> -Semaphore -Void)]
 [semaphore-peek-evt (-> -Semaphore (-mu x (-evt x)))]
-[semaphore-peek-evt? (asym-pred Univ B (-FS (-filter (-mu x (-evt x)) 0) -top))]
+[semaphore-peek-evt? (asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt))]
 [call-with-semaphore
  (-polydots (b a)
    (cl->* (->... (list -Semaphore (->... '() [a a] b))
@@ -2303,7 +2303,7 @@
 [resolved-module-path? (make-pred-ty -Resolved-Module-Path)]
 [make-resolved-module-path (-> (Un -Symbol -Path) -Resolved-Module-Path)]
 [resolved-module-path-name (-> -Resolved-Module-Path (Un -Path -Symbol))]
-[module-path? (asym-pred Univ B (-FS (-filter -Module-Path 0) -top))]
+[module-path? (asym-pred Univ B (-PS (-is-type 0 -Module-Path) -tt))]
 
 [current-module-name-resolver (-Param (cl->* (-Resolved-Module-Path Univ . -> . Univ)
                                              ((Un -Module-Path -Path)
@@ -2487,8 +2487,8 @@
 ;; Section 15.1 (Path Manipulation)
 [path? (make-pred-ty -Path)]
 [path-string? (asym-pred Univ B
-                         (-FS (-filter (Un -Path -String) 0)
-                              (-not-filter -Path 0)))]
+                         (-PS (-is-type 0 (Un -Path -String))
+                              (-not-type 0 -Path)))]
 [path-for-some-system? (make-pred-ty -SomeSystemPath)]
 
 [string->path (-> -String -Path)]
@@ -2681,7 +2681,7 @@
                 (-Port [(-val #f)] . ->opt . (-values (list -String -String)))
                 (-Port (-val #t) . -> . (-values (list -String -Index -String -Index))))]
 
-[tcp-port? (asym-pred Univ B (-FS (-filter (Un -Input-Port -Output-Port) 0) -top))]
+[tcp-port? (asym-pred Univ B (-PS (-is-type 0 (Un -Input-Port -Output-Port)) -tt))]
 
 ;; Section 15.3.2 (racket/udp)
 [udp-open-socket (->opt [(-opt -String) (-opt -String)] -UDP-Socket)]
@@ -3040,7 +3040,7 @@
 [assert (-poly (a b) (cl->*
                       (Univ (make-pred-ty (list a) Univ b) . -> . b)
                       (-> (Un a (-val #f)) a)))]
-[defined? (->* (list Univ) -Boolean : (-FS (-not-filter -Undefined 0) (-filter -Undefined 0)))]
+[defined? (->* (list Univ) -Boolean : (-PS (-not-type 0 -Undefined) (-is-type 0 -Undefined)))]
 
 ;; Syntax Manual
 ;; Section 2.1 (syntax/stx)

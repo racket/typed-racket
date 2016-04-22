@@ -568,29 +568,33 @@ functions and continuation mark functions.
 @section{Other Type Constructors}
 
 @defform*/subs[#:id -> #:literals (|@| * ... ! and or implies car cdr)
-               [(-> dom ... rng optional-filter)
+               [(-> dom ... rng opt-proposition)
                 (-> dom ... rest * rng)
                 (-> dom ... rest ooo bound rng)
 
-                (dom ... -> rng optional-filter)
+                (dom ... -> rng opt-proposition)
                 (dom ... rest * -> rng)
                 (dom ... rest ooo bound -> rng)]
                ([ooo #,(racket ...)]
                 [dom type
                      mandatory-kw
-                     optional-kw]
+                     opt-kw]
                 [mandatory-kw (code:line keyword type)]
-                [optional-kw [keyword type]]
-                [optional-filter (code:line)
+                [opt-kw [keyword type]]
+                [opt-proposition (code:line)
                                  (code:line : type)
-                                 (code:line : pos-filter neg-filter object)]
-                [pos-filter (code:line)
-                            (code:line #:+ proposition ...)]
-                [neg-filter (code:line)
-                            (code:line #:- proposition ...)]
+                                 (code:line : pos-proposition
+				              neg-proposition
+					      object)]
+                [pos-proposition (code:line)
+                                 (code:line #:+ proposition ...)]
+                [neg-proposition (code:line)
+                                 (code:line #:- proposition ...)]
                 [object (code:line)
                         (code:line #:object index)]
-                [proposition type
+                [proposition Top
+		             Bot
+			     type
                              (! type)
                              (type |@| path-elem ... index)
                              (! type |@| path-elem ... index)
@@ -629,20 +633,24 @@ functions and continuation mark functions.
       (is-zero? 2 #:equality =)
       (is-zero? 2 #:equality eq? #:zero 2.0)]
 
-  When @racket[optional-filter] is provided, it specifies the @emph{filter} for the
-  function type (for an introduction to filters, see @tr-guide-secref["filters-and-predicates"]).
-  For almost all use cases, only the simplest form of filters, with a single type after a
+  When @racket[opt-proposition] is provided, it specifies the
+  @emph{proposition} for the function type (for an introduction to
+  propositions in Typed Racket, see
+  @tr-guide-secref["propositions-and-predicates"]).  For almost all use
+  cases, only the simplest form of propositions, with a single type after a
   @racket[:], are necessary:
 
   @ex[string?]
 
-  The filter specifies that when @racket[(string? x)] evaluates to a true value for
-  a conditional branch, the variable @racket[x] in that branch can be assumed to have
-  type @racket[String]. Likewise, if the expression evaluates to @racket[#f] in a branch,
-  the variable @emph{does not} have type @racket[String].
+  The proposition specifies that when @racket[(string? x)] evaluates to a
+  true value for a conditional branch, the variable @racket[x] in that
+  branch can be assumed to have type @racket[String]. Likewise, if the
+  expression evaluates to @racket[#f] in a branch, the variable
+  @emph{does not} have type @racket[String].
 
-  In some cases, asymmetric type information is useful in filters. For example, the
-  @racket[filter] function's first argument is specified with only a positive filter:
+  In some cases, asymmetric type information is useful in the
+  propositions. For example, the @racket[filter] function's first
+  argument is specified with only a positive proposition:
 
   @ex[filter]
 
@@ -653,7 +661,7 @@ functions and continuation mark functions.
   Conversely, @racket[#:-] specifies that a function provides information for the
   false branch of a conditional.
 
-  The other filter proposition cases are rarely needed, but the grammar documents them
+  The other proposition cases are rarely needed, but the grammar documents them
   for completeness. They correspond to logical operations on the propositions.
 
   The type of functions can also be specified with an @emph{infix} @racket[->]
@@ -710,9 +718,9 @@ functions and continuation mark functions.
 
 @deftogether[(
 @defidform[Top]
-@defidform[Bot])]{ These are filters that can be used with @racket[->].
-  @racket[Top] is the filter with no information.
-  @racket[Bot] is the filter which means the result cannot happen.
+@defidform[Bot])]{ These are propositions that can be used with @racket[->].
+  @racket[Top] is the propositions with no information.
+  @racket[Bot] is the propositions which means the result cannot happen.
 }
 
 

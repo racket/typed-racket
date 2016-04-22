@@ -11,7 +11,7 @@
          (utils tc-utils)
          (for-syntax racket/base syntax/parse)
          (for-template racket/base)
-         (rep type-rep filter-rep object-rep))
+         (rep type-rep prop-rep object-rep))
 
 (import tc-if^ tc-lambda^ tc-app^ tc-let^ tc-expr^)
 (export check-subforms^)
@@ -42,14 +42,14 @@
 
   ;; syntax tc-result1 type -> tc-results
   ;; The result of applying the function to a single argument of the type of its first argument
-  (define (get-range-result stx t filter-type)
+  (define (get-range-result stx t prop-type)
     (let loop ((t t))
       (match t
         [(Function: (list _ ... (arr: (list arg1) _ _ #f (list (Keyword: _ _ #f) ...)) _ ...))
-         #:when (subtype filter-type arg1)
+         #:when (subtype prop-type arg1)
          (tc/funapp #'here #'(here) t (list (ret arg1)) #f)]
         [(Function: (list _ ... (arr: '() _ (? values rest) #f (list (Keyword: _ _ #f) ...)) _ ...))
-         #:when (subtype filter-type rest)
+         #:when (subtype prop-type rest)
          (tc/funapp #'here #'(here) t (list (ret rest)) #f)]
         [(? needs-resolving? t)
          (loop (resolve t))]
@@ -58,17 +58,17 @@
         ;; This clause should raise an error via the check-below test
         [_
          (cond [;; a redundant test, but it ensures an error message below
-                (not (subtype t (-> filter-type Univ)))
+                (not (subtype t (-> prop-type Univ)))
                 (parameterize ([current-orig-stx stx])
-                  (check-below t (-> filter-type Univ)))]
-               [else (int-err "get-range-result: should not happen. type ~a filter ~a"
-                              t filter-type)])
+                  (check-below t (-> prop-type Univ)))]
+               [else (int-err "get-range-result: should not happen. type ~a prop ~a"
+                              t prop-type)])
          (ret (Un))])))
 
   ;; Syntax Type -> (Option Type)
-  ;; Extract the type for the filter in a predicate type, or #f if
+  ;; Extract the type for the prop in a predicate type, or #f if
   ;; the type is an invalid predicate type.
-  (define (get-filter-type stx pred-type)
+  (define (get-prop-type stx pred-type)
     (cond [;; make sure the predicate has an appropriate type
            (subtype pred-type (-> Univ Univ))
            (define fun-type
@@ -78,10 +78,10 @@
            (match fun-type
              ;; FIXME: Almost all predicates fall into this case, but it may
              ;;        be worth being more precise here for some rare code.
-             [(PredicateFilter: fs)
-              (match fs
-                [(FilterSet: (TypeFilter: ft (Path: '() '(0 0))) _) ft]
-                [(Bot:) (Un)]
+             [(PredicateProp: ps)
+              (match ps
+                [(PropSet: (TypeProp: (Path: '() '(0 0)) ft) _) ft]
+                [(FalseProp:) (Un)]
                 [_ Univ])]
              [_ Univ])]
           [else
@@ -98,12 +98,12 @@
         (hash-ref predicate-map key))
       (match-define (list handler-stx handler-type)
         (hash-ref handler-map key))
-      (define filter-type
-        (get-filter-type predicate-stx predicate-type))
+      (define prop-type
+        (get-prop-type predicate-stx predicate-type))
       ;; if the predicate doesn't check, then don't bother
       ;; with the RHS and return no result
-      (if filter-type
-          (get-range-result handler-stx handler-type filter-type)
+      (if prop-type
+          (get-range-result handler-stx handler-type prop-type)
           (ret (Un)))))
 
   (find-syntax form

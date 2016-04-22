@@ -117,7 +117,7 @@
               (for/list ([e (in-syntax #'(args ...))]
                          [t (in-list ts)])
                 (tc-expr/check/t e (ret t))))
-            -true-filter)]
+            -true-propset)]
          [else
           (tc-error/expr
             "expected vector with ~a elements, but got ~a"

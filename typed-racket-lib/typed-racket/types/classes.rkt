@@ -133,7 +133,7 @@
   ;; class type with row variable is found.
   (define (inf type)
     (type-case
-     (#:Type inf #:Filter (sub-f inf) #:Object (sub-o inf))
+     (#:Type inf #:Prop (sub-f inf) #:Object (sub-o inf))
      type
      [#:Class row inits fields methods augments init-rest
       (cond

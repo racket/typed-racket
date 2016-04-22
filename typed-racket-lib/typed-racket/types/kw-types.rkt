@@ -70,11 +70,11 @@
         (list (make-arr* ts rng #:rest rest #:drest drest)))))
 
 
-;; This is used to fix the filters of keyword types.
-;; TODO: This should also explore deeper into the actual types and remove filters in there as well.
-;; TODO: This should not remove the filters but instead make them refer to the actual arguments after
+;; This is used to fix the props of keyword types.
+;; TODO: This should also explore deeper into the actual types and remove props in there as well.
+;; TODO: This should not remove the props but instead make them refer to the actual arguments after
 ;; keyword conversion.
-(define (erase-filter/Values values)
+(define (erase-props/Values values)
   (match values
     [(AnyValues: _) ManyUniv]
     [(Results: ts fs os)
@@ -219,7 +219,7 @@
               (and rest? (last other-args)))
             (make-Function
              (list (make-arr* (take other-args non-kw-argc)
-                              (erase-filter/Values rng)
+                              (erase-props/Values rng)
                               #:kws actual-kws
                               #:rest rest-type)))]
            [(and (even? (length arrs)) ; had optional args
@@ -241,7 +241,7 @@
             (make-Function
              (for/list ([to-take (in-range (add1 (length opt-types)))])
                (make-arr* (append mand-args (take opt-types to-take))
-                          (erase-filter/Values rng)
+                          (erase-props/Values rng)
                           #:kws actual-kws
                           #:rest rest-type)))]
            [else (int-err "unsupported arrs in keyword function type")])]

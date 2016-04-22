@@ -5,7 +5,7 @@
          "utils.rkt"
          syntax/parse syntax/stx racket/match
          (typecheck signatures tc-funapp)
-         (types abbrev filter-ops union utils)
+         (types abbrev prop-ops union utils)
          (rep type-rep object-rep)
 
          (for-label racket/base racket/bool))
@@ -55,14 +55,14 @@
   (match* ((single-value v1) (single-value v2))
     [((tc-result1: (Value: (? ok? val1)) _ o1)
       (tc-result1: (Value: (? ok? val2)) _ o2))
-     (ret -Boolean (-FS (-and (-filter (-val val2) o1)
-                              (-filter (-val val1) o2))
-                        (-and (-not-filter (-val val2) o1)
-                              (-not-filter (-val val1) o2))))]
+     (ret -Boolean (-PS (-and (-is-type o1 (-val val2))
+                              (-is-type o2 (-val val1)))
+                        (-and (-not-type o1 (-val val2))
+                              (-not-type o2 (-val val1)))))]
     [((tc-result1: t _ o) (tc-result1: (Value: (? ok? val))))
-     (ret -Boolean (-FS (-filter (-val val) o) (-not-filter (-val val) o)))]
+     (ret -Boolean (-PS (-is-type o (-val val)) (-not-type o (-val val))))]
     [((tc-result1: (Value: (? ok? val))) (tc-result1: t _ o))
-     (ret -Boolean (-FS (-filter (-val val) o) (-not-filter (-val val) o)))]
+     (ret -Boolean (-PS (-is-type o (-val val)) (-not-type o (-val val))))]
     [((tc-result1: t _ o)
       (or (and (? (lambda _ (id=? #'member comparator)))
                (tc-result1: (List: (list (and ts (Value: _)) ...))))
@@ -72,8 +72,8 @@
                (tc-result1: (List: (list (and ts (Value: (? eq?-able))) ...))))))
      (let ([ty (apply Un ts)])
        (ret (Un (-val #f) t)
-            (-FS (-filter ty o)
-                 (-not-filter ty o))))]
+            (-PS (-is-type o ty)
+                 (-not-type o ty))))]
     [(_ _) (ret -Boolean)]))
 
 

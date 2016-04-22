@@ -2,7 +2,7 @@
 (require (except-in "../utils/utils.rkt" infer)
          racket/match racket/function racket/lazy-require racket/list
          (prefix-in c: (contract-req))
-         (rep type-rep filter-rep object-rep rep-utils)
+         (rep type-rep prop-rep object-rep rep-utils)
          (utils tc-utils early-return)
          (types utils resolve base-abbrev match-expanders
                 numeric-tower substitute current-seen prefab signatures)
@@ -137,15 +137,15 @@
                     (subtype* (restrict-values s-rng t-dom) t-rng))]
       [(_ _) #f]))
 
-;; check subtyping of filters, so that predicates subtype correctly
-(define (filter-subtype* A0 s t)
+;; check subtyping of props, so that predicates subtype correctly
+(define (prop-subtype* A0 s t)
   (match* (s t)
    [(f f) A0]
-   [((Bot:) t) A0]
-   [(s (Top:)) A0]
-   [((TypeFilter: t1 p) (TypeFilter: t2 p))
+   [((FalseProp:) t) A0]
+   [(s (TrueProp:)) A0]
+   [((TypeProp: o t1) (TypeProp: o t2))
     (subtype* A0 t1 t2)]
-   [((NotTypeFilter: t1 p) (NotTypeFilter: t2 p))
+   [((NotTypeProp: o t1) (NotTypeProp: o t2))
     (subtype* A0 t2 t1)]
    [(_ _) #f]))
 
@@ -596,26 +596,26 @@
                        (subtypes* s-rs t-rs)
                        (subtype* s-dty t-dty))]
          [((AnyValues: s-f) (AnyValues: t-f))
-          (filter-subtype* A0 s-f t-f)]
+          (prop-subtype* A0 s-f t-f)]
          [((or (Values: (list (Result: _ fs _) ...))
                (ValuesDots: (list (Result: _ fs _) ...) _ _))
            (AnyValues: t-f))
           (for/or ([f (in-list fs)])
             (match f
-              [(FilterSet: f+ f-)
+              [(PropSet: f+ f-)
                (subtype-seq A0
-                            (filter-subtype* f+ t-f)
-                            (filter-subtype* f- t-f))]))]
-         [((Result: t (FilterSet: ft ff) o) (Result: t* (FilterSet: ft* ff*) o))
+                            (prop-subtype* f+ t-f)
+                            (prop-subtype* f- t-f))]))]
+         [((Result: t (PropSet: ft ff) o) (Result: t* (PropSet: ft* ff*) o))
           (subtype-seq A0
                        (subtype* t t*)
-                       (filter-subtype* ft ft*)
-                       (filter-subtype* ff ff*))]
-         [((Result: t (FilterSet: ft ff) o) (Result: t* (FilterSet: ft* ff*) (Empty:)))
+                       (prop-subtype* ft ft*)
+                       (prop-subtype* ff ff*))]
+         [((Result: t (PropSet: ft ff) o) (Result: t* (PropSet: ft* ff*) (Empty:)))
           (subtype-seq A0
                        (subtype* t t*)
-                       (filter-subtype* ft ft*)
-                       (filter-subtype* ff ff*))]
+                       (prop-subtype* ft ft*)
+                       (prop-subtype* ff ff*))]
          ;; subtyping on other stuff
          [((Syntax: t) (Syntax: t*))
           (subtype* A0 t t*)]

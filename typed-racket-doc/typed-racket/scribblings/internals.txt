@@ -1,17 +1,17 @@
 Data Structures used in Typechecking.
 The main data structure used in typechecking is a tc-results/c.
 This currently has two variants
-(struct/c tc-results ((listof (struct/c tc-result (Type/c FilterSet? Object?)))
+(struct/c tc-results ((listof (struct/c tc-result (Type/c PropSet? Object?)))
                       (or/c #f (cons/c Type/c symbol?))))
-(struct/c tc-any-results (or/c Filter/c NoFilter?))
+(struct/c tc-any-results (or/c Prop? #f))
 
 The first represents a fixed number of values with optional dotted return values.
 The second represents an unknown number of values.
 
-A value has three main parts: a Type, a FilterSet, and an Object. For dotted values we do no store a 
-FilterSet or an Object because they would almost never be useful. They are thus implicitly -top-filter
+A value has three main parts: a Type, a PropSet, and an Object. For dotted values we do no store a 
+PropSet or an Object because they would almost never be useful. They are thus implicitly -tt-propset
 and -empty-obj. In the tc-any-results case since we don't know the number of values, we do not store
-the Type or the Object, but we do store a filter. This is useful in cases like
+the Type or the Object, but we do store a proposition. This is useful in cases like
 (let ((x (read)))
   (unless (number? x) (error 'bad-input))
   (do-stuff x))

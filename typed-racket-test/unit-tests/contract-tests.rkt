@@ -135,7 +135,7 @@
               (t (->key -Symbol #:key -Boolean #t Univ))
               (t (make-Function
                    (list (make-arr* (list Univ) -Boolean #:kws (list (make-Keyword '#:key Univ #t))
-                                    #:filters (-FS (-filter -Symbol 0) (-not-filter -Symbol 0))))))
+                                    #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol))))))
               (t (-struct #'struct-name #f (list (make-fld -Symbol #'acc #f))))
               ;; Adapted from PR 13815
               (t (-poly (a) (-> a a)))
@@ -158,7 +158,7 @@
                    (-> (-class #:row (-v a)) (-class #:row (-v a)))))
 
               (t (-mu x (-Syntax x)))
-              (t (-> (-> Univ -Bottom : -bot-filter) -Bottom : -bot-filter))
+              (t (-> (-> Univ -Bottom : -ff-propset) -Bottom : -ff-propset))
               (t (-poly (A B) (-> A B (Un A B))))
 
 
@@ -184,10 +184,10 @@
               (t (make-Function
                   (list (make-arr* (list -String) -Boolean
                                    #:kws (list (make-Keyword '#:key Univ #t))
-                                   #:filters (-FS (-filter -Symbol 0) (-not-filter -Symbol 0)))
+                                   #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))
                         (make-arr* (list -String Univ) -Boolean
                                    #:kws (list (make-Keyword '#:key Univ #t))
-                                   #:filters (-FS (-filter -Symbol 0) (-not-filter -Symbol 0))))))
+                                   #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol))))))
               (t/fail (cl->* (-> -String ManyUniv) (-> -String Univ ManyUniv))
                       "unknown return values")
 
@@ -197,7 +197,7 @@
                     (make-arr* (list Univ) -Boolean #:kws (list (make-Keyword '#:key2 Univ #f)))))
                 "case function type with optional keyword arguments")
               (t/fail (-> (make-pred-ty -Symbol)-Symbol)
-                      "function type with filters or objects")
+                      "function type with props or objects")
               (t/fail (cl->*
                         (-> -Boolean -Boolean)
                         (-> -Symbol -Symbol))

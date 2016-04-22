@@ -46,7 +46,7 @@
 
 
   (do-standard-inits)
-  (print-complex-filters? #t)
+  (print-complex-props? #t)
 
   ;; tr-expand: syntax? -> syntax?
   ;; Expands out a form and annotates it with necesarry TR machinery.
@@ -83,7 +83,7 @@
              [(not (equal? rt gt))
               " The types don't match."]
              [(not (equal? rf gf))
-              " The filters don't match."]
+              " The propositions don't match."]
              [(not (equal? ro go))
               " They objects don't match."])]
           [(_ _) ""]))
@@ -247,7 +247,7 @@
 
 (define-syntax (tc-e/t stx)
   (syntax-parse stx
-    [(_ e t) (syntax/loc stx (tc-e e #:ret (ret t -true-filter)))]))
+    [(_ e t) (syntax/loc stx (tc-e e #:ret (ret t -true-propset)))]))
 
 ;; check that a literal typechecks correctly
 (define-syntax (tc-l stx)
@@ -315,9 +315,9 @@
   (prefix-in r: (only-in racket/base let-values))
   ;; Needed for constructing TR types in expected values
   (for-syntax
-    (rep type-rep filter-rep object-rep)
+    (rep type-rep prop-rep object-rep)
     (base-env base-structs)
-    (rename-in (types abbrev union numeric-tower filter-ops utils resolve)
+    (rename-in (types abbrev union numeric-tower prop-ops utils resolve)
                [Un t:Un]
                [-> t:->])))
 
@@ -336,8 +336,8 @@
 
   (define (-path t var)
     (ret t
-         (-FS (-not-filter (-val #f) var)
-              (-filter (-val #f) var))
+         (-PS (-not-type var (-val #f))
+              (-is-type var (-val #f)))
          (make-Path null var))))
 
 (define tests
@@ -523,12 +523,12 @@
         (tc-err (let: ([z : 4611686018427387903 4611686018427387903]) z)) ; unsafe
         (tc-e/t (let: ([z : 4611686018427387904 4611686018427387904]) z) (-val 4611686018427387904))
 
-        [tc-e/t (lambda: () 3) (t:-> -PosByte : -true-filter)]
-        [tc-e/t (lambda: ([x : Number]) 3) (t:-> -Number -PosByte : -true-filter)]
+        [tc-e/t (lambda: () 3) (t:-> -PosByte : -true-propset)]
+        [tc-e/t (lambda: ([x : Number]) 3) (t:-> -Number -PosByte : -true-propset)]
         [tc-e/t (lambda: ([x : Number] [y : Boolean]) 3)
-                (t:-> -Number -Boolean -PosByte : -true-filter)]
-        [tc-e/t (lambda () 3) (t:-> -PosByte : -true-filter)]
-        [tc-e (values 3 4) #:ret (ret (list -PosByte -PosByte) (list -true-filter -true-filter))]
+                (t:-> -Number -Boolean -PosByte : -true-propset)]
+        [tc-e/t (lambda () 3) (t:-> -PosByte : -true-propset)]
+        [tc-e (values 3 4) #:ret (ret (list -PosByte -PosByte) (list -true-propset -true-propset))]
         [tc-e (cons 3 4) (-pair -PosByte -PosByte)]
         [tc-e (cons 3 (ann '() : (Listof Integer))) (make-Listof -Integer)]
         [tc-e (void) -Void]
@@ -547,7 +547,7 @@
         [tc-e/t #(2 3 #t) (make-HeterogeneousVector (list -Integer -Integer -Boolean))]
         [tc-e (vector 2 "3" #t) (make-HeterogeneousVector (list -Integer -String -Boolean))]
         [tc-e (vector) (make-HeterogeneousVector (list))]
-        [tc-e (vector) #:ret (tc-any-results -top) #:expected (tc-any-results -no-filter)]
+        [tc-e (vector) #:ret (tc-any-results -tt) #:expected (tc-any-results #f)]
         [tc-err (vector)
            #:ret (ret -Integer)
            #:expected (ret -Integer)]
@@ -574,10 +574,10 @@
         [tc-e/t (let: ([x : Number 5]) x) -Number]
         [tc-e (let-values ([(x) 4]) (+ x 1)) -PosIndex]
         [tc-e (let-values ([(x y) (values 3 #t)]) (and (= x 1) (not y)))
-              #:ret (ret -Boolean -false-filter)]
+              #:ret (ret -Boolean -false-propset)]
         [tc-e/t (values 3) -PosByte]
         [tc-e (values) #:ret (ret null)]
-        [tc-e (values 3 #f) #:ret (ret (list -PosByte (-val #f)) (list -true-filter -false-filter))]
+        [tc-e (values 3 #f) #:ret (ret (list -PosByte (-val #f)) (list -true-propset -false-propset))]
         [tc-e (map #{values @ Symbol} '(a b c)) (-pair -Symbol (make-Listof -Symbol))]
         [tc-e (andmap add1 (ann '() (Listof Number))) (t:Un (-val #t) -Number)]
         [tc-e (ormap add1 (ann '() (Listof Number))) (t:Un (-val #f) -Number)]
@@ -616,9 +616,9 @@
         [tc-e/t (begin0 #t) (-val #t)]
         [tc-e/t (begin0 #t 3) (-val #t)]
         [tc-e/t #t (-val #t)]
-        [tc-e #f #:ret (ret (-val #f) -false-filter)]
+        [tc-e #f #:ret (ret (-val #f) -false-propset)]
         [tc-e/t '#t (-val #t)]
-        [tc-e '#f #:ret (ret (-val #f) -false-filter)]
+        [tc-e '#f #:ret (ret (-val #f) -false-propset)]
         [tc-e/t (if #f 'a 3) -PosByte]
         [tc-e/t (if #f #f #t) (t:Un (-val #t))]
         [tc-e (when #f 3) -Void]
@@ -640,12 +640,12 @@
                 (->* (list -Number) -Boolean -Boolean)]
         [tc-e ((lambda: ([x : Number] . [y : Boolean *]) (car y)) 3) -Boolean]
         [tc-e (apply (lambda: ([x : Number] . [y : Boolean *]) (car y)) 3 '(#f)) -Boolean]
-        [tc-e (lambda args (void)) #:ret (ret (t:-> -String -Void) -true-filter)
-                                   #:expected (ret (t:-> -String -Void) -true-filter)]
+        [tc-e (lambda args (void)) #:ret (ret (t:-> -String -Void) -true-propset)
+                                   #:expected (ret (t:-> -String -Void) -true-propset)]
         [tc-e (lambda (x y . z)
                 (+ x y (+ (length z))))
-              #:ret (ret (t:-> -Byte -Index -Number) -true-filter)
-              #:expected (ret (t:-> -Byte -Index -Number) -true-filter)]
+              #:ret (ret (t:-> -Byte -Index -Number) -true-propset)
+              #:expected (ret (t:-> -Byte -Index -Number) -true-propset)]
 
         [tc-e/t (let: ([x : Number 3])
                       (when (number? x) #t))
@@ -671,8 +671,8 @@
               -Number]
 
         [tc-e/t (let ([x 1]) x) -One]
-        [tc-e (let ([x 1]) (boolean? x)) #:ret (ret -Boolean -false-filter)]
-        [tc-e (boolean? number?) #:ret (ret -Boolean -false-filter)]
+        [tc-e (let ([x 1]) (boolean? x)) #:ret (ret -Boolean -false-propset)]
+        [tc-e (boolean? number?) #:ret (ret -Boolean -false-propset)]
 
         [tc-e (let: ([x : (Option Number) #f]) x) (t:Un -Number (-val #f))]
         [tc-e (let: ([x : Any 12]) (not (not x))) -Boolean]
@@ -758,7 +758,7 @@
               -Number]
 
 
-        [tc-e null #:ret (ret (-val null) -true-filter (-id-path #'null))]
+        [tc-e null #:ret (ret (-val null) -true-propset (-id-path #'null))]
 
         [tc-e/t (let* ([sym 'squarf]
                        [x (if (= 1 2) 3 sym)])
@@ -780,7 +780,7 @@
                       (if (string=? x 'foo)
                           "foo"
                           x))
-          #:ret (ret (t:Un -String (-val 'foo)) -true-filter)]
+          #:ret (ret (t:Un -String (-val 'foo)) -true-propset)]
 
         [tc-e/t (let: ([x : (U String 5) 5])
                         (if (eq? x 5)
@@ -791,11 +791,11 @@
         [tc-e (let* ([sym 'squarf]
                      [x (if (= 1 2) 3 sym)])
                 (if (eq? x sym) 3 x))
-              #:ret (ret -PosByte -true-filter)]
+              #:ret (ret -PosByte -true-propset)]
         [tc-e (let* ([sym 'squarf]
                      [x (if (= 1 2) 3 sym)])
                 (if (eq? sym x) 3 x))
-              #:ret (ret -PosByte -true-filter)]
+              #:ret (ret -PosByte -true-propset)]
         ;; equal? as predicate for symbols
         [tc-e/t (let: ([x : (Un 'foo Number) 'foo])
                       (if (equal? x 'foo) 3 x))
@@ -807,11 +807,11 @@
         [tc-e (let* ([sym 'squarf]
                      [x (if (= 1 2) 3 sym)])
                 (if (equal? x sym) 3 x))
-              #:ret (ret -PosByte -true-filter)]
+              #:ret (ret -PosByte -true-propset)]
         [tc-e (let* ([sym 'squarf]
                      [x (if (= 1 2) 3 sym)])
                 (if (equal? sym x) 3 x))
-              #:ret (ret -PosByte -true-filter)]
+              #:ret (ret -PosByte -true-propset)]
 
         [tc-e/t (let: ([x : (Listof Symbol)'(a b c)])
                       (cond [(memq 'a x) => car]
@@ -846,7 +846,7 @@
 
         ;;; tests for and
         [tc-e (let: ([x : Any 1]) (and (number? x) (boolean? x)))
-              #:ret (ret -Boolean -false-filter)]
+              #:ret (ret -Boolean -false-propset)]
         [tc-e (let: ([x : Any 1]) (and (number? x) x))
               (t:Un -Number (-val #f))]
         [tc-e (let: ([x : Any 1]) (and x (boolean? x)))
@@ -865,7 +865,7 @@
 
         ;; or tests - doesn't do anything good yet
 
-        #| FIXME: This should pass, but the filter is different for some reason
+        #| FIXME: This should pass, but the prop is different for some reason
         [tc-e (let: ([x : Any 3])
                     (if (or (boolean? x) (number? x))
                         (if (boolean? x) 12 x)
@@ -889,29 +889,29 @@
                             (boolean? y))
                         (if (boolean? x) 1 x)
                         4))
-              #:ret (ret Univ -true-filter)]
+              #:ret (ret Univ -true-propset)]
         [tc-e (let: ([x : Any 1])
                     (if (if ((lambda: ([x : Any]) x) 12)
                             #t
                             (boolean? x))
                         (if (boolean? x) 1 x)
                         4))
-              #:ret (ret Univ -true-filter)]
+              #:ret (ret Univ -true-propset)]
         ;; T-AbsPred
         [tc-e/t (let ([p? (lambda: ([x : Any]) (number? x))])
                   (lambda: ([x : Any]) (if (p? x) (add1 x) (add1 12))))
                 (t:-> Univ -Number)]
         [tc-e/t (let ([p? (lambda: ([x : Any]) (not (number? x)))])
                   (lambda: ([x : Any]) (if (p? x) 12 (add1 x))))
-                (t:-> Univ -Number : (-FS -top (-filter -Number 0)))]
+                (t:-> Univ -Number : (-PS -tt (-is-type 0 -Number)))]
         [tc-e/t (let* ([z 1]
                        [p? (lambda: ([x : Any]) (number? z))])
                   (lambda: ([x : Any]) (if (p? x) 11 12)))
-                (t:-> Univ -PosByte : -true-filter)]
+                (t:-> Univ -PosByte : -true-propset)]
         [tc-e/t (let* ([z 1]
                        [p? (lambda: ([x : Any]) (number? z))])
                   (lambda: ([x : Any]) (if (p? x) x 12)))
-                (t:-> Univ Univ : (-FS  (-not-filter (-val #f) 0) (-filter (-val #f) 0))
+                (t:-> Univ Univ : (-PS  (-not-type 0 (-val #f)) (-is-type 0 (-val #f)))
                                 : (make-Path null '(0 0)))]
         [tc-e/t (let* ([z (ann 1 : Any)]
                        [p? (lambda: ([x : Any]) (not (number? z)))])
@@ -920,26 +920,26 @@
         [tc-e/t (let* ([z 1]
                        [p? (lambda: ([x : Any]) (not (number? z)))])
                   (lambda: ([x : Any]) (if (p? x) x 12)))
-                (t:-> Univ -PosByte : -true-filter)]
+                (t:-> Univ -PosByte : -true-propset)]
         [tc-e/t (let* ([z 1]
                        [p? (lambda: ([x : Any]) z)])
                   (lambda: ([x : Any]) (if (p? x) x 12)))
-                (t:-> Univ Univ : (-FS (-not-filter (-val #f) 0) (-filter (-val #f) 0))
+                (t:-> Univ Univ : (-PS (-not-type 0 (-val #f)) (-is-type 0 (-val #f)))
                                 : (make-Path null '(0 0)))]
 
         [tc-e (not 1)
-          #:ret (ret -Boolean -false-filter)]
+          #:ret (ret -Boolean -false-propset)]
 
         [tc-err ((lambda () 1) 2)
-          #:ret (ret (-val 1) -true-filter)]
+          #:ret (ret (-val 1) -true-propset)]
         [tc-err (apply (lambda () 1) '(2))]
         [tc-err ((lambda: ([x : Any] [y : Any]) 1) 2)
-          #:ret (ret (-val 1) -true-filter)]
+          #:ret (ret (-val 1) -true-propset)]
         [tc-err (map map '(2))]
         [tc-err ((plambda: (a) ([x : (a -> a)] [y : a]) (x y)) 5)]
         [tc-err ((plambda: (a) ([x : a] [y : a]) x) 5)]
         [tc-err (ann 5 : String)
-          #:ret (ret -String -true-filter)]
+          #:ret (ret -String -true-propset)]
 
         ;; these don't work because the type annotation gets lost in marshalling
         #|
@@ -973,18 +973,18 @@
                  (: y Symbol)
                  (define y x)
                  y)
-                #:ret (ret -Symbol -true-filter)
+                #:ret (ret -Symbol -true-propset)
                 #:msg #rx"expected: String|expected: Symbol"]
 
         ;; Test ill-typed code in letrec RHS
         [tc-err (let () (: x String) (define x 'foo) x)
-                #:ret (ret -String -true-filter)
+                #:ret (ret -String -true-propset)
                 #:msg #rx"expected: String.*given: 'foo"]
 
         [tc-err (let ([x (add1 5)])
                   (set! x "foo")
                   x)
-          #:ret (ret -Integer -true-filter)]
+          #:ret (ret -Integer -true-propset)]
         ;; w-c-m
         [tc-e/t (with-continuation-mark
                   ((inst make-continuation-mark-key Symbol)) 'mark
@@ -997,8 +997,8 @@
         [tc-err (with-continuation-mark 1 2 (5 4))]
 
         [tc-err (with-continuation-mark 'x 'y 'z)
-          #:ret (ret (-val 'z) -bot-filter)
-          #:expected (ret (-val 'z) -no-filter -no-obj)]
+          #:ret (ret (-val 'z) -ff-propset)
+          #:expected (ret (-val 'z) #f #f)]
 
 
         ;; call-with-values
@@ -1011,7 +1011,7 @@
               -Number]
         [tc-err (call-with-values (lambda () 1)
                                   (lambda: () 2))
-          #:ret (ret -PosByte -true-filter)]
+          #:ret (ret -PosByte -true-propset)]
 
         [tc-err (call-with-values (lambda () (values 2))
                                   (lambda: ([x : Number] [y : Number]) (+ x y)))
@@ -1117,7 +1117,7 @@
            (do: : Number ((x : (Listof Number) x (cdr x))
                           (sum : Number 0 (+ sum (car x))))
                 ((null? x) sum)))
-         #:ret (ret -Number -top-filter -empty-obj)]
+         #:ret (ret -Number -tt-propset -empty-obj)]
 
         [tc-e/t (if #f 1 'foo) (-val 'foo)]
 
@@ -1130,14 +1130,14 @@
         [tc-e (apply append (list 1) (list 2) (list 3) (list (list 1) (list "foo")))
               (-pair (t:Un -String -PosByte) (-lst (t:Un -String -PosByte)))]
         [tc-e (plambda: (b ...) [y : b ... b] (apply append (map list y)))
-         #:ret (ret (-polydots (b) (->... (list) (b b) (-lst Univ))) -true-filter)]
+         #:ret (ret (-polydots (b) (->... (list) (b b) (-lst Univ))) -true-propset)]
         [tc-e/t (plambda: (b ...) [y : (Listof Integer) ... b] (apply append y))
                 (-polydots (b) (->... (list) ((-lst -Integer) b) (-lst -Integer)))]
 
         [tc-err (plambda: (a ...) ([z : String] . [w : Number ... a])
                           (apply (plambda: (b) ([x : Number] . [y : Number ... a]) x)
                                  1 1 1 1 w))
-         #:ret (ret (-polydots (a) (->... (list -String) (-Number a) -Bottom)) -true-filter)]
+         #:ret (ret (-polydots (a) (->... (list -String) (-Number a) -Bottom)) -true-propset)]
 
         [tc-err (plambda: (a ...) ([z : String] . [w : Number])
                           (apply (plambda: (b) ([x : Number] . [y : Number ... a]) x)
@@ -1152,21 +1152,22 @@
               (-lst* -One -String -Char)]
         ;; instantiating non-dotted terms
         [tc-e/t (inst (plambda: (a) ([x : a]) x) Integer)
-                (make-Function (list (make-arr* (list -Integer) -Integer
-                                                #:filters (-FS (-not-filter (-val #f) (list 0 0))
-                                                               (-filter (-val #f) (list 0 0)))
-                                                #:object (make-Path null (list 0 0)))))]
+                (make-Function
+                 (list (make-arr* (list -Integer) -Integer
+                                  #:props (-PS (-not-type (list 0 0) (-val #f))
+                                               (-is-type (list 0 0) (-val #f)))
+                                  #:object (make-Path null (list 0 0)))))]
         [tc-e/t (inst (plambda: (a) [x : a *] (apply list x)) Integer)
                 ((list) -Integer . ->* . (-lst -Integer))]
 
         ;; instantiating dotted terms
         [tc-e/t (inst (plambda: (a ...) [xs : a ... a] 3) Integer Boolean Integer)
-                (-Integer -Boolean -Integer . t:-> . -PosByte : -true-filter)]
+                (-Integer -Boolean -Integer . t:-> . -PosByte : -true-propset)]
         [tc-e/t (inst (plambda: (a ...) [xs : (a ... a -> Integer) ... a] 3) Integer Boolean Integer)
                 ((-Integer -Boolean -Integer . t:-> . -Integer)
                  (-Integer -Boolean -Integer . t:-> . -Integer)
                  (-Integer -Boolean -Integer . t:-> . -Integer)
-                 . t:-> . -PosByte : -true-filter)]
+                 . t:-> . -PosByte : -true-propset)]
 
         [tc-e/t (plambda: (z x y ...) () (inst map z x y ... y))
               (-polydots (z x y)
@@ -1175,13 +1176,13 @@
                                 ((list ((list x) (y y) . ->... . z) (-lst x))
                                  ((-lst y) y)
                                  . ->... . (-lst z)))
-                               : -true-filter
+                               : -true-propset
                                : (-id-path #'map)))]
 
         ;; error tests
         [tc-err (+ 3 #f)]
         [tc-err (let: ([x : Number #f]) x)
-          #:ret (ret -Number -true-filter)]
+          #:ret (ret -Number -true-propset)]
         [tc-err (let: ([x : Number #f]) (+ 1 x))
           #:ret (ret -Number)]
 
@@ -1191,14 +1192,14 @@
                    (if (list? x)
                        (add1 x)
                        12)))
-         #:ret (ret -PosByte -true-filter)]
+         #:ret (ret -PosByte -true-propset)]
 
         [tc-err (let*: ([x : Any 1]
                         [f : (-> Void) (lambda () (set! x 'foo))])
                        (if (number? x)
                            (begin (f) (add1 x))
                            12))
-          #:ret (ret -PosByte -true-filter)]
+          #:ret (ret -PosByte -true-propset)]
 
         [tc-err (ann 3 (Rec a a))]
         [tc-err (ann 3 (Rec a (U a 3)))]
@@ -1273,14 +1274,14 @@
                      (apply y zs))
                    ys)))
               (-polydots (a) ((list) ((list) (a a) . ->... . -Number) . ->* .
-                                     ((list) (a a) . ->... . (-lst -Number)) : -true-filter))]
+                                     ((list) (a a) . ->... . (-lst -Number)) : -true-propset))]
         [tc-e/t (plambda: (a ...) [ys : (a ... a -> Number) *]
                 (lambda: [zs : a ... a]
                   (map (lambda: ([y : (a ... a -> Number)])
                          (apply y zs))
                        ys)))
               (-polydots (a) ((list) ((list) (a a) . ->... . -Number) . ->* .
-                                     ((list) (a a) . ->... . (-lst -Number)) : -true-filter))]
+                                     ((list) (a a) . ->... . (-lst -Number)) : -true-propset))]
 
         [tc-e/t (lambda: ((x : (All (t) t)))
                        ((inst (inst x (All (t) (t -> t)))
@@ -1324,7 +1325,7 @@
           #:ret (ret -Number)]
 
         [tc-err (ann (lambda: ([x : Any]) #f) (Any -> Boolean : String))
-          #:ret (ret (make-pred-ty -String) -true-filter)]
+          #:ret (ret (make-pred-ty -String) -true-propset)]
 
 
         [tc-e (time (+ 3 4)) -PosIndex]
@@ -1338,7 +1339,7 @@
                                      [user : Number]
                                      [gc : Number])
                              'whatever))
-         #:ret (ret (-val 'whatever) -true-filter)]
+         #:ret (ret (-val 'whatever) -true-propset)]
         [tc-e
          (call-with-values (lambda ()
                              ((inst time-apply Number Number Number Number Number Number Number)
@@ -1348,16 +1349,16 @@
                                      [user : Number]
                                      [gc : Number])
                              'whatever))
-         #:ret (ret (-val 'whatever) -true-filter)]
+         #:ret (ret (-val 'whatever) -true-propset)]
         [tc-e (let: ([l : (Listof Any) (list 1 2 3)])
                 (if (andmap number? l)
                     (+ 1 (car l))
                     7))
               -Number]
         (tc-e (or (string->number "7") 7)
-              #:ret (ret -Number -true-filter))
+              #:ret (ret -Number -true-propset))
         [tc-e (let ([x 1]) (if x x (add1 x)))
-              #:ret (ret -One -true-filter)]
+              #:ret (ret -One -true-propset)]
         [tc-e (let: ([x : (U (Vectorof Integer) String) (vector 1 2 3)])
                 (if (vector? x) (vector-ref x 0) (string-length x)))
          -Integer]
@@ -1392,7 +1393,7 @@
                      ([j : Natural (+ i 'a) (+ j i)])
                      ((>= j 10))
                      #f)
-          #:ret (ret -Void -top-filter -empty-obj)]
+          #:ret (ret -Void -tt-propset -empty-obj)]
         [tc-err (apply +)]
         [tc-e/t
          (let ([x eof])
@@ -1422,7 +1423,7 @@
 
         ;;Path tests
         (tc-e (path-string? "foo") -Boolean)
-        (tc-e (path-string? (string->path "foo")) #:ret (ret -Boolean -true-filter))
+        (tc-e (path-string? (string->path "foo")) #:ret (ret -Boolean -true-propset))
         (tc-e (bytes->path #"foo" 'unix) -SomeSystemPath)
         (tc-e (bytes->path #"foo") -Path)
         (tc-e (bytes->path-element #"foo") -Path)
@@ -1440,8 +1441,8 @@
         (tc-e (expand-user-path "foo") -Path)
 
         ;;String Tests
-        (tc-e (string? "a") #:ret (ret -Boolean -true-filter))
-        (tc-e (string? 2) #:ret (ret -Boolean -false-filter))
+        (tc-e (string? "a") #:ret (ret -Boolean -true-propset))
+        (tc-e (string? 2) #:ret (ret -Boolean -false-propset))
 
         (tc-e (string->immutable-string (string #\a #\b)) -String)
         (tc-e (string-length (make-string 5 #\z)) -Index)
@@ -1499,8 +1500,8 @@
 
         ;Symbols
 
-        (tc-e (symbol? 'foo) #:ret (ret -Boolean -true-filter))
-        (tc-e (symbol? 2) #:ret (ret -Boolean -false-filter))
+        (tc-e (symbol? 'foo) #:ret (ret -Boolean -true-propset))
+        (tc-e (symbol? 2) #:ret (ret -Boolean -false-propset))
 
         (tc-e (symbol-interned? 'foo) -Boolean)
         (tc-e (symbol-interned? (string->unreadable-symbol "bar")) -Boolean)
@@ -1517,16 +1518,16 @@
         (tc-e (string->symbol (symbol->string 'foo)) -Symbol)
 
         ;Booleans
-        (tc-e (not #f) #:ret (ret -Boolean -true-filter))
-        (tc-e (false? #f) #:ret (ret -Boolean -true-filter))
-        (tc-e (not #t) #:ret (ret -Boolean -false-filter))
+        (tc-e (not #f) #:ret (ret -Boolean -true-propset))
+        (tc-e (false? #f) #:ret (ret -Boolean -true-propset))
+        (tc-e (not #t) #:ret (ret -Boolean -false-propset))
         ;; It's not clear why the following test doesn't work,
         ;; but it works fine in the real typechecker
-        ;(tc-e (false? #t) #:ret (ret -Boolean -false-filter))
+        ;(tc-e (false? #t) #:ret (ret -Boolean -false-propset))
 
 
-        (tc-e (boolean? true) #:ret (ret -Boolean -true-filter))
-        (tc-e (boolean? 6) #:ret (ret -Boolean -false-filter))
+        (tc-e (boolean? true) #:ret (ret -Boolean -true-propset))
+        (tc-e (boolean? 6) #:ret (ret -Boolean -false-propset))
         (tc-e (immutable? (cons 3 4)) -Boolean)
 
         (tc-e (boolean=? #t false) -Boolean)
@@ -1691,8 +1692,8 @@
 
         ;Syntax
 
-        (tc-e (syntax? #'id) #:ret (ret -Boolean -true-filter))
-        (tc-e (syntax? 2) #:ret (ret -Boolean -false-filter))
+        (tc-e (syntax? #'id) #:ret (ret -Boolean -true-propset))
+        (tc-e (syntax? 2) #:ret (ret -Boolean -false-propset))
 
         (tc-e (syntax-source #'here) Univ)
         (tc-e (syntax-line #'here) (-opt -PosInt))
@@ -1709,17 +1710,17 @@
         (tc-e (parameter-procedure=? current-input-port current-output-port) -Boolean)
 
         ;Namespaces
-        (tc-e (namespace? 2) #:ret (ret -Boolean -false-filter))
-        (tc-e (namespace? (make-empty-namespace)) #:ret (ret -Boolean -true-filter))
+        (tc-e (namespace? 2) #:ret (ret -Boolean -false-propset))
+        (tc-e (namespace? (make-empty-namespace)) #:ret (ret -Boolean -true-propset))
 
-        (tc-e (namespace-anchor? 3) #:ret (ret -Boolean -false-filter))
+        (tc-e (namespace-anchor? 3) #:ret (ret -Boolean -false-propset))
         (tc-e/t (lambda: ((x : Namespace-Anchor)) (namespace-anchor? x))
-                (t:-> -Namespace-Anchor -Boolean : -true-filter))
+                (t:-> -Namespace-Anchor -Boolean : -true-propset))
 
 
-        (tc-e (variable-reference? 3) #:ret (ret -Boolean -false-filter))
+        (tc-e (variable-reference? 3) #:ret (ret -Boolean -false-propset))
         (tc-e/t (lambda: ((x : Variable-Reference)) (variable-reference? x))
-                (t:-> -Variable-Reference  -Boolean : -true-filter))
+                (t:-> -Variable-Reference  -Boolean : -true-propset))
 
         (tc-e (system-type 'os) (one-of/c 'unix 'windows 'macosx))
         (tc-e (system-type 'gc) (one-of/c 'cgc '3m))
@@ -1784,7 +1785,7 @@
                 (define-values (p std-out std-in std-err)
                  (subprocess #f #f #f (string->path "/bin/bash")))
                 (subprocess? p))
-              #:ret (ret -Boolean -true-filter))
+              #:ret (ret -Boolean -true-propset))
 
         (tc-e (car (process "hello"))
               -Input-Port)
@@ -1825,7 +1826,7 @@
         (tc-e (compile-syntax #'(+ 1 2)) -Compiled-Expression)
         (tc-e (let: ((e : Compiled-Expression (compile #'(+ 1 2))))
                 (compiled-expression? e))
-              #:ret (ret -Boolean -true-filter))
+              #:ret (ret -Boolean -true-propset))
         (tc-e (let: ((e : Compiled-Expression (compile #'(module + racket 2))))
                 (compiled-module-expression? e)) -Boolean)
 
@@ -1842,7 +1843,7 @@
                               (acc : (Any -> Any)))
                              (make-impersonator-property 'prop)))
                (impersonator-property? prop))
-              #:ret (ret -Boolean -true-filter))
+              #:ret (ret -Boolean -true-propset))
 
         ;Security Guards
         (tc-e (make-security-guard (current-security-guard)
@@ -1851,14 +1852,14 @@
               -Security-Guard)
         (tc-e (let: ((s : Security-Guard (current-security-guard)))
                 (security-guard? s))
-              #:ret (ret -Boolean -true-filter))
+              #:ret (ret -Boolean -true-propset))
 
 
         ;Custodians
         (tc-e (make-custodian) -Custodian)
         (tc-e (let: ((c : Custodian (current-custodian)))
                 (custodian? c))
-              #:ret (ret -Boolean -true-filter))
+              #:ret (ret -Boolean -true-propset))
         (tc-e (let: ((c : (Custodian-Boxof Integer) (make-custodian-box (current-custodian) 1)))
                 (custodian-box-value c)) -Int)
 
@@ -1866,14 +1867,14 @@
         (tc-e (make-thread-group) -Thread-Group)
         (tc-e (let: ((tg : Thread-Group (current-thread-group)))
                 (thread-group? tg))
-              #:ret (ret -Boolean -true-filter))
+              #:ret (ret -Boolean -true-propset))
 
 
         ;Inspector
         (tc-e (make-inspector) -Inspector)
         (tc-e (let: ((i : Inspector (current-inspector)))
                 (inspector? i))
-              #:ret (ret -Boolean -true-filter))
+              #:ret (ret -Boolean -true-propset))
 
         ;Continuation Prompt Tags ang Continuation Mark Sets
         ;; TODO: supporting default-continuation-prompt-tag means we need to
@@ -1882,7 +1883,7 @@
         (tc-e (let: ((pt : (Prompt-Tagof Integer Integer) (make-continuation-prompt-tag)))
                    (continuation-marks #f pt)) -Cont-Mark-Set)
         (tc-e (let: ((set : Continuation-Mark-Set (current-continuation-marks)))
-                   (continuation-mark-set? set)) #:ret (ret -Boolean -true-filter))
+                   (continuation-mark-set? set)) #:ret (ret -Boolean -true-propset))
 
         ;Logging
         (tc-e (make-logger 'name) -Logger)
@@ -1979,7 +1980,7 @@
                               (pred : (Any -> Any)) (acc : (Any -> Any)))
                              (make-struct-type-property 'prop)))
                (struct-type-property? prop))
-              #:ret (ret -Boolean -true-filter))
+              #:ret (ret -Boolean -true-propset))
 
         ;; Boxes
         [tc-e (box-cas! (box "foo") "bar" "baz") -Boolean]
@@ -2065,11 +2066,11 @@
                        (Integer Integer -> Integer)))
               #:ret (ret (cl->* (t:-> -Integer -Integer)
                                 (t:-> -Integer -Integer -Integer))
-                         -true-filter)]
+                         -true-propset)]
         [tc-e (let ([my-pred (λ () #f)])
                 (for/and: : Any ([i (in-range 4)])
                           (my-pred)))
-              #:ret (ret Univ -top-filter -empty-obj)]
+              #:ret (ret Univ -tt-propset -empty-obj)]
         [tc-e/t
          (let ()
            (define: long : (List 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 Integer)
@@ -2205,7 +2206,7 @@
           (ann
             ((letrec ((x (lambda (acc v) (if v (list v) acc)))) x) null (list 'bad 'prog))
             (Listof Symbol))
-          #:ret (ret (-lst -Symbol) -top-filter -empty-obj)]
+          #:ret (ret (-lst -Symbol) -tt-propset -empty-obj)]
         [tc-e (filter values empty)
               (-lst -Bottom)]
         [tc-e (lambda lst (map (plambda: (b) ([x : b]) x) lst))
@@ -2234,30 +2235,30 @@
           (case-lambda
             [w 'result]
             [(x) (add1 "hello")])
-          (->* (list) Univ (-val 'result) : -true-filter)]
+          (->* (list) Univ (-val 'result) : -true-propset)]
 
         [tc-e
            (opt-lambda: ((x : Symbol 'a)) x)
-           #:ret (ret (t:-> -Symbol -Symbol) -true-filter)
-           #:expected (ret (t:-> -Symbol -Symbol) -true-filter)]
+           #:ret (ret (t:-> -Symbol -Symbol) -true-propset)
+           #:expected (ret (t:-> -Symbol -Symbol) -true-propset)]
 
         [tc-e/t (inst (ann (lambda (a) a) (All (a) (a -> a))) Symbol)
                 (t:-> -Symbol -Symbol)]
 
-        ;; This test makes sure that a user written filter
+        ;; This test makes sure that a user written proposition
         ;; can reference an identifier object in addition to
         ;; an integer object.
         [tc-e/t
          (λ (x)
            (define f
              (ann (λ (y) (exact-integer? x))
-                  ;; note the filters
+                  ;; note the propositions
                   (Any -> Boolean : #:+ (Integer @ x) #:- (! Integer @ x))))
            (if (f 'dummy) (add1 x) 2))
-         (t:-> Univ -Integer : (-FS -top (-filter -Integer 0)))]
+         (t:-> Univ -Integer : (-PS -tt (-is-type 0 -Integer)))]
 
         ;; This test ensures that curried predicates have
-        ;; the correct filters so that they can be used for
+        ;; the correct props so that they can be used for
         ;; occurrence typing.
         [tc-e
          (let ()
@@ -2275,13 +2276,13 @@
         ;; (should not trigger an error with free-identifier=?)
         [tc-e (lambda (x) (lambda (y) y))
               #:ret
-              (ret (t:-> Univ (t:-> Univ Univ : (-FS (-not-filter (-val #f) (list 0 0))
-                                                     (-filter (-val #f) (list 0 0)))
+              (ret (t:-> Univ (t:-> Univ Univ : (-PS (-not-type (list 0 0) (-val #f))
+                                                     (-is-type (list 0 0) (-val #f)))
                                               : (make-Path null (list 0 0)))
-                              : -true-filter)
-                   -true-filter)]
+                              : -true-propset)
+                   -true-propset)]
 
-       ;; The following ensures that the correct filter can be
+       ;; The following ensures that the correct prop can be
        ;; written by the user
        [tc-e
         (let ()
@@ -2338,7 +2339,7 @@
           (: x Real)
           (define x 3)
           (if ((negate pos?) x) x -5))
-        #:ret (ret -NonPosReal -true-filter)]
+        #:ret (ret -NonPosReal -true-propset)]
 
        [tc-err
          (hash-ref! (ann (make-hash) (HashTable #f (-> #t))) #f (lambda () #t))]
@@ -2483,7 +2484,7 @@
        [tc-e (current-future) (-opt (-future Univ))]
        [tc-e (add1 (processor-count)) -PosInt]
        [tc-e (assert (current-future) future?)
-             #:ret (ret (-future Univ) -true-filter)]
+             #:ret (ret (-future Univ) -true-propset)]
        [tc-e (futures-enabled?) -Boolean]
        [tc-e (place-enabled?) -Boolean]
        [tc-e (dynamic-place "a.rkt" 'a #:at #f) -Place]
@@ -2548,7 +2549,7 @@
                 #:when (eq? x 'x))
                (values x y))
              #:ret (ret (-HT -Symbol -String)
-                        (-FS -top -top)
+                        (-PS -tt -tt)
                         -empty-obj)]
        [tc-e (for*/hash: : (HashTable Symbol String)
                ([k (in-list '(x y z))]
@@ -2556,7 +2557,7 @@
                 #:when (eq? k 'x))
                (values k v))
              #:ret (ret (-HT -Symbol -String)
-                        (-FS -top -top)
+                        (-PS -tt -tt)
                         -empty-obj)]
 
        ;; PR 13937
@@ -2649,23 +2650,23 @@
        ;; test lambdas with mixed type expressions, typed keywords, typed
        ;; optional arguments
        [tc-e (tr:lambda (x [y : String]) (string-append y "b"))
-             #:ret (ret (t:-> Univ -String -String) -true-filter)]
+             #:ret (ret (t:-> Univ -String -String) -true-propset)]
        [tc-e (tr:lambda (x [y : String] . z) (string-append y "b"))
-             #:ret (ret (->* (list Univ -String) Univ -String) -true-filter)]
+             #:ret (ret (->* (list Univ -String) Univ -String) -true-propset)]
        [tc-e (tr:lambda (x [y : String] . [z : String *]) (string-append y "b"))
-             #:ret (ret (->* (list Univ -String) -String -String) -true-filter)]
+             #:ret (ret (->* (list Univ -String) -String -String) -true-propset)]
        [tc-e (tr:lambda (x [y : String]) : String (string-append y "b"))
-             #:ret (ret (t:-> Univ -String -String) -true-filter)]
+             #:ret (ret (t:-> Univ -String -String) -true-propset)]
        [tc-e (tr:lambda (x z [y : String]) (string-append y "b"))
-             #:ret (ret (t:-> Univ Univ -String -String) -true-filter)]
+             #:ret (ret (t:-> Univ Univ -String -String) -true-propset)]
        [tc-e (tr:lambda (x z [y : String] . w) (string-append y "b"))
-             #:ret (ret (->* (list Univ Univ -String) Univ -String) -true-filter)]
+             #:ret (ret (->* (list Univ Univ -String) Univ -String) -true-propset)]
        [tc-e (tr:lambda (x z [y : String] . [w : String *]) (string-append y "b"))
-             #:ret (ret (->* (list Univ Univ -String) -String -String) -true-filter)]
+             #:ret (ret (->* (list Univ Univ -String) -String -String) -true-propset)]
        [tc-e (tr:lambda (x z [y : String]) : String (string-append y "b"))
-             #:ret (ret (t:-> Univ Univ -String -String) -true-filter)]
+             #:ret (ret (t:-> Univ Univ -String -String) -true-propset)]
        [tc-err (tr:lambda (x [y : String]) : Symbol (string-append y "b"))
-         #:ret (ret (t:-> Univ -String -Symbol) -true-filter)
+         #:ret (ret (t:-> Univ -String -Symbol) -true-propset)
          #:msg "expected: Symbol.*given: String"]
        [tc-err (tr:lambda (x [y : String "a"] z) (string-append y "b"))
                #:msg "expected optional lambda argument"]
@@ -2723,18 +2724,18 @@
        [tc-e (tr:lambda (x #:y [y : String "y"] #:z [z : String "z"]) (string-append y z))
              (->key Univ #:y -String #f #:z -String #f -String)]
        ;; for these next three tests, test the application instead of the
-       ;; type of the function because the precise filters are hard to
+       ;; type of the function because the precise props are hard to
        ;; get right in the expected result type and polymorphic types are
        ;; harder to test for equality.
        [tc-e ((inst (tr:lambda #:forall (A) (x [y : A]) y) String) 'a "foo")
-             #:ret (ret -String -true-filter)]
+             #:ret (ret -String -true-propset)]
        [tc-e ((inst (tr:lambda #:∀ (A) (x [y : A]) y) String) 'a "foo")
-             #:ret (ret -String -true-filter)]
+             #:ret (ret -String -true-propset)]
        [tc-e ((inst (tr:lambda #:forall (A ...) (x . [rst : A ... A]) rst) String) 'a "foo")
              (-lst* -String)]
        #| FIXME: does not work yet, TR thinks the type variable is unbound
        [tc-e (inst (tr:lambda #:forall (A) (x [y : A] [z : String "z"]) y) String)
-             #:ret (ret (->opt Univ -String [-String] -String) -true-filter)]
+             #:ret (ret (->opt Univ -String [-String] -String) -true-propset)]
        |#
 
        ;; test `define` with mixed type annotations
@@ -2763,9 +2764,9 @@
        [tc-e (let ([y 'y] [x : String "foo"]) (string-append x "bar"))
              -String]
        [tc-e (let #:forall (A) ([x : A "foo"]) x)
-             #:ret (ret -String -true-filter)]
+             #:ret (ret -String -true-propset)]
        [tc-e (let #:forall (A) ([y 'y] [x : A "foo"]) x)
-             #:ret (ret -String -true-filter)]
+             #:ret (ret -String -true-propset)]
        [tc-e/t (let* ([x "foo"]) x) -String]
        [tc-e (let* ([x : String "foo"]) (string-append x "bar"))
              -String]
@@ -2802,43 +2803,43 @@
                (string-append x y))
              -String]
        [tc-e (let loop ([x "x"]) x)
-             #:ret (ret -String -true-filter)]
+             #:ret (ret -String -true-propset)]
        [tc-e (let loop ([x : String "x"]) x)
-             #:ret (ret -String -true-filter)]
+             #:ret (ret -String -true-propset)]
        [tc-e (let/cc k "foo") -String]
        [tc-e (let/ec k "foo") -String]
        [tc-e (let/cc k : String (k "foo")) -String]
        [tc-e (let/ec k : String (k "foo")) -String]
        [tc-e (ann (do ([x : Integer 0 (add1 x)]) ((> x 10) x) (displayln x))
                   Integer)
-             #:ret (ret -Integer -top-filter -empty-obj)]
+             #:ret (ret -Integer -tt-propset -empty-obj)]
        [tc-e (do : Integer ([x : Integer 0 (add1 x)]) ((> x 10) x) (displayln x))
-             #:ret (ret -Integer -top-filter -empty-obj)]
+             #:ret (ret -Integer -tt-propset -empty-obj)]
        [tc-e (tr:case-lambda [(x [y : String]) x])
              #:ret (ret (t:-> Univ -String Univ
-                              : (-FS (-not-filter (-val #f) (list 0 0))
-                                     (-filter (-val #f) (list 0 0)))
+                              : (-PS (-not-type (list 0 0) (-val #f))
+                                     (-is-type (list 0 0) (-val #f)))
                               : (make-Path null (list 0 0)))
-                        -true-filter)]
+                        -true-propset)]
        [tc-e (tr:case-lambda [(x [y : String] . rst) x])
              #:ret (ret (->* (list Univ -String) Univ Univ
-                             : (-FS (-not-filter (-val #f) (list 0 0))
-                                    (-filter (-val #f) (list 0 0)))
+                             : (-PS (-not-type (list 0 0) (-val #f))
+                                    (-is-type (list 0 0) (-val #f)))
                              : (make-Path null (list 0 0)))
-                        -true-filter)]
+                        -true-propset)]
        [tc-e (tr:case-lambda [(x [y : String] . [rst : String *]) x])
              #:ret (ret (->* (list Univ -String) -String Univ
-                             : (-FS (-not-filter (-val #f) (list 0 0))
-                                    (-filter (-val #f) (list 0 0)))
+                             : (-PS (-not-type (list 0 0) (-val #f))
+                                    (-is-type (list 0 0) (-val #f)))
                              : (make-Path null (list 0 0)))
-                        -true-filter)]
+                        -true-propset)]
        [tc-e (tr:case-lambda #:forall (A) [([x : A]) x])
              #:ret (ret (-poly (A)
                           (t:-> A A
-                                : (-FS (-not-filter (-val #f) (list 0 0))
-                                       (-filter (-val #f) (list 0 0)))
+                                : (-PS (-not-type (list 0 0) (-val #f))
+                                       (-is-type (list 0 0) (-val #f)))
                                 : (make-Path null (list 0 0))))
-                        -true-filter)]
+                        -true-propset)]
 
        ;; PR 13651 and related
        [tc-e (tr:lambda #:forall (a ...) ([f : (-> String (values a ... a))])
@@ -2846,14 +2847,14 @@
              #:ret (ret (-polydots (a)
                           (t:-> (t:-> -String (make-ValuesDots '() a 'a))
                                 (make-ValuesDots '() a 'a)))
-                        -true-filter)]
+                        -true-propset)]
        [tc-e (inst (plambda: (A B ...) ((a : A) b : B ... B)
                      ((ann (lambda () (apply (inst values A B ... B) a b))
                            (-> (values A B ... B)))))
                    String String Symbol)
              #:ret (ret (t:-> -String -String -Symbol
                               (-values (list -String -String -Symbol)))
-                        -true-filter)]
+                        -true-propset)]
 
        ;; make-input-port, make-output-port (examples from Reference)
        [tc-e (let ()
@@ -2949,7 +2950,7 @@
              (let () (define-type-alias A (Listof B))
                      (define-type-alias B (Listof A))
                      "dummy")
-             #:ret (ret -String -true-filter)]
+             #:ret (ret -String -true-propset)]
        [tc-e (let () (define-type-alias A (Listof B))
                      (define-type-alias B (U #f (Listof A)))
                      (: a A)
@@ -2999,51 +3000,51 @@
                #:msg "type information"]
        ;; make sure no-binding cases like the middle expression are checked
        [tc-err (let () (define r "r") (string-append r 'foo) (define x "x") "y")
-         #:ret (ret -String -true-filter)
+         #:ret (ret -String -true-propset)
          #:msg "expected: String.*given: 'foo"]
 
        ;; Polydotted types are not checking equality correctly
        [tc-err (ann (lambda () (let ([my-values values]) (my-values)))
                  (All (A ...) (-> (Values Symbol ... A))))
-         #:ret (ret (-polydots (A) (t:-> (-values-dots null -Symbol 'A))) -true-filter)]
+         #:ret (ret (-polydots (A) (t:-> (-values-dots null -Symbol 'A))) -true-propset)]
 
        [tc-e (list 'x)
              #:ret (ret (-Tuple (list -Symbol)))
-             #:expected (ret (-Tuple (list -Symbol)) -no-filter -no-obj)]
+             #:expected (ret (-Tuple (list -Symbol)) #f #f)]
        [tc-e (list 'y)
              #:ret (ret (-lst -Symbol))
-             #:expected (ret (-lst -Symbol) -no-filter -no-obj)]
+             #:expected (ret (-lst -Symbol) #f #f)]
        [tc-e (reverse (list 'x 'y))
              #:ret (ret (-Tuple (list (-val 'y) (-val 'x))))
-             #:expected (ret (-Tuple (list (-val 'y) (-val 'x))) -no-filter -no-obj)]
+             #:expected (ret (-Tuple (list (-val 'y) (-val 'x))) #f #f)]
 
        [tc-err (vector 1 2)
-         #:ret (ret (make-HeterogeneousVector (list -Byte -Byte)) -false-filter -empty-obj)
-         #:expected (ret (make-HeterogeneousVector (list -Byte -Byte)) -false-filter -no-obj)]
+         #:ret (ret (make-HeterogeneousVector (list -Byte -Byte)) -false-propset -empty-obj)
+         #:expected (ret (make-HeterogeneousVector (list -Byte -Byte)) -false-propset #f)]
 
        [tc-err (values 'x)
          #:ret (ret (list -Symbol -Symbol)
-                    (list -bot-filter -bot-filter)
+                    (list -ff-propset -ff-propset)
                     (list -empty-obj -empty-obj))
-         #:expected (ret (list -Symbol -Symbol) (list -no-filter -no-filter ) (list -no-obj -no-obj))]
+         #:expected (ret (list -Symbol -Symbol) (list #f #f ) (list #f #f))]
 
        [tc-err (values 'x 'y 'z)
          #:ret (ret (list -Symbol -Symbol)
-                    (list -bot-filter -bot-filter)
+                    (list -ff-propset -ff-propset)
                     (list -empty-obj -empty-obj))
-         #:expected (ret (list -Symbol -Symbol) (list -no-filter -no-filter ) (list -no-obj -no-obj))]
+         #:expected (ret (list -Symbol -Symbol) (list #f #f ) (list #f #f))]
 
        [tc-err (values 'y)
-         #:ret (ret (list -Symbol) (list -bot-filter ) (list -empty-obj) Univ 'B)
-         #:expected (ret (list -Symbol) (list -no-filter ) (list -no-obj) Univ 'B)]
+         #:ret (ret (list -Symbol) (list -ff-propset ) (list -empty-obj) Univ 'B)
+         #:expected (ret (list -Symbol) (list #f ) (list #f) Univ 'B)]
 
        [tc-err (values (values 'x 'y))
-         #:ret (ret (-val 'x) -bot-filter)
-         #:expected (ret (-val 'x) -no-filter -no-obj)]
+         #:ret (ret (-val 'x) -ff-propset)
+         #:expected (ret (-val 'x) #f #f)]
 
        [tc-err (if (random) (values 1 2) 3)
-         #:ret (ret (-val 3) -true-filter)
-         #:expected (ret (-val 3) -no-filter -no-obj)]
+         #:ret (ret (-val 3) -true-propset)
+         #:expected (ret (-val 3) #f #f)]
 
        [tc-err
          (let* ([x 42]
@@ -3116,8 +3117,8 @@
                         (Number -> Number)))
            (define z (lambda (a) a))
            (z "y"))
-         #:ret (ret -String -bot-filter)
-         #:expected (ret -String -no-filter -no-obj)]
+         #:ret (ret -String -ff-propset)
+         #:expected (ret -String #f #f)]
 
        [tc-err
          (let ()
@@ -3126,14 +3127,14 @@
                   (-> Symbol #:b Symbol Symbol)))
            (define z (lambda (a #:b b) a))
            (z "y" #:b "y"))
-         #:ret (ret -String -bot-filter)
-         #:expected (ret -String -no-filter -no-obj)]
+         #:ret (ret -String -ff-propset)
+         #:expected (ret -String #f #f)]
 
        [tc-e/t
          (lambda (x)
            (unless (number? x)
              (error 'foo)))
-         (t:-> Univ -Void : (-FS (-filter -Number 0) (-filter -Number 0)))]
+         (t:-> Univ -Void : (-PS (-is-type 0 -Number) (-is-type 0 -Number)))]
 
        [tc-e
          (let ([x : (U) (error 'fail)])
@@ -3143,12 +3144,12 @@
        [tc-err
          (let ([f (lambda (x y) y)])
            (f 1))
-         #:ret (ret Univ -top-filter)]
+         #:ret (ret Univ -tt-propset)]
 
        [tc-err
          (let ([f (lambda (x y) y)])
            (f 1 2 3))
-         #:ret (ret -PosByte -true-filter)]
+         #:ret (ret -PosByte -true-propset)]
 
        [tc-err
          (case-lambda
@@ -3166,29 +3167,29 @@
          (case-lambda
            [() 1]
            [args 2])
-         #:ret (ret (t:-> (-val 1)) -true-filter)
-         #:expected (ret (t:-> (-val 1)) -no-filter)]
+         #:ret (ret (t:-> (-val 1)) -true-propset)
+         #:expected (ret (t:-> (-val 1)) #f)]
 
        [tc-e
          (case-lambda
            [(x . y) 2]
            [args 1])
-         #:ret (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 2))) -true-filter)
-         #:expected (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 2))) -no-filter)]
+         #:ret (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 2))) -true-propset)
+         #:expected (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 2))) #f)]
 
        [tc-e
          (case-lambda
            [(x) 2]
            [args 1])
-         #:ret (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 2))) -true-filter)
-         #:expected (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 2))) -no-filter)]
+         #:ret (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 2))) -true-propset)
+         #:expected (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 2))) #f)]
 
        [tc-err
          (case-lambda
            [(x . y) 1]
            [args 2])
-         #:ret (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 1))) -true-filter)
-         #:expected (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 1))) -no-filter)]
+         #:ret (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 1))) -true-propset)
+         #:expected (ret (cl->* (t:-> (-val 1)) (t:-> Univ (-val 1))) #f)]
 
        ;; typecheck-fail should fail
        [tc-err (typecheck-fail #'stx "typecheck-fail")
@@ -3295,8 +3296,8 @@
          ]
        [tc-e
          (tr:lambda (x #:y [y 3]) x)
-         #:ret (ret (->key Univ #:y Univ #f Univ) -true-filter)
-         #:expected (ret (->key Univ #:y Univ #f Univ) -no-filter)]
+         #:ret (ret (->key Univ #:y Univ #f Univ) -true-propset)
+         #:expected (ret (->key Univ #:y Univ #f Univ) #f)]
        [tc-err
          (lambda xs (plambda: (b) ([x : Any]) 3))
          #:ret (ret (-polydots (a) (->... (list) (a a) (-values-dots (list) a 'a))))
@@ -3314,7 +3315,7 @@
                                          (-values-dots
                                           (list)
                                           (t:-> Univ -Boolean
-                                                : (-FS (-filter -Symbol (list 1 0)) -top)) 'a)))))))
+                                                : (-PS (-is-type (list 1 0) -Symbol) -tt)) 'a)))))))
            #:expected
            (ret (-polydots (a ...)
                   (->...
@@ -3324,7 +3325,7 @@
                      (t:-> Univ
                            (-values-dots
                             (list)
-                            (t:-> Univ -Boolean : (-FS (-filter -Symbol (list 1 0)) -top)) 'a)))))))]
+                            (t:-> Univ -Boolean : (-PS (-is-type (list 1 0) -Symbol) -tt)) 'a)))))))]
 
        [tc-err
          (inst (eval '3) Any)
@@ -3349,8 +3350,8 @@
 
        [tc-e
         ((letrec ([lp (lambda (x) lp)]) lp) 'y)
-        #:ret (ret (t:-> -Symbol Univ) -true-filter)
-        #:expected (ret (t:-> -Symbol Univ) -no-filter -no-obj)]
+        #:ret (ret (t:-> -Symbol Univ) -true-propset)
+        #:expected (ret (t:-> -Symbol Univ) #f #f)]
 
        [tc-e
          (list (vector 1 2 3))
@@ -3384,7 +3385,7 @@
            (g x)
            x)
          (t:-> Univ -String
-               : (-FS (-and (-filter -String '(0 0)) (-not-filter (-val #f) '(0 0))) -bot)
+               : (-PS (-and (-is-type '(0 0) -String) (-not-type '(0 0) (-val #f))) -ff)
                : (make-Path null '(0 0)))]
 
        ;; PR 14576
@@ -3469,7 +3470,7 @@
           (: y String)
           (define y (for/fold: ((x : String null)) ((v : String null)) x))
           y)
-        #:ret (ret -String -true-filter)
+        #:ret (ret -String -true-propset)
         #:msg #rx"expected: String.*given: (Null|'\\(\\))"]
 
        ;; PR 14493
@@ -3496,13 +3497,13 @@
        [tc-e
          (with-handlers ([exn:fail? (λ (exn) 4)])
             5)
-         #:ret (ret -Nat -true-filter)
-         #:expected (ret -Nat -no-filter)]
+         #:ret (ret -Nat -true-propset)
+         #:expected (ret -Nat #f)]
        [tc-e
          (with-handlers ([exn:fail? (λ (exn) #f)])
             5)
-         #:ret (ret Univ -top-filter)
-         #:expected (ret Univ -no-filter)]
+         #:ret (ret Univ -tt-propset)
+         #:expected (ret Univ #f)]
        [tc-e
         (with-handlers ([void (λ: ([x : Any]) #t)]) #f)
         -Boolean]
@@ -3693,47 +3694,47 @@
 
        [tc-e/t
          (lambda: ([x : Real-Zero]) (or (zero? x) x))
-         (t:-> -RealZero (t:Un (-val #t) -InexactRealNan) : -true-filter)]
+         (t:-> -RealZero (t:Un (-val #t) -InexactRealNan) : -true-propset)]
        [tc-e/t
          (lambda: ([x : Positive-Integer]) (zero? x))
-         (t:-> -PosInt -Boolean : -false-filter)]
+         (t:-> -PosInt -Boolean : -false-propset)]
        [tc-e/t
          (lambda: ([x : Natural]) (zero? x))
-         (t:-> -Nat -Boolean : (-FS (-filter (-val 0) 0) (-not-filter (-val 0) 0)))]
+         (t:-> -Nat -Boolean : (-PS (-is-type 0 (-val 0)) (-not-type 0 (-val 0))))]
        [tc-e/t
          (lambda: ([x : Real]) (zero? x))
-         (t:-> -Real -Boolean : (-FS (-filter -RealZeroNoNan 0) (-not-filter -RealZeroNoNan 0)))]
+         (t:-> -Real -Boolean : (-PS (-is-type 0 -RealZeroNoNan) (-not-type 0 -RealZeroNoNan)))]
 
        [tc-e/t (lambda: ([x : Byte]) (positive? x))
-          (t:-> -Byte -Boolean : (-FS (-filter -PosByte 0) (-filter -Zero 0)))]
+          (t:-> -Byte -Boolean : (-PS (-is-type 0 -PosByte) (-is-type 0 -Zero)))]
        [tc-e/t (lambda: ([x : Fixnum]) (negative? x))
-          (t:-> -Fixnum -Boolean : (-FS (-filter -NegFixnum 0) (-filter -NonNegFixnum 0)))]
+          (t:-> -Fixnum -Boolean : (-PS (-is-type 0 -NegFixnum) (-is-type 0 -NonNegFixnum)))]
 
        [tc-e (< (ann 0 Integer) +inf.0)
-        #:ret (ret -Boolean -true-filter)]
+        #:ret (ret -Boolean -true-propset)]
        [tc-e (> -inf.0 (ann 0 Exact-Rational))
-        #:ret (ret -Boolean -false-filter)]
+        #:ret (ret -Boolean -false-propset)]
        [tc-e/t (lambda: ([x : Flonum]) (and (<= +inf.f x) x))
         (t:-> -Flonum (t:Un (-val #f) (-val +inf.0))
-              : (-FS (-filter (-val +inf.0) 0) (-not-filter (-val +inf.0) 0)))]
+              : (-PS (-is-type 0 (-val +inf.0)) (-not-type 0 (-val +inf.0))))]
        [tc-e/t (lambda: ([x : Flonum]) (or (>= +inf.f x) x))
         (t:-> -Flonum (t:Un (-val #t) -FlonumNan)
-              : -true-filter)]
+              : -true-propset)]
 
        [tc-e/t
          (lambda: ([x : Flonum]) (if (= 0 x) 1.0 x))
-         (t:-> -Flonum (t:Un -PosFlonum -NegFlonum) : -true-filter)]
+         (t:-> -Flonum (t:Un -PosFlonum -NegFlonum) : -true-propset)]
        [tc-e/t
          (lambda: ([x : Byte]) (if (= 0 x) 1 x))
-         (t:-> -Byte -PosByte : -true-filter)]
+         (t:-> -Byte -PosByte : -true-propset)]
        [tc-e/t
          (lambda: ([x : Flonum]) (if (= x (ann 1.0 Positive-Flonum)) x 'other))
-         (t:-> -Flonum (t:Un -PosFlonum (-val 'other)) : -true-filter)]
+         (t:-> -Flonum (t:Un -PosFlonum (-val 'other)) : -true-propset)]
 
        [tc-e/t (lambda: ([x : One])
                  (let ([f (lambda: [w : Any *] w)])
                    (f x "hello" #\c)))
-        (t:-> -One (unfold (-lst Univ)) : -true-filter)]
+        (t:-> -One (unfold (-lst Univ)) : -true-propset)]
 
        [tc-e/t (lambda: ([x : One])
                  (let ([f (plambda: (a ...) [w : a ... a] w)])
@@ -3742,16 +3743,16 @@
 
        [tc-e/t
          (lambda: ([x : Positive-Integer]) (< x 1))
-         (t:-> -PosInt -Boolean : -false-filter)]
+         (t:-> -PosInt -Boolean : -false-propset)]
        [tc-e/t
          (lambda: ([x : Integer]) (>= x 1))
-         (t:-> -Integer -Boolean : (-FS (-filter -PosInt 0) (-filter -NonPosInt 0)))]
+         (t:-> -Integer -Boolean : (-PS (-is-type 0 -PosInt) (-is-type 0 -NonPosInt)))]
        [tc-e/t
          (lambda: ([x : Nonnegative-Flonum]) (<= x 0))
-         (t:-> -NonNegFlonum -Boolean : (-FS (-filter -FlonumZero 0) (-filter -PosFlonum 0)))]
+         (t:-> -NonNegFlonum -Boolean : (-PS (-is-type 0 -FlonumZero) (-is-type 0 -PosFlonum)))]
        [tc-e/t
          (lambda: ([x : Byte]) (if (< 0 x) x 1))
-         (t:-> -Byte -PosByte : (-FS (-filter -Byte (list 0 0)) -bot))]
+         (t:-> -Byte -PosByte : (-PS (-is-type (list 0 0) -Byte) -ff))]
 
        [tc-e/t ((inst values Any) "a") -String]
        [tc-e ((inst second Any Any Any) (list "a" "b")) -String]
@@ -3764,29 +3765,29 @@
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
          (t:-> -FlonumZero -Flonum
                (make-Values (list
-                              (-result -Boolean (-FS (-filter -NonNegFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -FlonumZero 1) -top))
-                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -NonPosFlonum 1) -top)))))]
+                              (-result -Boolean (-PS (-is-type 1 -NonNegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -PosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -FlonumZero) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -NegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -NonPosFlonum) -tt)))))]
        [tc-e/t
          (lambda: ([x : Flonum] [y : Flonum-Zero])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
          (t:-> -Flonum -FlonumZero
                (make-Values (list
-                              (-result -Boolean (-FS (-filter -NonPosFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -FlonumZero 0) -top))
-                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -NonNegFlonum 0) -top)))))]
+                              (-result -Boolean (-PS (-is-type 0 -NonPosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -NegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -FlonumZero) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -PosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -NonNegFlonum) -tt)))))]
        [tc-e/t
          (lambda: ([x : Positive-Flonum] [y : Flonum])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
          (t:-> -PosFlonum -Flonum
                (make-Values (list
-                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
+                              (-result -Boolean (-PS (-is-type 1 -PosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -PosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -PosFlonum) -tt))
                               (-result -Boolean)
                               (-result -Boolean))))]
        [tc-e/t
@@ -3796,17 +3797,17 @@
                (make-Values (list
                               (-result -Boolean)
                               (-result -Boolean)
-                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top)))))]
+                              (-result -Boolean (-PS (-is-type 0 -PosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -PosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -PosFlonum) -tt)))))]
        [tc-e/t
          (lambda: ([x : Nonnegative-Flonum] [y : Flonum])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
          (t:-> -NonNegFlonum -Flonum
                (make-Values (list
-                              (-result -Boolean (-FS (-filter -NonNegFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -PosFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -NonNegFlonum 1) -top))
+                              (-result -Boolean (-PS (-is-type 1 -NonNegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -PosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -NonNegFlonum) -tt))
                               (-result -Boolean)
                               (-result -Boolean))))]
        [tc-e/t
@@ -3816,9 +3817,9 @@
                (make-Values (list
                               (-result -Boolean)
                               (-result -Boolean)
-                              (-result -Boolean (-FS (-filter -NonNegFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -PosFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -NonNegFlonum 0) -top)))))]
+                              (-result -Boolean (-PS (-is-type 0 -NonNegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -PosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -NonNegFlonum) -tt)))))]
        [tc-e/t
          (lambda: ([x : Negative-Flonum] [y : Flonum])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
@@ -3826,17 +3827,17 @@
                (make-Values (list
                               (-result -Boolean)
                               (-result -Boolean)
-                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top)))))]
+                              (-result -Boolean (-PS (-is-type 1 -NegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -NegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -NegFlonum) -tt)))))]
        [tc-e/t
          (lambda: ([x : Flonum] [y : Negative-Flonum])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
          (t:-> -Flonum -NegFlonum
                (make-Values (list
-                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
+                              (-result -Boolean (-PS (-is-type 0 -NegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -NegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -NegFlonum) -tt))
                               (-result -Boolean)
                               (-result -Boolean))))]
        [tc-e/t
@@ -3846,17 +3847,17 @@
                (make-Values (list
                               (-result -Boolean)
                               (-result -Boolean)
-                              (-result -Boolean (-FS (-filter -NonPosFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -NegFlonum 1) -top))
-                              (-result -Boolean (-FS (-filter -NonPosFlonum 1) -top)))))]
+                              (-result -Boolean (-PS (-is-type 1 -NonPosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -NegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 1 -NonPosFlonum) -tt)))))]
        [tc-e/t
          (lambda: ([x : Flonum] [y : Nonpositive-Flonum])
            (values (fl<= x y) (fl< x y) (fl= x y) (fl> x y) (fl>= x y)))
          (t:-> -Flonum -NonPosFlonum
                (make-Values (list
-                              (-result -Boolean (-FS (-filter -NonPosFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -NegFlonum 0) -top))
-                              (-result -Boolean (-FS (-filter -NonPosFlonum 0) -top))
+                              (-result -Boolean (-PS (-is-type 0 -NonPosFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -NegFlonum) -tt))
+                              (-result -Boolean (-PS (-is-type 0 -NonPosFlonum) -tt))
                               (-result -Boolean)
                               (-result -Boolean))))]
 
@@ -3885,7 +3886,7 @@
 
        ;; PR 15138
        [tc-e (for*/lists: ((xs : (Listof Symbol))) ((x '(a b c))) x)
-             #:ret (ret (-lst -Symbol) (-FS -top -bot) -empty-obj)]
+             #:ret (ret (-lst -Symbol) (-PS -tt -ff) -empty-obj)]
        [tc-e (for*/fold: ((xs : (Listof Symbol) '())) ((x '(a b c)))
                (cons x xs))
              (-lst -Symbol)]

@@ -163,26 +163,26 @@
    [(-> Any Boolean : #:+ (Number @ 0) #:- (! Number @ 0))
     (make-pred-ty -Number)]
    [(Any -> Boolean : #:+ (! Number @ 0) #:- (Number @ 0))
-    (t:->* (list Univ) -Boolean : (-FS (-not-filter -Number 0) (-filter -Number 0)))]
+    (t:->* (list Univ) -Boolean : (-PS (-not-type 0 -Number) (-is-type 0 -Number)))]
    [(-> Any Boolean : #:+ (! Number @ 0) #:- (Number @ 0))
-    (t:->* (list Univ) -Boolean : (-FS (-not-filter -Number 0) (-filter -Number 0)))]
+    (t:->* (list Univ) -Boolean : (-PS (-not-type 0 -Number) (-is-type 0 -Number)))]
    [(-> Any (-> Any Boolean : #:+ (Number @ 1 0) #:- (! Number @ 1 0)))
     (t:-> Univ
-          (t:->* (list Univ) -Boolean : (-FS (-filter -Number '(1 0)) (-not-filter -Number '(1 0)))))]
+          (t:->* (list Univ) -Boolean : (-PS (-is-type '(1 0) -Number) (-not-type '(1 0) -Number))))]
    [(-> Any Any (-> Any Boolean : #:+ (Number @ 1 1) #:- (! Number @ 1 1)))
     (t:-> Univ Univ
-          (t:->* (list Univ) -Boolean : (-FS (-filter -Number '(1 1)) (-not-filter -Number '(1 1)))))]
+          (t:->* (list Univ) -Boolean : (-PS (-is-type '(1 1) -Number) (-not-type '(1 1) -Number))))]
    [(-> Any #:foo Any (-> Any Boolean : #:+ (Number @ 1 0) #:- (! Number @ 1 0)))
     (->key Univ #:foo Univ #t
-           (t:->* (list Univ) -Boolean : (-FS (-filter -Number '(1 0)) (-not-filter -Number '(1 0)))))]
+           (t:->* (list Univ) -Boolean : (-PS (-is-type '(1 0) -Number) (-not-type '(1 0) -Number))))]
    [(All (a b) (-> (-> a Any : #:+ b) (Listof a) (Listof b)))
-    (-poly (a b) (t:-> (asym-pred a Univ (-FS (-filter b 0) -top)) (-lst a) (-lst b)))]
+    (-poly (a b) (t:-> (asym-pred a Univ (-PS (-is-type 0 b) -tt)) (-lst a) (-lst b)))]
    [(All (a b) (-> (-> a Any : #:+ (! b)) (Listof a) (Listof b)))
-    (-poly (a b) (t:-> (asym-pred a Univ (-FS (-not-filter b 0) -top)) (-lst a) (-lst b)))]
+    (-poly (a b) (t:-> (asym-pred a Univ (-PS (-not-type 0 b) -tt)) (-lst a) (-lst b)))]
    [(All (a b) (-> (-> a Any : #:- b) (Listof a) (Listof b)))
-    (-poly (a b) (t:-> (asym-pred a Univ (-FS -top (-filter b 0))) (-lst a) (-lst b)))]
+    (-poly (a b) (t:-> (asym-pred a Univ (-PS -tt (-is-type 0 b))) (-lst a) (-lst b)))]
    [(All (a b) (-> (-> a Any : #:- (! b)) (Listof a) (Listof b)))
-    (-poly (a b) (t:-> (asym-pred a Univ (-FS -top (-not-filter b 0))) (-lst a) (-lst b)))]
+    (-poly (a b) (t:-> (asym-pred a Univ (-PS -tt (-not-type 0 b))) (-lst a) (-lst b)))]
    [(Number -> Number -> Number)
     (t:-> -Number (t:-> -Number -Number))]
    [(-> Number (-> Number Number))
@@ -201,11 +201,11 @@
 
 
    [(Any -> Boolean : #:+ (Symbol @ not-mutated-var))
-    (t:-> Univ -Boolean : (-FS (-filter -Symbol (-id-path #'not-mutated-var)) -top))]
+    (t:-> Univ -Boolean : (-PS (-is-type (-id-path #'not-mutated-var) -Symbol) -tt))]
    [FAIL (Any -> Boolean : #:+ (Symbol @ mutated-var))
          #:msg "may not reference identifiers that are mutated"]
    [(Any -> Boolean : #:+ (! Symbol @ not-mutated-var))
-    (t:-> Univ -Boolean : (-FS (-not-filter -Symbol (-id-path #'not-mutated-var)) -top))]
+    (t:-> Univ -Boolean : (-PS (-not-type (-id-path #'not-mutated-var) -Symbol) -tt))]
    [FAIL (Any -> Boolean : #:+ (! Symbol @ mutated-var))
          #:msg "may not reference identifiers that are mutated"]
    [FAIL (Any -> Boolean : #:+ (String @ unbound))
@@ -239,7 +239,7 @@
    [(->* (#:bar Integer Integer) (#:foo Integer String) Void)
     (->optkey -Integer [-String] #:bar -Integer #t #:foo -Integer #f -Void)]
    [(->* (Any (-> Any Boolean : #:+ (String @ 1 0))) Void)
-    (t:-> Univ (t:->* (list Univ) -Boolean : (-FS (-filter -String '(1 0)) -top))
+    (t:-> Univ (t:->* (list Univ) -Boolean : (-PS (-is-type '(1 0) -String) -tt))
           -Void)]
    [FAIL (->* (Any (-> Any Boolean : #:+ (String @ 2 0))) Void)
          #:msg "Index 2 used in"]

@@ -6,12 +6,12 @@
          (contract-req)
          (rep object-rep))
 
-(require-for-cond-contract (rep type-rep filter-rep))
+(require-for-cond-contract (rep type-rep prop-rep))
 
 ;; types is a free-id-table of identifiers to types
 ;; props is a list of known propositions
 (define-struct/cond-contract env ([types immutable-free-id-table?] 
-                                  [props (listof Filter/c)]
+                                  [props (listof Prop?)]
                                   [aliases immutable-free-id-table?])
   #:transparent
   #:property prop:custom-write
@@ -23,8 +23,8 @@
   [extend (env? identifier? Type/c . -> . env?)]
   [extend/values (env? (listof identifier?) (listof Type/c) . -> . env?)]
   [lookup (env? identifier? (identifier? . -> . any) . -> . any)]
-  [env-props (env? . -> . (listof Filter/c))]
-  [replace-props (env? (listof Filter/c) . -> . env?)]
+  [env-props (env? . -> . (listof Prop?))]
+  [replace-props (env? (listof Prop?) . -> . env?)]
   [empty-prop-env env?]
   [extend+alias/values (env? (listof identifier?) (listof Type/c) (listof Object?) . -> . env?)]
   [lookup-alias (env? identifier? (identifier? . -> . (or/c #f Object?)) . -> . (or/c #f Object?))])

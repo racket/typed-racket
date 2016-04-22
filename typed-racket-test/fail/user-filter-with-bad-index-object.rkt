@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"Filter proposition's object index 3 is larger than argument length 1")
+(exn-pred #rx"Proposition's object index 3 is larger than argument length 1")
 #lang typed/racket
 
 ;; This test ensures that a filter object like '3' is

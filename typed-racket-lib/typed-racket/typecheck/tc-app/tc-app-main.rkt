@@ -7,7 +7,7 @@
          syntax/parse/experimental/reflect
          "../signatures.rkt" "../tc-funapp.rkt"
          (types utils)
-         (rep type-rep filter-rep object-rep))
+         (rep type-rep prop-rep object-rep))
 
 (import tc-expr^ tc-app-keywords^
         tc-app-hetero^ tc-app-list^ tc-app-apply^ tc-app-values^
@@ -46,11 +46,13 @@
 
 
 
-;; TODO: handle drest, and filters/objects
+;; TODO: handle drest, and props/objects
 (define (arr-matches? arr args)
   (match arr
     [(arr: domain
-           (Values: (list (Result: v (FilterSet: (Top:) (Top:)) (Empty:)) ...))
+           (Values: (list (Result: v
+                                   (PropSet: (TrueProp:) (TrueProp:))
+                                   (Empty:)) ...))
            rest #f (list (Keyword: _ _ #f) ...))
      (cond
        [(< (length domain) (length args)) rest]
@@ -58,9 +60,11 @@
        [else #f])]
     [_ #f]))
 
-(define (has-filter? arr)
+(define (has-props? arr)
   (match arr
-    [(arr: _ (Values: (list (Result: v (FilterSet: (Top:) (Top:)) (Empty:)) ...))
+    [(arr: _ (Values: (list (Result: v
+                                     (PropSet: (TrueProp:) (TrueProp:))
+                                     (Empty:)) ...))
            _ _ (list (Keyword: _ _ #f) ...)) #f]
     [else #t]))
 
@@ -72,13 +76,13 @@
             [args* (syntax->list #'args)])
        (define (matching-arities arrs)
          (for/list ([arr (in-list arrs)] #:when (arr-matches? arr args*)) arr))
-       (define (has-drest/filter? arrs)
+       (define (has-drest/props? arrs)
          (for/or ([arr (in-list arrs)])
-           (or (has-filter? arr) (arr-drest arr))))
+           (or (has-props? arr) (arr-drest arr))))
 
        (define arg-tys
          (match f-ty
-           [(Function: (? has-drest/filter?))
+           [(Function: (? has-drest/props?))
             (map single-value args*)]
            [(Function:
               (app matching-arities

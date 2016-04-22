@@ -20,7 +20,7 @@
 
 
 (lazy-require
-  ["../types/printer.rkt" (print-type print-filter print-object print-pathelem)])
+  ["../types/printer.rkt" (print-type print-prop print-object print-pathelem)])
 
 
 (provide == defintern hash-id (for-syntax fold-target))
@@ -135,7 +135,7 @@
                           #:defaults
                           ([frees.f1 (combiner #'Rep-free-vars #'flds.fields)]
                            [frees.f2 (combiner #'Rep-free-idxs #'flds.fields)]))
-               ;; This tricky beast is for defining the type/filter/etc.'s
+               ;; This tricky beast is for defining the type/prop/etc.'s
                ;; part of the fold. The make-prim-type's given
                ;; rec-ids are bound in this expression's context.
                (~optional [#:fold-rhs (~var fold-rhs (fold-pat #'name.fold))]
@@ -204,7 +204,7 @@
             provides))])))
 
 ;; rec-ids are identifiers that are of the folded type, so we recur on them.
-;; kws is e.g. '(#:Type #:Filter #:Object #:PathElem)
+;; kws is e.g. '(#:Type #:Prop #:Object #:PathElem)
 (define-for-syntax (mk-fold hashtable rec-ids kws)
   (lambda (stx)
     (define new-hashtable (make-hasheq))
@@ -217,7 +217,7 @@
                         (syntax/loc this-syntax (pats ...))
                         (lambda () #'e)
                         this-syntax))
-      ;; Match on a type (or filter etc) case with keyword k
+      ;; Match on a type (or prop etc) case with keyword k
       ;; pats are the unignored patterns (say for rator rand)
       ;; and e is the expression that will run as fold-rhs.
       (pattern
@@ -351,18 +351,18 @@
                            ;; [unsyntax (*1)]
                            (mk-fold ht
                                     rec-ids
-                                    ;; '(#:Type #:Filter #:Object #:PathElem)
+                                    ;; '(#:Type #:Prop #:Object #:PathElem)
                                     '(i.kw ...)))
                          (list i.hashtable ...))))))]))
 
 (make-prim-type [Type def-type #:Type type-case print-type type-name-ht type-rec-id #:key]
-                [Filter def-filter #:Filter filter-case print-filter filter-name-ht filter-rec-id]
+                [Prop def-prop #:Prop prop-case print-prop prop-name-ht prop-rec-id]
                 [Object def-object #:Object object-case print-object object-name-ht object-rec-id]
                 [PathElem def-pathelem #:PathElem pathelem-case print-pathelem pathelem-name-ht pathelem-rec-id])
 
 (define (Rep-values rep)
   (match rep
-    [(? (lambda (e) (or (Filter? e)
+    [(? (lambda (e) (or (Prop? e)
                         (Object? e)
                         (PathElem? e)))
         (app (lambda (v) (vector->list (struct->vector v))) (list-rest tag seq fv fi stx vals)))
@@ -386,7 +386,7 @@
 (provide/cond-contract
   [rename rep-equal? type-equal? (Type? Type? . -> . boolean?)]
   [rename rep<? type<? (Type? Type? . -> . boolean?)]
-  [rename rep<? filter<? (Filter? Filter? . -> . boolean?)]
+  [rename rep<? prop<? (Prop? Prop? . -> . boolean?)]
   [struct Rep ([seq exact-nonnegative-integer?]
                [free-vars (hash/c symbol? variance?)]
                [free-idxs (hash/c symbol? variance?)]

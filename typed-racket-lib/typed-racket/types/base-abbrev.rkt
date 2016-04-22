@@ -6,7 +6,7 @@
 ;; extends it with more types and type abbreviations.
 
 (require "../utils/utils.rkt"
-         (rep type-rep filter-rep object-rep rep-utils)
+         (rep type-rep prop-rep object-rep rep-utils)
          (env mvar-env)
          racket/match racket/list (prefix-in c: (contract-req))
          (for-syntax racket/base syntax/parse racket/list)
@@ -102,21 +102,19 @@
        (make-Mu 'var ty))]))
 
 ;; Results
-(define/cond-contract (-result t [f -top-filter] [o -empty-obj])
-  (c:->* (Type/c) (FilterSet? Object?) Result?)
+(define/cond-contract (-result t [pset -tt-propset] [o -empty-obj])
+  (c:->* (Type/c) (PropSet? Object?) Result?)
   (cond
-    [(or (equal? t -Bottom) (equal? f -bot-filter))
-     (make-Result -Bottom -bot-filter o)]
+    [(or (equal? t -Bottom) (equal? pset -ff-propset))
+     (make-Result -Bottom -ff-propset o)]
     [else
-     (make-Result t f o)]))
+     (make-Result t pset o)]))
 
-;; Filters
-(define/decl -top (make-Top))
-(define/decl -bot (make-Bot))
-(define/decl -no-filter (make-NoFilter))
-(define/decl -top-filter (make-FilterSet -top -top))
-(define/decl -bot-filter (make-FilterSet -bot -bot))
-(define/decl -no-obj (make-NoObject))
+;; Propositions
+(define/decl -tt (make-TrueProp))
+(define/decl -ff (make-FalseProp))
+(define/decl -tt-propset (make-PropSet -tt -tt))
+(define/decl -ff-propset (make-PropSet -ff -ff))
 (define/decl -empty-obj (make-Empty))
 (define (-id-path id)
   (cond
@@ -133,15 +131,15 @@
     [(Empty:) -empty-obj]
     [(Path: p o) (make-Path (append path-elems p) o)]))
 
-(define/cond-contract (-FS + -)
-  (c:-> Filter/c Filter/c FilterSet?)
-  (make-FilterSet + -))
+(define/cond-contract (-PS + -)
+  (c:-> Prop? Prop? PropSet?)
+  (make-PropSet + -))
 
-;; Abbreviation for filters
+;; Abbreviation for props
 ;; `i` can be an integer or name-ref/c for backwards compatibility
 ;; FIXME: Make all callers pass in an object and remove backwards compatibility
-(define/cond-contract (-filter t i)
-  (c:-> Type/c (c:or/c integer? name-ref/c Object?) Filter/c)
+(define/cond-contract (-is-type i t)
+  (c:-> (c:or/c integer? name-ref/c Object?) Type/c Prop?)
   (define o
     (cond
       [(Object? i) i]
@@ -149,17 +147,17 @@
       [(list? i) (make-Path null i)]
       [else (-id-path i)]))
   (cond
-    [(Empty? o) -top]
-    [(equal? Univ t) -top]
-    [(equal? -Bottom t) -bot]
-    [else (make-TypeFilter t o)]))
+    [(Empty? o) -tt]
+    [(equal? Univ t) -tt]
+    [(equal? -Bottom t) -ff]
+    [else (make-TypeProp o t)]))
 
 
-;; Abbreviation for not filters
+;; Abbreviation for not props
 ;; `i` can be an integer or name-ref/c for backwards compatibility
 ;; FIXME: Make all callers pass in an object and remove backwards compatibility
-(define/cond-contract (-not-filter t i)
-  (c:-> Type/c (c:or/c integer? name-ref/c Object?) Filter/c)
+(define/cond-contract (-not-type i t)
+  (c:-> (c:or/c integer? name-ref/c Object?) Type/c Prop?)
   (define o
     (cond
       [(Object? i) i]
@@ -167,30 +165,30 @@
       [(list? i) (make-Path null i)]
       [else (-id-path i)]))
   (cond
-    [(Empty? o) -top]
-    [(equal? -Bottom t) -top]
-    [(equal? Univ t) -bot]
-    [else (make-NotTypeFilter t o)]))
+    [(Empty? o) -tt]
+    [(equal? -Bottom t) -tt]
+    [(equal? Univ t) -ff]
+    [else (make-NotTypeProp o t)]))
 
 
 ;; A Type that corresponds to the any contract for the
 ;; return type of functions
 (define (-AnyValues f) (make-AnyValues f))
-(define/decl ManyUniv (make-AnyValues -top))
+(define/decl ManyUniv (make-AnyValues -tt))
 
 ;; Function types
 (define/cond-contract (make-arr* dom rng
                                  #:rest [rest #f] #:drest [drest #f] #:kws [kws null]
-                                 #:filters [filters -top-filter] #:object [obj -empty-obj])
+                                 #:props [props -tt-propset] #:object [obj -empty-obj])
   (c:->* ((c:listof Type/c) (c:or/c SomeValues/c Type/c))
          (#:rest (c:or/c #f Type/c)
           #:drest (c:or/c #f (c:cons/c Type/c symbol?))
           #:kws (c:listof Keyword?)
-          #:filters FilterSet?
+          #:props PropSet?
           #:object Object?)
          arr?)
   (make-arr dom (if (Type/c? rng)
-                    (make-Values (list (-result rng filters obj)))
+                    (make-Values (list (-result rng props obj)))
                     rng)
             rest drest (sort #:key Keyword-kw kws keyword<?)))
 
@@ -202,23 +200,23 @@
      #'(make-Function (list (make-arr* dom rng)))]
     [(_ dom rst rng)
      #'(make-Function (list (make-arr* dom rng #:rest rst)))]
-    [(_ dom rng :c filters)
-     #'(make-Function (list (make-arr* dom rng #:filters filters)))]
-    [(_ dom rng _:c filters _:c object)
-     #'(make-Function (list (make-arr* dom rng #:filters filters #:object object)))]
-    [(_ dom rst rng _:c filters)
-     #'(make-Function (list (make-arr* dom rng #:rest rst #:filters filters)))]
-    [(_ dom rst rng _:c filters : object)
-     #'(make-Function (list (make-arr* dom rng #:rest rst #:filters filters #:object object)))]))
+    [(_ dom rng :c props)
+     #'(make-Function (list (make-arr* dom rng #:props props)))]
+    [(_ dom rng _:c props _:c object)
+     #'(make-Function (list (make-arr* dom rng #:props props #:object object)))]
+    [(_ dom rst rng _:c props)
+     #'(make-Function (list (make-arr* dom rng #:rest rst #:props props)))]
+    [(_ dom rst rng _:c props : object)
+     #'(make-Function (list (make-arr* dom rng #:rest rst #:props props #:object object)))]))
 
 (define-syntax (-> stx)
   (define-syntax-class c
     (pattern x:id #:fail-unless (eq? ': (syntax-e #'x)) #f))
   (syntax-parse stx
-    [(_ dom ... rng _:c filters _:c objects)
-     #'(->* (list dom ...) rng : filters : objects)]
-    [(_ dom ... rng :c filters)
-     #'(->* (list dom ...) rng : filters)]
+    [(_ dom ... rng _:c props _:c objects)
+     #'(->* (list dom ...) rng : props : objects)]
+    [(_ dom ... rng :c props)
+     #'(->* (list dom ...) rng : props)]
     [(_ dom ... rng)
      #'(->* (list dom ...) rng)]))
 
@@ -228,10 +226,10 @@
      (->* dom rng)]
     [(_ dom (dty dbound) rng)
      (make-Function (list (make-arr* dom rng #:drest (cons dty 'dbound))))]
-    [(_ dom rng : filters)
-     (->* dom rng : filters)]
-    [(_ dom (dty dbound) rng : filters)
-     (make-Function (list (make-arr* dom rng #:drest (cons dty 'dbound) #:filters filters)))]))
+    [(_ dom rng : props)
+     (->* dom rng : props)]
+    [(_ dom (dty dbound) rng : props)
+     (make-Function (list (make-arr* dom rng #:drest (cons dty 'dbound) #:props props)))]))
 
 (define (simple-> doms rng)
   (->* doms rng))
@@ -240,8 +238,8 @@
   (define obj (-acc-path path (-id-path var)))
   (make-Function
    (list (make-arr* dom rng
-                    #:filters (-FS (-not-filter (-val #f) obj)
-                                   (-filter (-val #f) obj))
+                    #:props (-PS (-not-type obj (-val #f))
+                                 (-is-type obj (-val #f)))
                     #:object obj))))
 
 (define (cl->* . args)

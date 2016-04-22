@@ -7,7 +7,7 @@
 
 ;; TODO use contract-req
 (require (utils tc-utils)
-         "rep-utils.rkt" "object-rep.rkt" "filter-rep.rkt" "free-variance.rkt"
+         "rep-utils.rkt" "object-rep.rkt" "prop-rep.rkt" "free-variance.rkt"
          racket/match racket/list
          racket/contract
          racket/lazy-require
@@ -22,7 +22,7 @@
          Mu-unsafe: Poly-unsafe:
          PolyDots-unsafe:
          Mu? Poly? PolyDots? PolyRow?
-         Filter? Object?
+         Prop? Object?
          Type/c Type/c?
          Values/c SomeValues/c
          Bottom?
@@ -274,9 +274,9 @@
   [#:frees (λ (f) (f ty))]
   [#:fold-rhs (*Keyword kw (type-rec-id ty) required?)])
 
-(def-type Result ([t Type/c] [f FilterSet?] [o Object?])
+(def-type Result ([t Type/c] [f PropSet?] [o Object?])
   [#:frees (λ (frees) (combine-frees (map frees (list t f o))))]
-  [#:fold-rhs (*Result (type-rec-id t) (filter-rec-id f) (object-rec-id o))])
+  [#:fold-rhs (*Result (type-rec-id t) (prop-rec-id f) (object-rec-id o))])
 
 (def-type Values ([rs (listof Result?)])
   [#:intern (map Rep-seq rs)]
@@ -284,7 +284,7 @@
   [#:fold-rhs (*Values (map type-rec-id rs))])
 
 
-(def-type AnyValues ([f Filter/c])
+(def-type AnyValues ([f Prop?])
   [#:fold-rhs #:base])
 
 (def-type ValuesDots ([rs (listof Result?)] [dty Type/c] [dbound (or/c symbol? natural-number/c)])
@@ -617,10 +617,10 @@
 
 
 (define ((sub-f st) e)
-  (filter-case (#:Type st
-                #:Filter (sub-f st)
-                #:PathElem (sub-pe st))
-               e))
+  (prop-case (#:Type st
+              #:Prop (sub-f st)
+              #:PathElem (sub-pe st))
+             e))
 
 
 (define ((sub-o st) e)
@@ -636,7 +636,7 @@
 
 (define ((sub-t st) e)
   (type-case (#:Type st
-              #:Filter (sub-f st))
+              #:Prop (sub-f st))
               e))
 
 
@@ -657,7 +657,7 @@
                     (f (+ (cdr pr) outer)))]
               [else default]))
       (type-case
-        (#:Type sb #:Filter (sub-f sb) #:Object (sub-o sb))
+        (#:Type sb #:Prop (sub-f sb) #:Object (sub-o sb))
        ty
        [#:F name* (transform name* *B ty)]
        ;; necessary to avoid infinite loops
@@ -711,7 +711,7 @@
       (define (sb t) (loop outer t))
       (define sf (sub-f sb))
       (type-case
-       (#:Type sb #:Filter sf #:Object (sub-o sb))
+       (#:Type sb #:Prop sf #:Object (sub-o sb))
        ty
        [#:B idx (transform idx values ty)]
        ;; necessary to avoid infinite loops

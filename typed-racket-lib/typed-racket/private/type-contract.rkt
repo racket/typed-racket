@@ -5,7 +5,7 @@
 (require
  "../utils/utils.rkt"
  syntax/parse
- (rep type-rep filter-rep object-rep)
+ (rep type-rep prop-rep object-rep)
  (utils tc-utils)
  (env type-name-env row-constraint-env)
  (rep rep-utils)
@@ -613,17 +613,21 @@
   ;; and call the given thunk or raise an error
   (define (handle-range arr convert-arr)
     (match arr
-      ;; functions with no filters or objects
-      [(arr: dom (Values: (list (Result: rngs (FilterSet: (Top:) (Top:)) (Empty:)) ...)) rst drst kws)
+      ;; functions with no props or objects
+      [(arr: dom (Values: (list (Result: rngs
+                                         (PropSet: (TrueProp:)
+                                                   (TrueProp:))
+                                         (Empty:)) ...))
+             rst drst kws)
        (convert-arr)]
       ;; Functions that don't return
       [(arr: dom (Values: (list (Result: (== -Bottom) _ _) ...)) rst drst kws)
        (convert-arr)]
-      ;; functions with filters or objects
+      ;; functions with props or objects
       [(arr: dom (Values: (list (Result: rngs _ _) ...)) rst drst kws)
        (if (from-untyped? typed-side)
            (fail #:reason (~a "cannot generate contract for function type"
-                              " with filters or objects."))
+                              " with props or objects."))
            (convert-arr))]
       [(arr: dom (? ValuesDots?) rst drst kws)
        (fail #:reason (~a "cannot generate contract for function type"
@@ -797,7 +801,7 @@
   (let/ec escape
     (let loop ([type type])
       (type-case
-       (#:Type loop #:Filter (sub-f loop) #:Object (sub-o loop))
+       (#:Type loop #:Prop (sub-f loop) #:Object (sub-o loop))
        type
        [#:App arg _ _
         (match arg

@@ -9,7 +9,7 @@
          (typecheck signatures tc-funapp)
          (types abbrev type-table utils)
          (private type-annotation)
-         (rep type-rep filter-rep)
+         (rep type-rep prop-rep)
          (utils tc-utils)
 
          (for-label racket/base racket/bool '#%paramz))
@@ -50,11 +50,11 @@
                                                      Univ))
                     (list (ret Univ) (single-value #'arg))
                     expected)]))
-  ;; special-case for not - flip the filters
+  ;; special-case for not - flip the props
   (pattern ((~or false? not) arg)
     (match (single-value #'arg)
-      [(tc-result1: t (FilterSet: f+ f-) _)
-       (ret -Boolean (make-FilterSet f- f+))]))
+      [(tc-result1: t (PropSet: p+ p-) _)
+       (ret -Boolean (make-PropSet p- p+))]))
   ;; special case for (current-contract-region)'s default expansion
   ;; just let it through without any typechecking, since module-name-fixup
   ;; is a private function from syntax/location, so this must have been

@@ -531,8 +531,8 @@
           (match expected
             [(tc-result1: (app resolve t)) (or (Poly? t) (PolyDots? t) (PolyRow? t))]
             [_ #f]))
-      (ret (tc/plambda form (get-poly-tvarss form) formals bodies expected) -true-filter)
-      (ret (tc/mono-lambda/type formals bodies expected) -true-filter)))
+      (ret (tc/plambda form (get-poly-tvarss form) formals bodies expected) -true-propset)
+      (ret (tc/mono-lambda/type formals bodies expected) -true-propset)))
 
 ;; formals : the formal arguments to the loop
 ;; body : a block containing the body of the loop

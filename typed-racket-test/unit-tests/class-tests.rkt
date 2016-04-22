@@ -23,8 +23,8 @@
                               base-types base-types-extra)
                     define lambda λ case-lambda)
          (prefix-in tr: (only-in (base-env prims) define lambda λ case-lambda))
-         (for-syntax (rep type-rep filter-rep object-rep)
-                     (rename-in (types abbrev union numeric-tower filter-ops utils)
+         (for-syntax (rep type-rep prop-rep object-rep)
+                     (rename-in (types abbrev union numeric-tower prop-ops utils)
                                 [Un t:Un]
                                 [-> t:->])))
 
@@ -107,8 +107,8 @@
          -Void]
    ;; Send to non object
    [tc-err (send 4 m 3)
-      #:ret (ret (-val 5) -bot-filter)
-      #:expected (ret (-val 5) -no-filter -no-obj)]
+      #:ret (ret (-val 5) -ff-propset)
+      #:expected (ret (-val 5) #f #f)]
    ;; Fails, sending to multiple/unknown values
    [tc-err (send (values 'a 'b) m 'c)
            #:msg #rx"expected single value"]
@@ -857,7 +857,7 @@
                         (public [m m])
                         (define m (lambda () "a"))))
            (send (new c%) m))
-         #:ret (ret -String -true-filter)]
+         #:ret (ret -String -true-propset)]
    ;; fails, internal name not accessible
    [tc-err (let ()
              (define c% (class object% (super-new)
@@ -951,7 +951,7 @@
    [tc-err (class object% (super-new)
              (define/public (m) (n))
              (define/public (n x) 0))
-           #:ret (ret (-class #:method ([m (t:-> -Bottom)] [n (t:-> Univ -Zero : -true-filter)])))
+           #:ret (ret (-class #:method ([m (t:-> -Bottom)] [n (t:-> Univ -Zero : -true-propset)])))
            #:msg #rx"since it is not a function type"]
    ;; test type-checking for classes without any
    ;; internal type annotations on methods
@@ -959,7 +959,7 @@
            (define c% (class object% (super-new)
                         (define/public (m) "a")))
            (send (new c%) m))
-         #:ret (ret -String -true-filter)]
+         #:ret (ret -String -true-propset)]
    ;; test inheritance without expected
    [tc-e (let ()
            (define c% (class (class object% (super-new)
@@ -1006,7 +1006,7 @@
                             (-class
                               #:row (make-Row null `([x ,-Integer]) null null #f)
                               #:field ([x -Integer])))
-                      -true-filter)]
+                      -true-propset)]
    ;; fails, mixin argument is missing required field
    [tc-err (let ()
              (: f (All (A #:row (field x))
@@ -1077,7 +1077,7 @@
                             (-class
                               #:row (make-Row null `([x ,-Integer]) null null #f)
                               #:field ([x -Integer])))
-                      -true-filter)]
+                      -true-propset)]
    ;; test bad manipulation of rows for inheritance
    [tc-e (let ()
            (: c% (Class (init [x String] [y String])))
@@ -1394,7 +1394,7 @@
              (define/pubment (foo x) 0)
              (define/public (g x) (foo 3)))
            #:ret (ret (-class #:method ([g (t:-> Univ -Bottom)]
-                                        [foo (t:-> Univ -Zero : -true-filter)])
+                                        [foo (t:-> Univ -Zero : -true-propset)])
                               #:augment ([foo top-func])))
            #:msg #rx"Cannot apply expression of type Any"]
    ;; the next several tests are for positional init arguments
@@ -1529,13 +1529,13 @@
                (define/public (m a-foo) (get-field x a-foo))))
            (void))
          -Void]
-   ;; test that filters are correctly handled for polymorphic classes
+   ;; test that propositions are correctly handled for polymorphic classes
    [tc-e (let ()
            (class object%
              (super-new)
              (init x)))
          #:ret (ret (-poly (A) (-class #:init ([x A #f]))))
-         #:expected (ret (-poly (A) (-class #:init ([x A #f]))) -no-filter -no-obj)]
+         #:expected (ret (-poly (A) (-class #:init ([x A #f]))) #f #f)]
    ;; test uses of a macro in the body of the class
    [tc-e
     (let ()

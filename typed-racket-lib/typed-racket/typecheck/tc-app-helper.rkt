@@ -6,7 +6,7 @@
          (contract-req)
          (typecheck check-below tc-subst tc-metafunctions possible-domains)
          (utils tc-utils)
-         (rep type-rep filter-rep)
+         (rep type-rep prop-rep)
          (except-in (types utils abbrev subtype type-table)
                     -> ->* one-of/c))
 (require-for-cond-contract
@@ -78,7 +78,7 @@
     [(or (tc-results: ts)
          (tc-results: ts _ _ _ _))
      (-values (map cleanup-type ts))]
-    [(tc-any-results: f) (-AnyValues -top)]
+    [(tc-any-results: f) (-AnyValues -tt)]
     [_ t]))
 
 (define (stringify-domain dom rst drst [rng #f])

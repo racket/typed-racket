@@ -6,10 +6,10 @@
 (require "../utils/utils.rkt"
          racket/match racket/list
          (contract-req)
-         (except-in (types abbrev utils filter-ops path-type)
+         (except-in (types abbrev utils prop-ops path-type)
                     -> ->* one-of/c)
          (only-in (infer infer) restrict)
-         (rep type-rep object-rep filter-rep rep-utils))
+         (rep type-rep object-rep prop-rep rep-utils))
 
 (provide add-scope)
 
@@ -49,12 +49,12 @@
 ;; This is a combination of all of thes substitions from the paper over the different parts of the
 ;; results.
 ;; t is the type of the object that we are substituting in. This allows for restriction/simplification
-;; of some filters if they conflict with the argument type.
+;; of some props if they conflict with the argument type.
 (define/cond-contract (subst-tc-results res k o polarity t)
   (-> full-tc-results/c name-ref/c Object? boolean? Type? full-tc-results/c)
   (define (st ty) (subst-type ty k o polarity t))
   (define (sr ty fs ob) (subst-tc-result ty fs ob k o polarity t))
-  (define (sf f) (subst-filter f k o polarity t))
+  (define (sf f) (subst-prop f k o polarity t))
   (match res
     [(tc-any-results: f) (tc-any-results (sf f))]
     [(tc-results: ts fs os)
@@ -78,34 +78,34 @@
         (subst-type r-t k o polarity t)
         (restrict argument-side
                   (subst-type r-t k o polarity t)))
-    (subst-filter-set r-fs k o polarity t)
+    (subst-prop-set r-fs k o polarity t)
     (subst-object r-o k o polarity)))
 
-;; Substitution of objects into a filter set
+;; Substitution of objects into a prop set
 ;; This is essentially ψ+|ψ- [o/x] from the paper
-(define/cond-contract (subst-filter-set fs k o polarity t)
-  (-> (or/c FilterSet? NoFilter?) name-ref/c Object? boolean? Type/c FilterSet?)
-  (define extra-filter (-filter t k))
-  (define (add-extra-filter f)
-    (define f* (-and f extra-filter))
+(define/cond-contract (subst-prop-set pset k o polarity t)
+  (-> (or/c #f PropSet?) name-ref/c Object? boolean? Type/c PropSet?)
+  (define extra-prop (-is-type k t))
+  (define (add-extra-prop p)
+    (define p* (-and p extra-prop))
     (cond
-      [(filter-equal? f* extra-filter) -top]
-      [(Bot? f*) -bot]
-      [else f]))
-  (match fs
-    [(FilterSet: f+ f-)
-     (-FS (subst-filter (add-extra-filter f+) k o polarity t)
-          (subst-filter (add-extra-filter f-) k o polarity t))]
-    [_ -top-filter]))
+      [(prop-equal? p* extra-prop) -tt]
+      [(FalseProp? p*) -ff]
+      [else p]))
+  (match pset
+    [(PropSet: p+ p-)
+     (-PS (subst-prop (add-extra-prop p+) k o polarity t)
+          (subst-prop (add-extra-prop p-) k o polarity t))]
+    [_ -tt-propset]))
 
 ;; Substitution of objects into a type
 ;; This is essentially t [o/x] from the paper
 (define/cond-contract (subst-type t k o polarity ty)
   (-> Type? name-ref/c Object? boolean? Type/c Type?)
   (define (st t) (subst-type t k o polarity ty))
-  (define/cond-contract (sf fs) (FilterSet? . -> . FilterSet?) (subst-filter-set fs k o polarity ty))
+  (define/cond-contract (sf fs) (PropSet? . -> . PropSet?) (subst-prop-set fs k o polarity ty))
   (type-case (#:Type st
-              #:Filter sf
+              #:Prop sf
               #:Object (lambda (f) (subst-object f k o polarity)))
               t
               [#:arr dom rng rest drest kws
@@ -135,80 +135,48 @@
 (define/cond-contract (subst-object t k o polarity)
   (-> Object? name-ref/c Object? boolean? Object?)
   (match t
-    [(NoObject:) t]
+    [#f t]
     [(Empty:) t]
     [(Path: p i)
      (if (name-ref=? i k)
          (match o
            [(Empty:) -empty-obj]
            ;; the result is not from an annotation, so it isn't a NoObject
-           [(NoObject:) -empty-obj]
+           [#f -empty-obj]
            [(Path: p* i*) (make-Path (append p p*) i*)])
          t)]))
 
-;; Substitution of objects into a filter in a filter set
-;; This is ψ+ [o/x] and ψ- [o/x] with the addition that filters are restricted to
+;; Substitution of objects into a prop in a prop set
+;; This is ψ+ [o/x] and ψ- [o/x] with the addition that props are restricted to
 ;; only those values which are a subtype of the actual argument type (ty).
-(define/cond-contract (subst-filter f k o polarity ty)
-  (-> Filter/c name-ref/c Object? boolean? Type/c Filter/c)
-  (define (ap f) (subst-filter f k o polarity ty))
-  (define (tf-matcher t p i maker)
+(define/cond-contract (subst-prop p k o polarity ty)
+  (-> Prop? name-ref/c Object? boolean? Type/c Prop?)
+  (define (ap q) (subst-prop q k o polarity ty))
+  (define (tprop-matcher pes i t maker)
     (cond
       [(name-ref=? i k)
        (match o
          [(Empty:)
-          (if polarity -top -bot)]
+          (if polarity -tt -ff)]
          [_
           ;; `ty` alone doesn't account for the path, so
           ;; first traverse it with the path to match `t`
-          (define ty/path (path-type p ty))
+          (define ty/path (path-type pes ty))
           (maker
-            ;; don't restrict if the path doesn't match the type
-            (if (equal? ty/path Err)
-                (subst-type t k o polarity ty)
-                (restrict ty/path
-                          (subst-type t k o polarity ty)))
-            (-acc-path p o))])]
-      [(index-free-in? k t) (if polarity -top -bot)]
-      [else f]))
+           (-acc-path pes o)
+           ;; don't restrict if the path doesn't match the type
+           (if (equal? ty/path Err)
+               (subst-type t k o polarity ty)
+               (restrict ty/path
+                         (subst-type t k o polarity ty))))])]
+      [else p]))
 
-  (match f
-    [(ImpFilter: ant consq)
-     (-imp (subst-filter ant k o (not polarity) ty) (ap consq))]
-    [(AndFilter: fs) (apply -and (map ap fs))]
-    [(OrFilter: fs) (apply -or (map ap fs))]
-    [(Bot:) -bot]
-    [(Top:) -top]
-    [(TypeFilter: t (Path: p i))
-     (tf-matcher t p i -filter)]
-    [(NotTypeFilter: t (Path: p i))
-     (tf-matcher t p i -not-filter)]))
-
-;; Determine if the object k occurs free in the given type
-(define (index-free-in? k type)
-  (let/ec
-   return
-   (define (for-object o)
-     (object-case (#:Type for-type)
-                  o
-                  [#:Path p i
-                          (if (name-ref=? i k)
-                              (return #t)
-                              o)]))
-   (define (for-type t)
-     (type-case (#:Type for-type
-                 #:Object for-object)
-                t
-                [#:arr dom rng rest drest kws
-                       (let* ([st* (if (pair? k)
-                                       (lambda (t) (index-free-in? (add-scope k) t))
-                                       for-type)])
-                         (for-each for-type dom)
-                         (st* rng)
-                         (and rest (for-type rest))
-                         (and drest (for-type (car drest)))
-                         (for-each for-type kws)
-                         ;; dummy return value
-                         (make-arr* null Univ))]))
-   (for-type type)
-    #f))
+  (match p
+    [(AndProp: ps) (apply -and (map ap ps))]
+    [(OrProp: ps) (apply -or (map ap ps))]
+    [(FalseProp:) -ff]
+    [(TrueProp:) -tt]
+    [(TypeProp: (Path: pes i) t)
+     (tprop-matcher pes i t -is-type)]
+    [(NotTypeProp: (Path: pes i) t)
+     (tprop-matcher pes i t -not-type)]))

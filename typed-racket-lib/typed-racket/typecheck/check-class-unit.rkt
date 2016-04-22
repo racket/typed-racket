@@ -461,7 +461,7 @@
   (define-values (alias-names alias-map) (get-type-alias-info type-aliases))
   (register-all-type-aliases alias-names alias-map)
 
-  ;; Filter top level expressions into several groups, each processed
+  ;; Prop top level expressions into several groups, each processed
   ;; into appropriate data structures
   ;;
   ;; Augment annotations go in their own table, because they're
@@ -983,7 +983,7 @@
            (do-timestamp (format "finished method ~a" external-name))
            (cons (list external-name pre-method-type) checked)]
           ;; Only try to type-check if these names are in the
-          ;; filter when it's provided. This allows us to, say, only
+          ;; prop when it's provided. This allows us to, say, only
           ;; type-check pubments/augments.
           [(set-member? names-to-check external-name)
            (do-timestamp (format "started checking method ~a" external-name))

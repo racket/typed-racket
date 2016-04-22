@@ -18,8 +18,8 @@
                              (-or/c Type/c string?)
                              -any)]
                        [type-mismatch
-                        (-->* ((-or/c Type/c Filter? string?)
-                               (-or/c Type/c Filter? string?))
+                        (-->* ((-or/c Type/c Prop? string?)
+                               (-or/c Type/c Prop? string?))
                               ((-or/c string? #f))
                               -any)])
 

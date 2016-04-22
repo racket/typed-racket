@@ -5,7 +5,7 @@
 ;;
 ;; See "Logical Types for Untyped Languages" pg.3
 
-(require "rep-utils.rkt" "free-variance.rkt" "filter-rep.rkt" "../utils/utils.rkt" (contract-req))
+(require "rep-utils.rkt" "free-variance.rkt" "prop-rep.rkt" "../utils/utils.rkt" (contract-req))
 (provide object-equal?)
 
 (def-pathelem CarPE () [#:fold-rhs #:base])
@@ -25,16 +25,4 @@
   [#:frees (λ (f) (combine-frees (map f p)))]
   [#:fold-rhs (*Path (map pathelem-rec-id p) v)])
 
-;; represents no info about the object of this expression
-;; should only be used for parsing type annotations and expected types
-(def-object NoObject () [#:fold-rhs #:base])
-
 (define (object-equal? o1 o2) (= (Rep-seq o1) (Rep-seq o2)))
-
-#|
-(dlo LEmpty () [#:fold-rhs #:base])
-
-(dlo LPath ([p (listof PathElem?)] [idx index/c])
-  [#:frees (λ (f) (combine-frees (map f p)))]
-  [#:fold-rhs (*LPath (map pathelem-rec-id p) idx)])
-|#

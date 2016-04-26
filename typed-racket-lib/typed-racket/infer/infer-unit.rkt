@@ -19,7 +19,7 @@
          "constraint-structs.rkt"
          "signatures.rkt" "fail.rkt"
          "promote-demote.rkt"
-         racket/match
+         racket/match racket/set
          mzlib/etc
          (contract-req)
          (for-syntax
@@ -525,6 +525,19 @@
           [((? Mu? s) t) (cg (unfold s) t)]
           [(s (? Mu? t)) (cg s (unfold t))]
 
+          ;; find *an* element of elems which can be made a subtype of T
+          [((Intersection: ts) T)
+           (cset-join
+            (for*/list ([t (in-immutable-set ts)]
+                        [v (in-value (cg t T))]
+                        #:when v)
+              v))]
+          
+          ;; constrain S to be below *each* element of elems, and then combine the constraints
+          [(S (Intersection: ts))
+           (define cs (for/list/fail ([ts (in-immutable-set ts)]) (cg S ts)))
+           (and cs (cset-meet* (cons empty cs)))]
+          
           ;; constrain *each* element of es to be below T, and then combine the constraints
           [((Union: es) T)
            (define cs (for/list/fail ([e (in-list es)]) (cg e T)))

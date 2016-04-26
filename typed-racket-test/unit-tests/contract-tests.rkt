@@ -354,4 +354,10 @@
                      (class object% (super-new)
                        (define/public (m) "m"))
                      #:untyped)
+              ;; intersection types
+              (t (-unsafe-intersect (-seq -Symbol) (-pair -Symbol (-lst -Symbol))))
+              (t/fail (-unsafe-intersect (-Number . -> . -Number) (-String . -> . -String))
+                      "more than 1 non-flat contract")
+              (t/fail (-unsafe-intersect (-box -Symbol) (-box Univ))
+                      "more than 1 non-flat contract")
               ))

@@ -61,7 +61,8 @@
   contract-restrict-recursive-values
 
   contract-restrict?
-  )
+  contract-restrict-value
+  kind-max-max)
 
 (module structs racket/base
   (require racket/contract

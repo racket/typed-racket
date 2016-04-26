@@ -1,6 +1,7 @@
 #lang racket/base
 (require (except-in "../utils/utils.rkt" infer)
-         racket/match racket/function racket/lazy-require racket/list
+         racket/match racket/function racket/lazy-require
+         racket/list racket/set
          (prefix-in c: (contract-req))
          (rep type-rep prop-rep object-rep rep-utils)
          (utils tc-utils early-return)
@@ -272,6 +273,18 @@
          ;; value types
          [((Value: v1) (Value: v2))
           #:when (equal? v1 v2) A0]
+         [((Intersection: ss) t)
+          (and 
+           (for/or ([s (in-immutable-set ss)])
+             (subtype* A0 s t))
+           A0)]
+         [(s (Intersection: ts))
+          (and 
+           (for/fold ([A A0])
+                     ([t (in-immutable-set ts)]
+                      #:break (not A))
+             (subtype* A s t))
+           A0)]
          ;; values are subtypes of their "type"
          [((Value: v) (Base: _ _ pred _)) (if (pred v) A0 #f)]
          ;; tvars are equal if they are the same variable

@@ -50,6 +50,16 @@
    [(Un (-val #f) (Un (-val 6) (-val 7))) (-mu x (Un -Number (Un -Boolean -Symbol)))]
    [(Un -Number (-val #f) (-mu x (Un -Number -Symbol (make-Listof x))))
     (-mu x (Un -Number -Symbol -Boolean (make-Listof x)))]
+   ;; intersections
+    [(-unsafe-intersect -Number) -Number]
+    [(-unsafe-intersect -Number -Symbol) -Number]
+    [(-unsafe-intersect -Boolean -Number) -Number]
+    [(-unsafe-intersect -Number -Number) -Number]
+    [FAIL -Number (-unsafe-intersect -Boolean -Number)]
+    [(-unsafe-intersect -Boolean -Number) (-unsafe-intersect -Boolean -Number)]
+    [(-unsafe-intersect -Sexp
+                        (Un -Null (-pair -Sexp (-unsafe-intersect (make-Listof Univ) -Sexp))))
+     (make-Listof Univ)]
    ;; sexps vs list*s of nums
    [(-mu x (Un -Number -Symbol (make-Listof x))) (-mu x (Un -Number -Symbol -Boolean (make-Listof x)))]
    [(-mu x (Un -Number (make-Listof x))) (-mu x (Un -Number -Symbol (make-Listof x)))]

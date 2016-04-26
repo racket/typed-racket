@@ -2,6 +2,7 @@
 (require "test-utils.rkt"
          (for-syntax racket/base)
          (r:infer infer)
+         (rep type-rep)
          (types abbrev numeric-tower subtype union remove-intersect)
          rackunit)
 (provide tests)
@@ -43,7 +44,11 @@
    [-Sexp -Listof (-lst -Sexp)]
    [(-val "one") -Fixnum (Un)]
    [(Un (-val "one") (-val "two")) (Un (-val "one") (-val 1)) (-val "one")]
-   ))
+   ;; intersection cases
+   [(-v a) -String (-unsafe-intersect (-v a) -String)]
+   [-String (-v a) (-unsafe-intersect (-v a) -String)]
+   [(-> -Number -Number) (-> -String -String) (-unsafe-intersect (-> -Number -Number)
+                                                                 (-> -String -String))]))
 
 (define-syntax (remo-tests stx)
   (syntax-case stx ()

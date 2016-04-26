@@ -3,7 +3,7 @@
 (require "../utils/utils.rkt"
          (rep type-rep rep-utils)
          (types union subtype resolve utils)
-         racket/match)
+         racket/match racket/set)
 
 (provide (rename-out [*remove remove]) overlap)
 
@@ -33,7 +33,7 @@
       [else
        (match (list t1 t2)
          [(list-no-order (Univ:) _) #t]
-         [(list-no-order (F: _) _) #t]
+         [(list-no-order (or (B: _) (F: _)) _) #t]
          [(list-no-order (Opaque: _) _) #t]
          [(list (Name/simple: n) (Name/simple: n*))
           (or (free-identifier=? n n*)
@@ -44,6 +44,9 @@
          [(list-no-order (Refinement: t _) s) (overlap t s)]
          [(list-no-order (Union: ts) s)
           (ormap (lambda (t*) (overlap t* s)) ts)]
+         [(list-no-order (Intersection: ts) s)
+          (for/and ([t (in-immutable-set ts)])
+            (overlap t s))]
          [(list-no-order (? Poly?) _) #t] ;; conservative
          [(list (Base: s1 _ _ _) (Base: s2 _ _ _)) (or (subtype t1 t2) (subtype t2 t1))]
          [(list-no-order (? Base? t) (? Value? s)) (subtype s t)] ;; conservative
@@ -106,6 +109,9 @@
            old]
           [(list (Union: l) rem)
            (apply Un (map (lambda (e) (*remove e rem)) l))]
+          [(list (Intersection: ts) rem)
+           (apply -unsafe-intersect
+                  (for/list ([t (in-immutable-set ts)]) (*remove t rem)))]
           [(list (? Mu? old) t) (*remove (unfold old) t)]
           [(list (Poly: vs b) t) (make-Poly vs (*remove b rem))]
           [_ old])))

@@ -22,7 +22,8 @@
 (define-other-types
   -> ->* case-> U Rec All Opaque Vector
   Parameterof List List* Class Object Unit Values AnyValues Instance Refinement
-  pred Struct Struct-Type Prefab Top Bot Distinction Sequenceof)
+  pred Struct Struct-Type Prefab Top Bot Distinction Sequenceof
+  ∩)
 
 (provide (rename-out [All ∀]
                      [U Un]

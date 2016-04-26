@@ -89,7 +89,7 @@
     [i:regexp  -Regexp]
     [() -Null]
     [(i . r)
-     (match (and expected (resolve (restrict expected (-pair Univ Univ) 'orig)))
+     (match (and expected (resolve (restrict expected (-pair Univ Univ))))
        [(Pair: a-ty d-ty)
         (-pair
          (tc-literal #'i a-ty)
@@ -97,7 +97,7 @@
        [t 
         (-pair (tc-literal #'i) (tc-literal #'r))])]
     [(~var i (3d vector?))
-     (match (and expected (resolve (restrict expected -VectorTop 'orig)))
+     (match (and expected (resolve (restrict expected -VectorTop)))
        [(Vector: t)
         (make-Vector
           (check-below
@@ -113,7 +113,7 @@
        [_ (make-HeterogeneousVector (for/list ([l (in-vector (syntax-e #'i))])
                                       (generalize (tc-literal l #f))))])]
     [(~var i (3d hash?))
-     (match (and expected (resolve (restrict expected -HashTop 'orig)))
+     (match (and expected (resolve (restrict expected -HashTop)))
        [(Hashtable: k v)
         (let* ([h (syntax-e #'i)]
                [ks (hash-map h (lambda (x y) (tc-literal x k)))]

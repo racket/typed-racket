@@ -406,6 +406,14 @@
 
    ;; GH issue #314
    [FAIL ~> #:msg "unbound"]
+
+   ;; intersections
+   [(∩) Univ]
+   [(∩ Any) Univ]
+   [(∩ String Symbol) -Bottom]
+   [(∩ (-> Number Number) (-> String String))
+    (-unsafe-intersect (t:-> -String -String)
+                       (t:-> -Number -Number))]
    ))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

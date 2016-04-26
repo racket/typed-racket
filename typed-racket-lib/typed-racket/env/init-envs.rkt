@@ -13,7 +13,7 @@
          (rep type-rep object-rep prop-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
          (types abbrev union)
-         racket/dict racket/list racket/promise
+         racket/dict racket/list racket/set racket/promise
          mzlib/pconvert racket/match)
 
 (provide ;; convenience form for defining an initial environment
@@ -84,6 +84,8 @@
      `(->acc (list ,@(map sub dom)) ,(sub t) ,(sub pth))]
     [(Result: t (PropSet: (TrueProp:) (TrueProp:)) (Empty:)) `(-result ,(sub t))]
     [(Union: elems) (split-union elems)]
+    [(Intersection: elems) `(make-Intersection (set ,@(for/list ([elem (in-immutable-set elems)])
+                                                        (sub elem))))]
     [(Base: n cnt pred _) (int-err "Base type ~a not in predefined-type-table" n)]
     [(Name: stx args struct?)
      `(make-Name (quote-syntax ,stx) ,args ,struct?)]

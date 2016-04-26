@@ -460,6 +460,8 @@
     [(Union: elems)
      (define-values (covered remaining) (cover-union type ignored-names))
      (cons 'U (append covered (map t->s remaining)))]
+    [(Intersection: elems)
+     (cons '∩ (for/list ([elem (in-immutable-set elems)]) (t->s elem)))]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
     [(F: nm) nm]

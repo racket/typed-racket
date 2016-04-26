@@ -2,11 +2,12 @@
 
 ;; This module provides functions for parsing types written by the user
 
-(require "../utils/utils.rkt"
+(require (rename-in "../utils/utils.rkt" [infer infer-in])
          (except-in (rep type-rep object-rep) make-arr)
          (rename-in (types abbrev union utils prop-ops resolve
                            classes prefab signatures)
                     [make-arr* make-arr])
+         (only-in (infer-in infer) restrict)
          (utils tc-utils stxclass-util literal-syntax-class)
          syntax/stx (prefix-in c: (contract-req))
          syntax/parse racket/sequence
@@ -109,6 +110,7 @@
 (define-literal-syntax-class #:for-label Bot)
 (define-literal-syntax-class #:for-label Distinction)
 (define-literal-syntax-class #:for-label Sequenceof)
+(define-literal-syntax-class #:for-label ∩)
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
@@ -466,6 +468,10 @@
                  t*))))]
       [(:U^ ts ...)
        (apply Un (parse-types #'(ts ...)))]
+      [(:∩^ ts ...)
+       (for/fold ([ty Univ])
+                 ([t (in-list (parse-types #'(ts ...)))])
+         (restrict ty t))]
       [(:quote^ t)
        (parse-quoted-type #'t)]
       [(:All^ . rest)

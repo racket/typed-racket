@@ -8,7 +8,7 @@
 ;; TODO use contract-req
 (require (utils tc-utils)
          "rep-utils.rkt" "object-rep.rkt" "prop-rep.rkt" "free-variance.rkt"
-         racket/match racket/list
+         racket/match racket/list racket/set
          racket/contract
          racket/lazy-require
          racket/promise
@@ -19,6 +19,7 @@
          PolyDots-names:
          PolyRow-names: PolyRow-fresh:
          Type-seq
+         -unsafe-intersect
          Mu-unsafe: Poly-unsafe:
          PolyDots-unsafe:
          Mu? Poly? PolyDots? PolyRow?
@@ -53,8 +54,9 @@
 
 ;; Ugly hack - should use units
 (lazy-require
-  ("../types/union.rkt" (Un))
-  ("../types/resolve.rkt" (resolve-app)))
+ ("../types/union.rkt" (Un))
+ ("../types/remove-intersect.rkt" (overlap))
+ ("../types/resolve.rkt" (resolve-app)))
 
 (define name-table (make-weak-hasheq))
 
@@ -448,6 +450,55 @@
                       [else (loop (cdr ts) (cons k res))])])))
      (define d* (remove-duplicates d))
      (if (and (pair? d*) (null? (cdr d*))) (car d*) d*))])
+
+
+;; Intersection
+(def-type Intersection ([elems (and/c (set/c Type/c)
+                                      (λ (s) (>= (set-count s) 2)))])
+  [#:intern (for/set ([e (in-immutable-set elems)])
+              (Rep-seq e))]
+  [#:frees (λ (f) (combine-frees (for/list ([elem (in-immutable-set elems)])
+                                   (f elem))))]
+  [#:fold-rhs (let ([elems (for/list ([elem (in-immutable-set elems)])
+                             (type-rec-id elem))])
+                (apply -unsafe-intersect elems))]
+  [#:key (let ()
+           (define d
+             (let loop ([ts (set->list elems)] [res null])
+               (cond [(null? ts) res]
+                     [else
+                      (define k (Type-key (car ts)))
+                      (cond [(not k) (list #f)]
+                            [(pair? k) (loop (cdr ts) (append k res))]
+                            [else (loop (cdr ts) (cons k res))])])))
+           (define d* (remove-duplicates d))
+           (if (and (pair? d*) (null? (cdr d*))) (car d*) d*))])
+
+;;  constructor for intersections
+;; in general, intersections should be built
+;; using the 'restrict' operator, which worries
+;; about actual subtyping, etc...
+(define (-unsafe-intersect . ts)
+  (let loop ([elems (set)]
+             [ts ts])
+    (match ts
+      [(list)
+       (cond
+         [(set-empty? elems) (Univ)]
+         ;; size = 1 ?
+         [(= 1 (set-count elems)) (set-first elems)]
+         ;; size > 1, build an intersection
+         [else (*Intersection elems)])]
+      [(cons t ts)
+       (match t
+         [(? Bottom?) t]
+         [(Univ:) (loop elems ts)]
+         [(Intersection: ts*) (loop (set-union elems ts*) ts)]
+         [t (cond
+              [(for/or ([elem (in-immutable-set elems)]) (not (overlap elem t)))
+               (*Union (list))]
+              [else (loop (set-add elems t) ts)])])])))
+
 
 (def-type Univ () [#:frees #f] [#:fold-rhs #:base])
 

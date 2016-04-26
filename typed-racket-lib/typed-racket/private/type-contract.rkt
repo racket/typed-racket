@@ -14,10 +14,10 @@
  (private parse-type syntax-properties)
  racket/match racket/syntax racket/list
  racket/format
- racket/dict
+ racket/dict racket/set
  syntax/flatten-begin
  (only-in (types abbrev) -Bottom -Boolean)
- (static-contracts instantiate optimize structures combinators)
+ (static-contracts instantiate optimize structures combinators constraints)
  ;; TODO make this from contract-req
  (prefix-in c: racket/contract)
  (contract-req)
@@ -211,6 +211,15 @@
                                      ctc-cache sc-cache)))]
        [_ form]))))
 
+;; get-max-contract-kind
+;; static-contract -> (or/c 'flat 'chaperone 'impersonator)
+;; recurse into a contract finding the max
+;; kind (e.g. flat < chaperone < impersonator)
+(define (get-max-contract-kind sc)
+    (define (get-restriction sc)
+      (sc->constraints sc get-restriction))
+    (kind-max-max (contract-restrict-value (get-restriction sc))))
+
 ;; To avoid misspellings
 (define impersonator-sym 'impersonator)
 (define chaperone-sym 'chaperone)
@@ -385,6 +394,21 @@
          (if numeric-sc
              (apply or/sc numeric-sc (map t->sc non-numeric))
              (apply or/sc (map t->sc elems)))]
+        [(Intersection: ts)
+         (define-values (chaperones/impersonators others)
+           (for/fold ([cs/is null] [others null])
+                     ([elem (in-immutable-set ts)])
+             (define c (t->sc elem))
+             (if (equal? flat-sym (get-max-contract-kind c))
+                 (values cs/is (cons c others))
+                 (values (cons c cs/is) others))))
+         (cond
+           [(> (length chaperones/impersonators) 1)
+            (fail #:reason (~a "Intersection type contract contains"
+                               " more than 1 non-flat contract: "
+                               type))]
+           [else
+            (apply and/sc (append others chaperones/impersonators))])]
         [(and t (Function: arrs))
          #:when (any->bool? arrs)
          ;; Avoid putting (-> any T) contracts on struct predicates (where Boolean <: T)

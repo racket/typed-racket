@@ -51,8 +51,11 @@ Other libraries can be used with Typed Racket via
 The following libraries are included with Typed Racket in the
 @racketfont{typed} collection:
 
-@(define-syntax-rule @defmodule/incl[name]
-   @defmodule[name #:no-declare])
+@(define-syntax-rule @defmodule/incl[name rest ...]
+   (list
+      (section #:style '(hidden toc-hidden unnumbered)
+               (string-append "Typed for " (symbol->string 'name)))
+      @defmodule[name rest ...]))
 
 @(define-syntax-rule (deftype name . parts)
    (defidform #:kind "type" name . parts))
@@ -168,11 +171,11 @@ and the @racket[URL] and @racket[Path/Param] types from
 
 @defmodule/incl[typed/openssl/md5]
 @defmodule/incl[typed/openssl/sha1]
-@defmodule[typed/racket/async-channel #:no-declare @history[#:added "1.1"]]
+@defmodule/incl[typed/racket/async-channel @history[#:added "1.1"]]
 @defmodule/incl[typed/racket/date]
 @defmodule/incl[typed/racket/draw]
 @defmodule/incl[typed/racket/gui]
-@defmodule[typed/racket/random #:no-declare @history[#:added "1.5"]]
+@defmodule/incl[typed/racket/random @history[#:added "1.5"]]
 @defmodule/incl[typed/racket/sandbox]
 @defmodule/incl[typed/racket/snip]
 @defmodule/incl[typed/racket/system]

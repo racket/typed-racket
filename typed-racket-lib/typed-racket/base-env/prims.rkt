@@ -145,9 +145,12 @@ the typed racket language.
   (provide (all-from-out "base-contracted.rkt")))
 
 (begin-for-syntax 
+  (require racket/runtime-path
+           (for-syntax racket/base))
+  (define-runtime-module-path-index contract-defs-submod
+    '(submod "." #%contract-defs))
   (require racket/base "../utils/redirect-contract.rkt")
-  (define varref (#%variable-reference))
-  (define mk (make-make-redirect-to-contract varref)))
+  (define mk (make-make-redirect-to-contract contract-defs-submod)))
 
 (define-syntax-rule (def-redirect id ...)
   (begin (define-syntax id (mk (quote-syntax id))) ... (provide id ...)))

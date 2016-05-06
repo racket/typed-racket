@@ -3023,27 +3023,23 @@
          #:expected (ret (make-HeterogeneousVector (list -Byte -Byte)) -false-propset #f)]
 
        [tc-err (values 'x)
-         #:ret (ret (list -Symbol -Symbol)
-                    (list -ff-propset -ff-propset)
-                    (list -empty-obj -empty-obj))
+         #:ret (ret (list -Symbol -Symbol))
          #:expected (ret (list -Symbol -Symbol) (list #f #f ) (list #f #f))]
 
        [tc-err (values 'x 'y 'z)
-         #:ret (ret (list -Symbol -Symbol)
-                    (list -ff-propset -ff-propset)
-                    (list -empty-obj -empty-obj))
+         #:ret (ret (list -Symbol -Symbol))
          #:expected (ret (list -Symbol -Symbol) (list #f #f ) (list #f #f))]
 
        [tc-err (values 'y)
-         #:ret (ret (list -Symbol) (list -ff-propset ) (list -empty-obj) Univ 'B)
+         #:ret (ret (list -Symbol) (list -tt-propset) (list -empty-obj) Univ 'B)
          #:expected (ret (list -Symbol) (list #f ) (list #f) Univ 'B)]
 
        [tc-err (values (values 'x 'y))
-         #:ret (ret (-val 'x) -ff-propset)
+         #:ret (ret (-val 'x))
          #:expected (ret (-val 'x) #f #f)]
 
        [tc-err (if (random) (values 1 2) 3)
-         #:ret (ret (-val 3) -true-propset)
+         #:ret (ret (-val 3) -tt-propset)
          #:expected (ret (-val 3) #f #f)]
 
        [tc-err

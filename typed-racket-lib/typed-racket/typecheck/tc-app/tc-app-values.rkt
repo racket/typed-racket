@@ -5,7 +5,7 @@
          "utils.rkt"
          syntax/parse racket/match racket/sequence
          (typecheck signatures tc-funapp)
-         (types utils)
+         (types base-abbrev utils)
 
          (for-label racket/base))
 
@@ -34,29 +34,24 @@
      [(tc-result1: tp)
       (single-value #'arg expected)]
      [(tc-results: ts)
-      (single-value #'arg) ;Type check the argument, to find other errors
-      (tc-error/expr
-        "wrong number of values: expected ~a but got one"
-         (length ts))]
+      (single-value #'arg)] ;Type check the argument, to find other errors
      ;; match polydots case and error
      [(tc-results: ts _ _ dty dbound)
-      (single-value #'arg)
-      (tc-error/expr
-        "Expected ~a ..., but got only one value" dty)]))
+      (single-value #'arg)]))
   ;; handle `values' specially
   (pattern (values . args)
     (match expected
       [(tc-results: ets efs eos)
        (match-let ([(list (tc-result1: ts fs os) ...)
-                    (for/list ([arg (in-syntax #'args)]
-                               [et (in-list ets)]
-                               [ef (in-list efs)]
-                               [eo (in-list eos)])
-                      (single-value arg (ret et ef eo)))])
-         (if (= (length ts) (length ets) (syntax-length #'args))
-             (ret ts fs os)
-             (tc-error/expr "wrong number of values: expected ~a but got ~a"
-                            (length ets) (syntax-length #'args))))]
+                    (for/list
+                      ([arg (in-syntax #'args)]
+                       [et (in-sequences (in-list ets) (in-cycle (in-value #f)))]
+                       [ef (in-sequences (in-list efs) (in-cycle (in-value #f)))]
+                       [eo (in-sequences (in-list eos) (in-cycle (in-value #f)))])
+                      (if et
+                          (single-value arg (ret et ef eo))
+                          (single-value arg)))])
+         (ret ts fs os))]
       [_ (match-let ([(list (tc-result1: ts fs os) ...)
                       (for/list ([arg (in-syntax #'args)])
                         (single-value arg))])

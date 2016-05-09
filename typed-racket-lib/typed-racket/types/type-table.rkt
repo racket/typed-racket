@@ -11,7 +11,7 @@
          (contract-req)
          (rep type-rep)
          (types utils union printer)
-         (typecheck possible-domains)
+         (typecheck possible-domains tc-metafunctions)
          (utils tc-utils)
          (for-template racket/base))
 
@@ -65,28 +65,11 @@
            ;; the car should be the latest stx for the location
            (if (equal? e (car seen))
                ;; combine types seen at the latest
-               (tooltip seen ((combine t) results))
+               (tooltip seen (merge-tc-results (list t results)))
                old)
            (tooltip (cons e seen) t)))
      (tooltip (list e) t)))
-  (hash-update! type-table e (combine t) t))
-
-;; when typechecking a case-> type, types get added for
-;; the same subexpression multiple times, combine them
-(define ((combine new) old)
-  (match* (old new)
-    [((tc-result1: old-t) (tc-result1: t-t))
-     (ret (Un old-t t-t))]
-    [((tc-results: old-ts) (tc-results: t-ts))
-     ;; props don't matter at this point, since only
-     ;; the optimizer reads this table
-     ;;  -- "I think [the above] comment is no longer true" -samth
-     (unless (= (length old-ts) (length t-ts))
-       (int-err
-        "type table: number of values don't agree ~a ~a"
-        old-ts t-ts))
-     (ret (map Un old-ts t-ts))]
-    [(_ _) new])) ; irrelevant to the optimizer, just clobber
+  (hash-update! type-table e (λ (res) (merge-tc-results (list t res))) t))
 
 (define (type-of e)
   (hash-ref type-table e

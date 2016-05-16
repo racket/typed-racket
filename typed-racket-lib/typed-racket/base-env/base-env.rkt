@@ -1955,7 +1955,9 @@
 
 [merge-input (->opt -Input-Port -Input-Port [(-opt -Nat)] -Input-Port)]
 [open-output-nowhere (-> -Output-Port)]
-[peeking-input-port (->opt -Input-Port [Univ -Nat] -Input-Port)]
+[peeking-input-port (->optkey -Input-Port [Univ -Nat]
+                              #:init-position -Nat #f
+                              -Input-Port)]
 
 [reencode-input-port
  (->opt -Input-Port -String (-opt -Bytes) [Univ Univ Univ (-> -String -Input-Port ManyUniv)] -Input-Port)]

@@ -177,6 +177,11 @@
            #:repeat? Univ #f
            -String)]
 
+[non-empty-string? (make-pred-ty -String)]
+[string-contains? (-> -String -String -Boolean)]
+[string-prefix? (-> -String -String -Boolean)]
+[string-suffix? (-> -String -String -Boolean)]
+
 ;; Section 4.3.6 (racket/format)
 [~a (->optkey []
               #:rest Univ
@@ -1838,8 +1843,8 @@
 [port-file-identity (-> (Un -Input-Port -Output-Port) -PosInt)]
 
 ;; Section 13.1.6
-[open-input-string (-> -String -Input-Port)]
-[open-input-bytes (-> -Bytes -Input-Port)]
+[open-input-string (->opt -String [Univ] -Input-Port)]
+[open-input-bytes (->opt -Bytes [Univ] -Input-Port)]
 [open-output-string
  ([Univ] . ->opt . -Output-Port)]
 [open-output-bytes
@@ -1852,7 +1857,7 @@
 
 ;; Section 13.1.7
 [make-pipe
- (cl->* [->opt [N] (-values (list -Input-Port -Output-Port))])]
+ (cl->* [->opt [N Univ Univ] (-values (list -Input-Port -Output-Port))])]
 [pipe-content-length (-> (Un -Input-Port -Output-Port) -Nat)]
 
 ;; Section 13.1.8
@@ -1954,7 +1959,7 @@
 [make-pipe-with-specials (->opt [-Nat Univ Univ] (-values (list -Input-Port -Output-Port)))]
 
 [merge-input (->opt -Input-Port -Input-Port [(-opt -Nat)] -Input-Port)]
-[open-output-nowhere (-> -Output-Port)]
+[open-output-nowhere (->opt [Univ Univ] -Output-Port)]
 [peeking-input-port (->optkey -Input-Port [Univ -Nat]
                               #:init-position -Nat #f
                               -Input-Port)]
@@ -2555,6 +2560,16 @@
                 (Un -SomeSystemPath (one-of/c 'up 'same))
                 B))))]
 
+[path-replace-extension
+ (cl->*
+  (-> -Pathlike (Un -String -Bytes) -Path)
+  (-> -SomeSystemPathlike (Un -String -Bytes) -SomeSystemPath))]
+
+[path-add-extension
+ (cl->*
+  (-> -Pathlike (Un -String -Bytes) -Path)
+  (-> -SomeSystemPathlike (Un -String -Bytes) -SomeSystemPath))]
+
 [path-replace-suffix
  (cl->*
   (-> -Pathlike (Un -String -Bytes) -Path)
@@ -2680,8 +2695,8 @@
 
 [tcp-abandon-port (-Port . -> . -Void)]
 [tcp-addresses (cl->*
-                (-Port [(-val #f)] . ->opt . (-values (list -String -String)))
-                (-Port (-val #t) . -> . (-values (list -String -Index -String -Index))))]
+                ((Un -TCP-Listener -Port) [(-val #f)] . ->opt . (-values (list -String -String)))
+                ((Un -TCP-Listener -Port) (-val #t) . -> . (-values (list -String -Index -String -Index))))]
 
 [tcp-port? (asym-pred Univ B (-PS (-is-type 0 (Un -Input-Port -Output-Port)) -tt))]
 

@@ -1,11 +1,11 @@
 #lang racket/base
 
 (require "infer-unit.rkt" "constraints.rkt" "dmap.rkt" "signatures.rkt"
-         "restrict.rkt"
+         "intersect.rkt"
          (only-in racket/unit provide-signature-elements
                   define-values/invoke-unit/infer link))
 
-(provide-signature-elements restrict^ infer^)
+(provide-signature-elements intersect^ infer^)
 
 (define-values/invoke-unit/infer
-  (link infer@ constraints@ dmap@ restrict@))
+  (link infer@ constraints@ dmap@ intersect@))

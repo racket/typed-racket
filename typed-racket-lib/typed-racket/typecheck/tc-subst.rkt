@@ -8,7 +8,7 @@
          (contract-req)
          (except-in (types abbrev utils prop-ops path-type)
                     -> ->* one-of/c)
-         (only-in (infer infer) restrict)
+         (only-in (infer infer) intersect)
          (rep type-rep object-rep prop-rep rep-utils))
 
 (provide add-scope)
@@ -76,8 +76,8 @@
   (tc-result
     (if (equal? argument-side Err)
         (subst-type r-t k o polarity t)
-        (restrict argument-side
-                  (subst-type r-t k o polarity t)))
+        (intersect argument-side
+                   (subst-type r-t k o polarity t)))
     (subst-prop-set r-fs k o polarity t)
     (subst-object r-o k o polarity)))
 
@@ -164,11 +164,11 @@
           (define ty/path (path-type pes ty))
           (maker
            (-acc-path pes o)
-           ;; don't restrict if the path doesn't match the type
+           ;; don't intersect if the path doesn't match the type
            (if (equal? ty/path Err)
                (subst-type t k o polarity ty)
-               (restrict ty/path
-                         (subst-type t k o polarity ty))))])]
+               (intersect ty/path
+                          (subst-type t k o polarity ty))))])]
       [else p]))
 
   (match p

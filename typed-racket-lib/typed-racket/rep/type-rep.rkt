@@ -476,7 +476,7 @@
 
 ;;  constructor for intersections
 ;; in general, intersections should be built
-;; using the 'restrict' operator, which worries
+;; using the 'intersect' operator, which worries
 ;; about actual subtyping, etc...
 (define (-unsafe-intersect . ts)
   (let loop ([elems (set)]

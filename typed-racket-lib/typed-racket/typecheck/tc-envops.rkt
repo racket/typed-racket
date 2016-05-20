@@ -71,7 +71,7 @@
     ;; otherwise
     [(t '())
      (if pos?
-         (restrict t new-t)
+         (intersect t new-t)
          (remove t new-t))]
     [((Union: ts) lo)
      (apply Un (map (λ (t) (update t new-t pos? lo)) ts))]

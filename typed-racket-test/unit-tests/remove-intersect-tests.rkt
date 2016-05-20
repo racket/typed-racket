@@ -18,15 +18,15 @@
   (over-tests
    [-Number -Integer #t]))
 
-(define-syntax (restr-tests stx)
+(define-syntax (inter-tests stx)
   (syntax-case stx ()
     [(_ [t1 t2 res] ...)
-     #'(test-suite "Tests for restrict"
-                   (test-check (format "~a ~a" 't1 't2) type-compare? (restrict t1 t2) res) ...)]))
+     #'(test-suite "Tests for intersect"
+                   (test-check (format "~a ~a" 't1 't2) type-compare? (intersect t1 t2) res) ...)]))
 
 
-(define restrict-tests
-  (restr-tests
+(define intersect-tests
+  (inter-tests
    [-Number (Un -Number -Symbol) -Number]
    [-Number -Number -Number]
    [(Un (-val 'foo) (-val 6)) (Un -Number -Symbol) (Un (-val 'foo) (-val 6))]
@@ -36,7 +36,7 @@
    [(Un -Number -String -Symbol -Boolean) -Number -Number]
 
    [(-lst -Number) (-pair Univ Univ) (-pair -Number (-lst -Number))]
-   [(-lst -Number) (-poly (a) (-lst a)) (-lst -Number)]
+   [(-lst -Number) (-poly (a) (-lst a)) (-poly (a) (-lst a))]
    ;; FIXME
    #;
    [-Listof -Sexp (-lst (Un B N -String Sym))]
@@ -76,5 +76,5 @@
 (define tests
   (test-suite "Remove Intersect"
      remove-tests
-     restrict-tests
+     intersect-tests
      overlap-tests))

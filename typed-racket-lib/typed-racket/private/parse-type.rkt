@@ -7,7 +7,7 @@
          (rename-in (types abbrev union utils prop-ops resolve
                            classes prefab signatures)
                     [make-arr* make-arr])
-         (only-in (infer-in infer) restrict)
+         (only-in (infer-in infer) intersect)
          (utils tc-utils stxclass-util literal-syntax-class)
          syntax/stx (prefix-in c: (contract-req))
          syntax/parse racket/sequence
@@ -471,7 +471,7 @@
       [(:∩^ ts ...)
        (for/fold ([ty Univ])
                  ([t (in-list (parse-types #'(ts ...)))])
-         (restrict ty t))]
+         (intersect ty t))]
       [(:quote^ t)
        (parse-quoted-type #'t)]
       [(:All^ . rest)

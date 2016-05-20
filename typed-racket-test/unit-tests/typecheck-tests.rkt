@@ -711,7 +711,7 @@
         [tc-e ((inst add-between Positive-Byte Symbol) '(1 2 3) 'a #:splice? #t #:before-first '(b))
               (-lst (t:Un -PosByte -Symbol))]
 
-        [tc-e (apply (plambda: (a) [x : a *] x) '(5)) (unfold (-lst -PosByte))]
+        [tc-e (apply (plambda: (a) [x : a *] x) '(5)) (-lst -PosByte)]
         [tc-e (apply append (list '(1 2 3) '(4 5 6))) (-pair -PosByte (-lst -PosByte))]
 
         [tc-err ((case-lambda: [([x : Number]) x]
@@ -1934,10 +1934,10 @@
           #:ret (ret (t:Un -Symbol (make-Evt Univ))))
         (tc-err (let: ([a : (U (Evtof Any) String) always-evt])
                   (if (channel-put-evt? a) a (string->symbol a)))
-          #:ret (ret (t:Un -Symbol (make-Evt (-mu x (make-Evt x))))))
+          #:ret (ret (t:Un -Symbol (-mu x (make-Evt x)))))
         (tc-err (let: ([a : (U (Evtof Any) String) always-evt])
                   (if (semaphore-peek-evt? a) a (string->symbol a)))
-          #:ret (ret (t:Un -Symbol (make-Evt (-mu x (make-Evt x))))))
+          #:ret (ret (t:Un -Symbol (-mu x (make-Evt x)))))
 
         ;Semaphores
         (tc-e (make-semaphore) -Semaphore)
@@ -3730,7 +3730,7 @@
        [tc-e/t (lambda: ([x : One])
                  (let ([f (lambda: [w : Any *] w)])
                    (f x "hello" #\c)))
-        (t:-> -One (unfold (-lst Univ)) : -true-propset)]
+        (t:-> -One (-lst Univ) : -true-propset)]
 
        [tc-e/t (lambda: ([x : One])
                  (let ([f (plambda: (a ...) [w : a ... a] w)])

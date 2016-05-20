@@ -4,7 +4,7 @@
          racket/list racket/match
          (prefix-in c: (contract-req))
          (rep type-rep prop-rep object-rep rep-utils)
-         (only-in (infer infer) restrict)
+         (only-in (infer infer) intersect)
          (types union subtype remove-intersect abbrev tc-result))
 
 (provide/cond-contract
@@ -92,7 +92,7 @@
 ;; or? : is this an Or (alternative is And)
 ;;
 ;; This combines all the TypeProps at the same path into one TypeProp. If it is an Or the
-;; combination is done using Un, otherwise, restrict. The reverse is done for NotTypeProps. If it is
+;; combination is done using Un, otherwise, intersect. The reverse is done for NotTypeProps. If it is
 ;; an Or this simplifies to -tt if any of the atomic props simplified to -tt, and removes
 ;; any -ff values. The reverse is done if this is an And.
 ;;
@@ -100,8 +100,8 @@
      ((c:listof Prop?) boolean? . c:-> . (c:listof Prop?))
   (define tf-map (make-hash))
   (define ntf-map (make-hash))
-  (define (restrict-update dict t1 p)
-    (hash-update! dict p (λ (t2) (restrict t1 t2)) Univ))
+  (define (intersect-update dict t1 p)
+    (hash-update! dict p (λ (t2) (intersect t1 t2)) Univ))
   (define (union-update dict t1 p)
     (hash-update! dict p (λ (t2) (Un t1 t2)) -Bottom))
 
@@ -109,9 +109,9 @@
   (for ([prop (in-list atomics)])
     (match prop
       [(TypeProp: o t1)
-       ((if or? union-update restrict-update) tf-map t1 o) ]
+       ((if or? union-update intersect-update) tf-map t1 o) ]
       [(NotTypeProp: o t1)
-       ((if or? restrict-update union-update) ntf-map t1 o) ]))
+       ((if or? intersect-update union-update) ntf-map t1 o) ]))
   (define raw-results
     (append others
             (for/list ([(k v) (in-hash tf-map)]) (-is-type k v))

@@ -7,7 +7,7 @@
          racket/match
          racket/list)
 
-(import restrict^ dmap^)
+(import intersect^ dmap^)
 (export constraints^)
 
 ;; Widest constraint possible
@@ -34,7 +34,7 @@
 ;; intersect the given types. produces a lower bound on both, but
 ;; perhaps not the GLB
 (define (meet S T)
-  (let ([s* (restrict S T)])
+  (let ([s* (intersect S T)])
     (if (and (subtype s* S)
              (subtype s* T))
         s*

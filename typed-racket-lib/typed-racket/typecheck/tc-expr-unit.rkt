@@ -9,7 +9,7 @@
                 prop-ops remove-intersect resolve generalize)
          (private-in syntax-properties)
          (rep type-rep prop-rep object-rep)
-         (only-in (infer infer) restrict)
+         (only-in (infer infer) intersect)
          (utils tc-utils)
          (env lexical-env)
          racket/list
@@ -366,18 +366,18 @@
 (define (find-stx-type datum-stx [expected #f])
   (match datum-stx
     [(? syntax? (app syntax-e stx-e))
-     (match (and expected (resolve (restrict expected (-Syntax Univ))))
+     (match (and expected (resolve (intersect expected (-Syntax Univ))))
        [(Syntax: t) (-Syntax (find-stx-type stx-e t))]
        [_ (-Syntax (find-stx-type stx-e))])]
     [(or (? symbol?) (? null?) (? number?) (? extflonum?) (? boolean?) (? string?) (? char?)
          (? bytes?) (? regexp?) (? byte-regexp?) (? keyword?))
      (tc-literal #`#,datum-stx expected)]
     [(cons car cdr)
-     (match (and expected (resolve (restrict expected (-pair Univ Univ))))
+     (match (and expected (resolve (intersect expected (-pair Univ Univ))))
        [(Pair: car-t cdr-t) (-pair (find-stx-type car car-t) (find-stx-type cdr cdr-t))]
        [_ (-pair (find-stx-type car) (find-stx-type cdr))])]
     [(vector xs ...)
-     (match (and expected (resolve (restrict expected -VectorTop)))
+     (match (and expected (resolve (intersect expected -VectorTop)))
        [(Vector: t)
         (make-Vector
          (check-below
@@ -393,11 +393,11 @@
        [_ (make-HeterogeneousVector (for/list ([x (in-list xs)])
                                       (generalize (find-stx-type x #f))))])]
     [(box x)
-     (match (and expected (resolve (restrict expected -BoxTop)))
+     (match (and expected (resolve (intersect expected -BoxTop)))
        [(Box: t) (-box (check-below (find-stx-type x t) t))]
        [_ (-box (generalize (find-stx-type x)))])]
     [(? hash? h)
-     (match (and expected (resolve (restrict expected -HashTop)))
+     (match (and expected (resolve (intersect expected -HashTop)))
        [(Hashtable: kt vt)
         (define kts (hash-map h (lambda (x y) (find-stx-type x kt))))
         (define vts (hash-map h (lambda (x y) (find-stx-type y vt))))

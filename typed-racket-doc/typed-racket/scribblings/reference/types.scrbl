@@ -608,15 +608,15 @@ functions and continuation mark functions.
   The type of functions from the (possibly-empty)
   sequence @racket[dom ....] to the @racket[rng] type.
 
-  @ex[(λ: ([x : Number]) x)
-      (λ: () 'hello)]
+  @ex[(λ ([x : Number]) x)
+      (λ () 'hello)]
 
   The second form specifies a uniform rest argument of type @racket[rest], and the
   third form specifies a non-uniform rest argument of type
   @racket[rest] with bound @racket[bound]. The bound refers to the type variable
   that is in scope within the rest argument type.
 
-  @ex[(λ: ([x : Number] . [y : String *]) (length y))
+  @ex[(λ ([x : Number] . [y : String *]) (length y))
       ormap]
 
   In the third form, the @racket[...] introduced by @racket[ooo] is literal,
@@ -703,7 +703,7 @@ functions and continuation mark functions.
 
   @ex[(: +all (->* (Integer) #:rest Integer (Listof Integer)))
       (define (+all inc . rst)
-        (map (λ: ([x : Integer]) (+ x inc)) rst))
+        (map (λ ([x : Integer]) (+ x inc)) rst))
       (+all 20 1 2 3)]
 
   Both the mandatory and optional argument lists may contain keywords paired
@@ -742,7 +742,11 @@ functions and continuation mark functions.
 
 
 @defform[(U t ...)]{is the union of the types @racket[t ...].
- @ex[(λ: ([x : Real])(if (> 0 x) "yes" 'no))]}
+ @ex[(λ ([x : Real]) (if (> 0 x) "yes" 'no))]}
+
+@defform[(∩ t ...)]{is the intersection of the types @racket[t ...].
+ @ex[((λ #:forall (A) ([x : (∩ Symbol A)]) x) 'foo)]}
+
 @defform[(case-> fun-ty ...)]{is a function that behaves like all of
   the @racket[fun-ty]s, considered in order from first to last.  The @racket[fun-ty]s must all be function
   types constructed with @racket[->].

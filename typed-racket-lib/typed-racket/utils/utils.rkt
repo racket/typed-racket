@@ -7,6 +7,7 @@ at least theoretically.
 
 (require (for-syntax racket/base syntax/parse/pre racket/string)
          racket/require-syntax racket/provide-syntax
+         racket/match
          racket/struct-info "timing.rkt")
 
 (provide
@@ -20,7 +21,8 @@ at least theoretically.
  list-extend
  filter-multiple
  syntax-length
- in-sequence-forever)
+ in-sequence-forever
+ match*/no-order)
 
 (define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
@@ -232,3 +234,22 @@ at least theoretically.
                (λ (_) #t)
                (λ _ #t)
                (λ _ #t))))))
+
+(define-syntax (match*/no-order stx)
+  (define (parse-clauses clauses)
+    (syntax-parse clauses
+      [() #'()]
+      [([(lpat rpat) #:no-order . body]
+        . rst)
+       #`([(lpat rpat) . body]
+          [(rpat lpat) . body]
+          . #,(parse-clauses #'rst))]
+      [((~and cl [(lpat rpat) . body])
+        . rst)
+       #`(#,(syntax/loc #'cl [(lpat rpat) . body])
+          . #,(parse-clauses #'rst))]))
+  (syntax-parse stx
+    [(_ (val1:expr val2:expr)
+        . clauses)
+     #`(match* (val1 val2)
+         . #,(parse-clauses #'clauses))]))

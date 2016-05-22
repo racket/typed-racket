@@ -55,7 +55,7 @@
 ;; Ugly hack - should use units
 (lazy-require
  ("../types/union.rkt" (Un))
- ("../types/remove-intersect.rkt" (overlap))
+ ("../types/overlap.rkt" (overlap?))
  ("../types/resolve.rkt" (resolve-app)))
 
 (define name-table (make-weak-hasheq))
@@ -495,7 +495,7 @@
          [(Univ:) (loop elems ts)]
          [(Intersection: ts*) (loop (set-union elems ts*) ts)]
          [t (cond
-              [(for/or ([elem (in-immutable-set elems)]) (not (overlap elem t)))
+              [(for/or ([elem (in-immutable-set elems)]) (not (overlap? elem t)))
                (*Union (list))]
               [else (loop (set-add elems t) ts)])])])))
 

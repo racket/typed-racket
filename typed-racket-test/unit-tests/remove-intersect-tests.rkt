@@ -3,7 +3,7 @@
          (for-syntax racket/base)
          (r:infer infer)
          (rep type-rep)
-         (types abbrev numeric-tower subtype union remove-intersect)
+         (types abbrev numeric-tower subtype union remove overlap)
          rackunit)
 (provide tests)
 (gen-test-main)
@@ -12,7 +12,9 @@
   (syntax-case stx ()
     [(_ [t1 t2 res] ...)
      #'(test-suite "Tests for overlap"
-                   (test-check (format "~a ~a" 't1 't2) (lambda (a b) (eq? (not (not a)) b)) (overlap t1 t2) res) ...)]))
+                   (test-check (format "~a ~a" 't1 't2)
+                               (lambda (a b) (eq? (not (not a)) b))
+                               (overlap? t1 t2) res) ...)]))
 
 (define overlap-tests
   (over-tests
@@ -22,7 +24,9 @@
   (syntax-case stx ()
     [(_ [t1 t2 res] ...)
      #'(test-suite "Tests for intersect"
-                   (test-check (format "~a ~a" 't1 't2) type-compare? (intersect t1 t2) res) ...)]))
+                   (test-check (format "~a ~a" 't1 't2)
+                               type-compare?
+                               (intersect t1 t2) res) ...)]))
 
 
 (define intersect-tests
@@ -61,14 +65,20 @@
   (remo-tests
    [(Un -Number -Symbol) -Number -Symbol]
    [-Number -Number (Un)]
-   [(-mu x (Un -Number -Symbol (make-Listof x))) -Number (Un -Symbol (make-Listof (-mu x (Un -Number -Symbol (make-Listof x)))))]
-   [(-mu x (Un -Number -Symbol -Boolean (make-Listof x))) -Number (Un -Symbol -Boolean (make-Listof (-mu x (Un -Number -Symbol -Boolean (make-Listof x)))))]
+   [(-mu x (Un -Number -Symbol (make-Listof x)))
+    -Number
+    (Un -Symbol (make-Listof (-mu x (Un -Number -Symbol (make-Listof x)))))]
+   [(-mu x (Un -Number -Symbol -Boolean (make-Listof x)))
+    -Number
+    (Un -Symbol -Boolean (make-Listof (-mu x (Un -Number -Symbol -Boolean (make-Listof x)))))]
    [(Un (-val #f) (-mu x (Un -Number -Symbol (make-Listof (-v x)))))
     (Un -Boolean -Number)
     (Un -Symbol (make-Listof (-mu x (Un -Number -Symbol (make-Listof x)))))]
    [(Un (-val 'foo) (-val 6)) (Un -Number -Symbol) (Un)]
    [(-> (Un -Symbol -Number) -Number) (-> -Number -Number) (Un)]
-   [(Un (-poly (a) (make-Listof a)) (-> -Number -Number)) (-> -Number -Number) (-poly (a) (make-Listof a))]
+   [(Un (-poly (a) (make-Listof a)) (-> -Number -Number))
+    (-> -Number -Number)
+    (-poly (a) (make-Listof a))]
    [(Un -Symbol -Number) (-poly (a) -Number) -Symbol]
    [(-pair -Number (-v a)) (-pair Univ Univ) (Un)]
    ))

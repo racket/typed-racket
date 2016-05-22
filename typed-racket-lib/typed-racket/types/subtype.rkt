@@ -480,14 +480,12 @@
                    (loop (cdr l1) (cdr l2))]
                   [else
                    (loop l1 (cdr l2))]))]
-         [((Union: es) t)
+         [((Union: elems) t)
           (and 
-           (for/and ([elem (in-list es)])
-             (subtype* A0 elem t))
+           (andmap (λ (elem) (subtype* A0 elem t)) elems)
            A0)]
-         [(s (Union: es))
-          (and (for/or ([elem (in-list es)])
-                 (subtype* A0 s elem))
+         [(s (Union: elems))
+          (and (ormap (λ (elem) (subtype* A0 s elem)) elems)
                A0)]
          ;; subtyping on immutable structs is covariant
          [((Struct: nm _ flds proc _ _) (Struct: nm* _ flds* proc* _ _)) 

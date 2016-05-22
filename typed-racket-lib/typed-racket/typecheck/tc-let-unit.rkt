@@ -1,7 +1,7 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
-         (except-in (types utils abbrev prop-ops remove-intersect type-table)
+         (except-in (types utils abbrev prop-ops overlap type-table)
                     -> ->* one-of/c)
          (only-in (types abbrev) (-> t:->) [->* t:->*])
          (private type-annotation parse-type syntax-properties)
@@ -65,7 +65,7 @@
                                      [f- (in-list fs-)]
                                      [o (in-list os)])
                             (cond
-                              [(not (overlap t (-val #f)))
+                              [(not (overlap? t (-val #f)))
                                (list f+)]
                               [(is-var-mutated? n)
                                (list)]

@@ -6,7 +6,7 @@
          "signatures.rkt"
          "check-below.rkt" "../types/kw-types.rkt"
          (types utils abbrev union subtype type-table path-type
-                prop-ops remove-intersect resolve generalize)
+                prop-ops overlap resolve generalize)
          (private-in syntax-properties)
          (rep type-rep prop-rep object-rep)
          (only-in (infer infer) intersect)
@@ -54,7 +54,7 @@
   (define ty (path-type alias-path (lookup-type/lexical alias-id)))
   
   (ret ty
-       (if (overlap ty (-val #f))
+       (if (overlap? ty (-val #f))
            (-PS (-not-type obj (-val #f)) (-is-type obj (-val #f)))
            -true-propset)
        obj))

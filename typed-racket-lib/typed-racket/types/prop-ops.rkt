@@ -5,7 +5,7 @@
          (prefix-in c: (contract-req))
          (rep type-rep prop-rep object-rep rep-utils)
          (only-in (infer infer) intersect)
-         (types union subtype remove-intersect abbrev tc-result))
+         (types union subtype overlap abbrev tc-result))
 
 (provide/cond-contract
   [-and (c:->* () #:rest (c:listof Prop?) Prop?)]
@@ -80,7 +80,7 @@
      (subtype t2 t1)]
     ;; t1 ∩ t2 = ∅ ?
     [((TypeProp: o t1) (NotTypeProp: o t2))
-     (not (overlap t1 t2))]
+     (not (overlap? t1 t2))]
     ;; otherwise we give up
     [(_ _) #f]))
 

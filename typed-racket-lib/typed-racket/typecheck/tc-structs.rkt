@@ -6,10 +6,10 @@
          (prefix-in c: (contract-req))
          (rep type-rep object-rep free-variance)
          (private parse-type syntax-properties)
-         (types abbrev utils resolve substitute struct-table prefab)
+         (types abbrev subtype utils resolve substitute struct-table prefab)
          (env global-env type-name-env type-alias-env tvar-env)
          (utils tc-utils)
-         (typecheck def-binding internal-forms check-below)
+         (typecheck def-binding internal-forms error-message)
          (for-syntax syntax/parse racket/base))
 
 (require-for-cond-contract racket/struct-info)
@@ -315,27 +315,31 @@
          (parsed-struct (make-Prefab key (append parent-fields types))
                         names desc (struct-info-property nm/par) #f)]
         [else
-	 (define maybe-parsed-proc-ty
-	   (and proc-ty (parse-type proc-ty)))
-	 ;; ensure that the prop:procedure argument is really a procedure
-	 (when maybe-parsed-proc-ty
-	   (check-below maybe-parsed-proc-ty top-func))
-
+         (define maybe-proc-ty
+           (let ([maybe-parsed-proc-ty (and proc-ty (parse-type proc-ty))])
+             (and maybe-parsed-proc-ty
+                  (cond
+                    ;; ensure that the prop:procedure argument is really a procedure
+                    [(subtype maybe-parsed-proc-ty top-func)
+                     maybe-parsed-proc-ty]
+                    [else (expected-but-got top-func maybe-parsed-proc-ty)
+                          #f]))))
+         
          (define parent-mutable
            ;; Only valid as long as typed structs must be
            ;; either fully mutable or fully immutable
            (or (not parent)
                (andmap fld-mutable? (get-flds concrete-parent))))
-
+         
          (define desc (struct-desc
-                        (map fld-t (get-flds concrete-parent))
-                        types
-                        tvars
-                        mutable
-                        parent-mutable
-			maybe-parsed-proc-ty))
+                       (map fld-t (get-flds concrete-parent))
+                       types
+                       tvars
+                       mutable
+                       parent-mutable
+                       maybe-proc-ty))
          (define sty (mk/inner-struct-type names desc concrete-parent))
-
+         
          (parsed-struct sty names desc (struct-info-property nm/par) type-only)]))
 
 ;; register a struct type

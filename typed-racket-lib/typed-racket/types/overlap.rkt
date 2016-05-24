@@ -2,6 +2,7 @@
 
 (require "../utils/utils.rkt"
          (rep type-rep rep-utils)
+         (prefix-in c: (contract-req))
          (types abbrev subtype resolve utils)
          racket/match racket/set)
 
@@ -25,7 +26,7 @@
 ;; a conservative check to see if two types
 ;; have a non-empty intersection
 (define/cond-contract (overlap? t1 t2)
-  (-> Type/c Type/c boolean?)
+  (c:-> Type/c Type/c boolean?)
   (define k1 (Type-key t1))
   (define k2 (Type-key t2))
   (cond

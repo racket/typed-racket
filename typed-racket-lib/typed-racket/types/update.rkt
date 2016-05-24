@@ -6,7 +6,11 @@
          (infer-in infer)
          (rep type-rep prop-rep object-rep rep-utils)
          (utils tc-utils)
-         (types abbrev resolve subtype remove union))
+         (types resolve subtype remove union)
+         (rename-in (types abbrev)
+                    [-> -->]
+                    [->* -->*]
+                    [one-of/c -one-of/c]))
 
 
 (provide update)

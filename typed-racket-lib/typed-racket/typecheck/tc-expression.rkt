@@ -34,6 +34,14 @@
      (if expected
         (tc-expr/check #'e expected)
         (tc-expr #'e))]
+    [(exp:casted-expr^ e)
+     (define result (tc-expr #'e))
+     (match result
+       [(tc-result1: ty)
+        ((attribute exp.value) ty)
+        result]
+       [_
+        (tc-error/expr "Cannot cast expression that produces multiple values")])]
     [(_ e)
      (if expected
          (tc-expr/check #'e expected)

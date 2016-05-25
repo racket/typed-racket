@@ -541,9 +541,18 @@ returned by @racket[e], protected by a contract ensuring that it has type
 
 @ex[(cast 3 Integer)
 (eval:error (cast 3 String))
-(cast (lambda: ([x : Any]) x) (String -> String))
+(cast (lambda ([x : Any]) x) (String -> String))
+((cast (lambda ([x : Any]) x) (String -> String)) "hello")
 ]
-}
+
+The value is actually protected with two contracts. The second contract checks
+the new type, but the first contract is put there to enforce the old type, to
+protect higher-order uses of the value.
+
+@ex[
+((cast (lambda ([s : String]) s) (Any -> Any)) "hello")
+(eval:error ((cast (lambda ([s : String]) s) (Any -> Any)) 5))
+]}
 
 @defform*[[(inst e t ...)
            (inst e t ... t ooo bound)]]{

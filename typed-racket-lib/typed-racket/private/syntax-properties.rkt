@@ -50,9 +50,10 @@
   (ignore typechecker:ignore #:mark)
   (ignore-some typechecker:ignore-some #:mark)
   (ignore-some-expr typechecker:ignore-some)
-  (contract-def typechecker:contract-def)
+  (contract-def typechecker:contract-def) ; -> Contract-Def (struct in type-contract.rkt)
   (contract-def/provide typechecker:contract-def/provide)
   (external-check typechecker:external-check)
+  (casted-expr typechecker:casted-expr) ; Type -> Void, takes the original type of the casted expr
   (with-type typechecker:with-type #:mark)
   (type-ascription type-ascription)
   (type-inst type-inst)

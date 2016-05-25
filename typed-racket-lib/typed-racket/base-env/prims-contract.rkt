@@ -75,6 +75,7 @@
          (for-template "../utils/any-wrap.rkt")
          "../utils/tc-utils.rkt"
          "../private/syntax-properties.rkt"
+         "../private/cast-table.rkt"
          "../typecheck/internal-forms.rkt"
          ;; struct-extraction is actually used at both of these phases
          "../utils/struct-extraction.rkt"
@@ -250,9 +251,27 @@
 ;;  make-predicate
 ;;  cast
 
-;; Helper to construct syntax for contract definitions
+;; Helpers to construct syntax for contract definitions
+;; make-contract-def-rhs : Type-Stx Boolean Boolean -> Syntax
 (define (make-contract-def-rhs type flat? maker?)
-  (contract-def-property #'#f `#s(contract-def ,type ,flat? ,maker? untyped)))
+  (define contract-def `#s(contract-def ,type ,flat? ,maker? untyped))
+  (contract-def-property #'#f (λ () contract-def)))
+
+;; make-contract-def-rhs/from-typed : Id Boolean Boolean -> Syntax
+(define (make-contract-def-rhs/from-typed id flat? maker?)
+  (contract-def-property
+   #'#f
+   ;; This function should only be called after the type-checking pass has finished.
+   ;; By then `tc/#%expression` will have recognized the `casted-expr` property and
+   ;; will have added the casted expression's original type to the cast-table, so
+   ;; that `(cast-table-ref id)` can get that type here.
+   (λ ()
+     (define type-stx
+       (or (cast-table-ref id)
+           (int-err (string-append
+                     "contract-def-property: thunk called too early\n"
+                     "  This should only be called after the type-checking pass has finished."))))
+     `#s(contract-def ,type-stx ,flat? ,maker? typed))))
 
 
 (define (define-predicate stx)
@@ -289,17 +308,17 @@
 (define (cast stx)
   (syntax-parse stx
     [(_ v:expr ty:expr)
-     (define (apply-contract ctc-expr)
+     (define (apply-contract v ctc-expr pos neg)
        #`(#%expression
           #,(ignore-some/expr
-             #`(let-values (((val) #,(with-type* #'v #'Any)))
+             #`(let-values (((val) #,(with-type* v #'Any)))
                  #,(syntax-property
                     (quasisyntax/loc stx
                       (contract
                        #,ctc-expr
                        val
-                       'cast
-                       'typed-world
+                       '#,pos
+                       '#,neg
                        val
                        (quote-srcloc #,stx)))
                     'feature-profile:TR-dynamic-check #t))
@@ -308,8 +327,15 @@
      (cond [(not (unbox typed-context?)) ; no-check, don't check
             #'v]
            [else
-            (define ctc (syntax-local-lift-expression
-                         (make-contract-def-rhs #'ty #f #f)))
+            (define new-ty-ctc (syntax-local-lift-expression
+                                (make-contract-def-rhs #'ty #f #f)))
+            (define existing-ty-id new-ty-ctc)
+            (define existing-ty-ctc (syntax-local-lift-expression
+                                     (make-contract-def-rhs/from-typed existing-ty-id #f #f)))
+            (define (store-existing-type existing-type)
+              (cast-table-set! existing-ty-id existing-type))
+            (when (equal? (syntax-local-context) 'top-level)
+              (store-existing-type #'Any))
             (define (check-valid-type _)
               (define type (parse-type #'ty))
               (define vars (fv type))
@@ -319,7 +345,12 @@
                  "Type ~a could not be converted to a contract because it contains free variables."
                  type)))
             #`(#,(external-check-property #'#%expression check-valid-type)
-               #,(apply-contract ctc))])]))
+               #,(apply-contract
+                  (apply-contract
+                   #`(#,(casted-expr-property #'#%expression store-existing-type)
+                      v)
+                   existing-ty-ctc 'typed-world 'cast)
+                  new-ty-ctc 'cast 'typed-world))])]))
 
 
 

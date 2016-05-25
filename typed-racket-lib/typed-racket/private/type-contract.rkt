@@ -39,14 +39,26 @@
 ;; submod for testing
 (module* test-exports #f (provide type->contract))
 
+;; has-contrat-def-property? : Syntax -> Boolean
+(define (has-contract-def-property? stx)
+  (syntax-parse stx
+    #:literal-sets (kernel-literals)
+    [(define-values (_) e)
+     (and (contract-def-property #'e)
+          #t)]
+    [_ #f]))
+
 (struct contract-def (type flat? maker? typed-side) #:prefab)
 
+;; get-contract-def-property : Syntax -> (U False Contract-Def)
 ;; Checks if the given syntax needs to be fixed up for contract generation
 ;; and if yes it returns the information stored in the property
 (define (get-contract-def-property stx)
   (syntax-parse stx
     #:literal-sets (kernel-literals)
-    [(define-values (_) e) (contract-def-property #'e)]
+    [(define-values (_) e)
+     (and (contract-def-property #'e)
+          ((contract-def-property #'e)))]
     [_ #f]))
 
 ;; type->contract-fail : Syntax Type #:ctc-str String
@@ -185,7 +197,7 @@
   (define sc-cache (make-hash))
   (with-new-name-tables
    (for/list ((e (in-list forms)))
-     (if (not (get-contract-def-property e))
+     (if (not (has-contract-def-property? e))
          e
          (begin (set-box! include-extra-requires? #t)
                 (generate-contract-def e ctc-cache sc-cache))))))

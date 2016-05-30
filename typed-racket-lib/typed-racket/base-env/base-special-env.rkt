@@ -184,7 +184,7 @@
   [(make-template-identifier 'in-port 'racket/private/for)
    (-poly (a)
           (cl->* (-> (-seq Univ))
-                 (->opt (-> -Input-Port a) [-Input-Port] (-seq a))))]
+                 (->opt (-> -Input-Port (Un a (-val eof))) [-Input-Port] (-seq a))))]
   ;; in-input-port-bytes
   [(make-template-identifier 'in-input-port-bytes 'racket/private/for)
    (-> -Input-Port (-seq -Byte))]

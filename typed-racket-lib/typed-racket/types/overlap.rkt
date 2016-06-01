@@ -101,7 +101,24 @@
       [((Struct: n #f flds _ _ _)
         (StructTop: (Struct: n* #f flds* _ _ _)))
        #f]
-      [((and t1 (Struct: _ _ _ _ #f _))
-        (and t2 (Struct: _ _ _ _ #f _)))
-       (or (subtype t1 t2) (subtype t2 t1))]
+      [((and t1 (Struct: _ _ _ _ _ _))
+        (and t2 (Struct: _ _ _ _ _ _)))
+       (or (subtype t1 t2) (subtype t2 t1)
+           (parent-of? t1 t2) (parent-of? t2 t1))]
       [(_ _) #t])]))
+
+;; Type Type -> Boolean
+;; Given two struct types, check if the second is a parent struct
+;; type of the other (though possibly at different type instantiations
+;; if they are polymorphic)
+(define (parent-of? t1 t2)
+  (match* (t1 t2)
+    [((Struct: _ (Struct: pname _ _ _ _ _) _ _ _ _)
+      (Struct: pname _ _ _ _ _))
+     #t]
+    [((Struct: _ #f _ _ _ _)
+      other)
+     #f]
+    [((Struct: _ parent _ _ _ _)
+      other)
+     (parent-of? parent other)]))

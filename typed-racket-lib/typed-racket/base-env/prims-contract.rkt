@@ -19,7 +19,7 @@
 
 (provide require/opaque-type require-typed-struct-legacy require-typed-struct
          require/typed-legacy require/typed require/typed/provide
-         require-typed-struct/provide cast make-predicate define-predicate
+         require-typed-struct/provide core-cast make-predicate define-predicate
          require-typed-signature)
 
 (module forms racket/base
@@ -31,7 +31,7 @@
                     require-typed-struct-legacy
                     require-typed-struct
                     require/typed-legacy require/typed require/typed/provide
-                    require-typed-struct/provide cast make-predicate define-predicate)]))
+                    require-typed-struct/provide core-cast make-predicate define-predicate)]))
   (define-syntax (def stx)
     (syntax-case stx ()
       [(_ id ...)
@@ -43,7 +43,16 @@
         require-typed-struct-legacy
         require-typed-struct
         require/typed-legacy require/typed require/typed/provide
-        require-typed-struct/provide cast make-predicate define-predicate))
+        require-typed-struct/provide make-predicate define-predicate)
+
+  ;; Expand `cast` to a `core-cast` with an extra `#%expression` in order
+  ;; to prevent the contract generation pass from executing too early
+  ;; (i.e., before the `cast` typechecks)
+  (define-syntax (-core-cast stx) (core-cast stx))
+  (define-syntax (cast stx)
+    (syntax-case stx ()
+      [(_ e ty) (quasisyntax/loc stx (#%expression #,(syntax/loc stx (-core-cast e ty))))]))
+  (provide cast))
 
 ;; unsafe operations go in this submodule
 (module* unsafe #f
@@ -304,8 +313,8 @@
      #`(#,(external-check-property #'#%expression check-valid-type)
         #,(ignore-some/expr #`(flat-contract-predicate #,name) #'(Any -> Boolean : ty)))]))
 
-
-(define (cast stx)
+;; wrapped above in the `forms` submodule
+(define (core-cast stx)
   (syntax-parse stx
     [(_ v:expr ty:expr)
      (define (apply-contract v ctc-expr pos neg)
@@ -334,8 +343,6 @@
                                      (make-contract-def-rhs/from-typed existing-ty-id #f #f)))
             (define (store-existing-type existing-type)
               (cast-table-set! existing-ty-id existing-type))
-            (when (equal? (syntax-local-context) 'top-level)
-              (store-existing-type #'Any))
             (define (check-valid-type _)
               (define type (parse-type #'ty))
               (define vars (fv type))

@@ -17,6 +17,19 @@
    #:late-neg-projection
    (λ (blm)
      (lambda (v neg)
+       (unless (procedure? v)
+         (raise-blame-error
+          #:missing-party neg
+          blm #f
+          (list 'expected: "a procedure" 'given: (~s v))))
+       (unless (procedure-arity-includes? v arity)
+         (raise-blame-error
+          #:missing-party neg
+          blm #f
+          (list 'expected:
+                (format "a procedure that accepts ~a non-keyword argument"
+                        arity)
+                'given: (~s v))))
        ;; We could have separate kinda-fast paths for when one of these conditions
        ;; is true, but that is unlikely to be an important case in practice.
        (if (and (equal? arity (procedure-arity v))

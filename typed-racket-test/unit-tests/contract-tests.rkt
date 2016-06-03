@@ -355,6 +355,19 @@
                      (class object% (super-new)
                        (define/public (m) "m"))
                      #:untyped)
+
+              ;; Github issue #368
+              (t-int/fail (-> -Integer -Integer)
+                          values
+                          3
+                          #:untyped
+                          #:msg #rx"promised: a procedure")
+              (t-int/fail (-> -Integer -Integer)
+                          values
+                          (λ () 3)
+                          #:untyped
+                          #:msg #rx"that accepts 1 non-keyword")
+
               ;; intersection types
               (t (-unsafe-intersect (-seq -Symbol) (-pair -Symbol (-lst -Symbol))))
               (t/fail (-unsafe-intersect (-Number . -> . -Number) (-String . -> . -String))

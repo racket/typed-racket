@@ -115,16 +115,17 @@
              (define namespace (ctc-namespace))
              (define val (eval (quote val-expr) namespace))
              (define fun-val (eval (quote fun-expr) namespace))
-             (define ctced-val
-               (eval #`(let ()
-                         #,@(map (λ (stx) (syntax-shift-phase-level stx 1))
-                                 extra-stxs)
-                         (contract #,(syntax-shift-phase-level ctc-stx 1)
-                                   #,val
-                                   #,(quote (quote #,pos))
-                                   #,(quote (quote #,neg))))
-                     namespace))
-             (check (λ () (fun-val ctced-val))))))]))
+             (check (λ ()
+                      (define ctced-val
+                        (eval #`(let ()
+                                  #,@(map (λ (stx) (syntax-shift-phase-level stx 1))
+                                          extra-stxs)
+                                  (contract #,(syntax-shift-phase-level ctc-stx 1)
+                                            #,val
+                                            #,(quote (quote #,pos))
+                                            #,(quote (quote #,neg))))
+                              namespace))
+                      (fun-val ctced-val))))))]))
 
 (define tests
   (test-suite "Contract Tests"

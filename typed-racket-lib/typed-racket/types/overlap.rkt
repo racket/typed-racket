@@ -113,8 +113,9 @@
 ;; if they are polymorphic)
 (define (parent-of? t1 t2)
   (match* (t1 t2)
-    [((Struct: _ (Struct: pname _ _ _ _ _) _ _ _ _)
-      (Struct: pname _ _ _ _ _))
+    [((Struct: _ (Struct: pname1 _ _ _ _ _) _ _ _ _)
+      (Struct: pname2 _ _ _ _ _))
+     #:when (free-identifier=? pname1 pname2)
      #t]
     [((Struct: _ #f _ _ _ _)
       other)

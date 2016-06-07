@@ -182,7 +182,9 @@
                 [(-HashTop) (-seq (-pair Univ Univ))]))]
   ;; in-port
   [(make-template-identifier 'in-port 'racket/private/for)
-   (->opt [(-> -Input-Port Univ) -Input-Port] (-seq Univ))]
+   (-poly (a)
+          (cl->* (-> (-seq Univ))
+                 (->opt (-> -Input-Port (Un a (-val eof))) [-Input-Port] (-seq a))))]
   ;; in-input-port-bytes
   [(make-template-identifier 'in-input-port-bytes 'racket/private/for)
    (-> -Input-Port (-seq -Byte))]

@@ -69,6 +69,17 @@
                                         (overlap? b b*))]
       ;; lots of things are sequences, but not values where sequence? produces #f
       [((Sequence: _) (Value: v)) #:no-order (sequence? v)]
+      ;; hash tables are two-valued sequences
+      [((Sequence: (or (list _) (list _ _ _ ...)))
+        (or (? Hashtable?) (? HashtableTop?)))
+        #:no-order
+        #f]
+      ;; these are single-valued sequences
+      [((Sequence: (list _ _ _ ...))
+        (or (? Pair?) (? Vector?) (? VectorTop?)))
+        #:no-order
+        #f]
+      ;; be conservative about other kinds of sequences
       [((Sequence: _) _) #:no-order #t]
       ;; Values where evt? produces #f cannot be Evt
       [((Evt: _) (Value: v)) #:no-order (evt? v)]

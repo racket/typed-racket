@@ -172,7 +172,7 @@
          int-tests unit-tests compile-benchmarks compile-math
          optimization-tests missed-optimization-tests)
 
-(module+ main
+;(module+ main
   (require racket/vector racket/gui/dynamic rackunit racket/cmdline)
 
   (define exec (make-parameter go/text))
@@ -185,6 +185,7 @@
   (define math? (make-parameter #f))
   (define single (make-parameter #f))
   (current-namespace (make-base-namespace))
+  (printf "~a" (current-command-line-arguments))
   (command-line
    #:once-each
    ["-v" "verbose" (verbose? #t)]
@@ -221,7 +222,7 @@
                                     (if (math?)       (list (compile-math))              '())))])])
         (unless (= 0 ((exec) to-run))
           (eprintf "Typed Racket Tests did not pass.\n")
-          (exit 1)))))
+          (exit 1))));)
 
 ;; nightly tests in `run.rkt` for drdr chart continuity
 (module test racket/base)

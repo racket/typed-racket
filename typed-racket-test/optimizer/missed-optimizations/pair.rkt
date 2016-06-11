@@ -45,8 +45,8 @@ END
 1
 1
 '()
-(mcons 2 (mcons 3))
-(mcons 3)
+(mcons 2 (mcons 3 '()))
+(mcons 3 '())
 '()
 2
 3

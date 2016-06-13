@@ -33,6 +33,25 @@
 
 (struct simple-contract static-contract (syntax kind name)
         #:transparent
+        #:methods gen:equal+hash
+         [(define (equal-proc s1 s2 recur)
+            (and ;; only check s-expression equality because it's
+                 ;; unlikely that TR will compile contracts that are
+                 ;; s-exp equal but aren't actually the same contract
+                 (recur (syntax->datum (simple-contract-syntax s1))
+                        (syntax->datum (simple-contract-syntax s2)))
+                 (recur (simple-contract-kind s1)
+                        (simple-contract-kind s2))
+                 (recur (simple-contract-name s1)
+                        (simple-contract-name s2))))
+          (define (hash-proc sc hash-code)
+            (hash-code (list (syntax->datum (simple-contract-syntax sc))
+                             (simple-contract-kind sc)
+                             (simple-contract-name sc))))
+          (define (hash2-proc sc hash-code)
+            (hash-code (list (syntax->datum (simple-contract-syntax sc))
+                             (simple-contract-kind sc)
+                             (simple-contract-name sc))))]
         #:methods gen:sc
          [(define (sc-map v f) v)
           (define (sc-traverse v f) (void))

@@ -1,6 +1,8 @@
 #lang racket/base
 
-(require syntax/private/modcollapse-noctc (for-template racket/base))
+(require syntax/private/modcollapse-noctc
+         syntax/id-table
+         (for-template racket/base))
 (provide make-make-redirect-to-contract)
 
 ;; This is used to define identifiers that expand to a local-require
@@ -24,16 +26,23 @@
 ;; This code was originally written by mflatt for the plai-typed
 ;; language, and then slightly adapted for TR by samth.
 
+(define id-table (make-free-id-table))
+
 (define ((make-make-redirect-to-contract contract-defs-submod-modidx) id)
   (define (redirect stx)
     (cond
      [(identifier? stx)
-      (with-syntax ([mp (collapse-module-path-index
-                         contract-defs-submod-modidx)]
-                    [i (datum->syntax id (syntax-e id) stx stx)])
-        (syntax-local-lift-require
-         #`(rename mp i #,(datum->syntax #'mp (syntax-e #'i)))
-         #'i))]
+      (cond [(free-id-table-ref id-table stx #f)]
+            [else
+             (with-syntax ([mp (collapse-module-path-index
+                                contract-defs-submod-modidx)]
+                           [i (datum->syntax id (syntax-e id) stx stx)])
+               (define new-id
+                 (syntax-local-lift-require
+                  #`(rename mp i #,(datum->syntax #'mp (syntax-e #'i)))
+                  #'i))
+               (free-id-table-set! id-table stx new-id)
+               new-id)])]
      [else
       (datum->syntax stx
                      (cons (redirect (car (syntax-e stx)))

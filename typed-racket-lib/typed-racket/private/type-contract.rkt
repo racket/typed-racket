@@ -135,7 +135,7 @@
            [else
             (match-define (list defs ctc) result)
             (define maybe-inline-val
-              (should-inline-contract? ctc cache))
+              (should-inline-contract?/cache ctc cache))
             #`(begin #,@defs
                      #,@(if maybe-inline-val
                             null
@@ -153,18 +153,11 @@
 ;; Syntax (Dict Static-Contract (Cons Id Syntax)) -> (Option Syntax)
 ;; A helper for generate-contract-def/provide that helps inline contract
 ;; expressions when needed to cooperate with the contract system's optimizations
-(define (should-inline-contract? ctc-stx cache)
+(define (should-inline-contract?/cache ctc-stx cache)
   (and (identifier? ctc-stx)
        (let ([match? (assoc ctc-stx (hash-values cache) free-identifier=?)])
          (and match?
-              (or
-               ;; no need to generate an extra def for things that are already identifiers
-               (identifier? match?)
-               ;; ->* are handled specially by the contract system
-               (let ([sexp (syntax-e (cdr match?))])
-                 (and (pair? sexp)
-                      (or (free-identifier=? (car sexp) #'->)
-                          (free-identifier=? (car sexp) #'->*)))))
+              (should-inline-contract? (cdr match?))
               (cdr match?)))))
 
 ;; The below requires are needed since they provide identifiers that

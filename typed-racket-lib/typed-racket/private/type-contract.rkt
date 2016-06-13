@@ -626,7 +626,11 @@
         [(Syntax: t)
          (syntax/sc (t->sc t))]
         [(Value: v)
-         (flat/sc #`(flat-named-contract '#,v (lambda (x) (equal? x '#,v))) v)]
+         (if (and (c:flat-contract? v)
+                  ;; regexps don't match themselves when used as contracts
+                  (not (regexp? v)))
+             (flat/sc #`(quote #,v))
+             (flat/sc #`(flat-named-contract '#,v (lambda (x) (equal? x '#,v))) v))]
         [(Param: in out) 
          (parameter/sc (t->sc in) (t->sc out))]
         [(Hashtable: k v)

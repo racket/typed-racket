@@ -237,7 +237,7 @@
                             (lambda (f) (f 6))
                             (lambda (x) 'bad)
                             #:untyped
-                            #:msg #rx"promised: \\(or/c #f #t\\).*produced: 'bad.*blaming: untyped")
+                            #:msg #rx"promised: boolean\\?.*produced: 'bad.*blaming: untyped")
                 ;; Struct predicates should not have a contract
                 (t-int ctc
                        (lambda (foo?)

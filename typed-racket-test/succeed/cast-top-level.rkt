@@ -42,7 +42,7 @@
   (check-equal? v #f)
   (check-equal? ((cast f (Boolean -> Boolean)) #t) #t)
   (check-equal? v #t)
-  (check-exn #rx"expected: \\(or/c #f #t\\)\n *given: \"hello\""
+  (check-exn #rx"expected: boolean\\?\n *given: \"hello\""
              (λ () ((cast f (String -> String)) "hello")))
   (check-equal? v #t
                 "if the previous test hadn't errored, this would be \"hello\" with type Boolean"))

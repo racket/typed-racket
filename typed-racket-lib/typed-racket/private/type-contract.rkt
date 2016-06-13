@@ -627,6 +627,9 @@
          (syntax/sc (t->sc t))]
         [(Value: v)
          (if (and (c:flat-contract? v)
+                  ;; numbers used as contracts compare with =, but TR
+                  ;; requires an equal? check
+                  (not (number? v))
                   ;; regexps don't match themselves when used as contracts
                   (not (regexp? v)))
              (flat/sc #`(quote #,v))

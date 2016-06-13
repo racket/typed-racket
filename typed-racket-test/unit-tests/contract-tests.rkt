@@ -368,6 +368,18 @@
                           #:untyped
                           #:msg #rx"that accepts 1 non-keyword")
 
+              ;; Value types with numbers shouldn't be checked with =
+              (t-int/fail (make-Value 3.0)
+                          values
+                          3
+                          #:untyped
+                          #:msg #rx"promised: 3.0")
+              (t-int/fail (make-Value 3)
+                          values
+                          3.0
+                          #:untyped
+                          #:msg #rx"promised: 3")
+
               ;; intersection types
               (t (-unsafe-intersect (-seq -Symbol) (-pair -Symbol (-lst -Symbol))))
               (t/fail (-unsafe-intersect (-Number . -> . -Number) (-String . -> . -String))

@@ -187,6 +187,7 @@
 (define Syntax-Sexp (-Sexpof Any-Syntax))
 (define Ident (-Syntax -Symbol))
 (define -HT make-Hashtable)
+(define/decl -StructTypeTop (make-StructTypeTop))
 (define/decl -BoxTop (make-BoxTop))
 (define/decl -Weak-BoxTop (make-Weak-BoxTop))
 (define/decl -ChannelTop (make-ChannelTop))

@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require racket/dict syntax/id-table racket/match
-         mzlib/pconvert racket/syntax
+         racket/syntax
          "../utils/utils.rkt"
          (prefix-in c: (contract-req))
          (rep type-rep prop-rep object-rep)
@@ -26,15 +26,15 @@
     [_ (int-err (format "no struct fn table entry for ~a" (syntax->datum id)))]))
 
 (define (make-struct-table-code)
-  (parameterize ([current-print-convert-hook converter]
-                 [show-sharing #f])
-    (define/with-syntax (adds ...)      
-      (for/list ([(k v) (in-sorted-dict struct-fn-table id<)]
-                 #:when (bound-in-this-module k))
-        (match v
-          [(list pe mut?)
-           #`(add-struct-fn! (quote-syntax #,k) #,(print-convert pe) #,mut?)])))
-    #'(begin adds ...)))
+  (define/with-syntax (adds ...)
+    (for/list ([(k v) (in-sorted-dict struct-fn-table id<)]
+               #:when (bound-in-this-module k))
+      (match v
+        [(list pe mut?)
+         #`(add-struct-fn! (quote-syntax #,k)
+                           #,(path-elem->sexp pe)
+                           #,mut?)])))
+  #'(begin adds ...))
 
 (provide/cond-contract
  [add-struct-fn! (identifier? StructPE? boolean? . c:-> . c:any/c)]

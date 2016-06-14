@@ -540,22 +540,12 @@
     [(_ debug-printer:id)
      #:when (eq? printer-type 'debug)
      #'(begin
-         (require racket/pretty)
-         (require mzlib/pconvert)
-
-         (define (converter v basic sub)
-           (define (gen-constructor sym)
-             (string->symbol (string-append "make-" (substring (symbol->string sym) 7))))
-           (match v
-             [(? Rep? rep)
-              `(,(gen-constructor (car (vector->list (struct->vector rep))))
-                ,@(map sub (Rep-values rep)))]
-             [_ (basic v)]))
+         (require racket/pretty
+                  typed-racket/env/init-envs)
 
          (define (debug-printer v port write?)
            ((if write? pretty-write pretty-print)
-            (parameterize ((current-print-convert-hook converter))
-              (print-convert v))
+            (syntax->datum (datum->syntax #f (type->sexp v)))
             port)))]
     [_ #'(begin)]))
 

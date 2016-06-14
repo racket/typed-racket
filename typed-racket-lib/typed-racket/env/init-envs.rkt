@@ -14,14 +14,15 @@
          (for-syntax syntax/parse racket/base)
          (types abbrev union)
          racket/dict racket/list racket/set racket/promise
-         mzlib/pconvert racket/match)
+         racket/match)
 
 (provide ;; convenience form for defining an initial environment
          ;; used by "base-special-env.rkt" and "base-contracted.rkt"
          define-initial-env
          initialize-type-name-env
          initialize-type-env
-         converter
+         type->sexp ; for types/printer.rkt
+         path-elem->sexp ; for types/struct-table.rkt
          bound-in-this-module
          tname-env-init-code
          tvariance-env-init-code
@@ -44,113 +45,272 @@
 (define (initialize-type-env initial-env)
   (for-each (lambda (nm/ty) (register-type-if-undefined (car nm/ty) (cadr nm/ty))) initial-env))
 
-(define current-class-cache (make-parameter #f))
+;; Type -> S-Exp
+;; Convert a type to an s-expression to evaluate
+(define (type->sexp ty)
+  ;; currently just calls recur, which is not useful but is setup
+  ;; for a future commit that adds more memoization
+  (recur ty))
 
-(define (converter v basic sub)
+;; Helper for type->sexp
+(define (recur ty)
   (define (numeric? t) (match t [(Base: _ _ _ b) b] [(Value: (? number?)) #t] [_ #f]))
   (define (split-union ts)
     (define-values (nums others) (partition numeric? ts))
     (cond [(or (null? nums) (null? others))
             ;; nothing interesting to do in this case
-            `(make-Union (,#'raw-sort (list ,@(map sub ts)) < Type-seq #f))]
+            `(make-Union (,#'raw-sort (list ,@(map type->sexp ts)) < Type-seq #f))]
            [else
             ;; we do a little more work to hopefully save a bunch in serialization space
             ;; if we get a hit in the predefined-type-table
-            `(simple-Un ,(sub (apply Un nums)) ,(sub (apply Un others)))]))
+            `(simple-Un ,(type->sexp (apply Un nums))
+                        ,(type->sexp (apply Un others)))]))
 
-  (define (gen-constructor sym)
-    (string->symbol (string-append "make-" (substring (symbol->string sym) 7))))
-  (match v
+  (match ty
     [(? Rep? (app (lambda (v) (hash-ref predefined-type-table (Rep-seq v) #f)) (? values id))) id]
+    [(Base: n cnt pred _)
+     (int-err "Base type ~a not in predefined-type-table" n)]
+    [(B: nat) `(make-B ,nat)]
+    [(F: sym) `(make-F (quote ,sym))]
+    [(Pair: left right)
+     `(make-Pair ,(type->sexp left) ,(type->sexp right))]
+    [(ListDots: type dbound)
+     `(make-ListDots ,(type->sexp type) (quote ,dbound))]
+    [(MPair: left right)
+     `(make-MPair ,(type->sexp left) ,(type->sexp right))]
+    [(Vector: ty)
+     `(make-Vector ,(type->sexp ty))]
+    [(HeterogeneousVector: elems)
+     `(make-HeterogeneousVector (list ,@(map type->sexp elems)))]
+    [(Box: ty)
+     `(make-Box ,(type->sexp ty))]
+    [(Channel: ty)
+     `(make-Channel ,(type->sexp ty))]
+    [(Async-Channel: ty)
+     `(make-Async-Channel ,(type->sexp ty))]
+    [(ThreadCell: ty)
+     `(make-ThreadCell ,(type->sexp ty))]
+    [(Promise: ty)
+     `(make-Promise ,(type->sexp ty))]
+    [(Ephemeron: ty)
+     `(make-Ephemeron ,(type->sexp ty))]
+    [(Weak-Box: ty)
+     `(make-Weak-Box ,(type->sexp ty))]
+    [(CustodianBox: ty)
+     `(make-CustodianBox ,(type->sexp ty))]
+    [(Set: ty)
+     `(make-Set ,(type->sexp ty))]
+    [(Evt: ty)
+     `(make-Evt ,(type->sexp ty))]
+    [(Future: ty)
+     `(make-Future ,(type->sexp ty))]
+    [(Prompt-Tagof: prompt handler)
+     `(make-Prompt-Tagof ,(type->sexp prompt) ,(type->sexp handler))]
+    [(Continuation-Mark-Keyof: ty)
+     `(make-Continuation-Mark-Keyof ,(type->sexp ty))]
+    [(Sequence: tys)
+     `(make-Sequence (list ,@(map type->sexp tys)))]
+    [(Syntax: ty)
+     `(make-Syntax ,(type->sexp ty))]
     [(Listof: elem-ty)
-     `(-lst ,(sub elem-ty))]
+     `(-lst ,(type->sexp elem-ty))]
+    [(Param: in out)
+     `(make-Param ,(type->sexp in) ,(type->sexp out))]
+    [(Hashtable: key val)
+     `(make-Hashtable ,(type->sexp key) ,(type->sexp val))]
     [(Function: (list (arr: dom (Values: (list (Result: t
                                                         (PropSet: (TrueProp:)
                                                                   (TrueProp:))
                                                         (Empty:))))
                             #f #f '())))
-     `(simple-> (list ,@(map sub dom)) ,(sub t))]
+     `(simple-> (list ,@(map type->sexp dom)) ,(type->sexp t))]
     [(Function: (list (arr: dom (Values: (list (Result: t (PropSet: (TypeProp: pth ft)
-                                                                     (NotTypeProp: pth ft))
+                                                                    (NotTypeProp: pth ft))
                                                         (Empty:))))
                             #f #f '())))
-     `(make-pred-ty (list ,@(map sub dom)) ,(sub t) ,(sub ft) ,(sub pth))]
+     `(make-pred-ty (list ,@(map type->sexp dom))
+                    ,(type->sexp t)
+                    ,(type->sexp ft)
+                    ,(object->sexp pth))]
     [(Function: (list (arr: dom (Values: (list (Result: t (PropSet: (NotTypeProp: (Path: pth (list 0 0))
                                                                                   (== -False))
-                                                                      (TypeProp: (Path: pth (list 0 0))
-                                                                                 (== -False)))
+                                                                    (TypeProp: (Path: pth (list 0 0))
+                                                                               (== -False)))
                                                         (Path: pth (list 0 0)))))
                             #f #f '())))
-     `(->acc (list ,@(map sub dom)) ,(sub t) ,(sub pth))]
-    [(Result: t (PropSet: (TrueProp:) (TrueProp:)) (Empty:)) `(-result ,(sub t))]
+     `(->acc (list ,@(map type->sexp dom))
+             ,(type->sexp t)
+             (list ,@(map path-elem->sexp pth)))]
+    [(Function: arrs)
+     `(make-Function (list ,@(map type->sexp arrs)))]
+    [(Keyword: kw ty required?)
+     `(make-Keyword (quote ,kw) ,(type->sexp ty) ,required?)]
+    [(Values: rs)
+     `(make-Values (list ,@(map type->sexp rs)))]
+    [(ValuesDots: rs dty dbound)
+     `(make-ValuesDots (list ,@(map type->sexp rs))
+                       ,(type->sexp dty)
+                       (quote ,dbound))]
+    [(Result: t (PropSet: (TrueProp:) (TrueProp:)) (Empty:))
+     `(-result ,(type->sexp t))]
+    [(Result: ty prop obj)
+     `(make-Result ,(type->sexp ty)
+                   ,(prop->sexp prop)
+                   ,(object->sexp obj))]
+    [(AnyValues: prop)
+     `(make-AnyValues ,(prop->sexp prop))]
     [(Union: elems) (split-union elems)]
-    [(Intersection: elems) `(make-Intersection (set ,@(for/list ([elem (in-immutable-set elems)])
-                                                        (sub elem))))]
-    [(Base: n cnt pred _) (int-err "Base type ~a not in predefined-type-table" n)]
+    [(Intersection: elems)
+     `(make-Intersection (set ,@(for/list ([elem (in-immutable-set elems)])
+                                  (type->sexp elem))))]
     [(Name: stx args struct?)
      `(make-Name (quote-syntax ,stx) ,args ,struct?)]
-    [(fld: t acc mut) `(make-fld ,(sub t) (quote-syntax ,acc) ,mut)]
+    [(fld: t acc mut)
+     `(make-fld ,(type->sexp t) (quote-syntax ,acc) ,mut)]
     [(Struct: name parent flds proc poly? pred-id)
-     `(make-Struct (quote-syntax ,name) ,(sub parent)
-                   ,(sub flds) ,(sub proc) ,(sub poly?)
+     `(make-Struct (quote-syntax ,name)
+                   ,(and parent (type->sexp parent))
+                   (list ,@(map type->sexp flds))
+                   ,(and proc (type->sexp proc))
+                   ,poly?
                    (quote-syntax ,pred-id))]
-    [(App: rator rands stx) `(make-App ,(sub rator) ,(sub rands) (quote-syntax ,stx))]
-    [(Opaque: pred) `(make-Opaque (quote-syntax ,pred))]
-    [(Refinement: parent pred) `(make-Refinement ,(sub parent)
-                                                 (quote-syntax ,pred))]
-    [(Mu-name: n b) `(make-Mu ,(sub n) ,(sub b))]
-    [(Poly-names: ns b) `(make-Poly (list ,@(map sub ns)) ,(sub b))]
-    [(PolyDots-names: ns b) `(make-PolyDots (list ,@(map sub ns)) ,(sub b))]
-    [(PolyRow-names: ns c b) `(make-PolyRow (list ,@(map sub ns))
-                                            (quote ,c) ,(sub b))]
+    [(Prefab: key flds)
+     `(make-Prefab (quote ,key)
+                   (list ,@(map type->sexp flds)))]
+    [(App: rator rands stx)
+     `(make-App ,(type->sexp rator)
+                (list ,@(map type->sexp rands))
+                ,(and stx `(quote-syntax ,stx)))]
+    [(Opaque: pred)
+     `(make-Opaque (quote-syntax ,pred))]
+    [(Refinement: parent pred)
+     `(make-Refinement ,(type->sexp parent) (quote-syntax ,pred))]
+    [(Mu-name: n b)
+     `(make-Mu (quote ,n) ,(type->sexp b))]
+    [(Poly-names: ns b)
+     `(make-Poly (list ,@(for/list ([n (in-list ns)])
+                           `(quote ,n)))
+                 ,(type->sexp b))]
+    [(PolyDots-names: ns b)
+     `(make-PolyDots (list ,@(for/list ([n (in-list ns)])
+                           `(quote ,n)))
+                     ,(type->sexp b))]
+    [(PolyRow-names: ns c b)
+     `(make-PolyRow (list ,@(for/list ([n (in-list ns)])
+                              `(quote ,n)))
+                    (quote ,c)
+                    ,(type->sexp b))]
     [(Class: row inits fields methods augments init-rest)
-     (cond [(and (current-class-cache)
-                 (dict-ref (unbox (current-class-cache)) v #f)) => car]
-           [else
-            ;; FIXME: there's probably a better way to do this
-            (define (convert members [inits? #f])
-              (for/list ([m members])
-                `(list (quote ,(car m))
-                       ,(sub (cadr m))
-                       ,@(if inits? (cddr m) '()))))
-            (define class-type
-              `(make-Class ,(sub row)
-                           (list ,@(convert inits #t))
-                           (list ,@(convert fields))
-                           (list ,@(convert methods))
-                           (list ,@(convert augments))
-                           ,(sub init-rest)))
-            (define name (gensym))
-            (define cache-box (current-class-cache))
-            (when cache-box
-              (set-box! cache-box
-                        (dict-set (unbox cache-box) v (list name class-type))))
-            (if cache-box name class-type)])]
+     (define (convert members [inits? #f])
+       (for/list ([m members])
+         `(list (quote ,(car m))
+                ,(type->sexp (cadr m))
+                ,@(if inits? (cddr m) '()))))
+     (define class-type
+       `(make-Class ,(and row (type->sexp row))
+                    (list ,@(convert inits #t))
+                    (list ,@(convert fields))
+                    (list ,@(convert methods))
+                    (list ,@(convert augments))
+                    ,(and init-rest (type->sexp init-rest))))
+     class-type]
+    [(ClassTop:) `(make-ClassTop)]
+    [(Instance: ty) `(make-Instance ,(type->sexp ty))]
     [(Signature: name extends mapping)
      (define (serialize-mapping m)
        (map (lambda (id/ty) 
               (define id (car id/ty))
               (define ty (force (cdr id/ty)))
-              `(cons (quote-syntax ,id) ,(sub ty)))
+              `(cons (quote-syntax ,id) ,(type->sexp ty)))
             m))
      (define serialized-extends (and extends `(quote-syntax ,extends)))
      `(make-Signature (quote-syntax ,name)
                       ,serialized-extends
                       (list ,@(serialize-mapping mapping)))]
+    [(UnitTop:) `(make-UnitTop)]
+    [(Unit: imports exports init-depends result)
+     `(make-Unit (list ,@(map type->sexp imports))
+                 (list ,@(map type->sexp exports))
+                 (list ,@(map type->sexp init-depends))
+                 ,(type->sexp result))]
+    [(arr: dom (Values: (list (Result: t (PropSet: (TrueProp:)
+                                                   (TrueProp:))
+                                       (Empty:))))
+           #f #f '())
+     `(make-arr* (list ,@(map type->sexp dom))
+                 ,(type->sexp t))]
+    [(arr: dom rng #f #f '())
+     `(make-arr* (list ,@(map type->sexp dom))
+                 ,(type->sexp rng))]
     [(arr: dom rng rest drest kws)
-     `(make-arr ,(sub dom) ,(sub rng) ,(sub rest) ,(sub drest) ,(sub kws))]
+     `(make-arr (list ,@(map type->sexp dom))
+                ,(type->sexp rng)
+                ,(and rest (type->sexp rest))
+                ,(and drest `(cons ,(type->sexp (car drest))
+                                   (quote ,(cdr drest))))
+                (list ,@(map type->sexp kws)))]
+    [(Distinction: nm id ty)
+     `(make-Distinction (quote ,nm)
+                        (quote-syntax ,id)
+                        ,(type->sexp ty))]
+    [(Value: v) `(make-Value (quote ,v))]
+    [StructTypeTop `(make-StructTypeTop)]
+    [StructType `(make-StructType)]
+    [BoxTop `(make-BoxTop)]
+    [Weak-BoxTop `(make-Weak-BoxTop)]
+    [ChannelTop `(make-ChannelTop)]
+    [Async-ChannelTop `(make-Async-ChannelTop)]
+    [VectorTop `(make-VectorTop)]
+    [HashtableTop `(make-HashtableTop)]
+    [MPairTop `(make-MPairTop)]
+    [StructTop `(make-StructTop)]
+    [ThreadCellTop `(make-ThreadCellTop)]
+    [Prompt-TagTop `(make-Prompt-TagTop)]
+    [Continuation-Mark-KeyTop `(make-Continuation-Mark-KeyTop)]))
+
+;; Prop -> Sexp
+;; Convert a prop to an s-expression
+(define (prop->sexp prop)
+  (match prop
+    [(? Rep? (app (lambda (v) (hash-ref predefined-type-table (Rep-seq v) #f)) (? values id))) id]
+    ;; TrueProp/FalseProp are predefined
     [(TypeProp: o t)
-     `(make-TypeProp ,(sub o) ,(sub t))]
+     `(make-TypeProp ,(object->sexp o) ,(type->sexp t))]
     [(NotTypeProp: o t)
-     `(make-NotTypeProp ,(sub o) ,(sub t))]
-    [(Path: p i)
-     `(make-Path ,(sub p) ,(if (identifier? i)
-                               `(quote-syntax ,i)
-                               `(list ,(car i) ,(cadr i))))]
-    [(? Rep? rep)
-     `(,(gen-constructor (car (vector->list (struct->vector rep))))
-       ,@(map sub (Rep-values rep)))]
-    [_ (basic v)]))
+     `(make-NotTypeProp ,(object->sexp o) ,(type->sexp t))]
+    [(AndProp: fs)
+     `(make-AndProp (list ,@(map prop->sexp fs)))]
+    [(OrProp: fs)
+     `(make-OrProp (list ,@(map prop->sexp fs)))]
+    [(PropSet: thn els)
+     `(make-PropSet ,(prop->sexp thn) ,(prop->sexp els))]))
+
+;; Object -> SExp
+;; Convert an object to an s-expression to eval
+(define (object->sexp obj)
+  (match obj
+    [(Empty:) `(make-Empty)]
+    [(Path: null (list 0 arg))
+     `(-arg-path ,arg)]
+    [(Path: null (list depth arg))
+     `(-arg-path ,arg ,depth)]
+    [(Path: pes i)
+     `(make-Path (list ,@(map path-elem->sexp pes))
+                 ,(if (identifier? i)
+                      `(quote-syntax ,i)
+                      `(list ,(car i) ,(cadr i))))]))
+
+;; Path-Element -> SExp
+;; Convert a path element in an object to an s-expression
+(define (path-elem->sexp pe)
+  (match pe
+    [(CarPE:) `(make-CarPE)]
+    [(CdrPE:) `(make-CdrPE)]
+    [(SyntaxPE:) `(make-SyntaxPE)]
+    [(ForcePE:) `(make-ForcePE)]
+    [(StructPE: ty idx)
+     `(make-StructPE ,(type->sexp ty) ,idx)]
+    [(FieldPE:) `(make-FieldPE)]))
 
 (define (bound-in-this-module id)
   (let ([binding (identifier-binding id)])
@@ -160,24 +320,13 @@
         #f)))
 
 (define (make-init-code map f)
-  (define class-type-cache (box '()))
   (define (bound-f id v)
     (and (bound-in-this-module id) (f id v)))
-  (parameterize ((current-class-cache class-type-cache)
-                 (current-print-convert-hook converter)
-                 ;; ignore sharing in all cases
-                 (current-build-share-hook (λ (v basic sub) 'atomic))
-                 (show-sharing #f)
-                 (booleans-as-true/false #f))
-    (define aliases (filter values (map bound-f)))
-    #`(begin
-        #,@(for/list ([name+type (dict-values (unbox class-type-cache))])
-             (match-define (list name type) name+type)
-             (datum->syntax #'here `(define ,name ,type)))
-        #,@aliases)))
+  (define aliases (filter values (map bound-f)))
+  #`(begin #,@aliases))
 
 (define (quote-type ty)
-  (datum->syntax #'here (print-convert ty)))
+  (datum->syntax #'here (type->sexp ty)))
 
 (define (tname-env-init-code)
   (make-init-code

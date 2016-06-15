@@ -545,7 +545,7 @@
 
          (define (debug-printer v port write?)
            ((if write? pretty-write pretty-print)
-            (type->sexp v)
+            (syntax->datum (datum->syntax #f (type->sexp v)))
             port)))]
     [_ #'(begin)]))
 

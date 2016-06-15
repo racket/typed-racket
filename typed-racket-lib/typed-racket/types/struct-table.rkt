@@ -6,7 +6,8 @@
          (prefix-in c: (contract-req))
          (rep type-rep prop-rep object-rep)
          (utils tc-utils)
-         (env init-envs env-utils))
+         (env init-envs env-utils)
+         (types abbrev))
 
 (define struct-fn-table (make-free-id-table))
 

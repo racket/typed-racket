@@ -111,6 +111,8 @@
      (int-err "Base type ~a not in predefined-type-table" n)]
     [(B: nat) `(make-B ,nat)]
     [(F: sym) `(make-F (quote ,sym))]
+    [(Pair: ty (Listof: ty))
+     `(-ne-lst ,(type->sexp ty))]
     [(Pair: left right)
      `(make-Pair ,(type->sexp left) ,(type->sexp right))]
     [(ListDots: type dbound)
@@ -120,7 +122,7 @@
     [(Vector: ty)
      `(make-Vector ,(type->sexp ty))]
     [(HeterogeneousVector: elems)
-     `(make-HeterogeneousVector (list ,@(map type->sexp elems)))]
+     `(-vec* ,@(map type->sexp elems))]
     [(Box: ty)
      `(make-Box ,(type->sexp ty))]
     [(Channel: ty)
@@ -148,11 +150,13 @@
     [(Continuation-Mark-Keyof: ty)
      `(make-Continuation-Mark-Keyof ,(type->sexp ty))]
     [(Sequence: tys)
-     `(make-Sequence (list ,@(map type->sexp tys)))]
+     `(-seq ,@(map type->sexp tys))]
     [(Syntax: ty)
      `(make-Syntax ,(type->sexp ty))]
     [(Listof: elem-ty)
      `(-lst ,(type->sexp elem-ty))]
+    [(Param: ty ty)
+     `(-Param ,(type->sexp ty))]
     [(Param: in out)
      `(make-Param ,(type->sexp in) ,(type->sexp out))]
     [(Hashtable: key val)
@@ -198,10 +202,15 @@
                    ,(object->sexp obj))]
     [(AnyValues: prop)
      `(make-AnyValues ,(prop->sexp prop))]
+    [(Union: (list (Value: vs) ...))
+     `(one-of/c ,@(for/list ([v (in-list vs)])
+                    `(quote ,v)))]
     [(Union: elems) (split-union elems)]
     [(Intersection: elems)
      `(make-Intersection (set ,@(for/list ([elem (in-immutable-set elems)])
                                   (type->sexp elem))))]
+    [(Name: stx 0 #t)
+     `(-struct-name (quote-syntax ,stx))]
     [(Name: stx args struct?)
      `(make-Name (quote-syntax ,stx) ,args ,struct?)]
     [(fld: t acc mut)

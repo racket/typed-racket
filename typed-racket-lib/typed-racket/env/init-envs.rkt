@@ -84,6 +84,13 @@
   (or (> depth 10)
       (> width 10)))
 
+(define-match-expander In-Predefined-Table:
+  (λ (stx)
+    (syntax-parse stx
+      [(_ id)
+       #'(? Rep? (app (λ (v) (hash-ref predefined-type-table (Rep-seq v) #f))
+                      (? values id)))])))
+
 ;; Helper for type->sexp
 (define (recur ty)
   (define (numeric? t) (match t [(Base: _ _ _ b) b] [(Value: (? number?)) #t] [_ #f]))
@@ -99,7 +106,7 @@
                         ,(type->sexp (apply Un others)))]))
 
   (match ty
-    [(? Rep? (app (lambda (v) (hash-ref predefined-type-table (Rep-seq v) #f)) (? values id))) id]
+    [(In-Predefined-Table: id) id]
     [(Base: n cnt pred _)
      (int-err "Base type ~a not in predefined-type-table" n)]
     [(B: nat) `(make-B ,nat)]
@@ -304,7 +311,7 @@
 ;; Convert a prop to an s-expression
 (define (prop->sexp prop)
   (match prop
-    [(? Rep? (app (lambda (v) (hash-ref predefined-type-table (Rep-seq v) #f)) (? values id))) id]
+    [(In-Predefined-Table: id) id]
     ;; TrueProp/FalseProp are predefined
     [(TypeProp: o t)
      `(make-TypeProp ,(object->sexp o) ,(type->sexp t))]
@@ -336,10 +343,8 @@
 ;; Convert a path element in an object to an s-expression
 (define (path-elem->sexp pe)
   (match pe
-    [(CarPE:) `(make-CarPE)]
-    [(CdrPE:) `(make-CdrPE)]
-    [(SyntaxPE:) `(make-SyntaxPE)]
-    [(ForcePE:) `(make-ForcePE)]
+    [(In-Predefined-Table: id) id]
+    ;; CarPE, CdrPE, SyntaxPE, ForcePE are in the table
     [(StructPE: ty idx)
      `(make-StructPE ,(type->sexp ty) ,idx)]
     [(FieldPE:) `(make-FieldPE)]))

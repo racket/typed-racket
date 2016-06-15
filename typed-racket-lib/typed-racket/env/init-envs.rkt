@@ -12,7 +12,7 @@
          (rename-in racket/private/sort [sort raw-sort])
          (rep type-rep object-rep prop-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
-         (types abbrev union)
+         (types abbrev union utils)
          racket/dict racket/list racket/set racket/promise
          racket/match)
 
@@ -184,6 +184,16 @@
      `(->acc (list ,@(map type->sexp dom))
              ,(type->sexp t)
              (list ,@(map path-elem->sexp pth)))]
+    [(Function: (? has-optional-args? arrs))
+     (match-define (arr: fdoms rng rest _ *kws) (first arrs))
+     (match-define (arr: ldoms _ _ _ _) (last arrs))
+     (define opts (drop ldoms (length fdoms)))
+     (define kws (map type->sexp *kws))
+     `(opt-fn (list ,@(map type->sexp fdoms))
+              (list ,@(map type->sexp opts))
+              ,(type->sexp rng)
+              ,@(if rest `(#:rest ,rest) '())
+              ,@(if (null? kws) '() `(#:kws (list ,@kws))))]
     [(Function: arrs)
      `(make-Function (list ,@(map type->sexp arrs)))]
     [(Keyword: kw ty required?)

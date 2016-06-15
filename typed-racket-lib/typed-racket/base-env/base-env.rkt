@@ -778,6 +778,12 @@
  (-poly (a) ((-lst (-lst a)) . -> . (-lst a)))]
 [flatten
  (Univ . -> . (-lst Univ))]
+[combinations (-poly (a) (cl->*
+                          (-> (-lst a) (-lst (-lst a)))
+                          (-> (-lst a) -Nat (-lst (-lst a)))))]
+[in-combinations (-poly (a) (cl->*
+                             (-> (-lst a) (-seq (-lst a)))
+                             (-> (-lst a) -Nat (-seq (-lst a)))))]
 [permutations (-poly (a) (-> (-lst a) (-lst (-lst a))))]
 [in-permutations (-poly (a) (-> (-lst a) (-seq (-lst a))))]
 [argmin (-poly (a) ((a . -> . -Real) (-lst a) . -> . a))]

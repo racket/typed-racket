@@ -2403,6 +2403,10 @@
        [tc-e (splitf-at-right '("a" b "x" "y") string?)
              #:ret (ret (list (-lst (t:Un -String (-val 'b)))
                               (-lst -String)))]
+       [tc-e (combinations '(1 2 1)) (-lst (-lst -PosByte))]
+       [tc-e (combinations '(1 2 1) 2) (-lst (-lst -PosByte))]
+       [tc-e (in-combinations '(1 2 1)) (-seq (-lst -PosByte))]
+       [tc-e (in-combinations '(1 2 1) 2) (-seq (-lst -PosByte))]
        [tc-e (permutations '(a b c d)) (-lst (-lst (one-of/c 'a 'b 'c 'd)))]
        [tc-e (in-permutations '(a b c d)) (-seq (-lst (one-of/c 'a 'b 'c 'd)))]
 

@@ -45,12 +45,44 @@
 (define (initialize-type-env initial-env)
   (for-each (lambda (nm/ty) (register-type-if-undefined (car nm/ty) (cadr nm/ty))) initial-env))
 
+(define current-type-cache (make-parameter #f))
+
 ;; Type -> S-Exp
 ;; Convert a type to an s-expression to evaluate
 (define (type->sexp ty)
-  ;; currently just calls recur, which is not useful but is setup
-  ;; for a future commit that adds more memoization
-  (recur ty))
+  (define cache (current-type-cache))
+  (cond [(and cache (dict-ref (unbox cache) ty #f)) => car]
+        [else
+         (define res (recur ty))
+         (cond [(or (not cache)
+                    (not (large-enough? res)))
+                res]
+               [else
+                (define id (gensym))
+                (set-box! cache
+                          (dict-set (unbox cache)
+                                    ty
+                                    (list id res)))
+                id])]))
+
+;; SExp -> Boolean
+;; Check if a serialized type is large enough to be worth memoizing
+(define memo-table (make-weak-hash))
+(define (large-enough? sexp)
+  (define (depth/width sexp)
+    (let loop ([sexp sexp] [depth 0] [width 0])
+      (cond [(hash-ref memo-table sexp #f)]
+            [(pair? sexp)
+             (match-define (list d1 w1) (loop (car sexp) (add1 depth) width))
+             (match-define (list d2 w2) (loop (cdr sexp) depth (add1 width)))
+             (define res (list (max d1 d2) (max w1 w2)))
+             (hash-set! memo-table sexp res)
+             res]
+            [else
+             (list depth width)])))
+  (match-define (list depth width) (depth/width sexp))
+  (or (> depth 10)
+      (> width 10)))
 
 ;; Helper for type->sexp
 (define (recur ty)
@@ -322,8 +354,13 @@
 (define (make-init-code map f)
   (define (bound-f id v)
     (and (bound-in-this-module id) (f id v)))
-  (define aliases (filter values (map bound-f)))
-  #`(begin #,@aliases))
+  (parameterize ([current-type-cache (box null)])
+    (define aliases (filter values (map bound-f)))
+    (define extra-defs
+      (for/list ([key+name+type (in-list (unbox (current-type-cache)))])
+        (match-define (list _ name type) key+name+type)
+        (datum->syntax #'here `(define ,name ,type))))
+    #`(begin #,@extra-defs #,@aliases)))
 
 (define (quote-type ty)
   (datum->syntax #'here (type->sexp ty)))

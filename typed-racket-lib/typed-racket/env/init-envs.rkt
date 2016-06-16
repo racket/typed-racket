@@ -309,7 +309,7 @@
                 (list ,@(map type->sexp kws)))]
     [(Distinction: nm id ty)
      `(make-Distinction (quote ,nm)
-                        (quote-syntax ,id)
+                        (quote ,id)
                         ,(type->sexp ty))]
     [(Value: v) `(make-Value (quote ,v))]
     [StructTypeTop `(make-StructTypeTop)]

@@ -232,6 +232,7 @@
                    ,(and proc (type->sexp proc))
                    ,poly?
                    (quote-syntax ,pred-id))]
+    [(StructType: struct) `(make-StructType ,(type->sexp struct))]
     [(Prefab: key flds)
      `(make-Prefab (quote ,key)
                    (list ,@(map type->sexp flds)))]
@@ -312,19 +313,9 @@
                         (quote ,id)
                         ,(type->sexp ty))]
     [(Value: v) `(make-Value (quote ,v))]
-    [StructTypeTop `(make-StructTypeTop)]
-    [StructType `(make-StructType)]
-    [BoxTop `(make-BoxTop)]
-    [Weak-BoxTop `(make-Weak-BoxTop)]
-    [ChannelTop `(make-ChannelTop)]
-    [Async-ChannelTop `(make-Async-ChannelTop)]
-    [VectorTop `(make-VectorTop)]
-    [HashtableTop `(make-HashtableTop)]
-    [MPairTop `(make-MPairTop)]
-    [StructTop `(make-StructTop)]
-    [ThreadCellTop `(make-ThreadCellTop)]
-    [Prompt-TagTop `(make-Prompt-TagTop)]
-    [Continuation-Mark-KeyTop `(make-Continuation-Mark-KeyTop)]))
+    ;; Most Top types are in the predefined table, the ones here
+    ;; are not
+    [(StructTop: name) `(make-StructTop ,(type->sexp name))]))
 
 ;; Prop -> Sexp
 ;; Convert a prop to an s-expression

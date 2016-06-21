@@ -12,7 +12,7 @@
          (rename-in racket/private/sort [sort raw-sort])
          (rep type-rep object-rep prop-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
-         (types abbrev union utils)
+         (types abbrev struct-table union utils)
          data/queue
          racket/dict racket/list racket/set racket/promise
          racket/match)
@@ -24,14 +24,14 @@
          initialize-type-env
          get-extra-type-definitions ; for tc-toplevel.rkt
          type->sexp ; for types/printer.rkt
-         path-elem->sexp ; for types/struct-table.rkt
          bound-in-this-module
          tname-env-init-code
          tvariance-env-init-code
          talias-env-init-code
          env-init-code
          mvar-env-init-code
-         signature-env-init-code)
+         signature-env-init-code
+         make-struct-table-code)
 
 (define-syntax (define-initial-env stx)
   (syntax-parse stx
@@ -415,3 +415,12 @@
   (make-init-code
    signature-env-map
    (lambda (id sig) #`(register-signature! #'#,id #,(quote-type sig)))))
+
+(define (make-struct-table-code)
+  (make-init-code
+   struct-fn-table-map
+   (λ (id v)
+     (match-define (list pe mut?) v)
+     #`(add-struct-fn! (quote-syntax #,id)
+                       #,(path-elem->sexp pe)
+                       #,mut?))))

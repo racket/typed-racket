@@ -10,7 +10,6 @@
                "2d"
                "rackunit-lib"
                "racket-index"
-               "pconvert-lib"
                "compatibility-lib"
                "math-lib"))
 (define build-deps '("scheme-lib"

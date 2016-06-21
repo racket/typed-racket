@@ -13,6 +13,7 @@
          (rep type-rep object-rep prop-rep rep-utils free-variance)
          (for-syntax syntax/parse racket/base)
          (types abbrev union utils)
+         data/queue
          racket/dict racket/list racket/set racket/promise
          racket/match)
 
@@ -21,6 +22,7 @@
          define-initial-env
          initialize-type-name-env
          initialize-type-env
+         get-extra-type-definitions ; for tc-toplevel.rkt
          type->sexp ; for types/printer.rkt
          path-elem->sexp ; for types/struct-table.rkt
          bound-in-this-module
@@ -45,25 +47,31 @@
 (define (initialize-type-env initial-env)
   (for-each (lambda (nm/ty) (register-type-if-undefined (car nm/ty) (cadr nm/ty))) initial-env))
 
-(define current-type-cache (make-parameter #f))
+;; stores definition syntaxes for lifting out common expressions
+(define type-definitions (make-queue))
+
+;; -> Syntax
+;; Emit stored type definitions as code to run before env code
+(define (get-extra-type-definitions)
+  #`(begin #,@(queue->list type-definitions)))
+
+;; cache for memoizing the type->sexp computation
+(define type-cache (make-hash))
 
 ;; Type -> S-Exp
 ;; Convert a type to an s-expression to evaluate
 (define (type->sexp ty)
-  (define cache (current-type-cache))
-  (cond [(and cache (dict-ref (unbox cache) ty #f)) => car]
+  (cond [(hash-ref type-cache ty #f)]
         [else
-         (define res (recur ty))
-         (cond [(or (not cache)
-                    (not (large-enough? res)))
-                res]
-               [else
-                (define id (gensym))
-                (set-box! cache
-                          (dict-set (unbox cache)
-                                    ty
-                                    (list id res)))
-                id])]))
+         (define *res (recur ty))
+         (define res
+           (cond [(not (large-enough? *res)) *res]
+                 [else
+                  (define id (gensym))
+                  (enqueue! type-definitions #`(define #,id #,*res))
+                  id]))
+         (hash-set! type-cache ty res)
+         res]))
 
 ;; SExp -> Boolean
 ;; Check if a serialized type is large enough to be worth memoizing
@@ -366,13 +374,8 @@
 (define (make-init-code map f)
   (define (bound-f id v)
     (and (bound-in-this-module id) (f id v)))
-  (parameterize ([current-type-cache (box null)])
-    (define aliases (filter values (map bound-f)))
-    (define extra-defs
-      (for/list ([key+name+type (in-list (unbox (current-type-cache)))])
-        (match-define (list _ name type) key+name+type)
-        (datum->syntax #'here `(define ,name ,type))))
-    #`(begin #,@extra-defs #,@aliases)))
+  (define aliases (filter values (map bound-f)))
+  #`(begin #,@aliases))
 
 (define (quote-type ty)
   (datum->syntax #'here (type->sexp ty)))

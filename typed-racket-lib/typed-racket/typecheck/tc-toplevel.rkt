@@ -447,18 +447,6 @@
       (define/with-syntax (new-defs ...) defs)
       (define/with-syntax (new-export-defs ...) export-defs)
       (define/with-syntax (new-provs ...) provs)
-      (define *env-codes
-        (list (env-init-code)
-              (talias-env-init-code)
-              (tname-env-init-code)
-              (tvariance-env-init-code)
-              (mvar-env-init-code mvar-env)
-              (signature-env-init-code)
-              (make-struct-table-code)))
-      ;; get the lifted common expressions for types which need to come first
-      (define env-codes
-        (list* (get-extra-type-definitions)
-               *env-codes))
       (values
        #`(begin
            ;; This syntax-time submodule records all the types for all
@@ -478,7 +466,7 @@
                          typed-racket/env/global-env typed-racket/env/type-alias-env
                          typed-racket/types/struct-table typed-racket/types/abbrev
                          (rename-in racket/private/sort [sort raw-sort]))
-                #,@env-codes
+                #,@(make-env-init-codes)
                 #,@(for/list ([a (in-list aliases)])
                      (match-define (list from to) a)
                      #`(add-alias (quote-syntax #,from) (quote-syntax #,to))))))

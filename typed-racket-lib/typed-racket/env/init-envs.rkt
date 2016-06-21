@@ -22,16 +22,8 @@
          define-initial-env
          initialize-type-name-env
          initialize-type-env
-         get-extra-type-definitions ; for tc-toplevel.rkt
          type->sexp ; for types/printer.rkt
-         bound-in-this-module
-         tname-env-init-code
-         tvariance-env-init-code
-         talias-env-init-code
-         env-init-code
-         mvar-env-init-code
-         signature-env-init-code
-         make-struct-table-code)
+         make-env-init-codes)
 
 (define-syntax (define-initial-env stx)
   (syntax-parse stx
@@ -58,6 +50,21 @@
 ;; cache for memoizing the type->sexp computation
 (define type-cache (make-hash))
 
+;; (HashTable Type Natural)
+;; Keep track of the popularities of types
+(define pop-table (make-hash))
+
+;; Compute for a given type how many times each type inside of it
+;; is referenced
+(define (compute-popularity ty)
+  (hash-update! pop-table ty add1 0)
+  (define (count ty) (compute-popularity ty) ty)
+  (type-case (#:Type count #:Prop (sub-f count) #:Object (sub-o count))
+             ty))
+
+(define (popular? ty)
+  (> (hash-ref pop-table ty 0) 5))
+
 ;; Type -> S-Exp
 ;; Convert a type to an s-expression to evaluate
 (define (type->sexp ty)
@@ -65,32 +72,17 @@
         [else
          (define *res (recur ty))
          (define res
-           (cond [(not (large-enough? *res)) *res]
-                 [else
+           (cond ;; lift type out as a definition if it's referenced enough
+                 ;; and also isn't just a identifier already due to the
+                 ;; predefined table
+                 [(and (not (identifier? *res))
+                       (popular? ty))
                   (define id (gensym))
                   (enqueue! type-definitions #`(define #,id #,*res))
-                  id]))
-         (hash-set! type-cache ty res)
-         res]))
-
-;; SExp -> Boolean
-;; Check if a serialized type is large enough to be worth memoizing
-(define memo-table (make-weak-hash))
-(define (large-enough? sexp)
-  (define (depth/width sexp)
-    (let loop ([sexp sexp] [depth 0] [width 0])
-      (cond [(hash-ref memo-table sexp #f)]
-            [(pair? sexp)
-             (match-define (list d1 w1) (loop (car sexp) (add1 depth) width))
-             (match-define (list d2 w2) (loop (cdr sexp) depth (add1 width)))
-             (define res (list (max d1 d2) (max w1 w2)))
-             (hash-set! memo-table sexp res)
-             res]
-            [else
-             (list depth width)])))
-  (match-define (list depth width) (depth/width sexp))
-  (or (> depth 10)
-      (> width 10)))
+                  id]
+                 [else *res]))
+        (hash-set! type-cache ty res)
+        res]))
 
 (define-match-expander In-Predefined-Table:
   (λ (stx)
@@ -386,6 +378,22 @@
 (define (quote-type ty)
   (datum->syntax #'here (type->sexp ty)))
 
+;; -> Void
+;; Populates the table of type reference counts in order to inform
+;; the type serialization pass. Only walks the environments that
+;; actually track types.
+(define (compute-all-popularities)
+  (define (count-env map)
+    (define (count id ty) (compute-popularity ty))
+    (define (bound-f id v)
+      (and (bound-in-this-module id) (count id v)))
+    (map bound-f))
+
+  (count-env type-name-env-map)
+  (count-env type-alias-env-map)
+  (count-env type-env-map)
+  (count-env signature-env-map))
+
 (define (tname-env-init-code)
   (make-init-code
     type-name-env-map
@@ -424,3 +432,21 @@
      #`(add-struct-fn! (quote-syntax #,id)
                        #,(path-elem->sexp pe)
                        #,mut?))))
+
+;; -> (Listof Syntax)
+;; Construct syntax that does type environment serialization
+(define (make-env-init-codes)
+  (compute-all-popularities)
+
+  (define *env-codes
+    (list (env-init-code)
+          (talias-env-init-code)
+          (tname-env-init-code)
+          (tvariance-env-init-code)
+          (mvar-env-init-code mvar-env)
+          (signature-env-init-code)
+          (make-struct-table-code)))
+
+  ;; get the lifted common expressions for types which need to come first
+  (list* (get-extra-type-definitions)
+         *env-codes))

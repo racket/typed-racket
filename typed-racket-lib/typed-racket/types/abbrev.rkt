@@ -198,6 +198,8 @@
 (define/decl -Thread-CellTop (make-ThreadCellTop))
 (define/decl -Prompt-TagTop (make-Prompt-TagTop))
 (define/decl -Continuation-Mark-KeyTop (make-Continuation-Mark-KeyTop))
+(define/decl -ClassTop (make-ClassTop))
+(define/decl -UnitTop (make-UnitTop))
 (define/decl -Port (Un -Output-Port -Input-Port))
 (define/decl -SomeSystemPath (Un -Path -OtherSystemPath))
 (define/decl -Pathlike (Un -String -Path))
@@ -251,6 +253,7 @@
 (define/decl -cdr (make-CdrPE))
 (define/decl -syntax-e (make-SyntaxPE))
 (define/decl -force (make-ForcePE))
+(define/decl -field (make-FieldPE))
 
 ;; Type alias names
 (define (-struct-name name)

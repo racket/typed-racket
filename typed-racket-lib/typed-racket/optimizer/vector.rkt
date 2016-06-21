@@ -24,10 +24,17 @@
 (define-unsafe-syntax-class extflvector-set!)
 
 (define-syntax-class vector-op
+  #:attributes (unsafe unsafe-no-impersonator check-immutable?)
   #:commit
   ;; we need the non-* versions of these unsafe operations to be chaperone-safe
-  (pattern :vector-ref^  #:with unsafe #'unsafe-vector-ref  #:with unsafe-no-impersonator #'unsafe-vector*-ref)
-  (pattern :vector-set!^ #:with unsafe #'unsafe-vector-set! #:with unsafe-no-impersonator #'unsafe-vector*-set!))
+  ;; the `immutable?` attribute tells if we should fall back to the unoptimized version
+  ;;   when the value is immutable
+  (pattern :vector-ref^
+           #:with unsafe #'unsafe-vector-ref
+           #:with unsafe-no-impersonator #'unsafe-vector*-ref
+           #:attr check-immutable? #false)
+  (pattern :vector-set!^ #:with unsafe #'unsafe-vector-set! #:with unsafe-no-impersonator #'unsafe-vector*-set!
+           #:attr check-immutable? #true))
 (define-merged-syntax-class flvector-op (flvector-ref^ flvector-set!^ extflvector-ref^ extflvector-set!^))
 
 (define-syntax-class known-length-vector-expr
@@ -67,7 +74,12 @@
   (pattern (#%plain-app op:vector-op v:known-length-vector-expr i:value-expr new:opt-expr ...)
     #:when (<= 0 (attribute i.val) (sub1 (attribute v.len)))
     #:do [(log-opt "vector" "Vector bounds checking elimination.")]
-    #:with opt #'(op.unsafe v.opt i.opt new.opt ...))
+    #:with opt #`(let ([new-v v.opt])
+                   #,(if (attribute op.check-immutable?)
+                         #`(when (immutable? new-v)
+                             (op new-v i.opt new.opt ...)) ; produces the correct error message
+                         #'(begin))
+                   #'(op.unsafe v.opt i.opt new.opt ...)))
 
   ;; we can do the bounds checking separately, to eliminate some of the checks
   (pattern (#%plain-app op:vector-op v:opt-expr i:fixnum-expr new:opt-expr ...)
@@ -78,6 +90,10 @@
             [i-known-nonneg? (subtypeof? #'i -NonNegFixnum)])
         #`(let ([new-i i.opt]
                 [new-v v.opt])
+            #,(if (attribute op.check-immutable?)
+                  #`(when (immutable? new-v)
+                      #,safe-fallback) ; produces the correct error message
+                  #'(begin))
             ;; do the impersonator check up front, to avoid doing it twice (length and op)
             (if (impersonator? new-v)
                 (if #,(let ([one-sided #'(unsafe-fx< new-i (unsafe-vector-length new-v))])

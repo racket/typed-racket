@@ -7,10 +7,10 @@
 
 (provide box-opt-expr)
 
+;; set-box! is not optimized since the box might be immutable
 (define-unsafe-syntax-class unbox)
-(define-unsafe-syntax-class set-box!)
 
-(define-merged-syntax-class box-op (unbox^ set-box!^))
+(define-merged-syntax-class box-op (unbox^))
 
 (define-syntax-class box-opt-expr
   #:commit

@@ -273,7 +273,6 @@
                     (list ,@(convert augments))
                     ,(and init-rest (type->sexp init-rest))))
      class-type]
-    [(ClassTop:) `(make-ClassTop)]
     [(Instance: ty) `(make-Instance ,(type->sexp ty))]
     [(Signature: name extends mapping)
      (define (serialize-mapping m)
@@ -286,7 +285,6 @@
      `(make-Signature (quote-syntax ,name)
                       ,serialized-extends
                       (list ,@(serialize-mapping mapping)))]
-    [(UnitTop:) `(make-UnitTop)]
     [(Unit: imports exports init-depends result)
      `(make-Unit (list ,@(map type->sexp imports))
                  (list ,@(map type->sexp exports))
@@ -354,10 +352,9 @@
 (define (path-elem->sexp pe)
   (match pe
     [(In-Predefined-Table: id) id]
-    ;; CarPE, CdrPE, SyntaxPE, ForcePE are in the table
+    ;; CarPE, CdrPE, SyntaxPE, ForcePE, FieldPE are in the table
     [(StructPE: ty idx)
-     `(make-StructPE ,(type->sexp ty) ,idx)]
-    [(FieldPE:) `(make-FieldPE)]))
+     `(make-StructPE ,(type->sexp ty) ,idx)]))
 
 (define (bound-in-this-module id)
   (let ([binding (identifier-binding id)])

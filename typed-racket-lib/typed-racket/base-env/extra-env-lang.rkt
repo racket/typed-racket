@@ -8,7 +8,8 @@
 
 (require "../utils/utils.rkt"
          (for-syntax (private parse-type))
-         (for-syntax racket/base
+         (for-syntax "type-name-error.rkt"
+                     racket/base
                      syntax/parse
                      syntax/stx)
          (for-syntax (types abbrev numeric-tower union prop-ops)))
@@ -48,17 +49,7 @@
                  (register-type-name (quote-syntax type)
                                      (make-Opaque #'pred)))
              #:with outer-form #'(begin
-                                   ;; FIXME: same as the one used in prims
-                                   ;;        lift out to utility module maybe
-                                   (define-syntax (type stx)
-                                     (raise-syntax-error 'type-check
-                                                         (format "type name used out of context\n  type: ~a\n  in: ~a"
-                                                                 (syntax->datum (if (stx-pair? stx)
-                                                                                    (stx-car stx)
-                                                                                    stx))
-                                                                 (syntax->datum stx))
-                                                         stx
-                                                         (and (stx-pair? stx) (stx-car stx))))
+                                   (define-syntax type type-name-error)
                                    (provide type pred))))
 
   (define-syntax-class struct-clause

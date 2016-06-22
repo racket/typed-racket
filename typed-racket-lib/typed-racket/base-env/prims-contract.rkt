@@ -88,7 +88,8 @@
          "../typecheck/internal-forms.rkt"
          ;; struct-extraction is actually used at both of these phases
          "../utils/struct-extraction.rkt"
-         (for-syntax "../utils/struct-extraction.rkt")
+         (for-syntax "../utils/struct-extraction.rkt"
+                     "type-name-error.rkt")
          (only-in "../utils/utils.rkt" syntax-length)
          (for-template racket/base "ann-inst.rkt"))
 
@@ -531,17 +532,7 @@
                                #'(begin))
 
                          #,(if (not (free-identifier=? #'nm #'type))
-                               #'(define-syntax type
-                                   (lambda (stx)
-                                     (raise-syntax-error
-                                      'type-check
-                                      (format "type name ~a used out of context in ~a"
-                                              (syntax->datum (if (stx-pair? stx)
-                                                                 (stx-car stx)
-                                                                 stx))
-                                              (syntax->datum stx))
-                                      stx
-                                      (and (stx-pair? stx) (stx-car stx)))))
+                               #'(define-syntax type type-name-error)
                                #'(begin))
 
                          #,@(if (attribute unsafe.unsafe?)

@@ -21,6 +21,7 @@
                      racket/struct-info
                      "../typecheck/internal-forms.rkt"
                      "annotate-classes.rkt"
+                     "type-name-error.rkt"
                      "../private/parse-classes.rkt"
                      "../private/syntax-properties.rkt"
                      "../typecheck/internal-forms.rkt"))
@@ -29,7 +30,8 @@
   (lazy-require [syntax/struct (build-struct-names)]))
 
 (provide define-typed-struct -struct define-typed-struct/exec dtsi* dtsi/exec*
-         define-type-alias define-new-subtype)
+         define-type-alias define-new-subtype
+         (for-syntax type-name-error))
 
 (define-for-syntax (with-type* expr ty)
   (with-type #`(ann #,expr #,ty)))
@@ -118,15 +120,7 @@
                                       #:property prop:procedure proc*)))]
        [stx-err-fun (if (not (free-identifier=? #'nm.name #'type))
                         (syntax/loc stx
-                          (define-syntax type
-                            (lambda (stx)
-                              (raise-syntax-error
-                               'type-check
-                               (format "type name ~a used out of context in ~a"
-                                       (syntax->datum (if (stx-pair? stx) (stx-car stx) stx))
-                                       (syntax->datum stx))
-                               stx
-                               (and (stx-pair? stx) (stx-car stx))))))
+                          (define-syntax type type-name-error))
                         #'(begin))]
        [dtsi (quasisyntax/loc stx (dtsi/exec* () nm type (fld ...) proc-ty))])
       #'(begin d-s stx-err-fun dtsi))]))
@@ -187,17 +181,7 @@
                                        . opts.untyped)))]
                       [stx-err-fun (if (not (free-identifier=? #'nm.name #'type))
                                        (syntax/loc stx
-                                         (define-syntax type
-                                           (lambda (stx)
-                                             (raise-syntax-error
-                                              'type-check
-                                              (format "type name ~a used out of context in ~a"
-                                                      (syntax->datum (if (stx-pair? stx)
-                                                                         (stx-car stx)
-                                                                         stx))
-                                                      (syntax->datum stx))
-                                              stx
-                                              (and (stx-pair? stx) (stx-car stx))))))
+                                         (define-syntax type type-name-error))
                                        #'(begin))]
                       [dtsi (quasisyntax/loc stx
                               (dtsi* (vars.vars ...)
@@ -231,18 +215,9 @@
 
   (syntax-parse stx
     [(_ :type-alias-full)
-     (define/with-syntax stx-err-fun
-       #'(lambda (stx)
-           (raise-syntax-error
-            'type-check
-            (format "type name used out of context\n  type: ~a\n in: ~a"
-                    (syntax->datum (if (stx-pair? stx) (stx-car stx) stx))
-                    (syntax->datum stx))
-            stx
-            (and (stx-pair? stx) (stx-car stx)))))
      #`(begin
          #,(if (not (attribute omit))
-               (ignore #'(define-syntax tname stx-err-fun))
+               (ignore #'(define-syntax tname type-name-error))
                #'(begin))
          #,(internal (syntax/loc stx
                        (define-type-alias-internal tname type poly-vars))))]))

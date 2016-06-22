@@ -11,7 +11,6 @@
                "rackunit-gui"
                "snip-lib"
                "typed-racket-lib"
-               "htdp-lib"
                "gui-lib"
                "pict-lib"
                "images-lib"

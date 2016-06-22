@@ -267,20 +267,19 @@
                               `(quote ,n)))
                     (quote ,c)
                     ,(type->sexp b))]
+    [(Row: inits fields methods augments init-rest)
+     `(make-Row (list ,@(convert-row-clause inits #t))
+                (list ,@(convert-row-clause fields))
+                (list ,@(convert-row-clause methods))
+                (list ,@(convert-row-clause augments))
+                ,(and init-rest (type->sexp init-rest)))]
     [(Class: row inits fields methods augments init-rest)
-     (define (convert members [inits? #f])
-       (for/list ([m members])
-         `(list (quote ,(car m))
-                ,(type->sexp (cadr m))
-                ,@(if inits? (cddr m) '()))))
-     (define class-type
-       `(make-Class ,(and row (type->sexp row))
-                    (list ,@(convert inits #t))
-                    (list ,@(convert fields))
-                    (list ,@(convert methods))
-                    (list ,@(convert augments))
-                    ,(and init-rest (type->sexp init-rest))))
-     class-type]
+     `(make-Class ,(and row (type->sexp row))
+                  (list ,@(convert-row-clause inits #t))
+                  (list ,@(convert-row-clause fields))
+                  (list ,@(convert-row-clause methods))
+                  (list ,@(convert-row-clause augments))
+                  ,(and init-rest (type->sexp init-rest)))]
     [(Instance: ty) `(make-Instance ,(type->sexp ty))]
     [(Signature: name extends mapping)
      (define (serialize-mapping m)
@@ -322,6 +321,13 @@
     ;; Most Top types are in the predefined table, the ones here
     ;; are not
     [(StructTop: name) `(make-StructTop ,(type->sexp name))]))
+
+;; Helper for class/row clauses
+(define (convert-row-clause members [inits? #f])
+  (for/list ([m members])
+    `(list (quote ,(car m))
+           ,(type->sexp (cadr m))
+           ,@(if inits? (cddr m) '()))))
 
 ;; Prop -> Sexp
 ;; Convert a prop to an s-expression

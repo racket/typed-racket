@@ -48,5 +48,15 @@
         (convert (make-StructTop (make-Struct #'foo #f null #f #f #'foo?)))
         '(make-StructTop
           (make-Struct (quote-syntax foo) #f (list) #f #f (quote-syntax foo?))))
+      (check-equal?
+        (convert (make-Row null null null null #f))
+        '(make-Row (list) (list) (list) (list) #f))
+      (check-equal?
+        (convert (make-Row (list (list 'foo -String #t))
+                           (list (list 'bar -String))
+                           null null #f))
+        '(make-Row (list (list 'foo -String #t))
+                   (list (list 'bar -String))
+                   (list) (list) #f))
     )
   ))

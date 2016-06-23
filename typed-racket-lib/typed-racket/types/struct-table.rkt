@@ -36,4 +36,4 @@
  [struct-mutator? (identifier? . c:-> . (c:or/c #f StructPE?))]
  [struct-fn-idx (identifier? . c:-> . exact-integer?)]
  [struct-fn-table-map (c:-> (c:-> identifier? (c:list/c StructPE? boolean?) c:any/c)
-                            (c:listof/c c:any/c))])
+                            (c:listof c:any/c))])

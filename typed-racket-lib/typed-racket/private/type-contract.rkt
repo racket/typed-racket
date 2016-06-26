@@ -346,7 +346,7 @@
 
       (define (only-untyped sc)
         (if (from-typed? typed-side)
-            (fail #:reason "contract generation not supported for this type")
+            (and/sc sc any-wrap/sc)
             sc))
       (cached-match sc-cache type typed-side
         ;; Applications of implicit recursive type aliases

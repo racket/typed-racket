@@ -12,9 +12,8 @@
 
 @section-index["typechecking" "typechecker" "typecheck"]
 
-Typed Racket is a family of languages, each of which enforce
-that programs written in the language obey a type system that ensures
-the absence of many common errors.  This guide is intended for programmers familiar
+Typed Racket is Racket's gradually-typed sister language which allows
+the incremental addition of statically-checked type annotations.  This guide is intended for programmers familiar
 with Racket.  For an introduction to Racket, see @(other-manual '(lib "scribblings/guide/guide.scrbl")).
 
 For the precise details, also see

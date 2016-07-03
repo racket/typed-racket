@@ -105,7 +105,7 @@
   ;; Takes a static contract and returns the corresponding contract.
   ;; The function argument should be used for sub parts of the static contract.
   [sc->contract sc f]
-  ;; sc->constraints: static-contract? (static-contract? -> constraint-set?) -> constraint-set?
+  ;; sc->constraints: static-contract? (static-contract? -> contract-restrict?) -> contract-restrict?
   ;; Takes a static contract and computes the constraint set for a static contract.
   ;; The function argument should be used for sub parts of the static contract.
   [sc->constraints sc f]
@@ -139,7 +139,9 @@
                [(recursive-sc names values body)
                 (for-each (λ (v) (f v 'covariant)) values)
                 (f body 'covariant)
-                (void)]))]
+                (void)]))
+           (define (sc->constraints v f)
+             (simple-contract-restrict 'impersonator))]
         #:methods gen:custom-write [(define write-proc recursive-sc-write-proc)])
 
 ;; A use of a contract bound by recursive-sc

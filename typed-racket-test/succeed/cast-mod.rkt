@@ -90,3 +90,15 @@
              (λ () (set-s-i! s4 "hello")))
   (check-equal? (s-i s1) 42))
 
+(test-case "cast on intersections involving recursive types"
+  (define-type T
+    (Rec T (U String (Listof T))))
+  (: f : (Listof T) -> Any)
+  (define (f x)
+    (if (andmap list? x)
+        (cast x Any)
+        #f))
+  (check-equal? (f (list "a" "b" "c")) #f)
+  (check-equal? (f (list (list "a") (list "b") (list "c")))
+                (list (list "a") (list "b") (list "c"))))
+

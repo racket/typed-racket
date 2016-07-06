@@ -22,7 +22,7 @@
   ;; subtyping performs a similar check for the same
   ;; reason
   (let intersect
-    ([t1 t1] [t2 t2] [resolved (set)])
+    ([t1 t1] [t2 t2] [resolved '()])
     (match*/no-order
      (t1 t2)
       ;; already a subtype
@@ -62,10 +62,15 @@
       ;; resolve resolvable types if we haven't already done so
       [((? needs-resolving? t1) t2)
        #:no-order
-       #:when (not (or (set-member? resolved (cons t1 t2))
-                       (set-member? resolved (cons t2 t1))))
-       (intersect (resolve t1) t2 (set-add resolved (cons t1 t2)))]
-     
+       #:when (not (member (cons t1 t2) resolved))
+       (intersect (resolve t1) t2 (cons (cons t1 t2) resolved))]
+
+      ;; if we're intersecting two recursive types, intersect their body
+      ;; and have their recursive references point back to the result
+      [((? Mu?) (? Mu?))
+       (define name (gensym))
+       (make-Mu name (intersect (Mu-body name t1) (Mu-body name t2) resolved))]
+
       ;; t2 and t1 have a complex relationship, so we build an intersection
       ;; (note: intersection checks for overlap)
       [(t1 t2) (-unsafe-intersect t1 t2)])))

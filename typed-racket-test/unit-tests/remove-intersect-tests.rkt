@@ -52,7 +52,13 @@
    [(-v a) -String (-unsafe-intersect (-v a) -String)]
    [-String (-v a) (-unsafe-intersect (-v a) -String)]
    [(-> -Number -Number) (-> -String -String) (-unsafe-intersect (-> -Number -Number)
-                                                                 (-> -String -String))]))
+                                                                 (-> -String -String))]
+   [(-mu x (Un (Un -Number -String) (-pair -Number x)))
+    (-mu x (Un (Un -Number -Symbol) (-pair -Number x)))
+    (-mu x (Un -Number (-pair -Number x)))]
+   [(make-Listof (-mu x (Un -String (-HT -String x))))
+    (make-Listof (make-HashtableTop))
+    (make-Listof (-HT -String (-mu x (Un -String (-HT -String x)))))]))
 
 (define-syntax (remo-tests stx)
   (syntax-case stx ()

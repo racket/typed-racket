@@ -18,6 +18,7 @@
  syntax/flatten-begin
  (only-in (types abbrev) -Bottom -Boolean)
  (static-contracts instantiate optimize structures combinators constraints)
+ (only-in (submod typed-racket/static-contracts/instantiate internals) compute-constraints)
  ;; TODO make this from contract-req
  (prefix-in c: racket/contract)
  (contract-req)
@@ -221,9 +222,7 @@
 ;; recurse into a contract finding the max
 ;; kind (e.g. flat < chaperone < impersonator)
 (define (get-max-contract-kind sc)
-    (define (get-restriction sc)
-      (sc->constraints sc get-restriction))
-    (kind-max-max (contract-restrict-value (get-restriction sc))))
+  (kind-max-max (contract-restrict-value (compute-constraints sc 'impersonator))))
 
 ;; To avoid misspellings
 (define impersonator-sym 'impersonator)

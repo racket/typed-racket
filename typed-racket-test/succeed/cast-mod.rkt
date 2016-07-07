@@ -102,3 +102,20 @@
   (check-equal? (f (list (list "a") (list "b") (list "c")))
                 (list (list "a") (list "b") (list "c"))))
 
+(test-case "cast in dead code"
+  (check-equal? (if #true 1 (cast 2 Integer))
+                1)
+  (check-equal? (if #false (cast 1 Integer) 2)
+                2)
+  (check-equal? (if #true 1 (list (cast 2 Integer) (cast 3 Integer)))
+                1)
+  (check-equal? (if #true 1 `#&,(cast 2 Integer))
+                1)
+  (check-equal? (if #true 1 `#(,(cast 2 Integer) ,(cast 3 Integer)))
+                1)
+  (check-equal? (if #true 1 `#hash([,(cast 2 Integer) . ,(cast 3 Integer)]))
+                1)
+  (check-equal? (if #true 1 `#s(struct ,(cast 2 Integer) ,(cast 3 Integer)))
+                1)
+  )
+

@@ -80,6 +80,10 @@
 
 (define (-ne-lst t) (-pair t (-lst t)))
 
+;; For casted-exprs in unreachable code, to fill in the cast table.
+;; TODO: This contract normally gets optimized away. Is there away to stop that?
+(define -Dead-Code (make-Base 'Dead-Code #'(make-none/c 'dead-code/c) (λ (v) #f)))
+
 ;; Convenient constructor for Values
 ;; (wraps arg types with Result)
 (define/cond-contract (-values args)

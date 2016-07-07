@@ -343,13 +343,17 @@
             (define existing-ty-ctc (syntax-local-lift-expression
                                      (make-contract-def-rhs/from-typed existing-ty-id #f #f)))
             (define (store-existing-type existing-type)
+              (check-no-free-vars existing-type #'v)
               (cast-table-set! existing-ty-id (datum->syntax #f existing-type #'v)))
             (define (check-valid-type _)
               (define type (parse-type #'ty))
+              (check-no-free-vars type #'ty))
+            (define (check-no-free-vars type stx)
               (define vars (fv type))
               ;; If there was an error don't create another one
               (unless (or (Error? type) (null? vars))
                 (tc-error/delayed
+                 #:stx stx
                  "Type ~a could not be converted to a contract because it contains free variables."
                  type)))
             #`(#,(external-check-property #'#%expression check-valid-type)

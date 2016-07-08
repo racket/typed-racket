@@ -27,6 +27,9 @@
 ;; blame parties (e.g., a particular module).
 
 (require racket/class
+         (only-in racket/private/class-c-old
+                  base-object/c? build-object/c-type-name object/c-width-subtype?
+                  object/c-common-methods-stronger? object/c-common-fields-stronger?)
          racket/match
          racket/contract/base
          racket/contract/combinator
@@ -57,21 +60,55 @@
       (dynamic-object/c (append methods remaining-methods)
                         (append method-ctcs
                                 (for/list ([m remaining-methods])
-                                  (restrict-typed->/c)))
+                                  (restrict-typed->/c m)))
                         (append fields remaining-fields)
                         (append field-ctcs
                                 (for/list ([m remaining-fields])
-                                  (restrict-typed-field/c obj m)))))
+                                  (restrict-typed-field/c m)))))
     ;; FIXME: this is a bit sketchy because we have to construct
     ;;        a contract that depends on the actual object that we got
     ;;        since we don't know its methods beforehand
     (((contract-late-neg-projection guard/c) blame) obj neg-party)))
 
+(define (object/c-opaque-name ctc)
+  (build-object/c-type-name 'object/c-opaque
+                            (base-object/c-opaque-method-names ctc)
+                            (base-object/c-opaque-method-ctcs ctc)
+                            (base-object/c-opaque-field-names ctc)
+                            (base-object/c-opaque-field-ctcs ctc)))
+
+;; Similar to object/c-stronger, but without width subtyping.
+;; (Intuition: unspecified fields are guarded by the strongest possible contract)
+;; An opaque object contract `this` is stronger than `that` when:
+;; - `that` is an opaque contract
+;;   and `this` specifies at most the same members as `that`
+;;   and `this` has stronger contracts on all members
+;; - `that` is an object/c contract
+;;   and `this` has stronger contracts on their common members
+(define (object/c-opaque-stronger this that)
+  (define that-opaque? (base-object/c-opaque? that))
+  (cond
+   [(or that-opaque?
+        (base-object/c? that))
+    (define this-ctc (base-object/c-opaque-obj/c this))
+    (define that-ctc (if that-opaque? (base-object/c-opaque-obj/c that) that))
+    (and
+      (if that-opaque?
+        ;; then members of `this` should be a SUBSET of members of `that`
+        (object/c-width-subtype? that-ctc this-ctc)
+        #t)
+      (object/c-common-fields-stronger? this-ctc that-ctc)
+      (object/c-common-methods-stronger? this-ctc that-ctc)
+      #t)]
+   [else #f]))
+
 (struct base-object/c-opaque
-  (obj/c ; keep a copy of the normal object/c for first-order checks
+  (obj/c ; keep a copy of the normal object/c for first-order and stronger checks
    method-names method-ctcs field-names field-ctcs)
   #:property prop:contract
   (build-contract-property
+   #:stronger object/c-opaque-stronger
+   #:name object/c-opaque-name
    #:first-order (λ (ctc)
                    (define obj/c (base-object/c-opaque-obj/c ctc))
                    (λ (val)
@@ -126,10 +163,16 @@
                                                 "cannot call uncontracted typed method"))
                            (apply values args))))))
 
-(struct restrict-typed->/c ()
+;; Returns original method name
+(define (restrict-typed->-name ctc)
+  (define name (restrict-typed->/c-name ctc))
+  (build-compound-type-name 'restrict-typed->/c name))
+
+(struct restrict-typed->/c (name)
         #:property prop:chaperone-contract
         (build-chaperone-contract-property
-         #:name (λ (ctc) '<hidden-method>) ; FIXME
+         #:name restrict-typed->-name
+         #:stronger equal?
          #:late-neg-projection restrict-typed->-late-neg-projection))
 
 (define (restrict-typed-field-late-neg-proj ctc)
@@ -147,8 +190,13 @@
        blame val #:missing-party neg-party
        "cannot read or write field hidden by Typed Racket"))))
 
-(struct restrict-typed-field/c (obj name)
+(define (restrict-typed-field-name ctc)
+  (define name (restrict-typed-field/c-name ctc))
+  (build-compound-type-name 'restrict-typed-field/c name))
+
+(struct restrict-typed-field/c (name)
         #:property prop:flat-contract
         (build-flat-contract-property
-         #:name (λ (ctc) '<hidden-field>) ; FIXME
+         #:name restrict-typed-field-name
+         #:stronger equal?
          #:late-neg-projection restrict-typed-field-late-neg-proj))

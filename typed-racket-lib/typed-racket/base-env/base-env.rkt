@@ -2964,6 +2964,14 @@
  (->opt [(Un (-val #f) (-val 'subprocesses) -Thread)] -Fixnum)]
 
 ;; Section 15.7
+[environment-variables? (make-pred-ty -Environment-Variables)]
+[current-environment-variables (-Param -Environment-Variables)]
+[bytes-environment-variable-name? (asym-pred Univ B (-PS (-is-type 0 -Bytes) -tt))]
+[make-environment-variables (->* null -Bytes -Environment-Variables)]
+[environment-variables-ref (-> -Environment-Variables -Bytes (-opt -Bytes))]
+[environment-variables-set! (->opt -Environment-Variables -Bytes (-opt -Bytes) [(-> Univ)] Univ)]
+[environment-variables-names (-> -Environment-Variables  (-lst -Bytes))]
+[string-environment-variable-name? (asym-pred Univ B (-PS (-is-type 0 -) -tt))]
 [getenv (-> -String (Un -String (-val #f)))]
 [putenv (-> -String -String B)]
 

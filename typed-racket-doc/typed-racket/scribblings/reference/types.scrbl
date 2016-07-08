@@ -266,6 +266,7 @@ These are not part of the numeric tower.
 @defidform[FSemaphore]
 @defidform[Will-Executor]
 @defidform[Pseudo-Random-Generator]
+@defidform[Environment-Variables]
 )]{
 These types represent primitive Racket data.
 

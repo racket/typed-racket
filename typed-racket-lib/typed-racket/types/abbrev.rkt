@@ -251,6 +251,8 @@
 (define/decl -Place-Channel (Un -Place -Base-Place-Channel))
 (define/decl -Will-Executor
   (make-Base 'Will-Executor #'will-executor? will-executor?))
+(define/decl -Environment-Variables
+  (make-Base 'Environment-Variables #'environment-variables? environment-variables?))
 
 ;; Paths
 (define/decl -car (make-CarPE))

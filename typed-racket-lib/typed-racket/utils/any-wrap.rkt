@@ -6,6 +6,7 @@
          racket/set
          racket/undefined
          (only-in racket/async-channel async-channel?)
+         (only-in ffi/unsafe cpointer-predicate-procedure?)
          (only-in racket/future future? fsemaphore?)
          (only-in racket/pretty pretty-print-style-table?)
          (only-in racket/udp udp?)
@@ -209,7 +210,8 @@
 ;; Contract for "safe" struct predicate procedures.
 ;; We can trust that these obey the type (-> Any Boolean).
 (define (struct-predicate-procedure?/c x)
-  (and (struct-predicate-procedure? x)
+  (and (or (struct-predicate-procedure? x)
+           (cpointer-predicate-procedure? x))
        (not (impersonator? x))))
 
 (provide any-wrap/c struct-predicate-procedure?/c)

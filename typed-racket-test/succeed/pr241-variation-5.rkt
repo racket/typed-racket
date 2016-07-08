@@ -152,6 +152,7 @@
  [ChannelTop (make-channel) channel-try-get]
  [Char #\space char->integer]
  [Datum 'A (lambda (x) (datum->syntax #f x))]
+ [Environment-Variables (current-environment-variables) environment-variables-names]
  [EOF eof eof-object?]
  [ExtFlVector (extflvector pi.t) extflvector-length]
  [FSemaphore (make-fsemaphore 0) fsemaphore-post]

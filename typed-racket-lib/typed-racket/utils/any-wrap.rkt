@@ -30,6 +30,10 @@
       (semaphore? e) (fsemaphore? e)
       (thread-group? e)
       (udp? e)
+      ;; Base since they can only store strings
+      ;; Bounded polymorphism would again make these not flat,
+      ;; but would be unsound since the external OS can change them
+      (environment-variables? e)
       ;; Base values because you can only store flonums/fixnums in these
       ;; and not any higher-order values. This isn't sound if we ever
       ;; introduce bounded polymorphism for Flvector/Fxvector.

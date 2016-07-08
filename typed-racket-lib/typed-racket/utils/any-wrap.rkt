@@ -11,7 +11,8 @@
          (only-in racket/udp udp?)
          (only-in (combine-in racket/private/promise)
                   promise?
-                  prop:force promise-forcer))
+                  prop:force promise-forcer)
+         (only-in "inspector.rkt" old-inspector))
 
 (define (base-val? e)
   (or (number? e) (string? e) (char? e) (symbol? e)
@@ -68,11 +69,12 @@
      v 
      "Attempted to use a higher-order value passed as `Any` in untyped code: ~v" v))
   
-  (define (wrap-struct neg-party s)
+  (define (wrap-struct neg-party s inspector)
     (define blame+neg-party (cons b neg-party))
     (define (extract-functions struct-type)
       (define-values (sym init auto ref set! imms par skip?)
-        (struct-type-info struct-type))
+        (parameterize ([current-inspector inspector])
+          (struct-type-info struct-type)))
       (define-values (fun/chap-list _)
         (for/fold ([res null]
                    [imms imms])
@@ -99,7 +101,9 @@
       (cond
         [par (append fun/chap-list (extract-functions par))]
         [else fun/chap-list]))
-    (define-values (type skipped?) (struct-info s))
+    (define-values (type skipped?)
+      (parameterize ([current-inspector inspector])
+        (struct-info s)))
     ;; It's ok to just ignore skipped? -- see https://github.com/racket/typed-racket/issues/203
     (apply chaperone-struct s (extract-functions type)))
  
@@ -163,7 +167,8 @@
        (for/set ([i (in-set v)]) (any-wrap/traverse i neg-party))]
       ;; could do something with generic sets here if they had
       ;; chaperones, or if i could tell if they were immutable.
-      [(? struct?) (wrap-struct neg-party v)]
+      [(? (struct?/inspector old-inspector))
+       (wrap-struct neg-party v old-inspector)]
       [(? procedure?)
        (chaperone-procedure v (lambda args (fail neg-party v)))]
       [(? promise?)
@@ -185,7 +190,10 @@
                                        blame+neg-party
                                        (values v (any-wrap/traverse v neg-party))))
                           (lambda (e) (fail neg-party v)))]
-      [_ (chaperone-struct v)]))
+      [_
+       ;; this would be unsound, see https://github.com/racket/typed-racket/issues/379
+       ;; (chaperone-struct v)
+       (fail neg-party v)]))
   any-wrap/traverse)
 
 (define any-wrap/c
@@ -193,6 +201,10 @@
    #:name 'Any
    #:first-order (lambda (x) #t)
    #:late-neg-projection late-neg-projection))
+
+(define ((struct?/inspector inspector) v)
+  (parameterize ([current-inspector inspector])
+    (struct? v)))
 
 ;; Contract for "safe" struct predicate procedures.
 ;; We can trust that these obey the type (-> Any Boolean).

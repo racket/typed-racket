@@ -25,6 +25,7 @@
 (define vector?/sc (flat/sc #'vector?))
 
 (define hash?/sc (flat/sc #'hash?))
+(define immutable-hash?/sc (and/sc (flat/sc #'hash?) (flat/sc #'immutable?)))
 (define empty-hash/sc (and/sc hash?/sc (flat/sc #'(λ (h) (zero? (hash-count h))))))
 
 (define channel?/sc (flat/sc #'channel?))

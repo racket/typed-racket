@@ -68,6 +68,8 @@
      [ThreadCell (#:inv)]
      [Vector (#:inv)]
      [Hashtable (#:inv #:inv)]
+     [Immutable-Hashtable (#:co #:co)]
+     [Mutable-Hashtable (#:inv #:inv)]
      [MPair (#:inv #:inv)]
      [Prompt-Tagof (#:inv #:inv)]
      [HeterogeneousVector ((#:listof #:inv))]

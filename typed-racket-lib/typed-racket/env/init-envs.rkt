@@ -161,6 +161,10 @@
      `(make-Param ,(type->sexp in) ,(type->sexp out))]
     [(Hashtable: key val)
      `(make-Hashtable ,(type->sexp key) ,(type->sexp val))]
+    [(Immutable-Hashtable: key val)
+     `(make-Immutable-Hashtable ,(type->sexp key) ,(type->sexp val))]
+    [(Mutable-Hashtable: key val)
+     `(make-Mutable-Hashtable ,(type->sexp key) ,(type->sexp val))]
     [(Function: (list (arr: dom (Values: (list (Result: t
                                                         (PropSet: (TrueProp:)
                                                                   (TrueProp:))

@@ -48,6 +48,7 @@
     [(box/sc: (any/sc:)) box?/sc]
     [(syntax/sc: (any/sc:)) syntax?/sc]
     [(promise/sc: (any/sc:)) promise?/sc]
+    [(immutable-hash/sc: (any/sc:) (any/sc:)) immutable-hash?/sc]
     [(hash/sc: (any/sc:) (any/sc:)) hash?/sc]
 
     ;; or/sc cases

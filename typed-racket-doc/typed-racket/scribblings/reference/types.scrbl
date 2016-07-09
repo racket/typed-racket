@@ -389,10 +389,21 @@ corresponding to @racket[trest], where @racket[bound]
 }
 
 
-@defform[(HashTable k v)]{is the type of a @rtech{hash table} with key type
-   @racket[k] and value type @racket[v].
+@defform[(Immutable-HashTable k v)]{is the type of an immutable @rtech{hash table}
+   with key type @racket[k] and value type @racket[v].
 
 @ex[#hash((a . 1) (b . 2))]
+}
+@defform[(Mutable-HashTable k v)]{is the type of a mutable @rtech{hash table}
+   with key type @racket[k] and value type @racket[v].
+
+@ex[(make-hash '((a . 1) (b . 2)))]
+}
+
+@defform[(HashTable k v)]{is the type of a mutable or immutable @rtech{hash table}
+   with key type @racket[k] and value type @racket[v].
+
+@ex[(make-hash '((a . 1) (b . 2)))]
 }
 @defidform[HashTableTop]{is the type of a @rtech{hash table} with unknown key
   and value types and is the supertype of all hash table types. Only read-only

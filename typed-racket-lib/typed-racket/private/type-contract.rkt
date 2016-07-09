@@ -174,6 +174,7 @@
       typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
       typed-racket/utils/opaque-object
       typed-racket/utils/evt-contract
+      typed-racket/utils/immutable-contract
       typed-racket/utils/sealing-contract
       typed-racket/utils/promise-not-name-contract
       typed-racket/utils/simple-result-arrow
@@ -628,7 +629,9 @@
              (flat/sc #`(flat-named-contract '#,v (lambda (x) (equal? x '#,v))) v))]
         [(Param: in out) 
          (parameter/sc (t->sc in) (t->sc out))]
-        [(Hashtable: k v)
+        [(Immutable-Hashtable: k v)
+         (immutable-hash/sc (t->sc k) (t->sc v))]
+        [(or (Mutable-Hashtable: k v) (Hashtable: k v))
          (hash/sc (t->sc k) (t->sc v))]
         [(Channel: t)
          (channel/sc (t->sc t))]

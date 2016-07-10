@@ -56,6 +56,9 @@
    [(-mu x (Un (Un -Number -String) (-pair -Number x)))
     (-mu x (Un (Un -Number -Symbol) (-pair -Number x)))
     (-mu x (Un -Number (-pair -Number x)))]
+   [(-Immutable-HT -String -Symbol)
+    (-HT -String -Symbol)
+    (-Immutable-HT -String -Symbol)]
    [(make-Listof (-mu x (Un -String (-HT -String x))))
     (make-Listof (make-HashtableTop))
     (make-Listof (-HT -String (-mu x (Un -String (-HT -String x)))))]))

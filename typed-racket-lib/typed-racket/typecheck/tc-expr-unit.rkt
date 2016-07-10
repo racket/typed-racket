@@ -398,10 +398,19 @@
        [_ (-box (generalize (find-stx-type x)))])]
     [(? hash? h)
      (match (and expected (resolve (intersect expected -HashTop)))
-       [(Hashtable: kt vt)
+       [(and ht (or (Hashtable: kt vt) (Immutable-Hashtable: kt vt) (Mutable-Hashtable: kt vt)))
         (define kts (hash-map h (lambda (x y) (find-stx-type x kt))))
         (define vts (hash-map h (lambda (x y) (find-stx-type y vt))))
-        (make-Hashtable
+        (define make-H
+          (cond
+           [(or (Immutable-Hashtable? ht)
+                (immutable? h))
+            make-Immutable-Hashtable]
+           [(Mutable-Hashtable? ht)
+            make-Mutable-Hashtable]
+           [else
+            make-Hashtable]))
+        (make-H
          (check-below (apply Un kts) kt)
          (check-below (apply Un vts) vt))]
        [_ (make-Hashtable (generalize (apply Un (map find-stx-type (hash-keys h))))

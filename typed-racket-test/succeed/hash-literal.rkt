@@ -1,4 +1,4 @@
 #lang typed/racket
 
-(define: x : (HashTable String String) #hash())
-(ann #hash() (HashTable String String))
+(define: x : (Immutable-HashTable String String) #hash())
+(ann #hash() (Immutable-HashTable String String))

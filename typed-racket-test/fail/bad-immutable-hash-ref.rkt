@@ -1,8 +1,8 @@
 #lang typed/scheme
 
-(: table (Mutable-HashTable Integer (-> Integer)))
+(: table (Immutable-HashTable Integer (-> Integer)))
 (define table
-  (make-hash null))
+  (make-immutable-hash null))
 
 (: lookup (Integer -> Integer))
 (define (lookup n)
@@ -14,3 +14,4 @@
   (thunk))
 
 (lookup 1)
+

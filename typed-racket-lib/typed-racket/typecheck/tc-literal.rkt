@@ -114,11 +114,18 @@
                                       (generalize (tc-literal l #f))))])]
     [(~var i (3d hash?))
      (match (and expected (resolve (intersect expected -HashTop)))
-       [(Hashtable: k v)
+       [(and ht (or (Hashtable: k v) (Immutable-Hashtable: k v) (Mutable-Hashtable: k v)))
         (let* ([h (syntax-e #'i)]
                [ks (hash-map h (lambda (x y) (tc-literal x k)))]
-               [vs (hash-map h (lambda (x y) (tc-literal y v)))])
-          (make-Hashtable
+               [vs (hash-map h (lambda (x y) (tc-literal y v)))]
+               [make-H (cond
+                        [(or (immutable? h)
+                             (Immutable-Hashtable? ht))
+                         make-Immutable-Hashtable]
+                        [(Mutable-Hashtable? ht)
+                         make-Mutable-Hashtable]
+                        [else make-Hashtable])])
+          (make-H
             (check-below (apply Un ks) k)
             (check-below (apply Un vs) v)))]
        [_ (let* ([h (syntax-e #'i)]

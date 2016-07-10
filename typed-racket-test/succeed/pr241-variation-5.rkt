@@ -247,6 +247,8 @@
   [Boxof (Boxof Integer) (box 3) (lambda (v) (add1 (unbox v)))]
   [Channelof (Channelof Integer) (make-channel) channel-try-get]
   [HashTable (HashTable Symbol String) (hash) (lambda (h) (hash-ref h 'a #f))]
+  [Immutable-HashTable (Immutable-HashTable Symbol String) (hash) (lambda (h) (hash-set h 'a "a"))]
+  [Mutable-HashTable (Mutable-HashTable Symbol String) (make-hash) (lambda (h) (hash-set! h 'a "a"))]
   [Listof (Listof Integer) (list 1) (lambda (xs) (add1 (car xs)))]
   [Option (Option Integer) 1 add1]
   [Pair (Pair Integer Boolean) (cons 1 #t) (lambda (v) (add1 (car v)))]

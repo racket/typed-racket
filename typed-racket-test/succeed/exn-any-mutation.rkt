@@ -4,7 +4,7 @@
   (define (f x) x))
 (module typed typed/racket
   (require typed/rackunit)
-  (struct (X) s ([i : X]) #:mutable)
+  (struct (X) s ([i : X]) #:mutable #:transparent)
   (require/typed (submod ".." untyped)
                  [f (-> Any (s (U Integer String)))])
   (: s1 : (s Integer))

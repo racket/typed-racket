@@ -5,7 +5,7 @@
 (require (rename-in "../utils/utils.rkt" [infer infer-in])
          (except-in (rep type-rep object-rep) make-arr)
          (rename-in (types abbrev union utils prop-ops resolve
-                           classes prefab signatures)
+                           classes prefab signatures substitute)
                     [make-arr* make-arr])
          (only-in (infer-in infer) intersect)
          (utils tc-utils stxclass-util literal-syntax-class)
@@ -97,6 +97,7 @@
 (define-literal-syntax-class #:for-label Rec)
 (define-literal-syntax-class #:for-label U)
 (define-literal-syntax-class #:for-label All)
+(define-literal-syntax-class #:for-label All-bounded)
 (define-literal-syntax-class #:for-label Opaque)
 (define-literal-syntax-class #:for-label Parameter)
 (define-literal-syntax-class #:for-label Vector)
@@ -176,6 +177,29 @@
           (parse-type #'t.type))))]
     [(:All^ (_:id ...) _ _ _ ...) (parse-error "too many forms in body of All type")]
     [(:All^ . rest) (parse-error "bad syntax")]))
+
+;; parse-all-bounded-type : Syntax -> Type
+;; Parse an upper-bounded Forall type
+(define (parse-all-bounded-type stx)
+  (syntax-parse stx #:datum-literals (<:)
+    [(:All-bounded^ ([var:id <: bound:expr] ...) . t:omit-parens)
+     (define maybe-dup (check-duplicate-identifier (syntax->list #'(var ...))))
+     (when maybe-dup
+       (parse-error "duplicate type variable"
+                    "variable" (syntax-e maybe-dup)))
+     (let* ([vars (stx-map syntax-e #'(var ...))])
+       (extend-tvars vars
+         (make-Poly vars
+                    (subst-all
+                     (make-simple-substitution
+                      vars
+                      (for/list ([var (in-list vars)]
+                                 [bound (in-list (syntax->list #'(bound ...)))])
+                        (intersect (make-F var) (parse-type bound))))
+                     (parse-type #'t.type)))))]
+    [(:All-bounded^ ([_:id <: _:expr] ...) _ _ _ ...)
+     (parse-error "too many forms in body of All-bounded type")]
+    [(:All-bounded^ . rest) (parse-error "bad syntax")]))
 
 ;; syntax class for standard keyword syntax (same as contracts), may be
 ;; optional or mandatory depending on where it's used
@@ -476,6 +500,8 @@
        (parse-quoted-type #'t)]
       [(:All^ . rest)
        (parse-all-type stx)]
+      [(:All-bounded^ . rest)
+       (parse-all-bounded-type stx)]
       [(:Opaque^ p?:id)
        (make-Opaque #'p?)]
       [(:Distinction^ name:id unique-id:id rep-ty:expr)

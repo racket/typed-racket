@@ -85,6 +85,7 @@
          "../utils/tc-utils.rkt"
          "../private/syntax-properties.rkt"
          "../private/cast-table.rkt"
+         "../private/type-contract.rkt"
          "../typecheck/internal-forms.rkt"
          ;; struct-extraction is actually used at both of these phases
          "../utils/struct-extraction.rkt"
@@ -375,9 +376,9 @@
        #`(begin #,stx (begin))]
     [(_ ty:id pred:id lib (~optional ne:name-exists-kw) ...)
      (with-syntax ([hidden (generate-temporary #'pred)])
-       (define pred-cnt
-         (syntax-local-lift-expression
-          (make-contract-def-rhs #'(-> Any Boolean) #f #f)))
+       ;; this is needed because this expands to the contract directly without
+       ;; going through the normal `make-contract-def-rhs` function.
+       (set-box! include-extra-requires? #t)
        (quasisyntax/loc stx
          (begin
            ;; register the identifier for the top-level (see require/typed)
@@ -388,7 +389,10 @@
            #,(if (attribute ne)
                  (internal (syntax/loc stx (define-type-alias-internal ty (Opaque pred))))
                  (syntax/loc stx (define-type-alias ty (Opaque pred))))
-           #,(ignore #`(require/contract pred hidden #,pred-cnt lib)))))]))
+           #,(ignore #'(define pred-cnt
+                         (or/c struct-predicate-procedure?/c
+                               (any-wrap-warning/c . c-> . boolean?))))
+           #,(ignore #'(require/contract pred hidden pred-cnt lib)))))]))
 
 
 

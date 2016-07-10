@@ -66,7 +66,11 @@
       (variable-reference? e)
       (weak-box? e)))
 
-(define (late-neg-projection b)
+;; late-neg-projection :
+;; (-> #:on-opaque (-> Val Blame Neg-Party (U Val Error))
+;;     (-> Blame
+;;         (-> Val Neg-Party Val)))
+(define ((late-neg-projection #:on-opaque on-opaque) b)
   (define (fail neg-party v)
     (raise-blame-error 
      (blame-swap b) #:missing-party neg-party
@@ -195,18 +199,66 @@
                                        (values v (any-wrap/traverse v neg-party))))
                           (lambda (e) (fail neg-party v)))]
       [_
-       ;; this would be unsound, see https://github.com/racket/typed-racket/issues/379
-       ;; (chaperone-struct v)
-       (fail neg-party v)]))
+       (on-opaque v b neg-party)]))
   any-wrap/traverse)
 
-(define any-wrap/c
+;; on-opaque-error : Val Blame Neg-Party -> Error
+;; To be passed as the #:on-opaque argument to make any-wrap/c raise
+;; an error on opaque values.
+(define (on-opaque-error v blame neg-party)
+  (raise-any-wrap/c-opaque-error v blame neg-party))
+
+;; on-opaque-display-warning : Val Blame Neg-Party -> Val
+;; To be passed as the #:on-opaque argument to make any-wrap/c display
+;; a warning, but keep going with possible unsoundness.
+(define (on-opaque-display-warning v blame neg-party)
+  ;; this can lead to unsoundness, see https://github.com/racket/typed-racket/issues/379.
+  ;; an error here would make this sound, but it breaks the math library as of 2016-07-08,
+  ;; see https://github.com/racket/typed-racket/pull/385#issuecomment-231354377.
+  (display-any-wrap/c-opaque-warning v blame neg-party)
+  (chaperone-struct v))
+
+;; make-any-wrap/c : (-> #:on-opaque (-> Val Blame Neg-Party (U Val Error)) Chaperone-Contract)
+(define (make-any-wrap/c #:on-opaque on-opaque)
   (make-chaperone-contract
    #:name 'Any
    #:first-order (lambda (x) #t)
-   #:late-neg-projection late-neg-projection))
+   #:late-neg-projection (late-neg-projection #:on-opaque on-opaque)))
 
-(define ((struct?/inspector inspector) v) (struct? v))
+(define any-wrap/c
+  (make-any-wrap/c #:on-opaque on-opaque-error))
+
+(define any-wrap-warning/c
+  (make-any-wrap/c #:on-opaque on-opaque-display-warning))
+
+;; struct?/inspector : (-> Inspector (-> Any Boolean))
+(define ((struct?/inspector inspector) v)
+  (parameterize ([current-inspector inspector])
+    (struct? v)))
+
+;; raise-any-wrap/c-opaque-error : Any Blame Neg-Party -> Error
+(define (raise-any-wrap/c-opaque-error v blame neg-party)
+  (raise-blame-error
+   blame #:missing-party neg-party
+   v
+   (string-append
+    "any-wrap/c: Unable to protect opaque value passed as `Any`\n"
+    "  value: ~e\n")
+   v))
+
+;; display-any-wrap/c-opaque-warning : (-> Any Blame Neg-Party Void)
+(define (display-any-wrap/c-opaque-warning v blame neg-party)
+  (displayln
+   ((current-blame-format)
+    (blame-add-missing-party blame neg-party)
+    v
+    (format
+     (string-append
+      "any-wrap/c: Unable to protect opaque value passed as `Any`\n"
+      "  value: ~e\n"
+      "  This warning will become an error in a future release.\n")
+     v))
+   (current-error-port)))
 
 ;; Contract for "safe" struct predicate procedures.
 ;; We can trust that these obey the type (-> Any Boolean).
@@ -215,4 +267,4 @@
            (cpointer-predicate-procedure? x))
        (not (impersonator? x))))
 
-(provide any-wrap/c struct-predicate-procedure?/c)
+(provide any-wrap/c any-wrap-warning/c struct-predicate-procedure?/c)

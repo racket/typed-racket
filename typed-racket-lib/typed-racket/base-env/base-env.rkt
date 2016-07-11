@@ -190,6 +190,7 @@
               #:max-width (Un -Nat (-val +inf.0)) #f
               #:min-width -Nat #f
               #:limit-marker -String #f
+              #:limit-prefix? -Boolean #f
               #:align (one-of/c 'left 'center 'right) #f
               #:pad-string -String #f
               #:left-pad-string -String #f
@@ -202,6 +203,7 @@
               #:max-width (Un -Nat (-val +inf.0)) #f
               #:min-width -Nat #f
               #:limit-marker -String #f
+              #:limit-prefix? -Boolean #f
               #:align (one-of/c 'left 'center 'right) #f
               #:pad-string -String #f
               #:left-pad-string -String #f
@@ -214,6 +216,7 @@
               #:max-width (Un -Nat (-val +inf.0)) #f
               #:min-width -Nat #f
               #:limit-marker -String #f
+              #:limit-prefix? -Boolean #f
               #:align (one-of/c 'left 'center 'right) #f
               #:pad-string -String #f
               #:left-pad-string -String #f
@@ -226,6 +229,7 @@
               #:max-width (Un -Nat (-val +inf.0)) #f
               #:min-width -Nat #f
               #:limit-marker -String #f
+              #:limit-prefix? -Boolean #f
               #:align (one-of/c 'left 'center 'right) #f
               #:pad-string -String #f
               #:left-pad-string -String #f
@@ -253,6 +257,7 @@
                #:max-width (Un -Nat (-val +inf.0)) #f
                #:min-width -Nat #f
                #:limit-marker -String #f
+               #:limit-prefix? -Boolean #f
                #:align (one-of/c 'left 'center 'right) #f
                #:pad-string -String #f
                #:left-pad-string -String #f
@@ -265,6 +270,7 @@
                #:max-width (Un -Nat (-val +inf.0)) #f
                #:min-width -Nat #f
                #:limit-marker -String #f
+               #:limit-prefix? -Boolean #f
                #:align (one-of/c 'left 'center 'right) #f
                #:pad-string -String #f
                #:left-pad-string -String #f
@@ -277,6 +283,7 @@
                #:max-width (Un -Nat (-val +inf.0)) #f
                #:min-width -Nat #f
                #:limit-marker -String #f
+               #:limit-prefix? -Boolean #f
                #:align (one-of/c 'left 'center 'right) #f
                #:pad-string -String #f
                #:left-pad-string -String #f

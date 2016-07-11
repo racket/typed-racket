@@ -5,7 +5,7 @@
 (module u racket/base
  (require racket/generic)
  (define-generics foo)
- (struct foo-struct () #:methods gen:foo [])
+ (struct foo-struct () #:methods gen:foo [] #:transparent)
  (define f1 (foo-struct))
  (provide f1 foo?))
 

@@ -2663,6 +2663,10 @@
 [filesystem-root-list (-> (-lst -Path))]
 
 ;; Section 15.2.4
+[filesystem-change-evt? (asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt))]
+[filesystem-change-evt-cancel (-> (-mu x (-evt x)) -Void)]
+[filesystem-change-evt (-poly (a) (cl->* (-> -Pathlike (-mu x (-evt x)))
+                                         (-> -Pathlike (-> a) (Un (-mu x (-evt x)) a))))]
 
 ;; Section 15.2.5 (racket/file)
 [copy-directory/files (->key -Pathlike -Pathlike
@@ -3166,6 +3170,8 @@
   (cl->*
    (->optkey -Pathlike [(-> -Input-Port (Un))] #:mode (one-of/c 'binary 'text) #f (-lst Univ))
    (->optkey -Pathlike [(-> -Input-Port a)] #:mode (one-of/c 'binary 'text) #f (-lst a)))))
+[call-with-atomic-output-file
+ (-poly (a) (->opt -Pathlike (-> -Output-Port -Path a) [(-opt -Security-Guard)] a))]
 (get-preference
  (let ((use-lock-type Univ)
        (timeout-lock-there-type (-opt (-> -Path Univ)))

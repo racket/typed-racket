@@ -8,7 +8,8 @@
 (require racket/sandbox)
 
 ;; this doesn't need a memory limit
-(parameterize ([sandbox-memory-limit #f])
+(parameterize ([sandbox-memory-limit #f]
+               [sandbox-eval-limits #f])
   (define eval (make-evaluator 'typed/racket))
   (eval '(require typed/racket/unsafe))
 

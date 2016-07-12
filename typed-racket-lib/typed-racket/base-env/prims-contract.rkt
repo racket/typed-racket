@@ -330,7 +330,7 @@
                        val
                        '#,pos
                        '#,neg
-                       val
+                       #f
                        (quote-srcloc #,stx)))
                     'feature-profile:TR-dynamic-check #t))
              #'ty)))

@@ -404,10 +404,13 @@
        "0123")
 
 (check equal?
-       (for/hasheq: : (Immutable-HashTable Integer String) ([k (list 2 3 4)]) (values k "val"))
+       (for/hasheq: : (HashTable Integer String) ([k (list 2 3 4)]) (values k "val"))
        #hasheq((2 . "val") (3 . "val") (4 . "val")))
 (check equal?
        (for/hasheq: ([k (list 2 3 4)]) : (HashTable Integer String) (values k "val"))
+       #hasheq((2 . "val") (3 . "val") (4 . "val")))
+(check equal?
+       (for/hasheq: : (Immutable-HashTable Integer String) ([k (list 2 3 4)]) (values k "val"))
        #hasheq((2 . "val") (3 . "val") (4 . "val")))
 
 (check equal?

@@ -1314,6 +1314,10 @@
               (t:Un (-val #f) -Number)]
 
         [tc-e #{(make-hash) :: (HashTable Number Number)}
+              (-HT -Number -Number)]
+        [tc-e #{(make-immutable-hash) :: (HashTable String Symbol)}
+              (-HT -String -Symbol)]
+        [tc-e #{(make-hash) :: (HashTable Number Number)}
               (-Mutable-HT -Number -Number)]
         [tc-e #{(make-immutable-hash) :: (HashTable String Symbol)}
               (-Immutable-HT -String -Symbol)]
@@ -2422,6 +2426,8 @@
        [tc-e (assoc 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
        [tc-e (set-remove (set 1 2 3) 'a) (-set -PosByte)]
        ;; don't return HashTableTop
+       [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-HT -Symbol -Integer)]
+       [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-HT -Symbol -Integer)]
        [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-Immutable-HT -Symbol -Integer)]
        [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-Immutable-HT -Symbol -Integer)]
        ;; these should actually work
@@ -3934,6 +3940,7 @@
    (tc-l #"foo" -Bytes)
    [tc-l () -Null]
    [tc-l (3 . 4) (-pair -PosByte -PosByte)]
+   [tc-l #hash() (make-Hashtable Univ Univ)]
    [tc-l #hash() (make-Immutable-Hashtable Univ Univ)]
    [tc-l #hash((1 . 2) (3 . 4)) (make-Hashtable -Integer -Integer)]
    [tc-l #hasheq((a . q) (b . w)) (make-Hashtable -Symbol -Symbol)]

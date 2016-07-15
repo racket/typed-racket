@@ -165,6 +165,8 @@
      `(make-Immutable-Hashtable ,(type->sexp key) ,(type->sexp val))]
     [(Mutable-Hashtable: key val)
      `(make-Mutable-Hashtable ,(type->sexp key) ,(type->sexp val))]
+    [(Weak-Hashtable: key val)
+     `(make-Weak-Hashtable ,(type->sexp key) ,(type->sexp val))]
     [(Function: (list (arr: dom (Values: (list (Result: t
                                                         (PropSet: (TrueProp:)
                                                                   (TrueProp:))

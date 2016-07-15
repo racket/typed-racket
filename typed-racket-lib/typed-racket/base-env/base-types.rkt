@@ -172,6 +172,7 @@
 [HashTable (-poly (a b) (-HT a b))]
 [Immutable-HashTable (-poly (a b) (-Immutable-HT a b))]
 [Mutable-HashTable (-poly (a b) (-Mutable-HT a b))]
+[Weak-HashTable (-poly (a b) (-Weak-HT a b))]
 [Promise (-poly (a) (-Promise a))]
 [Pair (-poly (a b) (-pair a b))]
 [Boxof (-poly (a) (make-Box a))]

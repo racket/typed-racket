@@ -6,7 +6,7 @@
 (require "../structures.rkt"
          "../constraints.rkt"
          racket/match
-         (for-syntax racket/base racket/syntax syntax/stx syntax/parse (only-in racket/contract hash/c))
+         (for-syntax racket/base racket/syntax syntax/stx syntax/parse)
          racket/set
          racket/sequence
          (for-template racket/base
@@ -16,7 +16,7 @@
                        racket/sequence
                        racket/promise
                        "../../utils/evt-contract.rkt"
-                       "../../utils/immutable-contract.rkt"
+                       "../../utils/hash-contract.rkt"
                        "../../utils/promise-not-name-contract.rkt")
          racket/contract
          racket/async-channel)
@@ -157,8 +157,10 @@
   ((vectorof/sc (#:invariant)) vectorof #:chaperone)
   ((promise/sc (#:covariant)) promise-not-name/c #:chaperone)
   ((syntax/sc (#:covariant #:flat)) syntax/c #:flat)
-  ((immutable-hash/sc (#:covariant #:flat) (#:covariant)) immutable-hash/c #:flat)
   ((hash/sc (#:invariant #:flat) (#:invariant)) hash/c #:chaperone)
+  ((mutable-hash/sc (#:invariant #:flat) (#:invariant)) mutable-hash/c #:chaperone)
+  ((immutable-hash/sc (#:covariant #:flat) (#:covariant)) immutable-hash/c #:flat)
+  ((weak-hash/sc (#:invariant #:flat) (#:invariant)) weak-hash/c #:chaperone)
   ((box/sc (#:invariant)) box/c #:chaperone)
   ((parameter/sc (#:contravariant) (#:covariant)) parameter/c #:chaperone)
   ((sequence/sc . (#:covariant)) sequence/c #:impersonator)

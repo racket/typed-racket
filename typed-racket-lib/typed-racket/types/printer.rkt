@@ -477,8 +477,9 @@
          `(Parameterof ,(t->s in))
          `(Parameterof ,(t->s in) ,(t->s out)))]
     [(Hashtable: k v) `(HashTable ,(t->s k) ,(t->s v))]
-    [(Immutable-Hashtable: k v) `(Immutable-HashTable ,(t->s k) ,(t->s v))]
     [(Mutable-Hashtable: k v) `(Mutable-HashTable ,(t->s k) ,(t->s v))]
+    [(Immutable-Hashtable: k v) `(Immutable-HashTable ,(t->s k) ,(t->s v))]
+    [(Weak-Hashtable: k v) `(Weak-HashTable ,(t->s k) ,(t->s v))]
     [(Continuation-Mark-Keyof: rhs)
      `(Continuation-Mark-Keyof ,(t->s rhs))]
     [(Prompt-Tagof: body handler)

@@ -642,8 +642,9 @@
                (and (subtype S t) t)))
            (% cg type t*)]
           [((or (Hashtable: k v)
+                (Mutable-Hashtable: k v)
                 (Immutable-Hashtable: k v)
-                (Mutable-Hashtable: k v))
+                (Weak-Hashtable: k v))
             (Sequence: (list k* v*)))
            (cgen/list context (list k v) (list k* v*))]
           [((Set: t) (Sequence: (list t*)))
@@ -724,15 +725,17 @@
           [((Channel: t) (Evt: t*)) (cg t t*)]
           [((Async-Channel: t) (Evt: t*)) (cg t t*)]
           [((Immutable-Hashtable: s1 s2)
-            (or (Hashtable: t1 t2)
-                (Immutable-Hashtable: t1 t2)))
+            (or (Immutable-Hashtable: t1 t2)
+                (Hashtable: t1 t2)))
            ;; for immutable hash tables, covariant
            (% cset-meet (cg s1 t1) (cg s2 t2))]
           [((or (Hashtable: s1 s2)
-                (Mutable-Hashtable: s1 s2))
+                (Mutable-Hashtable: s1 s2)
+                (Weak-Hashtable: s1 s2))
             (or (Hashtable: t1 t2)
-                (Mutable-Hashtable: t1 t2)))
-           ;; for mutable hash tables, both are invariant
+                (Mutable-Hashtable: t1 t2)
+                (Weak-Hashtable: t1 t2)))
+           ;; for mutable/weak hash tables, both are invariant
            (% cset-meet (cg/inv s1 t1) (cg/inv s2 t2))]
           ;; syntax is covariant
           [((Syntax: s1) (Syntax: s2))

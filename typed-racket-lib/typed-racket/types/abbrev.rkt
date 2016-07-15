@@ -193,6 +193,7 @@
 (define -HT make-Hashtable)
 (define -Mutable-HT make-Mutable-Hashtable)
 (define -Immutable-HT make-Immutable-Hashtable)
+(define -Weak-HT make-Weak-Hashtable)
 (define/decl -StructTypeTop (make-StructTypeTop))
 (define/decl -BoxTop (make-BoxTop))
 (define/decl -Weak-BoxTop (make-Weak-BoxTop))

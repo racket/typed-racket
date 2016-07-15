@@ -71,7 +71,9 @@
       [((Sequence: _) (Value: v)) #:no-order (sequence? v)]
       ;; hash tables are two-valued sequences
       [((Sequence: (or (list _) (list _ _ _ ...)))
-        (or (? Hashtable?) (? Immutable-Hashtable?) (? Mutable-Hashtable?) (? HashtableTop?)))
+        (or (? Hashtable?) (? Immutable-Hashtable?)
+            (? Mutable-Hashtable?) (? Weak-Hashtable?)
+            (? HashtableTop?)))
         #:no-order
         #f]
       ;; these are single-valued sequences
@@ -92,7 +94,9 @@
        #:no-order
        #f]
       [((Value: (not (? hash?)))
-        (or (? Hashtable?) (? Immutable-Hashtable?) (? Mutable-Hashtable?) (? HashtableTop?)))
+        (or (? Hashtable?) (? Immutable-Hashtable?)
+            (? Mutable-Hashtable?) (? Weak-Hashtable?)
+            (? HashtableTop?)))
        #:no-order
        #f]
       [((Struct: n _ flds _ _ _)

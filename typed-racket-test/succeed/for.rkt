@@ -414,6 +414,46 @@
        #hasheq((2 . "val") (3 . "val") (4 . "val")))
 
 (check equal?
+       (let ([ht #hash((a . 1) (b . 2))])
+         (for/list : (Listof (Listof (Pairof Symbol Integer)))
+                   ([(k1 v1) (in-hash ht)]
+                    [k2 (in-hash-keys ht)]
+                    [v2 (in-hash-values ht)]
+                    [k3+v3 (in-hash-pairs ht)])
+           (list (cons k1 v1) (cons k2 v2) k3+v3)))
+       '(((a . 1) (a . 1) (a . 1)) ((b . 2) (b . 2) (b . 2))))
+
+(check equal?
+       (let ([ht : (Immutable-HashTable Symbol Integer) (make-immutable-hash '((a . 1) (b . 2)))])
+         (for/list : (Listof (Listof (Pairof Symbol Integer)))
+                   ([(k1 v1) (in-immutable-hash ht)]
+                    [k2 (in-immutable-hash-keys ht)]
+                    [v2 (in-immutable-hash-values ht)]
+                    [k3+v3 (in-immutable-hash-pairs ht)])
+           (list (cons k1 v1) (cons k2 v2) k3+v3)))
+       '(((a . 1) (a . 1) (a . 1)) ((b . 2) (b . 2) (b . 2))))
+
+(check equal?
+       (let ([ht  (make-hash '((a . 1) (b . 2)))])
+         (for/list : (Listof (Listof (Pairof Symbol Integer)))
+                   ([(k1 v1) (in-mutable-hash ht)]
+                    [k2 (in-mutable-hash-keys ht)]
+                    [v2 (in-mutable-hash-values ht)]
+                    [k3+v3 (in-mutable-hash-pairs ht)])
+           (list (cons k1 v1) (cons k2 v2) k3+v3)))
+       '(((a . 1) (a . 1) (a . 1)) ((b . 2) (b . 2) (b . 2))))
+
+(check equal?
+       (let ([ht : (Weak-HashTable Symbol Integer) (make-weak-hash '((a . 1) (b . 2)))])
+         (for/list : (Listof (Listof (Pairof Symbol Integer)))
+                   ([(k1 v1) (in-weak-hash ht)]
+                    [k2 (in-weak-hash-keys ht)]
+                    [v2 (in-weak-hash-values ht)]
+                    [k3+v3 (in-weak-hash-pairs ht)])
+           (list (cons k1 v1) (cons k2 v2) k3+v3)))
+       '(((a . 1) (a . 1) (a . 1)) ((b . 2) (b . 2) (b . 2))))
+
+(check equal?
        (for/vector: ([i : Natural (in-range 3)]) 5)
        (vector 5 5 5))
 

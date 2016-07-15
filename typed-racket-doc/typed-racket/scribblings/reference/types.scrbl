@@ -395,9 +395,17 @@ corresponding to @racket[trest], where @racket[bound]
 @ex[#hash((a . 1) (b . 2))]
 }
 @defform[(Mutable-HashTable k v)]{is the type of a mutable @rtech{hash table}
+   that holds keys strongly (see @secref["weakbox"])
    with key type @racket[k] and value type @racket[v].
 
 @ex[(make-hash '((a . 1) (b . 2)))]
+}
+
+@defform[(Weak-HashTable k v)]{is the type of a mutable @rtech{hash table}
+   that holds keys weakly
+   with key type @racket[k] and value type @racket[v].
+
+@ex[(make-weak-hash '((a . 1) (b . 2)))]
 }
 
 @defform[(HashTable k v)]{is the type of a mutable or immutable @rtech{hash table}

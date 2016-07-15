@@ -375,9 +375,10 @@
           (if type
               (subtype* A0 type t*)
               #f)]
-         [((or (Immutable-Hashtable: k v)
+         [((or (Hashtable: k v)
                (Mutable-Hashtable: k v)
-               (Hashtable: k v))
+               (Immutable-Hashtable: k v)
+               (Weak-Hashtable: k v))
            (Sequence: (list k* v*)))
           (subtypes* A0 (list k v) (list k* v*))]
          [((Set: t) (Sequence: (list t*)))
@@ -571,15 +572,21 @@
                        (type-equiv? s1 t1)
                        (type-equiv? s2 t2))]
          [((MPair: _ _) (MPairTop:)) A0]
+         [((Mutable-Hashtable: s1 s2)
+           (or (Mutable-Hashtable: t1 t2)
+               (Hashtable: t1 t2)))
+          (subtype-seq A0 ;; Mutable-Hash = invariant
+                       (type-equiv? s1 t1)
+                       (type-equiv? s2 t2))]
          [((Immutable-Hashtable: s1 s2)
            (or (Immutable-Hashtable: t1 t2) (Hashtable: t1 t2)))
           (subtype-seq A0 ;; Immutable-Hash = covariant
             (subtype* s1 t1)
             (subtype* s2 t2))]
-         [((Mutable-Hashtable: s1 s2)
-           (or (Mutable-Hashtable: t1 t2)
+         [((Weak-Hashtable: s1 s2)
+           (or (Weak-Hashtable: t1 t2)
                (Hashtable: t1 t2)))
-          (subtype-seq A0 ;; Mutable-Hash = invariant
+          (subtype-seq A0 ;; Weak-Hash = invariant
                        (type-equiv? s1 t1)
                        (type-equiv? s2 t2))]
          [((Hashtable: s1 s2) (Hashtable: t1 t2))
@@ -587,8 +594,9 @@
                        (type-equiv? s1 t1)
                        (type-equiv? s2 t2))]
          [((or (Hashtable: _ _)
+               (Mutable-Hashtable: _ _)
                (Immutable-Hashtable: _ _)
-               (Mutable-Hashtable: _ _))
+               (Weak-Hashtable: _ _))
            (HashtableTop:))
           A0]
          [((Prompt-Tagof: s1 s2) (Prompt-Tagof: t1 t2))

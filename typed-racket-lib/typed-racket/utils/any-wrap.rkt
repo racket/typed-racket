@@ -6,7 +6,7 @@
          racket/set
          racket/undefined
          (only-in racket/async-channel async-channel?)
-         (only-in ffi/unsafe cpointer-predicate-procedure?)
+         (only-in ffi/unsafe cpointer-predicate-procedure? ctype?)
          (only-in racket/future future? fsemaphore?)
          (only-in racket/pretty pretty-print-style-table?)
          (only-in racket/udp udp?)
@@ -247,7 +247,7 @@
 
 ;; display-any-wrap/c-opaque-warning : (-> Any Blame Neg-Party Void)
 (define (display-any-wrap/c-opaque-warning v blame neg-party)
-  (displayln
+  (log-error
    ((current-blame-format)
     (blame-add-missing-party blame neg-party)
     v
@@ -256,14 +256,14 @@
       "any-wrap/c: Unable to protect opaque value passed as `Any`\n"
       "  value: ~e\n"
       "  This warning will become an error in a future release.\n")
-     v))
-   (current-error-port)))
+     v))))
 
 ;; Contract for "safe" struct predicate procedures.
 ;; We can trust that these obey the type (-> Any Boolean).
 (define (struct-predicate-procedure?/c x)
   (and (or (struct-predicate-procedure? x)
-           (cpointer-predicate-procedure? x))
+           (cpointer-predicate-procedure? x)
+           (eq? x ctype?))
        (not (impersonator? x))))
 
 (provide any-wrap/c any-wrap-warning/c struct-predicate-procedure?/c)

@@ -157,7 +157,6 @@
   ((vectorof/sc (#:invariant)) vectorof #:chaperone)
   ((promise/sc (#:covariant)) promise-not-name/c #:chaperone)
   ((syntax/sc (#:covariant #:flat)) syntax/c #:flat)
-  ((hash/sc (#:invariant #:flat) (#:invariant)) hash/c #:chaperone)
   ((mutable-hash/sc (#:invariant #:flat) (#:invariant)) mutable-hash/c #:chaperone)
   ((immutable-hash/sc (#:covariant #:flat) (#:covariant)) immutable-hash/c #:flat)
   ((weak-hash/sc (#:invariant #:flat) (#:invariant)) weak-hash/c #:chaperone)

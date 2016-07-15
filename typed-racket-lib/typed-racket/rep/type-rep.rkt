@@ -510,12 +510,10 @@
 
 ;; key : Type
 ;; value : Type
-(def-type Hashtable ([key Type/c] [value Type/c]) [#:key 'hash]
+(def-type Mutable-Hashtable ([key Type/c] [value Type/c]) [#:key 'hash]
   [#:frees (λ (f) (combine-frees (list (make-invariant (f key)) (make-invariant (f value)))))])
 (def-type Immutable-Hashtable ([key Type/c] [value Type/c]) [#:key 'hash]
   [#:frees (λ (f) (combine-frees (list (f key) (f value))))])
-(def-type Mutable-Hashtable ([key Type/c] [value Type/c]) [#:key 'hash]
-  [#:frees (λ (f) (combine-frees (list (make-invariant (f key)) (make-invariant (f value)))))])
 (def-type Weak-Hashtable ([key Type/c] [value Type/c]) [#:key 'hash]
   [#:frees (λ (f) (combine-frees (list (make-invariant (f key)) (make-invariant (f value)))))])
 

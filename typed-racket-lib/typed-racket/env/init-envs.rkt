@@ -159,12 +159,10 @@
      `(-Param ,(type->sexp ty))]
     [(Param: in out)
      `(make-Param ,(type->sexp in) ,(type->sexp out))]
-    [(Hashtable: key val)
-     `(make-Hashtable ,(type->sexp key) ,(type->sexp val))]
-    [(Immutable-Hashtable: key val)
-     `(make-Immutable-Hashtable ,(type->sexp key) ,(type->sexp val))]
     [(Mutable-Hashtable: key val)
      `(make-Mutable-Hashtable ,(type->sexp key) ,(type->sexp val))]
+    [(Immutable-Hashtable: key val)
+     `(make-Immutable-Hashtable ,(type->sexp key) ,(type->sexp val))]
     [(Weak-Hashtable: key val)
      `(make-Weak-Hashtable ,(type->sexp key) ,(type->sexp val))]
     [(Function: (list (arr: dom (Values: (list (Result: t

@@ -114,8 +114,7 @@
                                       (generalize (tc-literal l #f))))])]
     [(~var i (3d hash?))
      (match (and expected (resolve (intersect expected -HashTop)))
-       [(and ht (or (Hashtable: k v) (Immutable-Hashtable: k v)
-                    (Mutable-Hashtable: k v) (Weak-Hashtable: k v)))
+       [(and ht (or (Mutable-Hashtable: k v) (Immutable-Hashtable: k v) (Weak-Hashtable: k v)))
         (let* ([h (syntax-e #'i)]
                [ks (hash-map h (lambda (x y) (tc-literal x k)))]
                [vs (hash-map h (lambda (x y) (tc-literal y v)))]
@@ -126,16 +125,19 @@
                         [(or (Weak-Hashtable? ht)
                              (hash-weak? h))
                          make-Weak-Hashtable]
-                        [(Mutable-Hashtable? ht)
-                         make-Mutable-Hashtable]
-                        [else make-Hashtable])])
+                        [else ;(Mutable-Hashtable? ht)
+                         make-Mutable-Hashtable])])
           (make-H
             (check-below (apply Un ks) k)
             (check-below (apply Un vs) v)))]
        [_ (let* ([h (syntax-e #'i)]
                  [ks (hash-map h (lambda (x y) (tc-literal x)))]
-                 [vs (hash-map h (lambda (x y) (tc-literal y)))])
-            (make-Hashtable (generalize (apply Un ks)) (generalize (apply Un vs))))])]
+                 [vs (hash-map h (lambda (x y) (tc-literal y)))]
+                 [kt (generalize (apply Un ks))]
+                 [vt (generalize (apply Un vs))])
+            (Un (make-Mutable-Hashtable kt vt)
+                (make-Immutable-Hashtable kt vt)
+                (make-Weak-Hashtable kt vt)))])]
     [(~var i (3d prefab-struct-key))
      (tc-prefab (syntax-e #'i) expected)]
     [_ Univ]))

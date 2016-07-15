@@ -398,8 +398,7 @@
        [_ (-box (generalize (find-stx-type x)))])]
     [(? hash? h)
      (match (and expected (resolve (intersect expected -HashTop)))
-       [(and ht (or (Hashtable: kt vt) (Immutable-Hashtable: kt vt)
-                    (Mutable-Hashtable: kt vt) (Weak-Hashtable: kt vt)))
+       [(and ht (or (Mutable-Hashtable: kt vt) (Immutable-Hashtable: kt vt) (Weak-Hashtable: kt vt)))
         (define kts (hash-map h (lambda (x y) (find-stx-type x kt))))
         (define vts (hash-map h (lambda (x y) (find-stx-type y vt))))
         (define make-H
@@ -410,15 +409,17 @@
            [(or (Weak-Hashtable? ht)
                 (hash-weak? h))
             make-Weak-Hashtable]
-           [(Mutable-Hashtable? ht)
-            make-Mutable-Hashtable]
-           [else
-            make-Hashtable]))
+           [else ;(Mutable-Hashtable? ht)
+            make-Mutable-Hashtable]))
         (make-H
          (check-below (apply Un kts) kt)
          (check-below (apply Un vts) vt))]
-       [_ (make-Hashtable (generalize (apply Un (map find-stx-type (hash-keys h))))
-                          (generalize (apply Un (map find-stx-type (hash-values h)))))])]
+       [_
+        (let ([kt (generalize (apply Un (map find-stx-type (hash-keys h))))]
+              [vt (generalize (apply Un (map find-stx-type (hash-values h))))])
+          (Un (make-Mutable-Hashtable kt vt)
+              (make-Immutable-Hashtable kt vt)
+              (make-Weak-Hashtable kt vt)))])]
     [(? prefab-struct-key)
      ;; FIXME is there a type for prefab structs?
      Univ]

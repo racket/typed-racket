@@ -67,7 +67,6 @@
      [Async-Channel (#:inv)]
      [ThreadCell (#:inv)]
      [Vector (#:inv)]
-     [Hashtable (#:inv #:inv)]
      [Mutable-Hashtable (#:inv #:inv)]
      [Immutable-Hashtable (#:co #:co)]
      [Weak-Hashtable (#:inv #:inv)]

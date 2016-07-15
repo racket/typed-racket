@@ -629,14 +629,12 @@
              (flat/sc #`(flat-named-contract '#,v (lambda (x) (equal? x '#,v))) v))]
         [(Param: in out) 
          (parameter/sc (t->sc in) (t->sc out))]
-        [(Immutable-Hashtable: k v)
-         (immutable-hash/sc (t->sc k) (t->sc v))]
         [(Mutable-Hashtable: k v)
          (mutable-hash/sc (t->sc k) (t->sc v))]
+        [(Immutable-Hashtable: k v)
+         (immutable-hash/sc (t->sc k) (t->sc v))]
         [(Weak-Hashtable: k v)
          (weak-hash/sc (t->sc k) (t->sc v))]
-        [(Hashtable: k v)
-         (hash/sc (t->sc k) (t->sc v))]
         [(Channel: t)
          (channel/sc (t->sc t))]
         [(Evt: t)

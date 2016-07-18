@@ -1,3 +1,11 @@
+6.6
+- Warn on opaque values passed to `any-wrap/c`. This will become an
+  error in the future.
+- Added intersection types.
+- Add typed/syntax/{modread,srcloc,readerr}
+- Improve type & contract serialization and avoid pconvert.
+- Check source type in `cast` (potential incompatibility)
+- Internal: rename "filter" to "prop"
 6.5
 - Added `simple-result->` to improve generated contract performance.
 - Improve error message printing.

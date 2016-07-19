@@ -30,16 +30,27 @@
   (display close port))
 
 
+;; check equality of two syntax objects by structural traversal
+;; where identifiers are compared by free-identifier=?
+(define (stx-equal? s1 s2 recur)
+  (define d1 (if (syntax? s1) (syntax-e s1) s1))
+  (define d2 (if (syntax? s2) (syntax-e s2) s2))
+  (cond [(and (identifier? s1) (identifier? s2))
+         (free-identifier=? s1 s2)]
+        [(and (pair? d1) (pair? d2))
+         (and (stx-equal? (car d1) (car d2) recur)
+              (stx-equal? (cdr d1) (cdr d2) recur))]
+        [else (recur d1 d2)]))
 
 (struct simple-contract static-contract (syntax kind name)
         #:transparent
         #:methods gen:equal+hash
          [(define (equal-proc s1 s2 recur)
-            (and ;; only check s-expression equality because it's
-                 ;; unlikely that TR will compile contracts that are
-                 ;; s-exp equal but aren't actually the same contract
-                 (recur (syntax->datum (simple-contract-syntax s1))
-                        (syntax->datum (simple-contract-syntax s2)))
+            (and ;; have to make sure identifiers are compared by free-id=?
+                 ;; because of struct predicates
+                 (stx-equal? (simple-contract-syntax s1)
+                             (simple-contract-syntax s2)
+                             recur)
                  (recur (simple-contract-kind s1)
                         (simple-contract-kind s2))
                  (recur (simple-contract-name s1)

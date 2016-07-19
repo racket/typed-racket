@@ -33,14 +33,13 @@
 ;; check equality of two syntax objects by structural traversal
 ;; where identifiers are compared by free-identifier=?
 (define (stx-equal? s1 s2 recur)
-  (define d1 (if (syntax? s1) (syntax-e s1) s1))
-  (define d2 (if (syntax? s2) (syntax-e s2) s2))
   (cond [(and (identifier? s1) (identifier? s2))
          (free-identifier=? s1 s2)]
-        [(and (pair? d1) (pair? d2))
-         (and (stx-equal? (car d1) (car d2) recur)
-              (stx-equal? (cdr d1) (cdr d2) recur))]
-        [else (recur d1 d2)]))
+        [else
+         (define d1 (if (syntax? s1) (syntax-e s1) s1))
+         (define d2 (if (syntax? s2) (syntax-e s2) s2))
+         (equal?/recur d1 d2
+                       (λ (x y) (stx-equal? x y recur)))]))
 
 (struct simple-contract static-contract (syntax kind name)
         #:transparent

@@ -478,11 +478,6 @@
                       [self-type (if (null? (syntax->list #'(tvar ...)))
                                      #'type
                                      #'poly-type)])
-                     (when (and (syntax-e #'name.parent)
-                                (not (null? (syntax-e #'(tvar ...)))))
-                       (raise-syntax-error 'require/typed
-                                           "polymorphic structs with parents are not supported"))
-
                      (define (maybe-add-quote-syntax stx)
                        (if (and stx (syntax-e stx)) #`(quote-syntax #,stx) stx))
 

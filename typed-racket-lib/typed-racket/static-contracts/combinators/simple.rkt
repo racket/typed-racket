@@ -38,9 +38,9 @@
   (cond [(and (identifier? s1) (identifier? s2))
          (free-identifier=? s1 s2)]
         [else
-         (define d1 (if (syntax? s1) (syntax-e s1) s1))
-         (define d2 (if (syntax? s2) (syntax-e s2) s2))
-         (equal?/recur d1 d2 stx-equal?)]))
+         (if (and (syntax? s1) (syntax? s2))
+             (equal?/recur (syntax-e s1) (syntax-e s2) stx-equal?)
+             (equal?/recur s1 s2 stx-equal?))]))
 
 (struct simple-contract static-contract (syntax kind name)
         #:transparent

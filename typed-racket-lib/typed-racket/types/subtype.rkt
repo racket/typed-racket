@@ -719,7 +719,7 @@
      (when (null? A)
        (hash-set!
          (hash-ref! subtype-cache st (lambda () (make-hash)))
-         ss r))
+         ss (and r #t)))
      r))
 
 (define (type-compare? a b)

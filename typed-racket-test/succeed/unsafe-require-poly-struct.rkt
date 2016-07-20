@@ -15,3 +15,14 @@
 
 (add1 (foo-x (foo 3 4)))
 (add1 (foo-y a-foo))
+
+(module b racket/base
+  (struct bar (x y))
+  (struct baz bar (z))
+  (provide (struct-out bar) (struct-out baz)))
+
+(unsafe-require/typed (submod "." b)
+                      [#:struct (X Y) bar ([x : X] [y : Y])]
+                      [#:struct (X Y Z) (baz bar) ([z : Z])])
+
+(add1 (bar-x (baz 1 2 3)))

@@ -478,6 +478,10 @@
                       [self-type (if (null? (syntax->list #'(tvar ...)))
                                      #'type
                                      #'poly-type)])
+                     (when (and (not (attribute unsafe.unsafe?))
+                                (pair? (syntax->list #'(tvar ...))))
+                       (tc-error/stx stx "polymorphic structs are not supported"))
+
                      (define (maybe-add-quote-syntax stx)
                        (if (and stx (syntax-e stx)) #`(quote-syntax #,stx) stx))
 

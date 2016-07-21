@@ -24,7 +24,8 @@
          infer-row
          check-row-constraints
          object-type-clauses
-         class-type-clauses)
+         class-type-clauses
+         row-type-clauses)
 
 (define-literal-set class-type-literals
   (init init-field init-rest field augment
@@ -202,6 +203,34 @@
            #:fail-when
            (check-duplicate-identifier (syntax->list #'method-names))
            "duplicate method clause"))
+
+;; Syntax class for row parsing
+(define-splicing-syntax-class (row-type-clauses parse-type)
+  #:description "Row type clause"
+  #:attributes (inits fields methods augments init-rest)
+  #:literal-sets (class-type-literals)
+  (pattern (~seq (~or (~optional ((~or init-rest untyped:init-rest)
+                                  init-rest-type:expr))
+                      (~var clause (type-clause parse-type)))
+                 ...)
+           #:attr inits (apply append (attribute clause.init-entries))
+           #:attr fields (apply append (attribute clause.field-entries))
+           #:attr methods (apply append (attribute clause.method-entries))
+           #:attr augments (apply append (attribute clause.augment-entries))
+           #:attr init-rest (and (attribute init-rest-type)
+                                 (parse-type (attribute init-rest-type)))
+           #:fail-when
+           (check-duplicates (map first (attribute inits)))
+           "duplicate init or init-field clause"
+           #:fail-when
+           (check-duplicates (map first (attribute fields)))
+           "duplicate field or init-field clause"
+           #:fail-when
+           (check-duplicates (map first (attribute methods)))
+           "duplicate method clause"
+           #:fail-when
+           (check-duplicates (map first (attribute augments)))
+           "duplicate augment clause"))
 
 ;; Syntax class for class type parsing
 ;;

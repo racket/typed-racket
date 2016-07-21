@@ -364,5 +364,15 @@ additional provides all other bindings from @racketmodname[racket/class].
              (super-new)
              (init-field [x : Integer 0] [y : Integer 0]))))
   ]
+
+@defform[(Row class-type-clause ...)]{
+  Represents a row, which is used for instantiating row-polymorphic
+  function types. Accepts all clauses that the @racket[Class] form
+  accepts except the keyword arguments.
+
+  Rows are not types, and therefore cannot be used in any context
+  except in the @racket[row-inst] form. See @racket[row-inst] for
+  examples.
+}
 }
 

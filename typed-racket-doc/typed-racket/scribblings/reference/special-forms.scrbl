@@ -572,6 +572,19 @@ variables. This is legal only in expression contexts.
     (define (my-values arg . args)
       (apply (inst values A B ... B) arg args))]}
 
+@defform[(row-inst e row)]{
+
+Instantiate the row-polymorphic type of @racket[e] with
+@racket[row]. This is legal only in expression contexts.
+
+@ex[(: id (All (r #:row)
+            (-> (Class #:row-var r) (Class #:row-var r))))
+    (define (id cls) cls)
+
+    ((row-inst id (Row (field [x Integer])))
+     (class object% (super-new) (field [x : Integer 0])))
+]}
+
 @defform/none[#{e |@| t ...}]{
 A reader abbreviation for @racket[(inst e t ...)].}
 @defform/none[#{e |@| t ... t ooo bound}]{

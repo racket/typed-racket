@@ -987,7 +987,7 @@
            (define (f cls)
              (class cls (super-new)
                (field [x 5])))
-           (inst f #:row (field [y Integer]))
+           (row-inst f (Row (field [y Integer])))
            (void))
          -Void]
    ;; fails, because the instantiation uses a field that
@@ -1000,7 +1000,7 @@
              (define (f cls)
                (class cls (super-new)
                  (field [x 5])))
-             (inst f #:row (field [x Integer])))
+             (row-inst f (Row (field [x Integer]))))
            #:ret (ret (t:-> (-class 
                               #:row (make-Row null `([x ,-Integer]) null null #f))
                             (-class
@@ -1017,7 +1017,7 @@
                (class cls (super-new)
                  (field [x 5])))
              (define instantiated
-               (inst f #:row (field [y Integer])))
+               (row-inst f (Row (field [y Integer]))))
              (instantiated
               (class object% (super-new))))
            #:ret (ret (-class
@@ -1043,11 +1043,34 @@
              (class cls (super-new)
                (field [x 5])))
            (define instantiated
-             (inst f #:row (field [y Integer])))
+             (row-inst f (Row (field [y Integer]))))
            (instantiated
             (class object% (super-new)
               (: y Integer)
               (field [y 0])))
+           (void))
+         -Void]
+   ;; test row instantiation with other clauses
+   [tc-e (let ()
+           (: f (All (A #:row (field x))
+                  ((Class #:row-var A)
+                   ->
+                   (Class #:row-var A (field [x Integer])))))
+           (define (f cls)
+             (class cls (super-new)
+               (field [x 5])))
+           (define instantiated
+             (row-inst f (Row [m (-> Void)]
+                              (augment [m (-> Void)])
+                              (init [y Integer #:optional])
+                              (field [y Integer])
+                              (init-rest (List String)))))
+           (instantiated
+            (class object% (super-new)
+              (: y Integer)
+              (init-field [y 0])
+              (init-rest [rst : (List String)])
+              (define/pubment (m) (void))))
            (void))
          -Void]
    ;; Basic row constraint inference
@@ -1059,7 +1082,7 @@
            (define (f cls)
              (class cls (super-new)
                (field [x 5])))
-           (inst f #:row (field [y Integer]))
+           (row-inst f (Row (field [y Integer])))
            (void))
          -Void]
    ;; fails, inferred constraint and instantiation don't match
@@ -1071,7 +1094,7 @@
              (define (f cls)
                (class cls (super-new)
                  (field [x 5])))
-             (inst f #:row (field [x Integer])))
+             (row-inst f (Row (field [x Integer]))))
            #:ret (ret (t:-> (-class 
                               #:row (make-Row null `([x ,-Integer]) null null #f))
                             (-class

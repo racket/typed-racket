@@ -42,7 +42,7 @@ the typed racket language.
          define-new-subtype
          define-typed-struct
          define-typed-struct/exec
-         ann inst
+         ann inst row-inst
          :
          (rename-out [define-typed-struct define-struct:]
                      [define-typed-struct define-struct]

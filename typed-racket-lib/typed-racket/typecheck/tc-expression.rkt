@@ -22,6 +22,8 @@
   (syntax-parse form
     [(exp:type-inst^ e)
      (do-inst (tc-expr #'e) (attribute exp.value))]
+    [(exp:row-inst^ e)
+     (do-inst (tc-expr #'e) (attribute exp.value) #t)]
     [(exp:type-ascription^ e)
      (add-scoped-tvars #'e (parse-literal-alls (attribute exp.value)))
      (tc-expr/check #'e (parse-tc-results (attribute exp.value)))]
@@ -50,9 +52,9 @@
 ;; do-inst : tc-results? syntax? -> tc-results?
 ;; Perform a type instantiation, delegating to the appropriate helper
 ;; function depending on if the argument is a row or not
-(define (do-inst tc-res inst)
+(define (do-inst tc-res inst [row? #f])
   (define inst-type
-    (if (row-syntax? inst) do-row-inst do-normal-inst))
+    (if row? do-row-inst do-normal-inst))
   (define (error-case number)
     (tc-error/expr
       "Cannot instantiate expression that produces ~a values"
@@ -65,13 +67,6 @@
       [_ (error-case (if (null? tys) 0 "multiple"))])]
     [_ (error-case "multiple")]))
 
-
-;; row-syntax? Syntax -> Boolean
-;; This checks if the syntax object resulted from a row instantiation
-(define (row-syntax? stx)
-  (define lst (stx->list stx))
-  (and lst (pair? lst)
-       (eq? (syntax-e (car lst)) '#:row)))
 
 ;; do-normal-inst : Type Syntax -> Type
 ;; Instantiate a normal polymorphic type
@@ -115,10 +110,7 @@
   ;; At this point, we know `stx` represents a row so we can parse it.
   ;; The parsing is done here because if `inst` did the parsing, it's
   ;; too early and ends up with an empty type environment.
-  (define row
-    (syntax-parse row-stx
-      [(#:row (~var clauses (row-clauses parse-type)))
-       (attribute clauses.row)]))
+  (define row (parse-row row-stx))
   (cond
     [(not (PolyRow? ty))
      (tc-error/expr #:return -Bottom "Cannot instantiate non-row-polymorphic type ~a"

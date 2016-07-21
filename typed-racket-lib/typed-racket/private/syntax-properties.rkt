@@ -57,6 +57,7 @@
   (with-type typechecker:with-type #:mark)
   (type-ascription type-ascription)
   (type-inst type-inst)
+  (row-inst row-inst)
   (type-label type-label)
   (type-dotted type-dotted)
   (exn-predicate typechecker:exn-predicate)

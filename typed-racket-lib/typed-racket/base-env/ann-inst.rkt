@@ -9,7 +9,7 @@
                      racket/base)
          "colon.rkt")
 
-(provide (for-syntax add-ann) ann inst)
+(provide (for-syntax add-ann) ann inst row-inst)
 
 (define-syntax (ann stx)
   (syntax-parse stx #:literals (:)
@@ -25,15 +25,16 @@
   (syntax-parse stx #:literals (:)
     [(_ arg : . tys)
      (syntax/loc stx (inst arg . tys))]
-    ;; FIXME: Is the right choice to use a #:row keyword or just
-    ;; to use a Row type constructor and keep it consistent?
-    [(_ arg #:row e ...)
-     (with-syntax ([expr (type-inst-property #'#%expression #'(#:row e ...))])
-       (syntax/loc #'arg (expr arg)))]
     [(_ arg tys ... ty ddd b:id)
      #:when (eq? (syntax-e #'ddd) '...)
      (with-syntax ([expr (type-inst-property #'#%expression #'(tys ... (ty . b)))])
        (syntax/loc #'arg (expr arg)))]
     [(_ arg tys ...)
      (with-syntax ([expr (type-inst-property #'#%expression #'(tys ...))])
+       (syntax/loc #'arg (expr arg)))]))
+
+(define-syntax (row-inst stx)
+  (syntax-parse stx
+    [(_ arg row)
+     (with-syntax ([expr (row-inst-property #'#%expression #'row)])
        (syntax/loc #'arg (expr arg)))]))

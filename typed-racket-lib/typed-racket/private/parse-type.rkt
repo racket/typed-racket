@@ -36,7 +36,9 @@
                        ;; context of the given syntax object
                        [parse-type/id (syntax? c:any/c . c:-> . Type/c)]
                        [parse-tc-results (syntax? . c:-> . tc-results/c)]
-                       [parse-literal-alls (syntax? . c:-> . (c:listof (c:or/c (c:listof identifier?) (c:list/c (c:listof identifier?) identifier?))))])
+                       [parse-literal-alls (syntax? . c:-> . (c:listof (c:or/c (c:listof identifier?) (c:list/c (c:listof identifier?) identifier?))))]
+                       ;; Parse a row, which is only allowed in row-inst
+                       [parse-row (syntax? . c:-> . Type/c)])
 
 (provide star ddd/bound
          current-referenced-aliases
@@ -82,6 +84,7 @@
 (define-literal-syntax-class #:for-label cons)
 (define-literal-syntax-class #:for-label Class)
 (define-literal-syntax-class #:for-label Object)
+(define-literal-syntax-class #:for-label Row)
 (define-literal-syntax-class #:for-label Unit)
 (define-literal-syntax-class #:for-label import)
 (define-literal-syntax-class #:for-label export)
@@ -777,6 +780,25 @@
                           (stx-map parse-type #'clause.method-types)))
      (check-function-types methods)
      (make-Instance (make-Class #f null fields methods null #f))]))
+
+;; Syntax -> Type
+;; Parse a (Row ...), which are used in `row-inst`.
+(define (parse-row stx)
+  (syntax-parse stx
+    [(Row^: (~var clause (row-type-clauses parse-type)))
+     (add-disappeared-use #'Row)
+     (define inits (attribute clause.inits))
+     (define fields (attribute clause.fields))
+     (define methods (attribute clause.methods))
+     (define augments (attribute clause.augments))
+     (define init-rest
+       (and (attribute clause.init-rest)
+            (parse-type (attribute clause.init-rest))))
+     (check-function-types methods)
+     (check-function-types augments)
+     (make-Row inits fields methods augments init-rest)]
+  [_ (parse-error "expected a valid row"
+                  "given" (syntax->datum stx))]))
 
 ;; Syntax -> Type
 ;; Parse a (Class ...) type

@@ -31,6 +31,7 @@
 (define-syntax-class rebuild-let*
   #:literal-sets (kernel-literals)
   #:attributes (mapping flag-mapping)
+  (pattern (#%expression :rebuild-let*))
   (pattern (let-values ([(new-id) e:cl-rhs]) body:rebuild-let*)
            #:attr mapping (dict-set (attribute body.mapping) #'e.i #'new-id)
            #:attr flag-mapping (if (attribute e.cond)

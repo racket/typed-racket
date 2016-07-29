@@ -27,6 +27,7 @@
            #:with (expr ...) #'(cls.e ... body))
   (pattern (letrec-values cls:lv-clauses body)
            #:with (expr ...) #'(cls.e ... body))
+  (pattern (#%expression expr ...))
   (pattern (#%plain-app expr ...))
   (pattern (if expr ...))
   (pattern (with-continuation-mark expr ...))

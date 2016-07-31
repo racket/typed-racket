@@ -107,16 +107,20 @@
            #:with private-field-names #'(private-fields ...)))
 
 (define-syntax-class initializer-body
-  #:literals (letrec-values let-values)
+  #:literals (letrec-values let-values #%expression)
   #:attributes (val)
   (pattern (letrec-values _ body:initializer-body)
            #:with val #'body.val)
   (pattern (let-values _ body:initializer-body)
            #:with val #'body.val)
+  (pattern (#%expression body:initializer-body)
+           #:with val #'body.val)
   (pattern (letrec-values _ e:expr ...)
            #:with val #'(e ...))
   (pattern (let-values _ e:expr ...)
-           #:with val #'(e ...)))
+           #:with val #'(e ...))
+  (pattern (#%expression e)
+           #:with val #'(e)))
 
 (define-syntax-class initializer-class
   #:literals (#%plain-lambda)
@@ -131,7 +135,7 @@
            #:with initializer-args-id #'init-args))
 
 (define-syntax-class make-methods-body
-  #:literals (let-values letrec-values #%plain-app values)
+  #:literals (let-values letrec-values #%plain-app #%expression values)
   #:attributes (initializer-body initializer-self-id
                 initializer-args-id)
   (pattern (letrec-values _
@@ -142,7 +146,8 @@
              augride:expr
              :initializer-class)))
   (pattern (let-values () :make-methods-body))
-  (pattern (letrec-values () :make-methods-body)))
+  (pattern (letrec-values () :make-methods-body))
+  (pattern (#%expression :make-methods-body)))
 
 (define-syntax-class make-methods-class
   #:literals (let-values #%plain-lambda)
@@ -151,7 +156,12 @@
   (pattern (#%plain-lambda
             (local-accessor:id local-mutator:id local-method-or-field:id ...)
             (let-values ([(field-name:id) accessor-or-mutator] ...)
-              :make-methods-body))))
+              :make-methods-body)))
+  (pattern (#%plain-lambda
+            (local-accessor:id local-mutator:id local-method-or-field:id ...)
+            (let-values ()
+              (let-values ([(field-name:id) accessor-or-mutator] ...)
+                :make-methods-body)))))
 
 (define-syntax-class core-class-expansion
   #:literals (let-values letrec-syntaxes+values #%plain-app quote)
@@ -1437,7 +1447,7 @@
                        (syntax->list stx-list))))
   (syntax-parse form
     #:literals (let-values letrec-values #%plain-app
-                #%plain-lambda)
+                #%plain-lambda #%expression)
     [stx
      #:when (accessor #'stx)
      (list form)]
@@ -1450,6 +1460,8 @@
      (recur-on-all #'(e ...))]
     [(#%plain-lambda (x ...) e ...)
      (recur-on-all #'(e ...))]
+    [(#%expression e)
+     (recur-on-all #'(e))]
     [_ '()]))
 
 ;; setup-pubment-defaults : Listof<Symbol> Hash Hash -> Void

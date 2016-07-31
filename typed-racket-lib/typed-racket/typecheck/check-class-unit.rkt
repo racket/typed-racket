@@ -149,19 +149,21 @@
   (pattern (letrec-values () :make-methods-body))
   (pattern (#%expression :make-methods-body)))
 
+(define-syntax-class make-methods-under-locals-class
+  #:literals (let-values #%plain-lambda)
+  #:attributes (initializer-body initializer-self-id
+                initializer-args-id)
+  (pattern (let-values () :make-methods-under-locals-class))
+  (pattern (let-values ([(field-name:id) accessor-or-mutator] ...)
+             :make-methods-body)))
+
 (define-syntax-class make-methods-class
   #:literals (let-values #%plain-lambda)
   #:attributes (initializer-body initializer-self-id
                 initializer-args-id)
   (pattern (#%plain-lambda
             (local-accessor:id local-mutator:id local-method-or-field:id ...)
-            (let-values ([(field-name:id) accessor-or-mutator] ...)
-              :make-methods-body)))
-  (pattern (#%plain-lambda
-            (local-accessor:id local-mutator:id local-method-or-field:id ...)
-            (let-values ()
-              (let-values ([(field-name:id) accessor-or-mutator] ...)
-                :make-methods-body)))))
+            :make-methods-under-locals-class)))
 
 (define-syntax-class core-class-expansion
   #:literals (let-values letrec-syntaxes+values #%plain-app quote)

@@ -230,6 +230,26 @@
              ...))
            #:attr export-temp-ids (map syntax->list (syntax->list #'((export-temp-id ...) ...)))))
 
+(define-syntax-class unit-expansion-internals
+  #:literal-sets (kernel-literals)
+  #:attributes (body-stx 
+                import-internal-ids
+                export-temp-ids)
+  (pattern (let-values (_ ...) :unit-expansion-internals))
+  (pattern (#%expression :unit-expansion-internals))
+  (pattern (#%plain-lambda ()
+             (let-values (((export-temp-id:id) _) ...)
+               (#%plain-app
+                values
+                (#%plain-lambda (import-table:id)
+                                (let-values (((import:id ...) _) ...)
+                                  unit-body:expr))
+                et:export-table
+                _ ...)))
+           #:attr export-temp-ids (syntax->list #'(export-temp-id ...))
+           #:attr import-internal-ids (map syntax->list (syntax->list #'((import ...) ...)))
+           #:with body-stx #'unit-body))
+
 ;; This syntax class matches the whole expansion of unit forms
 (define-syntax-class unit-expansion
   #:literal-sets (kernel-literals)
@@ -246,25 +266,11 @@
             import-vector:sig-vector
             export-vector:sig-vector
             list-dep:init-depend-list
-            (let-values (_ ...)
-              (let-values (_ ...)
-                (#%expression
-                 (#%plain-lambda ()
-                   (let-values (((export-temp-id:id) _) ...)
-                     (#%plain-app
-                      values
-                      (#%plain-lambda (import-table:id)
-                                      (let-values (((import:id ...) _) ...)
-                                        unit-body:expr))
-                      et:export-table
-                      _ ...)))))))
+            :unit-expansion-internals)
            #:attr import-sigs (syntax->list #'import-vector.sigs)
            #:attr import-sig-tags (syntax->list #'import-vector.sig-tags)
            #:attr export-sigs (syntax->list #'export-vector.sigs)
-           #:attr export-temp-ids (syntax->list #'(export-temp-id ...))
-           #:attr init-depend-tags (syntax->list #'list-dep.init-depend-tags)
-           #:attr import-internal-ids (map syntax->list (syntax->list #'((import ...) ...)))
-           #:with body-stx #'unit-body))
+           #:attr init-depend-tags (syntax->list #'list-dep.init-depend-tags)))
 
 ;; Extract the identifiers referenced in unit-from-context and invoke-unit forms
 ;; in order to typecheck them in the current environment

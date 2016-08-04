@@ -428,7 +428,7 @@
   ;; else, do the unboxing here
 
   ;; we can unbox literals right away
-  (pattern (quote n*:number)
+  (pattern (~or (quote n*:number) (#%expression (quote n*:number)))
     #:do [(define n (syntax->datum #'n*))]
     #:when (not (equal? (imag-part n) 0))
     #:with (real-binding imag-binding) (binding-names)

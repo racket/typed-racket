@@ -4,6 +4,7 @@
 ;; that are expanded into by Racket macros
 (require
  "../utils/utils.rkt"
+ (only-in "../rep/type-rep.rkt" make-StructTypeTop)
  racket/promise
  string-constants/string-constant
  racket/private/kw racket/file racket/port syntax/parse racket/path
@@ -241,6 +242,12 @@
    (-> Univ Univ Univ Univ Univ)]
   [(make-template-identifier 'missing-kw 'racket/private/kw)
    (->* (list Univ) Univ Univ)]
+  [(make-template-identifier 'prop:named-keyword-procedure 'racket/private/kw)
+   -Struct-Type-Property]
+  [(make-template-identifier 'struct:keyword-procedure/arity-error 'racket/private/kw)
+   (make-StructTypeTop)]
+  [(make-template-identifier 'struct:keyword-method/arity-error 'racket/private/kw)
+   (make-StructTypeTop)]
   ;; from the expansion of `define-runtime-path`
   [(make-template-identifier 'path-of 'racket/runtime-path)
    (-> -Path -Path)]

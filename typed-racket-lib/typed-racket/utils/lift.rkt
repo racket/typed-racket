@@ -16,12 +16,12 @@
       (define stx* (local-expand/capture-lifts stx ctx stop-ids))
       (syntax-parse stx*
         #:literal-sets (kernel-literals)
-        [(begin (define-values (n) e) ... e*)
+        [(begin (define-values (n ...) e) ... e*)
          (define-values (sub-defss defs)
            (for/lists (_1 _2) ([e (in-list (syntax->list #'(e ...)))]
-                               [n (in-list (syntax->list #'(n ...)))])
+                               [ns (in-list (syntax->list #'((n ...) ...)))])
              ;; lifted expressions may re-lift, so recur
              (define-values (sub-defs e-expanded) (loop e))
-             (values sub-defs #`(define-values (#,n) #,e-expanded))))
+             (values sub-defs #`(define-values #,ns #,e-expanded))))
          (values (append (apply append sub-defss) defs) #'e*)])))
   #`(begin #,@defs #,expr))

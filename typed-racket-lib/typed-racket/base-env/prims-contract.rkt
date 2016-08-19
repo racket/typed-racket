@@ -163,7 +163,7 @@
   (define-syntax-class (clause legacy unsafe? lib)
    #:attributes (spec)
    (pattern oc:opaque-clause #:attr spec
-     #`(require/opaque-type oc.ty oc.pred #,lib . oc.opt))
+     #`(require/opaque-type oc.ty oc.pred #,lib #,@(if unsafe? #'(unsafe-kw) #'()) . oc.opt))
    (pattern (~var strc (struct-clause legacy)) #:attr spec
      #`(require-typed-struct strc.nm (strc.tvar ...)
                              (strc.body ...) strc.constructor-parts ...
@@ -370,13 +370,15 @@
 
 
 (define (require/opaque-type stx)
+  (define-syntax-class unsafe-id
+    (pattern (~literal unsafe-kw)))
   (define-syntax-class name-exists-kw
     (pattern #:name-exists))
   (syntax-parse stx
     [_ #:when (eq? 'module-begin (syntax-local-context))
        ;; it would be inconvenient to find the correct #%module-begin here, so we rely on splicing
        #`(begin #,stx (begin))]
-    [(_ ty:id pred:id lib (~optional ne:name-exists-kw) ...)
+    [(_ ty:id pred:id lib (~optional unsafe:unsafe-id) (~optional ne:name-exists-kw) ...)
      (with-syntax ([hidden (generate-temporary #'pred)])
        ;; this is needed because this expands to the contract directly without
        ;; going through the normal `make-contract-def-rhs` function.
@@ -391,9 +393,11 @@
            #,(if (attribute ne)
                  (internal (syntax/loc stx (define-type-alias-internal ty (Opaque pred))))
                  (syntax/loc stx (define-type-alias ty (Opaque pred))))
-           #,(ignore #'(define pred-cnt
-                         (or/c struct-predicate-procedure?/c
-                               (any-wrap-warning/c . c-> . boolean?))))
+           #,(if (attribute unsafe)
+                 (ignore #'(define pred-cnt any/c)) ; unsafe- shouldn't generate contracts
+                 (ignore #'(define pred-cnt
+                             (or/c struct-predicate-procedure?/c
+                                   (any-wrap-warning/c . c-> . boolean?)))))
            #,(ignore #'(require/contract pred hidden pred-cnt lib)))))]))
 
 

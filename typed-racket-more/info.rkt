@@ -6,6 +6,7 @@
                "base"
 	       "net-lib"
 	       "web-server-lib"
+               "db-lib"
                "draw-lib"
                "rackunit-lib"
                "rackunit-gui"

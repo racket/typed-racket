@@ -8,6 +8,7 @@
 
 (require (for-syntax racket/base
                      syntax/parse
+                     typed-racket/typecheck/renamer
                      (prefix-in internal: typed-racket/private/syntax-properties)
                      (prefix-in internal:  (submod typed-racket/base-env/prims-contract unsafe))))
 
@@ -15,8 +16,16 @@
   (internal:unsafe-require/typed stx))
 
 (define-syntax (unsafe-provide stx)
-  (quasisyntax/loc stx
-    #,(internal:unsafe-provide #`(provide . #,stx))))
+  (syntax-case stx ()
+   [(_ nm* ...)
+    (with-syntax ([(orig-nm* ...)
+                   (for/list ((nm (in-list (syntax-e #'(nm* ...)))))
+                     ;; un-rename any rename transformers
+                     (if (identifier? nm)
+                       (un-rename nm)
+                       nm))])
+      (internal:unsafe-provide
+        (syntax/loc stx (provide orig-nm* ...))))]))
 
 (define-syntax (unsafe-require/typed/provide stx)
   (unless (memq (syntax-local-context) '(module module-begin))

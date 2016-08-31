@@ -28,7 +28,7 @@
 
 (define pkg-authors '(samth stamourv endobson asumu "andmkent@iu.edu"))
 
-(define version "1.7")
+(define version "1.8")
 
 
 ;; Collection info

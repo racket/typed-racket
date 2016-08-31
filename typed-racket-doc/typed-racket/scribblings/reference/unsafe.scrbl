@@ -41,7 +41,9 @@ behavior and may even crash Typed Racket.
 
   Unlike @racket[provide], this form is unsafe and Typed Racket will not generate
   any contracts that correspond to the specified types. This means that uses of the
-  exports in other modules may circumvent the type system's invariants.
+  exports in other modules may circumvent the type system's invariants. In
+  particular, one typed module may unsafely provide identifiers imported from
+  another typed module.
 
   Additionally, importing an identififer that is exported with
   @racket[unsafe-provide] into another typed module, and then
@@ -70,7 +72,8 @@ behavior and may even crash Typed Racket.
     (eval:error (require 'u))
   ]
 
-  @history[#:added "1.3"]
+  @history[#:added "1.3"
+           #:changed "1.8" "Added support for re-provided typed variables"]
 }
 
 @defform[(unsafe-require/typed/provide m rt-clause ...)]{

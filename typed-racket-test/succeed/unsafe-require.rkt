@@ -36,4 +36,27 @@
   (with-handlers ([(negate exn:fail:contract:blame?) void])
     (number->string (string-append "foo" "bar"))))
 
-(require 'b 'c)
+(module d typed/racket
+  (require/typed racket/contract/combinator [#:opaque Blame exn:fail:contract:blame?])
+  (require typed/rackunit typed/racket/unsafe)
+  (unsafe-require/typed (submod ".." a)
+                        [#:opaque Foo foo?]
+                        [foo (-> String String Foo)]
+                        [foo-x (-> Foo String)]
+                        [foo-y (-> Foo String)]
+                        [a-foo Foo])
+
+  (define f (foo "olleh" "hello"))
+  (check-true (foo? f))
+  (check-true (foo? a-foo))
+  (check-false (foo? 5))
+  (check-false (foo? (vector f a-foo)))
+  (check-equal? (foo-x f) "olleh")
+  (check-equal? (foo-y f) "hello")
+
+  ;; UNSAFE
+  ;; primitive error, no blame should be raised
+  (with-handlers ([(negate exn:fail:contract:blame?) void])
+    (string-append (foo-x a-foo))))
+
+(require 'b 'c 'd)

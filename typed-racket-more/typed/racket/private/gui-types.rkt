@@ -1072,7 +1072,7 @@
                [min-height (Option Natural) #:optional]
                [stretchable-width Any #:optional]
                [stretchable-height Any #:optional])
-         [get-value (-> Natural)]
+         [get-value (-> Fixnum)]
          [set-value (Integer -> Void)]))
 
 (define-type Choice%

@@ -5,9 +5,10 @@ This file is for utilities that are of general interest,
 at least theoretically.
 |#
 
-(require (for-syntax racket/base syntax/parse/pre racket/string)
+(require (for-syntax racket/base racket/string)
          racket/require-syntax racket/provide-syntax
          racket/match
+         syntax/parse/define
          racket/struct-info "timing.rkt")
 
 (provide
@@ -22,7 +23,8 @@ at least theoretically.
  filter-multiple
  syntax-length
  in-sequence-forever
- match*/no-order)
+ match*/no-order
+ bind)
 
 (define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
@@ -99,11 +101,14 @@ at least theoretically.
          define-struct/cond-contract
          define/cond-contract
          contract-req
+         define/provide
          define/cond-contract/provide
          define-for-cond-contract
          provide-for-cond-contract
          require-for-cond-contract
          begin-for-cond-contract)
+
+
 
 (define-require-syntax contract-req
   (if enable-contracts?
@@ -136,11 +141,19 @@ at least theoretically.
         [(_ e:expr ...) #'(begin)])))
 
 
-(define-syntax-rule (define/cond-contract/provide (name . args) c . body)
-  (begin (define/cond-contract name c
-           (begin
-            (define (name . args) body)
-            name))
+(define-syntax (define/provide stx)
+  (syntax-parse stx
+    [(_ name:id . body)
+     (syntax/loc stx
+       (begin (define name . body)
+              (provide name)))]
+    [(_ (name:id . args) . body)
+     (syntax/loc stx
+       (begin (define (name . args) . body)
+              (provide name)))]))
+
+(define-simple-macro (define/cond-contract/provide (name:id . args) c . body)
+  (begin (define (name . args) . body)
          (provide/cond-contract [name c])))
 
 ;; these are versions of the contract forms conditionalized by `enable-contracts?'
@@ -253,3 +266,9 @@ at least theoretically.
         . clauses)
      #`(match* (val1 val2)
          . #,(parse-clauses #'clauses))]))
+
+
+(define-match-expander bind
+  (syntax-parser
+    [(_ x:id val:expr)
+     #'(app (λ (_) val) x)]))

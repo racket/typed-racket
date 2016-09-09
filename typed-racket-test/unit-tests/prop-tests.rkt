@@ -59,7 +59,7 @@
         -ff
         -ff)
 
-      (test-opposite #:not-complementary #:contradictory
+      (test-opposite #:complementary #:contradictory
         -ff
         -tt)
 

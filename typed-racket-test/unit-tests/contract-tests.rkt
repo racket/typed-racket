@@ -5,7 +5,7 @@
                      syntax/parse)
          (for-template racket/base)
          (private type-contract)
-         (rep type-rep)
+         (rep type-rep values-rep)
          (types abbrev numeric-tower union)
          (static-contracts combinators optimize)
          (submod typed-racket/private/type-contract numeric-contracts)
@@ -137,7 +137,7 @@
               (t (make-Function
                    (list (make-arr* (list Univ) -Boolean #:kws (list (make-Keyword '#:key Univ #t))
                                     #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol))))))
-              (t (-struct #'struct-name #f (list (make-fld -Symbol #'acc #f))))
+              (t (-struct #'struct-name1 #f (list (make-fld -Symbol #'acc #f))))
               ;; Adapted from PR 13815
               (t (-poly (a) (-> a a)))
               (t (-poly (a) (-mu X (-> a X))))
@@ -203,7 +203,7 @@
                         (-> -Boolean -Boolean)
                         (-> -Symbol -Symbol))
                       "two cases of arity 1")
-              (t/fail (-struct #'struct-name #f (list (make-fld -Symbol #'acc #f)) (-> -Symbol))
+              (t/fail (-struct #'struct-name2 #f (list (make-fld -Symbol #'acc #f)) (-> -Symbol))
                       "procedural structs are not supported")
               (t/fail (-Syntax (-> -Boolean -Boolean))
                       "required a flat contract but generated a chaperone contract")
@@ -218,7 +218,7 @@
                     (make-arr* (list) -Boolean #:kws (list (make-Keyword '#:key Univ #t)))
                     (make-arr* (list Univ Univ) -Boolean #:kws (list (make-Keyword '#:key2 Univ #t)))))
                 "case function type with optional keyword arguments")
-              (t/fail (-vec (-struct #'struct-name #f (list (make-fld (-seq -Symbol) #'acc #f)) #f #t))
+              (t/fail (-vec (-struct #'struct-name3 #f (list (make-fld (-seq -Symbol) #'acc #f)) #f #t))
                       "required a chaperone contract but generated an impersonator contract")
 
               (t-sc -Number number/sc)

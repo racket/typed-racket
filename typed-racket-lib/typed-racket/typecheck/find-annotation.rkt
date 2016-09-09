@@ -8,7 +8,7 @@
 
 (require-for-cond-contract (rep type-rep))
 
-(provide/cond-contract [find-annotation (syntax? identifier? . -> . (or/c #f Type/c))])
+(provide/cond-contract [find-annotation (syntax? identifier? . -> . (or/c #f Type?))])
 
 (define-syntax-class lv-clause
   #:transparent

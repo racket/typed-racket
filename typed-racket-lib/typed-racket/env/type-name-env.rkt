@@ -13,16 +13,20 @@
          (types utils))
 
 (provide/cond-contract [register-type-name
-                        (->* (identifier?) (Type/c) any)]
+                        (->* (identifier?) (Type?) any)]
                        [register-type-names
-                        (-> (listof identifier?) (listof Type/c) any)]
+                        (-> (listof identifier?) (listof Type?) any)]
                        [add-alias (-> identifier? identifier? any)]
                        [type-name-env-map
-                        (-> (-> identifier? (or/c #t Type/c) any) any)]
+                        (-> (-> identifier? (or/c #t Type?) any) any)]
                        [type-variance-env-map
                         (-> (-> identifier? (listof variance?) any) any)]
+                       [type-name-env-for-each
+                        (-> (-> identifier? (or/c #t Type?) any) void?)]
+                       [type-variance-env-for-each
+                        (-> (-> identifier? (listof variance?) any) void?)]
                        [lookup-type-name
-                        (->* (identifier?) (procedure?) (or/c #t Type/c))]
+                        (->* (identifier?) (procedure?) (or/c #t Type?))]
                        [register-type-variance!
                         (-> identifier? (listof variance?) any)]
                        [lookup-type-variance
@@ -31,7 +35,7 @@
                         (-> identifier? (or/c #f (listof identifier?)) any)]
                        [refine-variance!
                         (-> (listof identifier?)
-                            (listof Type/c)
+                            (listof Type?)
                             (listof (or/c #f (listof symbol?)))
                             any)])
 
@@ -61,6 +65,9 @@
 (define (type-name-env-map f)
   (sorted-dict-map the-mapping f id<))
 
+(define (type-name-env-for-each f)
+  (sorted-dict-for-each the-mapping f id<))
+
 (define (add-alias from to)
   (when (lookup-type-name to (lambda () #f))
     (register-resolved-type-alias
@@ -85,6 +92,9 @@
 ;; (id variance -> T) -> listof[T]
 (define (type-variance-env-map f)
   (sorted-dict-map variance-mapping f id<))
+
+(define (type-variance-env-for-each f)
+  (sorted-dict-for-each variance-mapping f id<))
 
 ;; Refines the variance of a type in the name environment
 (define (refine-variance! names types tvarss)

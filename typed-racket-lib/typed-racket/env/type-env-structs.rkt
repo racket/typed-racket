@@ -4,7 +4,7 @@
          syntax/id-table
          (except-in "../utils/utils.rkt" env)
          (contract-req)
-         (rep object-rep))
+         (rep core-rep object-rep))
 
 (require-for-cond-contract (rep type-rep prop-rep))
 
@@ -20,14 +20,14 @@
 
 (provide/cond-contract
   [env? predicate/c]
-  [extend (env? identifier? Type/c . -> . env?)]
-  [extend/values (env? (listof identifier?) (listof Type/c) . -> . env?)]
+  [extend (env? identifier? Type? . -> . env?)]
+  [extend/values (env? (listof identifier?) (listof Type?) . -> . env?)]
   [lookup (env? identifier? (identifier? . -> . any) . -> . any)]
   [env-props (env? . -> . (listof Prop?))]
   [replace-props (env? (listof Prop?) . -> . env?)]
   [empty-prop-env env?]
-  [extend+alias/values (env? (listof identifier?) (listof Type/c) (listof Object?) . -> . env?)]
-  [lookup-alias (env? identifier? (identifier? . -> . (or/c #f Object?)) . -> . (or/c #f Object?))])
+  [extend+alias/values (env? (listof identifier?) (listof Type?) (listof OptObject?) . -> . env?)]
+  [lookup-alias (env? identifier? (identifier? . -> . (or/c OptObject? #f)) . -> . (or/c OptObject? #f))])
 
 (define empty-prop-env
   (env

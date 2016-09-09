@@ -6,7 +6,7 @@
          (contract-req)
          (typecheck check-below tc-subst tc-metafunctions possible-domains)
          (utils tc-utils)
-         (rep type-rep prop-rep)
+         (rep type-rep prop-rep values-rep)
          (except-in (types utils abbrev subtype type-table)
                     -> ->* one-of/c))
 (require-for-cond-contract
@@ -24,7 +24,7 @@
     ;; we check that all kw args are optional
     [((arr: dom rng rest #f (and kws (list (Keyword: _ _ #f) ...)))
       (list (tc-result1: t-a phi-a o-a) ...))
-
+     
      (when check?
        (cond [(and (not rest) (not (= (length dom) (length t-a))))
               (tc-error/fields "could not apply function"
@@ -93,9 +93,9 @@
 ;; Generates error messages when operand types don't match operator domains.
 (provide/cond-contract
   [domain-mismatches
-   ((syntax? syntax? Type/c (listof (listof Type/c)) (listof (or/c #f Type/c))
-     (listof (or/c #f (cons/c Type/c (or/c natural-number/c symbol?))))
-     (listof SomeValues/c) (listof tc-results?) (or/c #f Type/c) any/c)
+   ((syntax? syntax? Type? (listof (listof Type?)) (listof (or/c #f Type?))
+     (listof (or/c #f (cons/c Type? (or/c natural-number/c symbol?))))
+     (listof SomeValues?) (listof tc-results?) (or/c #f Type?) any/c)
     (#:expected (or/c #f tc-results/c)
      #:return tc-results?
      #:msg-thunk (-> string? string?))
@@ -170,7 +170,7 @@
                      ;; mode, do the check here. Note that using restrictive mode
                      ;; above results in poor error messages (see PR 14731).
                      (or (not expected)
-                         (subtype (car rngs) (tc-results->values expected))))
+                         (subval (car rngs) (tc-results->values expected))))
                 ;; if we narrowed down the possible cases to a single one, have
                 ;; tc/funapp1 generate a better error message
                 (tc/funapp1 f-stx args-stx
@@ -199,7 +199,7 @@
 
 
 (provide/cond-contract
-  [poly-fail ((syntax? syntax? Type/c (listof tc-results?))
+  [poly-fail ((syntax? syntax? Type? (listof tc-results?))
               (#:name (or/c #f syntax?)
                #:expected (or/c #f tc-results/c))
               . ->* . tc-results/c)])
@@ -260,3 +260,4 @@
   (if name
       (format "function `~a'" (syntax->datum name))
       "function"))
+

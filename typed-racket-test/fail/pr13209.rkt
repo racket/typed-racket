@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"wrong number of arguments to structure type constructor")
+(exn-pred #rx"wrong number of arguments")
 #lang typed/racket
 
 ;; Test for PR 13209

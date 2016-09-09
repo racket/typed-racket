@@ -7,6 +7,7 @@
          typed-racket/standard-inits
          typed-racket/tc-setup
          typed-racket/rep/type-rep
+         typed-racket/rep/values-rep
          typed-racket/types/abbrev
          typed-racket/types/numeric-tower
          typed-racket/types/printer
@@ -21,7 +22,7 @@
   (string=? (format "~a" thing) str))
 
 (define (pretty-prints-as? thing str)
-  (string=? (pretty-format-type thing) str))
+  (string=? (pretty-format-rep thing) str))
 
 (define-binary-check (check-prints-as? prints-as? actual expected))
 (define-binary-check (check-pretty-prints-as? pretty-prints-as? actual expected))
@@ -49,9 +50,12 @@
     (check-prints-as? (-lst* -String -Symbol) "(List String Symbol)")
 
     ;; next three cases for PR 14552
-    (check-prints-as? (-mu x (Un (-pair x x) -Null)) "(Rec x (U Null (Pairof x x)))")
-    (check-prints-as? (-mu x (Un (-pair (-box x) x) -Null)) "(Rec x (U Null (Pairof (Boxof x) x)))")
-    (check-prints-as? (-mu x (Un (-mpair x x) -Null)) "(Rec x (U Null (MPairof x x)))")
+    (check-prints-as? (-mu x (Un (-pair x x) -Null))
+                      "(Rec x (U Null (Pairof x x)))")
+    (check-prints-as? (-mu x (Un (-pair (-box x) x) -Null))
+                      "(Rec x (U Null (Pairof (Boxof x) x)))")
+    (check-prints-as? (-mu x (Un (-mpair x x) -Null))
+                      "(Rec x (U Null (MPairof x x)))")
 
     (check-prints-as? -Custodian "Custodian")
     (check-prints-as? (make-Opaque #'integer?) "(Opaque integer?)")
@@ -86,14 +90,14 @@
     (check-prints-as? (-> Univ Univ -Boolean : (-PS (-is-type 1 -String) -tt))
                       "(-> Any Any Boolean)")
     ;; PR 14510 (next three tests)
-    (check-prints-as? (-> Univ (-> Univ -Boolean : (-PS (-is-type '(1 0) -String)
-                                                        (-not-type '(1 0) -String))))
+    (check-prints-as? (-> Univ (-> Univ -Boolean : (-PS (-is-type '(1 . 0) -String)
+                                                        (-not-type '(1 . 0) -String))))
                       "(-> Any (-> Any Boolean))")
-    (check-prints-as? (-> Univ Univ -Boolean : (-PS (-is-type '(0 1) -String)
-                                                    (-not-type '(0 1) -String)))
+    (check-prints-as? (-> Univ Univ -Boolean : (-PS (-is-type '(0 . 1) -String)
+                                                    (-not-type '(0 . 1) -String)))
                       "(-> Any Any Boolean)")
-    (check-prints-as? (-> Univ Univ -Boolean : (-PS (-is-type '(0 0) -String)
-                                                    (-not-type '(0 0) -String)))
+    (check-prints-as? (-> Univ Univ -Boolean : (-PS (-is-type '(0 . 0) -String)
+                                                    (-not-type '(0 . 0) -String)))
                       "(-> Any Any Boolean)")
     (check-prints-as? (-> Univ (make-Values (list (-result -String -tt-propset -empty-obj)
                                                   (-result -String -tt-propset -empty-obj))))
@@ -110,15 +114,15 @@
                              (one-of/c 'binary 'text)
                              #f
                              -Void)
-                      (string-append "(-> Any Path-String [#:exists (U 'error"
-                                     " 'append 'update 'replace 'truncate"
-                                     " 'truncate/replace)] [#:mode (U"
+                      (string-append "(-> Any Path-String [#:exists (U 'append"
+                                     " 'error 'replace 'truncate 'truncate/replace"
+                                     " 'update)] [#:mode (U"
                                      " 'binary 'text)] Void)"))
     (check-prints-as? (-> Univ (-AnyValues -tt)) "(-> Any AnyValues)")
-    (check-prints-as? (-> Univ (-AnyValues (-is-type '(0 0) -String)))
+    (check-prints-as? (-> Univ (-AnyValues (-is-type '(0 . 0) -String)))
                       "(-> Any AnyValues : (String @ (0 0)))")
     (check-prints-as? (-AnyValues -tt) "AnyValues")
-    (check-prints-as? (-AnyValues (-is-type '(0 0) -String))
+    (check-prints-as? (-AnyValues (-is-type '(0 . 0) -String))
                       "(AnyValues : (String @ (0 0)))")
 
     (check-prints-as? (->opt Univ [] -Void) "(-> Any Void)")

@@ -64,7 +64,7 @@
                       [current-type-names
                        (if (attribute verbose-kw) '() (current-type-names))]
                       [current-print-unexpanded (box '())])
-         (define type (pretty-format-type (parse-type #'ty)))
+         (define type (pretty-format-rep (parse-type #'ty)))
          (define unexpanded
            (remove-duplicates (unbox (current-print-unexpanded))))
          (define cue (if (null? unexpanded)
@@ -92,7 +92,7 @@
   (define-repl-op :print-type-impl (_ e) #'e
     (λ (type)
       #`(displayln
-         #,(pretty-format-type
+         #,(pretty-format-rep
             (match type
               [(tc-result1: t f o) t]
               [(tc-results: t) (-values t)]
@@ -108,7 +108,7 @@
                 (op dummy-arg ...)))
      (λ (type)
        #`(display
-          #,(pretty-format-type
+          #,(pretty-format-rep
              (match type
                [(tc-result1: (and t (Function: _)) f o) t]))))
      "must be applied to at least one argument" )
@@ -124,6 +124,6 @@
                   [(Function: '())
                    "Desired return type not in the given function's range.\n"]
                   [(Function: arrs)
-                   (pretty-format-type cleaned)])))]
+                   (pretty-format-rep cleaned)])))]
         [_ (error (format "~a: not a function" (syntax->datum #'op)))]))
     "must be applied to exactly two arguments"))

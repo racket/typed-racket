@@ -89,7 +89,7 @@
       ;; otherwise, not defined in this module, not our problem
       [else (mk-ignored-quad internal-id)]))
 
-  ;; mk-struct-syntax-quad : identifier? identifier? struct-info? Type/c -> quad/c
+  ;; mk-struct-syntax-quad : identifier? identifier? struct-info? Type? -> quad/c
   ;; This handles `(provide s)` where `s` was defined with `(struct s ...)`. 
   (define (mk-struct-syntax-quad internal-id new-id si constr-type)
     (define type-is-constructor? #t) ;Conservative estimate (provide/contract does the same)

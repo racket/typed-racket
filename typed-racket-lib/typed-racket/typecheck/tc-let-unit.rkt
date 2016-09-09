@@ -47,62 +47,59 @@
    ((-> any/c))
    . ->* .
    tc-results/c)
-  (with-cond-contract t/p ([expected-types (listof (listof Type/c))]
-                           [objs           (listof (listof Object?))]
+  (with-cond-contract t/p ([expected-types (listof (listof Type?))]
+                           [objs           (listof (listof OptObject?))]
                            [props          (listof (listof Prop?))])
     (define-values (expected-types objs props)
       (for/lists (e o p)
         ([e-r   (in-list expected-results)]
          [names (in-list namess)])
         (match e-r
-          [(list (tc-result: e-ts (PropSet: fs+ fs-) os) ...)
+          [(list (tc-result: e-ts (PropSet: ps+ ps-) os) ...)
            (values e-ts
-                   (map (λ (o n t) (if (or (is-var-mutated? n) (F? t)) -empty-obj o)) os names e-ts)
+                   (map (λ (o n) (if (is-var-mutated? n) -empty-obj o)) os names)
                    (apply append
                           (for/list ([n (in-list names)]
                                      [t (in-list e-ts)]
-                                     [f+ (in-list fs+)]
-                                     [f- (in-list fs-)]
+                                     [p+ (in-list ps+)]
+                                     [p- (in-list ps-)]
                                      [o (in-list os)])
                             (cond
-                              [(not (overlap? t (-val #f)))
-                               (list f+)]
-                              [(is-var-mutated? n)
-                               (list)]
-                              ;; n is being bound to an expression w/ object o, no new info 
-                              ;; is required due to aliasing (note: we currently do not
-                              ;; alias objects typed as type variables)
-                              [(and (Path? o) (not (F? t))) (list)]
-                              ;; n is being bound to an expression w/o an object (or whose
-                              ;; type is a type variable) so create props about n
-                              [else (list (-or (-and (-not-type n (-val #f)) f+)
-                                               (-and (-is-type n (-val #f)) f-)))]))))]
+                              [(not (overlap? t (-val #f))) (list p+)]
+                              [(is-var-mutated? n) (list)]
+                              [else
+                               (define obj (if (Object? o) o n))
+                               (list (-or (-and (-not-type obj (-val #f)) p+)
+                                          (-and (-is-type obj (-val #f)) p-)))]))))]
           ;; amk: does this case ever occur?
           [(list (tc-result: e-ts #f _) ...)
            (values e-ts (make-list (length e-ts) -empty-obj) null)]))))
   ;; extend the lexical environment for checking the body
   ;; with types and potential aliases
-  (with-lexical-env/extend-types+aliases
-    (append* namess)
-    (append* expected-types)
-    (append* objs)
-    (replace-names
-      (get-names+objects namess expected-results)
-      (with-lexical-env/extend-props
-        (apply append props)
-        ;; if a let rhs does not return, the body isn't checked
-        #:unreachable (for ([form (in-list (syntax->list body))])
-                        (register-ignored! form))
-        ;; type-check the rhs exprs
-        (for ([expr (in-list exprs)] [results (in-list expected-results)])
-          (match results
-            [(list (tc-result: ts fs os) ...)
-             (expr->type expr (ret ts fs os))]))
-        ;; Perform additional context-dependent checking that needs to be done
-        ;; in the context of the letrec body
-        (check-thunk)
-        ;; typecheck the body
-        (tc-body/check body (and expected (erase-props expected)))))))
+  (let ([names (append* namess)]
+        [objs (append* objs)])
+    (with-lexical-env/extend-types+aliases
+      names
+      (append* expected-types)
+      objs
+      (replace-names
+       names
+       objs
+       (with-lexical-env/extend-props
+         (apply append props)
+         ;; if a let rhs does not return, the body isn't checked
+         #:unreachable (for ([form (in-list (syntax->list body))])
+                         (register-ignored! form))
+         ;; type-check the rhs exprs
+         (for ([expr (in-list exprs)] [results (in-list expected-results)])
+           (match results
+             [(list (tc-result: ts fs os) ...)
+              (expr->type expr (ret ts fs os))]))
+         ;; Perform additional context-dependent checking that needs to be done
+         ;; in the context of the letrec body
+         (check-thunk)
+         ;; typecheck the body
+         (tc-body/check body (and expected (erase-props expected))))))))
 
 (define (tc-expr/maybe-expected/t e names)
   (syntax-parse names
@@ -111,7 +108,7 @@
     [_ (tc-expr e)]))
 
 
-(define (regsiter-aliases-and-declarations names exprs)
+(define (register-aliases-and-declarations names exprs)
   ;; Collect the declarations, which are represented as expressions.
   ;; We put them back into definitions to reuse the existing machinery
   (define-values (type-aliases declarations signature-forms)
@@ -159,7 +156,7 @@
   (let* ([names (stx-map syntax->list namess)]
          [orig-flat-names (apply append names)]
          [exprs (syntax->list exprs)])
-    (regsiter-aliases-and-declarations names exprs)
+    (register-aliases-and-declarations names exprs)
     
     ;; First look at the clauses that do not bind the letrec names
     (define all-clauses
@@ -270,7 +267,8 @@
            (with-lexical-env/extend-types 
             names 
             ts
-            (replace-names (map list names os)
+            (replace-names names
+                           os
                            (loop (cdr clauses))))])))
 
 ;; this is so match can provide us with a syntax property to
@@ -292,7 +290,7 @@
          ;; all the trailing expressions - the ones actually bound to the names
          [exprs (syntax->list exprs)])
 
-    (regsiter-aliases-and-declarations names exprs)
+    (register-aliases-and-declarations names exprs)
 
     (let* (;; the types of the exprs
            #;[inferred-types (map (tc-expr-t/maybe-expected expected) exprs)]

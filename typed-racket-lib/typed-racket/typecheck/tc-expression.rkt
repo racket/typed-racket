@@ -24,9 +24,6 @@
      (do-inst (tc-expr #'e) (attribute exp.value))]
     [(exp:row-inst^ e)
      (do-inst (tc-expr #'e) (attribute exp.value) #t)]
-    [(exp:type-ascription^ e)
-     (add-scoped-tvars #'e (parse-literal-alls (attribute exp.value)))
-     (tc-expr/check #'e (parse-tc-results (attribute exp.value)))]
     [(exp:ignore-some-expr^ e)
      (register-ignored! #'e)
      (check-subforms/ignore #'e)

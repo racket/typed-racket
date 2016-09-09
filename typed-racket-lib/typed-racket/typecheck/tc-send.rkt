@@ -20,10 +20,10 @@
                  method-var method
                  arg-vars args
                  [expected #f])
-  ;; do-check : Type/c -> tc-results/c
+  ;; do-check : Type? -> tc-results/c
   (define (do-check rcvr-type)
     (match rcvr-type
-      [(Instance: (? needs-resolving? type))
+      [(Instance: (? resolvable? type))
        (do-check (make-Instance (resolve type)))]
       [(and obj (Instance: (Class: _ _ _ methods _ _)))
        (match (tc-expr/t method)
@@ -42,9 +42,7 @@
                      rcvr-type)])]
       ;; union of objects, check pointwise and union the results
       [(Union: (list (and objs (Instance: _)) ...))
-       (merge-tc-results
-        (for/list ([obj (in-list objs)])
-          (do-check obj)))]
+       (merge-tc-results (map do-check objs))]
       [_ (tc-error/expr/fields
           "send: type mismatch"
           "expected" "an object"

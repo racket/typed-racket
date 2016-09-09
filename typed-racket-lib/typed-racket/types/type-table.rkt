@@ -104,7 +104,7 @@
               ;; down compilation excessively (e.g., serializing the 4k type
               ;; of the + function)
               (printer-thunk type-names
-                (pretty-format-type (cleanup-type type))))]
+                (pretty-format-rep (cleanup-type type))))]
         [(or (tc-results: types)
              (tc-results: types _ _ _ _)) ; FIXME, account for dty/dbound
          (printer-thunk type-names
@@ -112,8 +112,8 @@
                   (for/list ([(type index) (in-indexed (in-list types))])
                     (format "Value ~a:~n  ~a~n"
                             (add1 index)
-                            (pretty-format-type (cleanup-type type)
-                                                #:indent 2)))))]
+                            (pretty-format-rep (cleanup-type type)
+                                               #:indent 2)))))]
         [(tc-any-results: _) "AnyValues"]))
     (cond [(not printed-type-thunks) tooltips]
           [else

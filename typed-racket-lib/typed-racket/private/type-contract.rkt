@@ -8,7 +8,7 @@
  (rep type-rep prop-rep object-rep)
  (utils tc-utils)
  (env type-name-env row-constraint-env)
- (rep rep-utils)
+ (rep core-rep rep-utils type-mask values-rep)
  (types resolve union utils printer)
  (prefix-in t: (types abbrev numeric-tower subtype))
  (private parse-type syntax-properties)
@@ -28,7 +28,7 @@
 (provide
   (c:contract-out
     [type->static-contract
-      (c:parametric->/c (a) ((Type/c (c:-> #:reason (c:or/c #f string?) a))
+      (c:parametric->/c (a) ((Type? (c:-> #:reason (c:or/c #f string?) a))
                              (#:typed-side boolean?) . c:->* . (c:or/c a static-contract?)))]))
 
 (provide change-contract-fixups
@@ -137,7 +137,7 @@
                                  "could not convert type to a contract"
                                  #:more #,failure-reason
                                  "identifier" #,(symbol->string (syntax-e orig-id))
-                                 "type" #,(pretty-format-type type #:indent 8)))]
+                                 "type" #,(pretty-format-rep type #:indent 8)))]
            [else
             (match-define (list defs ctc) result)
             (define maybe-inline-val
@@ -319,7 +319,7 @@
     [(_ sc-cache type-expr typed-side-expr match-clause ...)
      #'(let ([type type-expr]
              [typed-side typed-side-expr])
-         (define key (cons (Type-seq type) typed-side))
+         (define key (cons (Rep-seq type) typed-side))
          (cond [(hash-ref sc-cache key #f)]
                [else
                 (define sc (match type match-clause ...))
@@ -389,6 +389,7 @@
         ;; Ordinary type applications or struct type names, just resolve
         [(or (App: _ _ _) (Name/struct:)) (t->sc (resolve-once type))]
         [(Univ:) (if (from-typed? typed-side) any-wrap/sc any/sc)]
+        [(Bottom:) (or/sc)]
         [(Mu: var (Union: (list (Value: '()) (Pair: elem-ty (F: var)))))
          (listof/sc (t->sc elem-ty))]
         [(Base: sym cnt _ _)
@@ -398,7 +399,7 @@
         [(Refinement: par p?)
          (and/sc (t->sc par) (flat/sc p?))]
         [(Union: elems)
-         (define-values (numeric non-numeric) (partition (λ (t) (equal? 'number (Type-key t))) elems ))
+         (define-values (numeric non-numeric) (partition (λ (t) (eq? mask:number (Type-mask t))) elems))
          (define numeric-sc (numeric-type->static-contract (apply Un numeric)))
          (if numeric-sc
              (apply or/sc numeric-sc (map t->sc non-numeric))
@@ -406,7 +407,7 @@
         [(Intersection: ts)
          (define-values (chaperones/impersonators others)
            (for/fold ([cs/is null] [others null])
-                     ([elem (in-immutable-set ts)])
+                     ([elem (in-list ts)])
              (define c (t->sc elem))
              (if (equal? flat-sym (get-max-contract-kind c))
                  (values cs/is (cons c others))
@@ -839,14 +840,10 @@
 ;; Name type in application position
 (define (has-name-app? type)
   (let/ec escape
-    (let loop ([type type])
-      (type-case
-       (#:Type loop #:Prop (sub-f loop) #:Object (sub-o loop))
-       type
-       [#:App arg _ _
-        (match arg
-          [(Name: _ _ #f) (escape #t)]
-          [_ type])]))
+    (let loop ([rep type])
+      (match rep
+        [(App: (Name: _ _ #f) _ _) (escape #t)]
+        [_ (Rep-walk loop rep)]))
     #f))
 
 ;; True if the arities `arrs` are what we'd expect from a struct predicate

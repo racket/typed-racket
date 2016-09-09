@@ -6,12 +6,12 @@
          "signatures.rkt"
          "check-below.rkt" "../types/kw-types.rkt"
          (types utils abbrev union subtype type-table path-type
-                prop-ops overlap resolve generalize)
-         (private-in syntax-properties)
+                prop-ops overlap resolve generalize tc-result)
+         (private-in syntax-properties parse-type)
          (rep type-rep prop-rep object-rep)
          (only-in (infer infer) intersect)
          (utils tc-utils)
-         (env lexical-env)
+         (env lexical-env scoped-tvar-env)
          racket/list
          racket/private/class-internal
          syntax/parse
@@ -51,8 +51,9 @@
       [(Path: p x) (values p x)]
       [(Empty:) (values (list) id*)]))
   ;; calculate the type, resolving aliasing and paths if necessary
-  (define ty (path-type alias-path (lookup-type/lexical alias-id)))
-  
+  (define ty (or (path-type alias-path (lookup-type/lexical alias-id))
+                 Univ))
+ 
   (ret ty
        (if (overlap? ty (-val #f))
            (-PS (-not-type obj (-val #f)) (-is-type obj (-val #f)))
@@ -72,7 +73,7 @@
 
 ;; typecheck an expression by passing tr-expr/check a tc-results
 (define/cond-contract (tc-expr/check/type form expected)
-  (--> syntax? Type/c tc-results/c)
+  (--> syntax? Type? tc-results/c)
   (tc-expr/check form (ret expected)))
 
 (define (tc-expr/check form expected)
@@ -80,10 +81,16 @@
     ;; the argument must be syntax
     (unless (syntax? form)
       (int-err "bad form input to tc-expr: ~a" form))
-    ;; typecheck form
-    (define t (tc-expr/check/internal form expected))
-    (add-typeof-expr form t)
-    (cond-check-below t expected)))
+    (define result
+      ;; if there is an annotation, use that expected type for internal checking
+      (syntax-parse form
+        [exp:type-ascription^
+         (add-scoped-tvars #'exp (parse-literal-alls (attribute exp.value)))
+         (tc-expr/check/internal #'exp (parse-tc-results (attribute exp.value)))]
+        [_ (reduce-tc-results/subsumption
+            (tc-expr/check/internal form expected))]))
+    (add-typeof-expr form result)
+    (cond-check-below result expected)))
 
 ;; typecheck and return a truth value indicating a typecheck failure (#f)
 ;; or success (any non-#f value)
@@ -115,7 +122,6 @@
 (define/cond-contract (tc-expr/check/internal form expected)
   (--> syntax? (-or/c tc-results/c #f) full-tc-results/c)
   (parameterize ([current-orig-stx form])
-    ;(printf "form: ~a\n" (syntax-object->datum form))
     ;; the argument must be syntax
     (unless (syntax? form)
       (int-err "bad form input to tc-expr: ~a" form))
@@ -361,7 +367,7 @@
                ;; true if execution reaches this point.
                (loop (rest es)))]))]))
 
-;; find-stx-type : Any [(or/c Type/c #f)] -> Type/c
+;; find-stx-type : Any [(or/c Type? #f)] -> Type?
 ;; recursively find the type of either a syntax object or the result of syntax-e
 (define (find-stx-type datum-stx [expected #f])
   (match datum-stx

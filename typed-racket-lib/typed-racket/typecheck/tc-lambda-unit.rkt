@@ -62,8 +62,8 @@
 ;; body: The body of the lambda to typecheck.
 (define/cond-contract
   (tc-lambda-body arg-names arg-types #:rest [raw-rest #f] #:expected [expected #f] body)
-  (->* ((listof identifier?) (listof Type/c) syntax?)
-       (#:rest (or/c #f (list/c identifier? (or/c Type/c (cons/c Type/c symbol?))))
+  (->* ((listof identifier?) (listof Type?) syntax?)
+       (#:rest (or/c #f (list/c identifier? (or/c Type? (cons/c Type? symbol?))))
         #:expected (or/c #f tc-results/c))
        arr?)
   (define-values (rest-id rest)
@@ -100,8 +100,8 @@
 ;; ret-ty: The expected type of the body of the lambda.
 (define/cond-contract (check-clause arg-list rest-id body arg-tys rest-ty drest ret-ty)
      ((listof identifier?)
-      (or/c #f identifier?) syntax? (listof Type/c) (or/c #f Type/c)
-      (or/c #f (cons/c Type/c symbol?)) tc-results/c
+      (or/c #f identifier?) syntax? (listof Type?) (or/c #f Type?)
+      (or/c #f (cons/c Type? symbol?)) tc-results/c
       . -> .
       arr?)
   (let* ([arg-len (length arg-list)]
@@ -149,15 +149,15 @@
 
 ;; typecheck a single lambda, with argument list and body
 ;; drest-ty and drest-bound are both false or not false
-;; tc/lambda-clause/check: formals syntax listof[Type/c] tc-result
-;;                         option[Type/c] option[(cons Type/c symbol)] -> arr?
+;; tc/lambda-clause/check: formals syntax listof[Type?] tc-result
+;;                         option[Type?] option[(cons Type? symbol)] -> arr?
 (define (tc/lambda-clause/check formals body arg-tys ret-ty rest-ty drest)
   (check-clause (formals-positional formals) (formals-rest formals) body arg-tys rest-ty drest ret-ty))
 
 ;; typecheck a single opt-lambda clause with argument list and body
 ;; tc/opt-lambda-clause: listof[identifier] syntax -> listof[arr?]
 (define (tc/opt-lambda-clause arg-list body aux-table flag-table)
-  ;; arg-types: Listof[Type/c]
+  ;; arg-types: Listof[Type?]
   (define arg-types
     (for/list ([a (in-list arg-list)])
       (get-type a #:default (lambda ()
@@ -166,7 +166,7 @@
                                   (get-type id #:default Univ)
                                   Univ)))))
 
-  ;; new-arg-types: Listof[Listof[Type/c]]
+  ;; new-arg-types: Listof[Listof[Type?]]
   (define new-arg-types
     (if (= 0 (dict-count flag-table))
         (list arg-types)
@@ -435,9 +435,9 @@
 ;; tc/plambda syntax tvarss-list syntax-list syntax-list type -> Poly
 ;; formals and bodies must by syntax-lists
 (define/cond-contract (tc/plambda form tvarss-list formals bodies expected)
-  (syntax? (listof list?) syntax? syntax? (or/c tc-results/c #f) . -> . Type/c)
+  (syntax? (listof list?) syntax? syntax? (or/c tc-results/c #f) . -> . Type?)
   (define/cond-contract (maybe-loop form formals bodies expected)
-    (syntax? syntax? syntax? (or/c tc-results/c #f) . -> . Type/c)
+    (syntax? syntax? syntax? (or/c tc-results/c #f) . -> . Type?)
     (match expected
       [(tc-result1: (app resolve (or (? Poly?) (? PolyDots?) (? PolyRow?))))
        (tc/plambda form (remove-poly-layer tvarss-list) formals bodies expected)]
@@ -544,9 +544,11 @@
 (define (tc/rec-lambda/check formals* body name args return)
   (define formals (syntax->list formals*))
   (define ft (t:->* args (tc-results->values return)))
+  (define names (cons name formals))
+  (define objs (map (λ (_) -empty-obj) names))
   (with-lexical-env/extend-types
-   (cons name formals) 
-   (cons ft args)
-   (values
-     (replace-names (map (λ (f) (list f -empty-obj)) (cons name formals)) (ret ft))
-     (replace-names (map (λ (f) (list f -empty-obj)) (cons name formals)) (tc-body/check body return)))))
+    (cons name formals) 
+    (cons ft args)
+    (values
+     (replace-names names objs (ret ft))
+     (replace-names names objs (tc-body/check body return)))))

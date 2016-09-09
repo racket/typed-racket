@@ -30,8 +30,8 @@
                                static-contract?
                                static-contract?
                                static-contract?)))]
-          [lookup-name-sc (-> Type/c symbol? (or/c #f static-contract?))]
-          [register-name-sc (-> Type/c
+          [lookup-name-sc (-> Type? symbol? (or/c #f static-contract?))]
+          [register-name-sc (-> Type?
                                 (-> static-contract?)
                                 (-> static-contract?)
                                 (-> static-contract?)

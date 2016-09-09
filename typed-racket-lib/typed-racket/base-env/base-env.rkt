@@ -23,7 +23,7 @@
  (only-in racket/private/pre-base new-apply-proc)
  (only-in (types abbrev) [-Boolean B] [-Symbol Sym] -Flat)
  (only-in (types numeric-tower) [-Number N])
- (only-in (rep type-rep)
+ (only-in (rep type-rep values-rep)
           make-ClassTop
           make-UnitTop
           make-Name

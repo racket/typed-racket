@@ -4,7 +4,7 @@
 ;; racket/sandbox
 
 (require racket/sandbox
-         (for-syntax (only-in typed-racket/rep/type-rep make-ValuesDots)))
+         (for-syntax (only-in typed-racket/rep/values-rep make-ValuesDots)))
 
 (provide exn:fail:resource?
          exn:fail:resource-resource)

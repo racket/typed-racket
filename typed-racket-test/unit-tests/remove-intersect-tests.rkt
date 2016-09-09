@@ -3,7 +3,7 @@
          (for-syntax racket/base)
          (r:infer infer)
          (rep type-rep)
-         (types abbrev numeric-tower subtype union remove overlap)
+         (types abbrev numeric-tower subtype union subtract overlap)
          rackunit)
 (provide tests)
 (gen-test-main)
@@ -64,10 +64,10 @@
   (syntax-case stx ()
     [(_ [t1 t2 res] ...)
      (syntax/loc stx
-       (test-suite "Tests for remove"
-                   (test-check (format "~a ~a" 't1 't2) type-compare? (remove t1 t2) res) ...))]))
+       (test-suite "Tests for subtract"
+                   (test-check (format "~a ~a" 't1 't2) type-compare? (subtract t1 t2) res) ...))]))
 
-(define remove-tests
+(define subtract-tests
   (remo-tests
    [(Un -Number -Symbol) -Number -Symbol]
    [-Number -Number (Un)]
@@ -90,7 +90,7 @@
    ))
 
 (define tests
-  (test-suite "Remove Intersect"
-     remove-tests
+  (test-suite "Subtract Intersect"
+     subtract-tests
      intersect-tests
      overlap-tests))

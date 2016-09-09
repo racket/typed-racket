@@ -130,36 +130,17 @@
 ;; Infer constraints on a row for a row polymorphic function
 (define (infer-row-constraints type)
   (define constraints (list null null null null))
-  ;; Crawl the type tree and mutate constraints when a
-  ;; class type with row variable is found.
-  (define (inf type)
-    (type-case
-     (#:Type inf #:Prop (sub-f inf) #:Object (sub-o inf))
-     type
-     [#:Class row inits fields methods augments init-rest
-      (cond
-       [(and row (F? row))
-        (match-define (list init-cs field-cs method-cs augment-cs)
-                      constraints)
-        (set! constraints
-              (list (append (dict-keys inits) init-cs)
-                    (append (dict-keys fields) field-cs)
-                    (append (dict-keys methods) method-cs)
-                    (append (dict-keys augments) augment-cs)))
-        (make-Class row inits fields methods augments init-rest)]
-       [else
-        (match-define (list (list init-names init-tys init-reqds) ...) inits)
-        (match-define (list (list field-names field-tys) ...) fields)
-        (match-define (list (list method-names method-tys) ...) methods)
-        (match-define (list (list augment-names augment-tys) ...) augments)
-        (make-Class
-         (and row (inf row))
-         (map list init-names (map inf init-tys) init-reqds)
-         (map list field-names (map inf field-tys))
-         (map list method-names (map inf method-tys))
-         (map list augment-names (map inf augment-tys))
-         init-rest)])]))
-  (inf type)
+  (let infer! ([cur type])
+    (match cur
+      [(Class: (? F? row) inits fields methods augments init-rest)
+       (match-define (list init-cs field-cs method-cs augment-cs)
+         constraints)
+       (set! constraints
+             (list (append (dict-keys inits) init-cs)
+                   (append (dict-keys fields) field-cs)
+                   (append (dict-keys methods) method-cs)
+                   (append (dict-keys augments) augment-cs)))]
+      [_ (Rep-walk infer! cur)]))
   (map remove-duplicates constraints))
 
 ;; infer-row : RowConstraints Type -> Row

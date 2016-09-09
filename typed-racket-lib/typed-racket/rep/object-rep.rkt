@@ -5,24 +5,38 @@
 ;;
 ;; See "Logical Types for Untyped Languages" pg.3
 
-(require "rep-utils.rkt" "free-variance.rkt" "prop-rep.rkt" "../utils/utils.rkt" (contract-req))
-(provide object-equal?)
+(require "../utils/utils.rkt"
+         "rep-utils.rkt"
+         "core-rep.rkt"
+         "free-variance.rkt"
+         (env mvar-env)
+         (contract-req))
 
-(def-pathelem CarPE () [#:fold-rhs #:base])
-(def-pathelem CdrPE () [#:fold-rhs #:base])
-(def-pathelem SyntaxPE () [#:fold-rhs #:base])
-(def-pathelem ForcePE () [#:fold-rhs #:base])
+(provide -id-path)
+
+(def-pathelem CarPE () #:base)
+(def-pathelem CdrPE () #:base)
+(def-pathelem SyntaxPE () #:base)
+(def-pathelem ForcePE () #:base)
 ;; t is always a Name (can't put that into the contract b/c of circularity)
 (def-pathelem StructPE ([t Type?] [idx natural-number/c])
-  [#:frees (λ (f) (f t))]
-  [#:fold-rhs (*StructPE (type-rec-id t) idx)])
-(def-pathelem FieldPE () [#:fold-rhs #:base])
+  [#:intern-key (cons (Rep-seq t) idx)]
+  [#:frees (f) (f t)]
+  [#:fold (f) (make-StructPE (f t) idx)]
+  [#:walk (f) (f t)])
+(def-pathelem FieldPE () #:base)
 
-(def-object Empty () [#:fold-rhs #:base])
+(def-object Path ([elems (listof PathElem?)] [name name-ref/c])
+  [#:intern-key (cons (hash-name name) (map Rep-seq elems))]
+  [#:frees (f)  (combine-frees (map f elems))]
+  [#:fold (f) (make-Path (map f elems) name)]
+  [#:walk (f) (for-each f elems)])
 
-(def-object Path ([p (listof PathElem?)] [v name-ref/c])
-  [#:intern (list (map Rep-seq p) (hash-name v))]
-  [#:frees (λ (f) (combine-frees (map f p)))]
-  [#:fold-rhs (*Path (map pathelem-rec-id p) v)])
-
-(define (object-equal? o1 o2) (= (Rep-seq o1) (Rep-seq o2)))
+(define (-id-path id)
+  (cond
+    [(identifier? id)
+     (if (is-var-mutated? id)
+         (make-Empty)
+         (make-Path null id))]
+    [else
+     (make-Path null id)]))

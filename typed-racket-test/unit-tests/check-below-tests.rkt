@@ -33,7 +33,7 @@
      (for-each check-object os)]
     [(tc-any-results: f)
      (check-prop f)]
-    [(? Type/c?)
+    [(? Type?)
      (void)]))
 
 

@@ -12,7 +12,7 @@
          racket/function
 
          (prefix-in c: (contract-req))
-         (rename-in (rep type-rep prop-rep object-rep)
+         (rename-in (rep type-rep prop-rep object-rep values-rep)
                     [make-Base make-Base*])
          (types union numeric-tower prefab)
          ;; Using this form so all-from-out works
@@ -87,22 +87,20 @@
 ;; Convenient constructor for Values
 ;; (wraps arg types with Result)
 (define/cond-contract (-values args)
-  (c:-> (c:listof Type/c) (c:or/c Type/c Values?))
+  (c:-> (c:listof Type?) (c:or/c Type? Values?))
   (match args
-    ;[(list t) t]
     [_ (make-Values (for/list ([i (in-list args)]) (-result i)))]))
 
 ;; Convenient constructor for ValuesDots
 ;; (wraps arg types with Result)
 (define/cond-contract (-values-dots args dty dbound)
-  (c:-> (c:listof Type/c) Type/c (c:or/c symbol? c:natural-number/c)
+  (c:-> (c:listof Type?) Type? (c:or/c symbol? c:natural-number/c)
         ValuesDots?)
   (make-ValuesDots (for/list ([i (in-list args)]) (-result i))
                    dty dbound))
 
 ;; Basic types
 (define -Listof (-poly (list-elem) (make-Listof list-elem)))
-(define/decl -Boolean (Un -False -True))
 (define/decl -Undefined
   (make-Base 'Undefined
              #'(lambda (x) (eq? x undefined))
@@ -276,16 +274,16 @@
   (make-Function (list (make-arr* (list dom) rng #:props prop))))
 
 (define/cond-contract make-pred-ty
-  (c:case-> (c:-> Type/c Type/c)
-            (c:-> (c:listof Type/c) Type/c Type/c Type/c)
-            (c:-> (c:listof Type/c) Type/c Type/c Object? Type/c))
+  (c:case-> (c:-> Type? Type?)
+            (c:-> (c:listof Type?) Type? Type? Type?)
+            (c:-> (c:listof Type?) Type? Type? Object? Type?))
   (case-lambda
     [(in out t o)
      (->* in out : (-PS (-is-type o t) (-not-type o t)))]
     [(in out t)
-     (make-pred-ty in out t (make-Path null (list 0 0)))]
+     (make-pred-ty in out t (make-Path null (cons 0 0)))]
     [(t)
-     (make-pred-ty (list Univ) -Boolean t (make-Path null (list 0 0)))]))
+     (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)))]))
 
 (define/decl -true-propset (-PS -tt -ff))
 (define/decl -false-propset (-PS -ff -tt))

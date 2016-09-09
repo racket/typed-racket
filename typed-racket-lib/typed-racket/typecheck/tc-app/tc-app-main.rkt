@@ -7,7 +7,7 @@
          syntax/parse/experimental/reflect
          "../signatures.rkt" "../tc-funapp.rkt"
          (types utils)
-         (rep type-rep prop-rep object-rep))
+         (rep type-rep prop-rep object-rep values-rep))
 
 (import tc-expr^ tc-app-keywords^
         tc-app-hetero^ tc-app-list^ tc-app-apply^ tc-app-values^

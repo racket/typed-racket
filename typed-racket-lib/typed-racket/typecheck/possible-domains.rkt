@@ -4,14 +4,14 @@
          (contract-req)
          racket/list
          racket/match
-         (rep type-rep prop-rep)
+         (rep core-rep type-rep prop-rep values-rep)
          (except-in (types abbrev subtype tc-result)
                     -> ->* one-of/c))
 
 (provide possible-domains)
 
 (provide/cond-contract
-  [cleanup-type ((Type/c) ((or/c #f Type/c) any/c) . ->* . Type/c)])
+  [cleanup-type ((Type?) ((or/c #f Type?) any/c) . ->* . Type?)])
 
 ;; to avoid long and confusing error messages, in the case of functions with
 ;; multiple similar domains (<, >, +, -, etc.), we show only the domains that

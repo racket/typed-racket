@@ -8,6 +8,7 @@
          lookup-signature
          lookup-signature/check
          signature-env-map
+         signature-env-for-each
          with-signature-env/extend)
 
 (require syntax/id-table
@@ -45,27 +46,15 @@
 ;; Iterate over the signature environment forcing the types of bindings
 ;; in each signature
 (define (finalize-signatures!)
-  (signature-env
-   (make-immutable-free-id-table
-    (signature-env-map
-     (lambda (id sig)
-       (cons
-        id
-        (match sig
-          [(Signature: name extends mapping)
-           (make-Signature
-            name
-            extends
-            (map
-             (match-lambda [(cons id ty) (cons id (force ty))])
-             mapping))]
-          [_ #f])))))))
+  (sorted-dict-for-each (signature-env) (λ (id sig) (force sig)) id<))
 
 ;; lookup-signature : identifier? -> (or/c #f Signature?)
 ;; look up the signature corresponding to the given identifier
 ;; in the signature environment
 (define (lookup-signature id)
-  (free-id-table-ref (signature-env) id #f))
+  (cond
+    [(free-id-table-ref (signature-env) id #f) => force]
+    [else #f]))
 
 ;; lookup-signature/check : identifier? -> Signature?
 ;; lookup the identifier in the signature environment
@@ -78,4 +67,7 @@
                        #:stx id)))
 
 (define (signature-env-map f)
-  (sorted-dict-map (signature-env) f id<))
+  (sorted-dict-map (signature-env) (λ (id sig) (f id (force sig))) id<))
+
+(define (signature-env-for-each f)
+  (sorted-dict-for-each (signature-env) (λ (id sig) (f id (force sig))) id<))

@@ -11,15 +11,15 @@
          (types utils subtype resolve)
          (utils tc-utils)
          (rep type-rep)
-         (only-in (types printer) pretty-format-type))
+         (only-in (types printer) pretty-format-rep))
 
 (provide/cond-contract [expected-but-got
-                        (--> (-or/c Type/c string?)
-                             (-or/c Type/c string?)
+                        (--> (-or/c Type? string?)
+                             (-or/c Type? string?)
                              -any)]
                        [type-mismatch
-                        (-->* ((-or/c Type/c Prop? string?)
-                               (-or/c Type/c Prop? string?))
+                        (-->* ((-or/c Type? Prop? PropSet? string?)
+                               (-or/c Type? Prop? PropSet? string?))
                               ((-or/c string? #f))
                               -any)])
 
@@ -27,8 +27,8 @@
 ;; Type errors with "type mismatch", arguments may be types or other things
 ;; like the length of a list of types
 (define (type-mismatch t1 t2 [more #f])
-  (define t1* (if (Type/c? t1) (pretty-format-type t1 #:indent 12) t1))
-  (define t2* (if (Type/c? t2) (pretty-format-type t2 #:indent 9) t2))
+  (define t1* (if (Type? t1) (pretty-format-rep t1 #:indent 12) t1))
+  (define t2* (if (Type? t2) (pretty-format-rep t2 #:indent 9) t2))
   (tc-error/fields "type mismatch" #:more more "expected" t1* "given" t2* #:delayed? #t))
 
 ;; expected-but-got : (U Type String) (U Type String) -> Void

@@ -102,7 +102,7 @@
 (define (combine-frees freess)
   (define-values (hash computed)
     (for/fold ((hash (hasheq)) (computed null))
-              ((frees freess))
+              ((frees (in-list freess)))
       (match frees
        ((combined-frees new-hash new-computed)
         (values (combine-hashes (list hash new-hash))

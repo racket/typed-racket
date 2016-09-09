@@ -9,12 +9,12 @@
          (typecheck error-message))
 
 (provide/cond-contract
- [check-below (-->i ([s (-or/c Type/c full-tc-results/c)]
-                     [t (s) (if (Type/c? s) Type/c tc-results/c)])
-                    [_ (s) (if (Type/c? s) Type/c full-tc-results/c)])]
- [cond-check-below (-->i ([s (-or/c Type/c full-tc-results/c)]
-                          [t (s) (-or/c #f (if (Type/c? s) Type/c tc-results/c))])
-                         [_ (s) (-or/c #f (if (Type/c? s) Type/c full-tc-results/c))])]
+ [check-below (-->i ([s (-or/c Type? full-tc-results/c)]
+                     [t (s) (if (Type? s) Type? tc-results/c)])
+                    [_ (s) (if (Type? s) Type? full-tc-results/c)])]
+ [cond-check-below (-->i ([s (-or/c Type? full-tc-results/c)]
+                          [t (s) (-or/c #f (if (Type? s) Type? tc-results/c))])
+                         [_ (s) (-or/c #f (if (Type? s) Type? full-tc-results/c))])]
  [fix-results (--> tc-results/c full-tc-results/c)])
 
 (provide type-mismatch)
@@ -198,7 +198,7 @@
      (value-mismatch expected tr1)
      (fix-results expected)]
 
-    [((? Type/c? t1) (? Type/c? t2))
+    [((? Type? t1) (? Type? t2))
      (unless (subtype t1 t2)
        (expected-but-got t2 t1))
      expected]

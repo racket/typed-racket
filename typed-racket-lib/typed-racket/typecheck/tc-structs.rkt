@@ -159,7 +159,7 @@
 
   ;; the base-type, with free type variables
   (define name-type
-    (make-Name (struct-names-type-name names) 0 #t))
+    (make-Name (struct-names-type-name names) (length tvars) #t))
   (define poly-base
     (if (null? tvars)
         name-type
@@ -350,7 +350,7 @@
 ;; FIXME - figure out how to make this lots lazier
 (define/cond-contract (tc/builtin-struct nm parent fld-names tys kernel-maker)
      (c:-> identifier? (c:or/c #f identifier?) (c:listof identifier?)
-           (c:listof Type/c) (c:or/c #f identifier?)
+           (c:listof Type?) (c:or/c #f identifier?)
            c:any/c)
   (define parent-type
     (and parent (resolve-name (make-Name parent 0 #t))))

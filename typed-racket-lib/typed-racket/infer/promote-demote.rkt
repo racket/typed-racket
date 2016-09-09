@@ -1,15 +1,13 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep rep-utils)
-         (types abbrev utils structural)
+         (rep type-rep values-rep rep-utils free-variance)
+         (types abbrev utils)
          (prefix-in c: (contract-req))
-         racket/performance-hint
          racket/list racket/match)
-
 (provide/cond-contract
-  [var-promote (c:-> Type/c (c:listof symbol?) Type/c)]
-  [var-demote (c:-> Type/c (c:listof symbol?) Type/c)])
+  [var-promote (c:-> Type? (c:listof symbol?) Type?)]
+  [var-demote (c:-> Type? (c:listof symbol?) Type?)])
 
 (define (V-in? V . ts)
   (for/or ([e (in-list (append* (map fv ts)))])
@@ -24,49 +22,62 @@
     [(ValuesDots: (list (Result: _ propsets _) ...) _ _) propsets]))
 
 
-(begin-encourage-inline
-  (define (var-change V T change)
-    (define (structural-recur t sym)
-      (case sym
-        [(co) (var-change V t change)]
-        [(contra) (var-change V t (not change))]
-        [(inv)
-         (if (V-in? V t)
-             (if change Univ -Bottom)
-             t)]))
-    (define (co t) (structural-recur t 'co))
-    (define (contra t) (structural-recur t 'contra))
+(define (var-promote T V)
+  (var-change V T #t))
+(define (var-demote T V)
+  (var-change V T #f))
 
-    ;; arr? -> (or/c #f arr?)
-    ;; Returns the changed arr or #f if there is no arr above it
-    (define (arr-change arr)
-      (match arr
-        [(arr: dom rng rest drest kws)
-         (cond
-           [(apply V-in? V (get-propsets rng))
-            #f]
-           [(and drest (memq (cdr drest) V))
-            (make-arr (map contra dom)
-                      (co rng)
-                      (contra (car drest))
-                      #f
-                      (map contra kws))]
-           [else
-            (make-arr (map contra dom)
-                      (co rng)
-                      (and rest (contra rest))
-                      (and drest (cons (contra (car drest)) (cdr drest)))
-                      (map contra kws))])]))
 
-    (match T
-      [(F: name) (if (memq name V) (if change Univ -Bottom) T)]
-      [(Function: arrs)
-       (make-Function (filter-map arr-change arrs))]
-      [(? structural?) (structural-map T structural-recur)]
-      [(? Prop?) ((sub-f co) T)]
-      [(? Object?) ((sub-o co) T)]
-      [(? Type?) ((sub-t co) T)]))
-  (define (var-promote T V)
-    (var-change V T #t))
-  (define (var-demote T V)
-    (var-change V T #f)))
+
+(define (var-change V cur change)
+  (define (co t) (var-change V t change))
+  (define (contra t) (var-change V t (not change)))
+  ;; arr? -> (or/c #f arr?)
+  ;; Returns the changed arr or #f if there is no arr above it
+  (define (arr-change arr)
+    (match arr
+      [(arr: dom rng rest drest kws)
+       (cond
+         [(apply V-in? V (get-propsets rng))
+          #f]
+         [(and drest (memq (cdr drest) V))
+          (make-arr (map contra dom)
+                    (co rng)
+                    (contra (car drest))
+                    #f
+                    (map contra kws))]
+         [else
+          (make-arr (map contra dom)
+                    (co rng)
+                    (and rest (contra rest))
+                    (and drest (cons (contra (car drest)) (cdr drest)))
+                    (map contra kws))])]))
+  (match cur
+    [(? structural? t)
+     (define mk (Rep-constructor t))
+     (apply mk (for/list ([t (in-list (Rep-values t))]
+                          [v (in-list (Type-variances t))])
+                 (cond
+                   [(eq? v Covariant) (co t)]
+                   [(eq? v Invariant)
+                    (if (V-in? V t)
+                        (if change Univ -Bottom)
+                        t)]
+                   [(eq? v Contravariant)
+                    (contra t)])))]
+    [(Unit: imports exports init-depends t)
+     (make-Unit (map co imports)
+                (map contra imports)
+                (map co init-depends)
+                (co t))]
+    [(F: name) (if (memq name V)
+                   (if change Univ -Bottom)
+                   cur)]
+    [(Function: arrs)
+     (make-Function (filter-map arr-change arrs))]
+    [(HeterogeneousVector: elems)
+     (make-HeterogeneousVector (map (λ (t) (if (V-in? V t)
+                                               (if change Univ -Bottom)
+                                               t))
+                                    elems))]
+    [_ (Rep-fold co cur)]))

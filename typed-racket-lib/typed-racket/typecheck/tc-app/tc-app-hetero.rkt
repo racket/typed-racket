@@ -6,7 +6,7 @@
          "utils.rkt"
          (types utils abbrev numeric-tower union resolve type-table generalize)
          (typecheck signatures check-below)
-         (rep type-rep rep-utils)
+         (rep type-rep type-mask rep-utils)
          (for-label racket/unsafe/ops racket/base))
 
 (import tc-expr^ tc-app^ tc-literal^)
@@ -128,7 +128,7 @@
       ;; it like any other expected type.
       [(tc-result1: (app resolve (Union: ts))) (=> continue)
        (define u-ts (for/list ([t (in-list ts)]
-                               #:when (eq? 'vector (Type-key t)))
+                               #:when (eq? mask:vector (Type-mask t)))
                       t))
        (match u-ts
          [(list t0) (tc/app #'(#%plain-app . form) (ret t0))]

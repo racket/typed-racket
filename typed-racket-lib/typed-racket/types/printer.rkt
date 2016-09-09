@@ -8,10 +8,11 @@
          racket/list
          racket/set
          (path-up "rep/type-rep.rkt" "rep/prop-rep.rkt" "rep/object-rep.rkt"
-                  "rep/rep-utils.rkt" "types/subtype.rkt"
+                  "rep/core-rep.rkt" "rep/values-rep.rkt"
+                  "rep/rep-utils.rkt" "types/subtype.rkt" "types/overlap.rkt"
                   "types/match-expanders.rkt"
                   "types/kw-types.rkt"
-                  "types/utils.rkt"
+                  "types/utils.rkt" "types/abbrev.rkt"
                   "types/resolve.rkt"
                   "types/prefab.rkt"
                   "utils/utils.rkt"
@@ -25,11 +26,14 @@
   (if (eq? printer-type 'debug)
       #'(provide (rename-out [debug-printer print-type]
                              [debug-printer print-prop]
+                             [debug-printer print-propset]
+                             [debug-printer print-values]
+                             [debug-printer print-result]
                              [debug-printer print-object]
                              [debug-printer print-pathelem]
-                             [debug-pretty-format-type pretty-format-type]))
-      #'(provide print-type print-prop print-object print-pathelem
-                 pretty-format-type)))
+                             [debug-pretty-format-type pretty-format-rep]))
+      #'(provide print-type print-prop print-propset print-object print-pathelem
+                 pretty-format-rep print-values print-result)))
 (provide-printer)
 
 (provide print-complex-props? type-output-sexpr-tweaker
@@ -76,11 +80,22 @@
 (define (print-pathelem pe port write?)
   (display (pathelem->sexp pe) port))
 
+
 (define (print-prop prop port write?)
   (display (prop->sexp prop) port))
 
+
+(define (print-propset prop port write?)
+  (display (propset->sexp prop) port))
+
 (define (print-object obj port write?)
   (display (object->sexp obj) port))
+
+(define (print-result res port write?)
+  (display (result->sexp res) port))
+
+(define (print-values vals port write?)
+  (display (values->sexp vals) port))
 
 ;; Table for formatting pretty-printed types
 (define type-style-table
@@ -89,28 +104,31 @@
 
 ;; pretty-format-type : Type -> String
 ;; Formats the type using pretty printing
-(define (pretty-format-type type #:indent [indent 0])
+(define (pretty-format-rep rep #:indent [indent 0])
   (define out (open-output-string))
   (port-count-lines! out)
   (write-string (make-string indent #\space) out)
   (parameterize ([pretty-print-current-style-table type-style-table])
-    (pretty-display ((type-output-sexpr-tweaker) (type->sexp type '()))
+    (pretty-display ((type-output-sexpr-tweaker) (match rep
+                                                   [(? Type?) (type->sexp rep '())]
+                                                   [(? SomeValues?) (values->sexp rep)]
+                                                   [(? Result?) (result->sexp rep)]))
                     out))
   (string-trim #:left? #f (substring (get-output-string out) indent)))
 
+(define name-ref->sexp
+  (match-lambda
+    [(? syntax? name-ref) (syntax-e name-ref)]
+    [(cons lvl arg) `(,lvl ,arg)]))
+
 ;; prop->sexp : Prop -> S-expression
 ;; Print a Prop (see prop-rep.rkt) to the given port
-(define (prop->sexp filt)
-  (define (name-ref->sexp name-ref)
-    (if (syntax? name-ref)
-        (syntax-e name-ref)
-        name-ref))
+(define (prop->sexp prop)
   (define (path->sexps path)
     (if (null? path)
         '()
         (list (map pathelem->sexp path))))
-  (match filt
-    [(PropSet: thn els) `(,(prop->sexp thn) \| ,(prop->sexp els))]
+  (match prop
     [(NotTypeProp: (Path: path nm) type)
      `(! ,(type->sexp type) @ ,@(path->sexps path) ,(name-ref->sexp nm))]
     [(TypeProp: (Path: path nm) type)
@@ -119,7 +137,7 @@
     [(FalseProp:) 'Bot]
     [(AndProp: a) `(AndProp ,@(map prop->sexp a))]
     [(OrProp: a) `(OrProp ,@(map prop->sexp a))]
-    [else `(Unknown Prop: ,(struct->vector filt))]))
+    [else `(Unknown Prop: ,(struct->vector prop))]))
 
 ;; pathelem->sexp : PathElem -> S-expression
 ;; Print a PathElem (see object-rep.rkt) to the given port
@@ -137,7 +155,7 @@
 (define (object->sexp object)
   (match object
     [(Empty:) '-]
-    [(Path: pes i) (append (map pathelem->sexp pes) (list i))]
+    [(Path: pes n) (append (map pathelem->sexp pes) (list (name-ref->sexp n)))]
     [else `(Unknown Object: ,(struct->vector object))]))
 
 ;; cover-union : Type LSet<Type> -> Listof<Symbol> Listof<Type>
@@ -218,39 +236,48 @@
       (if rest  `(,(type->sexp rest) *)                       null)
       (if drest `(,(type->sexp (car drest)) ... ,(cdr drest)) null)
       (match rng
-        [(AnyValues: (TrueProp:)) '(AnyValues)]
-        [(AnyValues: f) `(AnyValues : ,(prop->sexp f))]
-        [(Values: (list (Result: t (PropSet: (TrueProp:) (TrueProp:)) (Empty:))))
+        [(AnyValues: (? TrueProp?)) '(AnyValues)]
+        [(AnyValues: p) `(AnyValues : ,(prop->sexp p))]
+        [(Values: (or (list (Result: t (PropSet: (? TrueProp?) (? TrueProp?)) (? Empty?)))
+                      (list (Result: (and (== -False) t) (PropSet: (? FalseProp?) (? TrueProp?)) (? Empty?)))
+                      (list (Result: (and t (app (λ (t) (overlap? t -False)) #f))
+                                     (PropSet: (? TrueProp?) (? FalseProp?))
+                                     (? Empty?)))))
          (list (type->sexp t))]
         [(Values: (list (Result: t
-                                 (PropSet: (TypeProp: (Path: pth (list 0 0)) ft)
-                                             (NotTypeProp: (Path: pth (list 0 0)) ft))
-                                 (Empty:))))
+                                 (PropSet:
+                                  (TypeProp: (Path: pth1 (cons 0 0)) ft1)
+                                  (NotTypeProp: (Path: pth2 (cons 0 0)) ft2))
+                                 (? Empty?))))
          ;; Only print a simple prop for single argument functions,
          ;; since parse-type only accepts simple latent props on single
          ;; argument functions.
-         #:when (= 1 (length dom))
-         (if (null? pth)
-             `(,(type->sexp t) : ,(type->sexp ft))
-             `(,(type->sexp t) : ,(type->sexp ft) @
-               ,@(map pathelem->sexp pth)))]
+         #:when (and (equal? pth1 pth2)
+                     (equal? ft1 ft2)
+                     (= 1 (length dom)))
+         (if (null? pth1)
+             `(,(type->sexp t) : ,(type->sexp ft1))
+             `(,(type->sexp t) : ,(type->sexp ft1) @
+               ,@(map pathelem->sexp pth1)))]
         ;; Print asymmetric props with only a positive prop as a
         ;; special case (even when complex printing is off) because it's
         ;; useful to users who use functions like `prop`.
         [(Values: (list (Result: t
-                                 (PropSet: (TypeProp: (Path: '() (list 0 0)) ft) (TrueProp:))
-                                 (Empty:))))
+                                 (PropSet:
+                                  (TypeProp: (Path: '() (cons 0 0)) ft)
+                                  (? TrueProp?))
+                                 (? Empty?))))
          #:when (= 1 (length dom))
          `(,(type->sexp t) : #:+ ,(type->sexp ft))]
-        [(Values: (list (Result: t fs (Empty:))))
+        [(Values: (list (Result: t ps (? Empty?))))
          (if (print-complex-props?)
-             `(,(type->sexp t) : ,(prop->sexp fs))
+             `(,(type->sexp t) : ,(propset->sexp ps))
              (list (type->sexp t)))]
-        [(Values: (list (Result: t lf lo)))
+        [(Values: (list (Result: t ps o)))
          (if (print-complex-props?)
-             `(,(type->sexp t) : ,(prop->sexp lf) ,(object->sexp lo))
+             `(,(type->sexp t) : ,(propset->sexp ps) ,(object->sexp o))
              (list (type->sexp t)))]
-        [_ (list (type->sexp rng))]))]
+        [_ (list (values->sexp rng))]))]
     [else `(Unknown Function Type: ,(struct->vector arr))]))
 
 ;; format->* : (Listof arr) -> S-Expression
@@ -275,7 +302,7 @@
                    (match-define (Keyword: k t _) opt-kw)
                    (list k (type->sexp t))))
        ,@(if rst (list '#:rest (type->sexp rst)) null)
-       ,(type->sexp rng))]))
+       ,(values->sexp rng))]))
 
 ;; cover-case-lambda : (Listof arr) -> (Listof s-expression)
 ;; Try to cover a case-> type with ->* types
@@ -356,6 +383,49 @@
   `(,(if object? 'Object 'Class)
     ,@row-var* ,@inits* ,@init-rest* ,@fields* ,@methods* ,@augments*))
 
+;; result->sexp : Result -> S-expression
+;; convert a result to an s-expression that can be printed
+(define (result->sexp res)
+  (match res
+    [(Result: t
+              (or 'none (PropSet: (? TrueProp?) (? TrueProp?)))
+              (or 'none (? Empty?)))
+     (type->sexp t)]
+    [(Result: t ps (? Empty?)) `(,(type->sexp t) : ,(propset->sexp ps))]
+    [(Result: t ps lo) `(,(type->sexp t) :
+                         ,(propset->sexp ps) :
+                         ,(object->sexp lo))]
+    [else `(Unknown Result: ,(struct->vector res))]))
+
+;; propset->sexp : Result -> S-expression
+;; convert a prop set to an s-expression that can be printed
+(define (propset->sexp ps)
+  (match ps
+    [(PropSet: thn els) `(,(prop->sexp thn) \| ,(prop->sexp els))]
+    [else `(Unknown PropSet: ,(struct->vector ps))]))
+
+;; values->sexp : SomeValues -> S-expression
+;; convert a values to an s-expression that can be printed
+(define (values->sexp v)
+  (match v
+    [(AnyValues: (? TrueProp?)) 'AnyValues]
+    [(AnyValues: p) `(AnyValues : ,(prop->sexp p))]
+    [(Values: (list v)) v]
+    [(Values: vals) (cons 'values (map result->sexp vals))]
+    [(ValuesDots: v dty dbound)
+     (cons 'values (append (map result->sexp v)
+                           (list (type->sexp dty) '... dbound)))]
+    [else `(Unknown SomeValues: ,(struct->vector v))]))
+
+;; signature->sexp : Signature -> S-expression
+;; convert a values to an s-expression that can be printed
+(define (signature->sexp s)
+  (match s
+    [(Signature: name extends mapping)
+     (syntax->datum name)]
+    [else `(Unknown Signature: ,(struct->vector s))]))
+
+
 ;; type->sexp : Type -> S-expression
 ;; convert a type to an s-expression that can be printed
 (define (type->sexp type [ignored-names '()])
@@ -373,12 +443,8 @@
       [(Pair: a e) (cons a (tuple-elems e))]
       [(Value: '()) null]))
   (match type
-    ;; if we know how it was written, print that
-    [(? Rep-stx a)
-     (if (Error? a)
-         `(Error ,(syntax->datum (Rep-stx a)))
-         (syntax->datum (Rep-stx a)))]
     [(Univ:) 'Any]
+    [(Bottom:) 'Nothing]
     ;; struct names are just printed as the original syntax
     [(Name/struct: id) (syntax-e id)]
     ;; If a type has a name, then print it with that name.
@@ -401,12 +467,15 @@
               (set-box! (current-print-unexpanded)
                         (cons (car names) (unbox (current-print-unexpanded)))))
             (car names)])]
+    [(? Base?) (Base-name type)]
     [(StructType: (Struct: nm _ _ _ _ _)) `(StructType ,(syntax-e nm))]
     ;; this case occurs if the contained type is a type variable
     [(StructType: ty) `(Struct-Type ,(t->s ty))]
     [(StructTypeTop:) 'Struct-TypeTop]
     [(StructTop: (Struct: nm _ _ _ _ _)) `(Struct ,(syntax-e nm))]
-    [(Prefab: key fields) `(Prefab ,(abbreviate-prefab-key key) ,@fields)]
+    [(Prefab: key field-types)
+     `(Prefab ,(abbreviate-prefab-key key)
+              ,@(map t->s field-types))]
     [(BoxTop:) 'BoxTop]
     [(Weak-BoxTop:) 'Weak-BoxTop]
     [(ChannelTop:) 'ChannelTop]
@@ -433,7 +502,6 @@
     [(Value: v) (format "~v" v)]
     [(? tuple? t)
      `(List ,@(map type->sexp (tuple-elems t)))]
-    [(Base: n cnt _ _) n]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]
     [(Struct: nm       par (list (fld: t _ _) ...)       proc _ _)
      `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
@@ -461,17 +529,10 @@
      (define-values (covered remaining) (cover-union type ignored-names))
      (cons 'U (append covered (map t->s remaining)))]
     [(Intersection: elems)
-     (cons '∩ (for/list ([elem (in-immutable-set elems)]) (t->s elem)))]
+     (cons '∩ (map t->s elems))]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
     [(F: nm) nm]
-    ;; FIXME (Values are not types and shouldn't need to be considered here
-    [(AnyValues: (TrueProp:)) 'AnyValues]
-    [(AnyValues: f) `(AnyValues : ,(prop->sexp f))]
-    [(Values: (list v)) v]
-    [(Values: (list v ...)) (cons 'values (map t->s v))]
-    [(ValuesDots: v dty dbound)
-     (cons 'values (append (map t->s v) (list (t->s dty) '... dbound)))]
     [(Param: in out)
      (if (equal? in out)
          `(Parameterof ,(t->s in))
@@ -488,6 +549,7 @@
     ;; FIXME: should this print constraints too
     [(PolyRow-names: names _ body)
      `(All (,(car names) #:row) ,(t->s body))]
+    ;; x1 --> ()
     [(Mu: x (Syntax: (Union: (list
                               (Base: 'Number _ _ _)
                               (Base: 'Boolean _ _ _)
@@ -510,28 +572,20 @@
     [(? Class?) (class->sexp type)]
     [(Unit: (list imports ...) (list exports ...) (list init-depends ...) body)
      `(Unit
-       (import ,@(map t->s imports))
-       (export ,@(map t->s exports))
-       (init-depend ,@(map t->s init-depends))
-       ,(t->s body))]
-    [(Signature: name extends mapping)
-     (syntax->datum name)]
-    [(Result: t
-              (or #f (PropSet: (TrueProp:) (TrueProp:)))
-              (or #f (Empty:))) (type->sexp t)]
-    [(Result: t fs (Empty:)) `(,(type->sexp t) : ,(prop->sexp fs))]
-    [(Result: t fs lo) `(,(type->sexp t) : ,(prop->sexp fs) : ,(object->sexp lo))]
+       (import ,@(map signature->sexp imports))
+       (export ,@(map signature->sexp exports))
+       (init-depend ,@(map signature->sexp init-depends))
+       ,(values->sexp body))]
     [(MPair: s t) `(MPairof ,(t->s s) ,(t->s t))]
     [(Refinement: parent p?)
      `(Refinement ,(t->s parent) ,(syntax-e p?))]
     [(Sequence: ts)
      `(Sequenceof ,@(map t->s ts))]
     [(Error:) 'Error]
-    [(fld: t a m) `(fld ,(type->sexp t))]
+    ;[(fld: t a m) `(fld ,(type->sexp t))]
     [(Distinction: name sym ty) ; from define-new-subtype
      name]
-    [else `(Unknown Type: ,(struct->vector type))]
-    ))
+    [else `(Unknown Type: ,(struct->vector type))]))
 
 
 
@@ -540,12 +594,22 @@
     [(_ debug-printer:id)
      #:when (eq? printer-type 'debug)
      #'(begin
-         (require racket/pretty
-                  typed-racket/env/init-envs)
+         (require racket/pretty)
+         (require mzlib/pconvert)
+
+         (define (converter v basic sub)
+           (define (gen-constructor sym)
+             (string->symbol (string-append "make-" (substring (symbol->string sym) 7))))
+           (match v
+             [(? Rep? rep)
+              `(,(gen-constructor (car (vector->list (struct->vector rep))))
+                ,@(map sub (Rep-values rep)))]
+             [_ (basic v)]))
 
          (define (debug-printer v port write?)
            ((if write? pretty-write pretty-print)
-            (syntax->datum (datum->syntax #f (type->sexp v)))
+            (parameterize ((current-print-convert-hook converter))
+              (print-convert v))
             port)))]
     [_ #'(begin)]))
 
@@ -566,4 +630,3 @@
        #'(void))]))
 
 (define-debug-pretty-format-type debug-pretty-format-type)
-

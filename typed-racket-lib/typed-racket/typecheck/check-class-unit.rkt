@@ -16,7 +16,7 @@
          (types utils abbrev union subtype resolve generalize)
          (typecheck check-below internal-forms)
          (utils tc-utils mutated-vars)
-         (rep object-rep type-rep)
+         (rep object-rep type-rep values-rep)
          (for-syntax racket/base)
          (for-template racket/base
                        (submod "internal-forms.rkt" forms)

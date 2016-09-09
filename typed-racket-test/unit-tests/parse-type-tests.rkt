@@ -10,7 +10,7 @@
            (env tvar-env type-alias-env mvar-env)
            (utils tc-utils)
            (private parse-type)
-           (rep type-rep)
+           (rep type-rep values-rep)
 
            (submod typed-racket/base-env/base-types initialize)
            (rename-in (types union abbrev numeric-tower resolve)
@@ -168,13 +168,13 @@
     (t:->* (list Univ) -Boolean : (-PS (-not-type 0 -Number) (-is-type 0 -Number)))]
    [(-> Any (-> Any Boolean : #:+ (Number @ 1 0) #:- (! Number @ 1 0)))
     (t:-> Univ
-          (t:->* (list Univ) -Boolean : (-PS (-is-type '(1 0) -Number) (-not-type '(1 0) -Number))))]
+          (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 0) -Number) (-not-type (cons 1 0) -Number))))]
    [(-> Any Any (-> Any Boolean : #:+ (Number @ 1 1) #:- (! Number @ 1 1)))
     (t:-> Univ Univ
-          (t:->* (list Univ) -Boolean : (-PS (-is-type '(1 1) -Number) (-not-type '(1 1) -Number))))]
+          (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 1) -Number) (-not-type (cons 1 1) -Number))))]
    [(-> Any #:foo Any (-> Any Boolean : #:+ (Number @ 1 0) #:- (! Number @ 1 0)))
     (->key Univ #:foo Univ #t
-           (t:->* (list Univ) -Boolean : (-PS (-is-type '(1 0) -Number) (-not-type '(1 0) -Number))))]
+           (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 0) -Number) (-not-type (cons 1 0) -Number))))]
    [(All (a b) (-> (-> a Any : #:+ b) (Listof a) (Listof b)))
     (-poly (a b) (t:-> (asym-pred a Univ (-PS (-is-type 0 b) -tt)) (-lst a) (-lst b)))]
    [(All (a b) (-> (-> a Any : #:+ (! b)) (Listof a) (Listof b)))
@@ -239,7 +239,7 @@
    [(->* (#:bar Integer Integer) (#:foo Integer String) Void)
     (->optkey -Integer [-String] #:bar -Integer #t #:foo -Integer #f -Void)]
    [(->* (Any (-> Any Boolean : #:+ (String @ 1 0))) Void)
-    (t:-> Univ (t:->* (list Univ) -Boolean : (-PS (-is-type '(1 0) -String) -tt))
+    (t:-> Univ (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 0) -String) -tt))
           -Void)]
    [FAIL (->* (Any (-> Any Boolean : #:+ (String @ 2 0))) Void)
          #:msg "Index 2 used in"]

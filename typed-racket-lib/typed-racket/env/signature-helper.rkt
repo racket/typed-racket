@@ -46,27 +46,35 @@
             #:parent-signature super
             (binding ...)
             #:check? check) #:local)
-              (#%plain-app values)))
-     (define raw-map (syntax->list #'(binding ...)))
-     (define check? (syntax->datum #'check))
-     (define extends (get-extended-signature #'name #'super check? form))
-     (define super-bindings (get-signature-mapping extends))
-     (define new-bindings (map parse-signature-binding raw-map))
-     (define pre-mapping (append super-bindings new-bindings))
+         (#%plain-app values)))
+     ;; helper for signature bindings
+     (define (parse-signature-binding binding-stx)
+       (syntax-parse binding-stx
+         [[name:id type]
+          (cons #'name (parse-type #'type))]))
+     ;; use a delay for mutually recursive signatures -- lookup-signature
+     ;; forces these
+     (register-signature!
+      #'name
+      (delay (let* ([raw-map (syntax->list #'(binding ...))]
+                    [check? (syntax->datum #'check)]
+                    [extends (get-extended-signature #'name #'super check? form)]
+                    [super-bindings (get-signature-mapping extends)]
+                    [new-bindings (map parse-signature-binding raw-map)]
+                    [pre-mapping (append super-bindings new-bindings)])
+               ;; Make sure a require/typed signature has bindings listed
+               ;; that are consistent with its statically determined bindings
+               (when check?
+                 (check-signature-bindings #'name (map car pre-mapping) form))
 
-     ;; Make sure a require/typed signature has bindings listed
-     ;; that are consistent with its statically determined bindings
-     (when check?
-       (check-signature-bindings #'name (map car pre-mapping) form))
+               ;; require/typed signature bindings may not be in the correct order
+               ;; this fixes the ordering based on the static order determined
+               ;; by signature-members
+               (define mapping (if check?
+                                   (fix-order #'name pre-mapping)
+                                   pre-mapping))
 
-     ;; require/typed signature bindings may not be in the correct order
-     ;; this fixes the ordering based on the static order determined
-     ;; by signature-members
-     (define mapping (if check?
-                         (fix-order #'name pre-mapping)
-                         pre-mapping))
-     (define signature (make-Signature #'name extends mapping))
-     (register-signature! #'name signature)]))
+               (make-Signature #'name extends mapping))))]))
 
 ;; check-signature-bindings : Identifier (Listof Identifier) -> Void
 ;; checks that the bindings of a signature identifier are consistent with
@@ -109,17 +117,6 @@
                               "in the definition of signature" (syntax-e name)
                               "which extends signature" (syntax-e super)
                               #:stx stx))]))
-
-;; parse-signature-binding : Syntax -> (list/c identifier? syntax?)
-;; parses the binding forms inside of a define signature into the 
-;; form used by the Signature type representation
-;; The call to `parse-type` is delayed to allow signatures and type aliases
-;; to be mutually recursive, after aliases are registered in the environment
-;; the promise will be forced to perform the actual type parsing
-(define (parse-signature-binding binding-stx)
-  (syntax-parse binding-stx
-    [[name:id type]
-     (cons #'name (delay (parse-type #'type)))]))
 
 ;; signature->bindings : identifier? -> (listof (cons/c identifier? type?))
 ;; GIVEN: a signature name

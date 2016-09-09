@@ -41,7 +41,8 @@
   (define body-results #f)
 
   ;; syntax tc-result1 type -> tc-results
-  ;; The result of applying the function to a single argument of the type of its first argument
+  ;; The result of applying the function to a single argument of the type of its first argument.
+  ;; Is used when checking forms like with-handlers, for example.
   (define (get-range-result stx t prop-type)
     (let loop ((t t))
       (match t
@@ -51,7 +52,7 @@
         [(Function: (list _ ... (arr: '() _ (? values rest) #f (list (Keyword: _ _ #f) ...)) _ ...))
          #:when (subtype prop-type rest)
          (tc/funapp #'here #'(here) t (list (ret rest)) #f)]
-        [(? needs-resolving? t)
+        [(? needs-resolved? t)
          (loop (resolve t))]
         [(or (Poly: ns _) (PolyDots: (list ns ... _) _))
          (loop (instantiate-poly t (map (λ (n) Univ) ns)))]
@@ -72,7 +73,7 @@
     (cond [;; make sure the predicate has an appropriate type
            (subtype pred-type (-> Univ Univ))
            (define fun-type
-             (if (needs-resolving? pred-type)
+             (if (needs-resolved? pred-type)
                  (resolve pred-type)
                  pred-type))
            (match fun-type
@@ -80,7 +81,7 @@
              ;;        be worth being more precise here for some rare code.
              [(PredicateProp: ps)
               (match ps
-                [(PropSet: (TypeProp: (Path: '() '(0 0)) ft) _) ft]
+                [(PropSet: (TypeProp: (Path: '() (cons 0 0)) ft) _) ft]
                 [(FalseProp:) (Un)]
                 [_ Univ])]
              [_ Univ])]

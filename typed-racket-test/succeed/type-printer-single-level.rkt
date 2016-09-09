@@ -14,7 +14,7 @@
      (thunk (make-evaluator 'typed/racket)))))
 
 (tr-eval '(require typed/racket))
-(tr-eval '(define-type Foo (U String Integer)))
+(tr-eval '(define-type Foo (U String Symbol)))
 (tr-eval '(define-type Bar (Foo -> Foo)))
 
 (tr-eval '(:type Foo))
@@ -25,25 +25,8 @@
 (tr-eval '(:type #:verbose Bar))
 
 (check-equal? (get-output-string out)
-              (string-append "(U Integer String)\n[can expand further: Integer]"
+              (string-append "(U String Symbol)\n"
                              "(-> Foo Foo)\n[can expand further: Foo]"
                              "(-> Number Integer)\n[can expand further: Integer Number]"
-                             "(-> (U String\n"
-                             "       0\n"
-                             "       1\n"
-                             "       Byte-Larger-Than-One\n"
-                             "       Positive-Index-Not-Byte\n"
-                             "       Positive-Fixnum-Not-Index\n"
-                             "       Negative-Fixnum\n"
-                             "       Positive-Integer-Not-Fixnum\n"
-                             "       Negative-Integer-Not-Fixnum)\n"
-                             "    (U String\n"
-                             "       0\n"
-                             "       1\n"
-                             "       Byte-Larger-Than-One\n"
-                             "       Positive-Index-Not-Byte\n"
-                             "       Positive-Fixnum-Not-Index\n"
-                             "       Negative-Fixnum\n"
-                             "       Positive-Integer-Not-Fixnum\n"
-                             "       Negative-Integer-Not-Fixnum))\n"))
+                             "(-> (U String Symbol) (U String Symbol))\n"))
 

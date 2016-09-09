@@ -12,7 +12,6 @@
          (rep type-rep)
          (for-template (base-env top-interaction))
          (utils utils tc-utils arm)
-         (only-in (types printer) pretty-format-type)
          "standard-inits.rkt"
          "tc-setup.rkt")
 

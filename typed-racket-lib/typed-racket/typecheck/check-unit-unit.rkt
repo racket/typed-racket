@@ -74,7 +74,7 @@
          (types utils abbrev union subtype resolve generalize signatures)
          (typecheck check-below internal-forms)
          (utils tc-utils)
-         (rep type-rep)
+         (rep type-rep values-rep)
          (for-syntax racket/base racket/unit-exptime syntax/parse)
          (for-template racket/base
                        racket/unsafe/undefined

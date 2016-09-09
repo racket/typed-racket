@@ -14,11 +14,11 @@
  [tc-error/expr/fields ((string?) (#:more (c:or/c string? #f) #:return c:any/c #:stx syntax?)
                         #:rest (c:listof c:any/c) . c:->* . c:any/c)]
 
- [lookup-fail (identifier? . c:-> . Type/c)]
- [lookup-type-fail (identifier? . c:-> . Type/c)]
+ [lookup-fail (identifier? . c:-> . Type?)]
+ [lookup-type-fail (identifier? . c:-> . Type?)]
  [lookup-variance-fail (identifier? . c:-> . void?)])
 
-;; produce a type-checking error, and also return a result (e.g., a tc-result)
+;; produce a type-checking error, and also return a result (e.g., a tc-results)
 (define (tc-error/expr msg
                        #:return [return (ret -Bottom)]
                        #:stx [stx (current-orig-stx)]

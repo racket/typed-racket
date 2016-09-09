@@ -27,11 +27,11 @@
 
 (begin-for-syntax (do-standard-inits))
 
-(define-syntax-rule (tc-e/t e t) (tc-e e #:ret (ret t -true-propset)))
+(define-syntax-rule (tc-e/t e t) (tc-e e #:ret (reduce-tc-results/subsumption (ret t -true-propset))))
 
 (define-syntax (tc-e stx)
   (syntax-parse stx
-    [(tc-e expr ty) (syntax/loc stx (tc-e expr #:ret (ret ty)))]
+    [(tc-e expr ty) (syntax/loc stx (tc-e expr #:ret (reduce-tc-results/subsumption (ret ty))))]
     [(id a #:ret b)
      (syntax/loc stx
        (test-case (format "~a ~a" (quote-line-number id) 'a)
@@ -44,7 +44,9 @@
             [(res2) (phase1-phase0-eval #`'#,b)])
            (with-check-info (['expanded expanded])
              (unless (tc-result-equal/test? res1 res2)
-               (fail-check "Expression didn't have expected type."))))))]))
+               (fail-check (format "Expression didn't have expected type.\n Expected: ~a\n Actual: ~a\n"
+                                   (struct->vector res1)
+                                   (struct->vector res2))))))))]))
 
 (define tests
   (test-suite

@@ -10,21 +10,20 @@
          racket/keyword-transform racket/list
          (for-syntax syntax/parse racket/base)
          (contract-req)                       
-         (env type-env-structs global-env mvar-env)
+         (env type-env-structs global-env)
          (utils tc-utils)
-         (only-in (rep type-rep) Type/c)
+         (only-in (rep type-rep) Type?)
          (typecheck renamer)
          (except-in (types utils abbrev kw-types) -> ->* one-of/c))
 
-(require-for-cond-contract (rep object-rep))
+(require-for-cond-contract (rep object-rep core-rep))
 
 (provide lexical-env 
          with-lexical-env 
          with-lexical-env/extend-types
-         with-lexical-env/extend-types+aliases
-         update-type/lexical)
+         with-lexical-env/extend-types+aliases)
 (provide/cond-contract
- [lookup-type/lexical ((identifier?) (env? #:fail (or/c #f (-> any/c #f))) . ->* . (or/c Type/c #f))]
+ [lookup-type/lexical ((identifier?) (env? #:fail (or/c #f (-> any/c #f))) . ->* . (or/c Type? #f))]
  [lookup-alias/lexical ((identifier?) (env?) . ->* . (or/c Path? Empty?))])
 
 ;; the current lexical environment
@@ -75,27 +74,3 @@
 ;; looks up the representative object for an id (i.e. itself or an alias if one exists)
 (define (lookup-alias/lexical i [env (lexical-env)])
   (lookup-alias env i -id-path))
-
-
-;; refine the type of i in the lexical env
-;; (identifier type -> type) identifier -> environment
-;; a macro for inlining :(
-(define-syntax (update-type/lexical stx)
-  (syntax-parse stx
-    [(_ f i env)
-     #:declare f (expr/c #'(identifier? Type/c . -> . Type/c))
-     #:declare i (expr/c #'identifier?)
-     #:declare env (expr/c #'prop-env?)
-     ;; check if i is ever the target of a set!
-     ;; or is a top-level variable
-     #'(if (or (is-var-mutated? i)
-               (not (identifier-binding i)))
-           ;; if it is, we do nothing
-           env
-           ;; otherwise, refine the type
-           (parameterize
-               ([current-orig-stx i])
-             (let* ([v (lookup-type/lexical i env #:fail (lambda _ Univ))]
-                    [new-v (f i v)]
-                    [new-env (extend env i new-v)])
-               new-env)))]))

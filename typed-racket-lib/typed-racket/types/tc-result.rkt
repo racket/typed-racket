@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep prop-rep)
+         (rep core-rep type-rep prop-rep values-rep)
          (utils tc-utils)
          (types base-abbrev)
          racket/match
@@ -10,10 +10,10 @@
 ;; this structure represents the result of typechecking an expression
 ;; fields are #f only when the direct result of parsing or annotations
 (define-struct/cond-contract tc-result
-  ([t Type/c] [pset (c:or/c PropSet? #f)] [o (c:or/c Object? #f)])
+  ([t Type?] [pset (c:or/c PropSet? #f)] [o (c:or/c OptObject? #f)])
   #:transparent)
 (define-struct/cond-contract tc-results
-  ([ts (c:listof tc-result?)] [drest (c:or/c (c:cons/c Type/c symbol?) #f)])
+  ([ts (c:listof tc-result?)] [drest (c:or/c (c:cons/c Type? symbol?) #f)])
   #:transparent)
 (define-struct/cond-contract tc-any-results ([f (c:or/c Prop? #f)]) #:transparent)
 
@@ -32,10 +32,12 @@
     [(tc-any-results: p) (and p #t)]
     [(tc-results: _ ps os)
      (and (andmap (λ (x) x) ps)
-          (andmap (λ (x) x) os))]
+          (andmap (λ (x) x) os)
+          #t)]
     [(tc-results: _ ps os _ _)
      (and (andmap (λ (x) x) ps)
-          (andmap (λ (x) x) os))]
+          (andmap (λ (x) x) os)
+          #t)]
     [else #f]))
 
 
@@ -79,7 +81,7 @@
 
 ;; expand-Results: (Listof Rresult) -> (Values (Listof Type) (Listof PropSet) (Listof Object))
 (define (expand-Results results)
-  (values (map Result-t results) (map Result-f results) (map Result-o results)))
+  (values (map Result-t results) (map Result-ps results) (map Result-o results)))
 
 
 (define-match-expander Results:
@@ -88,7 +90,7 @@
    [(_ tp fp op) (Values: (app expand-Results tp fp op))]
    [(_ tp fp op dty dbound) (ValuesDots: (app expand-Results tp fp op) dty dbound)]))
 
-;; make-tc-result*: Type/c PropSet/c Object? -> tc-result?
+;; make-tc-result*: Type? PropSet/c Object? -> tc-result?
 ;; Smart constructor for a tc-result.
 (define (-tc-result type [prop -tt-propset] [object -empty-obj])
   (cond
@@ -102,7 +104,7 @@
 (define ret
   (case-lambda [(t)
                 (make-tc-results
-                 (cond [(Type/c? t)
+                 (cond [(Type? t)
                         (list (-tc-result t -tt-propset -empty-obj))]
                        [else
                         (for/list ([i (in-list t)])
@@ -110,7 +112,7 @@
                  #f)]
                [(t pset)
                 (make-tc-results
-                 (if (Type/c? t)
+                 (if (Type? t)
                      (list (-tc-result t pset -empty-obj))
                      (for/list ([i (in-list t)] [pset (in-list pset)])
                        (-tc-result i pset -empty-obj)))
@@ -130,18 +132,16 @@
                      (list (-tc-result t pset o)))
                  (cons dty dbound))]))
 
-;(trace ret)
-
 (provide/cond-contract
  [ret
-  (c:->i ([t (c:or/c Type/c (c:listof Type/c))])
+  (c:->i ([t (c:or/c Type? (c:listof Type?))])
          ([f (t) (if (list? t)
                      (c:listof (c:or/c #f PropSet?))
                      (c:or/c #f PropSet?))]
           [o (t) (if (list? t)
-                     (c:listof (c:or/c #f Object?))
-                     (c:or/c #f Object?))]
-          [dty Type/c]
+                     (c:listof (c:or/c #f OptObject?))
+                     (c:or/c #f OptObject?))]
+          [dty Type?]
           [dbound symbol?])
          [res tc-results/c])])
 
@@ -152,11 +152,11 @@
 (provide/cond-contract
  [rename -tc-result tc-result
    (c:case->
-     (Type/c . c:-> . tc-result?)
-     (Type/c PropSet? Object? . c:-> . tc-result?))]
+     (Type? . c:-> . tc-result?)
+     (Type? PropSet? OptObject? . c:-> . tc-result?))]
  [tc-any-results ((c:or/c Prop? #f) . c:-> . tc-any-results?)]
- [tc-result-t (tc-result? . c:-> . Type/c)]
- [rename tc-results-ts* tc-results-ts (tc-results? . c:-> . (c:listof Type/c))]
+ [tc-result-t (tc-result? . c:-> . Type?)]
+ [rename tc-results-ts* tc-results-ts (tc-results? . c:-> . (c:listof Type?))]
  [tc-result-equal? (tc-result? tc-result? . c:-> . boolean?)]
  [tc-result? (c:any/c . c:-> . boolean?)]
  [tc-results? (c:any/c . c:-> . boolean?)]

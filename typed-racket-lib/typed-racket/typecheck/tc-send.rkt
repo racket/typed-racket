@@ -20,31 +20,31 @@
                  method-var method
                  arg-vars args
                  [expected #f])
-  ;; do-check : Type/c -> tc-results/c
+  ;; do-check : Type? -> tc-results/c
   (define (do-check rcvr-type)
     (match rcvr-type
-      [(Instance: (? needs-resolving? type))
+      [(Instance: (? needs-resolved? type))
        (do-check (make-Instance (resolve type)))]
       [(and obj (Instance: (Class: _ _ _ methods _ _)))
-       (match (tc-expr/t method)
-         [(Value: (? symbol? s))
-          (define ftype
-            (cond [(assq s methods) => cadr]
-                  [else (tc-error/expr/fields
-                         "send: method not understood by object"
-                         "method name" s
-                         "object type" obj
-                         #:return -Bottom)]))
-          (define vars  (list* rcvr-var method-var (syntax->list arg-vars)))
-          (define types (list* rcvr-type ftype (stx-map tc-expr/t args)))
-          (tc/send-internal vars types app expected)]
-         [_ (int-err "non-symbol methods not supported by Typed Racket: ~a"
-                     rcvr-type)])]
+       (match (match (tc-expr/t method)
+                [(Value: (? symbol? s))
+                 (define ftype
+                   (cond [(assq s methods) => cadr]
+                         [else (tc-error/expr/fields
+                                "send: method not understood by object"
+                                "method name" s
+                                "object type" obj
+                                #:return -Bottom)]))
+                 (define vars  (list* rcvr-var method-var (syntax->list arg-vars)))
+                 (define types (list* rcvr-type ftype (stx-map tc-expr/t args)))
+                 (tc/send-internal vars types app expected)]
+                [_ (int-err "non-symbol methods not supported by Typed Racket: ~a"
+                            rcvr-type)])
+         [(? tc-results/c val) val]
+         [_ (error 'aah2)])]
       ;; union of objects, check pointwise and union the results
       [(Union: (list (and objs (Instance: _)) ...))
-       (merge-tc-results
-        (for/list ([obj (in-list objs)])
-          (do-check obj)))]
+       (merge-tc-results (map do-check objs))]
       [_ (tc-error/expr/fields
           "send: type mismatch"
           "expected" "an object"

@@ -66,7 +66,7 @@
                                 [arg (in-syntax named-args)])
                        (list (syntax-e name) arg)))
   (match (resolve (tc-expr/t cl))
-    [(Union: '()) (ret (Un))]
+    [(Bottom:) (ret -Bottom)]
     [(and c (Class: _ inits fields _ _ init-rest))
      (cond [;; too many positional arguments, fail
             (and (> (length pos-args) (length inits)) (not init-rest))
@@ -140,7 +140,7 @@
                                     #:more "the object is missing an expected field"
                                     "field" field-sym
                                     "object type" ty)])]
-      [(Instance: (? needs-resolving? type))
+      [(Instance: (? needs-resolved? type))
        (check (make-Instance (resolve type)))]
       [type
        (tc-error/expr/fields "type mismatch"
@@ -176,7 +176,7 @@
                                     #:more (~a "expected an object with field "
                                                maybe-field-sym)
                                     "given" ty)])]
-      [(Instance: (? needs-resolving? type))
+      [(Instance: (? needs-resolved? type))
        (check (make-Instance (resolve type)))]
       [type
        (tc-error/expr/fields "type mismatch"

@@ -1,393 +1,469 @@
 #lang racket/base
 (require "../utils/utils.rkt"
          "../utils/print-struct.rkt"
+         
          racket/match
+         racket/generic
          (contract-req)
          "free-variance.rkt"
-         "interning.rkt"
-         racket/lazy-require
+         "type-mask.rkt"
          racket/stxparam
+         syntax/parse/define
+         syntax/id-table
+         racket/unsafe/ops
          (for-syntax
           racket/match
+          racket/list
+          racket/sequence
           (except-in syntax/parse id identifier keyword)
           racket/base
           syntax/struct
+          syntax/id-table
           (contract-req)
-          racket/syntax
-          (rename-in (except-in (utils stxclass-util) bytes byte-regexp regexp byte-pregexp pregexp)
-                     [id* id]
-                     [keyword* keyword])))
+          racket/syntax))
 
 
-(lazy-require
-  ["../types/printer.rkt" (print-type print-prop print-object print-pathelem)])
+(provide (all-defined-out)
+         (for-syntax var-name))
 
+(provide-for-cond-contract length>=/c)
 
-(provide == defintern hash-id (for-syntax fold-target))
+(define-for-cond-contract ((length>=/c len) l)
+  (and (list? l)
+       (>= (length l) len)))
 
-;; seq: interning-generated count that is used to compare types (type<).
+(define (Rep-seq x) (unsafe-struct-ref x 0))
+
+;; seq: interning-generated serial number used to compare Reps (type<).
 ;; free-vars: cached free type variables
 ;; free-idxs: cached free dot sequence variables
 ;; stx: originating syntax for error-reporting
-(define-struct Rep (seq free-vars free-idxs stx) #:transparent
-               #:methods gen:equal+hash
-               [(define (equal-proc x y recur)
-                  (eq? (Rep-seq x) (Rep-seq y)))
-                (define (hash-proc x recur) (Rep-seq x))
-                (define (hash2-proc x recur) (Rep-seq x))])
+(struct Rep (sequence-number free-vars free-idxs) #:transparent
+  #:methods gen:equal+hash
+  [(define (equal-proc x y recur)
+     (unsafe-fx= (Rep-seq x) (Rep-seq y)))
+   (define (hash-proc x recur) (Rep-seq x))
+   (define (hash2-proc x recur) (Rep-seq x))])
 
-;; evil tricks for hygienic yet unhygienic-looking reference
-;; in say def-type for type-ref-id
-(define-for-syntax fold-target #'fold-target)
-(define-for-syntax default-fields (list #'seq #'free-vars #'free-idxs #'stx))
+(define (Rep<? x y)
+  (unsafe-fx< (Rep-seq x) (Rep-seq y)))
 
-;; parent is for struct inheritance.
-;; ht-stx is the identifier of the intern-table
-;; key? is #f iff the kind generated should not be interned.
-(define-for-syntax (mk parent ht-stx key? the-rec-id)
-  (define-syntax-class opt-contract-id
-    #:attributes (i contract)
-    (pattern i:id
-             #:with contract #'any/c)
-    (pattern [i:id contract]))
-  ;; unhygienic struct function generation
-  (define-syntax-class (idlist name)
-    #:attributes ((i 1) (contract 1) fields maker pred (accessor 1))
-    (pattern (oci:opt-contract-id ...)
-             #:with (i ...) #'(oci.i ...)
-             #:with (contract ...) #'(oci.contract ...)
-             #:with fields #'(i ...)
-             #:with (_ maker pred accessor ...) (build-struct-names name (syntax->list #'fields) #f #t name)))
+;; prop:get-values
+(define-values (prop:Rep-name Rep-name)
+  (let-values ([(prop _ accessor) (make-struct-type-property 'named)])
+    (values prop accessor)))
 
-  ;; applies f to all fields and combines the results.
-  ;; (construction prevents duplicates)
-  (define (combiner f flds)
-    (syntax-parse flds
-      [() #'empty-free-vars]
-      [(e) #`(#,f e)]
-      [(e ...) #`(combine-frees (list (#,f e) ...))]))
 
-  (define-splicing-syntax-class frees-pat
-    #:transparent
-    #:attributes (f1 f2)
-    (pattern (~seq f1:expr f2:expr))
-    ;; [#:frees #f] pattern in e.g. def-type means no free vars or idxs.
-    (pattern #f
-             #:with f1 #'empty-free-vars
-             #:with f2 #'empty-free-vars)
-    ;; [#:frees (λ (f) ...)] should combine free variables or idxs accordingly
-    ;; (given the respective accessor functions)
-    (pattern e:expr
-             #:with f1 #'(e Rep-free-vars)
-             #:with f2 #'(e Rep-free-idxs)))
+;; prop:get-values
+(define-values (prop:get-values-fun get-values-fun)
+  (let-values ([(prop _ accessor) (make-struct-type-property 'values)])
+    (values prop accessor)))
+;; Rep-values
+(define (Rep-values x)
+  ((get-values-fun x) x))
 
-  ;; fold-pat takes fold-name (e.g. App-fold) and produces the
-  ;; pattern for the match as
-  (define-syntax-class (fold-pat fold-name)
-    #:transparent
-    #:attributes (proc)
-    (pattern #:base
-             #:with proc #`(procedure-rename
-                            (lambda () #,fold-target)
-                            '#,fold-name))
-    (pattern match-expander:expr
-             #:with proc #`(procedure-rename
-                            ;; double quote expander. First unquote below
-                            ;; Second unquote at expansion.
-                            (lambda () #'match-expander)
-                            '#,fold-name)))
+;; prop:get-constructor
+(define-values (prop:get-constructor-fun Rep-constructor)
+  (let-values ([(prop _ accessor) (make-struct-type-property 'constructor)])
+    (values prop accessor)))
 
-  (define-syntax-class form-name
+;; structural type info for simple/straightforward types
+;; (i.e. we store the list of field variances)
+(define-values (prop:structural structural? Type-variances)
+  (make-struct-type-property 'structural))
+
+;; top type predicates
+(define-values (prop:top-type has-top-type? top-type-pred)
+  (make-struct-type-property 'top-type))
+
+;; prop:walk-fun
+(define-values (prop:walk-fun walkable? walk-fun)
+  (make-struct-type-property 'walk))
+;; Rep-walk
+(define (Rep-walk f x)
+  ((walk-fun x) f x))
+
+;; prop:fold-fun
+(define-values (prop:fold-fun foldable? fold-fun)
+  (make-struct-type-property 'fold))
+
+;; Rep-fold
+(define (Rep-fold f x)
+  ((fold-fun x) f x))
+
+
+;; Is this a type that can be a 'back-edge' into the type graph?
+;; (i.e. could blindly following this type lead to infinite recursion?)
+(define-values (prop:resolvable needs-resolved?)
+  (let-values ([(prop predicate _) (make-struct-type-property 'resolvable)])
+    (values prop predicate)))
+
+
+;;************************************************************
+;; Rep Declaration Syntax Classes
+;;************************************************************
+(define (make-counter!)
+  (let ([state 0])
+    (λ () (begin0 state (set! state (unsafe-fx+ 1 state))))))
+
+(define count! (make-counter!))
+(define id-count! (make-counter!))
+
+(define identifier-table (make-free-id-table))
+
+(define (hash-id id)
+  (free-id-table-ref!
+   identifier-table
+   id
+   (λ () (let ([c (id-count!)])
+           (free-id-table-set! identifier-table id c)
+           c))))
+
+(define (hash-name name)
+  (if (identifier? name)
+      (hash-id name)
+      name))
+
+(begin-for-syntax
+  ;; #:frees definition parsing
+  (define-syntax-class freesspec
+    #:attributes (free-vars free-idxs)
+    (pattern ([#:vars (f1) vars-body:expr]
+              [#:idxs (f2) idxs-body:expr])
+             #:with free-vars #'(let ([f1 Rep-free-vars]) vars-body)
+             #:with free-idxs #'(let ([f2 Rep-free-idxs]) idxs-body))
+    (pattern ((f:id) body:expr)
+             #:with free-vars #'(let ([f Rep-free-vars]) body)
+             #:with free-idxs #'(let ([f Rep-free-idxs]) body)))
+  ;; #:fold definition parsing
+  (define-syntax-class (walkspec name match-expdr struct-fields)
+    #:attributes (def)
+    (pattern ((f:id) body:expr)
+             #:with def
+             (with-syntax ([name name]
+                           [(flds ...) struct-fields]
+                           [mexpdr match-expdr])
+               #'(λ (f self)
+                   (match self
+                     [(mexpdr flds ...) body]
+                     [_ (error 'Rep-walk "bad match in ~a's walk" (quote name))])))))
+  ;; #:map definition parsing
+  (define-syntax-class (foldspec name match-expdr struct-fields)
+    #:attributes (def)
+    (pattern ((f:id (~optional (~seq #:self self:id)
+                               #:defaults ([self (generate-temporary 'self)])))
+              body:expr)
+             #:with def
+             (with-syntax ([name name]
+                           [(flds ...) struct-fields]
+                           [mexpdr match-expdr])
+               #'(λ (f self)
+                   (match self
+                     [(mexpdr flds ...) body]
+                     [_ (error 'Rep-fold "bad match in ~a's fold" (quote name))])))))
+  ;; variant name parsing
+  (define-syntax-class var-name
+    #:attributes (name raw-constructor constructor mexpdr pred)
     (pattern name:id
-             ;; Type -> Type:
-             #:with match-expander (format-id #'name "~a:" #'name)
-             ;; Type -> Type-fold
-             #:with fold (format-id #f "~a-fold" #'name)
-             ;; symbol made keyword of given type's name (e.g. Type -> #:Type)
-             #:with kw (string->keyword (symbol->string (syntax-e #'name)))
-             ;; Type -> *Type
-             #:with *maker (format-id #'name "*~a" #'name)))
+             #:with raw-constructor
+             ;; raw constructor should only be used by macros (hence the gensym)
+             (format-id #'name "raw-make-~a" (gensym (syntax-e #'name)))
+             #:with constructor
+             (format-id #'name "make-~a" (syntax-e #'name))
+             #:with mexpdr
+             (format-id #'name "~a:" (syntax-e #'name))
+             #:with pred
+             (format-id #'name "~a?" (syntax-e #'name))))
+  ;; structure accessor parsing
+  (define-syntax-class (fld-id struct-name)
+    #:attributes (name accessors)
+    (pattern name:id
+             #:with accessors
+             (format-id #'name "~a-~a" (syntax-e struct-name) (syntax-e #'name))))
+  ;; struct field name parsing
+  (define-syntax-class (var-fields name)
+    #:attributes ((ids 1)
+                  (contracts 1)
+                  (accessors 1))
+    (pattern ([(~var ids (fld-id name))
+               contracts:expr] ...)
+             #:with (accessors ...) #'(ids.accessors ...))))
 
-  (define (key->list key? v) (if key? (list v) (list)))
-  (lambda (stx)
-    (syntax-parse stx
-      [(dform name:form-name ;; e.g. Function
-              ;; field/contract pairs e.g. ([rator Type/c] [rand Type/c])
-              (~var flds (idlist #'name))
-              (~or
-               (~optional (~and (~fail #:unless key? "#:key not allowed")
-                                ;; expression evaluates to intern key.
-                                ;; e.g. (list rator rand)
-                                [#:key key-expr:expr])
-                          #:defaults ([key-expr #'#f]))
-               ;; intern? is explicitly given when other fields of the type
-               ;; shouldn't matter. (e.g. Opaque)
-               ;; or need further processing (e.g. fld)
-               (~optional [#:intern intern?:expr]
-                          #:defaults
-                          ([intern? (syntax-parse #'flds.fields
-                                      [() #'#f]
-                                      [(f) #'(if (Rep? f) (Rep-seq f) f)]
-                                      [(fields ...) #'(list (if (Rep? fields) (Rep-seq fields) fields) ...)])]))
-               ;; expression that when given a "get free-variables"
-               ;; function, combines the results in the expected fashion.
-               (~optional [#:frees frees:frees-pat]
-                          #:defaults
-                          ([frees.f1 (combiner #'Rep-free-vars #'flds.fields)]
-                           [frees.f2 (combiner #'Rep-free-idxs #'flds.fields)]))
-               ;; This tricky beast is for defining the type/prop/etc.'s
-               ;; part of the fold. The make-prim-type's given
-               ;; rec-ids are bound in this expression's context.
-               (~optional [#:fold-rhs (~var fold-rhs (fold-pat #'name.fold))]
-                          #:defaults ;; defaults to folding down all fields.
-                          ([fold-rhs.proc
-                            ;; This quote makes the inner quasiquote be
-                            ;; evaluated later (3rd element of the hashtable)
-                            ;; in mk-fold.
-                            ;; Thus only def-type'd entities will be properly
-                            ;; folded down.
-                            #`(procedure-rename
-                               (lambda ()
-                                 #'(name.*maker (#,the-rec-id flds.i) ...))
-                               ;; rename to fold name for better error messages
-                               'name.fold)]))
-               ;; how do we contract a value of this type?
-               (~optional [#:contract contract:expr]
-                          ;; defaults to folding down all fields.
-                          #:defaults ([contract
-                                       #'(->* (flds.contract ...)
-                                              (#:syntax (or/c syntax? #f))
-                                              flds.pred)]))
-               (~optional (~and #:no-provide no-provide?))) ...)
-       (with-syntax
-         ;; makes as many underscores as default fields (+1 for key? if provided)
-        ([(ign-pats ...) (let loop ([fs default-fields])
-                           (if (null? fs)
-                               (key->list key? #'_)
-                               (cons #'_ (loop (cdr fs)))))]
-         ;; has to be down here to refer to #'contract
-         [provides (if (attribute no-provide?)
-                       #'(begin)
-                       #'(begin
-                           (provide name.match-expander flds.pred flds.accessor ...)
-                           (provide/cond-contract (rename name.*maker flds.maker contract))))])
-        #`(begin
-            ;; struct "name" defined here.
-            (define-struct (name #,parent) flds.fields #:inspector #f)
-            (define-match-expander name.match-expander
-              (lambda (s)
-                (syntax-parse s
-                  [(_ . fields)
-                   ;; skips past ignores and binds fields for struct "name"
-                   #:with pat (syntax/loc s (ign-pats ... . fields))
-                   ;; This is the match (struct struct-id (pat ...)) form.
-                   (syntax/loc s (struct name pat))])))
-            ;; set the type's keyword in the hashtable to its
-            ;; match expander, fields and fold-rhs's for further construction.
-            (begin-for-syntax
-             (hash-set! #,ht-stx
-                        'name.kw
-                        (list #'name.match-expander
-                              #'flds.fields
-                              ;; first unquote for match-expander
-                              fold-rhs.proc
-                              #f)))
-            #,(quasisyntax/loc stx
-                (with-cond-contract name ([name.*maker contract])
-                     #,(quasisyntax/loc #'name
-                         (defintern (name.*maker . flds.fields)
-                           flds.maker intern?
-                           #:extra-args
-                           frees.f1 frees.f2
-                           #:syntax [orig-stx #f]
-                           #,@(key->list key? #'key-expr)))))
-            provides))])))
-
-;; rec-ids are identifiers that are of the folded type, so we recur on them.
-;; kws is e.g. '(#:Type #:Prop #:Object #:PathElem)
-(define-for-syntax (mk-fold hashtable rec-ids kws)
-  (lambda (stx)
-    (define new-hashtable (make-hasheq))
-    (define-syntax-class clause
-      (pattern
-       ;; Given name, matcher.
-       (k:keyword #:matcher matcher pats ... e:expr)
-       #:attr kw (attribute k.datum)
-       #:attr val (list #'matcher
-                        (syntax/loc this-syntax (pats ...))
-                        (lambda () #'e)
-                        this-syntax))
-      ;; Match on a type (or prop etc) case with keyword k
-      ;; pats are the unignored patterns (say for rator rand)
-      ;; and e is the expression that will run as fold-rhs.
-      (pattern
-       (k:keyword pats ... e:expr)
-       #:attr kw (syntax-e #'k)
-        ;; no given name. Use "keyword:"
-       #:attr val (list (format-id stx "~a:" (attribute kw))
-                        (syntax/loc this-syntax (pats ...))
-                        (lambda () #'e)
-                        this-syntax)))
-    #|
-    e.g. #:App (list #'App: (list #'rator #'rand)
-                     (lambda () #'(*App (type-rec-id rator)
-                                        (map type-rec-id rands)
-                                        stx))
-                     <stx>)
-    |#
-    (define (gen-clause k v)
-      (match v
-        [(list match-expander pats body-f src)
-         ;; makes [(Match-name all-patterns ...) body]
-         (define pat (quasisyntax/loc (or src stx)
-                                      (#,match-expander  . #,pats)))
-         (quasisyntax/loc (or src stx) (#,pat
-                                        ;; evaluate thunk containing rhs syntax
-                                        #,(body-f)))]))
-
-    (define (no-duplicates? lst)
-      (cond [(null? lst) #t]
-            [(member (car lst) (cdr lst)) #f]
-            [else (no-duplicates? (cdr lst))]))
-
-    ;; Accept only keywords in the given list.
-    (define-syntax-class (keyword-in kws)
-      #:attributes (datum)
-      (pattern k:keyword
-               #:fail-unless (memq (attribute k.datum) kws) (format "expected keyword in ~a" kws)
-               #:attr datum (attribute k.datum)))
-    ;; makes a keyword to expr hash table out of given keyword expr pairs.
-    (define-syntax-class (sized-list kws)
-      #:description (format "keyword expr pairs matching with keywords in the list ~a" kws)
-      (pattern ((~seq (~var k (keyword-in kws)) e:expr) ...)
-               #:when (no-duplicates? (attribute k.datum))
-               #:attr mapping (for/hash ([k* (attribute k.datum)]
-                                         [e* (attribute e)])
-                                (values k* e*))))
-    (syntax-parse stx
-      [(tc (~var recs (sized-list kws)) ty clauses:clause ...)
-       ;; map defined types' keywords to their given fold-rhs's.
-       ;; we will then combine this with the default hash table to generate
-       ;; the full match expression
-       (for ([k (attribute clauses.kw)]
-             [v (attribute clauses.val)])
-         (hash-set! new-hashtable k v))
-       ;; bind given expressions for #:Type etc to local ids
-       (define rec-ids* (generate-temporaries rec-ids))
-       (with-syntax ([(let-clauses ...)
-                      (for/list ([rec-id* rec-ids*]
-                                 [k kws])
-                        ;; Each rec-id binds to their corresponding given exprs
-                        ;; rec-ids and kws correspond pointwise.
-                        #`[#,rec-id* #,(hash-ref (attribute recs.mapping) k
-                                                 #'values)])]
-                     [(parameterize-clauses ...)
-                      (for/list ([rec-id rec-ids]
-                                 [rec-id* rec-ids*])
-                        #`[#,rec-id (make-rename-transformer #'#,rec-id*)])]
-                     [(match-clauses ...)
-                      ;; create all clauses we fold on, with keyword/body
-                      (append
-                       (hash-map new-hashtable gen-clause)
-                       (hash-map hashtable gen-clause))]
-                     [error-msg (quasisyntax/loc stx (error 'tc "no pattern for ~a" #,fold-target))])
-         #`(let (let-clauses ...
-                 ;; binds #'fold-target to the given element to fold down.
-                 ;; e.g. In a type-case, this is commonly "ty." Others perhaps "e".
-                 [#,fold-target ty])
-             (syntax-parameterize (parameterize-clauses ...)
-               ;; then generate the fold
-               #,(quasisyntax/loc stx
-                   (match #,fold-target
-                     match-clauses ...
-                     [_ error-msg])))))])))
-
-
-(define-syntax (make-prim-type stx)
-  (define-syntax-class type-name
-    #:attributes (name define-id key? (field-names 1) case printer hashtable rec-id kw pred? (accessors 1))
-    #:transparent
-    (pattern [name:id ;; e.g. Type
-              define-id:id ;; e.g. def-type
-              kw:keyword ;; e.g. #:Type
-              case:id ;; e.g. type-case
-              printer:id ;; e.g. print-type
-              hashtable:id ;; e.g. type-name-ht
-              rec-id:id ;; e.g. type-rec-id
-              (~optional (~and #:key ;; only given for Type.
-                               (~bind [key? #'#t]
-                                      [(field-names 1) (list #'key)]))
-                         #:defaults ([key? #'#f]
-                                     [(field-names 1) null]))]
-             #:with (_ _ pred? accessors ...)
-             (build-struct-names #'name (syntax->list #'(field-names ...)) #f #t #'name)))
+;;************************************************************
+;; def-rep
+;;************************************************************
+;;
+;; Declaration macro for Rep structures
+(define-syntax (def-rep stx)
   (syntax-parse stx
-    [(_ i:type-name ...)
-     #'(begin
-         (provide i.define-id ...
-                  i.name ...
-                  i.pred? ...
-                  i.rec-id ...
-                  i.accessors ... ... ;; several accessors per type.
-                  (for-syntax i.hashtable ... ))
-         ;; make type name and populate hashtable with
-         ;; keyword to (list match-expander-stx fields fold-rhs.proc #f)
-         ;; e.g. def-type type-name-ht #t
-         (define-syntax i.define-id
-           (mk #'i.name #'i.hashtable i.key? #'i.rec-id)) ...
-         (define-for-syntax i.hashtable (make-hasheq)) ...
-         (define-struct/printer (i.name Rep) (i.field-names ...) i.printer) ...
-         (define-syntax-parameter i.rec-id
-           (λ (stx)
-              (raise-syntax-error #f
-                                  (format "used outside ~a" 'i.define-id)
-                                  stx))) ...
-         (provide i.case ...)
-         (define-syntaxes (i.case ...) ;; each fold case gets its own macro.
-           (let ([rec-ids (list #'i.rec-id ...)])
-             (apply values
-                    (map (lambda (ht) ;; each type has a hashtable. For each type...
-                           ;; make its fold function using populated hashtable.
-                           ;; [unsyntax (*1)]
-                           (mk-fold ht
-                                    rec-ids
-                                    ;; '(#:Type #:Prop #:Object #:PathElem)
-                                    '(i.kw ...)))
-                         (list i.hashtable ...))))))]))
+    [(_
+      ;; variant name
+      var:var-name
+      ;; fields and field contracts
+      (~var flds (var-fields #'var.name))
+      ;; options
+      (~or
+       ;; parent struct (if any)
+       (~optional (~optional [#:parent parent:id])
+                  #:defaults ([parent #'Rep]))
+       ;; base declaration (i.e. no fold/map)
+       (~optional (~and #:base base?))
+       ;; All Reps are interned
+       (~optional [#:intern-key provided-intern-key])
+       ;; #:frees spec (how to compute this Rep's free type variables)
+       (~optional [#:frees . frees-spec:freesspec])
+       ;; #:walk spec (how to traverse this structure for effect)
+       (~optional [#:walk . (~var walk-spec (walkspec #'var.name
+                                                      #'var.mexpdr
+                                                      #'(flds.ids ...)))])
+       ;; #:fold spec (how to transform & fold this structure)
+       (~optional [#:fold . (~var fold-spec (foldspec #'var.name
+                                                      #'var.mexpdr
+                                                      #'(flds.ids ...)))])
+       (~optional [#:type-mask . type-mask-body])
+       ;; is this a Type w/ a Top type? (e.g. Vector --> VectorTop)
+       (~optional [#:top top-pred:id])
+       ;; #:no-provide option (i.e. don't provide anything automatically)
+       (~optional (~and #:needs-resolving needs-resolving?))
+       ;; #:no-provide option (i.e. don't provide anything automatically)
+       (~optional (~and #:no-provide no-provide?))
+       ;; field variances (e.g. covariant/contravariant/etc) declarations
+       (~optional (~and [#:variances variances ...] structural))
+       ;; #:extras to specify other struct properties in a per-definition manner
+       (~optional [#:extras . extras]))
+      ...)
 
-(make-prim-type [Type def-type #:Type type-case print-type type-name-ht type-rec-id #:key]
-                [Prop def-prop #:Prop prop-case print-prop prop-name-ht prop-rec-id]
-                [Object def-object #:Object object-case print-object object-name-ht object-rec-id]
-                [PathElem def-pathelem #:PathElem pathelem-case print-pathelem pathelem-name-ht pathelem-rec-id])
+     ;; - - - - - - - - - - - - - - -
+     ;; Error checking
+     ;; - - - - - - - - - - - - - - -
+     
+     ;; build convenient boolean flags
+     (define is-a-type? (eq? 'Type (syntax-e #'parent)))
+     (define intern-key (if (attribute provided-intern-key)
+                            #'provided-intern-key
+                            #'#t))
+     ;; intern-key is required (when the number of fields is > 0)
+     (when (and (not (attribute provided-intern-key))
+                (> (length (syntax->list #'flds)) 0))
+       (raise-syntax-error 'def-rep "intern key specification required when the number of fields > 0"
+                           #'var))
+     ;; no frees, walk, or fold for #:base Reps
+     (when (and (attribute base?) (or (attribute frees-spec)
+                                      (attribute walk-spec)
+                                      (attribute fold-spec)))
+       (raise-syntax-error 'def-rep "base reps cannot have #:frees, #:walk, or #:fold"
+                           #'var))
+     ;; if non-base, frees, walk, and fold are required
+     (when (and (not (attribute base?))
+                (or (not (attribute frees-spec))
+                    (not (attribute walk-spec))
+                    (not (attribute fold-spec))))
+       (raise-syntax-error 'def-rep "non-base reps require #:frees, #:walk, and #:fold"
+                           #'var))
+     ;; can't be structural and not a type
+     (when (and (not is-a-type?) (attribute structural))
+       (raise-syntax-error 'def-rep "only types can be structural" #'structural))
 
-(define (Rep-values rep)
-  (match rep
-    [(? (lambda (e) (or (Prop? e)
-                        (Object? e)
-                        (PathElem? e)))
-        (app (lambda (v) (vector->list (struct->vector v))) (list-rest tag seq fv fi stx vals)))
-     vals]
-    [(? Type?
-        (app (lambda (v) (vector->list (struct->vector v))) (list-rest tag seq fv fi stx key vals)))
-     vals]))
+     ;; - - - - - - - - - - - - - - -
+     ;; Let's build the definitions!
+     ;; - - - - - - - - - - - - - - -
+     
+     (with-syntax*
+       ([intern-key intern-key]
+        ;; contract for constructor
+        [constructor-contract #'(-> flds.contracts ... var.pred)]
+        ;; match expander (skips 'meta' fields)
+        [mexpdr-def
+         #`(define-match-expander var.mexpdr
+             (λ (s)
+               (syntax-parse s
+                 [(_ . pats)
+                  #,(if is-a-type? ;; skip Type-mask and subtype cache
+                        #'(syntax/loc s (var.name _ _ _ _ _ . pats))
+                        #'(syntax/loc s (var.name _ _ _ . pats)))])))]
+        ;; free var/idx defs
+        [free-vars-def (cond
+                         [(attribute base?) #'empty-free-vars]
+                         [else #'frees-spec.free-vars])]
+        [free-idxs-def (cond
+                         [(attribute base?) #'empty-free-vars]
+                         [else #'frees-spec.free-idxs])]
+        ;; top type info
+        [(maybe-top-type-spec ...)
+         (if (attribute top-pred)
+             #'(#:property prop:top-type top-pred)
+             #'())]
+        ;; if it's a structural type, save its field variances
+        [(maybe-structural ...)
+         (if (attribute structural)
+             #'(#:property prop:structural (list variances ...))
+             #'())]
+        ;; an argument if we accept a type mask
+        [mask-arg (generate-temporary 'mask)]
+        ;; constructor w/ interning and Type-mask handeling if necessary
+        [constructor-def
+         (cond
+           ;; non-Types don't need masks
+           [(not is-a-type?)
+            #'(define var.constructor
+                (let ([intern-table (make-hash)])
+                  (λ (flds.ids ...)
+                    (let ([key intern-key]
+                          [fail (λ () (let ([fvs free-vars-def]
+                                            [fis free-idxs-def])
+                                        (var.raw-constructor (count!) fvs fis flds.ids ...)))])
+                      (hash-ref! intern-table key fail)))))]
+           [else
+            ;; Types have to provide Type-masks and subtype caches
+            #`(define var.constructor
+                (let ([intern-table (make-hash)])
+                  (λ (flds.ids ...)
+                    (let ([key intern-key]
+                          [fail (λ () (let ([fvs free-vars-def]
+                                            [fis free-idxs-def]
+                                            [mask-val #,(if (attribute type-mask-body)
+                                                            #'(let () . type-mask-body)
+                                                            #'mask:unknown)])
+                                        (var.raw-constructor (count!) fvs fis (make-hash) mask-val flds.ids ...)))])
+                      (hash-ref! intern-table key fail)))))])]
+        ;; walk def
+        [walk-def (cond
+                    [(attribute base?) #'(λ (f x) (void))]
+                    [else #'walk-spec.def])]
+        ;; fold def
+        [fold-def (cond
+                    [(attribute base?) #'(λ (f x) x)]
+                    [else #'fold-spec.def])]
+        ;; is this a type that needs resolving (e.g. Mu)
+        [(maybe-needs-resolving ...)
+         (if (attribute needs-resolving?)
+             #'(#:property prop:resolvable #t)
+             #'())]
+        ;; how do we pull out the values required to fold this Rep?
+        [values-def #'(match-lambda
+                        [(var.mexpdr flds.ids ...) (list flds.ids ...)])]
+        ;; module provided defintions, if any
+        [(provides ...)
+         (cond
+           [(attribute no-provide?) #'()]
+           [else
+            #'((provide var.mexpdr var.pred flds.accessors ...)
+               (provide/cond-contract (var.constructor constructor-contract)))])]
+        [(extra-defs ...) (if (attribute extras) #'extras #'())])
+       ;; - - - - - - - - - - - - - - -
+       ;; macro output
+       ;; - - - - - - - - - - - - - - -
+       #'(begin
+           (struct var.name parent (flds.ids ...) #:transparent
+             #:constructor-name
+             var.raw-constructor
+             #:property prop:Rep-name (quote var.name)
+             #:property prop:get-constructor-fun
+             (λ (flds.ids ...) (var.constructor flds.ids ...))
+             #:property prop:get-values-fun
+             values-def
+             #:property prop:walk-fun
+             walk-def
+             #:property prop:fold-fun
+             fold-def
+             maybe-top-type-spec ...
+             maybe-structural ...
+             maybe-needs-resolving ...
+             extra-defs ...)
+           constructor-def
+           mexpdr-def
+           provides ...))]))
 
-;; Rep equality and inequality
-(define (rep-equal? s t)
-  (eq? (Rep-seq s) (Rep-seq t)))
-(define (rep<? s t)
-  (< (Rep-seq s) (Rep-seq t)))
+
+;; macro for easily defining sets of types represented by fixnum bitfields
+(define-syntax (define-type-bitfield stx)
+  (define-syntax-class atoms-spec
+    (pattern [abbrev:id
+              name:id
+              contract:expr
+              predicate:expr]
+             #:with bits (format-id #'name "bits:~a" (syntax-e #'name))
+             #:with provide #'(provide bits)))
+  (define-syntax-class union-spec
+    (pattern [abbrev:id
+              name:id
+              contract:expr
+              predicate:expr
+              (elements:id ...)
+              (~optional (~and #:no-provide no-provide?))]
+             #:with bits (format-id #'name "bits:~a" (syntax-e #'name))
+             #:with provide #'(provide bits)))
+  (syntax-parse stx
+    [(_ #:atom-count atomic-type-count:id
+        #:atomic-type-vector atomic-type-vector:id
+        #:atomic-name-vector atomic-name-vector:id
+        #:name-hash name-hash:id
+        #:atomic-contract-vector atomic-contract-vector:id
+        #:contract-hash contract-hash:id
+        #:atomic-predicate-vector atomic-predicate-vector:id
+        #:predicate-hash predicate-hash:id
+        #:constructor-template (mk-bits:id) mk-expr:expr
+        #:atoms
+        atoms:atoms-spec ...
+        #:unions
+        unions:union-spec ...)
+     (define max-base-atomic-count 31) ;; this way we can do unsafe fx ops on any machine
+     (define atom-list (syntax->datum #'(atoms.name ...)))
+     (define atom-count (length atom-list))
+     (unless (<= atom-count max-base-atomic-count)
+       (raise-syntax-error
+        'define-type-bitfield
+        (format "too many atomic base types (~a is the max)"
+                max-base-atomic-count)
+        stx))
+     (with-syntax ([(n ... ) (range atom-count)]
+                   [(2^n ...)
+                    (build-list atom-count (λ (n) (arithmetic-shift 1 n)))])
+       #`(begin
+           ;; how many atomic types?
+           (define atomic-type-count #,atom-count)
+           ;; define the atomic types' bit identifiers (e.g. bits:Null)
+           (begin (define atoms.bits 2^n) ...)
+           ;; define the union types' bit identifiers
+           (begin (define unions.bits
+                    (bitwise-ior unions.elements ...))
+                  ...)
+           ;; define the actual type references (e.g. -Null)
+           (begin (define/decl atoms.abbrev
+                    (let ([mk-bits atoms.bits]) mk-expr)) ...)
+           (begin (define/decl unions.abbrev
+                    (let ([mk-bits unions.bits]) mk-expr)) ...)
+           ;; define the various vectors and hashes
+           (define atomic-type-vector
+             (vector-immutable atoms.abbrev ...))
+           (define atomic-name-vector
+             (vector-immutable (quote atoms.name) ...))
+           (define name-hash
+             (make-immutable-hasheqv
+              (list (cons atoms.bits (quote atoms.name)) ...
+                    (cons unions.bits (quote unions.name)) ...)))
+           (define atomic-contract-vector
+             (vector-immutable atoms.contract ...))
+           (define contract-hash
+             (make-immutable-hasheqv
+              (list
+               (cons atoms.bits atoms.contract)
+              ...
+              (cons unions.bits unions.contract)
+              ...)))
+           (define atomic-predicate-vector
+             (vector-immutable atoms.predicate ...))
+           (define predicate-hash
+             (make-immutable-hasheqv
+              (list
+               (cons atoms.bits atoms.predicate) ...
+               (cons unions.bits unions.predicate) ...)))
+           ;; provide the bit variables (e.g. bits:Null)
+           atoms.provide ...
+           unions.provide ...))]))
+
 
 (provide
   Rep-values
-  (rename-out [Rep-seq Type-seq]
-              [Rep-free-vars free-vars*]
+  (rename-out [Rep-free-vars free-vars*]
               [Rep-free-idxs free-idxs*]))
-
-(provide/cond-contract
-  [rename rep-equal? type-equal? (Type? Type? . -> . boolean?)]
-  [rename rep<? type<? (Type? Type? . -> . boolean?)]
-  [rename rep<? prop<? (Prop? Prop? . -> . boolean?)]
-  [struct Rep ([seq exact-nonnegative-integer?]
-               [free-vars (hash/c symbol? variance?)]
-               [free-idxs (hash/c symbol? variance?)]
-               [stx (or/c #f syntax?)])])

@@ -6,8 +6,8 @@
          (contract-req)
          (rep type-rep prop-rep object-rep rep-utils)
          (utils tc-utils)
-         (types tc-result resolve subtype remove update union prop-ops)
-         (env type-env-structs lexical-env)
+         (types tc-result resolve subtype update union prop-ops)
+         (env type-env-structs lexical-env mvar-env)
          (rename-in (types abbrev)
                     [-> -->]
                     [->* -->*]
@@ -18,22 +18,41 @@
 
 ;; Returns #f if anything becomes (U)
 (define (env+ env ps)
-  (let/ec exit*
-    (define (exit) (exit* #f empty))
-    (define-values (props atoms) (combine-props ps (env-props env) exit))
-    (values
-      (for/fold ([Γ (replace-props env props)]) ([p (in-list atoms)])
-        (match p
-          [(or (TypeProp: (Path: lo x) pt) (NotTypeProp: (Path: lo x) pt))
-           (update-type/lexical
-             (lambda (x t)
-               (define new-t (update t pt (TypeProp? p) lo))
-               (when (type-equal? new-t -Bottom)
-                 (exit))
-               new-t)
-             x Γ)]
-          [_ Γ]))
-      atoms)))
+  (define-values (props atoms) (combine-props ps (env-props env)))
+  (cond
+    [props
+     (let loop ([ps atoms]
+                [negs '()]
+                [Γ (replace-props env props)])
+       (match ps
+         [(cons p ps)
+          (match p
+            [(TypeProp: (Path: lo x) pt)
+             #:when (and (not (is-var-mutated? x))
+                         (identifier-binding x))
+             (let* ([t (lookup-type/lexical x Γ #:fail (lambda _ Univ))]
+                    [new-t (update t pt #t lo)])
+               (if (type-equal? new-t -Bottom)
+                   (values #f '())
+                   (loop ps negs (extend Γ x new-t))))]
+            ;; process negative info _after_ positive info so we don't miss anything
+            [(NotTypeProp: (Path: _ x) _)
+             #:when (and (not (is-var-mutated? x))
+                         (identifier-binding x))
+             (loop ps (cons p negs) Γ)]
+            [_ (loop ps negs Γ)])]
+         [_ (let ([Γ (let loop ([negs negs]
+                                [Γ Γ])
+                       (match negs
+                         [(cons (NotTypeProp: (Path: lo x) pt) rst)
+                          (let* ([t (lookup-type/lexical x Γ #:fail (lambda _ Univ))]
+                                 [new-t (update t pt #f lo)])
+                            (if (type-equal? new-t -Bottom)
+                                #f
+                                (loop rst (extend Γ x new-t))))]
+                         [_ Γ]))])
+              (values Γ atoms))]))]
+    [else (values #f '())]))
 
 ;; run code in an extended env and with replaced props. Requires the body to return a tc-results.
 ;; TODO make this only add the new prop instead of the entire environment once tc-id is fixed to
@@ -46,10 +65,12 @@
   (syntax-parse stx
     [(_ ps:expr u:unreachable? . b)
      #'(let-values ([(new-env atoms) (env+ (lexical-env) ps)])
-         (if new-env
-             (with-lexical-env new-env
-               (add-unconditional-prop (let () . b) (apply -and (append atoms (env-props new-env)))))
-             ;; unreachable, bail out
-             (let ()
-               u.form
-               (ret -Bottom))))]))
+         (cond
+           [new-env
+            (with-lexical-env
+             new-env
+             (add-unconditional-prop (let () . b) (apply -and (append atoms (env-props new-env)))))]
+           [else
+            ;; unreachable, bail out
+            u.form
+            (ret -Bottom)]))]))

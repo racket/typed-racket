@@ -1,28 +1,40 @@
 #lang racket/base
-(require "../utils/utils.rkt")
-(require (rep type-rep) (contract-req))
 
-(provide (except-out (all-defined-out) current-seen-mark))
+(require "../utils/utils.rkt"
+         (rep rep-utils))
 
-(define current-seen-mark (make-continuation-mark-key 'current-seen))
-(define (current-seen)
-  (continuation-mark-set-first #f current-seen-mark null))
+(provide (except-out (all-defined-out) seen-mark))
+
+
+;;************************************************************
+;; Current Seen Continuation Mark
+;;************************************************************
+;;
+;; Prevents infinite loops when subtyping calls outside
+;; functions that may then call subtyping
+
+;; Type references/indirections that have been seen so far while
+;; subtyping, including the following types: Mus, Names, Structs,
+;; Apps, and Instances (but not really, right? it's an Instance's
+;; content that can be a reference, not the Instance itself... right?)
+(define seen-mark (make-continuation-mark-key 'seen))
+(define (seen)
+  (continuation-mark-set-first #f seen-mark null))
 (define (currently-subtyping?)
-  (continuation-mark-set-first #f current-seen-mark))
-(define-syntax-rule (update-current-seen new-value body)
-  (with-continuation-mark current-seen-mark new-value body))
+  (continuation-mark-set-first #f seen-mark))
 
-(define (seen-before s t) (cons (Type-seq s) (Type-seq t)))
+(define-syntax-rule (with-updated-seen A . body)
+  (with-continuation-mark seen-mark A (let () . body)))
 
-(define (remember s t A) 
-  (if (or (Mu? s) (Mu? t)
-          (Name? s) (Name? t)
-          (Instance? s) (Instance? t)
-          (Struct? s) (Struct? t) 
-          (App? s) (App? t))
-      (cons (seen-before s t) A)
-      A))
-(define (seen? ss st cs)
-  (for/or ([i (in-list cs)])
-    (and (eq? ss (car i)) (eq? st (cdr i)))))
+(define-syntax-rule (remember t1 t2 A)
+  (cons (cons t1 t2) A))
 
+(define-syntax-rule (remember* t1s/t2s A)
+  (append t1s/t2s A))
+
+(define-syntax-rule (seen? t1 t2 seen-ts)
+  (let ([seq1 (Rep-seq t1)]
+        [seq2 (Rep-seq t2)])
+    (for/or ([p (in-list seen-ts)])
+      (and (= (Rep-seq (car p)) seq1)
+           (= (Rep-seq (cdr p)) seq2)))))

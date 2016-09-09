@@ -5,7 +5,7 @@
          (typecheck signatures tc-app-helper)
          (types utils abbrev substitute)
          (utils tc-utils)
-         (rep type-rep)
+         (rep type-rep core-rep values-rep)
          (r:infer infer))
 
 (import tc-expr^ tc-lambda^ tc-let^ tc-app^)

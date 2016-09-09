@@ -10,7 +10,10 @@
          "mvar-env.rkt"
          "signature-env.rkt"
          (rename-in racket/private/sort [sort raw-sort])
-         (rep type-rep object-rep prop-rep rep-utils free-variance)
+         (rep core-rep type-rep
+              prop-rep rep-utils
+              object-rep values-rep
+              free-variance)
          (for-syntax syntax/parse racket/base)
          (types abbrev struct-table union utils)
          data/queue
@@ -57,10 +60,10 @@
 ;; Compute for a given type how many times each type inside of it
 ;; is referenced
 (define (compute-popularity ty)
-  (hash-update! pop-table ty add1 0)
-  (define (count ty) (compute-popularity ty) ty)
-  (type-case (#:Type count #:Prop (sub-f count) #:Object (sub-o count))
-             ty))
+  (when (Type? ty)
+    (hash-update! pop-table ty add1 0))
+  (when (walkable? ty)
+    (Rep-walk compute-popularity ty)))
 
 (define (popular? ty)
   (> (hash-ref pop-table ty 0) 5))
@@ -98,7 +101,7 @@
     (define-values (nums others) (partition numeric? ts))
     (cond [(or (null? nums) (null? others))
             ;; nothing interesting to do in this case
-            `(make-Union (,#'raw-sort (list ,@(map type->sexp ts)) < Type-seq #f))]
+            `(make-Union (list ,@(map type->sexp ts)))]
            [else
             ;; we do a little more work to hopefully save a bunch in serialization space
             ;; if we get a hit in the predefined-type-table
@@ -175,11 +178,11 @@
                     ,(type->sexp t)
                     ,(type->sexp ft)
                     ,(object->sexp pth))]
-    [(Function: (list (arr: dom (Values: (list (Result: t (PropSet: (NotTypeProp: (Path: pth (list 0 0))
+    [(Function: (list (arr: dom (Values: (list (Result: t (PropSet: (NotTypeProp: (Path: pth (cons 0 0))
                                                                                   (== -False))
-                                                                    (TypeProp: (Path: pth (list 0 0))
+                                                                    (TypeProp: (Path: pth (cons 0 0))
                                                                                (== -False)))
-                                                        (Path: pth (list 0 0)))))
+                                                        (Path: pth (cons 0 0)))))
                             #f #f '())))
      `(->acc (list ,@(map type->sexp dom))
              ,(type->sexp t)
@@ -217,8 +220,7 @@
                     `(quote ,v)))]
     [(Union: elems) (split-union elems)]
     [(Intersection: elems)
-     `(make-Intersection (set ,@(for/list ([elem (in-immutable-set elems)])
-                                  (type->sexp elem))))]
+     `(make-Intersection (list ,@(map type->sexp elems)))]
     [(Name: stx 0 #t)
      `(-struct-name (quote-syntax ,stx))]
     [(Name: stx args struct?)
@@ -316,7 +318,7 @@
 
 ;; Helper for class/row clauses
 (define (convert-row-clause members [inits? #f])
-  (for/list ([m members])
+  (for/list ([m (in-list members)])
     `(list (quote ,(car m))
            ,(type->sexp (cadr m))
            ,@(if inits? (cddr m) '()))))
@@ -343,15 +345,15 @@
 (define (object->sexp obj)
   (match obj
     [(Empty:) `(make-Empty)]
-    [(Path: null (list 0 arg))
+    [(Path: null (cons 0 arg))
      `(-arg-path ,arg)]
-    [(Path: null (list depth arg))
+    [(Path: null (cons depth arg))
      `(-arg-path ,arg ,depth)]
     [(Path: pes i)
      `(make-Path (list ,@(map path-elem->sexp pes))
                  ,(if (identifier? i)
                       `(quote-syntax ,i)
-                      `(list ,(car i) ,(cadr i))))]))
+                      `(cons ,(car i) ,(cdr i))))]))
 
 ;; Path-Element -> SExp
 ;; Convert a path element in an object to an s-expression
@@ -383,16 +385,16 @@
 ;; the type serialization pass. Only walks the environments that
 ;; actually track types.
 (define (compute-all-popularities)
-  (define (count-env map)
+  (define (count-env for-each)
     (define (count id ty) (compute-popularity ty))
     (define (bound-f id v)
       (and (bound-in-this-module id) (count id v)))
-    (map bound-f))
+    (for-each bound-f))
 
-  (count-env type-name-env-map)
-  (count-env type-alias-env-map)
-  (count-env type-env-map)
-  (count-env signature-env-map))
+  (count-env type-name-env-for-each)
+  (count-env type-alias-env-for-each)
+  (count-env type-env-for-each)
+  (count-env signature-env-for-each))
 
 (define (tname-env-init-code)
   (make-init-code
@@ -422,7 +424,7 @@
 (define (signature-env-init-code)
   (make-init-code
    signature-env-map
-   (lambda (id sig) #`(register-signature! #'#,id #,(quote-type sig)))))
+   (lambda (id sig) #`(register-signature! #'#,id (delay #,(quote-type sig))))))
 
 (define (make-struct-table-code)
   (make-init-code

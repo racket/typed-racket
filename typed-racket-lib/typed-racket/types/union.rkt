@@ -9,14 +9,7 @@
 
 
 (provide/cond-contract
- [Un (() #:rest (c:listof Type/c) . c:->* . Type/c)])
-
-;; List[Type] -> Type
-;; Argument types should not overlap or be union types
-(define (make-union* types)
-  (match types
-    [(list t) t]
-    [_ (make-Union types)]))
+ [Un (() #:rest (c:listof Type?) . c:->* . Type?)])
 
 ;; a is a Type (not a union type)
 ;; b is a List[Type] (non overlapping, non Union-types)
@@ -24,7 +17,7 @@
 ;; The overlapping constraint is lifted if we are in the midst of subtyping. This is because during
 ;; subtyping calls to subtype are expensive.
 (define (merge a b)
-  (define b* (make-union* b))
+  (define b* (make-Union b))
   (match* (a b)
     ;; If a union element is a Name application, then it should not
     ;; be checked for subtyping since that can cause infinite
@@ -58,7 +51,7 @@
      (cond [(hash-ref Un-cache args #f)]
            [else
             (define ts (foldr merge '()
-                              (remove-dups (sort (append-map flat args) type<?))))
-            (define type (make-union* ts))
+                              (remove-duplicates (append-map flat args) type-equal?)))
+            (define type (make-Union ts))
             (hash-set! Un-cache args type)
             type])]))

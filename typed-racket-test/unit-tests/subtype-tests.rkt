@@ -2,7 +2,7 @@
 
 (require "test-utils.rkt"
          (types subtype numeric-tower union utils abbrev)
-         (rep type-rep)
+         (rep type-rep values-rep)
          (env init-envs type-env-structs)
          rackunit
          (for-syntax racket/base))
@@ -131,7 +131,7 @@
     (cl-> [() (-pair -Number (-v b))]
           [(-Number) (-pair -Number (-v b))])]
 
-   [(-values (list -Number)) (-values (list Univ))]
+   ;[(-values (list -Number)) (-values (list Univ))]
 
    [(-poly (b) ((Un (make-Base 'foo #'dummy values #f)
                     (-struct #'bar #f
@@ -171,6 +171,8 @@
    [(-pair -String (-lst -String)) (-seq -String)]
    [FAIL (-pair -String (-lst -Symbol)) (-seq -String)]
    [FAIL (-pair -String (-vec -String)) (-seq -String)]
+   [(-mpair -String -Null) (-seq -String)]
+   [(-mlst -String) (-seq -String)]
    [(-mpair -String (-mlst -String)) (-seq -String)]
    [FAIL (-mpair -String (-mlst -Symbol)) (-seq -String)]
    [FAIL (-mpair -String (-vec -String)) (-seq -String)]
@@ -280,8 +282,8 @@
    [FAIL (make-ListDots (-box (make-F 'a)) 'a) (-lst (-box Univ))]
    [(make-ListDots (-> -Symbol (make-F 'a)) 'a) (-lst (-> -Symbol Univ))]
 
-   [FAIL (make-ValuesDots (list) -Symbol 'a) (make-ValuesDots (list (-result -String)) -String 'a)]
-   [(-values (list -Bottom)) (-values (list -String -Symbol))]
+   ;[FAIL (make-ValuesDots (list) -Symbol 'a) (make-ValuesDots (list (-result -String)) -String 'a)]
+   ;[(-values (list -Bottom)) (-values (list -String -Symbol))]
 
    [(-> Univ -Bottom) (-> Univ (-values (list -String -Symbol)))]
    [(-> Univ -Bottom) (-> Univ (-values-dots null -String 'x))]

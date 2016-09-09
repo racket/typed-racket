@@ -9,10 +9,10 @@
   ([cond-contracted tc-expr (syntax? . -> . full-tc-results/c)]
    [cond-contracted tc-expr/check (syntax? (or/c tc-results/c #f) . -> . full-tc-results/c)]
    [cond-contracted tc-expr/check? (syntax? (or/c tc-results/c #f) . -> . (or/c full-tc-results/c #f))]
-   [cond-contracted tc-expr/check/t (syntax? tc-results/c . -> . Type/c)]
-   [cond-contracted tc-expr/check/t? (syntax? (or/c tc-results/c #f) . -> . (or/c Type/c #f))]
+   [cond-contracted tc-expr/check/t (syntax? tc-results/c . -> . Type?)]
+   [cond-contracted tc-expr/check/t? (syntax? (or/c tc-results/c #f) . -> . (or/c Type? #f))]
    [cond-contracted tc-body/check (syntax? (or/c tc-results/c #f) . -> . full-tc-results/c)]
-   [cond-contracted tc-expr/t (syntax? . -> . Type/c)]
+   [cond-contracted tc-expr/t (syntax? . -> . Type?)]
    [cond-contracted single-value ((syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]))
 
 (define-signature check-subforms^
@@ -32,7 +32,7 @@
   ([cond-contracted tc/if-twoarm ((syntax? syntax? syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]))
 
 (define-signature tc-literal^
-  ([cond-contracted tc-literal (->* (syntax?) ((or/c Type/c #f)) Type/c)]))
+  ([cond-contracted tc-literal (->* (syntax?) ((or/c Type? #f)) Type?)]))
 
 (define-signature tc-send^
   ([cond-contracted tc/send ((syntax? syntax?
@@ -47,7 +47,7 @@
 
 (define-signature tc-lambda^
   ([cond-contracted tc/lambda (syntax? syntax? syntax? (or/c tc-results/c #f) . -> . full-tc-results/c)]
-   [cond-contracted tc/rec-lambda/check (syntax? syntax? syntax? (listof Type/c) tc-results/c . -> .
+   [cond-contracted tc/rec-lambda/check (syntax? syntax? syntax? (listof Type?) tc-results/c . -> .
                                                  (values full-tc-results/c full-tc-results/c))]))
 
 (define-signature tc-app^
@@ -62,5 +62,5 @@
    [cond-contracted tc/letrec-values ((syntax? syntax? syntax?) ((or/c #f tc-results/c) (-> any)) . ->* . full-tc-results/c)]))
 
 (define-signature tc-dots^
-  ([cond-contracted tc/dots (syntax? . -> . (values Type/c symbol?))]))
+  ([cond-contracted tc/dots (syntax? . -> . (values Type? symbol?))]))
 

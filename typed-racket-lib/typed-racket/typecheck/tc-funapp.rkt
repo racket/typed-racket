@@ -15,7 +15,7 @@
 
 (provide/cond-contract
   [tc/funapp
-   (syntax? stx-list? Type/c (c:listof tc-results1/c)
+   (syntax? stx-list? Type? (c:listof tc-results1/c)
     (c:or/c #f tc-results/c)
     . c:-> . full-tc-results/c)])
 
@@ -156,15 +156,15 @@
     [(Distinction: _ _ t)
      (tc/funapp f-stx args-stx t args-res expected)]
     ;; resolve names, polymorphic apps, mu, etc
-    [(? needs-resolving?)
+    [(? needs-resolved?)
      (tc/funapp f-stx args-stx (resolve-once f-type) args-res expected)]
     ;; a union of functions can be applied if we can apply all of the elements
     [(Union: (and ts (list (? Function?) ...)))
      (merge-tc-results
       (for/list ([fty ts])
         (tc/funapp f-stx args-stx fty args-res expected)))]
-    ;; error type is a perfectly good fcn type
-    [(Error:) (ret f-type)]
+    ;; bottom or error type is a perfectly good fcn type
+    [(or (Bottom:) (Error:)) (ret f-type)]
     ;; otherwise fail
     [(Poly: ns (Function: arrs))
      (tc-error/expr

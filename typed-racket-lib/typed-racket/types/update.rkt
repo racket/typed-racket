@@ -4,9 +4,9 @@
 (require racket/match racket/list
          (contract-req)
          (infer-in infer)
-         (rep type-rep prop-rep object-rep rep-utils)
+         (rep core-rep type-rep prop-rep object-rep values-rep rep-utils)
          (utils tc-utils)
-         (types resolve subtype remove union)
+         (types resolve subtype subtract union)
          (rename-in (types abbrev)
                     [-> -->]
                     [->* -->*]
@@ -22,7 +22,7 @@
 ;; path-elems : which fields we're traversing to update,
 ;;   in *syntactic order* (e.g. (car (cdr x)) -> '(car cdr))  
 (define/cond-contract (update t new-t pos? path-elems)
-  (Type/c Type/c boolean? (listof PathElem?) . -> . Type/c)
+  (Type? Type? boolean? (listof PathElem?) . -> . Type?)
   ;; build-type: build a type while propogating bottom
   (define (build constructor . args)
     (if (memf Bottom? args) -Bottom (apply constructor args)))
@@ -32,10 +32,6 @@
   (let update
     ([t t] [path (reverse path-elems)])
     (match path
-      ;; path is empty (base case)
-      [(list) (cond
-                [pos? (intersect (resolve t) new-t)]
-                [else (remove (resolve t) new-t)])]
       ;; path is non-empty
       ;; (i.e. there is some field access we'll try and traverse)
       [(cons path-elem rst)
@@ -87,9 +83,20 @@
          
          [((Union: ts) _)
           (apply Un (map (λ (t) (update t path)) ts))]
+
+         [((Intersection: ts) _)
+          (for/fold ([t Univ])
+                    ([elem (in-list ts)])
+            (intersect t (update elem path)))]
          
          [(_ _)
-          ;; This likely comes up with (-lst t) and we need to improve the system to make sure this case
-          ;; dosen't happen
-          ;;(int-err "update along ill-typed path: ~a ~a ~a" t t* lo)
-          t])])))
+          (match path-elem
+            [(CarPE:) (intersect t (-pair (update Univ rst) Univ))]
+            [(CdrPE:) (intersect t (-pair Univ (update Univ rst)))]
+            [(SyntaxPE:) (intersect t (-syntax-e (update Univ rst)))]
+            [(ForcePE:) (intersect t (-force (update Univ rst)))]
+            [_ t])])]
+      ;; path is empty (base case)
+      [_ (cond
+           [pos? (intersect (resolve t) new-t)]
+           [else (subtract (resolve t) new-t)])])))

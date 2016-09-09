@@ -4,7 +4,7 @@
          racket/syntax syntax/parse syntax/stx syntax/id-table
          racket/list racket/dict racket/match racket/sequence
          (prefix-in c: (contract-req))
-         (rep type-rep)
+         (rep core-rep type-rep values-rep)
          (types utils abbrev type-table struct-table)
          (private parse-type type-annotation syntax-properties type-contract)
          (env global-env init-envs type-name-env type-alias-env
@@ -349,9 +349,10 @@
   ;; Add the struct names to the type table, but not with a type
   (let ((names (map name-of-struct struct-defs))
         (type-vars (map type-vars-of-struct struct-defs)))
-    (for ([name names])
+    (for ([name (in-list names)]
+          [tvars (in-list type-vars)])
       (register-resolved-type-alias
-       name (make-Name name 0 #t)))
+       name (make-Name name (length tvars) #t)))
     (for-each register-type-name names)
     (for-each add-constant-variance! names type-vars))
   (do-time "after adding type names")

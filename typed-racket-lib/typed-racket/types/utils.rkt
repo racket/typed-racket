@@ -14,17 +14,6 @@
 (provide (all-from-out "tc-result.rkt" "tc-error.rkt"))
 
 
-;; unfold : Type -> Type
-;; must be applied to a Mu
-(define (unfold t)
-  (match t
-    [(Mu: name b)
-     (define (sb target)
-       (type-case (#:Type sb #:Prop (sub-f sb) #:Object (sub-o sb))
-         target
-         [#:F name* (if (eq? name name*) t target)]))
-     (sb b)]))
-
 (define (instantiate-poly t types)
   (match t
     [(Poly: ns body)
@@ -114,14 +103,13 @@
         ok?)))
 
 (provide/cond-contract
- [unfold (Mu? . -> . Type/c)]
- [instantiate-poly ((or/c Poly? PolyDots? PolyRow?) (listof Type/c)
-                    . -> . Type/c)]
+ [instantiate-poly ((or/c Poly? PolyDots? PolyRow?) (listof Rep?)
+                    . -> . Rep?)]
  [instantiate-poly-dotted
-  (PolyDots? (listof Type/c) Type/c symbol? . -> . Type/c)] 
+  (PolyDots? (listof Rep?) Rep? symbol? . -> . Rep?)] 
  [fv (Rep? . -> . (listof symbol?))]
  [fi (Rep? . -> . (listof symbol?))]
- [fv/list ((listof Type/c) . -> . (set/c symbol?))]
+ [fv/list ((listof Rep?) . -> . (set/c symbol?))]
  [current-poly-struct (parameter/c (or/c #f poly?))]
  [has-optional-args? (-> (listof arr?) any)]
  )

@@ -1,6 +1,9 @@
 #lang racket/base
 
-(require "abbrev.rkt" "../rep/type-rep.rkt"
+(require "abbrev.rkt"
+         "../rep/core-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
          "../utils/tc-utils.rkt"
          "../base-env/annotate-classes.rkt"
          "tc-result.rkt"

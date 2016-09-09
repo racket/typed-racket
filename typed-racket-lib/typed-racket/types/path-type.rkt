@@ -3,7 +3,7 @@
 (require "../utils/utils.rkt"
          racket/match racket/set
          (contract-req)
-         (rep object-rep type-rep)
+         (rep object-rep type-rep values-rep)
          (utils tc-utils)
          (typecheck renamer)
          (types subtype resolve union)
@@ -12,7 +12,7 @@
 (require-for-cond-contract (rep rep-utils))
 
 (provide/cond-contract
- [path-type ((listof PathElem?) Type/c . -> . Type/c)])
+ [path-type ((listof PathElem?) Type? . -> . (or/c Type? #f))])
 
 
 ;; returns the result of following a path into a type
@@ -24,7 +24,7 @@
 ;; It is intentionally reset each time we decrease the
 ;; paths size on a recursive call, and maintained/extended
 ;; when the path does not decrease on a recursive call.
-(define (path-type path t [resolved (set)])
+(define (path-type path t [resolved (hash)])
   (match* (t path)
     ;; empty path
     [(t (list)) t]
@@ -48,24 +48,35 @@
       (list rst ... (StructPE: (? (λ (s) (subtype t s)) s) idx)))
      (match-let ([(fld: ft _ _) (list-ref flds idx)])
        (path-type rst ft))]
-    
+
+    [((Intersection: ts) _)
+     (apply -unsafe-intersect (for*/list ([t (in-list ts)]
+                                          [t (in-value (path-type path t resolved))]
+                                          #:when t)
+                                t))]
     [((Union: ts) _)
-     (apply Un (map (λ (t) (path-type path t resolved)) ts))]
+     (apply Un (for*/list ([t (in-list ts)]
+                           [t (in-value (path-type path t resolved))]
+                           #:when t)
+                 t))]
     
     ;; paths into polymorphic types
+    ;; TODO can this expose unbound type indices... probably. It should be
+    ;; shielded with a check for type indexes/variables/whatever.
     [((Poly: _ body-t) _) (path-type path body-t resolved)]
     [((PolyDots: _ body-t) _) (path-type path body-t resolved)]
     [((PolyRow: _ _ body-t) _) (path-type path body-t resolved)]
+    [((Distinction: _ _ t) _) (path-type path t resolved)]
     
     ;; for private fields in classes
     [((Function: (list (arr: doms (Values: (list (Result: rng _ _))) _ _ _)))
       (list rst ... (FieldPE:)))
-     (path-type rst rng)]
+     (path-type rst rng resolved)]
 
     ;; types which need resolving
-    [((? needs-resolving?) _) #:when (not (set-member? resolved t))
-     (path-type path (resolve-once t) (set-add resolved t))]
+    [((? needs-resolved?) _) #:when (not (hash-ref resolved t #f))
+     (path-type path (resolve-once t) (hash-set resolved t #t))]
     
     ;; type/path mismatch =(
-    [(_ _) Err]))
+    [(_ _) #f]))
 

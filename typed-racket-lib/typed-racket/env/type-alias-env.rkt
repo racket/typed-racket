@@ -11,7 +11,8 @@
          lookup-type-alias
          resolve-type-aliases
          register-resolved-type-alias
-         type-alias-env-map)
+         type-alias-env-map
+         type-alias-env-for-each)
 
 (define-struct alias-def () #:inspector #f)
 (define-struct (unresolved alias-def) (stx [in-process #:mutable]) #:inspector #f)
@@ -64,4 +65,9 @@
 (define (type-alias-env-map f)  
   (for/list ([(id t) (in-sorted-dict the-mapping id<)]
              #:when (resolved? t))
+    (f id (resolved-ty t))))
+
+(define (type-alias-env-for-each f)  
+  (for ([(id t) (in-sorted-dict the-mapping id<)]
+        #:when (resolved? t))
     (f id (resolved-ty t))))

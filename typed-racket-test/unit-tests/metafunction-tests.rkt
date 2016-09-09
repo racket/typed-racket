@@ -3,7 +3,7 @@
 (require "test-utils.rkt"
          rackunit racket/format
          (typecheck tc-metafunctions tc-subst)
-         (rep prop-rep type-rep object-rep)
+         (rep prop-rep type-rep object-rep values-rep)
          (types abbrev union prop-ops tc-result numeric-tower)
          (for-syntax racket/base syntax/parse))
 
@@ -16,9 +16,10 @@
      (quasisyntax/loc stx
        (test-case (~a '(new + existing = expected))
          (define success
-           (let/ec exit
-             (define-values (res-formulas res-props) (combine-props new existing exit))
-             #,(syntax/loc stx (check-equal? (append res-formulas res-props) expected))
+           (let-values ([(res-formulas res-props) (combine-props new existing)])
+             #,(syntax/loc stx (check-equal? (and res-formulas
+                                                  (append res-formulas res-props))
+                                             expected))
              #t))
          #,(syntax/loc stx (check-equal? success box-v))))]))
 
@@ -89,59 +90,59 @@
         (ret -Symbol (-PS -tt -ff)))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result -Symbol (-PS -tt -ff) (make-Path null '(0 0)))))
+        (values->tc-results (make-Values (list (-result -Symbol (-PS -tt -ff) (make-Path null '(0 . 0)))))
                             (list -empty-obj) (list Univ))
         (ret -Symbol (-PS -tt -ff)))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-PS (-is-type '(0 0) -String) -tt))))
+        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-PS (-is-type '(0 . 0) -String) -tt))))
                             (list -empty-obj) (list Univ))
         (ret (-opt -Symbol) -tt-propset))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-PS (-not-type '(0 0) -String) -tt))))
+        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-PS (-not-type '(0 . 0) -String) -tt))))
                             (list -empty-obj) (list Univ))
         (ret (-opt -Symbol) -tt-propset))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-PS (-not-type '(0 0) -String) -tt)
-                                                 (make-Path null '(0 0)))))
+        (values->tc-results (make-Values (list (-result (-opt -Symbol) (-PS (-not-type '(0 . 0) -String) -tt)
+                                                 (make-Path null '(0 . 0)))))
                             (list (make-Path null #'x)) (list Univ))
         (ret (-opt -Symbol) (-PS (-not-type #'x -String) -tt) (make-Path null #'x)))
 
       ;; Check additional props
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt -String) (-PS -tt (-not-type '(0 0) -String))
-                                                 (make-Path null '(0 0)))))
+        (values->tc-results (make-Values (list (-result (-opt -String) (-PS -tt (-not-type '(0 . 0) -String))
+                                                 (make-Path null '(0 . 0)))))
                             (list (make-Path null #'x)) (list -String))
         (ret -String -true-propset (make-Path null #'x)))
 
       ;; Substitute into ranges correctly
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt (-> Univ -Boolean : (-PS (-is-type '(0 0) -Symbol) -tt))))))
+        (values->tc-results (make-Values (list (-result (-opt (-> Univ -Boolean : (-PS (-is-type '(0 . 0) -Symbol) -tt))))))
                             (list (make-Path null #'x)) (list Univ))
-        (ret (-opt (-> Univ -Boolean : (-PS (-is-type '(0 0) -Symbol) -tt)))))
+        (ret (-opt (-> Univ -Boolean : (-PS (-is-type '(0 . 0) -Symbol) -tt)))))
 
       (check-equal?
-        (values->tc-results (make-Values (list (-result (-opt (-> Univ -Boolean : (-PS (-is-type '(1 0) -Symbol) -tt))))))
+        (values->tc-results (make-Values (list (-result (-opt (-> Univ -Boolean : (-PS (-is-type '(1 . 0) -Symbol) -tt))))))
                             (list (make-Path null #'x)) (list Univ))
         (ret (-opt (-> Univ -Boolean : (-PS (-is-type #'x -Symbol) -tt)))))
 
       ;; Substitute into prop of any values
       (check-equal?
-        (values->tc-results (make-AnyValues (-is-type '(0 0) -String))
+        (values->tc-results (make-AnyValues (-is-type '(0 . 0) -String))
                             (list (make-Path null #'x)) (list Univ))
         (tc-any-results (-is-type #'x -String)))
 
 
       (check-equal?
-        (values->tc-results (-values-dots null (-> Univ -Boolean : (-PS (-is-type '(1 0) -String) -tt)) 'b)
+        (values->tc-results (-values-dots null (-> Univ -Boolean : (-PS (-is-type '(1 . 0) -String) -tt)) 'b)
                             (list (make-Path null #'x)) (list Univ))
         (ret null null null (-> Univ -Boolean : (-PS (-is-type #'x -String) -tt)) 'b))
 
       ;; Prop is restricted by type of object
       (check-equal?
-        (values->tc-results (make-Values (list (-result -Boolean (-PS (-is-type '(0 0) -PosReal) (-is-type '(0 0) -NonPosReal)))))
+        (values->tc-results (make-Values (list (-result -Boolean (-PS (-is-type '(0 . 0) -PosReal) (-is-type '(0 . 0) -NonPosReal)))))
                             (list (make-Path null #'x)) (list -Integer))
         (ret -Boolean (-PS (-is-type #'x -PosInt) (-is-type #'x -NonPosInt))))
 
@@ -150,9 +151,9 @@
         (values->tc-results
          (make-Values
           (list (-result -Boolean
-                         (-PS (make-TypeProp (make-Path (list -car) '(0 0))
+                         (-PS (make-TypeProp (make-Path (list -car) '(0 . 0))
                                              -PosReal)
-                              (make-TypeProp (make-Path (list -car) '(0 0))
+                              (make-TypeProp (make-Path (list -car) '(0 . 0))
                                              -NonPosReal)))))
          (list (make-Path null #'x))
          (list (-lst -Integer)))
@@ -163,12 +164,12 @@
 
     (test-suite "replace-names"
       (check-equal?
-        (replace-names (list (list #'x (make-Path null (list 0 0))))
+        (replace-names (list #'x) (list (make-Path null '(0 . 0)))
                        (ret Univ -tt-propset (make-Path null #'x)))
-        (ret Univ -tt-propset (make-Path null (list 0 0))))
+        (ret Univ -tt-propset (make-Path null '(0 . 0))))
       (check-equal?
-        (replace-names (list (list #'x (make-Path null (list 0 0))))
+        (replace-names (list #'x) (list (make-Path null '(0 . 0)))
                        (ret (-> Univ Univ : -tt-propset : (make-Path null #'x))))
-        (ret (-> Univ Univ : -tt-propset : (make-Path null (list 1 0)))))
+        (ret (-> Univ Univ : -tt-propset : (make-Path null '(1 . 0)))))
     )
   ))

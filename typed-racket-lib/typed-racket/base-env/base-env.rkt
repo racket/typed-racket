@@ -177,7 +177,7 @@
            #:repeat? Univ #f
            -String)]
 
-[non-empty-string? (make-pred-ty -String)]
+[non-empty-string? (asym-pred Univ -Boolean (-PS (-is-type 0 -String) -tt))]
 [string-contains? (-> -String -String -Boolean)]
 [string-prefix? (-> -String -String -Boolean)]
 [string-suffix? (-> -String -String -Boolean)]

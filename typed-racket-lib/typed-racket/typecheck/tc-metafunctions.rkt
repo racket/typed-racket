@@ -46,12 +46,12 @@
     (match prop
       [(AndProp: ps)
        (let loop ([ps ps] [result null])
-         (if (null? ps)
-             (apply -and result)
-             (let ([p (car ps)])
-               (cond [(contradictory? a p) -ff]
-                     [(implies-atomic? a p) (loop (cdr ps) result)]
-                     [else (loop (cdr ps) (cons p result))]))))]
+         (match ps
+           [(cons p ps)
+            (cond [(contradictory? a p) -ff]
+                  [(implies-atomic? a p) (loop ps result)]
+                  [else (loop ps (cons p result))])]
+           [_ (apply -and result)]))]
       [_ prop])))
 
 (define (flatten-props ps)
@@ -68,34 +68,37 @@
                           (or/c #f (listof (or/c TypeProp? NotTypeProp?)))))
   (define (atomic-prop? p) (or (TypeProp? p) (NotTypeProp? p)))
   (define-values (new-atoms new-formulas) (partition atomic-prop? (flatten-props new-props)))
-  (let loop ([derived-formulas null]
+  (let loop ([derived-ors null]
              [derived-atoms new-atoms]
              [worklist (append old-props new-formulas)])
-    (if (null? worklist)
-        (values derived-formulas derived-atoms)
-        (let* ([p (car worklist)]
-               [p (resolve derived-atoms p)])
-          (match p
-            [(OrProp: ps)
-             (let ([new-or
-                    (let or-loop ([ps ps] [result null])
-                      (cond
-                        [(null? ps) (apply -or result)]
-                        [(for/or ([other-p (in-list (append derived-formulas derived-atoms))])
-                           (contradictory? (car ps) other-p))
-                         (or-loop (cdr ps) result)]
-                        [(for/or ([other-p (in-list derived-atoms)])
-                           (implies-atomic? other-p (car ps)))
-                         -tt]
-                        [else (or-loop (cdr ps) (cons (car ps) result))]))])
-               (if (OrProp? new-or)
-                   (loop (cons new-or derived-formulas) derived-atoms (cdr worklist))
-                   (loop derived-formulas derived-atoms (cons new-or (cdr worklist)))))]
-            [(or (? TypeProp?) (? NotTypeProp?)) (loop derived-formulas (cons p derived-atoms) (cdr worklist))]
+    (match worklist
+      [(cons (app (λ (p) (resolve derived-atoms p)) p)
+             worklist)
+       (match p
+         [(OrProp: qs)
+          (let or-loop ([qs qs] [result null])
+            (match qs
+              [(cons q qs)
+               (let check-loop ([atoms derived-atoms])
+                 (match atoms
+                   [(cons a atoms)
+                    (cond
+                      [(contradictory? q a) (or-loop qs result)]
+                      [(implies-atomic? a q) (loop derived-ors derived-atoms worklist)]
+                      [else (check-loop atoms)])]
+                   [_ (or-loop qs (cons q result))]))]
+              [_ (define new-or (apply -or result))
+                 (if (OrProp? new-or)
+                     (loop (cons new-or derived-ors) derived-atoms worklist)
+                     (loop derived-ors derived-atoms (cons new-or worklist)))]))]
+         [(or (? TypeProp?)
+              (? NotTypeProp?))
+          (loop derived-ors (cons p derived-atoms) worklist)]
 
-            [(AndProp: ps) (loop derived-formulas derived-atoms (append ps (cdr worklist)))]
-            [(TrueProp:) (loop derived-formulas derived-atoms (cdr worklist))]
-            [(FalseProp:) (values #f #f)])))))
+         [(AndProp: qs) (loop derived-ors derived-atoms (append qs worklist))]
+         [(== -tt prop-equal?) (loop derived-ors derived-atoms worklist)]
+         [(== -ff prop-equal?) (values #f #f)])]
+      [_ (values derived-ors derived-atoms)])))
 
 
 (define (unconditional-prop res)

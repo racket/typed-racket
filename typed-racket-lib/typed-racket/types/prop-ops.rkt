@@ -203,18 +203,16 @@
          [(OrProp: ps*) (loop (append ps* ps) result)]
          [(? FalseProp?) (loop ps result)]
          [_
-          (cond
-            [(let check-loop ([qs ps])
-               (match qs
-                 [(cons q qs) (cond
-                                [(complementary? p q) -tt]
-                                [(implies-atomic? p q) (loop ps result)]
-                                [else (check-loop qs)])]
-                 [_ #f]))]
-            [(for/or ([q (in-list result)])
-               (implies-atomic? p q))
-             (loop ps result)]
-            [else (loop ps (cons p result))])])]
+          (let check-loop ([qs ps])
+            (match qs
+              [(cons q qs) (cond
+                             [(complementary? p q) -tt]
+                             [(implies-atomic? p q) (loop ps result)]
+                             [else (check-loop qs)])]
+              [_ #:when (for/or ([q (in-list result)])
+                          (implies-atomic? p q))
+                 (loop ps result)]
+              [_ (loop ps (cons p result))]))])]
       [_ (distribute (compact-or-props result))])))
 
 (define (-and . args)

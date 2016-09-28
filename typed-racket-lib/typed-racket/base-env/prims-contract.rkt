@@ -294,11 +294,12 @@
          ;; We want the value bound to name to have a nice object name. Using the built in mechanism
          ;; of define has better performance than procedure-rename.
          #,(ignore
-             #'(define name
-                 (let ([pred (make-predicate ty)])
-                   (lambda (x) (pred x)))))
+            (syntax/loc stx
+              (define name
+                (let ([pred (make-predicate ty)])
+                  (lambda (x) (pred x))))))
          ;; not a require, this is just the unchecked declaration syntax
-         #,(internal #'(require/typed-internal name (Any -> Boolean : ty))))]))
+         #,(internal (syntax/loc stx (require/typed-internal name (Any -> Boolean : ty)))))]))
 
 
 (define (make-predicate stx)

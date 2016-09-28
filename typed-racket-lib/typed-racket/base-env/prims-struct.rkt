@@ -217,7 +217,7 @@
     [(_ :type-alias-full)
      #`(begin
          #,(if (not (attribute omit))
-               (ignore #'(define-syntax tname type-name-error))
+               (ignore (syntax/loc stx (define-syntax tname type-name-error)))
                #'(begin))
          #,(internal (syntax/loc stx
                        (define-type-alias-internal tname type poly-vars))))]))

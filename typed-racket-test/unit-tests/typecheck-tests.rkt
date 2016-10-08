@@ -554,6 +554,11 @@
         [tc-e (vector-immutable 2 "3" #t) (make-HeterogeneousVector (list -Integer -String -Boolean))]
         [tc-e (make-vector 4 1) (-vec -Integer)]
         [tc-e (build-vector 4 (lambda (x) 1)) (-vec -Integer)]
+        [tc-e (let ([x : Any (vector 1 2 3)])
+                (if (vector? x)
+                    (vector->list x)
+                    '()))
+              (-lst Univ)]
         [tc-e (range 0) -Null]
         [tc-e (range 1) (-lst* -Zero)]
         [tc-e (range 4) (-lst -Byte)]

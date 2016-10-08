@@ -837,7 +837,8 @@
 
 ;; Section 4.11 (Vectors)
 [vector? (make-pred-ty (make-VectorTop))]
-[vector->list (-poly (a) (-> (-vec a) (-lst a)))]
+[vector->list (-poly (a) (cl->* (-> (-vec a) (-lst a))
+                                (-> (make-VectorTop) (-lst Univ))))]
 [list->vector (-poly (a) (-> (-lst a) (-vec a)))]
 [vector-length ((make-VectorTop) . -> . -Index)]
 [vector (-poly (a) (->* (list) a (-vec a)))]

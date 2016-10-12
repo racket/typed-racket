@@ -302,12 +302,17 @@
 
 (define SomeValues/c (or/c Values? AnyValues? ValuesDots?))
 
+(define (keyword-sorted/c kws)
+  (or (empty? kws)
+      (= (length kws) 1)
+      (apply keyword<? (map Keyword-kw kws))))
+
 ;; arr is NOT a Type
 (def-type arr ([dom (listof Type/c)]
                [rng SomeValues/c]
                [rest (or/c #f Type/c)]
                [drest (or/c #f (cons/c Type/c (or/c natural-number/c symbol?)))]
-               [kws (listof Keyword?)])
+               [kws (and/c (listof Keyword?) keyword-sorted/c)])
   [#:intern (list (map Rep-seq dom) (Rep-seq rng) (and rest (Rep-seq rest))
                   (and drest (cons (Rep-seq (car drest)) (cdr drest)))
                   (map Rep-seq kws))]

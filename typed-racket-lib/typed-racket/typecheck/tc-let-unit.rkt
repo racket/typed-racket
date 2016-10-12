@@ -55,28 +55,22 @@
         ([e-r   (in-list expected-results)]
          [names (in-list namess)])
         (match e-r
-          [(list (tc-result: e-ts (PropSet: fs+ fs-) os) ...)
+          [(list (tc-result: e-ts (PropSet: ps+ ps-) os) ...)
            (values e-ts
-                   (map (λ (o n t) (if (or (is-var-mutated? n) (F? t)) -empty-obj o)) os names e-ts)
+                   (map (λ (o n) (if (is-var-mutated? n) -empty-obj o)) os names)
                    (apply append
                           (for/list ([n (in-list names)]
                                      [t (in-list e-ts)]
-                                     [f+ (in-list fs+)]
-                                     [f- (in-list fs-)]
+                                     [p+ (in-list ps+)]
+                                     [p- (in-list ps-)]
                                      [o (in-list os)])
                             (cond
-                              [(not (overlap? t (-val #f)))
-                               (list f+)]
-                              [(is-var-mutated? n)
-                               (list)]
-                              ;; n is being bound to an expression w/ object o, no new info 
-                              ;; is required due to aliasing (note: we currently do not
-                              ;; alias objects typed as type variables)
-                              [(and (Path? o) (not (F? t))) (list)]
-                              ;; n is being bound to an expression w/o an object (or whose
-                              ;; type is a type variable) so create props about n
-                              [else (list (-or (-and (-not-type n (-val #f)) f+)
-                                               (-and (-is-type n (-val #f)) f-)))]))))]
+                              [(not (overlap? t (-val #f))) (list p+)]
+                              [(is-var-mutated? n) (list)]
+                              [else
+                               (define obj (if (Object? o) o n))
+                               (list (-or (-and (-not-type obj (-val #f)) p+)
+                                          (-and (-is-type obj (-val #f)) p-)))]))))]
           ;; amk: does this case ever occur?
           [(list (tc-result: e-ts #f _) ...)
            (values e-ts (make-list (length e-ts) -empty-obj) null)]))))

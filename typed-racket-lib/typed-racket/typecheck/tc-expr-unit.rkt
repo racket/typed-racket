@@ -7,11 +7,11 @@
          "check-below.rkt" "../types/kw-types.rkt"
          (types utils abbrev union subtype type-table path-type
                 prop-ops overlap resolve generalize tc-result)
-         (private-in syntax-properties)
+         (private-in syntax-properties parse-type)
          (rep type-rep prop-rep object-rep)
          (only-in (infer infer) intersect)
          (utils tc-utils)
-         (env lexical-env)
+         (env lexical-env scoped-tvar-env)
          racket/list
          racket/private/class-internal
          syntax/parse
@@ -81,11 +81,16 @@
     ;; the argument must be syntax
     (unless (syntax? form)
       (int-err "bad form input to tc-expr: ~a" form))
-    ;; typecheck form
-    (let* ([res (tc-expr/check/internal form expected)]
-           [res (reduce-tc-results/subsumption res)])
-      (add-typeof-expr form res)
-      (cond-check-below res expected))))
+    (define result
+      ;; if there is an annotation, use that expected type for internal checking
+      (syntax-parse form
+        [exp:type-ascription^
+         (add-scoped-tvars #'exp (parse-literal-alls (attribute exp.value)))
+         (tc-expr/check/internal #'exp (parse-tc-results (attribute exp.value)))]
+        [_ (reduce-tc-results/subsumption
+            (tc-expr/check/internal form expected))]))
+    (add-typeof-expr form result)
+    (cond-check-below result expected)))
 
 ;; typecheck and return a truth value indicating a typecheck failure (#f)
 ;; or success (any non-#f value)

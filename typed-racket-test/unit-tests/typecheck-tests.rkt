@@ -1024,8 +1024,7 @@
                                   (lambda: ([x : Number] [y : Number]) (+ x y)))
           #:ret (tc-ret -Number)]
         [tc-err (call-with-values 5
-                                  (lambda: ([x : Number] [y : Number]) (+ x y)))
-          #:ret (tc-ret -Number)]
+                                  (lambda: ([x : Number] [y : Number]) (+ x y)))]
         [tc-err (call-with-values (lambda () (values 2))
                                   5)]
         [tc-err (call-with-values (lambda () (values 2 1))
@@ -3538,7 +3537,7 @@
 
        ;; PR 14218
        [tc-e (ann (values "foo" "bar") (Values String String))
-             #:ret (tc-ret (list -String -String))]
+             #:ret (ret (list -String -String))]
        [tc-e (let ()
                (tr:define (foo) : (Values String String) (values "foo" "bar"))
                (void))

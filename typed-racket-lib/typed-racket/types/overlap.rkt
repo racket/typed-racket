@@ -67,7 +67,11 @@
          #:no-order
          (for/and ([t (in-list ts)])
            (overlap? t s))]
-        [((? Poly?) _) #:no-order #t] ;; conservative
+        [((or (Poly-unsafe: _ t1)
+              (PolyDots-unsafe: _ t1))
+          t2)
+         #:no-order
+         (overlap? t1 t2)] ;; conservative
         [((Base: s1 _ _ _) (Base: s2 _ _ _)) (or (subtype t1 t2) (subtype t2 t1))]
         [((? Base? t) (? Value? s)) #:no-order (subtype s t)] ;; conservative
         [((Syntax: t) (Syntax: t*)) (overlap? t t*)]

@@ -266,14 +266,17 @@
     [(tc-any-results: f) (tc-any-results (-and prop f))]
     [(tc-results: ts (list (PropSet: ps+ ps-) ...) os)
      (ret ts
-          (for/list ([f+ ps+] [f- ps-])
+          (for/list ([f+ (in-list ps+)]
+                     [f- (in-list ps-)])
             (-PS (-and prop f+) (-and prop f-)))
           os)]
     [(tc-results: ts (list (PropSet: ps+ ps-) ...) os dty dbound)
      (ret ts
           (for/list ([f+ ps+] [f- ps-])
             (-PS (-and prop f+) (-and prop f-)))
-          os)]))
+          os
+          dty
+          dbound)]))
 
 
 ;; ands the given type prop to both sides of the given arr for each argument

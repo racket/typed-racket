@@ -820,6 +820,8 @@ this top type.
         #s((salad food 1) "quinoa" "EVOO" salad))]
 }
 
+@defalias[Union U]
+@defalias[Intersection ∩]
 @defalias[→ ->]
 @defalias[case→ case->]
 @defalias[∀ All]

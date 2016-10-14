@@ -99,6 +99,7 @@
 (define-literal-syntax-class #:for-label case->^ (case-> case-lambda))
 (define-literal-syntax-class #:for-label Rec)
 (define-literal-syntax-class #:for-label U)
+(define-literal-syntax-class #:for-label Union)
 (define-literal-syntax-class #:for-label All)
 (define-literal-syntax-class #:for-label Opaque)
 (define-literal-syntax-class #:for-label Parameter)
@@ -114,6 +115,7 @@
 (define-literal-syntax-class #:for-label Distinction)
 (define-literal-syntax-class #:for-label Sequenceof)
 (define-literal-syntax-class #:for-label ∩)
+(define-literal-syntax-class #:for-label Intersection)
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
@@ -470,9 +472,9 @@
                          (if (memq var (fv t*))
                              (make-Mu var t*)
                              t*))))]
-      [(:U^ ts ...)
+      [((~or :U^ :Union^) ts ...)
        (apply Un (parse-types #'(ts ...)))]
-      [(:∩^ ts ...)
+      [((~or :∩^ :Intersection^) ts ...)
        (for/fold ([ty Univ])
                  ([t (in-list (parse-types #'(ts ...)))])
          (intersect ty t))]

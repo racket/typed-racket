@@ -121,6 +121,7 @@
    [(-> Number Number Number * Boolean) ((list N N) N . t:->* . B)]
    ;[((. Number) -> Number) (->* (list) N N)] ;; not legal syntax
    [(U Number Boolean) (t:Un N B)]
+   [(Union Number Boolean) (t:Un N B)]
    [(U Number Boolean Number) (t:Un N B)]
    [(U Number Boolean 1) (t:Un N B)]
    [(All (a) (Listof a)) (-poly (a) (make-Listof  a))]
@@ -411,6 +412,7 @@
    [(∩) Univ]
    [(∩ Any) Univ]
    [(∩ String Symbol) -Bottom]
+   [(Intersection String Symbol) -Bottom]
    [(∩ (-> Number Number) (-> String String))
     (-unsafe-intersect (t:-> -String -String)
                        (t:-> -Number -Number))]

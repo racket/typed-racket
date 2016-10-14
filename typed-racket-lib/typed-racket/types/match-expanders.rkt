@@ -17,7 +17,7 @@
 (define-match-expander Listof:
   (lambda (stx)
     (syntax-parse stx
-      [(_ elem-pat (~optional var-pat #:defaults ([var-pat #'var])))
+      [(_ elem-pat (~optional var-pat #:defaults ([var-pat #'_])))
        ;; Note: in practice it's unlikely that the second pattern will ever come up
        ;;       because the sequence number for '() will be low and the union will
        ;;       be sorted by sequence number. As a paranoid precaution, however,
@@ -49,7 +49,7 @@
 (define-match-expander MListof:
   (lambda (stx)
     (syntax-parse stx
-      [(_ elem-pat (~optional var-pat #:defaults ([var-pat #'var])))
+      [(_ elem-pat (~optional var-pat #:defaults ([var-pat #'_])))
        ;; see note above
        #'(or (Mu: var-pat (Union: (list (Value: '()) (MPair: elem-pat (F: var-pat)))))
              (Mu: var-pat (Union: (list (MPair: elem-pat (F: var-pat)) (Value: '())))))])))

@@ -6,6 +6,7 @@
          (types utils union subtype prop-ops abbrev)
          (utils tc-utils)
          (rep type-rep object-rep prop-rep)
+         (env lexical-env)
          (typecheck error-message))
 
 (provide/cond-contract
@@ -18,6 +19,10 @@
  [fix-results (--> tc-results/c full-tc-results/c)])
 
 (provide type-mismatch)
+
+(define (implies-in-lexical-env p q)
+  (define-values (new-env _) (env+ (lexical-env) (list p (negate-prop q))))
+  (not new-env))
 
 (define (print-object o)
   (match o
@@ -88,8 +93,8 @@
       [(p p) #t]
       [(p #f) #t]
       [((PropSet: p1+ p1-) (PropSet: p2+ p2-))
-       (and (implies-atomic? p1+ p2+)
-            (implies-atomic? p1- p2-))]
+       (and (implies-in-lexical-env p1+ p2+)
+            (implies-in-lexical-env p1- p2-))]
       [(_ _) #f]))
   (define (object-better? o1 o2)
     (match* (o1 o2)

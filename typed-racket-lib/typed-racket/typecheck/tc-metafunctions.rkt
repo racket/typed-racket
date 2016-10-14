@@ -9,7 +9,6 @@
          (contract-req))
 
 (provide abstract-results
-         combine-props
          merge-tc-results
          tc-results->values)
 
@@ -34,66 +33,6 @@
      (make-Values (map -result ts fs os))]
     [(tc-results: ts fs os dty dbound)
      (make-ValuesDots (map -result ts fs os) dty dbound)]))
-
-(define/cond-contract (resolve atoms prop)
-  ((listof Prop?)
-   Prop?
-   . -> .
-   Prop?)
-  (for/fold ([prop prop])
-    ([a (in-list atoms)])
-    (match prop
-      [(AndProp: ps)
-       (let loop ([ps ps] [result null])
-         (if (null? ps)
-             (apply -and result)
-             (let ([p (car ps)])
-               (cond [(contradictory? a p) -ff]
-                     [(implies-atomic? a p) (loop (cdr ps) result)]
-                     [else (loop (cdr ps) (cons p result))]))))]
-      [_ prop])))
-
-(define (flatten-props ps)
-  (let loop ([ps ps])
-    (match ps
-      [(list) null]
-      [(cons (AndProp: ps*) ps) (loop (append ps* ps))]
-      [(cons p ps) (cons p (loop ps))])))
-
-(define/cond-contract (combine-props new-props old-props exit)
-  ((listof Prop?) (listof Prop?) (-> none/c)
-   . -> .
-   (values (listof OrProp?) (listof (or/c TypeProp? NotTypeProp?))))
-  (define (atomic-prop? p) (or (TypeProp? p) (NotTypeProp? p)))
-  (define-values (new-atoms new-formulas) (partition atomic-prop? (flatten-props new-props)))
-  (let loop ([derived-formulas null]
-             [derived-atoms new-atoms]
-             [worklist (append old-props new-formulas)])
-    (if (null? worklist)
-        (values derived-formulas derived-atoms)
-        (let* ([p (car worklist)]
-               [p (resolve derived-atoms p)])
-          (match p
-            [(OrProp: ps)
-             (let ([new-or
-                    (let or-loop ([ps ps] [result null])
-                      (cond
-                        [(null? ps) (apply -or result)]
-                        [(for/or ([other-p (in-list (append derived-formulas derived-atoms))])
-                           (contradictory? (car ps) other-p))
-                         (or-loop (cdr ps) result)]
-                        [(for/or ([other-p (in-list derived-atoms)])
-                           (implies-atomic? other-p (car ps)))
-                         -tt]
-                        [else (or-loop (cdr ps) (cons (car ps) result))]))])
-               (if (OrProp? new-or)
-                   (loop (cons new-or derived-formulas) derived-atoms (cdr worklist))
-                   (loop derived-formulas derived-atoms (cons new-or (cdr worklist)))))]
-            [(or (? TypeProp?) (? NotTypeProp?)) (loop derived-formulas (cons p derived-atoms) (cdr worklist))]
-
-            [(AndProp: ps) (loop derived-formulas derived-atoms (append ps (cdr worklist)))]
-            [(TrueProp:) (loop derived-formulas derived-atoms (cdr worklist))]
-            [(FalseProp:) (exit)])))))
 
 
 (define (unconditional-prop res)

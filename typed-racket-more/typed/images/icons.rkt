@@ -1,4 +1,4 @@
-#lang typed/racket/gui
+#lang typed/racket/base
 
 (require typed/racket/draw)
 
@@ -32,7 +32,7 @@
  [floppy-disk-icon
   (-> [#:color (U String (Instance Color%))]
       [#:height Nonnegative-Real]
-      [#:backing-scale Nonnegative-Real]
+      [#:backing-scale Positive-Real]
       (Instance Bitmap%))])
 
 (require/typed/provide
@@ -52,7 +52,7 @@
       [#:height Nonnegative-Real]
       ;[#:material Flomap-Material]
       [#:thickness Nonnegative-Real]
-      [#:backing-scale Nonnegative-Real]
+      [#:backing-scale Positive-Real]
       (Instance Bitmap%))])
 
 (require/typed/provide
@@ -67,13 +67,13 @@
   (-> #:color (U String (Instance Color%))
       [#:height Nonnegative-Real]
       ;[#:material Flomap-Material]
-      [#:backing-scale Nonnegative-Real]
+      [#:backing-scale Positive-Real]
       (Instance Bitmap%))]
  [close-icon
   (-> [#:color (U String (Instance Color%))]
       [#:height Nonnegative-Real]
       ;[#:material Flomap-Material]
-      [#:backing-scale Nonnegative-Real]
+      [#:backing-scale Positive-Real]
       (Instance Bitmap%))]
  [lock-icon
   (->* ()
@@ -92,7 +92,7 @@
       [#:body-color (U String (Instance Color%))]
       [#:height Nonnegative-Real]
       ;[#:material Flomap-Material]
-      [#:backing-scale Nonnegative-Real]
+      [#:backing-scale Positive-Real]
       (Instance Bitmap%))]
  [running-stickman-icon
   (-> Real
@@ -101,7 +101,7 @@
       [#:body-color (U String (Instance Color%))]
       [#:height Nonnegative-Real]
       ;[#:material Flomap-Material]
-      [#:backing-scale Nonnegative-Real]
+      [#:backing-scale Positive-Real]
       (Instance Bitmap%))])
 
 (require/typed/provide
@@ -118,7 +118,7 @@
  (-> #:color (U String (Instance Color%))
      [#:height Nonnegative-Real]
      ;[#:material Flomap-Material]
-     [#:backing-scale Nonnegative-Real]
+     [#:backing-scale Positive-Real]
      (Instance Bitmap%)))
 
 (require/typed/provide/batch
@@ -130,7 +130,7 @@
  (-> #:color (U String (Instance Color%))
      [#:height Nonnegative-Real]
      ;[#:material Flomap-Material]
-     [#:backing-scale Nonnegative-Real]
+     [#:backing-scale Positive-Real]
      (Instance Bitmap%)))
 
 (require/typed/provide/batch
@@ -140,7 +140,7 @@
      [#:arrow-color (U String (Instance Color%))]
      [#:height Nonnegative-Real]
      ;[#:material Flomap-Material]
-     [#:backing-scale Nonnegative-Real]
+     [#:backing-scale Positive-Real]
      (Instance Bitmap%)))
 
 (require/typed/provide/batch
@@ -149,7 +149,7 @@
  (-> [#:color (U String (Instance Color%))]
      [#:height Nonnegative-Real]
      ;[#:material Flomap-Material]
-     [#:backing-scale Nonnegative-Real]
+     [#:backing-scale Positive-Real]
      (Instance Bitmap%)))
 
 (require/typed/provide/batch
@@ -158,7 +158,7 @@
  (-> [#:color (U String (Instance Color%))]
      [#:height Nonnegative-Real]
      ;[#:material Flomap-Material]
-     [#:backing-scale Nonnegative-Real]
+     [#:backing-scale Positive-Real]
      (Instance Bitmap%)))
 
 (require/typed/provide/batch
@@ -177,7 +177,7 @@
  [stethoscope-icon short-stethoscope-icon]
  (-> [#:color (U String (Instance Color%))]
      [#:height Nonnegative-Real]
-     [#:backing-scale Nonnegative-Real]
+     [#:backing-scale Positive-Real]
      (Instance Bitmap%)))
 
 (require/typed/provide/batch
@@ -187,7 +187,7 @@
      [#:bomb-color (U String (Instance Color%))]
      [#:height Nonnegative-Real]
      ;[#:material Flomap-Material]
-     [#:backing-scale Nonnegative-Real]
+     [#:backing-scale Positive-Real]
      (Instance Bitmap%)))
 
 (require/typed/provide/batch
@@ -197,7 +197,7 @@
      [#:handle-color (U String (Instance Color%))]
      [#:height Nonnegative-Real]
      ;[#:material Flomap-Material]
-     [#:backing-scale Nonnegative-Real]
+     [#:backing-scale Positive-Real]
      (Instance Bitmap%)))
 
 (require/typed/provide/batch
@@ -206,5 +206,5 @@
       small-macro-stepper-icon debugger-icon small-debugger-icon]
  (-> [#:height Nonnegative-Real]
      ;[#:material Flomap-Material]
-     [#:backing-scale Nonnegative-Real]
+     [#:backing-scale Positive-Real]
      (Instance Bitmap%)))

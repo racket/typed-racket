@@ -10,7 +10,7 @@
   [glob-match? (->* [Glob Path-String] [#:capture-dotfiles? Boolean] Boolean)]
   [glob-capture-dotfiles? (Parameterof Boolean)])
 
-(unsafe-provide glob
-                in-glob
-                glob-match?
-                glob-capture-dotfiles?)
+(provide glob
+         in-glob
+         glob-match?
+         glob-capture-dotfiles?)

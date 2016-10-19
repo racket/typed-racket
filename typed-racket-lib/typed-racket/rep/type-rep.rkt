@@ -841,6 +841,11 @@
 ;;************************************************************
 
 ;; used for abstracting/instantiating type variables
+;; it recursively folds over the 'start' Rep, and as it
+;; passes structs which introduce type variables it increments
+;; the depth being tracked (the 'lvl'). When it raches type variables
+;; or DeBruijns (dependending on whether we are abstracting or instantiating)
+;; it transforms them with f
 (define (type-binder-transform f start abstracting?)
   (define dbound-fn (if abstracting? values F-n))
   (define not-abstracting? (not abstracting?))

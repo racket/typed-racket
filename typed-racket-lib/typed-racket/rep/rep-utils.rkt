@@ -32,13 +32,11 @@
   (and (list? l)
        (>= (length l) len)))
 
-(define (Rep-seq x) (unsafe-struct-ref x 0))
-
 ;; seq: interning-generated serial number used to compare Reps (type<).
 ;; free-vars: cached free type variables
 ;; free-idxs: cached free dot sequence variables
 ;; stx: originating syntax for error-reporting
-(struct Rep (sequence-number free-vars free-idxs) #:transparent
+(struct Rep (seq free-vars free-idxs) #:transparent
   #:methods gen:equal+hash
   [(define (equal-proc x y recur)
      (unsafe-fx= (Rep-seq x) (Rep-seq y)))
@@ -55,15 +53,16 @@
 
 
 ;; prop:get-values
-(define-values (prop:get-values-fun get-values-fun)
+(define-values (prop:values-fun values-fun)
   (let-values ([(prop _ accessor) (make-struct-type-property 'values)])
     (values prop accessor)))
+
 ;; Rep-values
 (define (Rep-values x)
-  ((get-values-fun x) x))
+  ((values-fun x) x))
 
 ;; prop:get-constructor
-(define-values (prop:get-constructor-fun Rep-constructor)
+(define-values (prop:constructor-fun Rep-constructor)
   (let-values ([(prop _ accessor) (make-struct-type-property 'constructor)])
     (values prop accessor)))
 
@@ -81,7 +80,9 @@
   (make-struct-type-property 'walk))
 ;; Rep-walk
 (define (Rep-walk f x)
-  ((walk-fun x) f x))
+  (define fun (walk-fun x))
+  (when (procedure? fun)
+    (fun f x)))
 
 ;; prop:fold-fun
 (define-values (prop:fold-fun foldable? fold-fun)
@@ -89,12 +90,15 @@
 
 ;; Rep-fold
 (define (Rep-fold f x)
-  ((fold-fun x) f x))
+  (define fun (fold-fun x))
+  (if (procedure? fun)
+      (fun f x)
+      x))
 
 
 ;; Is this a type that can be a 'back-edge' into the type graph?
 ;; (i.e. could blindly following this type lead to infinite recursion?)
-(define-values (prop:resolvable needs-resolved?)
+(define-values (prop:resolvable resolvable?)
   (let-values ([(prop predicate _) (make-struct-type-property 'resolvable)])
     (values prop predicate)))
 
@@ -128,38 +132,38 @@
   ;; #:frees definition parsing
   (define-syntax-class freesspec
     #:attributes (free-vars free-idxs)
-    (pattern ([#:vars (f1) vars-body:expr]
-              [#:idxs (f2) idxs-body:expr])
-             #:with free-vars #'(let ([f1 Rep-free-vars]) vars-body)
-             #:with free-idxs #'(let ([f2 Rep-free-idxs]) idxs-body))
-    (pattern ((f:id) body:expr)
-             #:with free-vars #'(let ([f Rep-free-vars]) body)
-             #:with free-idxs #'(let ([f Rep-free-idxs]) body)))
+    (pattern ([#:vars (f1) . vars-body]
+              [#:idxs (f2) . idxs-body])
+             #:with free-vars #'(let ([f1 Rep-free-vars]) . vars-body)
+             #:with free-idxs #'(let ([f2 Rep-free-idxs]) . idxs-body))
+    (pattern ((f:id) . body)
+             #:with free-vars #'(let ([f Rep-free-vars]) . body)
+             #:with free-idxs #'(let ([f Rep-free-idxs]) . body)))
   ;; #:fold definition parsing
   (define-syntax-class (walkspec name match-expdr struct-fields)
     #:attributes (def)
-    (pattern ((f:id) body:expr)
+    (pattern ((f:id) . body)
              #:with def
              (with-syntax ([name name]
                            [(flds ...) struct-fields]
                            [mexpdr match-expdr])
                #'(λ (f self)
                    (match self
-                     [(mexpdr flds ...) body]
+                     [(mexpdr flds ...) . body]
                      [_ (error 'Rep-walk "bad match in ~a's walk" (quote name))])))))
   ;; #:map definition parsing
   (define-syntax-class (foldspec name match-expdr struct-fields)
     #:attributes (def)
     (pattern ((f:id (~optional (~seq #:self self:id)
                                #:defaults ([self (generate-temporary 'self)])))
-              body:expr)
+              . body)
              #:with def
              (with-syntax ([name name]
                            [(flds ...) struct-fields]
                            [mexpdr match-expdr])
                #'(λ (f self)
                    (match self
-                     [(mexpdr flds ...) body]
+                     [(mexpdr flds ...) . body]
                      [_ (error 'Rep-fold "bad match in ~a's fold" (quote name))])))))
   ;; variant name parsing
   (define-syntax-class var-name
@@ -328,11 +332,11 @@
                       (hash-ref! intern-table key fail)))))])]
         ;; walk def
         [walk-def (cond
-                    [(attribute base?) #'(λ (f x) (void))]
+                    [(attribute base?) #'#f]
                     [else #'walk-spec.def])]
         ;; fold def
         [fold-def (cond
-                    [(attribute base?) #'(λ (f x) x)]
+                    [(attribute base?) #'#f]
                     [else #'fold-spec.def])]
         ;; is this a type that needs resolving (e.g. Mu)
         [(maybe-needs-resolving ...)
@@ -358,9 +362,9 @@
              #:constructor-name
              var.raw-constructor
              #:property prop:Rep-name (quote var.name)
-             #:property prop:get-constructor-fun
+             #:property prop:constructor-fun
              (λ (flds.ids ...) (var.constructor flds.ids ...))
-             #:property prop:get-values-fun
+             #:property prop:values-fun
              values-def
              #:property prop:walk-fun
              walk-def

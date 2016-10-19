@@ -1402,7 +1402,7 @@
           #:ret (tc-ret -Void)]
         [tc-err (apply +)]
         [tc-e/t
-         (let ([x : EOF eof])
+         (let ([x eof])
            (if (procedure? x)
                x
                (lambda (z) (eq? x z))))
@@ -2004,7 +2004,7 @@
                   (: b2 (Weak-Boxof (U Symbol String)))
                   (define b2 b1)
                   (error "foo"))
-                #:msg #rx"expected: \\(Weak-Boxof \\(U Symbol String\\)\\)"]
+                #:msg #rx"expected: \\(Weak-Boxof \\(U String Symbol\\)\\)"]
 
         ;Wills
         (tc-e (make-will-executor) -Will-Executor)

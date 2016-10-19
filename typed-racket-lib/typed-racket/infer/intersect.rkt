@@ -63,7 +63,7 @@
                                  (intersect t1 t2 resolved)))]
      
      ;; resolve resolvable types if we haven't already done so
-     [((? needs-resolved? t1) t2)
+     [((? resolvable? t1) t2)
       #:no-order
       #:when (not (member (cons t1 t2) resolved))
       (intersect (resolve t1) t2 (cons (cons t1 t2) resolved))]
@@ -79,7 +79,15 @@
      [(t1 t2) (-unsafe-intersect t1 t2)])))
 
 
+;; restrict
+;; Type Type -> Type
+;;
 ;; attempt to compute (t1 - (¬ t2))
+;; this is useful when you want to know what part of t1 intersects
+;; with t2 without adding t2 to the result (i.e. note that intersect
+;; will create an intersection type if the intersection is not obvious,
+;; and sometimes we want to make sure and _not_ add t2 to the result
+;; we just want to keep the parts of t1 consistent with t2)
 (define (restrict t1 t2)
   ;; build-type: build a type while propogating bottom
   (define (build-type constructor . args)
@@ -130,11 +138,11 @@
                                   (restrict t1 t2 resolved)))]
       
       ;; resolve resolvable types if we haven't already done so
-      [((? needs-resolved? t1) t2)
+      [((? resolvable? t1) t2)
        #:when (not (member (cons t1 t2) resolved))
        (restrict (resolve t1) t2 (cons (cons t1 t2) resolved))]
 
-      [(t1 (? needs-resolved? t2))
+      [(t1 (? resolvable? t2))
        #:when (not (member (cons t1 t2) resolved))
        (restrict t1 (resolve t2) (cons (cons t1 t2) resolved))]
       

@@ -140,7 +140,7 @@
                                     #:more "the object is missing an expected field"
                                     "field" field-sym
                                     "object type" ty)])]
-      [(Instance: (? needs-resolved? type))
+      [(Instance: (? resolvable? type))
        (check (make-Instance (resolve type)))]
       [type
        (tc-error/expr/fields "type mismatch"
@@ -176,7 +176,7 @@
                                     #:more (~a "expected an object with field "
                                                maybe-field-sym)
                                     "given" ty)])]
-      [(Instance: (? needs-resolved? type))
+      [(Instance: (? resolvable? type))
        (check (make-Instance (resolve type)))]
       [type
        (tc-error/expr/fields "type mismatch"

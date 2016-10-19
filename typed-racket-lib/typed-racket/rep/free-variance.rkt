@@ -75,57 +75,58 @@
 ;; frees -> frees
 (define (flip-variances frees)
   (match frees
-   ((combined-frees hash computed)
-    (combined-frees
+    [(combined-frees hash computed)
+     (combined-frees
       (for/hasheq (((k v) hash))
         (values k (flip-variance v)))
-      (map flip-variances computed)))
-   ((app-frees name args)
-    (app-frees name (map flip-variances args)))
-   ((remove-frees inner name)
-    (remove-frees (flip-variances inner) name))))
+      (map flip-variances computed))]
+    [(app-frees name args)
+     (app-frees name (map flip-variances args))]
+    [(remove-frees inner name)
+     (remove-frees (flip-variances inner) name)]))
 
 
 (define (make-invariant frees)
   (combined-frees
-    (for/hasheq ((name (free-vars-names frees)))
+    (for/hasheq ([name (free-vars-names frees)])
       (values name Invariant))
     null))
 
 (define (make-constant frees)
   (combined-frees
-    (for/hasheq ((name (free-vars-names frees)))
+    (for/hasheq ([name (free-vars-names frees)])
       (values name Constant))
     null))
 
 ;; Listof[frees] -> frees
 (define (combine-frees freess)
   (define-values (hash computed)
-    (for/fold ((hash (hasheq)) (computed null))
-              ((frees (in-list freess)))
+    (for/fold ([hash (hasheq)]
+               [computed null])
+              ([frees (in-list freess)])
       (match frees
-       ((combined-frees new-hash new-computed)
-        (values (combine-hashes (list hash new-hash))
-                (append new-computed computed))))))
+        [(combined-frees new-hash new-computed)
+         (values (combine-hashes (list hash new-hash))
+                 (append new-computed computed))])))
   (combined-frees hash computed))
 
 
 (define (free-vars-remove frees name)
   (match frees
-   ((combined-frees hash computed)
-    (combined-frees (hash-remove hash name)
-                    (map (λ (v) (remove-frees v name)) computed)))))
+    [(combined-frees hash computed)
+     (combined-frees (hash-remove hash name)
+                     (map (λ (v) (remove-frees v name)) computed))]))
 
 ;;
 (define (free-vars-names vars)
   (match vars
-    ((combined-frees hash computed)
+    [(combined-frees hash computed)
      (apply set-union
             (list->seteq (hash-keys hash))
-            (map free-vars-names computed)))
-    ((remove-frees inner name) (set-remove (free-vars-names inner) name))
-    ((app-frees name args)
-     (apply set-union (map free-vars-names args)))))
+            (map free-vars-names computed))]
+    [(remove-frees inner name) (set-remove (free-vars-names inner) name)]
+    [(app-frees name args)
+     (apply set-union (map free-vars-names args))]))
 
 (define (free-vars-has-key? vars key)
   (set-member? (free-vars-names vars) key))
@@ -133,18 +134,18 @@
 ;; Only valid after full type resolution
 (define (free-vars-hash vars)
   (match vars
-    ((combined-frees hash computed)
-     (combine-hashes (cons hash (map free-vars-hash computed))))
-    ((remove-frees inner name) (hash-remove (free-vars-hash inner) name))
-    ((app-frees name args)
+    [(combined-frees hash computed)
+     (combine-hashes (cons hash (map free-vars-hash computed)))]
+    [(remove-frees inner name) (hash-remove (free-vars-hash inner) name)]
+    [(app-frees name args)
      (combine-hashes
-       (for/list ((var (lookup-type-variance name)) (arg args))
+      (for/list ((var (lookup-type-variance name)) (arg args))
         (free-vars-hash
          (cond
-          ((eq? var Covariant) arg)
-          ((eq? var Contravariant) (flip-variances arg))
-          ((eq? var Invariant) (make-invariant arg))
-          ((eq? var Constant) (make-constant arg)))))))))
+           [(eq? var Covariant) arg]
+           [(eq? var Contravariant) (flip-variances arg)]
+           [(eq? var Invariant) (make-invariant arg)]
+           [(eq? var Constant) (make-constant arg)]))))]))
 
 
 ;; frees = HT[Idx,Variance] where Idx is either Symbol or Number

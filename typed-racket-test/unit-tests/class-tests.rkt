@@ -2021,7 +2021,7 @@
                  (define/public (m)
                    (if (string? x) (string-append x "bar") "baz"))))
              (error "foo"))
-           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]
+           #:msg #rx"expected: String.*given: \\(U 'obfuscate String\\)"]
    [tc-err (let ()
              (define c%
                (class object%
@@ -2033,7 +2033,7 @@
                  (define/public (m)
                    (if (string? x) (string-append x "bar") "baz"))))
              (error "foo"))
-           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]
+           #:msg #rx"expected: String.*given: \\(U 'obfuscate String\\)"]
    [tc-err (let ()
              (define c%
                (class object%
@@ -2045,7 +2045,7 @@
                  (define/public (m)
                    (if (string? x) (string-append x "bar") "baz"))))
              (error "foo"))
-           #:msg #rx"expected: String.*given: \\(U String 'obfuscate\\)"]
+           #:msg #rx"expected: String.*given: \\(U 'obfuscate String\\)"]
    ;; tests that we are not creating objects for mutable private fields
    [tc-e (let ()
            (class object%

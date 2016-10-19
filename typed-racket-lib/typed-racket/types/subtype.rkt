@@ -33,15 +33,20 @@
 ;; Public Interface to Subtyping
 ;;************************************************************
 
-;; is s a subtype of t?
+;; is t1 a subtype of t2?
 ;; type type -> boolean
 (define (subtype t1 t2)
   (define res (and (subtype* (seen) t1 t2) #t))
   res)
 
-(define (subval t1 t2)
-  (and (subval* (seen) t1 t2) #t))
 
+;; is v1 a subval of v2?
+;; SomeValue? SomeValue -> boolean
+;; (i.e. subtyping on SomeValues)
+(define (subval v1 v2)
+  (and (subval* (seen) v1 v2) #t))
+
+;; are t1 and t2 equivalent types (w.r.t. subtyping)
 (define (type-compare? t1 t2)
   (or (equal? t1 t2) (and (subtype t1 t2)
                           (subtype t2 t1))))
@@ -158,7 +163,15 @@
        [(_ _) #f]))))
 
 
-
+;; combine-arrs
+;;
+;; Checks if this function is defined by an uneccessary case->
+;; matching the following pattern:
+;; τ0 -> σ ∧ τ1 -> σ ∧ τn -> σ ...
+;; and if so, returns the combined function type:
+;; (∪ τ0 τ1 ... τn)-> σ
+;; amk: would it be better to simplify function types ahead of time
+;; for cases like this where there is a preferable normal form?
 (define/cond-contract (combine-arrs arrs)
   (-> (listof arr?) (or/c #f arr?))
   (match arrs
@@ -387,9 +400,11 @@
    #:return-when (boolean? cr) (and cr A)
    (define result
      (match* (t1 t2)
-       [((Intersection: t1s) _)
-        (for/or ([t1 (in-list t1s)])
-          (subtype* A t1 t2))]
+       ;; if this works, we're done, otherwise wait until after unions
+       ;; are explored to break the intersection apart
+       [((Intersection: t1s) _) #:when (for/or ([t1 (in-list t1s)])
+                                         (subtype* A t1 t2))
+                                A]
        [(_ (Intersection: t2s))
         (for/fold ([A A])
                   ([t2 (in-list t2s)]
@@ -475,13 +490,13 @@
        [((ListDots: dty1 dbound1) (Listof: t2-elem))
         (subtype* A (-poly (dbound1) dty1) t2-elem)]
        [((Value: v) (Base: _ _ pred _)) (if (pred v) A #f)]
-       [((? needs-resolved?) _)
+       [((? resolvable?) _)
         (let ([A (remember t1 t2 A)])
           (with-updated-seen A
             (let ([t1 (resolve-once t1)])
               ;; check needed for if a name that hasn't been resolved yet
               (and (Type? t1) (subtype* A t1 t2)))))]
-       [(_ (? needs-resolved?))
+       [(_ (? resolvable?))
         (let ([A (remember t1 t2 A)])
           (with-updated-seen A
             (let ([t2 (resolve-once t2)])
@@ -494,6 +509,12 @@
           (subtype* A elem t))]
        [(s (Union: elems))
         (and (ormap (λ (elem) (subtype* A s elem)) elems) A)]
+       ;; intersections as subtypes need to be handled after some forms (e.g. Unions)
+       ;; otherwise we will get the wrong answer for
+       ;; queries such as: (∩ A B) <: (U String (∩ A B))
+       [((Intersection: t1s) _)
+        (for/or ([t1 (in-list t1s)])
+          (subtype* A t1 t2))]
        ;; Avoid needing to resolve things that refer to different structs.
        ;; Saves us from non-termination
        ;; Must happen *before* the sequence cases, which sometimes call `resolve' in match expanders
@@ -586,13 +607,13 @@
        [(_ (Sequence: (list seq-t))) (homo-sequence-subtype A t1 seq-t)]
        ;; events call off to helper for remaining cases
        [(_ (Evt: evt-t)) (event-subtype A t1 evt-t)]
-       [((Instance: (? needs-resolved? t1*)) _)
+       [((Instance: (? resolvable? t1*)) _)
         (let ([A (remember t1 t2 A)])
           (with-updated-seen A
             (let ([t1* (resolve-once t1*)])
               (and (Type? t1*)
                    (subtype* A (make-Instance t1*) t2)))))]
-       [(_ (Instance: (? needs-resolved? t2*)))
+       [(_ (Instance: (? resolvable? t2*)))
         (let ([A (remember t1 t2 A)])
           (with-updated-seen A
             (let ([t2* (resolve-once t2*)])

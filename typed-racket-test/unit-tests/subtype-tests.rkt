@@ -60,6 +60,8 @@
     [(-unsafe-intersect -Sexp
                         (Un -Null (-pair -Sexp (-unsafe-intersect (make-Listof Univ) -Sexp))))
      (make-Listof Univ)]
+    [(-unsafe-intersect (-v A) (-v B))
+     (Un -String (-unsafe-intersect (-v A) (-v B)))]
    ;; sexps vs list*s of nums
    [(-mu x (Un -Number -Symbol (make-Listof x))) (-mu x (Un -Number -Symbol -Boolean (make-Listof x)))]
    [(-mu x (Un -Number (make-Listof x))) (-mu x (Un -Number -Symbol (make-Listof x)))]

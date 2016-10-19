@@ -9,7 +9,7 @@
          (contract-req)
          racket/format)
 
-(provide resolve-name resolve-app needs-resolved?
+(provide resolve-name resolve-app resolvable?
          resolve resolve-app-check-error
          resolver-cache-remove!
          current-check-polymorphic-recursion)
@@ -159,6 +159,6 @@
 ;; constructor is not one of them.
 ;; Type? -> Type?
 (define (resolve t)
-  (if (needs-resolved? t)
+  (if (resolvable? t)
       (resolve (resolve-once t))
       t))

@@ -52,7 +52,7 @@
         [(Function: (list _ ... (arr: '() _ (? values rest) #f (list (Keyword: _ _ #f) ...)) _ ...))
          #:when (subtype prop-type rest)
          (tc/funapp #'here #'(here) t (list (ret rest)) #f)]
-        [(? needs-resolved? t)
+        [(? resolvable? t)
          (loop (resolve t))]
         [(or (Poly: ns _) (PolyDots: (list ns ... _) _))
          (loop (instantiate-poly t (map (λ (n) Univ) ns)))]
@@ -73,7 +73,7 @@
     (cond [;; make sure the predicate has an appropriate type
            (subtype pred-type (-> Univ Univ))
            (define fun-type
-             (if (needs-resolved? pred-type)
+             (if (resolvable? pred-type)
                  (resolve pred-type)
                  pred-type))
            (match fun-type

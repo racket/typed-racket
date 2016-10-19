@@ -14,9 +14,7 @@
 ;; functions that may then call subtyping
 
 ;; Type references/indirections that have been seen so far while
-;; subtyping, including the following types: Mus, Names, Structs,
-;; Apps, and Instances (but not really, right? it's an Instance's
-;; content that can be a reference, not the Instance itself... right?)
+;; subtyping, including the following: Mus, Names, Structs, and Apps
 (define seen-mark (make-continuation-mark-key 'seen))
 (define (seen)
   (continuation-mark-set-first #f seen-mark null))

@@ -22,6 +22,9 @@
   [reduce-propset/type (c:-> PropSet? Type? PropSet?)]
   [reduce-tc-results/subsumption (c:-> tc-results/c tc-results/c)])
 
+;; reduces a PropSet 'ps' with info from the type 't'
+;; so the two are consistent (e.g. if the type is False,
+;; its true proposition is -ff, etc)
 (define (reduce-propset/type ps t)
   (cond
     [(type-equal? -Bottom t) -ff-propset]
@@ -130,9 +133,12 @@
     ;; otherwise we give up
     [(_ _) #f]))
 
-(define (hash-name-ref i)
-  (if (identifier? i) (hash-id i) i))
-
+;; intersect-update
+;; (mlist (mcons Object Type)) Object Type -> (mlist (mcons Object Type))
+;;
+;; updates mutable association list 'dict' entry for 'o' w/ type t
+;; if no entry for 'o' is found, else if some previous type s is present
+;; update the type to t ∩ s
 (define (intersect-update dict o t)
   (cond
     [(massq o dict) => (λ (p)
@@ -140,6 +146,13 @@
                          dict)]
     [else (mcons (mcons o t) dict)]))
 
+
+;; union-update
+;; (mlist (mcons Object Type)) Object Type -> (mlist (mcons Object Type))
+;;
+;; updates mutable association list 'dict' entry for 'o' w/ type t
+;; if no entry for 'o' is found, else if some previous type s is present
+;; update the type to t ∪ s
 (define (union-update dict o t)
   (cond
     [(massq o dict) => (λ (p)
@@ -148,6 +161,12 @@
     [else (mcons (mcons o t) dict)]))
 
 
+;; compact-or-props : (Listof prop) -> (Listof prop)
+;;
+;; This combines all the TypeProps at the same path into one TypeProp with Un, and
+;; all of the NotTypeProps at the same path into one NotTypeProp with intersect.
+;; The Or then simplifies to -tt if any of the atomic props simplified to -tt, and
+;; any values of -ff are removed.
 (define/cond-contract (compact-or-props props)
   ((c:listof Prop?) . c:-> . (c:listof Prop?))
   
@@ -188,6 +207,12 @@
     [(AndProp: ps) (apply -or (map negate-prop ps))]
     [(OrProp: ps) (apply -and (map negate-prop ps))]))
 
+;; -or
+;; (listof Prop?) -> Prop?
+;;
+;; Smart 'normalizing' constructor for disjunctions. The result
+;; will be a disjunction of only atomic propositions (i.e. a clause
+;; in a CNF formula)
 (define (-or . args)
   (define (distribute args)
     (define-values (ands others) (partition AndProp? args))
@@ -215,6 +240,12 @@
               [_ (loop ps (cons p result))]))])]
       [_ (distribute (compact-or-props result))])))
 
+;; -and
+;; (listof Prop?) -> Prop?
+;;
+;; Smart 'normalizing' constructor for conjunctions. The result
+;; will be a conjunction of only atomic propositions and disjunctions
+;; (i.e. a CNF proposition)
 (define (-and . args)
   (define-values (pos neg others)
     (let loop ([args args]

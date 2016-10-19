@@ -48,13 +48,9 @@
 
       ;; struct ops
       [((Struct: nm par flds proc poly pred) (cons (StructPE: struct-ty idx) rst))
-
-       (if (subtype t struct-ty)
-           (match-let ([(fld: ft _ _) (list-ref flds idx)])
-             (path-type rst ft (hash)))
-           (begin (printf "PATH TYPE \n  type: ~a\n struct type: ~a\n path:~a\n not subtype! =("
-                   t struct-ty path)
-                  #f))]
+       #:when  (subtype t struct-ty)
+       (match-let ([(fld: ft _ _) (list-ref flds idx)])
+         (path-type rst ft (hash)))]
 
       [((Intersection: ts) _)
        (apply -unsafe-intersect (for*/list ([t (in-list ts)]
@@ -81,8 +77,8 @@
        (path-type rst rng (hash))]
 
       ;; types which need resolving
-      [((? needs-resolved?) _) #:when (not (hash-ref resolved t #f))
-                               (path-type path (resolve-once t) (hash-set resolved t #t))]
+      [((? resolvable?) _) #:when (not (hash-ref resolved t #f))
+                           (path-type path (resolve-once t) (hash-set resolved t #t))]
     
       ;; type/path mismatch =(
       [(_ _) #f])))

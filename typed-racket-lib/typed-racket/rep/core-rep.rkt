@@ -72,6 +72,16 @@
            [(define (write-proc v port write?) (printer v port write?))])))]))
 
 
+(define-syntax (build-rep-definer syntax)
+  (syntax-parse syntax
+    [(_ class:id def-id:id)
+     (syntax/loc syntax
+       (define-syntax (def-id stx)
+         (syntax-parse stx
+           [(_ variant:id flds:expr . rst)
+            (syntax/loc stx
+              (def-rep variant flds [#:parent class] . rst))])))]))
+
 ;;
 ;; These structs are the 'meta-variables' of TR's internal grammar,
 ;; if you will. For reference, see the following two papers which
@@ -90,13 +100,13 @@
 ;; The 'mask' field that is used for quick-checking of certain
 ;; properties. See type-mask.rkt for details.
 
+;; subtype-cache - for a given type τ, the subtype-cache
+;;    is a mapping from Type -> boolean, s.t. if
+;;    τ.subtype-cache[σ] = #t then τ <: σ holds, otherwise
+;;    if τ.subtype-cache[σ] = #f, then τ <: σ does not hold
+;; mask - the type mask for this type
 (struct/printer Type (subtype-cache mask) print-type)
-
-(define-syntax (def-type stx)
-  (syntax-parse stx
-    [(_ variant:id flds:expr . rst)
-     (syntax/loc stx
-       (def-rep variant flds [#:parent Type] . rst))]))
+(build-rep-definer Type def-type)
 
 ;;-----------------
 ;; Universal Type
@@ -122,12 +132,7 @@
 ;; typechecking.
 
 (struct/printer Prop () print-prop)
-
-(define-syntax (def-prop stx)
-  (syntax-parse stx
-    [(_ variant:id flds:expr . rst)
-     (syntax/loc stx
-       (def-rep variant flds [#:parent Prop] . rst))]))
+(build-rep-definer Prop def-prop)
 
 (def-prop TrueProp () #:base)
 
@@ -147,12 +152,7 @@
 
 ;; e.g. car, cdr, etc
 (struct/printer PathElem () print-pathelem)
-
-(define-syntax (def-pathelem stx)
-  (syntax-parse stx
-    [(_ variant:id flds:expr . rst)
-     (syntax/loc stx
-       (def-rep variant flds [#:parent PathElem] . rst))]))
+(build-rep-definer PathElem def-pathelem)
 
 
 ;;----------
@@ -160,12 +160,7 @@
 ;;----------
 
 (struct/printer Object () print-object)
-
-(define-syntax (def-object stx)
-  (syntax-parse stx
-    [(_ variant:id flds:expr . rst)
-     (syntax/loc stx
-       (def-rep variant flds [#:parent Object]  . rst))]))
+(build-rep-definer Object def-object)
 
 ;; empty object
 (def-rep Empty () #:base
@@ -188,13 +183,7 @@
 ;; represents the general class of all these possibilities
 
 (struct/printer SomeValues () print-values)
-
-(define-syntax (def-values stx)
-  (syntax-parse stx
-    [(_ variant:id flds:expr . rst)
-     (syntax/loc stx
-       (def-rep variant flds [#:parent SomeValues] . rst))]))
-
+(build-rep-definer SomeValues def-values)
 
 
 ;;************************************************************

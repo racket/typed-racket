@@ -122,7 +122,9 @@
   [#:fold (f) (make-App (f rator)
                         (map f rands)
                         stx)]
-  [#:walk (f) (begin (f rator) (for-each f rands))]
+  [#:walk (f)
+   (f rator)
+   (for-each f rands)]
   #:needs-resolving)
 
 
@@ -177,7 +179,7 @@
          [#:variances flds.variance ...]
          [#:frees (frees) (combine-frees (list flds.fld-frees ...))]
          [#:fold (f) (name.constructor (f flds.name) ...)]
-         [#:walk (f) (begin (f flds.name) ...)]
+         [#:walk (f) (f flds.name) ...]
          . rst)]))
 
 
@@ -508,11 +510,11 @@
                         (and drest (cons (f (car drest)) (cdr drest)))
                         (map f kws))]
   [#:walk (f)
-   (begin (for-each f dom)
-          (f rng)
-          (when drest (f (car drest)))
-          (when rest (f rest))
-          (for-each f kws))])
+   (for-each f dom)
+   (f rng)
+   (when drest (f (car drest)))
+   (when rest (f rest))
+   (for-each f kws)])
 
 ;; arities : Listof[arr]
 (def-type Function ([arities (listof arr?)])
@@ -555,9 +557,9 @@
                            poly?
                            pred-id)]
   [#:walk (f)
-   (begin (f parent)
-          (for-each f flds)
-          (f proc))]
+   (f parent)
+   (for-each f flds)
+   (f proc)]
   ;; This should eventually be based on understanding of struct properties.
   [#:type-mask (mask-union mask:struct mask:procedure)])
 
@@ -711,11 +713,11 @@
                (and init-rest (f init-rest))))]
   [#:walk (f)
    (let ([walk (λ (l) (f (second l)))])
-     (begin (for-each walk inits)
-            (for-each walk fields)
-            (for-each walk methods)
-            (for-each walk augments)
-            (when init-rest (f init-rest))))])
+     (for-each walk inits)
+     (for-each walk fields)
+     (for-each walk methods)
+     (for-each walk augments)
+     (when init-rest (f init-rest)))])
 
 (def-type ClassTop ()
   #:base
@@ -738,8 +740,9 @@
             (list (f row))))]
   [#:fold (f) (make-Class (and row-ext (f row-ext))
                           (f row))]
-  [#:walk (f) (begin (when row-ext (f row-ext))
-                     (f row))]
+  [#:walk (f)
+   (when row-ext (f row-ext))
+   (f row)]
   [#:type-mask mask:class]
   [#:top ClassTop?])
 
@@ -748,13 +751,15 @@
 ;; Instance (of a class)
 ;;--------------------------
 
+
+;; not structural because it has special subtyping,
+; not just simple structural subtyping
 (def-type Instance ([cls Type?])
   [#:intern-key (Rep-seq cls)]
   [#:frees (f) (f cls)]
   [#:fold (f) (make-Instance (f cls))]
   [#:walk (f) (f cls)]
   [#:type-mask mask:instance])
-
 
 ;; interp:
 ;; name is the id of the signature
@@ -771,9 +776,9 @@
   [#:fold (f) (make-Signature name extends (map (match-lambda
                                                   [(cons id t) (cons id (f t))])
                                                 mapping))]
-  [#:walk (f) (make-Signature name extends (for-each (match-lambda
-                                                       [(cons id t) (cons id (f t))])
-                                                     mapping))])
+  [#:walk (f) (for-each (match-lambda
+                          [(cons _ t) (f t)])
+                        mapping)])
 
 
 (def-type UnitTop ()
@@ -798,10 +803,11 @@
                          (map f exports)
                          (map f init-depends)
                          (f result))]
-  [#:walk (f) (begin (for-each f imports)
-                     (for-each f exports)
-                     (for-each f init-depends)
-                     (f result))]
+  [#:walk (f)
+   (for-each f imports)
+   (for-each f exports)
+   (for-each f init-depends)
+   (f result)]
   [#:type-mask mask:unit]
   [#:top UnitTop?])
 

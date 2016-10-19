@@ -16,6 +16,7 @@
                   "types/resolve.rkt"
                   "types/prefab.rkt"
                   "utils/utils.rkt"
+                  "utils/primitive-comparison.rkt"
                   "utils/tc-utils.rkt")
          (for-syntax racket/base syntax/parse))
 
@@ -527,9 +528,9 @@
     [(Evt: r) `(Evtof ,(t->s r))]
     [(Union: elems)
      (define-values (covered remaining) (cover-union type ignored-names))
-     (cons 'U (append covered (map t->s remaining)))]
+     (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
     [(Intersection: elems)
-     (cons '∩ (map t->s elems))]
+     (cons '∩ (sort (map t->s elems) primitive<=?))]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
     [(F: nm) nm]

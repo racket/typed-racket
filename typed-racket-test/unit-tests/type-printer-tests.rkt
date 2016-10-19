@@ -21,18 +21,8 @@
 (define (prints-as? thing str)
   (string=? (format "~a" thing) str))
 
-(define (prints-as*? thing strs)
-  (let ([actual (format "~a" thing)])
-    (for/or ([str (in-list strs)])
-      (string=? actual str))))
-
 (define (pretty-prints-as? thing str)
   (string=? (pretty-format-rep thing) str))
-
-(define (pretty-prints-as*? thing strs)
-  (let ([actual (pretty-format-rep thing)])
-    (for/or ([str (in-list strs)])
-      (string=? actual str))))
 
 (define-binary-check (check-prints-as? prints-as? actual expected))
 (define-binary-check (check-pretty-prints-as? pretty-prints-as? actual expected))
@@ -60,14 +50,12 @@
     (check-prints-as? (-lst* -String -Symbol) "(List String Symbol)")
 
     ;; next three cases for PR 14552
-    (check-true (prints-as*? (-mu x (Un (-pair x x) -Null))
-                             '("(Rec x (U Null (Pairof x x)))" "(Rec x (U (Pairof x x) Null))")))
-    (check-true
-     (prints-as*? (-mu x (Un (-pair (-box x) x) -Null))
-                  '("(Rec x (U Null (Pairof (Boxof x) x)))" "(Rec x (U (Pairof (Boxof x) x) Null))")))
-    (check-true
-     (prints-as*? (-mu x (Un (-mpair x x) -Null))
-                  '("(Rec x (U Null (MPairof x x)))" "(Rec x (U (MPairof x x) Null))")))
+    (check-prints-as? (-mu x (Un (-pair x x) -Null))
+                      "(Rec x (U Null (Pairof x x)))")
+    (check-prints-as? (-mu x (Un (-pair (-box x) x) -Null))
+                      "(Rec x (U Null (Pairof (Boxof x) x)))")
+    (check-prints-as? (-mu x (Un (-mpair x x) -Null))
+                      "(Rec x (U Null (MPairof x x)))")
 
     (check-prints-as? -Custodian "Custodian")
     (check-prints-as? (make-Opaque #'integer?) "(Opaque integer?)")
@@ -77,8 +65,7 @@
     (check-prints-as? (-box (-val 3)) "(Boxof 3)")
     (check-prints-as? (make-Future -Void) "(Futureof Void)")
     (check-prints-as? (-> -String -Void) "(-> String Void)")
-    (check-true
-     (prints-as*? (Un -String -Void) '("(U String Void)" "(U Void String)")))
+    (check-prints-as? (Un -String -Void) "(U String Void)")
     (check-prints-as? (-pair -String -Void) "(Pairof String Void)")
     (check-prints-as? (make-ListDots -Boolean 'x) "(List Boolean ... x)")
     (check-prints-as? (make-F 'X) "X")
@@ -127,9 +114,9 @@
                              (one-of/c 'binary 'text)
                              #f
                              -Void)
-                      (string-append "(-> Any Path-String [#:exists (U 'error"
-                                     " 'append 'update 'replace 'truncate"
-                                     " 'truncate/replace)] [#:mode (U"
+                      (string-append "(-> Any Path-String [#:exists (U 'append"
+                                     " 'error 'replace 'truncate 'truncate/replace"
+                                     " 'update)] [#:mode (U"
                                      " 'binary 'text)] Void)"))
     (check-prints-as? (-> Univ (-AnyValues -tt)) "(-> Any AnyValues)")
     (check-prints-as? (-> Univ (-AnyValues (-is-type '(0 . 0) -String)))

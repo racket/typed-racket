@@ -47,7 +47,8 @@
   (subst-tc-results res targets))
 
 ;; Restrict the objects in v refering to the current functions
-;; arguments to be of the types ts.
+;; arguments to be of the types ts. Uses an identity substitution (yuck)
+;; since substitution does this same restriction.
 (define (restrict-values v ts)
   (define targets
     (for/list ([t (in-list ts)]
@@ -103,11 +104,18 @@
    (subst-rep r-o targets)))
 
 
+;; inc-lvl
+;; (cons nat nat) -> (cons nat nat)
+;; DeBruijn indexes are represented as a pair of naturals.
+;; This function increments the 'lvl' field of such an index.
 (define (inc-lvl x)
   (match x
     [(cons lvl arg) (cons (add1 lvl) arg)]
     [_ x]))
 
+;; inc-lvls
+;; This function increments the 'lvl' field in all of the targets
+;; and objects of substitution (see 'inc-lvl' above)
 (define (inc-lvls targets)
   (for/list ([tgt (in-list targets)])
     (match tgt
@@ -117,7 +125,12 @@
        (cons (inc-lvl nm1) rst)])))
 
 ;; Simple substitution of objects into a Rep
-;; This is 'rep[x ↦ o]'
+;; This is basically 'rep[x ↦ o]'.
+;; If that was the only substitution we were doing,
+;; and the type of 'x' was 'τ', then 'targets'
+;; would equal (list (list x o τ)) (i.e. it's the list of
+;; identifiers being substituted out, the optional object replacing
+;; them, and their type).
 (define/cond-contract (subst-rep rep targets)
   (-> any/c (listof (list/c name-ref/c OptObject? Type?))
       any/c)

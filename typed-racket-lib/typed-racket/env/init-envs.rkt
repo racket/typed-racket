@@ -421,6 +421,8 @@
     (λ (f) (dict-map mvar-env f))
     (lambda (id v) (and v #`(register-mutated-var #'#,id)))))
 
+;; see 'finalize-signatures!' in 'env/signature-env.rkt',
+;; which forces these delays after all the signatures are parsed
 (define (signature-env-init-code)
   (make-init-code
    signature-env-map

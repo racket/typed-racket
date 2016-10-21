@@ -5,9 +5,10 @@
          (for-syntax racket/base)
          (for-template racket/base)
          (rep type-rep prop-rep object-rep)
-         (for-syntax (rename-in (types utils union numeric-tower abbrev prop-ops)
-                                [Un t:Un]
-                                [-> t:->]))
+         (for-syntax
+          (rename-in (types utils numeric-tower abbrev prop-ops)
+                     [Un t:Un]
+                     [-> t:->]))
          (utils tc-utils utils)
          (utils mutated-vars)
 
@@ -18,7 +19,7 @@
          (for-syntax syntax/kerncase syntax/parse racket/syntax
                      (types abbrev numeric-tower utils)
                      (utils mutated-vars) (env mvar-env)
-                     (utils tc-utils) (typecheck typechecker))
+                     (utils tc-utils) (typecheck typechecker check-below))
          typed-racket/base-env/prims
          typed-racket/base-env/base-types
          (for-syntax typed-racket/standard-inits))
@@ -34,19 +35,23 @@
     [(tc-e expr ty) (syntax/loc stx (tc-e expr #:ret (reduce-tc-results/subsumption (ret ty))))]
     [(id a #:ret b)
      (syntax/loc stx
-       (test-case (format "~a ~a" (quote-line-number id) 'a)
-         (let-values
-           ([(res1 expanded)
-             (phase1-phase0-eval
+       (test-case
+        (format "~a ~a" (quote-line-number id) 'a)
+        (let*-values
+            ([(res1 res2 equiv? expanded)
+              (phase1-phase0-eval
                (let ([ex (local-expand #'a 'expression null)])
                  (find-mutated-vars ex mvar-env)
-                 #`(values '#,(tc-expr ex) '#,(syntax->datum ex))))]
-            [(res2) (phase1-phase0-eval #`'#,b)])
-           (with-check-info (['expanded expanded])
-             (unless (tc-result-equal/test? res1 res2)
-               (fail-check (format "Expression didn't have expected type.\n Expected: ~a\n Actual: ~a\n"
-                                   (struct->vector res1)
-                                   (struct->vector res2))))))))]))
+                 (let ([res1 (tc-expr ex)]
+                       [res2 b])
+                   (let ([equiv? (and (check-below res1 res2)
+                                      (check-below res2 res1))])
+                     #`(values '#,res1 '#,res2 '#,equiv? '#,(syntax->datum ex))))))])
+          (with-check-info (['expanded expanded])
+            (unless equiv?
+              (fail-check (format "Expression didn't have expected type.\n Expected: ~a\n Actual: ~a\n"
+                                  (struct->vector res1)
+                                  (struct->vector res2))))))))]))
 
 (define tests
   (test-suite

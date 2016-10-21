@@ -78,7 +78,7 @@
           (λ (name)
             (int-err "substitute used on ... variable ~a in type ~a" name target))]
          [else (make-ListDots (sub dty) dbound)])]
-      [_ (Rep-fold sub target)])))
+      [_ (Rep-fmap target sub)])))
 
 
 
@@ -137,7 +137,7 @@
                     (and rest (sub rest))
                     (and drest (cons (sub (car drest)) (cdr drest)))
                     (map sub kws))])]
-      [_ (Rep-fold sub target)])))
+      [_ (Rep-fmap target sub)])))
 
 ;; implements curly brace substitution from the formalism, with the addition
 ;; that a substitution can include fixed args in addition to a different dotted arg
@@ -177,7 +177,7 @@
                                  image-bound]
                                 [else (cdr drest)])))
                    (map sub kws)))]
-      [_ (Rep-fold sub target)])))
+      [_ (Rep-fmap target sub)])))
 
 ;; substitute many variables
 ;; subst-all : substitution/c Type -> Type

@@ -25,7 +25,7 @@
                     define lambda λ case-lambda)
          (prefix-in tr: (only-in (base-env prims) define lambda λ case-lambda))
          (for-syntax (rep type-rep prop-rep object-rep)
-                     (rename-in (types abbrev union numeric-tower prop-ops utils)
+                     (rename-in (types abbrev numeric-tower prop-ops utils)
                                 [Un t:Un]
                                 [-> t:->])))
 
@@ -1485,7 +1485,7 @@
                           (init-rest [rst : (List Symbol)])))
              (make-object c% "wrong"))
            #:ret (tc-ret (make-Instance (make-Class #f null null null null (-Tuple (list -Symbol)))))
-           #:msg #rx"expected: \\(List Symbol.*given: \\(List String"]
+           #:msg #rx"expected: Symbol.*given: String"]
    ;; PR 14408, test init-field order
    [tc-e (let ()
            (define c%

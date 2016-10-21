@@ -201,4 +201,4 @@
            [else
             (-not-type (make-Path flds nm) (subst not-ty-at-flds))]))]
       ;; else default fold over subfields
-      [_ (Rep-fold subst rep)])))
+      [_ (Rep-fmap rep subst)])))

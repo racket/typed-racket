@@ -5,8 +5,8 @@
          (contract-req)
          (infer-in infer)
          (rep core-rep type-rep prop-rep object-rep values-rep rep-utils)
-         (utils tc-utils)
-         (types resolve subtype subtract union)
+         (utils tc-utils hset)
+         (types resolve subtype subtract)
          (rename-in (types abbrev)
                     [-> -->]
                     [->* -->*]
@@ -82,11 +82,11 @@
            (list (make-arr* doms (update rng rst))))]
          
          [((Union: ts) _)
-          (apply Un (map (λ (t) (update t path)) ts))]
+          (Union-map ts (λ (t) (update t path)))]
 
          [((Intersection: ts) _)
           (for/fold ([t Univ])
-                    ([elem (in-list ts)])
+                    ([elem (in-hset ts)])
             (intersect t (update elem path)))]
          
          [(_ _)

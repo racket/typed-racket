@@ -1,7 +1,8 @@
 #lang s-exp "type-env-lang.rkt"
 
-(require "../types/abbrev.rkt" "../types/union.rkt"
-         "../types/numeric-tower.rkt" "../rep/type-rep.rkt")
+(require "../types/abbrev.rkt"
+         "../types/numeric-tower.rkt"
+         "../rep/type-rep.rkt")
 
 [Complex -Number]
 [Number -Number]
@@ -119,14 +120,14 @@
 [ChannelTop -ChannelTop]
 [Async-ChannelTop -Async-ChannelTop]
 [VectorTop -VectorTop]
-[HashTableTop -HashTop]
+[HashTableTop -HashtableTop]
 [MPairTop -MPairTop]
-[Thread-CellTop -Thread-CellTop]
+[Thread-CellTop -ThreadCellTop]
 [Prompt-TagTop -Prompt-TagTop]
 [Continuation-Mark-KeyTop -Continuation-Mark-KeyTop]
-[Struct-TypeTop (make-StructTypeTop)]
-[ClassTop (make-ClassTop)]
-[UnitTop (make-UnitTop)]
+[Struct-TypeTop -StructTypeTop]
+[ClassTop -ClassTop]
+[UnitTop -UnitTop]
 [Keyword -Keyword]
 [Thread -Thread]
 [Resolved-Module-Path -Resolved-Module-Path]

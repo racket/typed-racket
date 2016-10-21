@@ -7,29 +7,31 @@
          "core-rep.rkt"
          "object-rep.rkt"
          racket/match
-         racket/lazy-require)
+         racket/lazy-require
+         (only-in racket/unsafe/ops unsafe-fx<=))
 
 (lazy-require
  ["../types/prop-ops.rkt" (-and -or)])
 
-(provide hash-name
-         -is-type
-         -not-type
-         AndProp?
-         AndProp:
-         AndProp-ps
-         OrProp?
-         OrProp:
-         OrProp-ps
-         (rename-out [make-OrProp* make-OrProp]
-                     [make-AndProp* make-AndProp]))
+(provide -is-type
+         -not-type)
 
 
 (def-prop TypeProp ([obj Object?] [type (and/c Type? (not/c Univ?) (not/c Bottom?))])
-  [#:intern-key (cons (Rep-seq obj) (Rep-seq type))]
   [#:frees (f) (combine-frees (list (f obj) (f type)))]
-  [#:fold (f) (-is-type (f obj) (f type))]
-  [#:walk (f) (begin (f obj) (f type))])
+  [#:fmap (f) (make-TypeProp (f obj) (f type))]
+  [#:for-each (f) (begin (f obj) (f type))]
+  [#:custom-constructor
+   (cond
+     [(Empty? obj) -tt]
+     [(Univ? type) -tt]
+     [(Bottom? type) -ff]
+     [else
+      (intern-double-ref!
+       tprop-intern-table
+       obj type #:construct (make-TypeProp obj type))])])
+
+(define tprop-intern-table (make-weak-hash))
 
 ;; Abbreviation for props
 ;; `i` can be an integer or name-ref/c for backwards compatibility
@@ -42,18 +44,23 @@
       [(exact-integer? i) (make-Path null (cons 0 i))]
       [(pair? i) (make-Path null i)]
       [else (-id-path i)]))
-  (cond
-    [(Empty? o) (make-TrueProp)]
-    [(Univ? t) (make-TrueProp)]
-    [(Bottom? t) (make-FalseProp)]
-    [else (make-TypeProp o t)]))
+  (make-TypeProp o t))
 
 (def-prop NotTypeProp ([obj Object?] [type (and/c Type? (not/c Univ?) (not/c Bottom?))])
-  [#:intern-key (cons (Rep-seq obj) (Rep-seq type))]
   [#:frees (f) (combine-frees (list (f obj) (f type)))]
-  [#:fold (f) (-not-type (f obj) (f type))]
-  [#:walk (f) (begin (f obj) (f type))])
+  [#:fmap (f) (-not-type (f obj) (f type))]
+  [#:for-each (f) (begin (f obj) (f type))]
+  [#:custom-constructor
+   (cond
+     [(Empty? obj) -tt]
+     [(Univ? type) -ff]
+     [(Bottom? type) -tt]
+     [else
+      (intern-double-ref!
+       ntprop-intern-table
+       obj type #:construct (make-NotTypeProp obj type))])])
 
+(define ntprop-intern-table (make-weak-hash))
 
 ;; Abbreviation for not props
 ;; `i` can be an integer or name-ref/c for backwards compatibility
@@ -66,36 +73,23 @@
       [(exact-integer? i) (make-Path null (cons 0 i))]
       [(pair? i) (make-Path null i)]
       [else (-id-path i)]))
-  (cond
-    [(Empty? o) (make-TrueProp)]
-    [(Bottom? t) (make-TrueProp)]
-    [(Univ? t) (make-FalseProp)]
-    [else (make-NotTypeProp o t)]))
+  (make-NotTypeProp o t))
 
-(def-prop OrProp ([ps (and/c (length>=/c 2)
-                             (listof (or/c TypeProp? NotTypeProp?)))])
-  #:no-provide
-  [#:intern-key (for/hash ([p (in-list ps)]) (values p #t))]
+(def-prop OrProp ([ps (listof (or/c TypeProp? NotTypeProp?))])
   [#:frees (f) (combine-frees (map f ps))]
-  [#:fold (f) (apply -or (map f ps))]
-  [#:walk (f) (for-each f ps)])
+  [#:fmap (f) (apply -or (map f ps))]
+  [#:for-each (f) (for-each f ps)]
+  [#:custom-constructor
+   (let ([ps (sort ps (λ (p q) (unsafe-fx<= (eq-hash-code p)
+                                            (eq-hash-code q))))])
+     (intern-single-ref!
+      orprop-intern-table
+      ps
+      #:construct (make-OrProp ps)))])
 
-(define (make-OrProp* ps)
-  (match ps
-    [(list) (make-FalseProp)]
-    [(list p) p]
-    [ps (make-OrProp ps)]))
+(define orprop-intern-table (make-weak-hash))
 
-(def-prop AndProp ([ps (and/c (length>=/c 2)
-                              (listof (or/c OrProp? TypeProp? NotTypeProp?)))])
-  #:no-provide
-  [#:intern-key (for/hash ([p (in-list ps)]) (values p #t))]
+(def-prop AndProp ([ps (listof (or/c OrProp? TypeProp? NotTypeProp?))])
   [#:frees (f) (combine-frees (map f ps))]
-  [#:fold (f) (apply -and (map f ps))]
-  [#:walk (f) (for-each f ps)])
-
-(define (make-AndProp* ps)
-  (match ps
-    [(list) (make-TrueProp)]
-    [(list p) p]
-    [ps (make-AndProp ps)]))
+  [#:fmap (f) (apply -and (map f ps))]
+  [#:for-each (f) (for-each f ps)])

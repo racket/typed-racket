@@ -39,9 +39,11 @@
 (module tester racket/base
   (require
     (submod ".." cross-phase-failure)
+    "test-utils.rkt"
     typed-racket/utils/utils
     racket/base racket/match
-    (rename-in (types prop-ops tc-result printer) [ret raw-ret])
+    (rep core-rep)
+    (rename-in (types prop-ops tc-result printer subtype) [ret raw-ret])
     syntax/parse
     (for-template (only-in typed-racket/typed-racket do-standard-inits))
     (typecheck typechecker check-below)
@@ -71,33 +73,31 @@
 
 
   (define (check-tc-results result golden #:name name)
-    (unless (equal? golden result)
+    (unless (tc-result-equal/test? golden result)
       (define base-message (format "~a did not return the expected value." name))
 
-      (define extra-message1
-        (if (parameterize ([delay-errors? #f])
-              (with-handlers ([exn:fail? (lambda (_) #f)])
-                (check-below result golden)
-                #t))
-            " It returned a more precise value."
-            ""))
-
-      (define extra-message2
+      (define extra-message
         (match* (result golden)
-          [((tc-result1: rt rf ro) (tc-result1: gt gf go))
-           (cond
-             [(not (equal? rt gt))
-              " The types don't match."]
-             [(not (equal? rf gf))
-              " The propositions don't match."]
-             [(not (equal? ro go))
-              " They objects don't match."])]
+          [((tc-result1: rt (PropSet: rp+ rp-) ro)
+            (tc-result1: gt (PropSet: gp+ gp-) go))
+           (string-append
+            (if (not (and (subtype rt gt)
+                          (subtype gt rt)))
+                " The types don't match."
+                "")
+            (if (not (and (prop-equiv? rp+ gp+)
+                          (prop-equiv? rp- gp-)))
+                " The propositions don't match."
+                "")
+            (if (not (equal? ro go))
+                " The objects don't match."
+                ""))]
           [(_ _) ""]))
 
       (raise (cross-phase-failure
               #:actual result
               #:expected golden
-              (string-append base-message extra-message1 extra-message2)))))
+              (string-append base-message extra-message)))))
 
   ;; test: syntax? tc-results? [(option/c tc-results?)]
   ;;       [(listof (list id type))] -> void?
@@ -322,7 +322,7 @@
   (for-syntax
     (rep core-rep type-rep prop-rep object-rep values-rep)
     (base-env base-structs)
-    (rename-in (types abbrev union numeric-tower prop-ops utils resolve)
+    (rename-in (types abbrev numeric-tower prop-ops utils resolve)
                [Un t:Un]
                [-> t:->])))
 
@@ -1712,7 +1712,7 @@
         (tc-e (syntax-position #'here) (-opt -PosInt))
         (tc-e (syntax-span #'here) (-opt -Nat))
         (tc-e (syntax-local-identifier-as-binding #'x) (-Syntax -Symbol))
-        (tc-e (syntax-debug-info #'x) -HashTop)
+        (tc-e (syntax-debug-info #'x) -HashtableTop)
         (tc-e (internal-definition-context-introduce (syntax-local-make-definition-context) #'x)
               (-Syntax (-val 'x)))
 
@@ -1906,7 +1906,7 @@
         (tc-e (sync (make-semaphore)) -Semaphore)
         (tc-e (sync (tcp-listen 5555)) -TCP-Listener)
         (tc-e (sync (tcp-listen 5555) (make-semaphore))
-              (make-Union (list -TCP-Listener -Semaphore)))
+              (t:Un -TCP-Listener -Semaphore))
         (tc-e (sync (thread (λ () 0))) -Thread)
         (tc-e (sync (make-will-executor)) -Will-Executor)
         (tc-e (sync (make-custodian-box (current-custodian) 0))
@@ -1923,9 +1923,9 @@
         (tc-e (sync (choice-evt (system-idle-evt))) -Void)
         (tc-e (sync (choice-evt (system-idle-evt)
                                 ((inst make-channel String))))
-              (make-Union (list -String -Void)))
+              (t:Un -String -Void))
         (tc-e (sync/timeout 100 (make-semaphore) (tcp-listen 5555))
-              (make-Union (list (-val #f) -TCP-Listener -Semaphore)))
+              (t:Un (-val #f) -TCP-Listener -Semaphore))
         (tc-e (handle-evt ((inst make-channel Number))
                           (λ: ([x : Number]) (number->string x)))
               (make-Evt -String))
@@ -2472,14 +2472,14 @@
                                           (make-struct-type 'foo #f 3 0)])
                               type))])
                parent)
-             (-opt (make-StructTypeTop))]
+             (-opt -StructTypeTop)]
        [tc-e (let-values ([(name _1 _2 getter setter _3 _4 _5)
                            (struct-type-info struct:arity-at-least)])
                (getter (arity-at-least 3) 0))
              Univ]
        [tc-e/t (assert (let-values ([(type _) (struct-info (arity-at-least 3))])
                        type))
-               (make-StructTypeTop)]
+               -StructTypeTop]
        [tc-err (let-values ([(name _1 _2 getter setter _3 _4 _5)
                              (struct-type-info struct:arity-at-least)])
                  (getter 'bad 0))

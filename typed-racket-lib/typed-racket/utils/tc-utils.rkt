@@ -191,8 +191,9 @@ don't depend on any other portion of the system
 (define (tc-error/delayed msg #:stx [stx* (current-orig-stx)] . rest)
   (let ([stx (locate-stx stx*)])
     (unless (syntax? stx)
-      (int-err "erroneous syntax was not a syntax object: ~a ~a"
-               stx (syntax->datum stx*)))
+      (int-err "erroneous syntax was not a syntax object: ~a\n (error message: ~a)"
+               stx
+               msg))
     (current-type-error? #t)
     (if (delay-errors?)
         (set! delayed-errors (cons (make-err (apply format msg rest)
@@ -272,9 +273,10 @@ don't depend on any other portion of the system
           (string-append
            "Internal Typechecker Error: "
            (apply format msg args)
-           (format "\nwhile typechecking:\n~a\noriginally:\n~a"
-                   (syntax->datum (current-orig-stx))
-                   (syntax->datum (locate-stx (current-orig-stx)))))
+           (let ([stx (current-orig-stx)])
+             (format "\nwhile typechecking:\n~a\noriginally:\n~a"
+                     (and stx (syntax->datum stx))
+                     (and stx (syntax->datum (locate-stx stx))))))
           (current-continuation-marks))))
 
 ;; are we currently expanding in a typed module (or top-level form)?

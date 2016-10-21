@@ -13,7 +13,7 @@
            (rep type-rep values-rep)
 
            (submod typed-racket/base-env/base-types initialize)
-           (rename-in (types union abbrev numeric-tower resolve)
+           (rename-in (types abbrev numeric-tower resolve)
                       [Un t:Un] [-> t:->] [->* t:->*]))
          (only-in typed-racket/typed-racket do-standard-inits)
          (base-env base-types base-types-extra colon)
@@ -68,7 +68,7 @@
                             [delay-errors? #f])
                 (define expected ty-val)
                 (define actual (parse-type (quote-syntax ty-stx)))
-                #`(values #,expected #,actual #,(type-equal? actual expected)))))
+                #`(values #,expected #,actual #,(equal? actual expected)))))
           (unless same?
             (with-check-info (['expected expected] ['actual actual])
               (fail-check "Unequal types")))))]))
@@ -252,7 +252,7 @@
    [(Struct-Type arity-at-least) (make-StructType (resolve -Arity-At-Least))]
    [FAIL (Struct-Type Integer)]
    [FAIL (Struct-Type foo)]
-   [Struct-TypeTop (make-StructTypeTop)]
+   [Struct-TypeTop -StructTypeTop]
 
    ;; keyword function types
    [(#:a String -> String)
@@ -396,7 +396,7 @@
     (make-Unit null null null (-values (list -Void)))]
    [(Unit (import) (export))
     (make-Unit null null null (-values (list -Void)))]
-   [UnitTop (make-UnitTop)]
+   [UnitTop -UnitTop]
    [FAIL (Unit (export) String)]
    [FAIL (Unit (import) String)]
    [FAIL (Unit (init-depend) String)]

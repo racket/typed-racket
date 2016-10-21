@@ -1,9 +1,10 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
+         (utils hset)
          (rep type-rep rep-utils type-mask)
-         (types abbrev union subtype resolve utils)
-         racket/match racket/set)
+         (types abbrev subtype resolve utils)
+         racket/match)
 
 (provide subtract)
 
@@ -16,15 +17,15 @@
   (define result
     (let sub ([t t])
       (match t
-        [_ #:when (disjoint-masks? (Type-mask t) (Type-mask s)) t]
+        [_ #:when (disjoint-masks? (mask t) (mask s)) t]
         [_ #:when (subtype t s) -Bottom]
-        [(or (App: _ _ _) (? Name?))
+        [(or (App: _ _) (? Name?))
          ;; must be different, since they're not subtypes
          ;; and n must refer to a distinct struct type
          t]
-        [(Union: elems) (apply Un (map sub elems))]
+        [(Union: elems) (Union-map elems sub)]
         [(Intersection: ts)
-         (apply -unsafe-intersect (set-map ts sub))]
+         (apply -unsafe-intersect (hset-map ts sub))]
         [(? Mu?) (sub (unfold t))]
         [(Poly: vs b) (make-Poly vs (sub b))]
         [_ t])))

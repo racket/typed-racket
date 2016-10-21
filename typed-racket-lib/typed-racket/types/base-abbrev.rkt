@@ -6,7 +6,8 @@
 ;; extends it with more types and type abbreviations.
 
 (require "../utils/utils.rkt"
-         (rep type-rep prop-rep object-rep values-rep rep-utils)
+         "../rep/type-rep.rkt"
+         (rep prop-rep object-rep values-rep rep-utils)
          (env mvar-env)
          racket/match racket/list (prefix-in c: (contract-req))
          (for-syntax racket/base syntax/parse racket/list)
@@ -17,40 +18,21 @@
          -is-type
          -not-type
          -id-path
+         (all-from-out "../rep/type-rep.rkt")
          (rename-out [make-Listof -lst]
                      [make-MListof -mlst]))
 
-;; This table maps types (or really, the sequence number of the type)
-;; to identifiers that are those types. This allows us to avoid
-;; reconstructing the type when using it from its marshaled
-;; representation.  The table is referenced in env/init-env.rkt
-;;
-;; For example, instead of marshalling a big union for `Integer`, we
-;; simply emit `-Integer`, which evaluates to the right type.
-(define predefined-type-table (make-hasheq))
-(define-syntax-rule (declare-predefined-type! id)
-  (hash-set! predefined-type-table (Rep-seq id) #'id))
-(provide predefined-type-table)
-(define-syntax-rule (define/decl id e)
-  (begin (define id e)
-	 (declare-predefined-type! id)))
-
-;; Top and error types
-(define/decl Univ (make-Univ))
-(define/decl -Bottom (make-Bottom))
-(define/decl Err (make-Error))
-
 (define/decl -False (make-Value #f))
 (define/decl -True (make-Value #t))
-(define/decl -Boolean (make-Union (list -False -True)))
+(define/decl -Boolean (Un -False -True))
 
 (define -val make-Value)
+(define/decl -Null (-val null))
 
 ;; Char type and List type (needed because of how sequences are checked in subtype)
 (define/decl -Char (make-Base 'Char #'char? char? #f))
-(define/decl -Null (-val null))
-(define (make-Listof elem) (-mu list-rec (simple-Un -Null (make-Pair elem list-rec))))
-(define (make-MListof elem) (-mu list-rec (simple-Un -Null (make-MPair elem list-rec))))
+(define (make-Listof elem) (-mu list-rec (Un -Null (make-Pair elem list-rec))))
+(define (make-MListof elem) (-mu list-rec (Un -Null (make-MPair elem list-rec))))
 
 ;; Needed for evt checking in subtype.rkt
 (define/decl -Symbol (make-Base 'Symbol #'symbol? symbol? #f))
@@ -67,21 +49,6 @@
   (-Tuple* l -Null))
 (define (-Tuple* l b)
   (foldr -pair b l))
-
-;; Simple union type constructor, does not check for overlaps
-;; Normalizes representation by sorting types.
-;; Type * -> Type
-;; The input types can be union types, but should not have a complicated
-;; overlap relationship.
-(define simple-Un
-  (let ([flat (match-lambda
-                [(Union: es) es]
-                [t (list t)])])
-    (case-lambda
-      [() -Bottom]
-      [(t) t]
-      [args
-       (make-Union (remove-duplicates (append-map flat args) type-equal?))])))
 
 ;; Recursive types
 (define-syntax -v
@@ -104,11 +71,8 @@
      (make-Result t pset o)]))
 
 ;; Propositions
-(define/decl -tt (make-TrueProp))
-(define/decl -ff (make-FalseProp))
 (define/decl -tt-propset (make-PropSet -tt -tt))
 (define/decl -ff-propset (make-PropSet -ff -ff))
-(define/decl -empty-obj (make-Empty))
 
 (define (-arg-path arg [depth 0])
   (make-Path null (cons depth arg)))

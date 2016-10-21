@@ -1,7 +1,6 @@
 #lang racket
 
 (require typed-racket/infer/infer
-         typed-racket/types/union
          typed-racket/types/prop-ops
          typed-racket/types/abbrev
          typed-racket/rep/type-rep

@@ -4,7 +4,7 @@
          rackunit
          (rep object-rep type-rep)
          (env init-envs)
-         (types abbrev union))
+         (types abbrev))
 
 (provide tests)
 (gen-test-main)
@@ -29,16 +29,16 @@
         (convert (-mu x (-lst* Univ (-box x))))
         '(make-Mu 'x (make-Pair Univ (make-Pair (make-Box (make-F 'x)) -Null))))
       (check-equal?
-        (convert (make-StructTypeTop))
+        (convert -StructTypeTop)
         '-StructTypeTop)
       (check-equal?
-        (convert (make-BoxTop))
+        (convert -BoxTop)
         '-BoxTop)
       (check-equal?
-        (convert (make-ClassTop))
+        (convert -ClassTop)
         '-ClassTop)
       (check-equal?
-        (convert (make-FieldPE))
+        (convert -field)
         '-field)
       (check-equal?
         (convert (make-StructType (make-Struct #'foo #f null #f #f #'foo?)))

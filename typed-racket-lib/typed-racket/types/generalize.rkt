@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
          (rep type-rep)
-         "abbrev.rkt" "subtype.rkt" "substitute.rkt" "union.rkt"
+         "abbrev.rkt" "subtype.rkt" "substitute.rkt"
          "numeric-tower.rkt"
          racket/match)
 

@@ -41,7 +41,7 @@
 ;; similar, but with type equality
 (define (isoftype? s t)
   (match (type-of s)
-         [(tc-result1: (== t type-equal?)) #t] [_ #f]))
+         [(tc-result1: (== t)) #t] [_ #f]))
 
 ;; generates a table matching safe to unsafe promitives
 (define (mk-unsafe-tbl generic safe-pattern unsafe-pattern)

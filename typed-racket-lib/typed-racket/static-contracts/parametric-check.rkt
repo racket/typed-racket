@@ -1,7 +1,7 @@
 #lang racket/base
 
-;; Implements a check that to determine if a part of a static contract has two (or more) parametric
-;; contracts as direct descendents.
+;; Implements a check to determine if a part of a static contract has two
+;; (or more) parametric contracts as direct descendents.
 
 (require
   "../utils/utils.rkt"
@@ -34,11 +34,11 @@
     (define seen? #f)
     (match sc
       ;; skip already seen sc
-      [(? (λ (sc) (hash-ref seen (list sc variance) #f)))
+      [_ #:when (hash-ref seen (list sc variance) #f)
        (set! seen? #t)]
       [(or (or/sc: elems ...) (and/sc: elems ...))
        (add-equation! eqs (get-var sc)
-                      (lambda () (for/sum ((e (in-list elems)))
+                      (lambda () (for/sum ([e (in-list elems)])
                                    (variable-ref (get-var e)))))]
       [(or (parametric-var/sc: id) (sealing-var/sc: id))
        (add-equation! eqs (get-var sc) (lambda () 1))]

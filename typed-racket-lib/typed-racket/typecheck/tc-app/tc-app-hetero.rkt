@@ -1,10 +1,11 @@
 #lang racket/unit
 
 (require "../../utils/utils.rkt"
+         (utils hset)
          syntax/parse syntax/stx racket/match racket/sequence
          "signatures.rkt"
          "utils.rkt"
-         (types utils abbrev numeric-tower union resolve type-table generalize)
+         (types utils abbrev numeric-tower resolve type-table generalize)
          (typecheck signatures check-below)
          (rep type-rep type-mask rep-utils)
          (for-label racket/unsafe/ops racket/base))
@@ -127,8 +128,8 @@
       ;; we re-run this whole algorithm with that.  Otherwise, we treat
       ;; it like any other expected type.
       [(tc-result1: (app resolve (Union: ts))) (=> continue)
-       (define u-ts (for/list ([t (in-list ts)]
-                               #:when (eq? mask:vector (Type-mask t)))
+       (define u-ts (for/list ([t (in-hset ts)]
+                               #:when (eq? mask:vector (mask t)))
                       t))
        (match u-ts
          [(list t0) (tc/app #'(#%plain-app . form) (ret t0))]

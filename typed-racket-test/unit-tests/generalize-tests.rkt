@@ -4,7 +4,7 @@
          racket/format
          rackunit
          (rep rep-utils core-rep type-rep)
-         (types generalize abbrev union)
+         (types generalize abbrev)
          (for-syntax racket/base syntax/parse))
 
 (provide tests)
@@ -18,7 +18,7 @@
          (define expected exp*)
          (with-check-info (['actual actual]
                            ['expected expected])
-           (unless (type-equal? actual expected)
+           (unless (equal? actual expected)
              (fail-check "Didn't generalize to expected type."))))]))
 
 

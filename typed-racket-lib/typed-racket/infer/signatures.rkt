@@ -36,7 +36,9 @@
                             ;; range
                             (or/c #f Values/c ValuesDots?))
                            ;; optional expected type
-                           ((or/c #f Values/c AnyValues? ValuesDots?))
+                           ((or/c #f Values/c AnyValues? ValuesDots?)
+                            ;; optional multiple substitutions?
+                            #:multiple? boolean?)
                            . ->* . any)]
    [cond-contracted infer/vararg ((;; variables from the forall
                                    (listof symbol?)

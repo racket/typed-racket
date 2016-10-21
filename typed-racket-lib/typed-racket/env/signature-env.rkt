@@ -8,8 +8,7 @@
          lookup-signature
          lookup-signature/check
          signature-env-map
-         signature-env-for-each
-         with-signature-env/extend)
+         signature-env-for-each)
 
 (require syntax/id-table
          racket/match
@@ -21,7 +20,7 @@
          (rep type-rep))
 
 ;; initial signature environment
-(define signature-env (make-parameter (make-immutable-free-id-table)))
+(define signature-env (make-free-id-table))
 
 ;; register-signature! : identifier? Signature? -> Void
 ;; adds a mapping from the given identifier to the given signature
@@ -30,30 +29,19 @@
   (when (lookup-signature id)
     (tc-error/fields "duplicate signature definition"
                      "identifier" (syntax-e id)))
-  (signature-env (free-id-table-set (signature-env) id sig)))
-
-
-(define-syntax-rule (with-signature-env/extend ids sigs . b)
-  (let ([ids* ids]
-        [sigs* sigs])
-    (define new-env 
-      (for/fold ([env (signature-env)])
-                ([id (in-list ids*)]
-                 [sig (in-list sigs*)])
-        (free-id-table-set env id sig)))
-    (parameterize ([signature-env new-env]) . b)))
+  (free-id-table-set! signature-env id sig))
 
 ;; Iterate over the signature environment forcing the types of bindings
 ;; in each signature
 (define (finalize-signatures!)
-  (sorted-dict-for-each (signature-env) (λ (id sig) (force sig)) id<))
+  (sorted-dict-for-each signature-env (λ (id sig) (force sig)) id<))
 
 ;; lookup-signature : identifier? -> (or/c #f Signature?)
 ;; look up the signature corresponding to the given identifier
 ;; in the signature environment
 (define (lookup-signature id)
   (cond
-    [(free-id-table-ref (signature-env) id #f) => force]
+    [(free-id-table-ref signature-env id #f) => force]
     [else #f]))
 
 ;; lookup-signature/check : identifier? -> Signature?
@@ -67,7 +55,7 @@
                        #:stx id)))
 
 (define (signature-env-map f)
-  (sorted-dict-map (signature-env) (λ (id sig) (f id (force sig))) id<))
+  (sorted-dict-map signature-env (λ (id sig) (f id (force sig))) id<))
 
 (define (signature-env-for-each f)
-  (sorted-dict-for-each (signature-env) (λ (id sig) (f id (force sig))) id<))
+  (sorted-dict-for-each signature-env (λ (id sig) (f id (force sig))) id<))

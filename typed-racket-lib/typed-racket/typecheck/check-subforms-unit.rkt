@@ -5,7 +5,7 @@
          racket/match
          "signatures.rkt" "tc-metafunctions.rkt"
          "tc-funapp.rkt"
-         (types utils abbrev union resolve subtype match-expanders)
+         (types utils abbrev resolve subtype match-expanders)
          (typecheck check-below)
          (private syntax-properties)
          (utils tc-utils)

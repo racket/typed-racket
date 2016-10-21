@@ -2,7 +2,7 @@
 
 (require "test-utils.rkt" (for-syntax racket/base)
          (rep type-rep)
-         (types abbrev numeric-tower union)
+         (types abbrev numeric-tower)
          rackunit)
 
 (provide tests)
@@ -15,8 +15,8 @@
   (define (single-test stx)
     (syntax-case stx (FAIL)
       [(FAIL t s) (syntax/loc stx (test-check (format "FAIL ~a" '(t s))
-                                    (lambda (a b) (not (type-equal? a b))) t s))]
-      [(t s) (syntax/loc stx (test-check (format "~a" '(t s)) type-equal? t s))]))
+                                    (lambda (a b) (not (equal? a b))) t s))]
+      [(t s) (syntax/loc stx (test-check (format "~a" '(t s)) equal? t s))]))
   (syntax-case stx ()
     [(_ cl ...)
      #`(test-suite "Tests for type equality"

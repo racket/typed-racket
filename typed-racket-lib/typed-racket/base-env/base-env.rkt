@@ -23,22 +23,29 @@
  (only-in racket/private/pre-base new-apply-proc)
  (only-in (types abbrev) [-Boolean B] [-Symbol Sym] -Flat)
  (only-in (types numeric-tower) [-Number N])
- (only-in (rep type-rep values-rep)
-          make-ClassTop
-          make-UnitTop
-          make-Name
+ (only-in (rep type-rep values-rep object-rep)
+          -car
+          -cdr
+          -force
+          -field
+          -syntax-e
+          -ClassTop
+          -UnitTop
           make-ValuesDots
-          make-MPairTop
-          make-BoxTop make-ChannelTop make-VectorTop
-          make-ThreadCellTop
+          -MPairTop
+          -BoxTop
+          -ChannelTop
+          -VectorTop
+          -ThreadCellTop
           make-Ephemeron
           make-CustodianBox
           make-HeterogeneousVector
           make-Continuation-Mark-Keyof
-          make-Continuation-Mark-KeyTop
+          -Continuation-Mark-KeyTop
           make-Prompt-Tagof
-          make-Prompt-TagTop
-          make-StructType make-StructTypeTop
+          -Prompt-TagTop
+          make-StructType
+          -StructTypeTop
           make-ListDots))
 
 ;; Racket Reference
@@ -829,18 +836,18 @@
 [unsafe-set-mcdr! (-poly (a b)
                          (cl->* (-> (-mpair a b) b -Void)
                                 (-> (-mlst a) (-mlst a) -Void)))]
-[mpair? (make-pred-ty (make-MPairTop))]
+[mpair? (make-pred-ty -MPairTop)]
 [mlist (-poly (a) (->* (list) a (-mlst a)))]
 [mlength (-poly (a) (-> (-mlst a) -Index))]
 [mreverse! (-poly (a) (-> (-mlst a) (-mlst a)))]
 [mappend (-poly (a) (->* (list) (-mlst a) (-mlst a)))]
 
 ;; Section 4.11 (Vectors)
-[vector? (make-pred-ty (make-VectorTop))]
+[vector? (make-pred-ty -VectorTop)]
 [vector->list (-poly (a) (cl->* (-> (-vec a) (-lst a))
-                                (-> (make-VectorTop) (-lst Univ))))]
+                                (-> -VectorTop (-lst Univ))))]
 [list->vector (-poly (a) (-> (-lst a) (-vec a)))]
-[vector-length ((make-VectorTop) . -> . -Index)]
+[vector-length (-VectorTop . -> . -Index)]
 [vector (-poly (a) (->* (list) a (-vec a)))]
 [vector-immutable (-poly (a) (->* (list) a (-vec a)))]
 [vector->immutable-vector (-poly (a) (-> (-vec a) (-vec a)))]
@@ -893,26 +900,26 @@
 [box-immutable (-poly (a) (a . -> . (-box a)))]
 [unbox (-poly (a) (cl->*
                    ((-box a) . -> . a)
-                   ((make-BoxTop) . -> . Univ)))]
+                   (-BoxTop . -> . Univ)))]
 [set-box! (-poly (a) ((-box a) a . -> . -Void))]
 [box-cas! (-poly (a) ((-box a) a a . -> . -Boolean))]
 [unsafe-unbox (-poly (a) (cl->*
                           ((-box a) . -> . a)
-                          ((make-BoxTop) . -> . Univ)))]
+                          (-BoxTop . -> . Univ)))]
 [unsafe-set-box! (-poly (a) ((-box a) a . -> . -Void))]
 [unsafe-unbox* (-poly (a) (cl->*
                            ((-box a) . -> . a)
-                           ((make-BoxTop) . -> . Univ)))]
+                           (-BoxTop . -> . Univ)))]
 [unsafe-set-box*! (-poly (a) ((-box a) a . -> . -Void))]
 [unsafe-box*-cas! (-poly (a) ((-box a) a a . -> . -Boolean))]
-[box? (make-pred-ty (make-BoxTop))]
+[box? (make-pred-ty -BoxTop)]
 
 ;; Section 4.13 (Hash Tables)
-[hash? (make-pred-ty -HashTop)]
-[hash-eq? (-> -HashTop B)]
-[hash-eqv? (-> -HashTop B)]
-[hash-equal? (-> -HashTop B)]
-[hash-weak? (-> -HashTop B)]
+[hash? (make-pred-ty -HashtableTop)]
+[hash-eq? (-> -HashtableTop B)]
+[hash-eqv? (-> -HashtableTop B)]
+[hash-equal? (-> -HashtableTop B)]
+[hash-weak? (-> -HashtableTop B)]
 [hash (-poly (a b) (cl->* (-> (-HT a b))
                           (a b . -> . (-HT a b))
                           (a b a b . -> . (-HT a b))
@@ -944,11 +951,11 @@
                  (cl-> [((-HT a b) a) b]
                        [((-HT a b) a (-val #f)) (-opt b)]
                        [((-HT a b) a (-> c)) (Un b c)]
-                       [(-HashTop a) Univ]
-                       [(-HashTop a (-val #f)) Univ]
-                       [(-HashTop a (-> c)) Univ]))]
+                       [(-HashtableTop a) Univ]
+                       [(-HashtableTop a (-val #f)) Univ]
+                       [(-HashtableTop a (-> c)) Univ]))]
 [hash-ref! (-poly (a b) (-> (-HT a b) a (-> b) b))]
-[hash-has-key? (-HashTop Univ . -> . B)]
+[hash-has-key? (-HashtableTop Univ . -> . B)]
 [hash-update! (-poly (a b)
                      (cl-> [((-HT a b) a (-> b b)) -Void]
                            [((-HT a b) a (-> b b) (-> b)) -Void]))]
@@ -956,21 +963,21 @@
                     (cl-> [((-HT a b) a (-> b b)) (-HT a b)]
                           [((-HT a b) a (-> b b) (-> b)) (-HT a b)]))]
 [hash-remove (-poly (a b) (cl-> [((-HT a b) Univ) (-HT a b)]
-                                [(-HashTop Univ) -HashTop]))]
+                                [(-HashtableTop Univ) -HashtableTop]))]
 [hash-remove! (-poly (a b) (cl-> [((-HT a b) a) -Void]
-                                 [(-HashTop a) -Void]))]
+                                 [(-HashtableTop a) -Void]))]
 [hash-map (-poly (a b c) (cl-> [((-HT a b) (a b . -> . c)) (-lst c)]
-                               [(-HashTop (Univ Univ . -> . c)) (-lst c)]))]
+                               [(-HashtableTop (Univ Univ . -> . c)) (-lst c)]))]
 [hash-for-each (-poly (a b c) (cl-> [((-HT a b) (-> a b c)) -Void]
-                                    [(-HashTop (-> Univ Univ c)) -Void]))]
-[hash-count (-> -HashTop -Index)]
-[hash-empty? (-> -HashTop -Boolean)]
+                                    [(-HashtableTop (-> Univ Univ c)) -Void]))]
+[hash-count (-> -HashtableTop -Index)]
+[hash-empty? (-> -HashtableTop -Boolean)]
 [hash-keys (-poly (a b) (cl-> [((-HT a b)) (-lst a)]
-                              [(-HashTop) (-lst Univ)]))]
+                              [(-HashtableTop) (-lst Univ)]))]
 [hash-values (-poly (a b) (cl-> [((-HT a b)) (-lst b)]
-                                [(-HashTop) (-lst Univ)]))]
+                                [(-HashtableTop) (-lst Univ)]))]
 [hash->list (-poly (a b) (cl-> [((-HT a b)) (-lst (-pair a b))]
-                               [(-HashTop) (-lst (-pair Univ Univ))]))]
+                               [(-HashtableTop) (-lst (-pair Univ Univ))]))]
 
 [hash-copy (-poly (a b) (-> (-HT a b) (-HT a b)))]
 [eq-hash-code (-> Univ -Fixnum)]
@@ -980,23 +987,23 @@
 [hash-iterate-first (-poly (a b)
                            (cl->*
                             ((-HT a b) . -> . (Un (-val #f) -Integer))
-                            (-> -HashTop (Un (-val #f) -Integer))))]
+                            (-> -HashtableTop (Un (-val #f) -Integer))))]
 [hash-iterate-next (-poly (a b)
                            (cl->*
                             ((-HT a b) -Integer . -> . (Un (-val #f) -Integer))
-                            (-> -HashTop -Integer (Un (-val #f) -Integer))))]
+                            (-> -HashtableTop -Integer (Un (-val #f) -Integer))))]
 [hash-iterate-key (-poly (a b)
                            (cl->* ((-HT a b) -Integer . -> . a)
-                                  (-> -HashTop -Integer Univ)))]
+                                  (-> -HashtableTop -Integer Univ)))]
 [hash-iterate-value (-poly (a b)
                            (cl->* ((-HT a b) -Integer . -> . b)
-                                  (-> -HashTop -Integer Univ)))]
+                                  (-> -HashtableTop -Integer Univ)))]
 [hash-iterate-pair (-poly (a b)
                            (cl->* ((-HT a b) -Integer . -> . (-pair a b))
-                                  (-> -HashTop -Integer Univ)))]
+                                  (-> -HashtableTop -Integer Univ)))]
 [hash-iterate-key+value (-poly (a b)
                            (cl->* ((-HT a b) -Integer . -> . (-values (list a b)))
-                                  (-> -HashTop -Integer (-values (list Univ Univ)))))]
+                                  (-> -HashtableTop -Integer (-values (list Univ Univ)))))]
 
 [make-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]
 [make-immutable-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]
@@ -1146,7 +1153,7 @@
 ;; Section 5.2 (Structure Types)
 [make-struct-type
  (->opt -Symbol
-        (-opt (make-StructTypeTop))
+        (-opt -StructTypeTop)
         -Nat -Nat
         [Univ
          (-lst (-pair -Struct-Type-Property Univ))
@@ -1155,7 +1162,7 @@
          (-lst -Nat)
          (-opt top-func)
          (-opt -Symbol)]
-        (-values (list (make-StructTypeTop) top-func top-func top-func top-func)))]
+        (-values (list -StructTypeTop top-func top-func top-func top-func)))]
 [make-struct-field-accessor (->opt top-func -Nat [(-opt -Symbol)] top-func)]
 [make-struct-field-mutator  (->opt top-func -Nat [(-opt -Symbol)] top-func)]
 
@@ -1173,33 +1180,33 @@
 ;; Section 5.6 (Structure Utilities)
 [struct->vector (Univ . -> . (-vec Univ))]
 [struct? (-> Univ -Boolean)]
-[struct-type? (make-pred-ty (make-StructTypeTop))]
+[struct-type? (make-pred-ty -StructTypeTop)]
 
 ;; Section 6.2 (Classes)
 [object% (-class)]
 
 ;; Section 6.11 (Object, Class, and Interface Utilities)
 [object? (make-pred-ty (-object))]
-[class? (make-pred-ty (make-ClassTop))]
+[class? (make-pred-ty -ClassTop)]
 ;; TODO: interface?
 ;;       generic?
 [object=? (-> (-object) (-object) -Boolean)]
 [object->vector (->opt (-object) [Univ] (-vec Univ))]
 ;; TODO: class->interface
 ;;       object-interface
-[is-a? (-> Univ (make-ClassTop) -Boolean)]
-[subclass? (-> Univ (make-ClassTop) -Boolean)]
+[is-a? (-> Univ -ClassTop -Boolean)]
+[subclass? (-> Univ -ClassTop -Boolean)]
 ;; TODO: implementation?
 ;;       interface-extension?
 ;;       method-in-interface?
 ;;       interface->method-names
 [object-method-arity-includes? (-> (-object) -Symbol -Nat -Boolean)]
 [field-names (-> (-object) (-lst -Symbol))]
-[object-info (-> (-object) (-values (list (Un (make-ClassTop) (-val #f)) -Boolean)))]
+[object-info (-> (-object) (-values (list (Un -ClassTop (-val #f)) -Boolean)))]
 ;; TODO: class-info (is this sound to allow?)
 
 ;; Section 7.8 (Unit Utilities)
-[unit? (make-pred-ty (make-UnitTop))]
+[unit? (make-pred-ty -UnitTop)]
 
 ;; Section 9.1
 [exn:misc:match? (-> Univ B)]
@@ -1309,34 +1316,34 @@
                   (make-ValuesDots (list (-result b)) c 'c))
               (make-ValuesDots (list (-result (Un a b))) c 'c))))]
 [call-with-continuation-barrier (-poly (a) (-> (-> a) a))]
-[continuation-prompt-available? (-> (make-Prompt-TagTop) B)]
+[continuation-prompt-available? (-> -Prompt-TagTop B)]
 [continuation?
  (asym-pred Univ B (-PS (-is-type 0 top-func) -tt))]
-[continuation-prompt-tag? (make-pred-ty (make-Prompt-TagTop))]
+[continuation-prompt-tag? (make-pred-ty -Prompt-TagTop)]
 [dynamic-wind (-poly (a) (-> (-> ManyUniv) (-> a) (-> ManyUniv) a))]
 
 ;; Section 10.5 (Continuation Marks)
 ;; continuation-marks needs type for continuations as other
 ;; possible first argument
 [continuation-marks
- (->opt (Un (-val #f) -Thread) [(make-Prompt-TagTop)] -Cont-Mark-Set)]
-[current-continuation-marks (->opt [(make-Prompt-TagTop)] -Cont-Mark-Set)]
+ (->opt (Un (-val #f) -Thread) [-Prompt-TagTop] -Cont-Mark-Set)]
+[current-continuation-marks (->opt [-Prompt-TagTop] -Cont-Mark-Set)]
 [continuation-mark-set->list
  (-poly (a)
         (cl->*
          (->opt -Cont-Mark-Set (make-Continuation-Mark-Keyof a)
-                [(make-Prompt-TagTop)] (-lst a))
-         (->opt -Cont-Mark-Set Univ [(make-Prompt-TagTop)] (-lst Univ))))]
+                [-Prompt-TagTop] (-lst a))
+         (->opt -Cont-Mark-Set Univ [-Prompt-TagTop] (-lst Univ))))]
 [continuation-mark-set->list*
  (-poly (a b)
         (cl->*
          (->opt -Cont-Mark-Set
                 (-lst (make-Continuation-Mark-Keyof a))
-                [b (make-Prompt-TagTop)]
+                [b -Prompt-TagTop]
                 (-lst (-vec (Un a b))))
          (->opt -Cont-Mark-Set
                 (-lst Univ)
-                [Univ (make-Prompt-TagTop)]
+                [Univ -Prompt-TagTop]
                 (-lst (-vec Univ)))))]
 [continuation-mark-set-first
  (-poly (a b)
@@ -1344,12 +1351,12 @@
          (-> (-opt -Cont-Mark-Set) (make-Continuation-Mark-Keyof a)
              (-opt a))
          (->opt (-opt -Cont-Mark-Set) (make-Continuation-Mark-Keyof a)
-                [b (make-Prompt-TagTop)]
+                [b -Prompt-TagTop]
                 (Un a b))
-         (->opt (-opt -Cont-Mark-Set) Univ [Univ (make-Prompt-TagTop)] Univ)))]
+         (->opt (-opt -Cont-Mark-Set) Univ [Univ -Prompt-TagTop] Univ)))]
 [call-with-immediate-continuation-mark
  (-poly (a) (->opt Univ (-> Univ a) [Univ] a))]
-[continuation-mark-key? (make-pred-ty (make-Continuation-Mark-KeyTop))]
+[continuation-mark-key? (make-pred-ty -Continuation-Mark-KeyTop)]
 [continuation-mark-set? (make-pred-ty -Cont-Mark-Set)]
 [make-continuation-mark-key
  (-poly (a) (->opt [-Symbol] (make-Continuation-Mark-Keyof a)))]
@@ -1438,7 +1445,7 @@
 
 ;; Section 11.2.2
 [make-channel (-poly (a) (-> (-channel a)))]
-[channel? (make-pred-ty (make-ChannelTop))]
+[channel? (make-pred-ty -ChannelTop)]
 [channel-get (-poly (a) ((-channel a) . -> . a))]
 [channel-try-get (-poly (a) ((-channel a) . -> . (Un a (-val #f))))]
 [channel-put (-poly (a) ((-channel a) a . -> . -Void))]
@@ -1468,7 +1475,7 @@
                  [a a] b)))]
 
 ;; Section 11.3.1 (Thread Cells)
-[thread-cell? (make-pred-ty (make-ThreadCellTop))]
+[thread-cell? (make-pred-ty -ThreadCellTop)]
 [make-thread-cell (-poly (a) (->opt a [Univ] (-thread-cell a)))]
 [thread-cell-ref (-poly (a) (-> (-thread-cell a) a))]
 [thread-cell-set! (-poly (a) (-> (-thread-cell a) a -Void))]
@@ -1755,7 +1762,7 @@
 
 ;; Section 12.8
 [syntax-recertify (-poly (a) (-> (-Syntax a) (-Syntax Univ) -Inspector Univ (-Syntax a)))]
-[syntax-debug-info (-poly (a) (->opt (-Syntax a) [(-opt -Integer) Univ] -HashTop))]
+[syntax-debug-info (-poly (a) (->opt (-Syntax a) [(-opt -Integer) Univ] -HashtableTop))]
 
 ;; Section 12.9
 [expand (-> Univ (-Syntax Univ))]
@@ -2495,23 +2502,23 @@
 [make-sibling-inspector (->opt [-Inspector] -Inspector)]
 [current-inspector (-Param -Inspector -Inspector)]
 
-[struct-info (-> Univ (-values (list (-opt (make-StructTypeTop)) B)))]
+[struct-info (-> Univ (-values (list (-opt -StructTypeTop) B)))]
 [struct-type-info
  (-poly (a)
    (cl->*
     (-> (make-StructType a)
         (-values (list Sym -Nat -Nat (-> a -Nat Univ)
                        (-> a -Nat (Un) -Void) (-lst -Nat)
-                       (-opt (make-StructTypeTop)) B)))
-    (-> (make-StructTypeTop)
+                       (-opt -StructTypeTop) B)))
+    (-> -StructTypeTop
         (-values (list Sym -Nat -Nat top-func top-func (-lst -Nat)
-                       (-opt (make-StructTypeTop)) B)))))]
-[struct-type-make-constructor (-> (make-StructTypeTop) top-func)]
+                       (-opt -StructTypeTop) B)))))]
+[struct-type-make-constructor (-> -StructTypeTop top-func)]
 [struct-type-make-predicate
  (-poly (a)
    (cl->*
     (-> (make-StructType a) (make-pred-ty a))
-    (-> (make-StructTypeTop) (-> Univ B))))]
+    (-> -StructTypeTop (-> Univ B))))]
 [object-name (-> Univ Univ)]
 
 ;; Section 14.9 (Code Inspectors)
@@ -3069,8 +3076,8 @@
                    (cl->*
                     (->acc (list (-pair a b)) b (list -cdr))
                     (->* (list (-lst a)) (-lst a))))]
-[unsafe-vector-length ((make-VectorTop) . -> . -Index)]
-[unsafe-vector*-length ((make-VectorTop) . -> . -Index)]
+[unsafe-vector-length (-VectorTop . -> . -Index)]
+[unsafe-vector*-length (-VectorTop . -> . -Index)]
 [unsafe-struct-ref top-func]
 [unsafe-struct*-ref top-func]
 [unsafe-struct-set! top-func]

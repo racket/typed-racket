@@ -5,7 +5,7 @@
          racket/match (prefix-in - (contract-req))
          "signatures.rkt"
          "check-below.rkt" "../types/kw-types.rkt"
-         (types utils abbrev union subtype type-table path-type
+         (types utils abbrev subtype type-table path-type
                 prop-ops overlap resolve generalize tc-result)
          (private-in syntax-properties parse-type)
          (rep type-rep prop-rep object-rep)
@@ -403,7 +403,7 @@
        [(Box: t) (-box (check-below (find-stx-type x t) t))]
        [_ (-box (generalize (find-stx-type x)))])]
     [(? hash? h)
-     (match (and expected (resolve (intersect expected -HashTop)))
+     (match (and expected (resolve (intersect expected -HashtableTop)))
        [(Hashtable: kt vt)
         (define kts (hash-map h (lambda (x y) (find-stx-type x kt))))
         (define vts (hash-map h (lambda (x y) (find-stx-type y vt))))

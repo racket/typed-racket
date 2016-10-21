@@ -13,7 +13,7 @@
          "signatures.rkt"
          (private parse-type syntax-properties)
          (env lexical-env tvar-env global-env type-alias-helper mvar-env)
-         (types utils abbrev union subtype resolve generalize)
+         (types utils abbrev subtype resolve generalize)
          (typecheck check-below internal-forms)
          (utils tc-utils mutated-vars)
          (rep object-rep type-rep values-rep)
@@ -885,7 +885,7 @@
        (->acc (list Univ)
               (or (and maybe-type (car maybe-type))
                   Univ)
-              (list (make-FieldPE))
+              (list -field)
               #:var getter-id)
        (-> Univ (or (and maybe-type (car maybe-type)) -Bottom)
            -Void))))

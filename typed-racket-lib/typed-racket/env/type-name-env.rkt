@@ -107,7 +107,7 @@
           [(or (not tvars) (null? tvars)) #t]
           [else
             (define free-vars (free-vars-hash (free-vars* type)))
-            (define variance (map (λ (v) (hash-ref free-vars v Constant)) tvars))
+            (define variance (map (λ (v) (hash-ref free-vars v variance:const)) tvars))
             (define old-variance (lookup-type-variance name))
 
             (register-type-variance! name variance)
@@ -117,5 +117,5 @@
 ;; Initialize variance of the given id to Constant for all type vars
 (define (add-constant-variance! name vars)
   (unless (or (not vars) (null? vars))
-    (register-type-variance! name (map (lambda (_) Constant) vars))))
+    (register-type-variance! name (map (lambda (_) variance:const) vars))))
 

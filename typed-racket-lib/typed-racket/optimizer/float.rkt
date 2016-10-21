@@ -5,7 +5,7 @@
          (for-template racket/base racket/flonum racket/unsafe/ops racket/math)
          "../utils/utils.rkt"
          (utils tc-utils)
-         (types numeric-tower union abbrev)
+         (types numeric-tower abbrev)
          (optimizer utils numeric-utils logging fixnum))
 
 (provide float-opt-expr float-arg-expr int-expr float-op)

@@ -5,7 +5,7 @@
 (require (for-syntax racket/base syntax/parse)
          (utils tc-utils)
          (env init-envs)
-         (types abbrev numeric-tower union prop-ops))
+         (types abbrev numeric-tower prop-ops))
 
 (define-syntax (-#%module-begin stx)
   (define-syntax-class clause
@@ -29,4 +29,4 @@
          require
          (except-out (all-from-out racket/base) #%module-begin)
          types rep private utils
-         (types-out abbrev numeric-tower union prop-ops))
+         (types-out abbrev numeric-tower prop-ops))

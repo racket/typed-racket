@@ -20,13 +20,8 @@
              (free-id-table-map (env-types e)
                                 (λ (id ty) (format "[~a ∈ ~a]" id ty)))
              (env-props e)
-             (free-id-table-map (env-types e)
+             (free-id-table-map (env-aliases e)
                                 (λ (id ty) (format "[~a ≡ ~a]" id ty))))))
-
-;; when interning is removed, the -empty-obj
-;; shorthand will be visible in this file. until
-;; then this will do -amk
-(define -empty-obj (make-Empty))
 
 (provide/cond-contract
   [env? predicate/c]

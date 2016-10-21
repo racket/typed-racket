@@ -21,10 +21,9 @@
 ;;---------
 
 (def-values Values ([results (listof Result?)])
-  [#:intern-key (map Rep-seq results)]
   [#:frees (f) (combine-frees (map f results))]
-  [#:fold (f) (make-Values (map f results))]
-  [#:walk (f) (for-each f results)])
+  [#:fmap (f) (make-Values (map f results))]
+  [#:for-each (f) (for-each f results)])
 
 ;; Anything that can be treated as a _simple_
 ;; Values by sufficient expansion
@@ -42,10 +41,9 @@
 ;; return type of functions
 
 (def-values AnyValues ([p Prop?])
-  [#:intern-key (Rep-seq p)]
   [#:frees (f) (f p)]
-  [#:fold (f) (make-AnyValues (f p))]
-  [#:walk (f) (f p)])
+  [#:fmap (f) (make-AnyValues (f p))]
+  [#:for-each (f) (f p)])
 
 ;;-------------
 ;; ValuesDots
@@ -55,8 +53,16 @@
 (def-values ValuesDots ([results (listof Result?)]
                         [dty Type?]
                         [dbound (or/c symbol? natural-number/c)])
-  [#:intern-key (list* (Rep-seq dty) dbound (map Rep-seq results))]
-  [#:frees (f) (combine-frees (map f results))]
-  [#:fold (f) (make-ValuesDots (map f results) (f dty) dbound)]
-  [#:walk (f) (begin (f dty)
-                     (for-each f results))])
+  [#:frees
+   [#:vars (f)
+    (if (symbol? dbound)
+        (free-vars-remove (combine-frees (map free-vars* (cons dty results))) dbound)
+        (combine-frees (map free-vars* (cons dty results))))]
+   [#:idxs (f)
+    (if (symbol? dbound)
+        (combine-frees (cons (single-free-var dbound) 
+                             (map free-idxs* (cons dty results))))
+        (combine-frees (map free-idxs* (cons dty results))))]]
+  [#:fmap (f) (make-ValuesDots (map f results) (f dty) dbound)]
+  [#:for-each (f) (begin (f dty)
+                         (for-each f results))])

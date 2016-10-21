@@ -14,9 +14,9 @@
 
 
 (define-syntax-class/specialize string-expr
-  (typed-expr (λ (t) (type-equal? t -String))))
+  (typed-expr (λ (t) (equal? t -String))))
 (define-syntax-class/specialize bytes-expr
-  (typed-expr (λ (t) (type-equal? t -Bytes))))
+  (typed-expr (λ (t) (equal? t -Bytes))))
 (define-syntax-class/specialize list-expr
   (typed-expr (λ (t)
                  (match t

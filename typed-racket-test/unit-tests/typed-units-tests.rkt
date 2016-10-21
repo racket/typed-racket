@@ -24,7 +24,7 @@
                     define lambda λ case-lambda)
          (prefix-in tr: (only-in (base-env prims) define lambda λ case-lambda))
          (for-syntax (rep type-rep prop-rep object-rep)
-                     (rename-in (types abbrev union numeric-tower prop-ops utils)
+                     (rename-in (types abbrev numeric-tower prop-ops utils)
                                 [Un t:Un]
                                 [-> t:->])))
 

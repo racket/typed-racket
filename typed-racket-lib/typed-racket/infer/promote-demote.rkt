@@ -53,18 +53,17 @@
                     (and drest (cons (contra (car drest)) (cdr drest)))
                     (map contra kws))])]))
   (match cur
-    [(? structural? t)
-     (define mk (Rep-constructor t))
-     (apply mk (for/list ([t (in-list (Rep-values t))]
-                          [v (in-list (Type-variances t))])
-                 (cond
-                   [(eq? v Covariant) (co t)]
-                   [(eq? v Invariant)
+    [(app Rep-variances variances) #:when variances 
+     (define mk (Rep-constructor cur))
+     (apply mk (for/list ([t (in-list (Rep-values cur))]
+                          [v (in-list variances)])
+                 (match v
+                   [(? variance:co?) (co t)]
+                   [(? variance:inv?)
                     (if (V-in? V t)
                         (if change Univ -Bottom)
                         t)]
-                   [(eq? v Contravariant)
-                    (contra t)])))]
+                   [(? variance:contra?) (contra t)])))]
     [(Unit: imports exports init-depends t)
      (make-Unit (map co imports)
                 (map contra imports)
@@ -80,4 +79,4 @@
                                                (if change Univ -Bottom)
                                                t))
                                     elems))]
-    [_ (Rep-fold co cur)]))
+    [_ (Rep-fmap cur co)]))

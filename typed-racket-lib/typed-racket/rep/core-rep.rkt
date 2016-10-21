@@ -20,7 +20,7 @@
          (for-syntax racket/base racket/syntax
                      syntax/parse))
 
-(provide Type Type-mask Type-subtype-cache Type?
+(provide Type Type?
          Prop Prop?
          Object Object? OptObject?
          PathElem PathElem?
@@ -29,22 +29,8 @@
          def-values
          def-prop
          def-object
-         def-pathelem
-         type-equal?
-         prop-equal?
-         object-equal?)
+         def-pathelem)
 
-(define-syntax type-equal? (make-rename-transformer #'eq?))
-(define-syntax prop-equal? (make-rename-transformer #'eq?))
-(define-syntax object-equal? (make-rename-transformer #'eq?))
-
-(provide-for-cond-contract name-ref/c)
-
-;; A Name-Ref is any value that represents an object.
-;; As an identifier, it represents a free variable in the environment
-;; As a pair, it represents a De Bruijn indexed bound variable (cons lvl arg-num)
-(define-for-cond-contract name-ref/c
-  (or/c identifier? (cons/c natural-number/c natural-number/c)))
 
 ;;************************************************************
 ;; Custom Printing Tools
@@ -55,32 +41,40 @@
                           print-prop print-object print-pathelem
                           print-values print-propset print-result)])
 
-;; Note: We eta expand the printer so it is not evaluated until needed.
-(define-syntax (struct/printer stx)
+;; comment out the above lazy-require and uncomment the following
+;; s-exp for simple debug printing of Rep structs
+#;(begin
+    (define (debug-printer rep port write?)
+      (display (cons (Rep-name rep) (Rep-values rep)) port))
+
+    (define print-type debug-printer)
+    (define print-prop debug-printer)
+    (define print-object debug-printer)
+    (define print-pathelem debug-printer)
+    (define print-values debug-printer)
+    (define print-propset debug-printer)
+    (define print-result debug-printer))
+
+(define-syntax (def-rep-class stx)
   (syntax-parse stx
     [(_ name:id
-        (flds:id ...)
-        printer:id)
+        #:printer printer:id
+        #:define-form def:id)
      (with-syntax ([mk (generate-temporary 'dont-use-me)])
-       (syntax/loc
+       (quasisyntax/loc
            stx
-         (struct name Rep (flds ...)
-           #:constructor-name mk
-           #:transparent
-           #:property prop:custom-print-quotable 'never
-           #:methods gen:custom-write
-           [(define (write-proc v port write?) (printer v port write?))])))]))
-
-
-(define-syntax (build-rep-definer syntax)
-  (syntax-parse syntax
-    [(_ class:id def-id:id)
-     (syntax/loc syntax
-       (define-syntax (def-id stx)
-         (syntax-parse stx
-           [(_ variant:id flds:expr . rst)
-            (syntax/loc stx
-              (def-rep variant flds [#:parent class] . rst))])))]))
+         (begin (struct name ()
+                  #:constructor-name mk
+                  #:transparent
+                  #:property prop:custom-print-quotable 'never
+                  #:methods gen:custom-write
+                  ;; Note: We eta expand the printer so it is not evaluated until needed.
+                  [(define (write-proc v port write?) (printer v port write?))])
+                (define-syntax (def stx)
+                  (syntax-parse stx
+                    [(_ variant:id flds:expr . rst)
+                     (syntax/loc stx
+                       (def-rep variant flds [#:parent name] . rst))])))))]))
 
 ;;
 ;; These structs are the 'meta-variables' of TR's internal grammar,
@@ -95,18 +89,9 @@
 ;;************************************************************
 ;; Types
 ;;************************************************************
-;;
-;;
-;; The 'mask' field that is used for quick-checking of certain
-;; properties. See type-mask.rkt for details.
 
-;; subtype-cache - for a given type τ, the subtype-cache
-;;    is a mapping from Type -> boolean, s.t. if
-;;    τ.subtype-cache[σ] = #t then τ <: σ holds, otherwise
-;;    if τ.subtype-cache[σ] = #f, then τ <: σ does not hold
-;; mask - the type mask for this type
-(struct/printer Type (subtype-cache mask) print-type)
-(build-rep-definer Type def-type)
+
+(def-rep-class Type #:printer print-type #:define-form def-type)
 
 ;;-----------------
 ;; Universal Type
@@ -114,15 +99,17 @@
 
 ;; the type of all well-typed terms
 ;; (called Any in user programs)
-(def-type Univ () #:base
-  [#:type-mask mask:unknown])
+(def-type Univ ()
+  [#:mask mask:unknown]
+  [#:singleton Univ])
 
 ;;-----------------
 ;; Bottom Type
 ;;-----------------
 
-(def-type Bottom () #:base
-  [#:type-mask mask:bottom])
+(def-type Bottom ()
+  [#:mask mask:bottom]
+  [#:singleton -Bottom])
 
 ;;************************************************************
 ;; Prop
@@ -130,13 +117,10 @@
 ;;
 ;; These convey learned information about program terms while
 ;; typechecking.
+(def-rep-class Prop #:printer print-prop #:define-form def-prop)
 
-(struct/printer Prop () print-prop)
-(build-rep-definer Prop def-prop)
-
-(def-prop TrueProp () #:base)
-
-(def-prop FalseProp () #:base)
+(def-prop TrueProp () [#:singleton -tt])
+(def-prop FalseProp () [#:singleton -ff])
 
 ;;************************************************************
 ;; Fields and Symbolic Objects
@@ -151,19 +135,17 @@
 ;;--------------
 
 ;; e.g. car, cdr, etc
-(struct/printer PathElem () print-pathelem)
-(build-rep-definer PathElem def-pathelem)
+(def-rep-class PathElem #:printer print-pathelem #:define-form def-pathelem)
 
 
 ;;----------
 ;; Objects
 ;;----------
-
-(struct/printer Object () print-object)
-(build-rep-definer Object def-object)
+(def-rep-class Object #:printer print-object #:define-form def-object)
 
 ;; empty object
-(def-rep Empty () #:base
+(def-rep Empty ()
+  [#:singleton -empty-obj]
   [#:extras
    #:property prop:custom-print-quotable 'never
    #:methods gen:custom-write
@@ -181,9 +163,7 @@
 ;;
 ;; Racket expressions can produce 0 or more values, 'SomeValues'
 ;; represents the general class of all these possibilities
-
-(struct/printer SomeValues () print-values)
-(build-rep-definer SomeValues def-values)
+(def-rep-class SomeValues #:printer print-values #:define-form def-values)
 
 
 ;;************************************************************
@@ -198,10 +178,9 @@
 
 
 (def-rep PropSet ([thn Prop?] [els Prop?])
-  [#:intern-key (cons (Rep-seq thn) (Rep-seq els))]
   [#:frees (f) (combine-frees (list (f thn) (f els)))]
-  [#:fold (f) (make-PropSet (f thn) (f els))]
-  [#:walk (f) (begin (f thn) (f els))]
+  [#:fmap (f) (make-PropSet (f thn) (f els))]
+  [#:for-each (f) (begin (f thn) (f els))]
   [#:extras
    #:property prop:custom-print-quotable 'never
    #:methods gen:custom-write
@@ -223,10 +202,9 @@
 
 
 (def-rep Result ([t Type?] [ps PropSet?] [o OptObject?])
-  [#:intern-key (list* (Rep-seq t) (Rep-seq ps) (Rep-seq o))]
   [#:frees (f) (combine-frees (list (f t) (f ps) (f o)))]
-  [#:fold (f) (make-Result (f t) (f ps) (f o))]
-  [#:walk (f) (begin (f t) (f ps) (f o))]
+  [#:fmap (f) (make-Result (f t) (f ps) (f o))]
+  [#:for-each (f) (begin (f t) (f ps) (f o))]
   [#:extras
    #:property prop:custom-print-quotable 'never
    #:methods gen:custom-write

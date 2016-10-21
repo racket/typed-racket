@@ -1,15 +1,26 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
+         (utils hset)
          (rep type-rep rep-utils)
          (prefix-in c: (contract-req))
          (types subtype base-abbrev resolve current-seen)
          racket/match
          racket/list)
 
+(provide normalize-type
+         Un
+         union)
 
-(provide/cond-contract
- [Un (() #:rest (c:listof Type?) . c:->* . Type?)])
+;; t1 ∪ t2
+;; But excludes duplicate info w.r.t. subtyping
+;; can be useful in a few places, but avoid using
+;; in hot code when Un (or similar) will suffice.
+(define (union t1 t2)
+  (cond
+    [(subtype t1 t2) t2]
+    [(subtype t2 t1) t1]
+    [else (Un t1 t2)]))
 
 ;; a is a Type (not a union type)
 ;; b is a List[Type] (non overlapping, non Union-types)
@@ -17,41 +28,25 @@
 ;; The overlapping constraint is lifted if we are in the midst of subtyping. This is because during
 ;; subtyping calls to subtype are expensive.
 (define (merge a b)
-  (define b* (make-Union b))
-  (match* (a b)
-    ;; If a union element is a Name application, then it should not
-    ;; be checked for subtyping since that can cause infinite
-    ;; loops if this is called during type instantiation.
-    [((App: (? Name? rator) rands stx) _)
-     ;; However, we should check if it's a well-formed application
-     ;; so that bad applications are rejected early.
-     (resolve-app-check-error rator rands stx)
-     (cons a b)]
-    [(_ _) #:when (currently-subtyping?) (cons a b)]
-    [((? (λ _ (subtype a b*))) _) b]
-    [((? (λ _ (subtype b* a))) _) (list a)]
-    [(_ _) (cons a (filter-not (λ (b-elem) (subtype b-elem a)) b))]))
+  (let ([a (normalize-type a)])
+    (define b* (make-Union (list->hset b)))
+    (cond
+      [(subtype b* a) (list a)]
+      [(subtype a b*) b]
+      [else (cons a (filter-not (λ (b-elem) (subtype b-elem a)) b))])))
 
 ;; Type -> List[Type]
 (define (flat t)
   (match t
-    [(Union: es) es]
+    [(Union: es) (hset->list es)]
     [_ (list t)]))
 
-;; Union constructor
-;; Normalizes representation by sorting types.
-;; Type * -> Type
-;; The input types can overlap and be union types
-(define Un-cache (make-weak-hash))
-(define Un
-  (case-lambda 
-    [() -Bottom]
-    [(t) t]
-    [args 
-     (cond [(hash-ref Un-cache args #f)]
-           [else
-            (define ts (foldr merge '()
-                              (remove-duplicates (append-map flat args) type-equal?)))
-            (define type (make-Union ts))
-            (hash-set! Un-cache args type)
-            type])]))
+;; Recursively reduce unions so that they do not contain
+;; reduntant information w.r.t. subtyping. We used to maintain
+;; this properly throughout typechecking, but this was costly.
+;; Not we only do it as we are generating contracts, since we
+;; don't want to do redundant runtime checks, etc.
+(define (normalize-type t)
+  (match t
+    [(Union: ts) (make-Union (list->hset (foldr merge '() (append-map flat (hset->list ts)))))]
+    [_ (Rep-fmap t normalize-type)]))

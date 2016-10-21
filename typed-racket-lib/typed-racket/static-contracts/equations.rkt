@@ -47,7 +47,7 @@
   (parameterize ((current-variable-values values))
     (let loop ()
       (define change #f) 
-      (for (((v thunk) (equation-set-equations eqs)))
+      (for ([(v thunk) (in-hash (equation-set-equations eqs))])
         (define new-value (thunk))
         (define old-value (hash-ref values v))
         (unless (equal? new-value old-value)

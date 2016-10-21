@@ -11,7 +11,6 @@
          typed-racket/types/abbrev
          typed-racket/types/numeric-tower
          typed-racket/types/printer
-         typed-racket/types/union
          typed-racket/utils/tc-utils
          (submod typed-racket/base-env/base-types initialize))
 
@@ -43,7 +42,7 @@
     (check-prints-as? Univ "Any")
     (check-prints-as? (Un (-val #t) (-val #f)) "Boolean")
     (check-prints-as? (-lst -Nat) "(Listof Nonnegative-Integer)")
-    (check-prints-as? (make-App (-poly (a) (-lst a)) (list -Nat) #'foo)
+    (check-prints-as? (make-App (-poly (a) (-lst a)) (list -Nat))
                       "(Listof Nonnegative-Integer)")
     (check-prints-as? (make-Mu 'x (Un -Null (-pair -Nat (make-F 'x))))
                       "(Listof Nonnegative-Integer)")
@@ -172,7 +171,7 @@
                         "(Unit (import a^ b^) (export c^ d^) (init-depend b^) String)")
       (check-prints-as? (make-Unit (list a^ b^) (list c^ d^) (list b^ a^) (-values (list -String)))
                         "(Unit (import a^ b^) (export c^ d^) (init-depend b^ a^) String)"))
-    (check-prints-as? (make-UnitTop) "UnitTop"))
+    (check-prints-as? -UnitTop "UnitTop"))
    (test-suite
     "Pretty printing tests"
     (check-pretty-prints-as? (-val 3) "3")

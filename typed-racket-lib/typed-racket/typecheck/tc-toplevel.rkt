@@ -5,7 +5,7 @@
          racket/list racket/dict racket/match racket/sequence
          (prefix-in c: (contract-req))
          (rep core-rep type-rep values-rep)
-         (types utils abbrev type-table struct-table)
+         (types utils abbrev type-table struct-table resolve)
          (private parse-type type-annotation syntax-properties type-contract)
          (env global-env init-envs type-name-env type-alias-env
               lexical-env env-req mvar-env scoped-tvar-env
@@ -101,7 +101,7 @@
               [mk-ty (match struct-type
                        [(Poly-names: ns body)
                         (make-Poly ns
-                          ((map fld-t (Struct-flds body)) #f . ->* . (make-App t (map make-F ns) #f)))]
+                          ((map fld-t (Struct-flds body)) #f . ->* . (make-App t (map make-F ns))))]
                        [else
                         ((map fld-t (Struct-flds struct-type)) #f . ->* . t)])])
          (register-type #'r.name mk-ty)
@@ -400,6 +400,8 @@
           [else (int-err "Two conflicting definitions: ~a ~a" def other-def)]))
       (dict-update h (binding-name def) merge-def-bindings #f)))
   (do-time "computed def-tbl")
+  ;; check that all parsed apps are sensible:
+  (check-registered-apps!)
   ;; typecheck the expressions and the rhss of defintions
   ;(displayln "Starting pass2")
   (for-each tc-toplevel/pass2 forms)

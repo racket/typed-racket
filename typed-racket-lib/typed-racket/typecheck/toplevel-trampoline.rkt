@@ -135,7 +135,7 @@
            ;; has no meaningful type to print
            ['no-type #f]
            ;; don't print results of type void
-           [(tc-result1: (== -Void type-equal?)) #f]
+           [(tc-result1: (== -Void)) #f]
            ;; don't print results of unknown type
            [(tc-any-results: f) #f]
            [(tc-result1: t f o)

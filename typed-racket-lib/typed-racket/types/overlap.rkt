@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
+         (utils hset)
          (rep type-rep rep-utils type-mask)
          (prefix-in c: (contract-req))
          (types abbrev subtype resolve utils)
@@ -40,8 +41,8 @@
 (define/cond-contract (overlap? t1 t2)
   (c:-> Type? Type? boolean?)
   (cond
-    [(type-equal? t1 t2) #t]
-    [(disjoint-masks? (Type-mask t1) (Type-mask t2)) #f]
+    [(equal? t1 t2) #t]
+    [(disjoint-masks? (mask t1) (mask t2)) #f]
     [(seen? t1 t2) #t]
     [else
      (with-updated-seen
@@ -58,15 +59,24 @@
                 (? App? s)))
          #:no-order
          (overlap? t (resolve-once s))]
-        [((? Mu? t) s) #:no-order (overlap? (unfold t) s)]
-        [((Refinement: t _) s) #:no-order (overlap? t s)]
-        [((Union: ts) s)
-         #:no-order
-         (ormap (λ (t) (overlap? t s)) ts)]
+        [((? Mu? t1) t2) #:no-order (overlap? (unfold t1) t2)]
+        [((Refinement: t1 _) t2) #:no-order (overlap? t1 t2)]
+        [((Union: ts1) t2)
+         (match t2
+           [(Union: ts2)
+            (or (hset-overlap? ts1 ts2)
+                (for*/or ([t1 (in-hset ts1)]
+                          [t2 (in-hset ts2)])
+                  (overlap? t1 t2)))]
+           [_ (or (hset-member? ts1 t2)
+                  (for/or ([t1 (in-hset ts1)])
+                    (overlap? t1 t2)))])]
+        [(t1 (Union: ts2))
+         (or (hset-member? ts2 t1)
+             (for/or ([t2 (in-hset ts2)]) (overlap? t1 t2)))]
         [((Intersection: ts) s)
          #:no-order
-         (for/and ([t (in-list ts)])
-           (overlap? t s))]
+         (for/and ([t (in-hset ts)]) (overlap? t s))]
         [((or (Poly-unsafe: _ t1)
               (PolyDots-unsafe: _ t1))
           t2)

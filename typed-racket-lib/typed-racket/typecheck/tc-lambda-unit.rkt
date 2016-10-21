@@ -6,7 +6,7 @@
          racket/sequence
          (contract-req)
          (rep type-rep object-rep rep-utils)
-         (rename-in (types abbrev utils union)
+         (rename-in (types abbrev utils)
                     [-> t:->]
                     [->* t:->*]
                     [one-of/c t:one-of/c])

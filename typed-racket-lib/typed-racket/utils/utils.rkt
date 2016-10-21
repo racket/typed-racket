@@ -22,9 +22,11 @@ at least theoretically.
  list-extend
  filter-multiple
  syntax-length
+ in-pair
  in-sequence-forever
  match*/no-order
- bind)
+ bind
+ def/match)
 
 (define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
@@ -272,3 +274,20 @@ at least theoretically.
   (syntax-parser
     [(_ x:id val:expr)
      #'(app (λ (_) val) x)]))
+
+(define-syntax (assert stx)
+    (syntax-case stx ()
+      [(_ expr)
+       #`(unless expr #,(quasisyntax/loc stx (error 'assert "failed!")))]))
+
+(define-syntax (def/match stx)
+  (syntax-parse stx
+    [(_ (name:id pats ...) . body)
+     (with-syntax ([(args ...) (generate-temporaries #'(pats ...))])
+       (syntax/loc stx
+         (define (name args ...)
+           (match* (args ...)
+             [(pats ...) . body]))))]))
+
+(define-syntax-rule (in-pair p)
+  (in-parallel (in-value (car p)) (in-value (cdr p))))

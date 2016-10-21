@@ -4,7 +4,7 @@
          rackunit racket/format
          (typecheck tc-metafunctions tc-subst)
          (rep prop-rep type-rep object-rep values-rep)
-         (types abbrev union prop-ops tc-result numeric-tower)
+         (types abbrev prop-ops tc-result numeric-tower)
          (for-syntax racket/base syntax/parse))
 
 (provide tests)

@@ -5,9 +5,10 @@
          (for-syntax racket/base)
          (for-template racket/base)
          (rep type-rep prop-rep object-rep)
-         (for-syntax (rename-in (types utils union numeric-tower abbrev prop-ops)
-                                [Un t:Un]
-                                [-> t:->]))
+         (for-syntax
+          (rename-in (types utils numeric-tower abbrev prop-ops)
+                     [Un t:Un]
+                     [-> t:->]))
          (utils tc-utils utils)
          (utils mutated-vars)
 

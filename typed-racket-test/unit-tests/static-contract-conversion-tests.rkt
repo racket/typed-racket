@@ -9,7 +9,7 @@
            racket/base
            (private type-contract)
            (static-contracts instantiate)
-           (types abbrev numeric-tower union)))
+           (types abbrev numeric-tower)))
 
 (provide tests)
 (gen-test-main)

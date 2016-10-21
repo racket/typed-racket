@@ -6,7 +6,7 @@
          (rep type-rep prop-rep object-rep
               core-rep type-mask values-rep rep-utils
               free-variance)
-         (utils tc-utils early-return)
+         (utils tc-utils hset)
          (types utils resolve match-expanders current-seen
                 numeric-tower substitute prefab signatures)
          (for-syntax racket/base syntax/parse racket/sequence)
@@ -15,7 +15,6 @@
                     [->* t->*]))
 
 (lazy-require
-  ("union.rkt" (Un))
   ("../infer/infer.rkt" (infer))
   ("../typecheck/tc-subst.rkt" (restrict-values)))
 
@@ -36,8 +35,7 @@
 ;; is t1 a subtype of t2?
 ;; type type -> boolean
 (define (subtype t1 t2)
-  (define res (and (subtype* (seen) t1 t2) #t))
-  res)
+  (and (subtype* (seen) t1 t2) #t))
 
 
 ;; is v1 a subval of v2?
@@ -277,7 +275,7 @@
                   (app resolve-once (? Struct? i)))
              (App: (and (Name/struct:)
                         (app resolve-once (Poly: _ (? Struct? i))))
-                   _ _))])))
+                   _))])))
 
 (define (subtype/flds* A flds flds*)
   (for/fold ([A A])
@@ -374,6 +372,20 @@
 	       (subtype* t1 t2)
 	       (subtype* t2 t1)))
 
+(define union-super-cache (make-weak-hasheq))
+(define union-sub-cache (make-weak-hasheq))
+
+(define/cond-contract (cache-set! cache t1 t2 result)
+  (-> hash? Type? Type? boolean? void?)
+  (hash-set! (hash-ref cache t1 (λ () (make-weak-hash))) t2 (box-immutable result)))
+
+(define/cond-contract (cache-ref cache t1 t2)
+  (-> hash? Type? Type? (or/c #f (box/c boolean?)))
+  (cond
+    [(hash-ref cache t1 #f)
+     => (λ (inner-cache) (hash-ref inner-cache t2 #f))]
+    [else #f]))
+
 ;; the algorithm for recursive types transcribed directly from TAPL, pg 305
 ;; List[(cons Number Number)] type type -> List[(cons Number Number)] or #f
 ;; is s a subtype of t, taking into account previously seen pairs A
@@ -384,397 +396,560 @@
 ;; Instances, and Structs (Prefabs?)
 (define/cond-contract (subtype* A t1 t2)
   (-> (listof (cons/c Type? Type?)) Type? Type? (or/c #f list?))
-  (early-return
-   #:return-when (seen? t1 t2 A) A
-   #:return-when (Univ? t2) A
-   ;; error is top and bot
-   #:return-when (or (type-equal? t1 Err)
-                     (type-equal? t2 Err)) A
-   #:return-when (type-equal? t1 -Bottom) A
-   (define mask1 (Type-mask t1))
-   (define mask2 (Type-mask t2))
-   #:return-when (disjoint-masks? mask1 mask2) #f
-   #:return-when (type-equal? t1 t2) A
-   (define t1-subtype-cache (Type-subtype-cache t1))
-   (define cr (hash-ref t1-subtype-cache (Rep-seq t2) 'missing))
-   #:return-when (boolean? cr) (and cr A)
-   (define result
-     (match* (t1 t2)
-       ;; if this works, we're done, otherwise wait until after unions
-       ;; are explored to break the intersection apart
-       [((Intersection: t1s) _) #:when (for/or ([t1 (in-list t1s)])
-                                         (subtype* A t1 t2))
-                                A]
-       [(_ (Intersection: t2s))
+  (cond
+    [(Univ? t2) A]
+    [(Bottom? t1) A]
+    ;; error is top and bot
+    [(or (Error? t1) (Error? t2)) A]
+    [(disjoint-masks? (mask t1) (mask t2)) #f]
+    [(equal? t1 t2) A]
+    [(seen? t1 t2 A) A]
+    [else
+     ;; first we check on a few t2 cases
+     ;; that need to come early during checking
+     (match t2
+       [(Intersection: t2s)
         (for/fold ([A A])
-                  ([t2 (in-list t2s)]
+                  ([t2 (in-hset t2s)]
                    #:break (not A))
           (subtype* A t1 t2))]
-       ;; from define-new-subtype
-       [((Distinction: nm1 id1 t1) (app resolve (Distinction: nm2 id2 t2)))
-        #:when (and (equal? nm1 nm2) (equal? id1 id2))
-        (subtype* A t1 t2)]
-       [((Distinction: _ _ t1) t2) (subtype* A t1 t2)]
-       ;; tvars are equal if they are the same variable
-       [((F: var1) (F: var2)) (and (eq? var1 var2) A)]
-       ;; structural types of the same kind can be checked by simply
-       ;; referencing the field variances and performing the
-       ;; appropriate recursive calls
-       [((? structural? t1) (? structural? t2))
-        #:when (eq? (Rep-name t1)
-                    (Rep-name t2))
-        (for/fold ([A A])
-                  ([v (in-list (Type-variances t1))]
-                   [t1 (in-list (Rep-values t1))]
-                   [t2 (in-list (Rep-values t2))]
-                   #:break (not A))
-          (cond
-            [(eq? v Covariant)
-             (subtype* A t1 t2)]
-            [(eq? v Invariant)
-             (type-equiv? A t1 t2)]
-            [else ;; Contravariant
-             (subtype* A t2 t1)]))]
-       ;; If the type has a registered top type predicate, let's check it!
-       [((? has-top-type?) _) #:when ((top-type-pred t1) t2) A]
-       ;; quantification over two types preserves subtyping
-       [((Poly: ns b1) (Poly: ms b2))               
-        #:when (= (length ns) (length ms))
-        ;; substitute ns for ms in b2 to make it look like b1
-        (subtype* A b1 (subst-all (make-simple-substitution ms (map make-F ns)) b2))]
-       [((PolyDots: (list ns ... n-dotted) b1)
-         (PolyDots: (list ms ... m-dotted) b2))
-        (cond
-          [(< (length ns) (length ms))
-           (define-values (short-ms rest-ms) (split-at ms (length ns)))
-           ;; substitute ms for ns in b1 to make it look like b2
-           (define subst
-             (hash-set (make-simple-substitution ns (map make-F short-ms))
-                       n-dotted (i-subst/dotted (map make-F rest-ms) (make-F m-dotted) m-dotted)))
-           (subtype* A (subst-all subst b1) b2)]
-          [else
-           (define-values (short-ns rest-ns) (split-at ns (length ms)))
-           ;; substitute ns for ms in b2 to make it look like b1
-           (define subst
-             (hash-set (make-simple-substitution ms (map make-F short-ns))
-                       m-dotted (i-subst/dotted (map make-F rest-ns) (make-F n-dotted) n-dotted)))
-           (subtype* A b1 (subst-all subst b2))])]
-       [((PolyDots: (list ns ... n-dotted) b1)
-         (Poly: (list ms ...) b2))
-        #:when (<= (length ns) (length ms))
-        ;; substitute ms for ns in b1 to make it look like b2
-        (define subst
-          (hash-set (make-simple-substitution ns (map make-F (take ms (length ns))))
-                    n-dotted (i-subst (map make-F (drop ms (length ns))))))
-        (subtype* A (subst-all subst b1) b2)]
-       ;; use unification to see if we can use the polytype here
-       [((Poly: vs1 b1) _)
-        #:when (infer vs1 null (list b1) (list t2) Univ)
-        A]
-       [((PolyDots: (list vs1 ... vdotted1) b1) _)
-        #:when (infer vs1 (list vdotted1) (list b1) (list t2) Univ)
-        A]
-       [(_ (or (Poly:     vs2 b2)
-               (PolyDots: vs2 b2)))
-        #:when (null? (fv b2))
-        (subtype* A t1 b2)]
-       ;; recur structurally on dotted lists, assuming same bounds
-       [((ListDots: dty1 dbound1) (ListDots: dty2 dbound2))
-        (and (eq? dbound1 dbound2)
-             (subtype* A dty1 dty2))]
-       ;; For dotted lists and regular lists, we check that (All
-       ;; (dbound) s-dty) is a subtype of t-elem, so that no matter
-       ;; what dbound is instatiated with s-dty is still a subtype of
-       ;; t-elem. We cannot just replace dbound with Univ because of
-       ;; variance issues.
-       [((ListDots: dty1 dbound1) (Listof: t2-elem))
-        (subtype* A (-poly (dbound1) dty1) t2-elem)]
-       [((Value: v) (Base: _ _ pred _)) (if (pred v) A #f)]
-       [((? resolvable?) _)
-        (let ([A (remember t1 t2 A)])
-          (with-updated-seen A
-            (let ([t1 (resolve-once t1)])
-              ;; check needed for if a name that hasn't been resolved yet
-              (and (Type? t1) (subtype* A t1 t2)))))]
-       [(_ (? resolvable?))
+       [(? resolvable?)
         (let ([A (remember t1 t2 A)])
           (with-updated-seen A
             (let ([t2 (resolve-once t2)])
               ;; check needed for if a name that hasn't been resolved yet
               (and (Type? t2) (subtype* A t1 t2)))))]
-       [((Union: elems) t)
-        (for/fold ([A A])
-                  ([elem (in-list elems)]
-                   #:break (not A))
-          (subtype* A elem t))]
-       [(s (Union: elems))
-        (and (ormap (λ (elem) (subtype* A s elem)) elems) A)]
-       ;; intersections as subtypes need to be handled after some forms (e.g. Unions)
-       ;; otherwise we will get the wrong answer for
-       ;; queries such as: (∩ A B) <: (U String (∩ A B))
-       [((Intersection: t1s) _)
-        (for/or ([t1 (in-list t1s)])
-          (subtype* A t1 t2))]
-       ;; Avoid needing to resolve things that refer to different structs.
-       ;; Saves us from non-termination
-       ;; Must happen *before* the sequence cases, which sometimes call `resolve' in match expanders
-       [((or (? Struct? s1) (NameStruct: s1))
-         (or (? Struct? s2) (NameStruct: s2)))
-        #:when (unrelated-structs s1 s2)
-        #f]
-       ;; same for all values.
-       [((Value: (? (negate struct?) _)) (or (? Struct? s1) (NameStruct: s1)))
-        #f]
-       [((or (? Struct? s1) (NameStruct: s1)) (Value: (? (negate struct?) _)))
-        #f]
-       ;; sequences are covariant
-       [((Sequence: ts1) (Sequence: ts2)) (subtypes* A ts1 ts2)]
-       [((Hashtable: k1 v1) (Sequence: (list k2 v2)))
-        (subtype-seq A
-                     (subtype* k1 k2)
-                     (subtype* v1 v2))]
-       ;; special-case for case-lambda/union with only one argument              
-       [((Function: arr1) (Function: (list arr2)))
-        (cond [(null? arr1) #f]
-              [else
-               (define comb (combine-arrs arr1))
-               (or (and comb (arr-subtype*/no-fail A comb arr2))
-                   (supertype-of-one/arr A arr2 arr1))])]
-       ;; case-lambda
-       [((Function: arrs1) (Function: arrs2))
-        (if (null? arrs1) #f
-            (let loop-arities ([A A]
-                               [arrs2 arrs2])
-              (cond
-                [(null? arrs2) A]
-                [(supertype-of-one/arr A (car arrs2) arrs1)
-                 => (λ (A) (loop-arities A (cdr arrs2)))]
-                [else #f])))]
-       [((Refinement: t1-parent _) _)
-        (subtype* A t1-parent t2)]
-       ;; subtyping on immutable structs is covariant
-       [((Struct: nm1 _ flds1 proc1 _ _) (Struct: nm2 _ flds2 proc2 _ _)) 
-        #:when (free-identifier=? nm1 nm2) 
-        (let ([A (remember t1 t2 A)])
-          (with-updated-seen A
-            (let ([A (cond [(and proc1 proc2) (subtype* A proc1 proc2)]
-                           [proc2 #f]
-                           [else A])])
-              (and A (subtype/flds* A flds1 flds2)))))]
-       [((Struct: nm1 _ _ _ _ _) (StructTop: (Struct: nm2 _ _ _ _ _)))
-        #:when (free-identifier=? nm1 nm2)
-        A]
-       ;; vector special cases
-       [((HeterogeneousVector: elems1) (Vector: t2))
-        (for/fold ([A A])
-                  ([elem1 (in-list elems1)] #:break (not A))
-          (type-equiv? A elem1 t2))]
-       [((HeterogeneousVector: elems1) (HeterogeneousVector: elems2))
-        (cond [(= (length elems1)
-                  (length elems2))
-               (for/fold ([A A])
-                         ([elem1 (in-list elems1)]
-                          [elem2 (in-list elems2)]
-                          #:break (not A))
-                 (type-equiv? A elem1 elem2))]
-              [else #f])]
-       ;; subtyping on structs follows the declared hierarchy
-       [((Struct: nm1 (? Type? parent1) _ _ _ _) _)
-        (let ([A (remember t1 t2 A)])
-          (with-updated-seen A
-            (subtype* A parent1 t2)))]
-       [((Prefab: k1 ss) (Prefab: k2 ts))
-        (let ([A (remember t1 t2 A)])
-          (with-updated-seen A
-            (and (prefab-key-subtype? k1 k2)
-                 (and (>= (length ss) (length ts))
-                      (for/fold ([A A])
-                                ([s (in-list ss)]
-                                 [t (in-list ts)]
-                                 [mut? (in-list (prefab-key->field-mutability k2))]
-                                 #:break (not A))
-                        (and A
-                             (if mut?
-                                 (subtype-seq A
-                                              (subtype* t s)
-                                              (subtype* s t))
-                                 (subtype* A s t))))))))]
-       ;; subtyping on other stuff
-       [((Param: in1 out1) _)
-        (subtype* A (cl->* (t-> out1) (t-> in1 -Void)) t2)]
-       ;; homogeneous Sequence call helper for remaining cases
-       ;; that are subtypes of a homogeneous Sequence
-       [(_ (Sequence: (list seq-t))) (homo-sequence-subtype A t1 seq-t)]
-       ;; events call off to helper for remaining cases
-       [(_ (Evt: evt-t)) (event-subtype A t1 evt-t)]
-       [((Instance: (? resolvable? t1*)) _)
-        (let ([A (remember t1 t2 A)])
-          (with-updated-seen A
-            (let ([t1* (resolve-once t1*)])
-              (and (Type? t1*)
-                   (subtype* A (make-Instance t1*) t2)))))]
-       [(_ (Instance: (? resolvable? t2*)))
-        (let ([A (remember t1 t2 A)])
-          (with-updated-seen A
-            (let ([t2* (resolve-once t2*)])
-              (and (Type? t2*)
-                   (subtype* A t1 (make-Instance t2*))))))]
-       [((Instance: (Class: _ _ field-map method-map augment-map _))
-         (Instance: (Class: _ _ field-map* method-map* augment-map* _)))
-        (define (subtype-clause? map map*)
-          (and (for/and ([key+type (in-list map*)])
-                 (match-define (list key type) key+type)
-                 (assq key map))
-               (let/ec escape
-                 (for/fold ([A A])
-                           ([key+type (in-list map)])
-                   (match-define (list key type) key+type)
-                   (define result (assq (car key+type) map*))
-                   (or (and (not result) A)
-                       (let ([type* (cadr result)])
-                         (or (subtype* A type type*)
-                             (escape #f))))))))
-        (and ;; Note that init & augment clauses don't matter for objects
-         (subtype-clause? method-map method-map*)
-         (subtype-clause? field-map field-map*))]
-       [((Class: row inits fields methods augments init-rest)
-         (Class: row* inits* fields* methods* augments* init-rest*))
-        ;; TODO: should the result be folded instead?
-        (define (sub t1 t2) (subtype* A t1 t2))
-        ;; check that each of inits, fields, methods, etc. are
-        ;; equal by sorting and checking type equality
-        (define (equal-clause? clause clause* [inits? #f])
-          (cond
-            [(not inits?)
-             (match-define (list (list names types) ...) clause)
-             (match-define (list (list names* types*) ...) clause*)
-             (and (= (length names) (length names*))
-                  (andmap equal? names names*)
-                  (andmap sub types types*))]
+       [_
+        (or
+         ;; then we try a switch on t1
+         (subtype-switch
+          t1 t2 A
+          ;; if we're still not certain after the switch,
+          ;; check the cases that need to come at the end
+          (λ ()
+            (match* (t1 t2)
+              [(t1 (Union: elems2))
+               (cond
+                 [(hset-member? elems2 t1) A]
+                 [(cache-ref union-super-cache t2 t1)
+                  => (λ (b) (and (unbox b) A))]
+                 [else
+                  (define result
+                    (for/or ([elem (in-hset elems2)])
+                      (and (subtype* A t1 elem) A)))
+                  (when (null? A)
+                    (cache-set! union-super-cache t2 t1 (and result #t)))
+                  result])]
+              [((Intersection: t1s) _)
+               (for/or ([t1 (in-hset t1s)])
+                 (subtype* A t1 t2))]
+              [(_ (Instance: (? resolvable? t2*)))
+               (let ([A (remember t1 t2 A)])
+                 (with-updated-seen A
+                   (let ([t2* (resolve-once t2*)])
+                     (and (Type? t2*)
+                          (subtype* A t1 (make-Instance t2*))))))]
+              [(_ (Poly: vs2 b2))
+               #:when (null? (fv b2))
+               (subtype* A t1 b2)]
+              [(_ (PolyDots: vs2 b2))
+               #:when (and (null? (fv b2))
+                           (null? (fi b2)))
+               (subtype* A t1 b2)]
+              [(_ _) #f]))))])]))
+
+
+
+(define-switch (subtype-switch t1 t2 A continue)
+  ;; NOTE: keep these in alphabetical order
+  ;; or ease of finding cases
+  [(case: App _)
+   (let ([A (remember t1 t2 A)])
+     (with-updated-seen A
+       (let ([t1 (resolve-once t1)])
+         ;; check needed for if a name that hasn't been resolved yet
+         (and (Type? t1) (subtype* A t1 t2)))))]
+  [(case: Async-Channel (Async-Channel: elem1))
+   (match t2
+     [(? Async-ChannelTop?) A]
+     [(Async-Channel: elem2) (type-equiv? A elem1 elem2)]
+     [(Evt: evt-t) (subtype* A elem1 evt-t)]
+     [_ (continue)])]
+  [(case: Base (Base: kind _ pred numeric?))
+   (match t2
+     [(Sequence: (list seq-t))
+      (cond
+        [(assq kind `((FlVector . ,-Flonum)
+                      (ExtFlVector . ,-ExtFlonum)
+                      (FxVector . ,-Fixnum)
+                      (String . ,-Char)
+                      (Bytes . ,-Byte)
+                      (Input-Port . ,-Nat)))
+         => (λ (p) (subtype* A (cdr p) seq-t))]
+        [numeric?
+         (define type
+           ;; FIXME: thread the store through here
+           (for/or ([num-t (in-list (list -Byte -Index -NonNegFixnum -Nat))])
+             (or (and (subtype* A t1 num-t) num-t))))
+         (if type
+             (subtype* A type seq-t)
+             #f)]
+        [else #f])]
+     [(Evt: evt-t)
+      (cond
+        [(memq kind '(Semaphore
+                      Output-Port
+                      Input-Port
+                      TCP-Listener
+                      Thread
+                      Subprocess
+                      Will-Executor))
+         (subtype* A t1 evt-t)]
+        ;; FIXME: change Univ to Place-Message-Allowed if/when that type is defined
+        [(and (Univ? evt-t) (memq kind '(Place Base-Place-Channel)))
+         A]
+        [(eq? kind 'LogReceiver) (subtype* A
+                                           (make-HeterogeneousVector
+                                            (list -Symbol -String Univ
+                                                  (Un (-val #f) -Symbol)))
+                                           evt-t)]
+        [else #f])]
+     [_ (continue)])]
+  [(case: Box (Box: elem1))
+   (match t2
+     [(? BoxTop?) A]
+     [(Box: elem2) (type-equiv? A elem1 elem2)]
+     [_ (continue)])]
+  [(case: Channel (Channel: elem1))
+   (match t2
+     [(? ChannelTop?) A]
+     [(Channel: elem2) (type-equiv? A elem1 elem2)]
+     [(Evt: evt-t) (subtype* A elem1 evt-t)]
+     [_ (continue)])]
+  [(case: Class (Class: row inits fields methods augments init-rest))
+   (match t2
+     [(? ClassTop?) A]
+     [(Class: row* inits* fields* methods* augments* init-rest*)
+      ;; TODO: should the result be folded instead?
+      (define (sub t1 t2) (subtype* A t1 t2))
+      ;; check that each of inits, fields, methods, etc. are
+      ;; equal by sorting and checking type equality
+      (define (equal-clause? clause clause* [inits? #f])
+        (cond
+          [(not inits?)
+           (match-define (list (list names types) ...) clause)
+           (match-define (list (list names* types*) ...) clause*)
+           (and (= (length names) (length names*))
+                (andmap equal? names names*)
+                (andmap sub types types*))]
+          [else
+           (match-define (list (list names types opt?) ...)
+             clause)
+           (match-define (list (list names* types* opt?*) ...)
+             clause*)
+           (and (= (length names) (length names*))
+                (andmap equal? names names*)
+                (andmap sub types types*)
+                (andmap equal? opt? opt?*))]))
+      ;; There is no non-trivial width subtyping on class types, but it's
+      ;; possible for two "equal" class types to look different
+      ;; in the representation. We deal with that here.
+      (and (or (and (or (Row? row) (not row))
+                    (or (Row? row*) (not row*)))
+               (equal? row row*))
+           (equal-clause? inits inits* #t)
+           (equal-clause? fields fields*)
+           (equal-clause? methods methods*)
+           (equal-clause? augments augments*)
+           (or (and init-rest init-rest*
+                    (sub init-rest init-rest*))
+               (and (not init-rest) (not init-rest*)
+                    A)))]
+     [_ (continue)])]
+  [(case: Continuation-Mark-Keyof (Continuation-Mark-Keyof: val1))
+   (match t2
+     [(? Continuation-Mark-KeyTop?) A]
+     [(Continuation-Mark-Keyof: val2)
+      (type-equiv? A val1 val2)]
+     [_ (continue)])]
+  [(case: CustodianBox (CustodianBox: elem1))
+   (match t2
+     [(CustodianBox: elem2) (subtype* A elem1 elem2)]
+     [(Evt: evt-t)
+      ;; Note that it's the whole box type that's being
+      ;; compared against evt-t here
+      (subtype* A t1 evt-t)]
+     [_ (continue)])]
+  [(case: Distinction (Distinction: nm1 id1 t1))
+   (match t2
+     [(app resolve (Distinction: nm2 id2 t2))
+      #:when (and (equal? nm1 nm2) (equal? id1 id2))
+      (subtype* A t1 t2)]
+     [_ (cond
+          [(subtype* A t1 t2)]
+          [else (continue)])])]
+  [(case: Ephemeron (Ephemeron: elem1))
+   (match t2
+     [(Ephemeron: elem2) (subtype* A elem1 elem2)]
+     [_ (continue)])]
+  [(case: Evt (Evt: result1))
+   (match t2
+     [(Evt: result2) (subtype* A result1 result2)]
+     [_ (continue)])]
+  [(case: F (F: var1))
+   (match t2
+     ;; tvars are equal if they are the same variable
+     [(F: var2) (eq? var1 var2)]
+     [_ (continue)])]
+  [(case: Function (Function: arrs1))
+   (match t2
+     ;; special-case for case-lambda/union with only one argument              
+     [(Function: (list arr2))
+      (cond [(null? arrs1) #f]
             [else
-             (match-define (list (list names types opt?) ...)
-               clause)
-             (match-define (list (list names* types* opt?*) ...)
-               clause*)
-             (and (= (length names) (length names*))
-                  (andmap equal? names names*)
-                  (andmap sub types types*)
-                  (andmap equal? opt? opt?*))]))
-        ;; There is no non-trivial width subtyping on class types, but it's
-        ;; possible for two "equal" class types to look different
-        ;; in the representation. We deal with that here.
-        (and (or (and (or (Row? row) (not row))
-                      (or (Row? row*) (not row*)))
-                 (equal? row row*))
-             (equal-clause? inits inits* #t)
-             (equal-clause? fields fields*)
-             (equal-clause? methods methods*)
-             (equal-clause? augments augments*)
-             (or (and init-rest init-rest*
-                      (sub init-rest init-rest*))
-                 (and (not init-rest) (not init-rest*)
-                      A)))]
-       ;; For Unit types invoke-types are covariant
-       ;; imports and init-depends are covariant in that importing fewer
-       ;; signatures results in a subtype
-       ;; exports conversely are contravariant, subtypes export more signatures
-       [((Unit: imports1 exports1 init-depends1 t1)
-         (Unit: imports2 exports2 init-depends2 t2))
-        (and (check-sub-signatures? imports2 imports1)
-             (check-sub-signatures? exports1 exports2)
-             (check-sub-signatures? init-depends2 init-depends1)
-             (subval* A t1 t2))]
-       ;; otherwise, not a subtype
-       [(_ _) #f]))
-   (when (null? A) (hash-set! t1-subtype-cache (Rep-seq t2) (and result #t)))
-   result))
-
-;;************************************************************
-;; Other Subtyping Special Cases
-;;************************************************************
-
-(define seq-base-types `((FlVector . ,-Flonum)
-                         (ExtFlVector . ,-ExtFlonum)
-                         (FxVector . ,-Fixnum)
-                         (String . ,-Char)
-                         (Bytes . ,-Byte)
-                         (Input-Port . ,-Nat)))
-
-;; Homo-sequence-subtype
-;; is t a subtype of (Sequence: seq-t)?
-(define/cond-contract (homo-sequence-subtype A t seq-t)
-  (-> list? Type? Type? any/c)
-  (match t
-    [(Pair: t1 t2)
-     (subtype-seq A
-                  (subtype* t1 seq-t)
-                  (subtype* t2 (-lst seq-t)))]
-    ;; To check that mutable pair is a sequence we check that the cdr
-    ;; is both an mutable list and a sequence
-    [(MPair: t1 t2)
-     (subtype-seq A
-                  (subtype* t1 seq-t)
-                  (subtype* t2 (simple-Un -Null (make-MPairTop)))
-                  (subtype* t2 (make-Sequence (list seq-t))))]
-    [(Value: '()) A]
-    [(HeterogeneousVector: ts)
-     (subtypes* A ts (make-list (length ts) seq-t))]
-    [(or (Vector: t) (Set: t)) (subtype* A t seq-t)]
-    [(Base: kind _ _ _) #:when (assq kind seq-base-types)
-     (subtype* A (cdr (assq kind seq-base-types)) seq-t)]
-    [(Value: (? exact-nonnegative-integer? n))
-     (define possibilities
-       (list
-        (list byte? -Byte)
-        (list portable-index? -Index)
-        (list portable-fixnum? -NonNegFixnum)
-        (list values -Nat)))
-     (define type
-       (for/or ((pred-type (in-list possibilities)))
-         (match pred-type
-           ((list pred? type)
-            (and (pred? n) type)))))
-     (subtype* A type seq-t)]
-    [(Base: _ _ _ #t)
-     (define type
-       ;; FIXME: thread the store through here
-       (for/or ((num-t (in-list (list -Byte -Index -NonNegFixnum -Nat))))
-         (or (and (subtype* A t num-t) num-t))))
-     (if type
-         (subtype* A type seq-t)
-         #f)]
-    [_ #f]))
-
-
-;; event-subtype
-;; returns if t is a subtype of (Evt: evt-t)
-(define/cond-contract (event-subtype A t evt-t)
-  (-> list? Type? Type? (or/c list? #f))
-  (match t
-    [(Base: kind _ _ _) #:when (memq kind '(Semaphore
-                                            Output-Port
-                                            Input-Port
-                                            TCP-Listener
-                                            Thread
-                                            Subprocess
-                                            Will-Executor))
-     (subtype* A t evt-t)]
-    ;; FIXME: change Univ to Place-Message-Allowed if/when that type is defined
-    [(Base: kind _ _ _) #:when (and (Univ? evt-t)
-                                    (memq kind '(Place Base-Place-Channel)))
-     A]
-    [(Base: 'LogReceiver _ _ _)
-     (subtype* A
-               (make-HeterogeneousVector
-                (list -Symbol -String Univ
-                      (Un (-val #f) -Symbol)))
-               evt-t)]
-    [(CustodianBox: _)
-     ;; Note that it's the whole box type that's being
-     ;; compared against t* here
-     (subtype* A t evt-t)]
-    [(or (Channel: t)
-         (Async-Channel: t))
-     (subtype* A t evt-t)]
-    [_ #f]))
-
+             (define comb (combine-arrs arrs1))
+             (or (and comb (arr-subtype*/no-fail A comb arr2))
+                 (supertype-of-one/arr A arr2 arrs1))])]
+     ;; case-lambda
+     [(Function: arrs2)
+      (if (null? arrs1) #f
+          (let loop-arities ([A A]
+                             [arrs2 arrs2])
+            (cond
+              [(null? arrs2) A]
+              [(supertype-of-one/arr A (car arrs2) arrs1)
+               => (λ (A) (loop-arities A (cdr arrs2)))]
+              [else #f])))]
+     [_ (continue)])]
+  [(case: Future (Future: elem1))
+   (match t2
+     [(Future: elem2) (subtype* A elem1 elem2)]
+     [_ (continue)])]
+  [(case: Hashtable (Hashtable: key1 val1))
+   (match t2
+     [(? HashtableTop?) A]
+     [(Hashtable: key2 val2) (subtype-seq A
+                                          (type-equiv? key1 key2)
+                                          (type-equiv? val1 val2))]
+     [(Sequence: (list key2 val2))
+      (subtype-seq A
+                   (subtype* key1 key2)
+                   (subtype* val1 val2))]
+     [_ (continue)])]
+  [(case: HeterogeneousVector (HeterogeneousVector: elems1))
+   (match t2
+     [(VectorTop:) A]
+     [(HeterogeneousVector: elems2)
+      (cond [(= (length elems1)
+                (length elems2))
+             (for/fold ([A A])
+                       ([elem1 (in-list elems1)]
+                        [elem2 (in-list elems2)]
+                        #:break (not A))
+               (type-equiv? A elem1 elem2))]
+            [else #f])]
+     [(Vector: elem2)
+      (for/fold ([A A])
+                ([elem1 (in-list elems1)] #:break (not A))
+        (type-equiv? A elem1 elem2))]
+     [(Sequence: (list seq-t))
+      (for/fold ([A A])
+                ([elem1 (in-list elems1)]
+                 #:break (not A))
+        (subtype* A elem1 seq-t))]
+     [_ (continue)])]
+  [(case: Instance (Instance: inst-t1))
+   (cond
+     [(resolvable? inst-t1)
+      (let ([A (remember t1 t2 A)])
+        (with-updated-seen A
+          (let ([t1* (resolve-once inst-t1)])
+            (and (Type? t1*)
+                 (subtype* A (make-Instance t1*) t2)))))]
+     [else
+      (match* (t1 t2)
+        [((Instance: (Class: _ _ field-map method-map augment-map _))
+          (Instance: (Class: _ _ field-map* method-map* augment-map* _)))
+         (define (subtype-clause? map map*)
+           (and (for/and ([key+type (in-list map*)])
+                  (match-define (list key type) key+type)
+                  (assq key map))
+                (let/ec escape
+                  (for/fold ([A A])
+                            ([key+type (in-list map)])
+                    (match-define (list key type) key+type)
+                    (define result (assq (car key+type) map*))
+                    (or (and (not result) A)
+                        (let ([type* (cadr result)])
+                          (or (subtype* A type type*)
+                              (escape #f))))))))
+         (and ;; Note that init & augment clauses don't matter for objects
+          (subtype-clause? method-map method-map*)
+          (subtype-clause? field-map field-map*))]
+        [(_ _) (continue)])])]
+  [(case: Intersection (Intersection: t1s))
+   (cond
+     [(for/or ([t1 (in-hset t1s)])
+        (subtype* A t1 t2))]
+     [else (continue)])]
+  [(case: ListDots (ListDots: dty1 dbound1))
+   (match t2
+     ;; recur structurally on dotted lists, assuming same bounds
+     [(ListDots: dty2 dbound2)
+      (and (eq? dbound1 dbound2)
+           (subtype* A dty1 dty2))]
+     ;; For dotted lists and regular lists, we check that (All
+     ;; (dbound1) dty1) is a subtype of elem2, so that no matter
+     ;; what dbound is instatiated with dty1 is still a subtype of
+     ;; elem2. We cannot just replace dbound with Univ because of
+     ;; variance issues.
+     [(Listof: elem2)
+      (subtype* A (-poly (dbound1) dty1) elem2)]
+     [_ (continue)])]
+  [(case: MPair (MPair: t11 t12))
+   (match t2
+     [(? MPairTop?) A]
+     [(MPair: t21 t22)
+      (subtype-seq A
+                   (type-equiv? t11 t21)
+                   (type-equiv? t12 t22))]
+     ;; To check that mutable pair is a sequence we check that the cdr
+     ;; is both an mutable list and a sequence 
+     [(Sequence: (list seq-t))
+      (subtype-seq A
+                   (subtype* t11 seq-t)
+                   (subtype* t12 (Un -Null -MPairTop))
+                   (subtype* t12 (make-Sequence (list seq-t))))]
+     [_ (continue)])]
+  [(case: Mu _)
+   (let ([A (remember t1 t2 A)])
+     (with-updated-seen A
+       (let ([t1 (unfold t1)])
+         ;; check needed for if a name that hasn't been resolved yet
+         (and (Type? t1) (subtype* A t1 t2)))))]
+  [(case: Name _)
+   (match* (t1 t2)
+     ;; Avoid resolving things that refer to different structs.
+     ;; Saves us from non-termination
+     [((NameStruct: s1) (or (? Struct? s2) (NameStruct: s2)))
+      #:when (unrelated-structs s1 s2)
+      #f]
+     [(_ _)
+      (let ([A (remember t1 t2 A)])
+        (with-updated-seen A
+          (let ([t1 (resolve-once t1)])
+            ;; check needed for if a name that hasn't been resolved yet
+            (and (Type? t1) (subtype* A t1 t2)))))])]
+  [(case: Pair (Pair: t11 t12))
+   (match t2
+     [(Pair: t21 t22)
+      (subtype-seq A
+                   (subtype* t11 t21)
+                   (subtype* t12 t22))]
+     [(Sequence: (list seq-t))
+      (subtype-seq A
+                   (subtype* t11 seq-t)
+                   (subtype* t12 (-lst seq-t)))]
+     [_ (continue)])]
+  [(case: Param (Param: in1 out1))
+   (match t2
+     [(Param: in2 out2) (subtype-seq A
+                                     (subtype* in2 in1)
+                                     (subtype* out1 out2))]
+     [_ (subtype* A (cl->* (t-> out1) (t-> in1 -Void)) t2)]
+     [_ (continue)])]
+  [(case: Poly (Poly: names b1))
+   (match t2
+     [(? Poly?) #:when (= (length names) (Poly-n t2))
+                (subtype* A b1 (Poly-body names t2))]
+     ;; use local inference to see if we can use the polytype here
+     [_ #:when (infer names null (list b1) (list t2) Univ) A]
+     [_ (continue)])]
+  [(case: PolyDots (PolyDots: (list ns ... n-dotted) b1))
+   (match t2
+     [(PolyDots: (list ms ... m-dotted) b2)
+      (cond
+        [(< (length ns) (length ms))
+         (define-values (short-ms rest-ms) (split-at ms (length ns)))
+         ;; substitute ms for ns in b1 to make it look like b2
+         (define subst
+           (hash-set (make-simple-substitution ns (map make-F short-ms))
+                     n-dotted (i-subst/dotted (map make-F rest-ms) (make-F m-dotted) m-dotted)))
+         (subtype* A (subst-all subst b1) b2)]
+        [else
+         (define-values (short-ns rest-ns) (split-at ns (length ms)))
+         ;; substitute ns for ms in b2 to make it look like b1
+         (define subst
+           (hash-set (make-simple-substitution ms (map make-F short-ns))
+                     m-dotted (i-subst/dotted (map make-F rest-ns) (make-F n-dotted) n-dotted)))
+         (subtype* A b1 (subst-all subst b2))])]
+     [(Poly: ms b2)
+      #:when (<= (length ns) (length ms))
+      ;; substitute ms for ns in b1 to make it look like b2
+      (define subst
+        (hash-set (make-simple-substitution ns (map make-F (take ms (length ns))))
+                  n-dotted (i-subst (map make-F (drop ms (length ns))))))
+      (subtype* A (subst-all subst b1) b2)]
+     [_ #:when (infer ns (list n-dotted) (list b1) (list t2) Univ)
+        A]
+     [_ (continue)])]
+  [(case: Prefab (Prefab: k1 ss))
+   (match t2
+     [(Prefab: k2 ts)
+      (let ([A (remember t1 t2 A)])
+        (with-updated-seen A
+          (and (prefab-key-subtype? k1 k2)
+               (and (>= (length ss) (length ts))
+                    (for/fold ([A A])
+                              ([s (in-list ss)]
+                               [t (in-list ts)]
+                               [mut? (in-list (prefab-key->field-mutability k2))]
+                               #:break (not A))
+                      (and A
+                           (if mut?
+                               (subtype-seq A
+                                            (subtype* t s)
+                                            (subtype* s t))
+                               (subtype* A s t))))))))]
+     [_ (continue)])]
+  [(case: Promise (Promise: elem1))
+   (match t2
+     [(Promise: elem2) (subtype* A elem1 elem2)]
+     [_ (continue)])]
+  [(case: Prompt-Tagof (Prompt-Tagof: body1 handler1))
+   (match t2
+     [(? Prompt-TagTop?) A]
+     [(Prompt-Tagof: body2 handler2)
+      (subtype-seq A
+                   (type-equiv? body1 body2)
+                   (type-equiv? handler1 handler2))]
+     [_ (continue)])]
+  [(case: Refinement (Refinement: t1-parent id1))
+   (match t2
+     [(Refinement: t2-parent id2)
+      #:when (free-identifier=? id1 id2)
+      (subtype* A t1-parent t2-parent)]
+     [_ (cond
+          [(subtype* A t1-parent t2)]
+          [else (continue)])])]
+  ;; sequences are covariant
+  [(case: Sequence (Sequence: ts1))
+   (match t2
+     [(Sequence: ts2) (subtypes* A ts1 ts2)]
+     [_ (continue)])]
+  [(case: Set (Set: elem1))
+   (match t2
+     [(Set: elem2) (subtype* A elem1 elem2)]
+     [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
+     [_ (continue)])]
+  [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _))
+   (match t2
+     ;; Avoid resolving things that refer to different structs.
+     ;; Saves us from non-termination
+     [(or (? Struct? t2) (NameStruct: t2))
+      #:when (unrelated-structs t1 t2)
+      #f]
+     ;; subtyping on immutable structs is covariant
+     [(Struct: nm2 _ flds2 proc2 _ _)
+      #:when (free-identifier=? nm1 nm2)
+      (let ([A (remember t1 t2 A)])
+        (with-updated-seen A
+          (let ([A (cond [(and proc1 proc2) (subtype* A proc1 proc2)]
+                         [proc2 #f]
+                         [else A])])
+            (and A (subtype/flds* A flds1 flds2)))))]
+     [(StructTop: (Struct: nm2 _ _ _ _ _))
+      #:when (free-identifier=? nm1 nm2)
+      A]
+     [(Value: (? (negate struct?) _)) #f]
+     ;; subtyping on structs follows the declared hierarchy
+     [_ (cond
+          [(and (Type? parent1)
+                (let ([A (remember t1 t2 A)])
+                  (with-updated-seen A
+                    (subtype* A parent1 t2))))]
+          [else (continue)])]
+     [_ (continue)])]
+  [(case: StructType (StructType: t1))
+   (match t2
+     [(StructTypeTop:) A]
+     [_ (continue)])]
+  [(case: Syntax (Syntax: elem1))
+   (match t2
+     [(Syntax: elem2) (subtype* A elem1 elem2)]
+     [_ (continue)])]
+  [(case: ThreadCell (ThreadCell: elem1))
+   (match t2
+     [(? ThreadCellTop?) A]
+     [(ThreadCell: elem2) (type-equiv? A elem1 elem2)]
+     [_ (continue)])]
+  [(case: Union (Union: elems1))
+   (cond
+     [(cache-ref union-sub-cache t1 t2)
+      => (λ (b) (and (unbox b) A))]
+     [else
+      (define result
+        (match t2
+          [(Union: elems2)
+           (for/fold ([A A])
+                     ([elem1 (in-hset elems1)]
+                      #:break (not A))
+             (if (hset-member? elems2 elem1)
+                 A
+                 (subtype* A elem1 t2)))]
+          [_ (for/fold ([A A])
+                       ([elem1 (in-hset elems1)]
+                        #:break (not A))
+               (subtype* A elem1 t2))]))
+      (when (null? A)
+        (cache-set! union-sub-cache t1 t2 (and result #t)))
+      result])]
+  ;; For Unit types invoke-types are covariant
+  ;; imports and init-depends are covariant in that importing fewer
+  ;; signatures results in a subtype
+  ;; exports conversely are contravariant, subtypes export more signatures
+  [(case: Unit (Unit: imports1 exports1 init-depends1 t1))
+   (match t2
+     [(? UnitTop?) A]
+     [(Unit: imports2 exports2 init-depends2 t2)
+      (and (check-sub-signatures? imports2 imports1)
+           (check-sub-signatures? exports1 exports2)
+           (check-sub-signatures? init-depends2 init-depends1)
+           (subval* A t1 t2))]
+     [_ (continue)])]
+  [(case: Value (Value: val1))
+   (match t2
+     [(Base: _ _ pred _) (and (pred val1) A)]
+     [(Sequence: (list seq-t))
+      (cond
+        [(null? val1) A]
+        [(exact-nonnegative-integer? val1)
+         (define possibilities
+           (list
+            (list byte? -Byte)
+            (list portable-index? -Index)
+            (list portable-fixnum? -NonNegFixnum)
+            (list values -Nat)))
+         (define type
+           (for/or ([pred-type (in-list possibilities)])
+             (match pred-type
+               [(list pred? type)
+                (and (pred? val1) type)])))
+         (subtype* A type seq-t)]
+        [else #f])]
+     [(or (? Struct? s1) (NameStruct: s1))
+      #:when (not (struct? val1))
+      #f]
+     [_ (continue)])]
+  [(case: Vector (Vector: elem1))
+   (match t2
+     [(? VectorTop?) A]
+     [(Vector: elem2) (type-equiv? A elem1 elem2)]
+     [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
+     [_ (continue)])]
+  [(case: Weak-Box (Weak-Box: elem1))
+   (match t2
+     [(? Weak-BoxTop?) A]
+     [(Weak-Box: elem2) (type-equiv? A elem1 elem2)]
+     [_ (continue)])]
+  [else: (continue)])

@@ -3,7 +3,7 @@
 (require "../utils/utils.rkt"
          racket/match (prefix-in - (contract-req))
          racket/format
-         (types utils union subtype prop-ops abbrev)
+         (types utils subtype prop-ops abbrev)
          (utils tc-utils)
          (rep type-rep object-rep prop-rep)
          (typecheck error-message))
@@ -88,8 +88,8 @@
       [(p p) #t]
       [(p #f) #t]
       [((PropSet: p1+ p1-) (PropSet: p2+ p2-))
-       (and (implies-atomic? p1+ p2+)
-            (implies-atomic? p1- p2-))]
+       (and (implies? p1+ p2+)
+            (implies? p1- p2-))]
       [(_ _) #f]))
   (define (object-better? o1 o2)
     (match* (o1 o2)
@@ -98,13 +98,13 @@
       [(_ _) #f]))
   (define (prop-better? p1 p2)
     (or (not p2)
-        (implies-atomic? p1 p2)))
+        (implies? p1 p2)))
 
   (match* (tr1 expected)
     ;; This case has to be first so that bottom (exceptions, etc.) can be allowed in cases
     ;; where multiple values are expected.
     ;; We can ignore the props and objects in the actual value because they would never be about a value
-    [((tc-result1: (? (lambda (t) (type-equal? t (Un))))) _)
+    [((tc-result1: (? Bottom?)) _)
      (fix-results/bottom expected)]
 
     [((tc-any-results: p1) (tc-any-results: p2))
@@ -205,3 +205,4 @@
     [((tc-results: ts fs os dty dbound) (tc-results: ts* fs* os* dty* dbound*))
      (int-err "dotted types with different bounds/propositions/objects in check-below nyi: ~a ~a" tr1 expected)]
     [(a b) (int-err "unexpected input for check-below: ~a ~a" a b)]))
+

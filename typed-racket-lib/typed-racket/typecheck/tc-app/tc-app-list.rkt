@@ -6,7 +6,7 @@
          "utils.rkt"
          syntax/parse syntax/stx racket/match racket/sequence
          (typecheck signatures tc-funapp)
-         (types abbrev utils union substitute)
+         (types abbrev utils substitute)
          (rep type-rep)
          (env tvar-env)
          (prefix-in i: (infer infer))
@@ -35,13 +35,10 @@
     (match* ((single-value #'arg0) (stx-map single-value #'(arg ...)))
       ;; if the argument is a ListDots
       [((tc-result1: (ListDots: t0 bound0))
-        (list (tc-result1: (or (and (ListDots: t bound) (app (λ _ #f) var))
-                               ;; a devious hack - just generate #f so the test below succeeds
-                               ;; have to explicitly bind `var' since otherwise `var' appears
-                               ;; on only one side of the or
+        (list (tc-result1: (or (and (ListDots: t bound))
                                ;; NOTE: safe to include these, `map' will error if any list is
                                ;; not the same length as all the others
-                               (and (Listof: t var) (app (λ _ #f) bound))))
+                               (and (Listof: t) (bind bound #f ))))
               ...))
        (=> fail)
        (unless (for/and ([b (in-list bound)]) (or (not b) (eq? bound0 b))) (fail))

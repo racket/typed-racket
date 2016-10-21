@@ -1,11 +1,11 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
-	 (types abbrev union subtype)
+	 (types abbrev subtype)
 	 racket/dict
-         "fail.rkt" "signatures.rkt" "constraint-structs.rkt"
-         racket/match
-         racket/list)
+     "fail.rkt" "signatures.rkt" "constraint-structs.rkt"
+     racket/match
+     racket/list)
 
 (import intersect^ dmap^)
 (export constraints^)

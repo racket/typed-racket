@@ -3,7 +3,7 @@
 (require "../utils/utils.rkt"
          racket/match
          (typecheck signatures check-below)
-         (types abbrev numeric-tower resolve subtype union generalize
+         (types abbrev numeric-tower resolve subtype generalize
                 prefab)
          (rep type-rep)
          (only-in (infer infer) intersect)
@@ -113,7 +113,7 @@
        [_ (make-HeterogeneousVector (for/list ([l (in-vector (syntax-e #'i))])
                                       (generalize (tc-literal l #f))))])]
     [(~var i (3d hash?))
-     (match (and expected (resolve (intersect expected -HashTop)))
+     (match (and expected (resolve (intersect expected -HashtableTop)))
        [(Hashtable: k v)
         (let* ([h (syntax-e #'i)]
                [ks (hash-map h (lambda (x y) (tc-literal x k)))]

@@ -6,19 +6,20 @@
          (rep type-rep prop-rep object-rep values-rep rep-utils)
          (only-in (infer infer) intersect)
          compatibility/mlist
-         (types union subtype overlap subtract abbrev tc-result))
+         (types subtype overlap subtract abbrev tc-result union))
 
 (provide/cond-contract
   [-and (c:->* () #:rest (c:listof Prop?) Prop?)]
   [-or (c:->* () #:rest (c:listof Prop?) Prop?)]
   [implies-atomic? (c:-> Prop? Prop? boolean?)]
+  [implies? (c:-> Prop? Prop? boolean?)]
+  [prop-equiv? (c:-> Prop? Prop? boolean?)]
   [negate-prop (c:-> Prop? Prop?)]
   [complementary? (c:-> Prop? Prop? boolean?)]
   [contradictory? (c:-> Prop? Prop? boolean?)]
   [add-unconditional-prop-all-args (c:-> Function? Type? Function?)]
   [add-unconditional-prop (c:-> tc-results/c Prop? tc-results/c)]
   [erase-props (c:-> tc-results/c tc-results/c)]
-  [name-ref=? (c:-> name-ref/c name-ref/c boolean?)]
   [reduce-propset/type (c:-> PropSet? Type? PropSet?)]
   [reduce-tc-results/subsumption (c:-> tc-results/c tc-results/c)])
 
@@ -27,8 +28,8 @@
 ;; its true proposition is -ff, etc)
 (define (reduce-propset/type ps t)
   (cond
-    [(type-equal? -Bottom t) -ff-propset]
-    [(type-equal? -False t) (-PS -ff (PropSet-els ps))]
+    [(Bottom? t) -ff-propset]
+    [(equal? -False t) (-PS -ff (PropSet-els ps))]
     [(not (overlap? t -False)) (-PS (PropSet-thn ps) -ff)]
     [else ps]))
 
@@ -48,12 +49,12 @@
        (define p- (if ps (PropSet-els ps) -tt))
        (define o (if obj obj -empty-obj))
        (cond
-         [(or (type-equal? -False t)
+         [(or (equal? -False t)
               (FalseProp? p+))
           (tc-result (intersect t -False) (-PS -ff p-) o)]
          [(not (overlap? t -False))
           (tc-result t (-PS p+ -ff) o)]
-         [(prop-equal? -ff p-) (tc-result (subtract t -False) (-PS p+ -ff) o)]
+         [(FalseProp? p-) (tc-result (subtract t -False) (-PS p+ -ff) o)]
          [else (tc-result t (-PS p+ p-) o)])]))
   (match res
     [(tc-any-results: _) res]
@@ -70,68 +71,61 @@
 ;; Returns true if the AND of the two props is equivalent to FalseProp
 (define (contradictory? p1 p2)
   (match* (p1 p2)
-    [((TypeProp: o1 t1) (TypeProp: o2 t2))
-     #:when (object-equal? o1 o2)
+    [((TypeProp: o t1) (TypeProp: o t2))
      (not (overlap? t1 t2))]
-    [((TypeProp: o1 t1) (NotTypeProp: o2 t2))
-     #:when (object-equal? o1 o2)
+    [((TypeProp: o t1) (NotTypeProp: o t2))
      (subtype t1 t2)]
-    [((NotTypeProp: o2 t2) (TypeProp: o1 t1))
-     #:when (object-equal? o1 o2)
+    [((NotTypeProp: o t2) (TypeProp: o t1))
      (subtype t1 t2)]
-    [(_ _) (or (prop-equal? p1 -ff)
-               (prop-equal? p2 -ff))]))
+    [(_ _) (or (FalseProp? p1)
+               (FalseProp? p2))]))
 
 ;; complementary: Prop? Prop? -> boolean?
 ;; Returns true if the OR of the two props is equivalent to Top
 (define (complementary? p1 p2)
   (match* (p1 p2)
-    [((TypeProp: o1 t1) (NotTypeProp: o2 t2))
-     #:when (object-equal? o1 o2)
+    [((TypeProp: o t1) (NotTypeProp: o t2))
      (subtype t2 t1)]
-    [((NotTypeProp: o2 t2) (TypeProp: o1 t1))
-     #:when (object-equal? o1 o2)
+    [((NotTypeProp: o t2) (TypeProp: o t1))
      (subtype t2 t1)]
-    [(_ _) (or (prop-equal? p1 -tt)
-               (prop-equal? p2 -tt))]))
-
-(define (name-ref=? a b)
-  (or (equal? a b)
-      (and (identifier? a)
-           (identifier? b)
-           (free-identifier=? a b))))
+    [(_ _) (or (TrueProp? p1)
+               (TrueProp? p2))]))
 
 ;; does p imply q? (but only directly/simply)
 (define (implies-atomic? p q)
   (match* (p q)
     ;; reflexivity
-    [(_ _) #:when (or (prop-equal? p q)
-                      (prop-equal? q -tt)
-                      (prop-equal? p -ff)) #t]
+    [(_ _) #:when (or (equal? p q)
+                      (TrueProp? q)
+                      (FalseProp? p)) #t]
     ;; ps ⊆ qs ?
     [((OrProp: ps) (OrProp: qs))
      (and (for/and ([p (in-list ps)])
-            (member p qs prop-equal?))
+            (member p qs))
           #t)]
     ;; p ∈ qs ?
-    [(p (OrProp: qs)) (and (member p qs prop-equal?) #t)]
+    [(p (OrProp: qs)) (and (member p qs) #t)]
     ;; q ∈ ps ?
-    [((AndProp: ps) q) (and (member q ps prop-equal?) #t)]
+    [((AndProp: ps) q) (and (member q ps) #t)]
     ;; t1 <: t2 ?
-    [((TypeProp: o1 t1)
-      (TypeProp: o2 t2))
-     #:when (object-equal? o1 o2)
+    [((TypeProp: o t1)
+      (TypeProp: o t2))
      (subtype t1 t2)]
     ;; t2 <: t1 ?
-    [((NotTypeProp: o1 t1) (NotTypeProp: o2 t2))
-     #:when (object-equal? o1 o2)
+    [((NotTypeProp: o t1) (NotTypeProp: o t2))
      (subtype t2 t1)]
     ;; t1 ∩ t2 = ∅ ?
-    [((TypeProp: o1 t1) (NotTypeProp: o2 t2))
-     #:when (object-equal? o1 o2)
+    [((TypeProp: o t1) (NotTypeProp: o t2))
      (not (overlap? t1 t2))]
     ;; otherwise we give up
     [(_ _) #f]))
+
+(define (implies? p q)
+  (FalseProp? (-and p (negate-prop q))))
+
+(define (prop-equiv? p q)
+  (and (implies? p q)
+       (implies? q p)))
 
 ;; intersect-update
 ;; (mlist (mcons Object Type)) Object Type -> (mlist (mcons Object Type))
@@ -141,9 +135,10 @@
 ;; update the type to t ∩ s
 (define (intersect-update dict o t)
   (cond
-    [(massq o dict) => (λ (p)
-                         (set-mcdr! p (intersect t (mcdr p)))
-                         dict)]
+    [(massoc o dict)
+     => (λ (p)
+          (set-mcdr! p (intersect t (mcdr p)))
+          dict)]
     [else (mcons (mcons o t) dict)]))
 
 
@@ -155,9 +150,10 @@
 ;; update the type to t ∪ s
 (define (union-update dict o t)
   (cond
-    [(massq o dict) => (λ (p)
-                         (set-mcdr! p (Un t (mcdr p)))
-                         dict)]
+    [(massoc o dict)
+     => (λ (p)
+          (set-mcdr! p (union t (mcdr p)))
+          dict)]
     [else (mcons (mcons o t) dict)]))
 
 
@@ -189,8 +185,8 @@
                          [p (in-value (-not-type (mcar p) (mcdr p)))]
                          #:when (not (FalseProp? p)))
                p)])
-    (if (or (member -tt pos prop-equal?)
-            (member -tt neg prop-equal?))
+    (if (or (ormap TrueProp? pos)
+            (ormap TrueProp? neg))
         (list -tt)
         (append pos neg others))))
 
@@ -263,15 +259,16 @@
            [_ (loop args pos neg (cons arg others))])]
         [_ (values pos neg others)])))
   ;; Move all the type props up front as they are the stronger props
-  (let loop ([ps (append (for*/list ([p (in-mlist pos)]
-                                     [p (in-value (-is-type (mcar p) (mcdr p)))]
-                                     #:when (not (prop-equal? -tt p)))
-                           p)
-                         (for*/list ([p (in-mlist neg)]
-                                     [p (in-value (-not-type (mcar p) (mcdr p)))]
-                                     #:when (not (prop-equal? -tt p)))
-                           p)
-                         others)]
+  (let loop ([ps (append
+                  (for*/list ([p (in-mlist pos)]
+                              [p (in-value (-is-type (mcar p) (mcdr p)))]
+                              #:when (not (TrueProp? p)))
+                    p)
+                  (for*/list ([p (in-mlist neg)]
+                              [p (in-value (-not-type (mcar p) (mcdr p)))]
+                              #:when (not (TrueProp? p)))
+                    p)
+                  others)]
              [result null])
     (match ps
       [(cons p ps)

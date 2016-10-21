@@ -5,7 +5,7 @@
          "utils.rkt"
          syntax/parse syntax/stx racket/match
          (typecheck signatures tc-funapp)
-         (types abbrev prop-ops union utils)
+         (types abbrev prop-ops utils)
          (rep type-rep object-rep)
 
          (for-label racket/base racket/bool))

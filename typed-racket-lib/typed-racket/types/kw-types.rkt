@@ -89,29 +89,26 @@
 (define (prefix-of a b)
   (define (rest-equal? a b)
     (match* (a b)
-      [(#f #f) #t]
+      [(a a) #t]
       [(#f _) #f]
       [(_ #f) #f]
-      [(a b) (type-equal? a b)]))
+      [(_ _) #f]))
   (define (drest-equal? a b)
     (match* (a b)
-      [((list t b) (list t* b*)) (and (type-equal? t t*) (equal? b b*))]
+      [((list t b) (list t b)) #t]
       [(#f #f) #t]
       [(_ _) #f]))
-  (define (kw-equal? a b)
-    (and (equal? (length a) (length b))
-         (for/and ([k1 (in-list a)] [k2 (in-list b)])
-           (type-equal? k1 k2))))
   (match* (a b)
     [((arr: args result rest drest kws)
       (arr: args* result* rest* drest* kws*))
      (and (< (length args) (length args*))
           (rest-equal? rest rest*)
           (drest-equal? drest drest*)
-          (type-equal? result result*)
-          (kw-equal? kws kws*)
-          (for/and ([p (in-list args)] [p* (in-list args*)])
-            (type-equal? p p*)))]))
+          (equal? result result*)
+          (equal? kws kws*)
+          (for/and ([p (in-list args)]
+                    [p* (in-list args*)])
+            (equal? p p*)))]))
 
 (define (arity-length a)
   (match a

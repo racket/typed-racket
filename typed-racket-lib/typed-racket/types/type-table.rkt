@@ -10,7 +10,7 @@
          "../utils/utils.rkt"
          (contract-req)
          (rep type-rep)
-         (types utils union printer)
+         (types utils printer)
          (typecheck possible-domains tc-metafunctions)
          (utils tc-utils)
          (for-template racket/base))

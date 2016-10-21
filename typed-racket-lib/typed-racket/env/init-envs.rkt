@@ -3,19 +3,18 @@
 ;; Support for defining the initial TR environment
 
 (require "../utils/utils.rkt"
-         "../utils/tc-utils.rkt"
+         (utils tc-utils hset)
          "global-env.rkt"
          "type-name-env.rkt"
          "type-alias-env.rkt"
          "mvar-env.rkt"
          "signature-env.rkt"
-         (rename-in racket/private/sort [sort raw-sort])
          (rep core-rep type-rep
               prop-rep rep-utils
               object-rep values-rep
               free-variance)
          (for-syntax syntax/parse racket/base)
-         (types abbrev struct-table union utils)
+         (types abbrev struct-table utils)
          data/queue
          racket/dict racket/list racket/set racket/promise
          racket/match)
@@ -59,11 +58,11 @@
 
 ;; Compute for a given type how many times each type inside of it
 ;; is referenced
-(define (compute-popularity ty)
-  (when (Type? ty)
-    (hash-update! pop-table ty add1 0))
-  (when (walkable? ty)
-    (Rep-walk compute-popularity ty)))
+(define (compute-popularity x)
+  (when (Type? x)
+    (hash-update! pop-table x add1 0))
+  (when (Rep? x)
+    (Rep-for-each x compute-popularity)))
 
 (define (popular? ty)
   (> (hash-ref pop-table ty 0) 5))
@@ -91,22 +90,22 @@
   (λ (stx)
     (syntax-parse stx
       [(_ id)
-       #'(? Rep? (app (λ (v) (hash-ref predefined-type-table (Rep-seq v) #f))
+       #'(? Rep? (app (λ (v) (hash-ref predefined-type-table v #f))
                       (? values id)))])))
 
 ;; Helper for type->sexp
 (define (recur ty)
   (define (numeric? t) (match t [(Base: _ _ _ b) b] [(Value: (? number?)) #t] [_ #f]))
   (define (split-union ts)
-    (define-values (nums others) (partition numeric? ts))
-    (cond [(or (null? nums) (null? others))
-            ;; nothing interesting to do in this case
-            `(make-Union (list ,@(map type->sexp ts)))]
-           [else
-            ;; we do a little more work to hopefully save a bunch in serialization space
-            ;; if we get a hit in the predefined-type-table
-            `(simple-Un ,(type->sexp (apply Un nums))
-                        ,(type->sexp (apply Un others)))]))
+    (let ([ts (hset->list ts)])
+      (define-values (nums others) (partition numeric? ts))
+      (cond [(or (null? nums) (null? others))
+             ;; nothing interesting to do in this case
+             `(Un ,@(map type->sexp ts))]
+            [else
+             ;; we do a little more work to hopefully save a bunch in serialization space
+             ;; if we get a hit in the predefined-type-table
+             `(Un ,(type->sexp (apply Un nums)) ,(type->sexp (apply Un others)))])))
 
   (match ty
     [(In-Predefined-Table: id) id]
@@ -215,12 +214,12 @@
                    ,(object->sexp obj))]
     [(AnyValues: prop)
      `(make-AnyValues ,(prop->sexp prop))]
-    [(Union: (list (Value: vs) ...))
+    [(Union: (app hset->list (list (Value: vs) ...)))
      `(one-of/c ,@(for/list ([v (in-list vs)])
                     `(quote ,v)))]
     [(Union: elems) (split-union elems)]
     [(Intersection: elems)
-     `(make-Intersection (list ,@(map type->sexp elems)))]
+     `(make-Intersection (hset ,@(hset-map elems type->sexp)))]
     [(Name: stx 0 #t)
      `(-struct-name (quote-syntax ,stx))]
     [(Name: stx args struct?)
@@ -238,10 +237,9 @@
     [(Prefab: key flds)
      `(make-Prefab (quote ,key)
                    (list ,@(map type->sexp flds)))]
-    [(App: rator rands stx)
+    [(App: rator rands)
      `(make-App ,(type->sexp rator)
-                (list ,@(map type->sexp rands))
-                ,(and stx `(quote-syntax ,stx)))]
+                (list ,@(map type->sexp rands)))]
     [(Opaque: pred)
      `(make-Opaque (quote-syntax ,pred))]
     [(Refinement: parent pred)
@@ -344,7 +342,7 @@
 ;; Convert an object to an s-expression to eval
 (define (object->sexp obj)
   (match obj
-    [(Empty:) `(make-Empty)]
+    [(Empty:) `-empty-obj]
     [(Path: null (cons 0 arg))
      `(-arg-path ,arg)]
     [(Path: null (cons depth arg))

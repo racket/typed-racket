@@ -3,7 +3,7 @@
 ;; This module provides helper functions for type aliases
 
 (require "../utils/utils.rkt"
-         (utils tarjan tc-utils)
+         (utils tarjan tc-utils hset)
          (env type-alias-env type-name-env)
          (rep type-rep)
          (private parse-type)
@@ -57,11 +57,12 @@
 ;;
 (define (check-type-alias-contractive id type)
   (define/match (check type)
-    [((Union: elems)) (andmap check elems)]
+    [((Union: elems)) (for/and ([elem (in-hset elems)]) (check elem))]
+    [((Intersection: elems)) (for/and ([elem (in-hset elems)]) (check elem))]
     [((Name/simple: name-id))
      (and (not (free-identifier=? name-id id))
           (check (resolve-once type)))]
-    [((App: rator rands stx))
+    [((App: rator rands))
      (and (check rator) (check rands))]
     [((Mu: _ body)) (check body)]
     [((Poly: names body)) (check body)]

@@ -6,7 +6,7 @@
          (contract-req)
          (rep type-rep prop-rep object-rep rep-utils)
          (utils tc-utils)
-         (types tc-result resolve subtype update union prop-ops)
+         (types tc-result resolve subtype update prop-ops)
          (env type-env-structs lexical-env mvar-env)
          (rename-in (types abbrev)
                     [-> -->]
@@ -32,7 +32,7 @@
                          (identifier-binding x))
              (let* ([t (lookup-type/lexical x Γ #:fail (lambda _ Univ))]
                     [new-t (update t pt #t lo)])
-               (if (type-equal? new-t -Bottom)
+               (if (Bottom? new-t)
                    (values #f '())
                    (loop ps negs (env-set-type Γ x new-t))))]
             ;; process negative info _after_ positive info so we don't miss anything
@@ -47,7 +47,7 @@
                          [(cons (NotTypeProp: (Path: lo x) pt) rst)
                           (let* ([t (lookup-type/lexical x Γ #:fail (lambda _ Univ))]
                                  [new-t (update t pt #f lo)])
-                            (if (type-equal? new-t -Bottom)
+                            (if (Bottom? new-t)
                                 #f
                                 (loop rst (env-set-type Γ x new-t))))]
                          [_ Γ]))])

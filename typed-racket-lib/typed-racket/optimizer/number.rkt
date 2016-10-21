@@ -4,7 +4,7 @@
          syntax/parse/experimental/specialize
          (for-template racket/base)
          "../utils/utils.rkt"
-         (types numeric-tower union)
+         (types abbrev numeric-tower)
          (optimizer utils logging))
 
 (provide number-opt-expr)

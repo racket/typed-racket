@@ -4,11 +4,11 @@
 
 (require (rename-in "../utils/utils.rkt" [infer infer-in])
          (except-in (rep core-rep type-rep object-rep) make-arr)
-         (rename-in (types abbrev union utils prop-ops resolve
+         (rename-in (types abbrev utils prop-ops resolve
                            classes prefab signatures)
                     [make-arr* make-arr])
          (only-in (infer-in infer) intersect)
-         (utils tc-utils stxclass-util literal-syntax-class)
+         (utils tc-utils stxclass-util literal-syntax-class hset)
          syntax/stx (prefix-in c: (contract-req))
          syntax/parse racket/sequence
          (env tvar-env type-alias-env mvar-env
@@ -236,9 +236,9 @@
 (define-syntax-class path-elem
   #:description "path element"
   (pattern :car^
-           #:attr pe (make-CarPE))
+           #:attr pe -car)
   (pattern :cdr^
-           #:attr pe (make-CdrPE)))
+           #:attr pe -cdr))
 
 
 (define-syntax-class @
@@ -453,9 +453,10 @@
                          (define productive
                            (let loop ((ty t*))
                              (match ty
-                               [(Union: elems) (andmap loop elems)]
+                               [(Union: elems) (for/and ([elem (in-hset elems)]) (loop elem))]
+                               [(Intersection: elems) (for/and ([elem (in-hset elems)]) (loop elem))]
                                [(F: _) (not (equal? ty tvar))]
-                               [(App: rator rands stx)
+                               [(App: rator rands)
                                 (loop (resolve-app rator rands stx))]
                                [(Mu: _ body) (loop body)]
                                [(Poly: names body) (loop body)]
@@ -629,7 +630,10 @@
             [args (parse-types #'(arg args ...))])
          (resolve-app-check-error rator args stx)
          (match rator
-           [(? Name?) (make-App rator args stx)]
+           [(? Name?)
+            (define app (make-App rator args))
+            (register-app-for-checking! app stx)
+            app]
            [(Poly: _ _) (instantiate-poly rator args)]
            [(Mu: _ _) (loop (unfold rator) args)]
            [(Error:) Err]
@@ -904,8 +908,7 @@
                                         (unbox class-box)))
             ;; Ok to return Error here, since this type will
             ;; get reparsed in another pass
-            (make-Error)
-            ])]))
+            Err])]))
 
 ;; get-parent-inits : (U Type #f) -> Inits
 ;; Extract the init arguments out of a parent class type

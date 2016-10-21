@@ -5,7 +5,8 @@
          "../utils/utils.rkt"
          (for-template racket/base racket/fixnum racket/unsafe/ops)
          (for-syntax racket/base syntax/parse racket/syntax)
-         (types numeric-tower union)
+         (rep type-rep)
+         (types numeric-tower)
          (optimizer utils logging))
 
 (provide fixnum-expr fixnum-opt-expr)

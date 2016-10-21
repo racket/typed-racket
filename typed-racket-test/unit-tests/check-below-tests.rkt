@@ -3,7 +3,7 @@
 (require "test-utils.rkt"
          rackunit racket/list racket/match racket/format
          syntax/srcloc syntax/location
-         (types abbrev union tc-result)
+         (types abbrev tc-result)
          (utils tc-utils)
          (rep prop-rep object-rep type-rep)
          (typecheck check-below)

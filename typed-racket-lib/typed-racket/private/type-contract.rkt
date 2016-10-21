@@ -6,11 +6,10 @@
  "../utils/utils.rkt"
  syntax/parse
  (rep type-rep prop-rep object-rep)
- (utils tc-utils)
+ (utils tc-utils hset)
  (env type-name-env row-constraint-env)
  (rep core-rep rep-utils type-mask values-rep)
- (types resolve union utils printer)
- (only-in (types abbrev) -Dead-Code)
+ (types resolve utils printer match-expanders union)
  (prefix-in t: (types abbrev numeric-tower subtype))
  (private parse-type syntax-properties)
  racket/match racket/syntax racket/list
@@ -84,7 +83,7 @@
 (define (generate-contract-def stx cache sc-cache)
   (define prop (get-contract-def-property stx))
   (match-define (contract-def type-stx flat? maker? typed-side) prop)
-  (define *typ (if type-stx (parse-type type-stx) -Dead-Code))
+  (define *typ (if type-stx (parse-type type-stx) t:-Dead-Code))
   (define kind (if (and type-stx flat?) 'flat 'impersonator))
   (syntax-parse stx #:literals (define-values)
     [(define-values (n) _)
@@ -320,7 +319,7 @@
     [(_ sc-cache type-expr typed-side-expr match-clause ...)
      #'(let ([type type-expr]
              [typed-side typed-side-expr])
-         (define key (cons (Rep-seq type) typed-side))
+         (define key (cons type typed-side))
          (cond [(hash-ref sc-cache key #f)]
                [else
                 (define sc (match type match-clause ...))
@@ -359,7 +358,7 @@
         ;; We special case this rather than just resorting to standard
         ;; App resolution (see case below) because the resolution process
         ;; will make type->static-contract infinite loop.
-        [(App: (Name: name _ #f) _ _)
+        [(App: (Name: name _ #f) _)
          ;; Key with (cons name 'app) instead of just name because the
          ;; application of the Name is not necessarily the same as the
          ;; Name type alone
@@ -388,27 +387,29 @@
                                   (λ () (loop resolved-name 'both rv)))
                 (lookup-name-sc type typed-side)])]
         ;; Ordinary type applications or struct type names, just resolve
-        [(or (App: _ _ _) (Name/struct:)) (t->sc (resolve-once type))]
+        [(or (App: _ _) (Name/struct:)) (t->sc (resolve-once type))]
         [(Univ:) (if (from-typed? typed-side) any-wrap/sc any/sc)]
         [(Bottom:) (or/sc)]
-        [(Mu: var (Union: (list (Value: '()) (Pair: elem-ty (F: var)))))
-         (listof/sc (t->sc elem-ty))]
+        [(Listof: elem-ty) (listof/sc (t->sc elem-ty))]
         [(Base: sym cnt _ _)
          (flat/sc #`(flat-named-contract '#,sym (flat-contract-predicate #,cnt)) sym)]
         [(Distinction: _ _ t) ; from define-new-subtype
          (t->sc t)]
         [(Refinement: par p?)
          (and/sc (t->sc par) (flat/sc p?))]
-        [(Union: elems)
-         (define-values (numeric non-numeric) (partition (λ (t) (eq? mask:number (Type-mask t))) elems))
-         (define numeric-sc (numeric-type->static-contract (apply Un numeric)))
-         (if numeric-sc
-             (apply or/sc numeric-sc (map t->sc non-numeric))
-             (apply or/sc (map t->sc elems)))]
+        [(? Union? t)
+         (match (normalize-type t)
+           [(Union: (app hset->list elems))
+            (define-values (numeric non-numeric) (partition (λ (t) (eq? mask:number (mask t))) elems))
+            (define numeric-sc (numeric-type->static-contract (apply Un numeric)))
+            (if numeric-sc
+                (apply or/sc numeric-sc (map t->sc non-numeric))
+                (apply or/sc (map t->sc elems)))]
+           [t (t->sc t)])]
         [(Intersection: ts)
          (define-values (chaperones/impersonators others)
            (for/fold ([cs/is null] [others null])
-                     ([elem (in-list ts)])
+                     ([elem (in-hset ts)])
              (define c (t->sc elem))
              (if (equal? flat-sym (get-max-contract-kind c))
                  (values cs/is (cons c others))
@@ -782,7 +783,8 @@
           (let loop ([ty b])
             (match (resolve ty)
               [(Function: _) #t]
-              [(Union: elems) (andmap loop elems)]
+              [(Union: elems) (for/and ([elem (in-hset elems)]) (loop elem))]
+              [(Intersection: elems) (for/or ([elem (in-hset elems)]) (loop elem))]
               [(Poly: _ body) (loop body)]
               [(PolyDots: _ body) (loop body)]
               [_ #f])))
@@ -820,7 +822,8 @@
           (let loop ([ty b])
             (match (resolve ty)
               [(Function: _) #t]
-              [(Union: elems) (andmap loop elems)]
+              [(Union: elems) (for/and ([elem (in-hset elems)]) (loop elem))]
+              [(Intersection: elems) (for/or ([elem (in-hset elems)]) (loop elem))]
               [(Poly: _ body) (loop body)]
               [(PolyDots: _ body) (loop body)]
               [_ #f])))
@@ -843,8 +846,8 @@
   (let/ec escape
     (let loop ([rep type])
       (match rep
-        [(App: (Name: _ _ #f) _ _) (escape #t)]
-        [_ (Rep-walk loop rep)]))
+        [(App: (Name: _ _ #f) _) (escape #t)]
+        [_ (Rep-for-each rep loop)]))
     #f))
 
 ;; True if the arities `arrs` are what we'd expect from a struct predicate
@@ -940,52 +943,52 @@
     ;; numeric special cases
     ;; since often-used types like Integer are big unions, this would
     ;; generate large contracts.
-    [(== t:-PosByte type-equal?) positive-byte/sc]
-    [(== t:-Byte type-equal?) byte/sc]
-    [(== t:-PosIndex type-equal?) positive-index/sc]
-    [(== t:-Index type-equal?) index/sc]
-    [(== t:-PosFixnum type-equal?) positive-fixnum/sc]
-    [(== t:-NonNegFixnum type-equal?) nonnegative-fixnum/sc]
+    [(== t:-PosByte) positive-byte/sc]
+    [(== t:-Byte) byte/sc]
+    [(== t:-PosIndex) positive-index/sc]
+    [(== t:-Index) index/sc]
+    [(== t:-PosFixnum) positive-fixnum/sc]
+    [(== t:-NonNegFixnum) nonnegative-fixnum/sc]
     ;; -NegFixnum is a base type
-    [(== t:-NonPosFixnum type-equal?) nonpositive-fixnum/sc]
-    [(== t:-Fixnum type-equal?) fixnum/sc]
-    [(== t:-PosInt type-equal?) positive-integer/sc]
-    [(== t:-Nat type-equal?) natural/sc]
-    [(== t:-NegInt type-equal?) negative-integer/sc]
-    [(== t:-NonPosInt type-equal?) nonpositive-integer/sc]
-    [(== t:-Int type-equal?) integer/sc]
-    [(== t:-PosRat type-equal?) positive-rational/sc]
-    [(== t:-NonNegRat type-equal?) nonnegative-rational/sc]
-    [(== t:-NegRat type-equal?) negative-rational/sc]
-    [(== t:-NonPosRat type-equal?) nonpositive-rational/sc]
-    [(== t:-Rat type-equal?) rational/sc]
-    [(== t:-FlonumZero type-equal?) flonum-zero/sc]
-    [(== t:-NonNegFlonum type-equal?) nonnegative-flonum/sc]
-    [(== t:-NonPosFlonum type-equal?) nonpositive-flonum/sc]
-    [(== t:-Flonum type-equal?) flonum/sc]
-    [(== t:-SingleFlonumZero type-equal?) single-flonum-zero/sc]
-    [(== t:-InexactRealZero type-equal?) inexact-real-zero/sc]
-    [(== t:-PosInexactReal type-equal?) positive-inexact-real/sc]
-    [(== t:-NonNegSingleFlonum type-equal?) nonnegative-single-flonum/sc]
-    [(== t:-NonNegInexactReal type-equal?) nonnegative-inexact-real/sc]
-    [(== t:-NegInexactReal type-equal?) negative-inexact-real/sc]
-    [(== t:-NonPosSingleFlonum type-equal?) nonpositive-single-flonum/sc]
-    [(== t:-NonPosInexactReal type-equal?) nonpositive-inexact-real/sc]
-    [(== t:-SingleFlonum type-equal?) single-flonum/sc]
-    [(== t:-InexactReal type-equal?) inexact-real/sc]
-    [(== t:-RealZero type-equal?) real-zero/sc]
-    [(== t:-PosReal type-equal?) positive-real/sc]
-    [(== t:-NonNegReal type-equal?) nonnegative-real/sc]
-    [(== t:-NegReal type-equal?) negative-real/sc]
-    [(== t:-NonPosReal type-equal?) nonpositive-real/sc]
-    [(== t:-Real type-equal?) real/sc]
-    [(== t:-ExactNumber type-equal?) exact-number/sc]
-    [(== t:-InexactComplex type-equal?) inexact-complex/sc]
-    [(== t:-Number type-equal?) number/sc]
-    [(== t:-ExtFlonumZero type-equal?) extflonum-zero/sc]
-    [(== t:-NonNegExtFlonum type-equal?) nonnegative-extflonum/sc]
-    [(== t:-NonPosExtFlonum type-equal?) nonpositive-extflonum/sc]
-    [(== t:-ExtFlonum type-equal?) extflonum/sc]
+    [(== t:-NonPosFixnum) nonpositive-fixnum/sc]
+    [(== t:-Fixnum) fixnum/sc]
+    [(== t:-PosInt) positive-integer/sc]
+    [(== t:-Nat) natural/sc]
+    [(== t:-NegInt) negative-integer/sc]
+    [(== t:-NonPosInt) nonpositive-integer/sc]
+    [(== t:-Int) integer/sc]
+    [(== t:-PosRat) positive-rational/sc]
+    [(== t:-NonNegRat) nonnegative-rational/sc]
+    [(== t:-NegRat) negative-rational/sc]
+    [(== t:-NonPosRat) nonpositive-rational/sc]
+    [(== t:-Rat) rational/sc]
+    [(== t:-FlonumZero) flonum-zero/sc]
+    [(== t:-NonNegFlonum) nonnegative-flonum/sc]
+    [(== t:-NonPosFlonum) nonpositive-flonum/sc]
+    [(== t:-Flonum) flonum/sc]
+    [(== t:-SingleFlonumZero) single-flonum-zero/sc]
+    [(== t:-InexactRealZero) inexact-real-zero/sc]
+    [(== t:-PosInexactReal) positive-inexact-real/sc]
+    [(== t:-NonNegSingleFlonum) nonnegative-single-flonum/sc]
+    [(== t:-NonNegInexactReal) nonnegative-inexact-real/sc]
+    [(== t:-NegInexactReal) negative-inexact-real/sc]
+    [(== t:-NonPosSingleFlonum) nonpositive-single-flonum/sc]
+    [(== t:-NonPosInexactReal) nonpositive-inexact-real/sc]
+    [(== t:-SingleFlonum) single-flonum/sc]
+    [(== t:-InexactReal) inexact-real/sc]
+    [(== t:-RealZero) real-zero/sc]
+    [(== t:-PosReal) positive-real/sc]
+    [(== t:-NonNegReal) nonnegative-real/sc]
+    [(== t:-NegReal) negative-real/sc]
+    [(== t:-NonPosReal) nonpositive-real/sc]
+    [(== t:-Real) real/sc]
+    [(== t:-ExactNumber) exact-number/sc]
+    [(== t:-InexactComplex) inexact-complex/sc]
+    [(== t:-Number) number/sc]
+    [(== t:-ExtFlonumZero) extflonum-zero/sc]
+    [(== t:-NonNegExtFlonum) nonnegative-extflonum/sc]
+    [(== t:-NonPosExtFlonum) nonpositive-extflonum/sc]
+    [(== t:-ExtFlonum) extflonum/sc]
     [else #f]))
 
 

@@ -6,18 +6,17 @@
 (require "../utils/utils.rkt")
 
 ;; TODO use contract-req
-(require (utils tc-utils)
+(require (utils tc-utils hset)
          "rep-utils.rkt"
          "core-rep.rkt"
          "values-rep.rkt"
          "type-mask.rkt"
          "object-rep.rkt"
          "free-variance.rkt"
-         racket/match racket/list racket/set
+         racket/match racket/list
+         syntax/id-table
          racket/contract
          racket/lazy-require
-         racket/promise
-         syntax/parse/define
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -37,13 +36,16 @@
          PolyDots-n
          Class? Row? Row:
          free-vars*
-         type-equal?
          Name/simple: Name/struct:
          unfold
          Union?
-         Union:
          Union-elems
-         (rename-out [make-Union* make-Union]
+         Union-map
+         Un
+         resolvable?
+         (rename-out [instantiate instantiate-raw-type]
+                     [make-Union* make-Union]
+                     [Union:* Union:]
                      [Class:* Class:]
                      [Class* make-Class]
                      [Row* make-Row]
@@ -56,40 +58,48 @@
                      [PolyDots* make-PolyDots]
                      [PolyRow* make-PolyRow]
                      [Mu-body* Mu-body]
+                     [Mu-body Mu-body-unsafe]
                      [Poly-body* Poly-body]
                      [PolyDots-body* PolyDots-body]
                      [PolyRow-body* PolyRow-body]))
 
+(define (resolvable? x)
+  (or (Mu? x)
+      (Name? x)
+      (App? x)))
 
 (lazy-require
- ("../types/union.rkt" (Un))
  ("../types/overlap.rkt" (overlap?))
  ("../types/resolve.rkt" (resolve-app)))
 
-(define name-table (make-weak-hasheq))
+(define name-table (make-weak-hash))
 
 ;; Name = Symbol
 
 ;; Type is defined in rep-utils.rkt
 
 ;; this is ONLY used when a type error ocurrs
-(def-type Error () #:base)
+;; FIXME: add a safety so this type can literally
+;; ONLY be used when raising type errors, since
+;; it's a dangerous type to have accidently floating around
+;; as it is both Top and Bottom.
+(def-type Error () [#:singleton Err])
 
 ;; de Bruijn indexes - should never appear outside of this file
 ;; bound type variables
 ;; i is an nat
-(def-type B ([i natural-number/c]) #:base
-  [#:intern-key i])
+(def-type B ([i natural-number/c]) #:base)
 
 ;; free type variables
 ;; n is a Name
 (def-type F ([n symbol?])
-  [#:intern-key n]
   [#:frees
    [#:vars (_) (single-free-var n)]
    [#:idxs (_) empty-free-vars]]
-  [#:fold (_ #:self self) self]
-  [#:walk (_) (void)])
+  [#:fmap (_ #:self self) self]
+  [#:for-each (_) (void)])
+
+(define Name-table (make-free-id-table))
 
 ;; Name, an indirection of a type through the environment
 ;;
@@ -102,32 +112,25 @@
 (def-type Name ([id identifier?]
                 [args exact-nonnegative-integer?]
                 [struct? boolean?])
-  [#:intern-key (hash-id id)]
-  [#:frees (f) empty-free-vars]
-  [#:fold (_ #:self self) self]
-  [#:walk (_) (void)]
-  #:needs-resolving)
+  #:base
+  [#:custom-constructor
+   (free-id-table-ref! Name-table id (λ () (make-Name id args struct?)))])
 
 ;; rator is a type
 ;; rands is a list of types
-;; stx is the syntax of the pair of parens
 (def-type App ([rator Type?]
-               [rands (listof Type?)]
-               [stx (or/c #f syntax?)])
-  [#:intern-key (cons (Rep-seq rator) (map Rep-seq rands))]
+               [rands (listof Type?)])
   [#:frees (f)
    (match rator 
      [(Name: n _ _)
       (instantiate-frees n (map f rands))]
-     [_ (f (resolve-app rator rands stx))])]
-  [#:fold (f) (make-App (f rator)
-                        (map f rands)
-                        stx)]
-  [#:walk (f)
+     [_ (f (resolve-app rator rands))])]
+  [#:fmap (f) (make-App (f rator) (map f rands))]
+  [#:for-each (f)
    (f rator)
-   (for-each f rands)]
-  #:needs-resolving)
+   (for-each f rands)])
 
+(define base-table (make-hasheq))
 
 ;; name is a Symbol (not a Name)
 ;; contract is used when generating contracts from types
@@ -139,17 +142,20 @@
                 [contract syntax?]
                 [predicate procedure?]
                 [numeric? boolean?])
-  #:base
-  [#:intern-key name] 
-  [#:type-mask
-   (if numeric?
-       mask:number
-       (case name
-         [(Char) mask:char]
-         [(String) mask:string]
-         [(Void) mask:void]
-         [(Symbol) mask:symbol]
-         [else mask:base-other]))])
+  #:base 
+  [#:mask (match-lambda
+            [(Base: name _ _ numeric?)
+             (if numeric?
+                 mask:number
+                 (case name
+                   [(Char) mask:char]
+                   [(String) mask:string]
+                   [(Void) mask:void]
+                   [(Symbol) mask:symbol]
+                   [else mask:base-other]))])]
+  #:non-transparent
+  [#:custom-constructor
+   (hash-ref! base-table name (λ () (make-Base name contract predicate numeric?)))])
 
 
 ;;************************************************************
@@ -164,24 +170,26 @@
   (define-syntax-class (structural-flds frees)
     #:attributes (name variance fld-frees)
     (pattern [name:id #:covariant]
-             #:with variance #'Covariant
+             #:with variance #'variance:co
              #:with fld-frees #'(frees name))
     (pattern [name:id #:contravariant]
-             #:with variance #'Contravariant
+             #:with variance #'variance:contra
              #:with fld-frees #'(flip-variances (frees name)))
     (pattern [name:id #:invariant]
-             #:with variance #'Invariant
+             #:with variance #'variance:inv
              #:with fld-frees #'(make-invariant (frees name))))
   (syntax-parse stx
     [(_ name:var-name ((~var flds (structural-flds #'frees)) ...) . rst)
-     #'(def-rep name ([flds.name Type?] ...)
+     (quasisyntax/loc stx
+       (def-rep name ([flds.name Type?] ...)
          [#:parent Type]
-         [#:intern-key (list* (Rep-seq flds.name) ...)]
-         [#:variances flds.variance ...]
-         [#:frees (frees) (combine-frees (list flds.fld-frees ...))]
-         [#:fold (f) (name.constructor (f flds.name) ...)]
-         [#:walk (f) (f flds.name) ...]
-         . rst)]))
+         [#:frees (frees) . #,(if (= 1 (length (syntax->list #'(flds.name ...))))
+                                  #'(flds.fld-frees ...)
+                                  #'((combine-frees (list flds.fld-frees ...))))]
+         [#:fmap (f) (name.constructor (f flds.name) ...)]
+         [#:for-each (f) (f flds.name) ...]
+         [#:variances (list flds.variance ...)]
+         . rst))]))
 
 
 ;;--------
@@ -191,88 +199,121 @@
 ;; left and right are Types
 (def-structural Pair ([left #:covariant]
                       [right #:covariant])
-  [#:type-mask mask:pair])
+  [#:mask mask:pair]
+  [#:custom-constructor
+   (if (or (Bottom? left) (Bottom? right))
+       -Bottom
+       (make-Pair left right))])
 
 ;;----------------
 ;; Mutable Pairs
 ;;----------------
 
-(def-type MPairTop () [#:type-mask mask:mpair] #:base)
+(def-type MPairTop ()
+  [#:mask mask:mpair]
+  [#:singleton -MPairTop])
 
 ;; *mutable* pairs - distinct from regular pairs
 ;; left and right are Types
 (def-structural MPair ([left #:invariant] [right #:invariant])
-  [#:type-mask mask:mpair]
-  [#:top MPairTop?])
+  [#:mask mask:mpair]
+  [#:custom-constructor
+   (if (or (Bottom? left) (Bottom? right))
+       -Bottom
+       (make-MPair left right))])
 
 ;;----------
 ;; Vectors
 ;;----------
 
-(def-type VectorTop () [#:type-mask mask:vector] #:base)
+(def-type VectorTop () [#:mask mask:vector]
+  [#:singleton -VectorTop])
 
 ;; elem is a Type
 (def-structural Vector ([elem #:invariant])
-  [#:type-mask mask:vector]
-  [#:top VectorTop?])
+  [#:mask mask:vector])
 
 ;;------
 ;; Box
 ;;------
 
 (def-type BoxTop ()
-  [#:type-mask mask:box] #:base)
+  [#:mask mask:box]
+  [#:singleton -BoxTop])
 
 (def-structural Box ([elem #:invariant])
-  [#:type-mask mask:box]
-  [#:top BoxTop?])
+  [#:mask mask:box]
+  [#:custom-constructor
+   (if (Bottom? elem)
+       -Bottom
+       (make-Box elem))])
 
 ;;----------
 ;; Channel
 ;;----------
 
 (def-type ChannelTop ()
-  [#:type-mask mask:channel] #:base)
+  [#:mask mask:channel]
+  [#:singleton -ChannelTop])
 
 (def-structural Channel ([elem #:invariant])
-  [#:type-mask mask:channel]
-  [#:top ChannelTop?])
+  [#:mask mask:channel]
+  [#:custom-constructor
+   (if (Bottom? elem)
+       -Bottom
+       (make-Channel elem))])
 
 ;;----------------
 ;; Async-Channel
 ;;----------------
 
 (def-type Async-ChannelTop ()
-  [#:type-mask mask:channel] #:base)
+  [#:mask mask:channel]
+  [#:singleton -Async-ChannelTop])
 
 (def-structural Async-Channel ([elem #:invariant])
-  [#:type-mask mask:channel]
-  [#:top Async-ChannelTop?])
+  [#:mask mask:channel]
+  [#:custom-constructor
+   (if (Bottom? elem)
+       -Bottom
+       (make-Async-Channel elem))])
 
 ;;-------------
 ;; ThreadCell
 ;;-------------
 
 (def-type ThreadCellTop ()
-  [#:type-mask mask:thread-cell] #:base)
+  [#:mask mask:thread-cell]
+  [#:singleton -ThreadCellTop])
 
 (def-structural ThreadCell ([elem #:invariant])
-  [#:type-mask mask:thread-cell]
-  [#:top ThreadCellTop?])
+  [#:mask mask:thread-cell]
+  [#:custom-constructor
+   (if (Bottom? elem)
+       -Bottom
+       (make-ThreadCell elem))])
 
 ;;----------
 ;; Promise
 ;;----------
 
 (def-structural Promise ([elem #:covariant])
-  [#:type-mask mask:promise])
+  [#:mask mask:promise]
+  [#:custom-constructor
+   (if (Bottom? elem)
+       -Bottom
+       (make-Promise elem))])
 
 ;;------------
 ;; Ephemeron
 ;;------------
 
 (def-structural Ephemeron ([elem #:covariant])
-  [#:type-mask mask:ephemeron])
+  [#:mask mask:ephemeron]
+  [#:custom-constructor
+   (if (Bottom? elem)
+       -Bottom
+       (make-Ephemeron elem))])
 
 
 ;;-----------
@@ -280,11 +321,15 @@
 ;;-----------
 
 (def-type Weak-BoxTop ()
-  [#:type-mask mask:other-box] #:base)
+  [#:mask mask:other-box]
+  [#:singleton -Weak-BoxTop])
 
 (def-structural Weak-Box ([elem #:invariant])
-  [#:type-mask mask:other-box]
-  [#:top Weak-BoxTop?])
+  [#:mask mask:other-box]
+  [#:custom-constructor
+   (if (Bottom? elem)
+       -Bottom
+       (make-Weak-Box elem))])
 
 
 ;;---------------
@@ -292,7 +337,11 @@
 ;;---------------
 
 (def-structural CustodianBox ([elem #:covariant])
-  [#:type-mask mask:other-box])
+  [#:mask mask:other-box]
+  [#:custom-constructor
+   (if (Bottom? elem)
+       -Bottom
+       (make-CustodianBox elem))])
 
 ;;------
 ;; Set
@@ -300,19 +349,19 @@
 
 ;; TODO separate mutable/immutable set types
 (def-structural Set ([elem #:covariant])
-  [#:type-mask mask:set])
+  [#:mask mask:set])
 
 ;;------------
 ;; Hashtable
 ;;------------
 
 (def-type HashtableTop ()
-  [#:type-mask mask:hash] #:base)
+  [#:mask mask:hash]
+  [#:singleton -HashtableTop])
 
 ;; TODO separate mutable/immutable Hashtables
 (def-structural Hashtable ([key #:invariant] [value #:invariant])
-  [#:type-mask mask:hash]
-  [#:top HashtableTop?])
+  [#:mask mask:hash])
 
 
 ;;------
@@ -327,7 +376,7 @@
 
 (def-structural Param ([in #:contravariant]
                        [out #:covariant])
-  [#:type-mask mask:procedure])
+  [#:mask mask:procedure])
 
 
 ;;---------
@@ -336,14 +385,22 @@
 
 ;; t is the type of the result of syntax-e, not the result of syntax->datum
 (def-structural Syntax ([t #:covariant])
-  [#:type-mask mask:syntax])
+  [#:mask mask:syntax]
+  [#:custom-constructor
+   (if (Bottom? t)
+       -Bottom
+       (make-Syntax t))])
 
 ;;---------
 ;; Future
 ;;---------
 
 (def-structural Future ([t #:covariant])
-  [#:type-mask mask:future])
+  [#:mask mask:future]
+  [#:custom-constructor
+   (if (Bottom? t)
+       -Bottom
+       (make-Future t))])
 
 
 ;;---------------
@@ -351,7 +408,8 @@
 ;;---------------
 
 (def-type Prompt-TagTop ()
-  [#:type-mask mask:prompt-tag] #:base)
+  [#:mask mask:prompt-tag]
+  [#:singleton -Prompt-TagTop])
 
 ;; body: the type of the body
 ;; handler: the type of the prompt handler
@@ -359,20 +417,23 @@
 ;;   and the codomains of `handler`
 (def-structural Prompt-Tagof ([body #:invariant]
                               [handler #:invariant])
-  [#:type-mask mask:prompt-tag]
-  [#:top Prompt-TagTop?])
+  [#:mask mask:prompt-tag]
+  [#:custom-constructor
+   (if (or (Bottom? body) (Bottom? handler))
+       -Bottom
+       (make-Prompt-Tagof body handler))])
 
 ;;--------------------------
 ;; Continuation-Mark-Keyof
 ;;--------------------------
 
 (def-type Continuation-Mark-KeyTop ()
-  [#:type-mask mask:continuation-mark-key] #:base)
+  [#:mask mask:continuation-mark-key]
+  [#:singleton -Continuation-Mark-KeyTop])
 
 ;; value: the type of allowable values
 (def-structural Continuation-Mark-Keyof ([value #:invariant])
-  [#:type-mask mask:continuation-mark-key]
-  [#:top Continuation-Mark-KeyTop?])
+  [#:mask mask:continuation-mark-key])
 
 ;; * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 ;; List/Vector Types (that are not simple structural types)
@@ -380,7 +441,6 @@
 
 ;; dotted list -- after expansion, becomes normal Pair-based list type
 (def-type ListDots ([dty Type?] [dbound (or/c symbol? natural-number/c)])
-  [#:intern-key (cons (Rep-seq dty) dbound)]
   [#:frees
    [#:vars (f)
     (if (symbol? dbound)
@@ -390,19 +450,21 @@
     (if (symbol? dbound)
         (combine-frees (list (single-free-var dbound) (f dty)))
         (f dty))]]
-  [#:fold (f) (make-ListDots (f dty) dbound)]
-  [#:walk (f) (f dty)])
+  [#:fmap (f) (make-ListDots (f dty) dbound)]
+  [#:for-each (f) (f dty)])
 
 
 
 ;; elems are all Types
 (def-type HeterogeneousVector ([elems (listof Type?)])
-  [#:intern-key (map Rep-seq elems)]
   [#:frees (f) (make-invariant (combine-frees (map f elems)))]
-  [#:fold (f) (make-HeterogeneousVector (map f elems))]
-  [#:walk (f) (for-each f elems)]
-  [#:type-mask mask:vector]
-  [#:top VectorTop?])
+  [#:fmap (f) (make-HeterogeneousVector (map f elems))]
+  [#:for-each (f) (for-each f elems)]
+  [#:mask mask:vector]
+  [#:custom-constructor
+   (if (ormap Bottom? elems)
+       -Bottom
+       (make-HeterogeneousVector elems))])
 
 
 ;; * * * * * * *
@@ -412,34 +474,34 @@
 
 (def-type Mu ([body Type?])
   #:no-provide
-  [#:intern-key (Rep-seq body)]
   [#:frees (f) (f body)]
-  [#:fold (f) (make-Mu (f body))]
-  [#:walk (f) (f body)]
-  [#:type-mask (Type-mask body)]
-  #:needs-resolving)
+  [#:fmap (f) (make-Mu (f body))]
+  [#:for-each (f) (f body)]
+  [#:mask (λ (t) (mask (Mu-body t)))]
+  [#:custom-constructor
+   (if (Bottom? body)
+       -Bottom
+       (make-Mu body))])
 
 ;; n is how many variables are bound here
 ;; body is a type
 (def-type Poly ([n exact-nonnegative-integer?]
                 [body Type?])
   #:no-provide
-  [#:intern-key (cons n (Rep-seq body))]
   [#:frees (f) (f body)]
-  [#:fold (f) (make-Poly n (f body))]
-  [#:walk (f) (f body)]
-  [#:type-mask (Type-mask body)])
+  [#:fmap (f) (make-Poly n (f body))]
+  [#:for-each (f) (f body)]
+  [#:mask (λ (t) (mask (Poly-body t)))])
 
 ;; n is how many variables are bound here
 ;; there are n-1 'normal' vars and 1 ... var
 (def-type PolyDots ([n exact-nonnegative-integer?]
                     [body Type?])
   #:no-provide
-  [#:intern-key (cons n (Rep-seq body))]
   [#:frees (f) (f body)]
-  [#:fold (f) (make-PolyDots n (f body))]
-  [#:walk (f) (f body)]
-  [#:type-mask (Type-mask body)])
+  [#:fmap (f) (make-PolyDots n (f body))]
+  [#:for-each (f) (f body)]
+  [#:mask (λ (t) (mask (PolyDots-body t)))])
 
 ;; interp. A row polymorphic function type
 ;; constraints are row absence constraints, represented
@@ -447,15 +509,16 @@
 (def-type PolyRow ([constraints (list/c list? list? list? list?)]
                    [body Type?])
   #:no-provide
-  [#:intern-key (cons (Rep-seq body) constraints)]
   [#:frees (f) (f body)]
-  [#:fold (f) (make-PolyRow constraints (f body))]
-  [#:walk (f) (f body)]
-  [#:type-mask (Type-mask body)])
+  [#:fmap (f) (make-PolyRow constraints (f body))]
+  [#:for-each (f) (f body)]
+  [#:mask (λ (t) (mask (PolyRow-body t)))])
 
-;; pred : identifier
-(def-type Opaque ([pred identifier?]) #:base
-  [#:intern-key (hash-id pred)])
+
+(def-type Opaque ([pred identifier?])
+  #:base
+  [#:custom-constructor
+   (make-Opaque (normalize-id pred))])
 
 
 
@@ -463,20 +526,16 @@
 ;; ty : Type
 ;; required? : Boolean
 (def-rep Keyword ([kw keyword?] [ty Type?] [required? boolean?])
-  [#:intern-key (vector-immutable kw (Rep-seq ty) required?)]
   [#:frees (f) (f ty)]
-  [#:fold (f) (make-Keyword kw (f ty) required?)]
-  [#:walk (f) (f ty)])
+  [#:fmap (f) (make-Keyword kw (f ty) required?)]
+  [#:for-each (f) (f ty)])
+
 
 (def-rep arr ([dom (listof Type?)]
               [rng SomeValues?]
               [rest (or/c #f Type?)]
               [drest (or/c #f (cons/c Type? (or/c natural-number/c symbol?)))]
               [kws (listof Keyword?)])
-  [#:intern-key (vector-immutable
-                 (map Rep-seq dom) (Rep-seq rng) (and rest (Rep-seq rest))
-                 (and drest (cons (Rep-seq (car drest)) (cdr drest)))
-                 (map Rep-seq kws))]
   [#:frees
    [#:vars (f)
     (combine-frees
@@ -499,18 +558,18 @@
                           dom))
              (match drest
                [(cons t (? symbol? bnd))
-                (list (single-free-var bnd Contravariant)
+                (list (single-free-var bnd variance:contra)
                       (flip-variances (f t)))]
                [(cons t _)
                 (list (flip-variances (f t)))]
                [_ null])
              (list (f rng))))]]
-  [#:fold (f) (make-arr (map f dom)
+  [#:fmap (f) (make-arr (map f dom)
                         (f rng)
                         (and rest (f rest))
                         (and drest (cons (f (car drest)) (cdr drest)))
                         (map f kws))]
-  [#:walk (f)
+  [#:for-each (f)
    (for-each f dom)
    (f rng)
    (when drest (f (car drest)))
@@ -519,81 +578,83 @@
 
 ;; arities : Listof[arr]
 (def-type Function ([arities (listof arr?)])
-  [#:intern-key (map Rep-seq arities)]
-  [#:type-mask mask:procedure]
+  [#:mask mask:procedure]
   [#:frees (f) (combine-frees (map f arities))]
-  [#:fold (f) (make-Function (map f arities))]
-  [#:walk (f) (for-each f arities)])
+  [#:fmap (f) (make-Function (map f arities))]
+  [#:for-each (f) (for-each f arities)])
 
 
 (def-rep fld ([t Type?] [acc identifier?] [mutable? boolean?])
-  [#:intern-key (cons (hash-id acc) (Rep-seq t))]
   [#:frees (f) (if mutable? (make-invariant (f t)) (f t))]
-  [#:fold (f) (make-fld (f t) acc mutable?)]
-  [#:walk (f) (f t)])
+  [#:fmap (f) (make-fld (f t) acc mutable?)]
+  [#:for-each (f) (f t)]
+  [#:custom-constructor
+   (make-fld t (normalize-id acc) mutable?)])
 
-;; name : identifier
-;; parent : Struct
-;; flds : Listof[fld]
-;; proc : Function Type
 ;; poly? : is this type polymorphically variant
 ;;         If not, then the predicate is enough for higher order checks
 ;; pred-id : identifier for the predicate of the struct
-;; acc-ids : names of the accessors
-;; maker-id : name of the constructor
 (def-type Struct ([name identifier?]
                   [parent (or/c #f Struct?)]
                   [flds (listof fld?)]
                   [proc (or/c #f Function?)]
                   [poly? boolean?]
                   [pred-id identifier?])
-  [#:intern-key (cons (hash-id name) (map Rep-seq flds))]
   [#:frees (f) (combine-frees (map f (append (if proc (list proc) null)
                                              (if parent (list parent) null)
                                              flds)))]
-  [#:fold (f) (make-Struct name
+  [#:fmap (f) (make-Struct name
                            (and parent (f parent))
                            (map f flds)
                            (and proc (f proc))
                            poly?
                            pred-id)]
-  [#:walk (f)
-   (f parent)
+  [#:for-each (f)
+   (when parent (f parent))
    (for-each f flds)
-   (f proc)]
+   (when proc (f proc))]
   ;; This should eventually be based on understanding of struct properties.
-  [#:type-mask (mask-union mask:struct mask:procedure)])
+  [#:mask (mask-union mask:struct mask:procedure)]
+  [#:custom-constructor
+   (cond
+     [(ormap (λ (fld) (Bottom? (fld-t fld))) flds) -Bottom]
+     [else (make-Struct (normalize-id name)
+                        parent
+                        flds
+                        proc
+                        poly?
+                        (normalize-id pred-id))])])
 
 ;; Represents prefab structs
 ;; key  : prefab key encoding mutability, auto-fields, etc.
 ;; flds : the types of all of the prefab fields
 (def-type Prefab ([key prefab-key?]
                   [flds (listof Type?)])
-  [#:intern-key (cons key (map Rep-seq flds))]
   [#:frees (f) (combine-frees (map f flds))]
-  [#:fold (f) (make-Prefab key (map f flds))]
-  [#:walk (f) (for-each f flds)]
-  [#:type-mask mask:prefab])
+  [#:fmap (f) (make-Prefab key (map f flds))]
+  [#:for-each (f) (for-each f flds)]
+  [#:mask mask:prefab]
+  [#:custom-constructor
+   (cond
+     [(ormap Bottom? flds) -Bottom]
+     [else (make-Prefab key flds)])])
 
 (def-type StructTypeTop ()
-  #:base
-  [#:type-mask mask:struct-type])
+  [#:mask mask:struct-type]
+  [#:singleton -StructTypeTop])
 
 ;; A structure type descriptor
 (def-type StructType ([s (or/c F? B? Struct? Prefab?)])
-  [#:intern-key (Rep-seq s)]
   [#:frees (f) (f s)]
-  [#:fold (f) (make-StructType (f s))]
-  [#:walk (f) (f s)]
-  [#:type-mask mask:struct-type]
-  [#:top StructTypeTop?])
+  [#:fmap (f) (make-StructType (f s))]
+  [#:for-each (f) (f s)]
+  [#:mask mask:struct-type])
 
 (def-type StructTop ([name Struct?])
-  [#:intern-key (Rep-seq name)]
   [#:frees (f) (f name)]
-  [#:fold (f) (make-StructTop (f name))]
-  [#:walk (f) (f name)]
-  [#:type-mask (mask-union mask:struct mask:procedure)])
+  [#:fmap (f) (make-StructTop (f name))]
+  [#:for-each (f) (f name)]
+  [#:mask (mask-union mask:struct mask:procedure)])
 
 
 
@@ -603,80 +664,117 @@
 ;; base types are redone:
 (def-type Value ([val any/c])
   #:base
-  [#:intern-key val]
-  [#:type-mask
-   (match val
-     [(? number?) mask:number]
-     [#t mask:true]
-     [#f mask:false]
-     [(? symbol?) mask:symbol]
-     [(? string?) mask:string]
-     [(? char?) mask:char]
-     [(? null?) mask:null]
-     [(? void?) mask:void]
-     [_ mask:unknown])])
+  [#:mask (λ (t) (match (Value-val t)
+                   [(? number?) mask:number]
+                   [#t mask:true]
+                   [#f mask:false]
+                   [(? symbol?) mask:symbol]
+                   [(? string?) mask:string]
+                   [(? char?) mask:char]
+                   [(? null?) mask:null]
+                   [(? void?) mask:void]
+                   [_ mask:unknown]))])
 
 ;; elems : Listof[Type]
-(def-type Union ([elems (and/c (listof Type?) (length>=/c 2))])
+(def-type Union ([mask type-mask?]
+                 [elems (and/c (hsetof Type?)
+                               (λ (h) (zero? (hset-count h))))])
   #:no-provide
-  [#:intern-key (for/hash ([elem (in-list elems)]) (values elem #t))]
-  [#:frees (f) (combine-frees (map f elems))]
-  [#:fold (f) (apply Un (map f elems))]
-  [#:walk (f) (for-each f elems)]
-  [#:type-mask
-   (for/fold ([mask mask:bottom])
-             ([elem (in-list elems)])
-     (mask-union mask (Type-mask elem)))])
+  [#:frees (f) (combine-frees (hset-map elems f))]
+  [#:fmap (f) (Union-map elems f)]
+  [#:for-each (f) (hset-for-each elems f)]
+  [#:mask (λ (t) (Union-mask t))])
 
-(define (make-Union* elems)
-  (match elems
-    [(list) (make-Bottom)]
-    [(list t) t]
-    [_ (make-Union elems)]))
+(define-match-expander Union:*
+  (syntax-rules () [(_ elems-pat) (Union: _ elems-pat)]))
+
+(define build-union
+  (let ([union-intern-table (make-weak-hash)])
+    (λ (m ts)
+      (cond
+        [(hset-member? ts Univ) Univ]
+        [else
+         (let ([ts (hset-remove ts -Bottom)])
+           (case (hset-count ts)
+             [(0) -Bottom]
+             [(1) (hset-first ts)]
+             [else (ephemeron-value
+                    (hash-ref! union-intern-table ts
+                               (λ () (let ([t (make-Union m ts)])
+                                       (make-ephemeron ts t)))))]))]))))
+
+;; Union-map
+;;
+;; maps function 'f' over hashet 'args', producing a Union
+;; Note: this is the core constructor for all Unions!
+;; Unions are interned according to their element set,
+;; but in a way which does not leak memory (i.e. Unions which
+;; are no longer referenced outside of the interning machinery
+;; will be garbage collected)
+(define/cond-contract (Union-map args f)
+  (-> (hsetof Type?) procedure? Type?)
+  (define-values (m ts)
+    (for*/fold ([m mask:bottom] [ts (hset)])
+               ([arg (in-hset args)]
+                [arg (in-value (f arg))])
+      (match arg
+        [(Union: m* ts*)
+         (values (mask-union m m*)
+                 (hset-union ts ts*))]
+        [_ (values
+            (mask-union m (mask arg))
+            (hset-add ts arg))])))
+  (build-union m ts))
+
+(define (Un . args)
+  (Union-map (list->hset args) values))
+
+(define (make-Union* args)
+  (Union-map args values))
 
 ;; Intersection
-(def-type Intersection ([elems (and/c (listof Type?) (length>=/c 2))])
-  [#:intern-key (for/hash ([elem (in-list elems)]) (values elem #t))]
-  [#:frees (f) (combine-frees (map f elems))]
-  [#:fold (f) (apply -unsafe-intersect (map f elems))]
-  [#:walk (f) (for-each f elems)]
-  [#:type-mask
-   (for/fold ([mask mask:unknown])
-             ([elem (in-list elems)])
-     (mask-intersect mask (Type-mask elem)))])
+(def-type Intersection ([elems (and/c (hsetof Type?)
+                                      (λ (h) (zero? (hset-count h))))])
+  [#:frees (f) (combine-frees (hset-map elems f))]
+  [#:fmap (f) (apply -unsafe-intersect (hset-map elems f))]
+  [#:for-each (f) (hset-for-each elems f)]
+  [#:mask (λ (t) (for/fold ([m mask:unknown])
+                           ([elem (in-hset (Intersection-elems t))])
+                   (mask-intersect m (mask elem))))])
 
 ;;  constructor for intersections
 ;; in general, intersections should be built
 ;; using the 'intersect' operator, which worries
 ;; about actual subtyping, etc...
 (define (-unsafe-intersect . ts)
-  (let loop ([elems (set)]
+  (let loop ([elems (hset)]
              [ts ts])
     (match ts
       [(list)
        (cond
-         [(set-empty? elems) (make-Univ)]
+         [(hset-empty? elems) Univ]
          ;; size = 1 ?
-         [(= 1 (set-count elems)) (set-first elems)]
+         [(= 1 (hset-count elems)) (hset-first elems)]
          ;; size > 1, build an intersection
-         [else (make-Intersection (set->list elems))])]
+         [else (make-Intersection elems)])]
       [(cons t ts)
        (match t
-         [(? Bottom?) t]
          [(Univ:) (loop elems ts)]
-         [(Intersection: ts*) (loop elems (append ts* ts))]
-         [t (cond
-              [(for/or ([elem (in-immutable-set elems)]) (not (overlap? elem t)))
-               (make-Bottom)]
-              [else (loop (set-add elems t) ts)])])])))
+         [(Intersection: ts*) (loop elems (append (hset->list ts*) ts))]
+         [_ #:when (for/or ([elem (in-hset elems)]) (not (overlap? elem t)))
+            -Bottom]
+         [_ (loop (hset-add elems t) ts)])])))
 
 
 (def-type Refinement ([parent Type?] [pred identifier?])
-  [#:intern-key (cons (hash-id pred) (Rep-seq parent))]
   [#:frees (f) (f parent)]
-  [#:fold (f) (make-Refinement (f parent) pred)]
-  [#:walk (f) (f parent)]
-  [#:type-mask (Type-mask parent)])
+  [#:fmap (f) (make-Refinement (f parent) pred)]
+  [#:for-each (f) (f parent)]
+  [#:mask (λ (t) (mask (Refinement-parent t)))]
+  [#:custom-constructor
+   (if (Bottom? parent)
+       -Bottom
+       (make-Refinement parent (normalize-id pred)))])
 
 ;; A Row used in type instantiation
 ;; For now, this should not appear in user code. It's used
@@ -690,13 +788,6 @@
               [augments (listof (list/c symbol? Type?))]
               [init-rest (or/c Type? #f)])
   #:no-provide
-  [#:intern-key
-   (let ([intern (λ (l) (list-update l 1 Rep-seq))])
-     (list (map intern inits)
-           (map intern fields)
-           (map intern methods)
-           (map intern augments)
-           (and init-rest (Rep-seq init-rest))))]
   [#:frees (f)
    (let ([extract-frees (λ (l) (f (second l)))])
      (combine-frees
@@ -705,14 +796,14 @@
               (map extract-frees methods)
               (map extract-frees augments)
               (if init-rest (list (f init-rest)) null))))]
-  [#:fold (f)
+  [#:fmap (f)
    (let ([update (λ (l) (list-update l 1 f))])
      (make-Row (map update inits)
                (map update fields)
                (map update methods)
                (map update augments)
                (and init-rest (f init-rest))))]
-  [#:walk (f)
+  [#:for-each (f)
    (let ([walk (λ (l) (f (second l)))])
      (for-each walk inits)
      (for-each walk fields)
@@ -721,8 +812,8 @@
      (when init-rest (f init-rest)))])
 
 (def-type ClassTop ()
-  #:base
-  [#:type-mask mask:class])
+  [#:mask mask:class]
+  [#:singleton -ClassTop])
 
 ;; row-ext : Option<(U F B Row)>
 ;; row     : Row
@@ -734,18 +825,16 @@
 (def-type Class ([row-ext (or/c #f F? B? Row?)]
                  [row Row?])
   #:no-provide
-  [#:intern-key (cons (and row-ext (Rep-seq row-ext)) (Rep-seq row))]
   [#:frees (f)
    (combine-frees
     (append (if row-ext (list (f row-ext)) null)
             (list (f row))))]
-  [#:fold (f) (make-Class (and row-ext (f row-ext))
+  [#:fmap (f) (make-Class (and row-ext (f row-ext))
                           (f row))]
-  [#:walk (f)
+  [#:for-each (f)
    (when row-ext (f row-ext))
    (f row)]
-  [#:type-mask mask:class]
-  [#:top ClassTop?])
+  [#:mask mask:class])
 
 
 ;;--------------------------
@@ -756,11 +845,10 @@
 ;; not structural because it has special subtyping,
 ; not just simple structural subtyping
 (def-type Instance ([cls Type?])
-  [#:intern-key (Rep-seq cls)]
   [#:frees (f) (f cls)]
-  [#:fold (f) (make-Instance (f cls))]
-  [#:walk (f) (f cls)]
-  [#:type-mask mask:instance])
+  [#:fmap (f) (make-Instance (f cls))]
+  [#:for-each (f) (f cls)]
+  [#:mask mask:instance])
 
 ;; interp:
 ;; name is the id of the signature
@@ -770,21 +858,26 @@
 (def-rep Signature ([name identifier?]
                     [extends (or/c identifier? #f)]
                     [mapping (listof (cons/c identifier? Type?))])
-  [#:intern-key (hash-id name)]
   [#:frees (f) (combine-frees (map (match-lambda
                                      [(cons _ t) (f t)])
                                    mapping))]
-  [#:fold (f) (make-Signature name extends (map (match-lambda
+  [#:fmap (f) (make-Signature name extends (map (match-lambda
                                                   [(cons id t) (cons id (f t))])
                                                 mapping))]
-  [#:walk (f) (for-each (match-lambda
-                          [(cons _ t) (f t)])
-                        mapping)])
+  [#:for-each (f) (for-each (match-lambda
+                              [(cons _ t) (f t)])
+                            mapping)]
+  [#:custom-constructor
+   (make-Signature (normalize-id name)
+                   (and extends (normalize-id extends))
+                   (for*/list ([p (in-list mapping)]
+                               [(id ty) (in-pair p)])
+                     (cons (normalize-id id) ty)))])
 
 
 (def-type UnitTop ()
-  #:base
-  [#:type-mask mask:unit])
+  [#:mask mask:unit]
+  [#:singleton -UnitTop])
 
 
 ;; interp: imports is the list of imported signatures
@@ -795,31 +888,25 @@
                 [exports (listof Signature?)]
                 [init-depends (listof Signature?)]
                 [result SomeValues?])
-  [#:intern-key (list* (Rep-seq result)
-                       (map Rep-seq imports)
-                       (map Rep-seq exports)
-                       (map Rep-seq init-depends))]
   [#:frees (f) (f result)]
-  [#:fold (f) (make-Unit (map f imports)
+  [#:fmap (f) (make-Unit (map f imports)
                          (map f exports)
                          (map f init-depends)
                          (f result))]
-  [#:walk (f)
+  [#:for-each (f)
    (for-each f imports)
    (for-each f exports)
    (for-each f init-depends)
    (f result)]
-  [#:type-mask mask:unit]
-  [#:top UnitTop?])
+  [#:mask mask:unit])
 
 ;; sequences
 ;; includes lists, vectors, etc
 ;; tys : sequence produces this set of values at each step
 (def-type Sequence ([tys (listof Type?)])
-  [#:intern-key (map Rep-seq tys)]
   [#:frees (f) (combine-frees (map f tys))]
-  [#:fold (f) (make-Sequence (map f tys))]
-  [#:walk (f) (for-each f tys)])
+  [#:fmap (f) (make-Sequence (map f tys))]
+  [#:for-each (f) (for-each f tys)])
 
 ;; Distinction
 ;; comes from define-new-subtype
@@ -828,11 +915,14 @@
 ;; ty: a type for the representation (i.e. each distinction
 ;;     is a subtype of its ty)
 (def-type Distinction ([nm symbol?] [id symbol?] [ty Type?])
-  [#:intern-key (list* nm id (Rep-seq ty))]
   [#:frees (f) (f ty)]
-  [#:fold (f) (make-Distinction nm id (f ty))]
-  [#:walk (f) (f ty)]
-  [#:type-mask (Type-mask ty)])
+  [#:fmap (f) (make-Distinction nm id (f ty))]
+  [#:for-each (f) (f ty)]
+  [#:mask (λ (t) (mask (Distinction-ty t)))]
+  [#:custom-constructor
+   (if (Bottom? ty)
+       -Bottom
+       (make-Distinction nm id ty))])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -855,23 +945,6 @@
       (match cur
         [(F: name*) #:when abstracting? (f name* make-B lvl cur)]
         [(B: idx) #:when not-abstracting? (f idx (λ (x) x) lvl cur)]
-        [(Union: elems)
-         ;; prevents duplicates, which apparently is needed to avoid
-         ;; infinite loops here...?
-         (define seen (make-hasheq))
-         (define ts
-           (for*/fold ([ts null])
-                      ([elem (in-list elems)]
-                       [elem (in-value (rec elem))]
-                       [seq (in-value (Rep-seq elem))])
-             (cond
-               [(hash-ref seen seq #f) ts]
-               [else (hash-set! seen seq #t)
-                     (cons elem ts)])))
-         (match ts
-           [(list) (make-Bottom)]
-           [(list t) t]
-           [_ (make-Union ts)])]
         [(arr: dom rng rest drest kws)
          (make-arr (map rec dom)
                    (rec rng)
@@ -896,7 +969,7 @@
          (make-PolyDots n (rec/lvl body (+ n lvl)))]
         [(Poly: n body)
          (make-Poly n (rec/lvl body (+ n lvl)))]
-        [_ (Rep-fold rec cur)]))))
+        [_ (Rep-fmap cur rec)]))))
 
 (define/cond-contract (abstract-many names ty)
   (-> (listof symbol?) Type? Type?)
@@ -931,7 +1004,8 @@
           [else default]))
   (type-binder-transform transform ty #f))
 
-(define (abstract name ty)
+(define/cond-contract (abstract name ty)
+  (-> symbol? Type? Type?)
   (abstract-many (list name) ty))
 
 (define (instantiate type sc)

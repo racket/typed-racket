@@ -4,15 +4,15 @@
 ;; 'flat, 'chaperone, and 'impersonator
 ;;
 ;; There is an ordering with 'flat < 'chaperone < 'impersonator.
+(require "../utils/utils.rkt"
+         (contract-req)
+         racket/match)
 
-(require racket/match racket/contract)
-
-(provide
-  (contract-out
-    [contract-kind? predicate/c]
-    [contract-kind<= (contract-kind? contract-kind? . -> . boolean?)]
-    [kind->keyword (contract-kind? . -> . keyword?)]
-    [combine-kinds ((contract-kind?) #:rest (listof contract-kind?) . ->* . contract-kind?)]))
+(provide/cond-contract
+ [contract-kind? predicate/c]
+ [contract-kind<= (contract-kind? contract-kind? . -> . boolean?)]
+ [kind->keyword (contract-kind? . -> . keyword?)]
+ [combine-kinds ((contract-kind?) #:rest (listof contract-kind?) . ->* . contract-kind?)])
 
 (define (contract-kind? v)
   (case v

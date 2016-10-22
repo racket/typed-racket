@@ -3,24 +3,24 @@
 ;; Static contract for ->.
 ;; Supports the whole range of possible options that -> does.
 
-(require "../structures.rkt" "../constraints.rkt"
+(require "../../utils/utils.rkt"
+         "../structures.rkt" "../constraints.rkt"
          racket/list racket/match
-         racket/contract
+         (contract-req)
          (for-template racket/base racket/contract/base "../../utils/simple-result-arrow.rkt")
          (for-syntax racket/base syntax/parse))
 
-(provide
-  (contract-out
-    [function/sc (-> boolean?
-                     (listof static-contract?)
-                     (listof static-contract?)
-                     (listof (list/c keyword? static-contract?))
-                     (listof (list/c keyword? static-contract?))
-                     (or/c #f static-contract?)
-                     (or/c #f (listof static-contract?))
-                     static-contract?)])
-  ->/sc:)
+(provide ->/sc:)
 
+(provide/cond-contract
+ [function/sc (-> boolean?
+                  (listof static-contract?)
+                  (listof static-contract?)
+                  (listof (list/c keyword? static-contract?))
+                  (listof (list/c keyword? static-contract?))
+                  (or/c #f static-contract?)
+                  (or/c #f (listof static-contract?))
+                  static-contract?)])
 
 (struct function-combinator combinator (indices mand-kws opt-kws typed-side?)
         #:property prop:combinator-name "->/sc"

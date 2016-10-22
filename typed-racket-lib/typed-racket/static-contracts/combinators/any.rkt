@@ -4,16 +4,18 @@
 ;; Allows optimizations as many combinators can be simplified if their arguments are any/sc
 ;; Ex: (listof/sc any/sc) => list?/sc
 
-(require "../structures.rkt" "../constraints.rkt"
+(require "../../utils/utils.rkt"
+         "../structures.rkt"
+         "../constraints.rkt"
          racket/match
-         racket/contract
+         (contract-req)
          (for-template racket/base racket/contract/base)
          (for-syntax racket/base syntax/parse))
 
-(provide
-  (contract-out
-    [any/sc static-contract?])
-  any/sc:)
+(provide/cond-contract
+ [any/sc static-contract?])
+
+(provide any/sc:)
 
 
 ;;Printing

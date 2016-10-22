@@ -4,16 +4,16 @@
 ;; Allows optimizations as many combinators can be simplified if their arguments are none/sc
 ;; Ex: (listof/sc none/sc) => null?/sc
 
-(require "../structures.rkt" "../constraints.rkt"
+(require "../../utils/utils.rkt"
+         "../structures.rkt" "../constraints.rkt"
          racket/match
-         racket/contract
+         (contract-req)
          (for-template racket/base racket/contract/base)
          (for-syntax racket/base syntax/parse))
 
-(provide
-  (contract-out
-    [none/sc static-contract?])
-  none/sc:)
+(provide none/sc:)
+(provide/cond-contract
+ [none/sc static-contract?])
 
 
 ;;Printing

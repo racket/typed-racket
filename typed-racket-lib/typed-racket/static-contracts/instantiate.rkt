@@ -3,6 +3,7 @@
 ;; Provides functionality to take a static contract and turn it into a regular contract.
 
 (require
+  "../utils/utils.rkt"
   racket/match
   racket/dict
   racket/contract
@@ -18,13 +19,12 @@
   "constraints.rkt"
   "equations.rkt")
 
-(provide
-  (contract-out
-    [instantiate
-      (parametric->/c (a) ((static-contract? (-> #:reason (or/c #f string?) a))
-                           (contract-kind? #:cache hash?)
-                           . ->* . (or/c a (list/c (listof syntax?) syntax?))))]
-    [should-inline-contract? (-> syntax? boolean?)]))
+(provide/cond-contract
+ [instantiate
+     (parametric->/c (a) ((static-contract? (-> #:reason (or/c #f string?) a))
+                          (contract-kind? #:cache hash?)
+                          . ->* . (or/c a (list/c (listof syntax?) syntax?))))]
+ [should-inline-contract? (-> syntax? boolean?)])
 
 ;; Providing these so that tests can work directly with them.
 (module* internals #f

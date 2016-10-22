@@ -2,26 +2,13 @@
 
 ;; Static contracts for unit contracts
 
-(require "../structures.rkt" "../constraints.rkt"
+(require "../../utils/utils.rkt"
+         "../structures.rkt" "../constraints.rkt"
          racket/list racket/match
-         racket/dict
-         racket/contract
+         (contract-req)
          racket/syntax
          (for-template racket/base racket/unit)
          (for-syntax racket/base syntax/parse))
-
-
-(provide
- (contract-out 
-  [struct signature-spec ([name identifier?]
-                          [members (listof identifier?)]
-                          [scs (listof static-contract?)])]
-  [unit/sc (-> (listof signature-spec?) 
-               (listof signature-spec?)
-               (listof identifier?)
-               (listof static-contract?) 
-               static-contract?)]))
-
 
 (struct signature-spec (name members scs) #:transparent)
 
@@ -107,3 +94,13 @@
 
 (define (unit/sc imports exports init-depends invoke)
   (unit-combinator (unit-spec imports exports init-depends invoke)))
+
+(provide/cond-contract
+ [struct signature-spec ([name identifier?]
+                         [members (listof identifier?)]
+                         [scs (listof static-contract?)])]
+ [unit/sc (-> (listof signature-spec?) 
+              (listof signature-spec?)
+              (listof identifier?)
+              (listof static-contract?) 
+              static-contract?)])

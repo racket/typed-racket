@@ -2,23 +2,24 @@
 
 ;; Static contract for struct/c.
 
-(require "../structures.rkt" "../constraints.rkt"
+(require "../../utils/utils.rkt"
+         "../structures.rkt" "../constraints.rkt"
          racket/match
-         racket/contract
+         (contract-req)
          (for-template racket/base racket/contract/base "../../utils/struct-type-c.rkt")
          (for-syntax racket/base syntax/parse))
 
 
 
 (provide
-  (contract-out
-    [struct/sc (identifier? boolean? (listof static-contract?) . -> . static-contract?)]
-    ;; #f as argument indicates StructTypeTop, which should fail on
-    ;; all reflective operations.
-    [struct-type/sc (any/c . -> . static-contract?)])
   struct/sc:
   struct-type/sc:)
 
+(provide/cond-contract
+ [struct/sc (identifier? boolean? (listof static-contract?) . -> . static-contract?)]
+ ;; #f as argument indicates StructTypeTop, which should fail on
+ ;; all reflective operations.
+ [struct-type/sc (any/c . -> . static-contract?)])
 
 (struct struct-combinator combinator (name mut?)
   #:transparent

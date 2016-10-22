@@ -4,18 +4,18 @@
 ;; contracts as direct descendents.
 
 (require
+  "../utils/utils.rkt"
+  (contract-req)
   racket/match
-  racket/contract
   racket/dict
-  syntax/id-table
+  syntax/private/id-table
   "structures.rkt"
   "equations.rkt"
   "combinators/parametric.rkt"
   "combinators/structural.rkt")
 
-(provide
-  (contract-out
-    [parametric-check (static-contract? . -> . boolean?)]))
+(provide/cond-contract
+ [parametric-check (static-contract? . -> . boolean?)])
 
 
 (define (parametric-check sc)

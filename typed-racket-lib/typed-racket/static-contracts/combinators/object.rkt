@@ -3,23 +3,15 @@
 ;; Static contracts for class constructs.
 ;; Currently supports object/c and class/c.
 
-(require "../structures.rkt" "../constraints.rkt"
+(require "../../utils/utils.rkt"
+         "../structures.rkt" "../constraints.rkt"
          racket/list racket/match
-         racket/contract
+         (contract-req)
          racket/syntax
          typed-racket/utils/opaque-object
          (for-template racket/base racket/class
                        typed-racket/utils/opaque-object)
          (for-syntax racket/base syntax/parse))
-
-(provide
-  (contract-out
-    [struct member-spec ([modifier symbol?] [id symbol?] [sc static-contract?])]
-    [object/sc (boolean? (listof object-member-spec?) . -> . static-contract?)]
-    [class/sc (boolean? (listof member-spec?) (listof symbol?) . -> . static-contract?)]
-    [instanceof/sc (static-contract? . -> . static-contract?)]))
-
-
 
 (struct member-spec (modifier id sc) #:transparent)
 
@@ -171,3 +163,9 @@
   (match v
    [(instanceof-combinator (list class))
     #`(instanceof/c #,(f class))]))
+
+(provide/cond-contract
+ [struct member-spec ([modifier symbol?] [id symbol?] [sc static-contract?])]
+ [object/sc (boolean? (listof object-member-spec?) . -> . static-contract?)]
+ [class/sc (boolean? (listof member-spec?) (listof symbol?) . -> . static-contract?)]
+ [instanceof/sc (static-contract? . -> . static-contract?)])

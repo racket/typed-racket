@@ -6,16 +6,16 @@
 ;; Ex: (flat/sc #'number?)
 
 (require
+  "../../utils/utils.rkt"
   "../structures.rkt"
   "../constraints.rkt"
   racket/match
-  racket/contract)
+  (contract-req))
 
-(provide
-  (contract-out
-    [flat/sc ((syntax?) ((or/c #f any/c)) . ->* . static-contract?)]
-    [chaperone/sc ((syntax?) ((or/c #f any/c)) . ->* . static-contract?)]
-    [impersonator/sc ((syntax?) ((or/c #f any/c)) . ->* . static-contract?)]))
+(provide/cond-contract
+ [flat/sc ((syntax?) ((or/c #f any/c)) . ->* . static-contract?)]
+ [chaperone/sc ((syntax?) ((or/c #f any/c)) . ->* . static-contract?)]
+ [impersonator/sc ((syntax?) ((or/c #f any/c)) . ->* . static-contract?)])
 
 (define (simple-contract-write-proc v port mode)
   (match-define (simple-contract syntax kind name) v)

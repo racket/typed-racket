@@ -3,22 +3,24 @@
 ;; Static contract for case->.
 ;; Like case-> doesn't support keyword arguments.
 
-(require "../structures.rkt" "../constraints.rkt"
+(require "../../utils/utils.rkt"
+         "../structures.rkt"
+         "../constraints.rkt"
          racket/list racket/match
-         racket/contract
+         (contract-req)
          (for-template racket/base racket/contract/base)
          (for-syntax racket/base syntax/parse))
 
-(provide
-  (contract-out
-    [case->/sc ((listof arr-combinator?) . -> . static-contract?)]
-    [arr/sc (-> (listof static-contract?)
-                (or/c static-contract? #f)
-                (or/c (listof static-contract?) #f)
-                static-contract?)])
-  case->/sc:
-  arr/sc:
-  (rename-out [arr-combinator? arr/sc?]))
+(provide/cond-contract
+  [case->/sc ((listof arr-combinator?) . -> . static-contract?)]
+  [arr/sc (-> (listof static-contract?)
+              (or/c static-contract? #f)
+              (or/c (listof static-contract?) #f)
+              static-contract?)])
+
+(provide case->/sc:
+         arr/sc:
+         (rename-out [arr-combinator? arr/sc?]))
 
 
 (define (case->/sc arrs)

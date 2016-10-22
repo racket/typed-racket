@@ -3,23 +3,17 @@
 ;; Static contract for parametric->/c and sealing->/sc.
 
 (require
+  "../../utils/utils.rkt"
   "../structures.rkt"
   "../constraints.rkt"
   "../terminal.rkt"
   racket/match
-  racket/contract
+  (contract-req)
   (for-template racket/base racket/contract/parametric
                 typed-racket/utils/sealing-contract)
   (for-syntax racket/base syntax/parse))
 
 (provide
-  (contract-out
-    [parametric->/sc ((listof identifier?) static-contract? . -> . static-contract?)]
-    [parametric-var/sc (identifier? . -> . static-contract?)]
-    [sealing->/sc ((listof identifier?)
-                   (list/c (listof symbol?) (listof symbol?) (listof symbol?))
-                   static-contract? . -> . static-contract?)]
-    [sealing-var/sc (identifier? . -> . static-contract?)])
   parametric->/sc:
   sealing->/sc:
   (rename-out
@@ -28,6 +22,13 @@
     [sealing-var/sc sealing-var/sc:]
     [sealing-combinator? sealing->/sc?]))
 
+(provide/cond-contract
+ [parametric->/sc ((listof identifier?) static-contract? . -> . static-contract?)]
+ [parametric-var/sc (identifier? . -> . static-contract?)]
+ [sealing->/sc ((listof identifier?)
+                (list/c (listof symbol?) (listof symbol?) (listof symbol?))
+                static-contract? . -> . static-contract?)]
+ [sealing-var/sc (identifier? . -> . static-contract?)])
 
 (struct parametric-combinator combinator (vars)
   #:transparent

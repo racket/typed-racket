@@ -5,18 +5,18 @@
 ;; Ex: (list/sc any/sc) => (list-length/sc 1)
 
 (require
+  "../../utils/utils.rkt"
   "../structures.rkt"
   "../terminal.rkt"
   "simple.rkt"
-  racket/contract
+  (contract-req)
   (for-template racket/base))
 
-(provide
-  (contract-out
-    [rename list-length/sc* list-length/sc (natural-number/c . -> . static-contract?)]
-    [vector-length/sc (natural-number/c . -> . static-contract?)]
-    [empty-list/sc static-contract?]
-    [empty-vector/sc static-contract?]))
+(provide/cond-contract
+ [rename list-length/sc* list-length/sc (natural-number/c . -> . static-contract?)]
+ [vector-length/sc (natural-number/c . -> . static-contract?)]
+ [empty-list/sc static-contract?]
+ [empty-vector/sc static-contract?])
 
 (define-terminal-sc list-length/sc (n) #:flat
    #`(λ (l) (and (list? l) (= #,n (length l)))))

@@ -3,16 +3,16 @@
 ;; Static contracts for control contracts.
 ;; Currently only supports prompt tags.
 
-(require "../structures.rkt" "../constraints.rkt"
+(require "../../utils/utils.rkt"
+         "../structures.rkt" "../constraints.rkt"
          racket/list racket/match
-         racket/contract
+         (contract-req)
          (for-template racket/base racket/contract/base)
          (for-syntax racket/base syntax/parse))
 
-(provide
-  (contract-out
-    [prompt-tag/sc ((listof static-contract?) (or/c (listof static-contract?) #f) . -> . static-contract?)])
-  prompt-tag/sc:)
+(provide prompt-tag/sc:)
+(provide/cond-contract
+ [prompt-tag/sc ((listof static-contract?) (or/c (listof static-contract?) #f) . -> . static-contract?)])
 
 (struct prompt-tag-combinator combinator ()
   #:transparent

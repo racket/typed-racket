@@ -9,33 +9,34 @@
 ;; duplication that would result if we used ordinary recursive
 ;; static contracts.
 
-(require "../structures.rkt"
+(require "../../utils/utils.rkt"
+         "../structures.rkt"
          "../constraints.rkt"
          "../../rep/type-rep.rkt" ; only for contract
-         racket/contract
-         racket/dict
+         (contract-req)
          racket/match
          racket/syntax
-         syntax/id-table
+         syntax/private/id-table
          (for-syntax racket/base
                      syntax/parse))
 
 (provide with-new-name-tables
          name/sc:
          lookup-name-defined
-         set-name-defined
-         (contract-out
-          [get-all-name-defs
-           (-> (listof (list/c (listof identifier?)
-                               static-contract?
-                               static-contract?
-                               static-contract?)))]
-          [lookup-name-sc (-> Type? symbol? (or/c #f static-contract?))]
-          [register-name-sc (-> Type?
-                                (-> static-contract?)
-                                (-> static-contract?)
-                                (-> static-contract?)
-                                any)]))
+         set-name-defined)
+
+(provide/cond-contract
+ [get-all-name-defs
+  (-> (listof (list/c (listof identifier?)
+                      static-contract?
+                      static-contract?
+                      static-contract?)))]
+ [lookup-name-sc (-> Type? symbol? (or/c #f static-contract?))]
+ [register-name-sc (-> Type?
+                       (-> static-contract?)
+                       (-> static-contract?)
+                       (-> static-contract?)
+                       any)])
 
 (define name-sc-table (make-parameter (make-hash)))
 (define name-defs-table (make-parameter (make-hash)))
@@ -60,7 +61,7 @@
 
 (define (get-all-name-defs)
   (define name-scs (name-sc-table))
-  (for/list ([(type defs) (in-dict (name-defs-table))])
+  (for/list ([(type defs) (in-hash (name-defs-table))])
     (define scs (hash-ref name-scs type))
     (define gen-names (map name-combinator-gen-name scs))
     (cons gen-names defs)))

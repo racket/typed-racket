@@ -4,22 +4,22 @@
 ;; Also supports droping checks on either side.
 
 (require
+  "../utils/utils.rkt"
+  (contract-req)
   "combinators.rkt"
   "structures.rkt"
   racket/set
   racket/syntax
   racket/dict
-  syntax/id-table
+  syntax/private/id-table
   racket/list
-  racket/contract
   racket/match)
 
 
 
-(provide
-  (contract-out
-    [optimize ((static-contract?) (#:trusted-positive boolean? #:trusted-negative boolean?)
-               . ->* . static-contract?)]))
+(provide/cond-contract
+ [optimize ((static-contract?) (#:trusted-positive boolean? #:trusted-negative boolean?)
+                               . ->* . static-contract?)])
 
 ;; Reduce a static contract to a smaller simpler one that protects in the same way
 (define (reduce sc)

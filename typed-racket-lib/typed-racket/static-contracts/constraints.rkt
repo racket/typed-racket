@@ -36,14 +36,15 @@
 ;;
 
 (require
+  "../utils/utils.rkt"
   racket/match
   racket/list
   racket/format
   racket/function
-  racket/contract
+  (contract-req)
   racket/dict
   racket/set
-  syntax/id-table
+  syntax/private/id-table
   "kinds.rkt"
   "equations.rkt")
 
@@ -53,36 +54,27 @@
   merge-restricts*
   merge-restricts
   close-loop
-  (contract-out
-    [exn:fail:constraint-failure? predicate/c]
-    [exn:fail:constraint-failure-reason (exn:fail:constraint-failure? . -> . string?)]
-    [validate-constraints (contract-restrict? . -> . void?)]
-    [add-constraint (contract-restrict? contract-kind? . -> . contract-restrict?)])
   contract-restrict-recursive-values
-
   contract-restrict?
   contract-restrict-value
   kind-max-max)
 
+(provide/cond-contract
+ [exn:fail:constraint-failure? predicate/c]
+ [exn:fail:constraint-failure-reason (exn:fail:constraint-failure? . -> . string?)]
+ [validate-constraints (contract-restrict? . -> . void?)]
+ [add-constraint (contract-restrict? contract-kind? . -> . contract-restrict?)])
+
 (module structs racket/base
-  (require racket/contract
+  (require "../utils/utils.rkt"
+           (contract-req)
            racket/match
            racket/dict
            racket/list
            racket/set
-           syntax/id-table
+           syntax/private/id-table
            "kinds.rkt")
-  (provide
-    (contract-out
-      ;; constraint: value must be below max
-      [struct constraint ([value kind-max?] [max contract-kind?])]
-      ;; kind-max: represents the maximum kind across all of the variables and the specified kind
-      [struct kind-max ([variables free-id-set?] [max contract-kind?])]
-      ;; contract-restrict: represents a contract with value, recursive-values maps mentioned
-      ;; recursive parts to kind-maxes, constraints are constraints that need to hold
-      [struct contract-restrict ([value kind-max?]
-                                 [recursive-values free-id-table?]
-                                 [constraints (set/c constraint?)])]))
+  
   (define free-id-set? free-id-table?)
 
   (struct constraint (value max) #:transparent)
@@ -141,7 +133,18 @@
              (display ") " port)
              (recur constraints port)
              (display close port))]
-          #:transparent))
+          #:transparent)
+  (provide/cond-contract
+   ;; constraint: value must be below max
+   [struct constraint ([value kind-max?] [max contract-kind?])]
+   ;; kind-max: represents the maximum kind across all of the variables and the specified kind
+   [struct kind-max ([variables free-id-set?] [max contract-kind?])]
+   ;; contract-restrict: represents a contract with value, recursive-values maps mentioned
+   ;; recursive parts to kind-maxes, constraints are constraints that need to hold
+   [struct contract-restrict ([value kind-max?]
+                              [recursive-values free-id-table?]
+                              [constraints (set/c constraint?)])]))
+
 (require 'structs)
 (provide (struct-out kind-max))
 
@@ -150,19 +153,19 @@
 (define (free-id-set . elems)
   (for/fold ([table (make-immutable-free-id-table)])
             ([e (in-list elems)])
-    (dict-set table e #t)))
+    (free-id-table-set table e #t)))
 
 (define (free-id-set-union tables)
   (for*/fold ([table (make-immutable-free-id-table)])
              ([new-table (in-list tables)]
               [(k _) (in-dict new-table)])
-    (dict-set table k #t)))
+    (free-id-table-set table k #t)))
 
 (define (free-id-table-union tables)
   (for*/fold ([table (make-immutable-free-id-table)])
              ([new-table (in-list tables)]
               [(k v) (in-dict new-table)])
-    (dict-set table k v)))
+    (free-id-table-set table k v)))
 
 (define (simple-contract-restrict kind)
   (contract-restrict (kind-max (free-id-set) kind) (make-immutable-free-id-table) (set)))

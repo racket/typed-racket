@@ -59,12 +59,6 @@
   contract-restrict-value
   kind-max-max)
 
-(provide/cond-contract
- [exn:fail:constraint-failure? predicate/c]
- [exn:fail:constraint-failure-reason (exn:fail:constraint-failure? . -> . string?)]
- [validate-constraints (contract-restrict? . -> . void?)]
- [add-constraint (contract-restrict? contract-kind? . -> . contract-restrict?)])
-
 (module structs racket/base
   (require "../utils/utils.rkt"
            (contract-req)
@@ -299,4 +293,11 @@
                     (format "Violated constraint: ~a" "too many ids")
                     (current-continuation-marks)
                     (~a d)))]))
+
+
+(provide/cond-contract
+ [exn:fail:constraint-failure? predicate/c]
+ [exn:fail:constraint-failure-reason (exn:fail:constraint-failure? . -> . string?)]
+ [validate-constraints (contract-restrict? . -> . void?)]
+ [add-constraint (contract-restrict? contract-kind? . -> . contract-restrict?)])
 

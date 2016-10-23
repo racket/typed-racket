@@ -8,12 +8,6 @@
          (contract-req)
          racket/match)
 
-(provide/cond-contract
- [contract-kind? predicate/c]
- [contract-kind<= (contract-kind? contract-kind? . -> . boolean?)]
- [kind->keyword (contract-kind? . -> . keyword?)]
- [combine-kinds ((contract-kind?) #:rest (listof contract-kind?) . ->* . contract-kind?)])
-
 (define (contract-kind? v)
   (case v
     ((flat chaperone impersonator) #t)
@@ -41,3 +35,9 @@
     ((flat) '#:flat)
     ((chaperone) '#:chaperone)
     ((impersonator) '#:impersonator)))
+
+(provide/cond-contract
+ [contract-kind? predicate/c]
+ [contract-kind<= (contract-kind? contract-kind? . -> . boolean?)]
+ [kind->keyword (contract-kind? . -> . keyword?)]
+ [combine-kinds ((contract-kind?) #:rest (listof contract-kind?) . ->* . contract-kind?)])

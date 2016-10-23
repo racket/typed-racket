@@ -11,13 +11,6 @@
          (for-template racket/base racket/contract/base)
          (for-syntax racket/base syntax/parse))
 
-(provide/cond-contract
-  [case->/sc ((listof arr-combinator?) . -> . static-contract?)]
-  [arr/sc (-> (listof static-contract?)
-              (or/c static-contract? #f)
-              (or/c (listof static-contract?) #f)
-              static-contract?)])
-
 (provide case->/sc:
          arr/sc:
          (rename-out [arr-combinator? arr/sc?]))
@@ -98,3 +91,11 @@
           args
           (if rest (list rest) empty)
           (if range range empty))]))
+
+
+(provide/cond-contract
+  [case->/sc ((listof arr-combinator?) . -> . static-contract?)]
+  [arr/sc (-> (listof static-contract?)
+              (or/c static-contract? #f)
+              (or/c (listof static-contract?) #f)
+              static-contract?)])

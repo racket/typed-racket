@@ -1,3 +1,7 @@
+6.7
+- Add `row-inst` and `Row`
+- Support polymorphic structs in `unsafe-require/typed`
+- Add `typed/racket/os` and `typed/racket/db{/sqlite3}`.
 6.6
 - Warn on opaque values passed to `any-wrap/c`. This will become an
   error in the future.

@@ -22,7 +22,8 @@
                      racket/syntax
                      syntax/parse))
 
-(provide (all-from-out "core-rep.rkt")
+(provide (except-out (all-from-out "core-rep.rkt")
+                     Type Prop Object PathElem SomeValues)
          Type?
          Mu-name:
          Poly-names: Poly-fresh:

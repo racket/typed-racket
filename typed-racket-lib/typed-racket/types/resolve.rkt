@@ -10,10 +10,12 @@
          racket/format)
 
 (provide resolve-name resolve-app resolvable?
-         resolve resolve-app-check-error
+         resolve-app-check-error
          resolver-cache-remove!
          current-check-polymorphic-recursion)
-(provide/cond-contract [resolve-once (Type? . -> . (or/c Type? #f))])
+(provide/cond-contract
+ [resolve-once (Type? . -> . (or/c Type? #f))]
+ [resolve (Type? . -> . Type?)])
 
 (define-struct poly (name vars) #:prefab)
 
@@ -136,6 +138,8 @@
 
 (define resolver-cache (make-hash))
 
+;; unfolds a Mu, App, or Name, but returns #f if it
+;; is a Name which has not yet been defined
 (define (resolve-once t)
   (define r (hash-ref resolver-cache t #f))
   (or r
@@ -159,6 +163,8 @@
 ;; constructor is not one of them.
 ;; Type? -> Type?
 (define (resolve t)
-  (if (resolvable? t)
-      (resolve (resolve-once t))
-      t))
+  (cond
+    [(resolvable? t)
+     (define t* (resolve-once t))
+     (if t* (resolve t*) t)]
+    [else t]))

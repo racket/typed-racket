@@ -5,10 +5,9 @@
 
 (require
   "../utils/utils.rkt"
+  (utils fid-hash)
   (contract-req)
   racket/match
-  racket/dict
-  syntax/private/id-table
   "structures.rkt"
   "equations.rkt"
   "combinators/parametric.rkt"
@@ -22,12 +21,12 @@
 
   (define eqs (make-equation-set))
   (define vars (make-hash))
-  (define rec-vars (make-free-id-table))
+  (define rec-vars (make-fid-hash))
 
   (define (get-var sc)
     (hash-ref! vars sc (lambda () (add-variable! eqs 0))))
   (define (get-rec-var id)
-    (dict-ref! rec-vars id (lambda () (add-variable! eqs 0))))
+    (fid-hash-set! rec-vars id (lambda () (add-variable! eqs 0))))
 
   (define seen (make-hash))
 
@@ -35,7 +34,7 @@
     (define seen? #f)
     (match sc
       ;; skip already seen sc
-      [(? (λ (sc) (hash-ref seen (list sc variance) #f)))
+      [(? (λ (sc) (hash-ref seen (cons sc variance) #f)))
        (set! seen? #t)]
       [(or (or/sc: elems ...) (and/sc: elems ...))
        (add-equation! eqs (get-var sc)
@@ -52,7 +51,7 @@
       [else
        (get-var sc)])
     (unless seen?
-      (hash-set! seen (list sc variance) #t)
+      (hash-set! seen (cons sc variance) #t)
       (sc-traverse sc recur)))
 
   (recur sc 'covariant)

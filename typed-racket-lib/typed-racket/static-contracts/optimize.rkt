@@ -8,10 +8,8 @@
   (contract-req)
   "combinators.rkt"
   "structures.rkt"
-  racket/set
+  (utils hset fid-hset fid-hash)
   racket/syntax
-  racket/dict
-  syntax/private/id-table
   racket/list
   racket/match)
 
@@ -77,7 +75,7 @@
        ;; We can turn case->/sc contracts int ->* contracts in some cases.
        [(list (arr/sc: args #f ranges) ...) (=> fail)
         ;; All results must have the same range
-        (unless (equal? (set-count (apply set ranges)) 1)
+        (unless (equal? (hset-count (list->hset ranges)) 1)
           (fail))
         (define sorted-args (sort args (λ (l1 l2) (< (length l1) (length l2)))))
         (define shortest-args (first sorted-args))
@@ -134,33 +132,35 @@
 
 (define (remove-unused-recursive-contracts sc)
   (define root (generate-temporary))
-  (define main-table (make-free-id-table))
+  (define id-hash (make-fid-hash))
   (define (search)
-    (define table (make-free-id-table))
+    (define id-set (make-fid-hset))
     (define (recur sc variance)
       (match sc
         [(recursive-sc-use id)
-         (dict-set! table id #t)]
+         (fid-hset-add! id-set id)]
         [(recursive-sc names values body)
          (recur body 'covariant)
          (for ([name (in-list names)]
                [value (in-list values)])
-          (dict-set! main-table name ((search) value)))]
+          (fid-hash-set! id-hash name ((search) value)))]
         [else
           (sc-traverse sc recur)]))
     (lambda (sc)
       (recur sc 'covariant)
-      table))
-  (define reachable ((search) sc))
-  (define seen (make-free-id-table reachable))
-  (let loop ((to-look-at reachable))
-    (unless (zero? (dict-count to-look-at))
-      (define new-table (make-free-id-table))
-      (for ([(id _) (in-dict to-look-at)])
-        (for ([(id _) (in-dict (dict-ref main-table id))])
-          (unless (dict-has-key? seen id)
-            (dict-set! seen id #t)
-            (dict-set! new-table id #t))))
+      id-set))
+  (define reachable-set ((search) sc))
+  (define seen-set (fid-hset-copy reachable-set))
+  (let loop ([to-look-at-set reachable-set])
+    (unless (fid-hset-empty? to-look-at-set)
+      (define new-table (make-fid-hset))
+      (for* ([b (in-fid-hset-buckets to-look-at-set)]
+             [id (in-fid-hset-bucket b)])
+        (for* ([b (in-fid-hset-buckets (fid-hash-ref id-hash id))]
+               [id (in-fid-hset-bucket b)])
+          (unless (fid-hset-member? seen-set id)
+            (fid-hset-add! seen-set id)
+            (fid-hset-add! new-table id))))
       (loop new-table)))
 
   ;; Determine if the recursive name is referenced in the static contract
@@ -183,7 +183,7 @@
        (define new-name-values
          (for/list ([name (in-list names)]
                     [value (in-list values)]
-                    #:when (dict-ref seen name #f))
+                    #:when (fid-hset-member? seen-set name))
             (list name value)))
        (define new-names (map first new-name-values))
        (define new-values (map (λ (v) (trim v 'covariant))

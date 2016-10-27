@@ -78,7 +78,7 @@
 ;; fid-hash-set
 (define (fid-hash-set h x val)
   (define entry (cons x val))
-  (define x-sym (syntax-e x))
+  (define x-sym (identifier-binding-symbol x))
   (cond
     [(hash-ref h x-sym #f)
      => (λ (l)
@@ -88,7 +88,7 @@
 ;; fid-hash-set!
 (define (fid-hash-set! h x val)
   (define entry (cons x val))
-  (define x-sym (syntax-e x))
+  (define x-sym (identifier-binding-symbol x))
   (cond
     [(hash-ref h x-sym #f)
      => (λ (l)
@@ -103,7 +103,7 @@
   (define (return-fail)
     (if (procedure? fail) (fail) fail))
   (cond
-    [(hash-ref h (syntax-e x) fail)
+    [(hash-ref h (identifier-binding-symbol x) fail)
      => (λ (l)
           (match (assf (λ (y) (free-identifier=? x y)) l)
             [(cons _ val) val]
@@ -113,13 +113,13 @@
 
 ;; fid-hash-has-key?
 (define (fid-hash-has-key? h x)
-  (define l (hash-ref h (syntax-e x) #f))
+  (define l (hash-ref h (identifier-binding-symbol x) #f))
   (and l (assf (λ (y) (free-identifier=? x y)) l) #t))
 
 
 ;; fid-hash-remove
 (define (fid-hash-remove h x)
-  (define x-sym (syntax-e x))
+  (define x-sym (identifier-binding-symbol x))
   (cond
     [(hash-ref h x-sym #f)
      => (λ (l)
@@ -132,7 +132,7 @@
 
 ;; fid-hash-remove
 (define (fid-hash-remove! h x)
-  (define x-sym (syntax-e x))
+  (define x-sym (identifier-binding-symbol x))
   (cond
     [(hash-ref h x-sym #f)
      => (λ (l)

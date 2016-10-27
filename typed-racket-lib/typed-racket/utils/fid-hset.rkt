@@ -58,7 +58,7 @@
 
 ;; fid-hset-add
 (define (fid-hset-add h x)
-  (define x-sym (syntax-e x))
+  (define x-sym (identifier-binding-symbol x))
   (cond
     [(hash-ref h x-sym #f)
      => (λ (l) (if (member x l free-identifier=?)
@@ -68,7 +68,7 @@
 
 
 (define (fid-hset-add! h x)
-  (define x-sym (syntax-e x))
+  (define x-sym (identifier-binding-symbol x))
   (cond
     [(hash-ref h x-sym #f)
      => (λ (l) (unless (member x l free-identifier=?)
@@ -78,14 +78,14 @@
 ;; fid-hset-member?
 (define (fid-hset-member? h x)
   (cond
-    [(hash-ref h (syntax-e x) #f)
+    [(hash-ref h (identifier-binding-symbol x) #f)
      => (λ (l) (and (member x l free-identifier=?) #t))]
     [else #f]))
 
 
 ;; fid-hset-remove
 (define (fid-hset-remove h x)
-  (define x-sym (syntax-e x))
+  (define x-sym (identifier-binding-symbol x))
   (cond
     [(hash-ref h x-sym #f)
      => (λ (l)
@@ -96,7 +96,7 @@
     [else h]))
 
 (define (fid-hset-remove! h x)
-  (define x-sym (syntax-e x))
+  (define x-sym (identifier-binding-symbol x))
   (cond
     [(hash-ref h x-sym #f)
      => (λ (l)
@@ -195,7 +195,7 @@
   
     (set! h (for*/fid-hset ([b (in-fid-hset-buckets h)]
                             [id (in-fid-hset-bucket b)]
-                            #:when (eq? 'x (syntax-e id)))
+                            #:when (eq? 'x (identifier-binding-symbol id)))
               id))
   
     (assert (not (fid-hset-empty? h)))

@@ -28,7 +28,7 @@
 ;;   validate-constraints: contract-restrict? -> void?
 ;;     This takes a contract-restrict and raises an exception if it has any violated constraints.
 ;;
-;;   contract-restrict-recursive-values: contract-restrict? -> (dict/c identifier? kind?)
+;;   contract-restrict-recursive-values: contract-restrict? -> (free-id-table/c kind?)
 ;;     Provides the kinds of all of the internal recursive contracts that are a part of the
 ;;     contract-restrict.
 ;;
@@ -37,14 +37,10 @@
 
 (require
   "../utils/utils.rkt"
+  (utils hset fid-hset fid-hash)
   racket/match
-  racket/list
   racket/format
-  racket/function
   (contract-req)
-  racket/dict
-  racket/set
-  syntax/private/id-table
   "kinds.rkt"
   "equations.rkt")
 
@@ -61,15 +57,11 @@
 
 (module structs racket/base
   (require "../utils/utils.rkt"
+           (utils hset fid-hset fid-hash)
            (contract-req)
            racket/match
-           racket/dict
            racket/list
-           racket/set
-           syntax/private/id-table
            "kinds.rkt")
-  
-  (define free-id-set? free-id-table?)
 
   (struct constraint (value max) #:transparent)
   (struct kind-max (variables max) #:transparent
@@ -88,7 +80,7 @@
              (display open port)
              (fprintf port "kind-max")
              (display " " port)
-             (display (map syntax-e (dict-keys variables)) port)
+             (display (fid-hset-map variables syntax-e) port)
              (display " " port)
              (recur max port)
              (display close port))])
@@ -116,8 +108,10 @@
                (recur val port)
                (display ")" port))
              (define-values (names vals)
-                (let ((assoc (dict->list recursive-values)))
-                  (values (map car assoc) (map cdr assoc))))
+                (let ([keys (fid-hash-keys recursive-values)])
+                  (values keys
+                          (for/list ([key (in-list keys)])
+                            (fid-hash-ref recursive-values)))))
              (when (cons? names)
                (recur-pair (first names) (first vals))
                (for ((name (rest names))
@@ -132,39 +126,54 @@
    ;; constraint: value must be below max
    [struct constraint ([value kind-max?] [max contract-kind?])]
    ;; kind-max: represents the maximum kind across all of the variables and the specified kind
-   [struct kind-max ([variables free-id-set?] [max contract-kind?])]
+   [struct kind-max ([variables fid-hset?] [max contract-kind?])]
    ;; contract-restrict: represents a contract with value, recursive-values maps mentioned
    ;; recursive parts to kind-maxes, constraints are constraints that need to hold
    [struct contract-restrict ([value kind-max?]
-                              [recursive-values free-id-table?]
-                              [constraints (set/c constraint?)])]))
+                              [recursive-values (fid-hashof kind-max?)]
+                              [constraints (hsetof constraint?)])]))
 
 (require 'structs)
 (provide (struct-out kind-max))
 
 (struct exn:fail:constraint-failure exn:fail (reason))
 
-(define (free-id-set . elems)
-  (for/fold ([table (make-immutable-free-id-table)])
-            ([e (in-list elems)])
-    (free-id-table-set table e #t)))
+(define/cond-contract (fid-hset-union* sets)
+  (-> (listof fid-hset?) fid-hset?)
+  (match sets
+    [(cons set sets)
+     (for/fold ([set set])
+               ([new-set (in-list sets)])
+       (fid-hset-union set new-set))]
+    [_ (fid-hset)]))
 
-(define (free-id-set-union tables)
-  (for*/fold ([table (make-immutable-free-id-table)])
-             ([new-table (in-list tables)]
-              [(k _) (in-dict new-table)])
-    (free-id-table-set table k #t)))
+(define/cond-contract (fid-hash-union t1 t2)
+  (-> (fid-hashof any/c) (fid-hashof any/c) (fid-hashof any/c))
+  (for*/fold ([acc t1])
+             ([b (in-fid-hash-buckets t2)]
+              [id/val (in-fid-hash-bucket b)])
+    (fid-hash-set acc (car id/val) (cdr id/val))))
 
-(define (free-id-table-union tables)
-  (for*/fold ([table (make-immutable-free-id-table)])
-             ([new-table (in-list tables)]
-              [(k v) (in-dict new-table)])
-    (free-id-table-set table k v)))
+(define/cond-contract (fid-hash-union* hashes)
+  (-> (listof (fid-hashof any/c)) (fid-hashof any/c))
+  (match hashes
+    [(cons hash hashes)
+     (for*/fold ([acc hash])
+                ([h (in-list hashes)]
+                 [b (in-fid-hash-buckets h)]
+                 [id/val (in-fid-hash-bucket b)])
+       (fid-hash-set acc (car id/val) (cdr id/val)))]
+    [_ (fid-hash)]))
+
 
 (define (simple-contract-restrict kind)
-  (contract-restrict (kind-max (free-id-set) kind) (make-immutable-free-id-table) (set)))
+  (contract-restrict (kind-max (fid-hset) kind)
+                     (fid-hash)
+                     (hset)))
 (define (variable-contract-restrict var)
-  (contract-restrict (kind-max (free-id-set var) 'flat) (make-immutable-free-id-table) (set)))
+  (contract-restrict (kind-max (fid-hset var) 'flat)
+                     (fid-hash)
+                     (hset)))
 
 (define (reason-string actual bound)
   (define (name k)
@@ -178,7 +187,7 @@
   (match con
     [(constraint _ 'impersonator)
      #t]
-    [(constraint (kind-max (app dict-count 0) actual) bound)
+    [(constraint (kind-max (? fid-hset-empty?) actual) bound)
      (contract-kind<= actual bound)]
     [else #f]))
 
@@ -189,47 +198,59 @@
      (define con (constraint v max))
      (if (trivial-constraint? con)
          cr
-         (contract-restrict v rec (set-add constraints con)))]))
+         (contract-restrict v rec (hset-add constraints con)))]))
 
 (define (add-recursive-values cr dict) 
   (match cr
     [(contract-restrict v rec constraints)
-     (contract-restrict v (free-id-table-union (list rec dict)) constraints)]))
+     (contract-restrict v (fid-hash-union rec dict) constraints)]))
 
-(define (merge-restricts* min crs)
+(define/cond-contract (merge-restricts* min crs)
+  (-> contract-kind? (listof contract-restrict?) contract-restrict?)
   (apply merge-restricts min crs))
 
 (define (merge-restricts min . crs)
   (match crs
     [(list (contract-restrict vs rec constraints) ...)
      (contract-restrict (merge-kind-maxes min vs)
-                        (free-id-table-union rec)
-                        (apply set-union (set) constraints))]))
+                        (fid-hash-union* rec)
+                        (for/fold ([h (hset)])
+                                  ([c (in-list constraints)])
+                          (hset-union h c)))]))
 
 (define (merge-kind-maxes min-kind vs)
   (match vs
     [(list (kind-max variables maxes) ...)
-     (kind-max (free-id-set-union variables) (apply combine-kinds min-kind maxes))]))
+     (kind-max (fid-hset-union* variables)
+               (apply combine-kinds min-kind maxes))]))
 
-(define (close-loop names crs body)
+(define/cond-contract (close-loop names crs body)
+  (-> (listof identifier?) (listof contract-restrict?) contract-restrict?
+      contract-restrict?)
+  
   (define eqs (make-equation-set))
   (define vars
-    (for*/hash ((name (in-list names)))
-      (values name 
-              (add-variable! eqs (simple-contract-restrict 'flat)))))
+    (for/fid-hash ([name (in-list names)])
+      (values name (add-variable! eqs (simple-contract-restrict 'flat)))))
   (define (variable-lookup name)
-    (variable-ref (hash-ref vars name)))
+    (variable-ref (fid-hash-ref vars name)))
 
 
   (define (instantiate-cr cr lookup-id)
     (define (instantiate-kind-max km)
       (match km
         [(kind-max ids actual)
-         (define-values (bound-ids unbound-ids)
-           (partition (lambda (id) (member id names)) (dict-keys ids)))
-         (merge-kind-maxes 'flat (cons (kind-max (apply free-id-set unbound-ids) actual)
-                                       (for/list ([id (in-list bound-ids)])
-                                         (contract-restrict-value (lookup-id id)))))]))
+         (define-values (bound-ids-list unbound-ids-set)
+           (for*/fold ([bids '()] [ubids (fid-hset)])
+                      ([b (in-fid-hset-buckets ids)]
+                       [id (in-fid-hset-bucket b)])
+             (if (member id names)
+                 (values (cons (contract-restrict-value (lookup-id id)) bids)
+                         ubids)
+                 (values bids
+                         (fid-hset-add ubids id)))))
+         (merge-kind-maxes 'flat (cons (kind-max unbound-ids-set actual)
+                                       bound-ids-list))]))
 
     (define (instantiate-constraint con)
       (match con
@@ -239,44 +260,54 @@
     (match cr
       [(contract-restrict (kind-max ids max) rec constraints)
        (define-values (bound-ids unbound-ids)
-         (partition (lambda (id) (member id names)) (dict-keys ids)))
+         (for*/fold ([bids '()] [ubids (fid-hset)])
+                    ([b (in-fid-hset-buckets ids)]
+                     [id (in-fid-hset-bucket b)])
+           (if (member id names)
+               (values (cons id bids) ubids)
+               (values bids (fid-hset-add ubids id)))))
        (merge-restricts* 'flat (cons
                                  (contract-restrict
-                                   (kind-max (apply free-id-set unbound-ids) max) 
+                                   (kind-max unbound-ids max) 
                                    rec
-                                   (apply set
-                                          (filter (negate trivial-constraint?)
-                                                  (set-map constraints instantiate-constraint))))
+                                   (for*/hset ([elem (in-hset constraints)]
+                                               [elem (in-value (instantiate-constraint elem))]
+                                               #:when (not (trivial-constraint? elem)))
+                                     elem))
                                  (map lookup-id bound-ids)))]))
 
-  (for ([name names] [cr crs])
+  (for ([name (in-list names)]
+        [cr (in-list crs)])
     (add-equation! eqs
-      (hash-ref vars name)
-      (lambda ()
-        (instantiate-cr cr variable-lookup))))
+                   (fid-hash-ref vars name)
+                   (λ () (instantiate-cr cr variable-lookup))))
 
   (define var-values (resolve-equations eqs))
   (define id-values
-    (for/hash (((name var) vars))
-      (values name (hash-ref var-values var))))
+    (for*/fold ([t (fid-hash)])
+               ([b (in-fid-hash-buckets vars)]
+                [id/var (in-fid-hash-bucket b)])
+      (fid-hash-set t (car id/var) (hash-ref var-values (cdr id/var)))))
 
   (define new-rec-values
-    (for/hash (((name value) id-values))
-      (values name (contract-restrict-value value))))
+    (for*/fold ([t (fid-hash)])
+               ([b (in-fid-hash-buckets id-values)]
+                [id/val (in-fid-hash-bucket b)])
+      (fid-hash-set t (car id/val) (contract-restrict-value (cdr id/val)))))
 
-  (for/fold ([cr (instantiate-cr body (lambda (id) (hash-ref id-values id)))])
+  (for/fold ([cr (instantiate-cr body (lambda (id) (fid-hash-ref id-values id)))])
             ([rec-values (cons new-rec-values (map contract-restrict-recursive-values
-                                                   (hash-values id-values)))])
+                                                   (fid-hash-values id-values)))])
     (add-recursive-values cr rec-values)))
 
 
 
 (define (validate-constraints cr)
   (match cr
-    [(contract-restrict (kind-max (app dict-count 0) _) rec constraints)
-     (for ([const (in-set constraints)])
+    [(contract-restrict (kind-max (? fid-hset-empty?) _) rec constraints)
+     (for ([const (in-hset constraints)])
        (match const
-        [(constraint (kind-max (app dict-count 0) kind) bound)
+        [(constraint (kind-max (? fid-hset-empty?) kind) bound)
          (unless (contract-kind<= kind bound)
            (define reason (reason-string kind bound))
            (raise (exn:fail:constraint-failure

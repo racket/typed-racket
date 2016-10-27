@@ -7,6 +7,7 @@
          "../structures.rkt"
          "../constraints.rkt"
          racket/match
+         (only-in racket/unsafe/ops unsafe-fxior)
          (for-syntax racket/base racket/syntax syntax/stx syntax/parse)
          racket/set
          racket/sequence
@@ -123,19 +124,21 @@
                       (merge-restricts* 'kind.category-stx (sc.->restricts v recur)))]
                 #:methods gen:equal+hash
                   [(define (equal-proc a b recur)
-                     (and (recur (length (combinator-args a))
-                                 (length (combinator-args b)))
+                     (and (eqv? (length (combinator-args a))
+                                (length (combinator-args b)))
                           (for/and ([sub-a (in-list (combinator-args a))]
                                     [sub-b (in-list (combinator-args b))])
                             (recur sub-a sub-b))))
                    (define (hash-proc v recur)
-                     (+ (recur 'sc.name)
-                        (for/sum ((sub (in-list (combinator-args v))))
-                           (recur sub))))
+                     (unsafe-fxior (recur 'sc.name)
+                                   (for/fold ([hc 102593]) ;; misc prime
+                                             ([sub (in-list (combinator-args v))])
+                                     (unsafe-fxior hc (recur sub)))))
                    (define (hash2-proc v recur)
-                     (+ (recur 'sc.name)
-                        (for/sum ((sub (in-list (combinator-args v))))
-                           (recur sub))))]
+                     (unsafe-fxior (recur 'sc.name)
+                                   (for/fold ([hc 99971]) ;; misc prime
+                                             ([sub (in-list (combinator-args v))])
+                                     (unsafe-fxior hc (recur sub)))))]
                  #:property prop:combinator-name (symbol->string 'sc.name))
          sc.matcher
          sc.definition

@@ -4,8 +4,8 @@
 
 (require
   "../utils/utils.rkt"
+  (utils fid-hset fid-hash)
   racket/match
-  racket/dict
   racket/contract
   racket/syntax
   (for-template racket/base racket/contract)
@@ -29,7 +29,6 @@
 ;; Providing these so that tests can work directly with them.
 (module* internals #f
   (provide compute-constraints
-           compute-recursive-kinds
            instantiate/inner))
 
 ;; kind is the greatest kind of contract that is supported, if a greater kind would be produced the
@@ -52,14 +51,23 @@
 ;; `(get-all-name-defs)` is not what we want directly, since it also includes
 ;; definitions that were optimized away
 ;; we restrict it to only variables bound in `sc`
-(define (compute-defs sc)
+(define/cond-contract (compute-defs sc)
+  (-> static-contract? (hash/c (listof identifier?)
+                               (list/c static-contract?
+                                       static-contract?
+                                       static-contract?)))
+  ;; all-name-defs : (listof (list/c (listof identifier?)
+  ;;                                 static-contract?
+  ;;                                 static-contract?
+  ;;                                 static-contract?))
   (define all-name-defs (get-all-name-defs))
   ;; all-name-defs maps lists of ids to defs
   ;; we want to match if any id in the list matches
-  (define (ref b) (for/first ([(k v) (in-dict all-name-defs)]
-                              #:when (for/or ([k* (in-list k)])
-                                       (free-identifier=? b k*)))
-                    (cons k v)))
+  (define (ref b)
+    (for/first ([ids/contracts (in-list all-name-defs)]
+                #:when (for/or ([k* (in-list (car ids/contracts))])
+                         (free-identifier=? b k*)))
+      ids/contracts))
   (define bound '())
   ;; ignores its second argument (variance, passed by sc-traverse)
   (let loop ([sc sc] [_ #f])
@@ -98,32 +106,38 @@
   (define constraints
     (if (null? name-defs)
         (recur sc)
-        (close-loop (apply append (dict-keys name-defs))
-                    (map recur (apply append (dict-values name-defs)))
+        (close-loop (apply append (hash-keys name-defs))
+                    (map recur (apply append (hash-values name-defs)))
                     (recur sc))))
   (validate-constraints (add-constraint constraints max-kind))
   constraints)
 
 
-(define (compute-recursive-kinds recursives)
+(define/cond-contract (compute-recursive-kinds recursives)
+  (-> (fid-hashof any/c) (fid-hashof any/c))
   (define eqs (make-equation-set))
   (define vars
-    (for/hash ([(name _) (in-dict recursives)])
-      (values name (add-variable! eqs 'flat))))
+    (for*/fold ([h (fid-hash)])
+               ([b (in-fid-hash-buckets recursives)]
+                [name/val (in-fid-hash-bucket b)])
+      (fid-hash-set h (car name/val) (add-variable! eqs 'flat))))
 
   (define (lookup id)
-    (variable-ref (hash-ref vars id)))
+    (variable-ref (fid-hash-ref vars id)))
 
-  (for ([(name v) (in-dict recursives)])
-    (match v
+  (for* ([b (in-fid-hash-buckets recursives)]
+         [name/val (in-fid-hash-bucket b)])
+    (match (cdr name/val)
       [(kind-max others max)
        (add-equation! eqs
-          (hash-ref vars name)
-          (lambda ()
-            (apply combine-kinds max (map lookup (dict-keys others)))))]))
+          (fid-hash-ref vars (car name/val))
+          (λ ()
+            (apply combine-kinds max (fid-hset-map others lookup))))]))
   (define var-values (resolve-equations eqs))
-  (for/hash (((name var) (in-hash vars)))
-    (values name (hash-ref var-values var))))
+  (for*/fold ([t (fid-hash)])
+             ([b (in-fid-hash-buckets vars)]
+              [name/var (in-fid-hash-bucket b)])
+    (fid-hash-set t (car name/var) (hash-ref var-values (cdr name/var)))))
 
 
 (define (instantiate/inner sc recursive-kinds cache)
@@ -174,7 +188,7 @@
                     [raw-name (in-list raw-names)])
             #`[#,name (recursive-contract #,raw-name
                                             #,(kind->keyword
-                                                (hash-ref recursive-kinds name)))]))
+                                                (fid-hash-ref recursive-kinds name)))]))
        #`(letrec (#,@bindings #,@raw-bindings)
            #,(parameterize ([bound-names (append names (bound-names))])
                (recur body)))]
@@ -190,14 +204,18 @@
   (define extra-defs
     (cond [(null? name-defs) null]
           [else
-           (define names (apply append (dict-keys name-defs)))
+           (define names (for/fold ([l '()])
+                                   ([names (in-hash-keys name-defs)])
+                           (append names l)))
            (for/list ([name (in-list names)]
-                      [sc   (in-list (apply append (dict-values name-defs)))]
+                      [sc   (in-list (for/fold ([l '()])
+                                               ([names (in-hash-values name-defs)])
+                                       (append names l)))]
                       #:unless (lookup-name-defined name))
              (set-name-defined name)
              #`(define #,name
                  (recursive-contract #,(recur sc)
-                                     #,(kind->keyword (hash-ref recursive-kinds name)))))]))
+                                     #,(kind->keyword (fid-hash-ref recursive-kinds name)))))]))
   (list (append ;; These contracts are sub-contract definitions used to
                 ;; increase sharing among contracts in a given fixup pass
                 extra-defs

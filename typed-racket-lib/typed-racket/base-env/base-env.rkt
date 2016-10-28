@@ -965,6 +965,7 @@
                                     [(-HashTop (-> Univ Univ c)) -Void]))]
 [hash-count (-poly (a b) (cl-> [((-HT a b)) -Index]
                                [(-HashTop) -Index]))]
+[hash-empty? (-> -HashTop -Boolean)]
 [hash-keys (-poly (a b) (cl-> [((-HT a b)) (-lst a)]
                               [(-HashTop) (-lst Univ)]))]
 [hash-values (-poly (a b) (cl-> [((-HT a b)) (-lst b)]

@@ -6,24 +6,27 @@
 ;;  2. a mapping of variables to thunks that compute new values.
 ;; 
 ;; Variables are an opaque structure, which support accessing their current value.
-
+(require "../utils/utils.rkt"
+         (contract-req))
 
 (provide
   make-equation-set
   add-variable!
   add-equation!
-  resolve-equations
-  variable-ref)
+  resolve-equations)
 
 
 (struct var ())
+
+(provide/cond-contract
+ [variable-ref (-> var? any/c)])
 
 ; equations: (hash/c var? (-> value?))
 ; initial-values: (hash/c var? (-> value?))
 (struct equation-set (equations initial-values))
 
 (define (make-equation-set)
-  (equation-set (make-hash) (make-hash)))
+  (equation-set (make-hasheq) (make-hasheq)))
 
 ; add-variable!: (equation-set? value? -> var?)
 (define (add-variable! eqs initial-value)
@@ -35,7 +38,7 @@
 (define (add-equation! eqs var thunk)
   (hash-set! (equation-set-equations eqs) var thunk))
 
-(define current-variable-values (make-parameter (hash)))
+(define current-variable-values (make-parameter (make-hasheq)))
 
 ;; resolve-equations (equation-set? -> (hash/c var? value?))
 ;; Produces a mapping of variables to values such that every equation holds.
@@ -55,4 +58,4 @@
     values))
 
 (define (variable-ref v)
-  (hash-ref (current-variable-values) v (lambda () (error 'variable-ref "No value available."))))
+  (hash-ref (current-variable-values) v (λ () (error 'variable-ref "No value available: ~a" v))))

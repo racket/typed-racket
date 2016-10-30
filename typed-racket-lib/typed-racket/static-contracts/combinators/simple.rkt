@@ -55,13 +55,13 @@
                  (recur (simple-contract-name s1)
                         (simple-contract-name s2))))
           (define (hash-proc sc hash-code)
-            (hash-code (list (syntax->datum (simple-contract-syntax sc))
-                             (simple-contract-kind sc)
-                             (simple-contract-name sc))))
+            (bitwise-ior (hash-code (syntax->datum (simple-contract-syntax sc)))
+                         (hash-code (simple-contract-kind sc))
+                         (hash-code (simple-contract-name sc))))
           (define (hash2-proc sc hash-code)
-            (hash-code (list (syntax->datum (simple-contract-syntax sc))
-                             (simple-contract-kind sc)
-                             (simple-contract-name sc))))]
+            (bitwise-ior (hash-code (syntax->datum (simple-contract-syntax sc)))
+                         (hash-code (simple-contract-kind sc))
+                         (hash-code (simple-contract-name sc))))]
         #:methods gen:sc
          [(define (sc-map v f) v)
           (define (sc-traverse v f) (void))

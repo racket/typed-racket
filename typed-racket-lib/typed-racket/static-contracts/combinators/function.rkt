@@ -73,7 +73,7 @@
          ;; currently simple-result-> only handles up to arity 3
          (member (length mand-ctcs) '(0 1 2 3))
          (and range-ctcs (= 1 (length range-ctcs)))
-         (for/and ([a args]) (eq? 'flat (sc-terminal-kind a)))
+         (for/and ([a (in-list args)]) (eq? 'flat (sc-terminal-kind a)))
          (not typed-side?))
     #`(simple-result-> #,@range-ctcs #,(length mand-ctcs))]
    [else

@@ -41,9 +41,8 @@
   racket/list
   racket/format
   racket/function
-  (contract-req)
-  racket/dict
   racket/set
+  (contract-req)
   syntax/private/id-table
   "kinds.rkt"
   "equations.rkt")
@@ -63,7 +62,6 @@
   (require "../utils/utils.rkt"
            (contract-req)
            racket/match
-           racket/dict
            racket/list
            racket/set
            syntax/private/id-table
@@ -88,7 +86,8 @@
              (display open port)
              (fprintf port "kind-max")
              (display " " port)
-             (display (map syntax-e (dict-keys variables)) port)
+             (display (for/list ([(id _) (in-free-id-table variables)]) (syntax-e id))
+                      port)
              (display " " port)
              (recur max port)
              (display close port))])
@@ -116,12 +115,12 @@
                (recur val port)
                (display ")" port))
              (define-values (names vals)
-                (let ((assoc (dict->list recursive-values)))
-                  (values (map car assoc) (map cdr assoc))))
+               (for/lists (_1 _2) ([(id val) (in-free-id-table recursive-values)])
+                 (values id val)))
              (when (cons? names)
                (recur-pair (first names) (first vals))
-               (for ((name (rest names))
-                     (val (rest vals)))
+               (for ([name (in-list (rest names))]
+                     [val (in-list (rest vals))])
                     (display " " port)
                     (recur-pair name val)))
              (display ") " port)
@@ -152,13 +151,13 @@
 (define (free-id-set-union tables)
   (for*/fold ([table (make-immutable-free-id-table)])
              ([new-table (in-list tables)]
-              [(k _) (in-dict new-table)])
+              [(k _) (in-free-id-table new-table)])
     (free-id-table-set table k #t)))
 
 (define (free-id-table-union tables)
   (for*/fold ([table (make-immutable-free-id-table)])
              ([new-table (in-list tables)]
-              [(k v) (in-dict new-table)])
+              [(k v) (in-free-id-table new-table)])
     (free-id-table-set table k v)))
 
 (define (simple-contract-restrict kind)
@@ -178,7 +177,7 @@
   (match con
     [(constraint _ 'impersonator)
      #t]
-    [(constraint (kind-max (app dict-count 0) actual) bound)
+    [(constraint (kind-max (app free-id-table-count 0) actual) bound)
      (contract-kind<= actual bound)]
     [else #f]))
 
@@ -214,22 +213,25 @@
 (define (close-loop names crs body)
   (define eqs (make-equation-set))
   (define vars
-    (for*/hash ((name (in-list names)))
-      (values name 
-              (add-variable! eqs (simple-contract-restrict 'flat)))))
+    (for/fold ([t (make-immutable-free-id-table)])
+              ([name (in-list names)])
+      (free-id-table-set t name 
+                         (add-variable! eqs (simple-contract-restrict 'flat)))))
   (define (variable-lookup name)
-    (variable-ref (hash-ref vars name)))
+    (variable-ref (free-id-table-ref vars name)))
 
 
   (define (instantiate-cr cr lookup-id)
     (define (instantiate-kind-max km)
       (match km
         [(kind-max ids actual)
-         (define-values (bound-ids unbound-ids)
-           (partition (lambda (id) (member id names)) (dict-keys ids)))
-         (merge-kind-maxes 'flat (cons (kind-max (apply free-id-set unbound-ids) actual)
-                                       (for/list ([id (in-list bound-ids)])
-                                         (contract-restrict-value (lookup-id id)))))]))
+         (define-values (bvals unbound-ids)
+           (for/fold ([bvals '()] [ubids (make-immutable-free-id-table)])
+                     ([(id _) (in-free-id-table ids)])
+             (if (member id names)
+                 (values (cons (contract-restrict-value (lookup-id id)) bvals) ubids)
+                 (values bvals (free-id-table-set ubids id #t)))))
+         (merge-kind-maxes 'flat (cons (kind-max unbound-ids actual) bvals))]))
 
     (define (instantiate-constraint con)
       (match con
@@ -238,45 +240,52 @@
 
     (match cr
       [(contract-restrict (kind-max ids max) rec constraints)
-       (define-values (bound-ids unbound-ids)
-         (partition (lambda (id) (member id names)) (dict-keys ids)))
+       (define-values (bound-vals unbound-ids)
+         (for/fold ([bvs '()] [ubids (make-immutable-free-id-table)])
+                   ([(id _) (in-free-id-table ids)])
+           (if (member id names)
+               (values (cons (lookup-id id) bvs) ubids)
+               (values bvs (free-id-table-set ubids id #t)))))
        (merge-restricts* 'flat (cons
-                                 (contract-restrict
-                                   (kind-max (apply free-id-set unbound-ids) max) 
-                                   rec
-                                   (apply set
-                                          (filter (negate trivial-constraint?)
-                                                  (set-map constraints instantiate-constraint))))
-                                 (map lookup-id bound-ids)))]))
+                                (contract-restrict
+                                 (kind-max unbound-ids max) 
+                                 rec
+                                 (for*/set ([c (in-immutable-set constraints)]
+                                            [ic (in-value (instantiate-constraint c))]
+                                            #:when (not (trivial-constraint? ic)))
+                                   ic))
+                                bound-vals))]))
 
-  (for ([name names] [cr crs])
+  (for ([name (in-list names)]
+        [cr (in-list crs)])
     (add-equation! eqs
-      (hash-ref vars name)
-      (lambda ()
-        (instantiate-cr cr variable-lookup))))
+      (free-id-table-ref vars name)
+      (λ () (instantiate-cr cr variable-lookup))))
 
   (define var-values (resolve-equations eqs))
-  (define id-values
-    (for/hash (((name var) vars))
-      (values name (hash-ref var-values var))))
+  (define-values (id-values new-rec-values)
+    (for*/fold ([id-vals (make-immutable-free-id-table)]
+               [new-rec-vals (make-immutable-free-id-table)])
+               ([(name var) (in-free-id-table vars)]
+                [val (in-value (hash-ref var-values var))])
+      (values (free-id-table-set id-vals name val)
+              (free-id-table-set new-rec-vals name (contract-restrict-value val)))))
 
-  (define new-rec-values
-    (for/hash (((name value) id-values))
-      (values name (contract-restrict-value value))))
-
-  (for/fold ([cr (instantiate-cr body (lambda (id) (hash-ref id-values id)))])
-            ([rec-values (cons new-rec-values (map contract-restrict-recursive-values
-                                                   (hash-values id-values)))])
-    (add-recursive-values cr rec-values)))
+  (for*/fold ([cr (add-recursive-values
+                   (instantiate-cr body (λ (id) (free-id-table-ref id-values id)))
+                   new-rec-values)])
+             ([(_ vals) (in-free-id-table id-values)]
+              [vals (in-value (contract-restrict-recursive-values vals))])
+    (add-recursive-values cr vals)))
 
 
 
 (define (validate-constraints cr)
   (match cr
-    [(contract-restrict (kind-max (app dict-count 0) _) rec constraints)
-     (for ([const (in-set constraints)])
+    [(contract-restrict (kind-max (app free-id-table-count 0) _) rec constraints)
+     (for ([const (in-immutable-set constraints)])
        (match const
-        [(constraint (kind-max (app dict-count 0) kind) bound)
+        [(constraint (kind-max (app free-id-table-count 0) kind) bound)
          (unless (contract-kind<= kind bound)
            (define reason (reason-string kind bound))
            (raise (exn:fail:constraint-failure

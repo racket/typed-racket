@@ -5,9 +5,10 @@
 (require
   "../utils/utils.rkt"
   racket/match
-  racket/dict
+  racket/list
   racket/contract
   racket/syntax
+  syntax/private/id-table
   (for-template racket/base racket/contract)
   "combinators.rkt"
   "combinators/name.rkt"
@@ -56,10 +57,10 @@
   (define all-name-defs (get-all-name-defs))
   ;; all-name-defs maps lists of ids to defs
   ;; we want to match if any id in the list matches
-  (define (ref b) (for/first ([(k v) (in-dict all-name-defs)]
-                              #:when (for/or ([k* (in-list k)])
+  (define (ref b) (for/first ([k/v (in-list all-name-defs)]
+                              #:when (for/or ([k* (in-list (car k/v))])
                                        (free-identifier=? b k*)))
-                    (cons k v)))
+                    k/v))
   (define bound '())
   ;; ignores its second argument (variance, passed by sc-traverse)
   (let loop ([sc sc] [_ #f])
@@ -70,8 +71,8 @@
          ;; traverse what `name` refers to
          (define r (ref name*))
          ;; ref returns a rib, get the one definition we want
-         (define target (for/first ([k (car r)]
-                                    [v (cdr r)]
+         (define target (for/first ([k (in-list (car r))]
+                                    [v (in-list (cdr r))]
                                     #:when (free-identifier=? name* k))
                           v))
          (loop target #f))]
@@ -96,10 +97,10 @@
            (hash-set! memo-table sc result)
            result]))
   (define constraints
-    (if (null? name-defs)
+    (if (hash-empty? name-defs)
         (recur sc)
-        (close-loop (apply append (dict-keys name-defs))
-                    (map recur (apply append (dict-values name-defs)))
+        (close-loop (apply append (hash-keys name-defs))
+                    (map recur (apply append (hash-values name-defs)))
                     (recur sc))))
   (validate-constraints (add-constraint constraints max-kind))
   constraints)
@@ -108,21 +109,21 @@
 (define (compute-recursive-kinds recursives)
   (define eqs (make-equation-set))
   (define vars
-    (for/hash ([(name _) (in-dict recursives)])
+    (for/hash ([(name _) (in-free-id-table recursives)])
       (values name (add-variable! eqs 'flat))))
 
   (define (lookup id)
     (variable-ref (hash-ref vars id)))
 
-  (for ([(name v) (in-dict recursives)])
+  (for ([(name v) (in-free-id-table recursives)])
     (match v
       [(kind-max others max)
        (add-equation! eqs
           (hash-ref vars name)
-          (lambda ()
-            (apply combine-kinds max (map lookup (dict-keys others)))))]))
+          (λ () (apply combine-kinds max (for/list ([(id _) (in-free-id-table others)])
+                                           (lookup id)))))]))
   (define var-values (resolve-equations eqs))
-  (for/hash (((name var) (in-hash vars)))
+  (for/hash ([(name var) (in-hash vars)])
     (values name (hash-ref var-values var))))
 
 
@@ -188,11 +189,11 @@
   ;; table to see if we've already defined it. If so, we avoid duplicating
   ;; the definition later.
   (define extra-defs
-    (cond [(null? name-defs) null]
+    (cond [(hash-empty? name-defs) null]
           [else
-           (define names (apply append (dict-keys name-defs)))
+           (define names (apply append (hash-keys name-defs)))
            (for/list ([name (in-list names)]
-                      [sc   (in-list (apply append (dict-values name-defs)))]
+                      [sc   (in-list (apply append (hash-values name-defs)))]
                       #:unless (lookup-name-defined name))
              (set-name-defined name)
              #`(define #,name

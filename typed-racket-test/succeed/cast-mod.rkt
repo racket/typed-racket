@@ -117,5 +117,9 @@
                 1)
   (check-equal? (if #true 1 `#s(struct ,(cast 2 Integer) ,(cast 3 Integer)))
                 1)
+  (check-true ;; check that this doesn't have an internal error
+   (λ () (begin
+           (error "hi")
+           (cast (string->number "42") Integer))))
   )
 

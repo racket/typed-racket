@@ -9,7 +9,7 @@
  (utils tc-utils)
  (env type-name-env row-constraint-env)
  (rep core-rep rep-utils type-mask values-rep)
- (types resolve union utils printer)
+ (types resolve union utils printer abbrev)
  (prefix-in t: (types abbrev numeric-tower subtype))
  (private parse-type syntax-properties)
  racket/match racket/syntax racket/list
@@ -83,8 +83,8 @@
 (define (generate-contract-def stx cache sc-cache)
   (define prop (get-contract-def-property stx))
   (match-define (contract-def type-stx flat? maker? typed-side) prop)
-  (define *typ (parse-type type-stx))
-  (define kind (if flat? 'flat 'impersonator))
+  (define *typ (if type-stx (parse-type type-stx) -Dead-Code))
+  (define kind (if (and type-stx flat?) 'flat 'impersonator))
   (syntax-parse stx #:literals (define-values)
     [(define-values (n) _)
      (define typ

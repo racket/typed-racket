@@ -281,9 +281,7 @@
    (λ ()
      (define type-stx
        (or (cast-table-ref id)
-           (int-err (string-append
-                     "contract-def-property: thunk called too early\n"
-                     "  This should only be called after the type-checking pass has finished."))))
+           #f))
      `#s(contract-def ,type-stx ,flat? ,maker? typed))))
 
 

@@ -9,7 +9,8 @@
  (utils tc-utils)
  (env type-name-env row-constraint-env)
  (rep core-rep rep-utils type-mask values-rep)
- (types resolve union utils printer abbrev)
+ (types resolve union utils printer)
+ (only-in (types abbrev) -Dead-Code)
  (prefix-in t: (types abbrev numeric-tower subtype))
  (private parse-type syntax-properties)
  racket/match racket/syntax racket/list

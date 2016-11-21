@@ -16,71 +16,87 @@
   #:transparent
   #:property prop:custom-write
   (lambda (e prt mode)
-    (fprintf prt "(env ~a ~a)" (free-id-table-map (env-types e) list) (env-props e))))
+    (fprintf prt "(env ~a ~a ~a)"
+             (free-id-table-map (env-types e)
+                                (λ (id ty) (format "[~a ∈ ~a]" id ty)))
+             (env-props e)
+             (free-id-table-map (env-types e)
+                                (λ (id ty) (format "[~a ≡ ~a]" id ty))))))
+
+;; when interning is removed, the -empty-obj
+;; shorthand will be visible in this file. until
+;; then this will do -amk
+(define -empty-obj (make-Empty))
 
 (provide/cond-contract
   [env? predicate/c]
-  [extend (env? identifier? Type? . -> . env?)]
-  [extend/values (env? (listof identifier?) (listof Type?) . -> . env?)]
-  [lookup (env? identifier? (identifier? . -> . any) . -> . any)]
+  [env-set-type (env? identifier? Type? . -> . env?)]
+  [env-extend/bindings (env? (listof identifier?)
+                             (listof Type?)
+                             (or/c (listof OptObject?) #f)
+                             . -> .
+                             env?)]
+  [env-lookup (env? identifier? (identifier? . -> . any) . -> . any)]
   [env-props (env? . -> . (listof Prop?))]
-  [replace-props (env? (listof Prop?) . -> . env?)]
-  [empty-prop-env env?]
-  [extend+alias/values (env? (listof identifier?) (listof Type?) (listof OptObject?) . -> . env?)]
-  [lookup-alias (env? identifier? (identifier? . -> . (or/c OptObject? #f)) . -> . (or/c OptObject? #f))])
+  [env-replace-props (env? (listof Prop?) . -> . env?)]
+  [empty-env env?]
+  [env-lookup-alias (env? identifier? (identifier? . -> . (or/c OptObject? #f)) . -> . (or/c OptObject? #f))])
 
-(define empty-prop-env
+(define empty-env
   (env
     (make-immutable-free-id-table)
     null
     (make-immutable-free-id-table)))
 
 
-(define (replace-props e props)
+(define (env-replace-props e props)
   (match-let ([(env tys _ als) e])
     (env tys props als)))
 
-(define (lookup e key fail)
+(define (env-lookup e key fail)
   (match-let ([(env tys _ _) e])
     (free-id-table-ref tys key (λ () (fail key)))))
 
 
-;; extend that works on single arguments
-(define (extend e k v)
-  (extend/values e (list k) (list v)))
-
-;; extends an environment with types (no aliases)
-(define (extend/values e ks vs)
-  (match-let* ([(env tys ps als) e]
-               [tys* (for/fold ([tys tys]) ([k (in-list ks)] [v (in-list vs)])
-                       (free-id-table-set tys k v))])
-    (env tys* ps als)))
+;; like hash-set, but for the type of an ident in the lexical environment
+(define (env-set-type e ident type)
+  (match-let ([(env tys ps als) e])
+    (env (free-id-table-set tys ident type) ps als)))
 
 ;; extends an environment with types and aliases
-(define (extend+alias/values e ids ts os)
-  (match-let*-values 
-   ([((env tys ps als)) e]
-    [(tys* als*) (for/fold ([tys tys]
-                            [als als]) 
-                           ([id (in-list ids)] 
-                            [t (in-list ts)]
-                            [o (in-list os)])
-                   (match o
-                     ;; no alias, so just record the type as usual
-                     [(Empty:)
-                      (values (free-id-table-set tys id t) als)]
-                     ;; id is aliased to an identifier
-                     [(Path: '() id*)
-                      ;; record the alias relation *and* type of that alias id
-                      (values (free-id-table-set tys id* t) 
-                              (free-id-table-set als id o))]
-                     ;; id is aliased to an object with a non-empty path
-                     [(Path: p x)
-                      ;; just record the alias
-                      (values tys (free-id-table-set als id o))]))])
-   (env tys* ps als*)))
+;; e : the 'env' struct to be updated
+;; idents : the identifiers which are getting types (or aliases)
+;; types : the types for the 'idents'
+;; aliased-objs : what object is each x ∈ 'idents' an alias for
+;;               (Empty means it does not alias anything). If
+;;               there are no aliases, you can pass #f
+;;               for 'aliased-objs' to simplify the computation.
+(define (env-extend/bindings e idents types maybe-aliased-objs)
+  (match-define (env tys ps als) e)
+  ;; NOTE: we mutate the identifiers 'tys' and 'als' for convenience,
+  ;; but the free-id-tables themselves are immutable.
+  (define (update/type! id t)
+    (set! tys (free-id-table-set tys id t)))
+  (define (update/alias! id o)
+    (set! als (free-id-table-set als id o)))
+  (define (update/type+alias! id t o)
+    (match o
+      ;; no alias, so just record the type as usual
+      [(Empty:) (update/type! id t)]
+      ;; 'id' is aliased to the identifier 'id*';
+      ;; record the alias relation 'id ≡ id*' *and* that 'id* ∈ t'
+      [(Path: '() id*) (update/type! id* t)
+                       (update/alias! id o)]
+      ;; id is aliased to an object which is not a simple identifier;
+      ;; just record the alias. (NOTE: if we move to supporting more
+      ;; complicated objects, we _may_ want to add o ∈ t to Γ as well)
+      [o (update/alias! id o)]))
+  (if maybe-aliased-objs
+      (for-each update/type+alias! idents types maybe-aliased-objs)
+      (for-each update/type! idents types))
+  (env tys ps als))
 
-(define (lookup-alias e key fail)
+(define (env-lookup-alias e key fail)
   (match-let ([(env _ _ als) e])
     (free-id-table-ref als key (λ () (fail key)))))
 

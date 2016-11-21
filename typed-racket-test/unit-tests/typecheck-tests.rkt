@@ -115,9 +115,9 @@
   ;; the golden function to the expanded syntax of the expression.
   (define (test/proc expr golden-fun (expected #f) (new-mapping '()))
     (define expanded-expr (tr-expand expr))
-    (define result (with-lexical-env/extend-types
-                     (map car new-mapping)
-                     (map cadr new-mapping)
+    (define result (with-extended-lexical-env
+                     [#:identifiers (map car new-mapping)
+                      #:types (map cadr new-mapping)]
                      (tc expanded-expr expected)))
     (define golden (golden-fun expanded-expr))
     (check-tc-results result golden #:name "tc-expr"))
@@ -141,9 +141,9 @@
                                         "tc-expr raised the wrong error message")))))])
           (define result
             (parameterize ([delay-errors? #t])
-              (with-lexical-env/extend-types
-                (map car new-mapping)
-                (map cadr new-mapping)
+              (with-extended-lexical-env
+                [#:identifiers (map car new-mapping)
+                 #:types (map cadr new-mapping)]
                 (tc (tr-expand code) expected))))
           (check-tc-results result golden #:name "tc-expr")
           (report-first-error)

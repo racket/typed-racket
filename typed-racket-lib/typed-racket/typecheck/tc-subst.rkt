@@ -22,7 +22,10 @@
  [replace-names (-> (listof identifier?)
                     (listof OptObject?)
                     tc-results/c
-                    tc-results/c)])
+                    tc-results/c)]
+ [erase-names (-> (listof identifier?)
+                  tc-results/c
+                  tc-results/c)])
 
 
 ;; Substitutes the given objects into the values and turns it into a
@@ -66,6 +69,12 @@
     (for/list ([nm (in-list names)]
                [o (in-list objects)])
       (list nm o Univ)))
+  (subst-tc-results res targets))
+
+(define (erase-names names res)
+  (define targets
+    (for/list ([nm (in-list names)])
+      (list nm -empty-obj Univ)))
   (subst-tc-results res targets))
 
 (define (subst-tc-results res targets)

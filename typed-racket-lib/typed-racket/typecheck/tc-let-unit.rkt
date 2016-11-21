@@ -7,7 +7,8 @@
          (private type-annotation parse-type syntax-properties)
          (env lexical-env type-alias-helper mvar-env
               global-env scoped-tvar-env 
-              signature-env signature-helper)
+              signature-env signature-helper
+              type-env-structs)
          (rep prop-rep object-rep type-rep)
          syntax/free-vars
          (typecheck signatures tc-metafunctions tc-subst internal-forms tc-envops)
@@ -24,82 +25,111 @@
 (import tc-expr^)
 (export tc-let^)
 
-;; get-names+objects (listof (listof identifier?)) (listof tc-results?) -> (listof (list/c identifier Object?))
-;; Given a list of bindings and the tc-results for the corresponding expressions, return a list of
-;; tuples of the binding-name and corresponding objects from the results.
-;; This is used to replace the names with the objects after the names go out of scope.
-(define (get-names+objects namess results)
-  (append*
-    (for/list ([names namess] [results results])
-      (match results
-        [(list (tc-result: _ _ os) ...)
-         (map list names os)]))))
+;; consolidate-bound-ids-info
+;;
+;; This function can be viewed as a helper to
+;; T-Let from the formalism (it's actually a helper
+;; for 'check-let-body' in this file).
+;;
+;; It takes as arguments:
+;;
+;; namess : the local names bound by a let-values
+;; (note: all let's are special cases of let-values)
+;;
+;; rhs-typess : the types (acutally tc-results) of the
+;; expressions whose values are assigned
+;; to the local identifiers found in 'namess'
+;;
+;; returns : 4 lists of index-associated values:
+;;           names
+;;           types
+;;           aliased-objs
+;;           props
+;;  - names is the idents bound for the body of this let
+;;    (i.e. (flatten namess))
+;;  - types[i] is the type which should be added to Γ for names[i].
+;;  - aliased-objs[i] is the object which names[i] is an alias for,
+;;    where Empty means it aliases no syntactic object.
+;;  - props[i] is the logical information that holds for the
+;;    body of the let which we learned while typechecking the
+;;    rhs expression for names[i].
+(define/cond-contract (consolidate-bound-ids-info namess rhs-typess)
+  (->i ([nss (listof (listof identifier?))]
+        [tss (listof (listof tc-result?))])
+       #:pre (nss tss) (and (= (length nss) (length tss))
+                            (for/and ([ns (in-list nss)]
+                                      [ts (in-list tss)])
+                              (= (length ns) (length ts))))
+       [result (values (listof identifier?)
+                       (listof Type?)
+                       (listof OptObject?)
+                       (listof Prop?))])
+  (for*/lists (idents types aliased-objects propositions)
+              ([(names results) (in-parallel (in-list namess) (in-list rhs-typess))]
+               [(name result) (in-parallel (in-list names) (in-list results))])
+    (match-define (tc-result: type p+/p- obj) result)
+    (define mutated? (is-var-mutated? name))
+    ;; n-obj is the object naming n (unless n is mutated, then
+    ;; its -empty-obj)
+    (define aliased-obj (if mutated? -empty-obj obj))
+    (define-values (p+ p-) (match p+/p-
+                             [(PropSet: p+ p-) (values p+ p-)]
+                             ;; it's unclear if this 2nd clause is necessary any more.
+                             [_ (values -tt -tt)]))
+    (define prop (cond ;; if n can't be #f, we can assume p+
+                   [(not (overlap? type -False)) p+]
+                   [mutated? -tt]
+                   [else ;; otherwise we know ((o ∉ #f) ∧ p+) ∨ ((o ∈ #f) ∧ p-)
+                    (let ([obj (if (Object? obj) obj name)])
+                      (-or (-and (-not-type obj -False) p+)
+                           (-and (-is-type obj -False) p-)))]))
+    (values name type aliased-obj prop)))
 
-;; Checks that the body has the expected type when names are bound to the types spcified by results.
-;; The exprs are also typechecked by using expr->type.
-;; TODO: make this function sane.
-;; The `check-thunk` argument serves the same purpose as in tc/letrec-values
-(define/cond-contract (do-check expr->type namess expected-results exprs body expected 
-                                [check-thunk void])
-  (((syntax? tc-results/c . -> . any/c)
-    (listof (listof identifier?)) (listof (listof tc-result?))
-    (listof syntax?) syntax? (or/c #f tc-results/c))
-   ((-> any/c))
+;; check-let-body
+;; 
+;; Checks that the body has the expected type with the info
+;; from the newly bound ids appropriately added to the type environment.
+;;
+;; bound-idss : all of the local names bound by a let
+;;
+;; bound-resultss : the types (tc-results actually) of all of the names
+;; in 'bound-idss'. The info in 'bound-resultss' is what is used to
+;; extend Γ while typechecking the environment. See the helper
+;; function 'consolidate-bound-ids-info'.
+(define/cond-contract (check-let-body bound-idss bound-resultss body expected 
+                                      #:before-check-body [pre-body-thunk void])
+  (((listof (listof identifier?))
+    (listof (listof tc-result?))
+    syntax?
+    (or/c #f tc-results/c))
+   (#:before-check-body (-> any/c))
    . ->* .
    tc-results/c)
-  (with-cond-contract t/p ([expected-types (listof (listof Type?))]
-                           [objs           (listof (listof OptObject?))]
-                           [props          (listof (listof Prop?))])
-    (define-values (expected-types objs props)
-      (for/lists (e o p)
-        ([e-r   (in-list expected-results)]
-         [names (in-list namess)])
-        (match e-r
-          [(list (tc-result: e-ts (PropSet: ps+ ps-) os) ...)
-           (values e-ts
-                   (map (λ (o n) (if (is-var-mutated? n) -empty-obj o)) os names)
-                   (apply append
-                          (for/list ([n (in-list names)]
-                                     [t (in-list e-ts)]
-                                     [p+ (in-list ps+)]
-                                     [p- (in-list ps-)]
-                                     [o (in-list os)])
-                            (cond
-                              [(not (overlap? t (-val #f))) (list p+)]
-                              [(is-var-mutated? n) (list)]
-                              [else
-                               (define obj (if (Object? o) o n))
-                               (list (-or (-and (-not-type obj (-val #f)) p+)
-                                          (-and (-is-type obj (-val #f)) p-)))]))))]
-          ;; amk: does this case ever occur?
-          [(list (tc-result: e-ts #f _) ...)
-           (values e-ts (make-list (length e-ts) -empty-obj) null)]))))
+  (define-values (idents types aliased-objs props)
+    (consolidate-bound-ids-info bound-idss bound-resultss))
+  (define ids-to-erase
+    (for/list ([id (in-list idents)]
+               [obj (in-list aliased-objs)]
+               #:when (Empty? obj))
+      id))
   ;; extend the lexical environment for checking the body
   ;; with types and potential aliases
-  (let ([names (append* namess)]
-        [objs (append* objs)])
-    (with-lexical-env/extend-types+aliases
-      names
-      (append* expected-types)
-      objs
-      (replace-names
-       names
-       objs
-       (with-lexical-env/extend-props
-         (apply append props)
-         ;; if a let rhs does not return, the body isn't checked
-         #:unreachable (for ([form (in-list (syntax->list body))])
-                         (register-ignored! form))
-         ;; type-check the rhs exprs
-         (for ([expr (in-list exprs)] [results (in-list expected-results)])
-           (match results
-             [(list (tc-result: ts fs os) ...)
-              (expr->type expr (ret ts fs os))]))
-         ;; Perform additional context-dependent checking that needs to be done
-         ;; in the context of the letrec body
-         (check-thunk)
-         ;; typecheck the body
-         (tc-body/check body (and expected (erase-props expected))))))))
+  (with-extended-lexical-env
+    [#:identifiers idents
+     #:types types
+     #:aliased-objects aliased-objs]
+    (erase-names
+     ids-to-erase
+     (with-lexical-env/extend-props
+       props
+       ;; if a let rhs does not return, the body isn't checked
+       #:unreachable (for ([form (in-list (syntax->list body))])
+                       (register-ignored! form))
+       ;; Perform additional context-dependent checking that needs to be done
+       ;; before checking the body
+       (pre-body-thunk)
+       ;; typecheck the body
+       (tc-body/check body (and expected (erase-props expected)))))))
 
 (define (tc-expr/maybe-expected/t e names)
   (syntax-parse names
@@ -153,41 +183,43 @@
 ;; For example, it is used to typecheck units and ensure that exported
 ;; variables are exported at the correct types
 (define (tc/letrec-values namess exprs body [expected #f] [check-thunk void])
-  (let* ([names (stx-map syntax->list namess)]
-         [orig-flat-names (apply append names)]
+  (let* ([namess (stx-map syntax->list namess)]
+         [orig-flat-names (apply append namess)]
          [exprs (syntax->list exprs)])
-    (register-aliases-and-declarations names exprs)
+    (register-aliases-and-declarations namess exprs)
     
     ;; First look at the clauses that do not bind the letrec names
     (define all-clauses
-      (for/list ([name-lst names] [expr exprs])
+      (for/list ([name-lst (in-list namess)]
+                 [expr (in-list exprs)])
         (lr-clause name-lst expr)))
 
     (define-values (ordered-clauses remaining)
       (get-non-recursive-clauses all-clauses orig-flat-names))
 
     (define-values (remaining-names remaining-exprs)
-      (for/lists (_1 _2) ([remaining-clause remaining])
+      (for/lists (_1 _2) ([remaining-clause (in-list remaining)])
         (match-define (lr-clause name expr) remaining-clause)
         (values name expr)))
 
     ;; Check those and then check the rest in the extended environment
     (check-non-recursive-clauses
      ordered-clauses
-     (lambda ()
-       (cond
-         ;; after everything, check the body expressions
-         [(null? remaining-names)
-          (check-thunk)
-          (tc-body/check body (and expected (erase-props expected)))]
-         [else
-          (define flat-names (apply append remaining-names))
-          (do-check tc-expr/check
-                    remaining-names
-                    ;; types the user gave.
-                    (map (λ (l) (map tc-result (map get-type l))) remaining-names)
-                    remaining-exprs body expected
-                    check-thunk)])))))
+     (λ ()
+       ;; types the user gave.
+       (define given-rhs-types (map (λ (l) (map tc-result (map get-type l))) remaining-names))
+       (check-let-body
+        remaining-names
+        given-rhs-types
+        body
+        expected
+        #:before-check-body
+        (λ () (begin (for ([expr (in-list remaining-exprs)]
+                           [results (in-list given-rhs-types)])
+                       (match results
+                         [(list (tc-result: ts fs os) ...)
+                          (tc-expr/check expr (ret ts fs os))]))
+                     (check-thunk))))))))
 
 ;; An lr-clause is a
 ;;   (lr-clause (Listof Identifier) Syntax)
@@ -264,12 +296,12 @@
              (get-type/infer names expr
                              (lambda (e) (tc-expr/maybe-expected/t e names))
                              tc-expr/check))
-           (with-lexical-env/extend-types 
-            names 
-            ts
-            (replace-names names
-                           os
-                           (loop (cdr clauses))))])))
+           (with-extended-lexical-env
+             [#:identifiers names
+              #:types ts]
+             (replace-names names
+                            os
+                            (loop (cdr clauses))))])))
 
 ;; this is so match can provide us with a syntax property to
 ;; say that this binding is only called in tail position
@@ -286,16 +318,14 @@
 
 (define (tc/let-values namess exprs body [expected #f])
   (let* (;; a list of each name clause
-         [names (stx-map syntax->list namess)]
+         [namess (stx-map syntax->list namess)]
          ;; all the trailing expressions - the ones actually bound to the names
          [exprs (syntax->list exprs)])
 
-    (register-aliases-and-declarations names exprs)
+    (register-aliases-and-declarations namess exprs)
 
-    (let* (;; the types of the exprs
-           #;[inferred-types (map (tc-expr-t/maybe-expected expected) exprs)]
-           ;; the annotated types of the name (possibly using the inferred types)
-           [results (for/list ([name (in-list names)] [e (in-list exprs)])
-                      (get-type/infer name e (tc-expr-t/maybe-expected expected)
+    ;; the annotated types of the name (possibly using the inferred types)
+    (let ([resultss (for/list ([names (in-list namess)] [e (in-list exprs)])
+                      (get-type/infer names e (tc-expr-t/maybe-expected expected)
                                       tc-expr/check))])
-      (do-check void names results exprs body expected))))
+      (check-let-body namess resultss body expected))))

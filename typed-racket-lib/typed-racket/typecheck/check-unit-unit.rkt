@@ -533,12 +533,12 @@
            ;; but these may not exactly match with the provided links
            ;; so all of the extended signatures must be traversed to find the right
            ;; signatures for init-depends
-           (define extended-imports
-             (map cons import-links
-                  (map (λ (l) (map Signature-name (flatten-sigs l))) import-sigs)))
            (define init-depend-links
              (for*/list ([sig-name (in-list (map Signature-name ini-deps))]
-                         [(import-link import-family) (in-dict extended-imports)]
+                         [(import-link import-family)
+                          ;; step through the extended-imports
+                          (in-parallel (in-list import-links)
+                                       (in-list (map (λ (l) (map Signature-name (flatten-sigs l))) import-sigs)))]
                          #:when (member sig-name import-family free-identifier=?))
                import-link))
            ;; new init-depends are the init-depends of this unit that
@@ -718,13 +718,13 @@
      (define-values (ann/def-names ann/def-exprs)
        (process-ann/def-for-letrec annotation/definition-forms))
 
-     (define signature-annotations
-       (for/list ([(k v) (in-dict local-sig-type-map)])
-         (cons k (-> v))))
+     (define-values (sig-ids sig-types)
+       (for/lists (_1 _2) ([(k v) (in-dict local-sig-type-map)])
+         (values k (-> v))))
      (define unit-type
-       (with-lexical-env/extend-types
-         (map car signature-annotations)
-         (map cdr signature-annotations)
+       (with-extended-lexical-env
+         [#:identifiers sig-ids
+          #:types sig-types]
          ;; Typechecking a unit body is structurally similar to that of
          ;; checking a let-body, so we resuse the machinary for checking
          ;; let expressions

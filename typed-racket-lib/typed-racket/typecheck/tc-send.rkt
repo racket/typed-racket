@@ -62,14 +62,18 @@
     #:literal-sets (kernel-literals)
     #:literals (list)
     [(#%plain-app meth obj arg ...)
-     (with-lexical-env/extend-types vars types
+     (with-extended-lexical-env
+       [#:identifiers vars
+        #:types types]
        (tc-expr/check (syntax/loc app-stx (#%plain-app meth arg ...))
                       expected))]
     [(let-values ([(arg-var) arg] ...)
        (~and outer-loc (#%plain-app (~and inner-loc (#%plain-app cpce s-kp meth kpe kws num))
                                     kws2 kw-args
                                     obj pos-arg ...)))
-     (with-lexical-env/extend-types vars types
+     (with-extended-lexical-env
+       [#:identifiers vars
+        #:types types]
        (tc-expr/check
         (with-syntax* ([inner-app (syntax/loc app-stx (#%plain-app cpce s-kp meth kpe kws num))]
                        [outer-app (syntax/loc app-stx

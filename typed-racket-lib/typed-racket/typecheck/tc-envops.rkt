@@ -23,7 +23,7 @@
     [props
      (let loop ([ps atoms]
                 [negs '()]
-                [Γ (replace-props env props)])
+                [Γ (env-replace-props env props)])
        (match ps
          [(cons p ps)
           (match p
@@ -34,7 +34,7 @@
                     [new-t (update t pt #t lo)])
                (if (type-equal? new-t -Bottom)
                    (values #f '())
-                   (loop ps negs (extend Γ x new-t))))]
+                   (loop ps negs (env-set-type Γ x new-t))))]
             ;; process negative info _after_ positive info so we don't miss anything
             [(NotTypeProp: (Path: _ x) _)
              #:when (and (not (is-var-mutated? x))
@@ -49,7 +49,7 @@
                                  [new-t (update t pt #f lo)])
                             (if (type-equal? new-t -Bottom)
                                 #f
-                                (loop rst (extend Γ x new-t))))]
+                                (loop rst (env-set-type Γ x new-t))))]
                          [_ Γ]))])
               (values Γ atoms))]))]
     [else (values #f '())]))
@@ -57,6 +57,7 @@
 ;; run code in an extended env and with replaced props. Requires the body to return a tc-results.
 ;; TODO make this only add the new prop instead of the entire environment once tc-id is fixed to
 ;; include the interesting props in its prop.
+;; TODO figure out what the heck the above TODO means -amk
 ;; WARNING: this may bail out when code is unreachable
 (define-syntax (with-lexical-env/extend-props stx)
   (define-splicing-syntax-class unreachable?

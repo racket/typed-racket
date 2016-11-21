@@ -80,15 +80,15 @@
     (if rest-id (list rest-id) null))
 
   (make-arr*
-    arg-types
-    (abstract-results
-      (with-lexical-env/extend-types
-        (append rest-names arg-names)
-        (append rest-types arg-types)
-        (tc-body/check body expected))
-      arg-names #:rest-id rest-id)
-    #:rest (and (Type? rest) rest)
-    #:drest (and (cons? rest) rest)))
+   arg-types
+   (abstract-results
+    (with-extended-lexical-env
+      [#:identifiers (append rest-names arg-names)
+       #:types (append rest-types arg-types)]
+      (tc-body/check body expected))
+    arg-names #:rest-id rest-id)
+   #:rest (and (Type? rest) rest)
+   #:drest (and (cons? rest) rest)))
 
 ;; check-clause: Checks that a lambda clause has arguments and body matching the expected type
 ;; arg-list: The identifiers of the positional args in the lambda form
@@ -99,21 +99,22 @@
 ;; drest: The expected base type of the rest arg and its bound (poly dotted case)
 ;; ret-ty: The expected type of the body of the lambda.
 (define/cond-contract (check-clause arg-list rest-id body arg-tys rest-ty drest ret-ty)
-     ((listof identifier?)
-      (or/c #f identifier?) syntax? (listof Type?) (or/c #f Type?)
-      (or/c #f (cons/c Type? symbol?)) tc-results/c
-      . -> .
-      arr?)
+  ((listof identifier?)
+   (or/c #f identifier?) syntax? (listof Type?) (or/c #f Type?)
+   (or/c #f (cons/c Type? symbol?)) tc-results/c
+   . -> .
+   arr?)
   (let* ([arg-len (length arg-list)]
          [tys-len (length arg-tys)]
-         [arg-types (if (andmap type-annotation arg-list)
-                        (get-types arg-list #:default Univ)
-                        (cond
-                          [(= arg-len tys-len) arg-tys]
-                          [(< arg-len tys-len) (take arg-tys arg-len)]
-                          [(> arg-len tys-len) (append arg-tys
-                                                       (map (lambda _ (or rest-ty (Un)))
-                                                            (drop arg-list tys-len)))]))])
+         [arg-types
+          (if (andmap type-annotation arg-list)
+              (get-types arg-list #:default Univ)
+              (cond
+                [(= arg-len tys-len) arg-tys]
+                [(< arg-len tys-len) (take arg-tys arg-len)]
+                [(> arg-len tys-len) (append arg-tys
+                                             (map (lambda _ (or rest-ty (Un)))
+                                                  (drop arg-list tys-len)))]))])
 
     ;; Check that the number of formal arguments is valid for the expected type.
     ;; Thus it must be able to accept the number of arguments that the expected
@@ -133,9 +134,9 @@
         [else
          (define base-rest-type
            (cond
-            [(type-annotation rest-id) (get-type rest-id #:default Univ)]
-            [rest-ty rest-ty]
-            [else Univ]))
+             [(type-annotation rest-id) (get-type rest-id #:default Univ)]
+             [rest-ty rest-ty]
+             [else Univ]))
          (define extra-types
            (if (<= arg-len tys-len)
                (drop arg-tys arg-len)
@@ -143,9 +144,9 @@
          (apply Un base-rest-type extra-types)]))
 
     (tc-lambda-body arg-list arg-types
-      #:rest (and rest-type (list rest-id rest-type))
-      #:expected ret-ty
-      body)))
+                    #:rest (and rest-type (list rest-id rest-type))
+                    #:expected ret-ty
+                    body)))
 
 ;; typecheck a single lambda, with argument list and body
 ;; drest-ty and drest-bound are both false or not false
@@ -546,9 +547,9 @@
   (define ft (t:->* args (tc-results->values return)))
   (define names (cons name formals))
   (define objs (map (λ (_) -empty-obj) names))
-  (with-lexical-env/extend-types
-    (cons name formals) 
-    (cons ft args)
+  (with-extended-lexical-env
+    [#:identifiers (cons name formals)
+     #:types (cons ft args)]
     (values
      (replace-names names objs (ret ft))
      (replace-names names objs (tc-body/check body return)))))

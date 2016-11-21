@@ -600,36 +600,41 @@
                                local-private-table private-method-types
                                self-type))
   (do-timestamp "built local tables")
-  (with-lexical-env/extend-types lexical-names/top-level lexical-types/top-level
-    (check-super-new super-new super-inits super-init-rest))
-  (do-timestamp "checked super-new")
-  (with-lexical-env/extend-types lexical-names/top-level lexical-types/top-level
+  
+  (with-extended-lexical-env
+    [#:identifiers lexical-names/top-level
+     #:types lexical-types/top-level]
+    (check-super-new super-new super-inits super-init-rest)
+    (do-timestamp "checked super-new")
     (for ([stx other-top-level-exprs])
-      (tc-expr stx)))
-  (do-timestamp "checked other top-level exprs")
-  (with-lexical-env/extend-types lexical-names/top-level lexical-types/top-level
+      (tc-expr stx))
+    (do-timestamp "checked other top-level exprs")
     (check-field-set!s (hash-ref parse-info 'initializer-body)
                        synthesized-init-val-stxs
-                       inits))
-  (do-timestamp "checked field initializers")
-  (define checked-method-types
-    (with-lexical-env/extend-types lexical-names lexical-types
-      (check-methods (append (hash-ref parse-info 'pubment-names)
-                             (hash-ref parse-info 'overridable-names))
-                     internal-external-mapping method-stxs
-                     methods self-type)))
-  (do-timestamp "checked methods")
-  (define checked-augment-types
-    (with-lexical-env/extend-types lexical-names lexical-types
-      (check-methods (hash-ref parse-info 'augment-names)
-                     internal-external-mapping method-stxs
-                     augments self-type)))
-  (do-timestamp "checked augments")
-  (with-lexical-env/extend-types lexical-names lexical-types
-    (check-private-methods method-stxs (hash-ref parse-info 'private-names)
-                           private-method-types self-type))
-  (do-timestamp "checked privates")
-  (do-timestamp "finished methods")
+                       inits)
+    (do-timestamp "checked field initializers"))
+
+  (define-values (checked-method-types checked-augment-types)
+    (with-extended-lexical-env
+      [#:identifiers lexical-names
+       #:types lexical-types]
+      (define checked-method-types
+        (check-methods (append (hash-ref parse-info 'pubment-names)
+                               (hash-ref parse-info 'overridable-names))
+                       internal-external-mapping method-stxs
+                       methods self-type))
+      (do-timestamp "checked methods")
+      (define checked-augment-types
+        (check-methods (hash-ref parse-info 'augment-names)
+                       internal-external-mapping method-stxs
+                       augments self-type))
+      (do-timestamp "checked augments")
+      (check-private-methods method-stxs (hash-ref parse-info 'private-names)
+                             private-method-types self-type)
+      (do-timestamp "checked privates")
+      (do-timestamp "finished methods")
+      (values checked-method-types checked-augment-types)))
+
   (define final-class-type
     (merge-types self-type checked-method-types checked-augment-types))
   (check-method-presence-and-absence
@@ -1119,7 +1124,9 @@
                         (length temp-names) (length init-types)))
        ;; Extend lexical type env with temporaries introduced in the
        ;; expansion of the field initialization or setter
-       (with-lexical-env/extend-types temp-names init-types
+       (with-extended-lexical-env
+         [#:identifiers temp-names
+          #:types init-types]
          (check-field-set!s #'(begins ...) synthed-stxs inits))]
       [_ (void)])))
 

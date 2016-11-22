@@ -60,10 +60,10 @@
                             (for/and ([ns (in-list nss)]
                                       [ts (in-list tss)])
                               (= (length ns) (length ts))))
-       [result (values (listof identifier?)
-                       (listof Type?)
-                       (listof OptObject?)
-                       (listof Prop?))])
+       (values [names (listof identifier?)]
+               [types (listof Type?)]
+               [aliased-objs (listof OptObject?)]
+               [props (listof Prop?)]))
   (for*/lists (idents types aliased-objects propositions)
               ([(names results) (in-parallel (in-list namess) (in-list rhs-typess))]
                [(name result) (in-parallel (in-list names) (in-list results))])

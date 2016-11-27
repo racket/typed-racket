@@ -68,13 +68,7 @@
                  [#:group SQL-Group]
                  [#:group-mode (Listof Null-Mode)]
                  SQL-Datum *
-                 (Listof (Vectorof SQL-Datum)))]
- [in-query (-> Connection Statement
-               [#:fetch (U Positive-Integer +inf.0)]
-               [#:group SQL-Group]
-               [#:group-mode (Listof Null-Mode)]
-               SQL-Datum *
-               (Sequenceof (Vectorof SQL-Datum)))])
+                 (Listof (Vectorof SQL-Datum)))])
 
 (require/typed/provide
  db/base

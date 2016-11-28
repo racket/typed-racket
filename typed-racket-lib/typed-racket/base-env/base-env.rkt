@@ -3058,7 +3058,7 @@
                   (-> -Void)
                   (-> (Un (-val 'minor) (-val 'major) (-val 'incremental)) -Void))]
 [current-memory-use (-> -Nat)]
-[dump-memory-stats (-> Univ)]
+[dump-memory-stats (->* '() Univ Univ)]
 
 ;; Section 17.2 (Unsafe Data Extraction)
 [unsafe-car (-poly (a b)

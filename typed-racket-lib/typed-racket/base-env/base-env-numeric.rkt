@@ -1189,7 +1189,7 @@
              (commutative-case -PosIndex -Index)
              (commutative-case -PosFixnum -Fixnum)
              (commutative-case -NonNegFixnum -Fixnum)
-             (map varop (list -NegFixnum -NonPosFixnum -PosFixnum -NonNegFixnum -Fixnum))
+             (map varop (list -Index -NegFixnum -NonPosFixnum -PosFixnum -NonNegFixnum -Fixnum))
              (commutative-case -PosInt -Int)
              (commutative-case -Nat -Int)
              (map varop (list -NegInt -NonPosInt -PosInt -Nat -Int))

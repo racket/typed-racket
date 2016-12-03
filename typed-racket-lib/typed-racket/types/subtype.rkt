@@ -436,7 +436,7 @@
             [else ;; Contravariant
              (subtype* A t2 t1)]))]
        ;; If the type has a registered top type predicate, let's check it!
-       [((? has-top-type?) _) #:when ((top-type-pred t1) t2) A]
+       [((? has-top-type?) _) #:when ((Type-top-pred t1) t2) A]
        ;; quantification over two types preserves subtyping
        [((Poly: ns b1) (Poly: ms b2))               
         #:when (= (length ns) (length ms))

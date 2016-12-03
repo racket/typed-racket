@@ -59,11 +59,11 @@
 
 ;; Compute for a given type how many times each type inside of it
 ;; is referenced
-(define (compute-popularity ty)
-  (when (Type? ty)
-    (hash-update! pop-table ty add1 0))
-  (when (walkable? ty)
-    (Rep-walk compute-popularity ty)))
+(define (compute-popularity x)
+  (when (Type? x)
+    (hash-update! pop-table x add1 0))
+  (when (Rep? x)
+    (Rep-walk compute-popularity x)))
 
 (define (popular? ty)
   (> (hash-ref pop-table ty 0) 5))

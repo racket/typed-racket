@@ -567,10 +567,8 @@
                               (Vector: (F: x))
                               (Box: (F: x))))))
      'Syntax]
-    [(and (Mu-name: name body) t)
-     (if (equal? (Mu-body-unsafe t) body)
-         (t->s body)
-         `(Rec ,name ,(t->s body)))]
+    [(Mu-name: name body)
+     `(Rec ,name ,(t->s body))]
     [(B: idx) `(B ,idx)]
     [(Syntax: t) `(Syntaxof ,(t->s t))]
     [(Instance: (and (? has-name?) cls)) `(Instance ,(t->s cls))]

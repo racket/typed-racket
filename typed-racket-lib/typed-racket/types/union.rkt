@@ -22,24 +22,25 @@
     [(subtype t2 t1) t1]
     [else (Un t1 t2)]))
 
-;; a is a Type (not a union type)
-;; b is a List[Type] (non overlapping, non Union-types)
-;; The output is a non overlapping list of non Union types.
-;; The overlapping constraint is lifted if we are in the midst of subtyping. This is because during
-;; subtyping calls to subtype are expensive.
-(define (merge a b)
-  (let ([a (normalize-type a)])
-    (define b* (make-Union (list->hset b)))
+;; t is a Type (not a union type)
+;; b is a hset[Type] (non overlapping, non Union-types)
+;; The output is a non overlapping hset of non Union types.
+(define (merge t ts)
+  (let ([t (normalize-type t)])
+    (define t* (make-Union ts))
     (cond
-      [(subtype b* a) (list a)]
-      [(subtype a b*) b]
-      [else (cons a (filter-not (λ (b-elem) (subtype b-elem a)) b))])))
+      [(subtype t* t) (hset t)]
+      [(subtype t t*) ts]
+      [else (hset-add (hset-filter ts (λ (b-elem) (not (subtype b-elem t))))
+                      t)])))
 
-;; Type -> List[Type]
-(define (flat t)
-  (match t
-    [(Union: es) (hset->list es)]
-    [_ (list t)]))
+;; list[Type] -> hset[Type]
+(define (flatten ts)
+  (for/fold ([s (hset)])
+            ([t (in-hset ts)])
+    (match t
+      [(Union: ts) (hset-union s ts)]
+      [_ (hset-add s t)])))
 
 ;; Recursively reduce unions so that they do not contain
 ;; reduntant information w.r.t. subtyping. We used to maintain
@@ -48,5 +49,7 @@
 ;; don't want to do redundant runtime checks, etc.
 (define (normalize-type t)
   (match t
-    [(Union: ts) (make-Union (list->hset (foldr merge '() (append-map flat (hset->list ts)))))]
+    [(Union: ts) (make-Union (for/fold ([ts (hset)])
+                                       ([t (in-hset (flatten ts))])
+                               (merge t ts)))]
     [_ (Rep-fmap t normalize-type)]))

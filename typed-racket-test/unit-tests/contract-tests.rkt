@@ -130,10 +130,6 @@
 (define tests
   (test-suite
    "Contract Tests"
-   (t (-> (-poly (A B) (-> (Un A (-mu X (Un A (-lst X)))) (Un A (-mu X (Un A (-lst X))))))
-          (-> -Symbol (-mu X (Un -Symbol (-lst X)))))))
-  #;(test-suite
-   "Contract Tests"
    (t (-Number . -> . -Number))
    (t (-Promise -Number))
    (t (-set Univ)) 

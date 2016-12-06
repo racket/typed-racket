@@ -10,7 +10,7 @@
 (provide tests)
 (gen-test-main)
 
-(define-for-syntax (single-test stx)
+(define-for-syntax (single-subtype-test stx)
   (syntax-case stx (FAIL)
     [(FAIL t s) (syntax/loc stx (test-check (format "FAIL ~a" '(t s)) (lambda (a b) (not (subtype a b))) t s))]
     [(t s) (syntax/loc stx (test-check (format "~a" '(t s)) subtype t s))]))
@@ -18,7 +18,7 @@
 (define-syntax (subtyping-tests stx)
   (syntax-case stx ()
     [(_ str cl ...)
-     (with-syntax ([(new-cl ...) (map single-test (syntax->list #'(cl ...)))])
+     (with-syntax ([(new-cl ...) (map single-subtype-test (syntax->list #'(cl ...)))])
        (syntax/loc stx
          (begin (test-suite (format "Tests for subtyping (~a)" str)
                             new-cl ...))))]))
@@ -554,15 +554,30 @@
     (-class #:method ((m (-> -Nat))) #:augment ((m (-> -Nat))))
     (-class #:method ((m (-> -Nat))))]))
 
+(define-for-syntax (single-subval-test stx)
+  (syntax-case stx (FAIL)
+    [(FAIL t s) (syntax/loc stx (test-check (format "FAIL ~a" '(t s)) (lambda (a b) (not (subval a b))) t s))]
+    [(t s) (syntax/loc stx (test-check (format "~a" '(t s)) subval t s))]))
+
+(define-syntax (subval-tests stx)
+  (syntax-case stx ()
+    [(_ str cl ...)
+     (with-syntax ([(new-cl ...) (map single-subval-test (syntax->list #'(cl ...)))])
+       (syntax/loc stx
+         (begin (test-suite (format "Tests for subval (~a)" str)
+                            new-cl ...))))]))
+
 (define values-tests
-  (test-suite
-   "SomeValues subtyping"
-   (test-check "(Values Number) (Values Univ)"
-               subval
-               (-values (list -Number))
-               (-values (list Univ)))))
-;[FAIL (make-ValuesDots (list) -Symbol 'a) (make-ValuesDots (list (-result -String)) -String 'a)]
-;[(-values (list -Bottom)) (-values (list -String -Symbol))]
+  (subval-tests
+   "SomeValues"
+   [(-values (list -Number))
+    (-values (list Univ))]
+   [FAIL (make-ValuesDots (list) -Symbol 'a)
+         (make-ValuesDots (list (-result -String)) -String 'a)]
+   [(-values (list -Bottom))
+    (-values (list -String -Symbol))]
+   ))
+
 
 
 (define tests

@@ -1,6 +1,6 @@
 #lang racket/base
 (require "../utils/utils.rkt"
-         (utils struct-interface tc-utils)
+         (utils tc-utils)
          
          racket/match
          (contract-req)
@@ -15,7 +15,6 @@
           (utils tc-utils)
           racket/match
           racket/list
-          racket/sequence
           (except-in syntax/parse id identifier keyword)
           racket/base
           syntax/struct
@@ -60,10 +59,10 @@
       (rec name)))
 
 
-;; This table maps types (or really, the sequence number of the type)
-;; to identifiers that are those types. This allows us to avoid
-;; reconstructing the type when using it from its marshaled
-;; representation.  The table is referenced in env/init-env.rkt
+;; This table maps a type to an identifier bound to the type.
+;; This allows us to avoid reconstructing the type when using
+;; it from its marshaled representation.
+;; The table is referenced in env/init-env.rkt
 ;;
 ;; For example, instead of marshalling a big union for `Integer`, we
 ;; simply emit `-Integer`, which evaluates to the right type.
@@ -150,59 +149,11 @@
                       (begin0 state (set! state (add1 state)))))
             (λ () (set! finalized? #t) state))))
 
-(define-syntax (define-switch stx)
-  (define-syntax-class (switch-clause arg other-args)
-    (pattern (((~datum case:) rep-name:id pattern:expr) . body)
-             #:with name #'rep-name
-             #:with idx (format-id #'rep-name "uid:~a" (syntax->datum #'rep-name))
-             #:with function
-             (with-syntax ([arg arg]
-                           [other-args other-args])
-               (syntax/loc #'body
-                 (λ (arg . other-args)
-                   (match arg
-                     [pattern . body]))))))
-  (syntax-parse stx
-    [(_ (name:id arg:id args:id ...)
-        (~var clause (switch-clause #'arg #'(args ...))) ...
-        [(~datum else:) . default])
-     (define name-symbols (map syntax->datum (syntax->list #'(clause.name ...))))
-     (unless (not (null? name-symbols))
-       (raise-syntax-error 'define-switch "switch cannot be null" stx))
-     (define sorted-name-symbols (sort name-symbols symbol<?))
-     (unless (eq? (first name-symbols) (first sorted-name-symbols))
-       (raise-syntax-error 'define-switch
-                           (format "expected ~a as the first case"
-                                   (first sorted-name-symbols))
-                           stx))
-     ;; we verify that the Rep cases appear in name-sorted order (so
-     ;; they are easier to find when browsing the code) and that there
-     ;; are no duplicate cases
-     (for ([cur (in-list (rest name-symbols))]
-           [cur-stx (in-list (rest (syntax->list #'(clause ...))))]
-           [cur* (in-list (rest sorted-name-symbols))]
-           [prev* (in-list sorted-name-symbols)]
-           [prev-stx (in-list (syntax->list #'(clause ...)))])
-       (when (eq? cur* prev*)
-         (raise-syntax-error 'define-switch
-                             (format "duplicate switch cases for ~a" prev*)
-                             prev-stx))
-       (unless (eq? cur cur*)
-         (raise-syntax-error 'define-switch
-                             (format "switch cases must be sorted! expected ~a but got ~a"
-                                     cur* cur)
-                             cur-stx)))
-     (syntax/loc stx
-       (define name
-         (let ([switch-table (make-vector (get-uid-count) (λ (arg args ...) . default))])
-           (vector-set! switch-table clause.idx clause.function)
-           ...
-           (λ (arg args ...) ((vector-ref switch-table (Rep-uid arg)) arg args ...)))))]))
-
-
 (begin-for-syntax
-  ;; defines a rep transformer where the tranforming function is
-  ;; a parameter (e.g. free vars)
+  ;; defines a "rep transformer"
+  ;; These are functions defined to fold over Reps (e.g. Rep-fmap, Rep-for-each).
+  ;; Because they are defined within the definition of the struct, they bind the same
+  ;; identifiers which declare the Rep's fields to those same fields.
   (define (rep-transform self f-id struct-fields body)
     (with-syntax ([f-id f-id]
                   [self self]
@@ -210,8 +161,7 @@
                   [body body])
       #'(λ (self f-id)
           (let ([fld (unsafe-struct-ref self (struct-field-index fld))] ...) . body))))
-  ;; defines a rep transformer where the tranforming function is
-  ;; known ahead of time (e.g. for free vars, instantiate, etc)
+  ;; like "rep-transform" but the folding function is fixed (e.g. free-vars)
   (define (fixed-rep-transform self f-id fun struct-fields body)
     (with-syntax ([transformer (rep-transform self f-id struct-fields body)]
                   [self self]

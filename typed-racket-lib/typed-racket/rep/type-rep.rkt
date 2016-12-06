@@ -72,7 +72,7 @@
  ("../types/overlap.rkt" (overlap?))
  ("../types/resolve.rkt" (resolve-app)))
 
-(define name-table (make-weak-hash))
+(define var-name-table (make-weak-hash))
 
 ;; Name = Symbol
 
@@ -479,9 +479,10 @@
   [#:for-each (f) (f body)]
   [#:mask (λ (t) (mask (Mu-body t)))]
   [#:custom-constructor
-   (if (Bottom? body)
-       -Bottom
-       (make-Mu body))])
+   (cond
+     [(Bottom? body) -Bottom]
+     [(or (Value? body) (Base? body)) body]
+     [else (make-Mu body)])])
 
 ;; n is how many variables are bound here
 ;; body is a type
@@ -1014,7 +1015,7 @@
 ;; the 'smart' constructor
 (define (Mu* name body)
   (let ([v (make-Mu (abstract name body))])
-    (hash-set! name-table v name)
+    (hash-set! var-name-table v name)
     v))
 
 ;; the 'smart' destructor
@@ -1038,7 +1039,7 @@
 (define (Poly* names body #:original-names [orig names])
   (if (null? names) body
       (let ([v (make-Poly (length names) (abstract-many names body))])
-        (hash-set! name-table v orig)
+        (hash-set! var-name-table v orig)
         v)))
 
 ;; the 'smart' destructor
@@ -1053,7 +1054,7 @@
 (define (PolyDots* names body)
   (if (null? names) body
       (let ([v (make-PolyDots (length names) (abstract-many names body))])
-        (hash-set! name-table v names)
+        (hash-set! var-name-table v names)
         v)))
 
 ;; the 'smart' destructor
@@ -1072,7 +1073,7 @@
 ;;
 (define (PolyRow* names constraints body #:original-names [orig names])
   (let ([v (make-PolyRow constraints (abstract-many names body))])
-    (hash-set! name-table v orig)
+    (hash-set! var-name-table v orig)
     v))
 
 (define (PolyRow-body* names t)
@@ -1111,7 +1112,7 @@
     (syntax-case stx ()
       [(_ np bp)
        #'(? Mu?
-            (app (lambda (t) (let ([sym (hash-ref name-table t (lambda _ (gensym)))])
+            (app (lambda (t) (let ([sym (hash-ref var-name-table t (lambda _ (gensym)))])
                                (list sym (Mu-body* sym t))))
                  (list np bp)))])))
 
@@ -1141,7 +1142,7 @@
        #'(? Poly?
             (app (lambda (t)
                    (let* ([n (Poly-n t)]
-                          [syms (hash-ref name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
+                          [syms (hash-ref var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
                      (list syms (Poly-body* syms t))))
                  (list nps bp)))])))
 
@@ -1160,7 +1161,7 @@
        #'(? Poly?
             (app (lambda (t)
                    (let* ([n (Poly-n t)]
-                          [syms (hash-ref name-table t (lambda _ (build-list n (lambda _ (gensym)))))]
+                          [syms (hash-ref var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))]
                           [fresh-syms (map fresh-name syms)])
                      (list syms fresh-syms (Poly-body* fresh-syms t))))
                  (list nps freshp bp)))])))
@@ -1186,7 +1187,7 @@
        #'(? PolyDots?
             (app (lambda (t)
                    (let* ([n (PolyDots-n t)]
-                          [syms (hash-ref name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
+                          [syms (hash-ref var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
                      (list syms (PolyDots-body* syms t))))
                  (list nps bp)))])))
 
@@ -1208,7 +1209,7 @@
       [(_ nps constrp bp)
        #'(? PolyRow?
             (app (lambda (t)
-                   (define syms (hash-ref name-table t (λ _ (list (gensym)))))
+                   (define syms (hash-ref var-name-table t (λ _ (list (gensym)))))
                    (list syms
                          (PolyRow-constraints t)
                          (PolyRow-body* syms t)))
@@ -1220,7 +1221,7 @@
       [(_ nps freshp constrp bp)
        #'(? PolyRow?
             (app (lambda (t)
-                   (define syms (hash-ref name-table t (λ _ (list (gensym)))))
+                   (define syms (hash-ref var-name-table t (λ _ (list (gensym)))))
                    (define fresh-syms (list (gensym (car syms))))
                    (list syms fresh-syms
                          (PolyRow-constraints t)

@@ -95,9 +95,10 @@
 (define (implies-atomic? p q)
   (match* (p q)
     ;; reflexivity
-    [(_ _) #:when (or (equal? p q)
+    [(_ _) #:when (or (eq? p q)
                       (TrueProp? q)
-                      (FalseProp? p)) #t]
+                      (FalseProp? p)
+                      (equal? p q)) #t]
     ;; ps ⊆ qs ?
     [((OrProp: ps) (OrProp: qs))
      (and (for/and ([p (in-list ps)])

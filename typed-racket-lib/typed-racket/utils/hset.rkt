@@ -22,6 +22,7 @@
          hset-intersect
          hset-partition
          hset-map
+         hset-filter
          hset-for-each
          hset->list
          list->hset
@@ -126,6 +127,13 @@
   (for/fold ([result '()])
             ([x (in-hset h)])
     (cons (f x) result)))
+
+(define (hset-filter h f)
+  (for/fold ([result h])
+            ([x (in-hset h)])
+    (if (f x)
+        result
+        (hset-remove result x))))
 
 (define (hset-for-each h f)
   (for ([x (in-hset h)]) (f x)))

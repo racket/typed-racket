@@ -25,8 +25,7 @@ at least theoretically.
  in-pair
  in-sequence-forever
  match*/no-order
- bind
- def/match)
+ bind)
 
 (define optimize? (make-parameter #t))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
@@ -280,14 +279,6 @@ at least theoretically.
       [(_ expr)
        #`(unless expr #,(quasisyntax/loc stx (error 'assert "failed!")))]))
 
-(define-syntax (def/match stx)
-  (syntax-parse stx
-    [(_ (name:id pats ...) . body)
-     (with-syntax ([(args ...) (generate-temporaries #'(pats ...))])
-       (syntax/loc stx
-         (define (name args ...)
-           (match* (args ...)
-             [(pats ...) . body]))))]))
 
 (define-syntax-rule (in-pair p)
   (in-parallel (in-value (car p)) (in-value (cdr p))))

@@ -21,7 +21,6 @@
 (def-pathelem ForcePE () [#:singleton -force])
 (def-pathelem FieldPE () [#:singleton -field])
 
-;; t is always a Name (can't put that into the contract b/c of circularity)
 (def-pathelem StructPE ([t Type?] [idx natural-number/c])
   [#:frees (f) (f t)]
   [#:fmap (f) (make-StructPE (f t) idx)]

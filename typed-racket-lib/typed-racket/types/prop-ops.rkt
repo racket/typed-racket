@@ -128,35 +128,8 @@
   (and (implies? p q)
        (implies? q p)))
 
-;; intersect-update
-;; (mlist (mcons Object Type)) Object Type -> (mlist (mcons Object Type))
-;;
-;; updates mutable association list 'dict' entry for 'o' w/ type t
-;; if no entry for 'o' is found, else if some previous type s is present
-;; update the type to t ∩ s
-(define (intersect-update dict o t)
-  (cond
-    [(massoc o dict)
-     => (λ (p)
-          (set-mcdr! p (intersect t (mcdr p)))
-          dict)]
-    [else (mcons (mcons o t) dict)]))
-
-
-;; union-update
-;; (mlist (mcons Object Type)) Object Type -> (mlist (mcons Object Type))
-;;
-;; updates mutable association list 'dict' entry for 'o' w/ type t
-;; if no entry for 'o' is found, else if some previous type s is present
-;; update the type to t ∪ s
-(define (union-update dict o t)
-  (cond
-    [(massoc o dict)
-     => (λ (p)
-          (set-mcdr! p (union t (mcdr p)))
-          dict)]
-    [else (mcons (mcons o t) dict)]))
-
+(define ((∩ t1) t2) (intersect t1 t2))
+(define ((∪ t1) t2) (union t1 t2))
 
 ;; compact-or-props : (Listof prop) -> (Listof prop)
 ;;
@@ -166,30 +139,32 @@
 ;; any values of -ff are removed.
 (define/cond-contract (compact-or-props props)
   ((c:listof Prop?) . c:-> . (c:listof Prop?))
-  
-  (define-values (pos neg others)
-    (for/fold ([pos '()] [neg '()] [others '()])
-              ([prop (in-list props)])
-      (match prop
-        [(TypeProp: o t)
-         (values (union-update pos o t) neg others)]
-        [(NotTypeProp: o t)
-         (values pos (intersect-update neg o t) others)]
-        [_ (values pos neg (cons prop others))])))
 
+  (define ts+ (make-hash))
+  (define ts- (make-hash))
+  (define others '())
   
-  (let ([pos (for*/list ([p (in-mlist pos)]
-                         [p (in-value (-is-type (mcar p) (mcdr p)))]
-                         #:when (not (FalseProp? p)))
-               p)]
-        [neg (for*/list ([p (in-mlist neg)]
-                         [p (in-value (-not-type (mcar p) (mcdr p)))]
-                         #:when (not (FalseProp? p)))
-               p)])
-    (if (or (ormap TrueProp? pos)
-            (ormap TrueProp? neg))
-        (list -tt)
-        (append pos neg others))))
+  (for ([prop (in-list props)])
+    (match prop
+      [(TypeProp: o t) (hash-update! ts+ o (∪ t) -Bottom)]
+      [(NotTypeProp: o t) (hash-update! ts- o (∩ t) Univ)]
+      [_ (set! others (cons prop others))]))
+
+
+  (define pos-props
+    (for*/list ([(o t) (in-hash ts+)]
+                [p (in-value (-is-type o t))]
+                #:when (not (FalseProp? p)))
+      p))
+  (define neg-props
+    (for*/list ([(o t) (in-hash ts-)]
+                [p (in-value (-not-type o t))]
+                #:when (not (FalseProp? p)))
+      p))
+  (if (or (ormap TrueProp? pos-props)
+          (ormap TrueProp? neg-props))
+      (list -tt)
+      (append pos-props neg-props others)))
 
 
 
@@ -244,29 +219,24 @@
 ;; will be a conjunction of only atomic propositions and disjunctions
 ;; (i.e. a CNF proposition)
 (define (-and . args)
-  (define-values (pos neg others)
-    (let loop ([args args]
-               [pos '()]
-               [neg '()]
-               [others '()])
-      (match args
-        [(cons arg args)
-         (match arg
-           [(TypeProp: o t) (loop args (intersect-update pos o t) neg others)]
-           [(NotTypeProp: o t) (loop args pos (union-update neg o t) others)]
-           [(AndProp: ps)
-            (let-values ([(pos neg others) (loop ps pos neg others)])
-              (loop args pos neg others))]
-           [_ (loop args pos neg (cons arg others))])]
-        [_ (values pos neg others)])))
+  (define ts+ (make-hash))
+  (define ts- (make-hash))
+  (define others '())
+  (let loop! ([args args])
+    (for ([arg (in-list args)])
+      (match arg
+        [(TypeProp: o t) (hash-update! ts+ o (∩ t) Univ)]
+        [(NotTypeProp: o t) (hash-update! ts- o (∪ t) -Bottom)]
+        [(AndProp: ps) (loop! ps)]
+        [_ (set! others (cons arg others))])))
   ;; Move all the type props up front as they are the stronger props
   (let loop ([ps (append
-                  (for*/list ([p (in-mlist pos)]
-                              [p (in-value (-is-type (mcar p) (mcdr p)))]
+                  (for*/list ([(o t) (in-hash ts+)]
+                              [p (in-value (-is-type o t))]
                               #:when (not (TrueProp? p)))
                     p)
-                  (for*/list ([p (in-mlist neg)]
-                              [p (in-value (-not-type (mcar p) (mcdr p)))]
+                  (for*/list ([(o t) (in-hash ts-)]
+                              [p (in-value (-not-type o t))]
                               #:when (not (TrueProp? p)))
                     p)
                   others)]

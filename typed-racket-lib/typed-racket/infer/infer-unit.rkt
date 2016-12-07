@@ -754,9 +754,10 @@
 ;; X : (listof symbol?) - type variables that must have entries
 ;; Y : (listof symbol?) - index variables that must have entries
 ;; R : Type? - result type into which we will be substituting
-(define/cond-contract (subst-gen C X Y R)
+(define/cond-contract (substs-gen C X Y R)
   (cset? (listof symbol?) (listof symbol?) (or/c Values/c AnyValues? ValuesDots?)
-         . -> . (or/c #f substitution/c))
+         . -> . (cons/c substitution/c
+                        (listof substitution/c)))
   (define var-hash (free-vars-hash (free-vars* R)))
   (define idx-hash (free-vars-hash (free-idxs* R)))
   ;; c : Constaint
@@ -790,37 +791,38 @@
                    ;; TODO figure out if there is a better subst here
                    [(? variance:inv) (i-subst null)]))))
      S))
-  (match (car (cset-maps C))
-    [(cons cmap (dmap dm))
-     (let* ([subst (hash-union
-                    (for/hash ([(k dc) (in-hash dm)])
-                      (define (c->t c) (constraint->type c (hash-ref idx-hash k variance:const)))
-                      (values
-                       k
-                       (match dc
-                         [(dcon fixed #f)
-                          (i-subst (map c->t fixed))]
-                         [(or (dcon fixed rest) (dcon-exact fixed rest))
-                          (i-subst/starred
-                           (map c->t fixed)
-                           (c->t rest))]
-                         [(dcon-dotted fixed dc dbound)
-                          (i-subst/dotted
-                           (map c->t fixed)
-                           (c->t dc)
-                           dbound)])))
-                    (for/hash ([(k v) (in-hash cmap)])
-                      (values k (t-subst (constraint->type v (hash-ref var-hash k variance:const))))))]
-            [subst (for/fold ([subst subst]) ([v (in-list X)])
-                     (let ([entry (hash-ref subst v #f)])
-                       ;; Make sure we got a subst entry for a type var
-                       ;; (i.e. just a type to substitute)
-                       ;; If we don't have one, there are no constraints on this variable
-                       (if (and entry (t-subst? entry))
-                           subst
-                           (hash-set subst v (t-subst Univ)))))])
-       ;; verify that we got all the important variables
-       (extend-idxs subst))]))
+  (for/list ([m (in-list (cset-maps C))])
+    (match m
+      [(cons cmap (dmap dm))
+       (let* ([subst (hash-union
+                      (for/hash ([(k dc) (in-hash dm)])
+                        (define (c->t c) (constraint->type c (hash-ref idx-hash k variance:const)))
+                        (values
+                         k
+                         (match dc
+                           [(dcon fixed #f)
+                            (i-subst (map c->t fixed))]
+                           [(or (dcon fixed rest) (dcon-exact fixed rest))
+                            (i-subst/starred
+                             (map c->t fixed)
+                             (c->t rest))]
+                           [(dcon-dotted fixed dc dbound)
+                            (i-subst/dotted
+                             (map c->t fixed)
+                             (c->t dc)
+                             dbound)])))
+                      (for/hash ([(k v) (in-hash cmap)])
+                        (values k (t-subst (constraint->type v (hash-ref var-hash k variance:const))))))]
+              [subst (for/fold ([subst subst]) ([v (in-list X)])
+                       (let ([entry (hash-ref subst v #f)])
+                         ;; Make sure we got a subst entry for a type var
+                         ;; (i.e. just a type to substitute)
+                         ;; If we don't have one, there are no constraints on this variable
+                         (if (and entry (t-subst? entry))
+                             subst
+                             (hash-set subst v (t-subst Univ)))))])
+         ;; verify that we got all the important variables
+         (extend-idxs subst))])))
 
 ;; context : the context of what to infer/not infer
 ;; S : a list of types to be the subtypes of T
@@ -852,10 +854,11 @@
 ;; just return a boolean result
 (define infer
  (let ()
-  (define/cond-contract (infer X Y S T R [expected #f])
+  (define/cond-contract (infer X Y S T R [expected #f] #:multiple? [multiple-substitutions? #f])
     (((listof symbol?) (listof symbol?) (listof Type?) (listof Type?)
       (or/c #f Values/c ValuesDots?))
-     ((or/c #f Values/c AnyValues? ValuesDots?))
+     ((or/c #f Values/c AnyValues? ValuesDots?)
+      #:multiple? boolean?)
      . ->* . (or/c boolean? substitution/c))
     (define ctx (context null X Y ))
     (define expected-cset
@@ -865,7 +868,13 @@
     (and expected-cset
          (let* ([cs (cgen/list ctx S T #:expected-cset expected-cset)]
                 [cs* (% cset-meet cs expected-cset)])
-           (and cs* (if R (subst-gen cs* X Y R) #t)))))
+           (and cs* (cond
+                      [R
+                       (define substs (substs-gen cs* X Y R))
+                       (if multiple-substitutions?
+                           substs
+                           (first substs))]
+                      [else #t])))))
   ;(trace infer)
   infer)) ;to export a variable binding and not syntax
 
@@ -900,7 +909,7 @@
    #:return-unless cs #f
    (define m (cset-meet cs expected-cset))
    #:return-unless m #f
-   (subst-gen m X (list dotted-var) R)))
+   (first (substs-gen m X (list dotted-var) R))))
 
 
 ;(trace subst-gen)

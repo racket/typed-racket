@@ -5,7 +5,7 @@
          "signatures.rkt"
          "utils.rkt"
          syntax/parse syntax/stx racket/match racket/sequence
-         (typecheck signatures tc-funapp)
+         (typecheck signatures tc-funapp error-message)
          (types abbrev utils substitute)
          (rep type-rep)
          (env tvar-env)
@@ -78,21 +78,29 @@
         ;; TODO fix double typechecking
         [_ (tc/app-regular #'form expected)])))
   ;; special case for `list'
-  (pattern (list . args)
-    (let ()
+  (pattern
+   (list . args)
+   (match expected
+     [(tc-result1: t)
       (define vs (stx-map (λ (x) (gensym)) #'args))
       (define l-type (-Tuple (map make-F vs)))
-      (define subst
-        (match expected
-          [(tc-result1: t)
-           ;; We want to infer the largest vs that are still under the element types
-           (i:infer vs null (list l-type) (list t) (-values (list (-> l-type Univ))))]
-          [_ #f]))
-      (ret (-Tuple
-             (for/list ([i (in-syntax #'args)] [v (in-list vs)])
-               (or (and subst
-                        (tc-expr/check/t? i (ret (subst-all subst (make-F v)))))
-                   (tc-expr/t i)))))))
+      ;; We want to infer the largest vs that are still under the element types
+      (define substs (i:infer vs null (list l-type) (list t) (-values (list (-> l-type Univ)))
+                              #:multiple? #t))
+      (cond
+        [substs
+         (define result
+           (for*/first ([subst (in-list substs)]
+                        [argtys (in-value (for/list ([arg (in-syntax #'args)]
+                                                     [v (in-list vs)])
+                                            (tc-expr/check/t? arg (ret (subst-all subst (make-F v))))))]
+                        #:when (andmap values argtys))
+             (ret (-Tuple argtys))))
+         (or result
+             (begin (expected-but-got t (-Tuple (stx-map tc-expr/t #'args)))
+                    expected))]
+        [else (ret (-Tuple (stx-map tc-expr/t #'args)))])]
+     [_ (ret (-Tuple (stx-map tc-expr/t #'args)))]))
   ;; special case for `list*'
   (pattern (list* (~between args:expr 1 +inf.0) ...)
     (match-let* ([(list tys ... last) (stx-map tc-expr/t #'(args ...))])

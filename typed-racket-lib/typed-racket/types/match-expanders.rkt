@@ -6,7 +6,6 @@
          racket/match
          syntax/parse/define
          (types resolve base-abbrev)
-         (contract-req)
          (for-syntax racket/base syntax/parse))
 
 (provide Listof: List: MListof: AnyPoly: AnyPoly-names: Function/arrs:

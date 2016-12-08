@@ -192,7 +192,10 @@
       [(cons (AndProp: elems) ands)
        (apply -and (for/list ([elem (in-list elems)])
                      (apply -or elem (append ands others))))]
-      [_ (make-OrProp others)]))
+      [_ (match others
+           [(list) -ff]
+           [(list p) p]
+           [ps (make-OrProp ps)])]))
   (let loop ([ps args] [result null])
     (match ps
       [(cons p ps)
@@ -230,16 +233,15 @@
         [(AndProp: ps) (loop! ps)]
         [_ (set! others (cons arg others))])))
   ;; Move all the type props up front as they are the stronger props
-  (let loop ([ps (append
-                  (for*/list ([(o t) (in-hash ts+)]
-                              [p (in-value (-is-type o t))]
-                              #:when (not (TrueProp? p)))
-                    p)
-                  (for*/list ([(o t) (in-hash ts-)]
-                              [p (in-value (-not-type o t))]
-                              #:when (not (TrueProp? p)))
-                    p)
-                  others)]
+  (define pos-props (for*/list ([(o t) (in-hash ts+)]
+                                [p (in-value (-is-type o t))]
+                                #:when (not (TrueProp? p)))
+                      p))
+  (define neg-props (for*/list ([(o t) (in-hash ts-)]
+                                [p (in-value (-not-type o t))]
+                                #:when (not (TrueProp? p)))
+                      p))
+  (let loop ([ps (append pos-props neg-props others)]
              [result null])
     (match ps
       [(cons p ps)
@@ -255,7 +257,10 @@
             (implies-atomic? q p))
           (loop ps result)]
          [else (loop ps (cons p result))])]
-      [_ (make-AndProp result)])))
+      [_ (match result
+           [(list) -tt]
+           [(list p) p]
+           [ps (make-AndProp ps)])])))
 
 ;; add-unconditional-prop: tc-results? Prop? -> tc-results?
 ;; Ands the given proposition to the props in the tc-results.

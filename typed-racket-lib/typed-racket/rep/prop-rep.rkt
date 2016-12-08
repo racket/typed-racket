@@ -68,19 +68,9 @@
 (def-prop OrProp ([ps (listof (or/c TypeProp? NotTypeProp?))])
   [#:frees (f) (combine-frees (map f ps))]
   [#:fmap (f) (apply -or (map f ps))]
-  [#:for-each (f) (for-each f ps)]
-  [#:custom-constructor
-   (match ps
-     [(list) -ff]
-     [(list p) p]
-     [ps (make-OrProp ps)])])
+  [#:for-each (f) (for-each f ps)])
 
 (def-prop AndProp ([ps (listof (or/c OrProp? TypeProp? NotTypeProp?))])
   [#:frees (f) (combine-frees (map f ps))]
   [#:fmap (f) (apply -and (map f ps))]
-  [#:for-each (f) (for-each f ps)]
-  [#:custom-constructor
-   (match ps
-     [(list) -tt]
-     [(list p) p]
-     [ps (make-AndProp ps)])])
+  [#:for-each (f) (for-each f ps)])

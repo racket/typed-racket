@@ -307,7 +307,7 @@
        ([uid-id (format-id #'var.name "uid:~a" (syntax->datum #'var.name))]
         [(parent ...) (if (attribute parent) #'(parent) #'())]
         ;; contract for constructor
-        [constructor-contract #'(-> flds.contracts ... var.predicate)]
+        [constructor-contract #'(-> flds.contracts ... any)]
         [constructor-name (if (attribute constr-def)
                               #'var.raw-constructor
                               #'var.constructor)]

@@ -400,14 +400,16 @@
           [else (int-err "Two conflicting definitions: ~a ~a" def other-def)]))
       (dict-update h (binding-name def) merge-def-bindings #f)))
   (do-time "computed def-tbl")
-  ;; check that all parsed apps are sensible:
+  ;; check that all parsed apps are sensible
   (check-registered-apps!)
   ;; typecheck the expressions and the rhss of defintions
   ;(displayln "Starting pass2")
   (for-each tc-toplevel/pass2 forms)
   (do-time "Finished pass2")
   ;; check that declarations correspond to definitions
+  ;; and that any additional parsed apps are sensible
   (check-all-registered-types)
+  (check-registered-apps!)
   ;; log messages to check-syntax to show extra types / arrows before failures
   (log-message online-check-syntax-logger
                'info

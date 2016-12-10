@@ -39,6 +39,7 @@
 (module tester racket/base
   (require
     (submod ".." cross-phase-failure)
+    "test-utils.rkt"
     typed-racket/utils/utils
     racket/base racket/match
     (rep core-rep)
@@ -72,16 +73,7 @@
 
 
   (define (check-tc-results result golden #:name name)
-    (define (equiv-results? res1 res2)
-      (define (below? res1 res2)
-        (parameterize ([delay-errors? #f])
-          (with-handlers ([exn:fail? (lambda (_) #f)])
-            (check-below res1 res2)
-            #t)))
-      (and (below? res1 res2)
-           (below? res2 res1)))
-    
-    (unless (equiv-results? golden result)
+    (unless (tc-result-equal/test? golden result)
       (define base-message (format "~a did not return the expected value." name))
 
       (define extra-message

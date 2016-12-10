@@ -5,16 +5,23 @@
          racket/gui/dynamic
          typed-racket/utils/utils
          (for-syntax racket/base syntax/parse)
-         (types utils)
+         (types utils subtype)
+         (utils tc-utils)
+         (typecheck check-below)
          (rep type-rep)
          rackunit rackunit/text-ui)
 
 (provide private typecheck (rename-out [infer r:infer]) utils env rep types base-env static-contracts
          (all-defined-out))
 
-;; FIXME - do something more intelligent
-(define (tc-result-equal/test? a b)
-  (equal? a b))
+(define (tc-result-equal/test? res1 res2)
+  (define (below? res1 res2)
+    (parameterize ([delay-errors? #f])
+      (with-handlers ([exn:fail? (λ (_) #f)])
+        (check-below res1 res2)
+        #t)))
+  (and (below? res1 res2)
+       (below? res2 res1)))
 
 (define-syntax (check-type-equal? stx)
   (syntax-case stx ()

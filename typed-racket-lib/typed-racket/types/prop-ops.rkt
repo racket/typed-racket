@@ -139,32 +139,39 @@
 ;; any values of -ff are removed.
 (define/cond-contract (compact-or-props props)
   ((c:listof Prop?) . c:-> . (c:listof Prop?))
-
-  (define ts+ (make-hash))
-  (define ts- (make-hash))
-  (define others '())
+  (cond
+    ;; do nothing for fewer than 2 props
+    [(or (null? props)
+         (null? (cdr props)))
+     props]
+    [else
+     (define ts+ (make-hash))
+     (define ts- (make-hash))
+     (define others '())
   
-  (for ([prop (in-list props)])
-    (match prop
-      [(TypeProp: o t) (hash-update! ts+ o (∪ t) -Bottom)]
-      [(NotTypeProp: o t) (hash-update! ts- o (∩ t) Univ)]
-      [_ (set! others (cons prop others))]))
+     (for ([prop (in-list props)])
+       (match prop
+         [(TypeProp: o t) (hash-update! ts+ o (∪ t) -Bottom)]
+         [(NotTypeProp: o t) (hash-update! ts- o (∩ t) Univ)]
+         [_ (set! others (cons prop others))]))
 
-
-  (define pos-props
-    (for*/list ([(o t) (in-hash ts+)]
-                [p (in-value (-is-type o t))]
-                #:when (not (FalseProp? p)))
-      p))
-  (define neg-props
-    (for*/list ([(o t) (in-hash ts-)]
-                [p (in-value (-not-type o t))]
-                #:when (not (FalseProp? p)))
-      p))
-  (if (or (ormap TrueProp? pos-props)
-          (ormap TrueProp? neg-props))
-      (list -tt)
-      (append pos-props neg-props others)))
+     (define pos-props
+       (for*/fold ([ps '()])
+                  ([(o t) (in-hash ts+)]
+                   [p (in-value (-is-type o t))]
+                   #:when (not (FalseProp? p)))
+         (cons p ps)))
+     (define neg-props
+       (for*/fold ([ps '()])
+                  ([(o t) (in-hash ts-)]
+                   [p (in-value (-not-type o t))]
+                   #:when (not (FalseProp? p)))
+         (cons p ps)))
+     
+     (if (or (ormap TrueProp? pos-props)
+             (ormap TrueProp? neg-props))
+         (list -tt)
+         (append pos-props neg-props others))]))
 
 
 
@@ -190,8 +197,8 @@
     (define-values (ands others) (partition AndProp? args))
     (match ands
       [(cons (AndProp: elems) ands)
-       (apply -and (for/list ([elem (in-list elems)])
-                     (apply -or elem (append ands others))))]
+       (apply -and (for/fold ([ps '()]) ([elem (in-list elems)])
+                     (cons (apply -or elem (append ands others)) ps)))]
       [_ (match others
            [(list) -ff]
            [(list p) p]
@@ -270,14 +277,14 @@
     [(tc-any-results: f) (tc-any-results (-and prop f))]
     [(tc-results: ts (list (PropSet: ps+ ps-) ...) os)
      (ret ts
-          (for/list ([f+ (in-list ps+)]
-                     [f- (in-list ps-)])
-            (-PS (-and prop f+) (-and prop f-)))
+          (for/list ([p+ (in-list ps+)]
+                     [p- (in-list ps-)])
+            (-PS (-and prop p+) (-and prop p-)))
           os)]
     [(tc-results: ts (list (PropSet: ps+ ps-) ...) os dty dbound)
      (ret ts
-          (for/list ([f+ ps+] [f- ps-])
-            (-PS (-and prop f+) (-and prop f-)))
+          (for/list ([p+ (in-list ps+)] [p- (in-list ps-)])
+            (-PS (-and prop p+) (-and prop p-)))
           os
           dty
           dbound)]))

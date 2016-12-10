@@ -750,14 +750,21 @@
          ;; nothing worked, and we fail
          #f]))]))
 
-;; C : cset? - set of constraints found by the inference engine
-;; X : (listof symbol?) - type variables that must have entries
-;; Y : (listof symbol?) - index variables that must have entries
-;; R : Type? - result type into which we will be substituting
-(define/cond-contract (substs-gen C X Y R)
-  (cset? (listof symbol?) (listof symbol?) (or/c Values/c AnyValues? ValuesDots?)
-         . -> . (cons/c substitution/c
-                        (listof substitution/c)))
+;; C : set of constraints found by the inference engine
+;; X : type variables that must have entries
+;; Y : index variables that must have entries
+;; R : result type into which we will be substituting
+;; multiple-substitutions? : should we return one substitution (#f), or
+;; all the substitutions that were possible? (#t)
+;; NOTE: multiple substitutions are rare -- at the time of adding this
+;; parameter this feature is only used by the tc-app/list.
+;; NOTE: if multiple substitutions is #t, a list is returned,
+;; otherwise a single substitution (not in a list) is returned.
+(define/cond-contract (substs-gen C X Y R multiple-substitutions?)
+  (cset? (listof symbol?) (listof symbol?) (or/c Values/c AnyValues? ValuesDots?) boolean?
+         . -> . (or/c substitution/c
+                      (cons/c substitution/c
+                              (listof substitution/c))))
   (define var-hash (free-vars-hash (free-vars* R)))
   (define idx-hash (free-vars-hash (free-idxs* R)))
   ;; c : Constaint
@@ -791,7 +798,7 @@
                    ;; TODO figure out if there is a better subst here
                    [(? variance:inv) (i-subst null)]))))
      S))
-  (for/list ([m (in-list (cset-maps C))])
+  (define (build-subst m)
     (match m
       [(cons cmap (dmap dm))
        (let* ([subst (hash-union
@@ -822,7 +829,10 @@
                              subst
                              (hash-set subst v (t-subst Univ)))))])
          ;; verify that we got all the important variables
-         (extend-idxs subst))])))
+         (extend-idxs subst))]))
+  (if multiple-substitutions?
+      (map build-subst (cset-maps C))
+      (build-subst (car (cset-maps C)))))
 
 ;; context : the context of what to infer/not infer
 ;; S : a list of types to be the subtypes of T
@@ -870,11 +880,7 @@
          (let* ([cs (cgen/list ctx S T #:expected-cset expected-cset)]
                 [cs* (% cset-meet cs expected-cset)])
            (and cs* (cond
-                      [R
-                       (define substs (substs-gen cs* X Y R))
-                       (if multiple-substitutions?
-                           substs
-                           (first substs))]
+                      [R (substs-gen cs* X Y R multiple-substitutions?)]
                       [else #t])))))
   ;(trace infer)
   infer)) ;to export a variable binding and not syntax
@@ -910,7 +916,7 @@
    #:return-unless cs #f
    (define m (cset-meet cs expected-cset))
    #:return-unless m #f
-   (first (substs-gen m X (list dotted-var) R))))
+   (substs-gen m X (list dotted-var) R #f)))
 
 
 ;(trace subst-gen)

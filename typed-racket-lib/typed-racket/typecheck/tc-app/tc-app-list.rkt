@@ -80,27 +80,40 @@
   ;; special case for `list'
   (pattern
    (list . args)
+   (let ([args-list (syntax->list #'args)])
    (match expected
      [(tc-result1: t)
-      (define vs (stx-map (λ (x) (gensym)) #'args))
-      (define l-type (-Tuple (map make-F vs)))
-      ;; We want to infer the largest vs that are still under the element types
-      (define substs (i:infer vs null (list l-type) (list t) (-values (list (-> l-type Univ)))
-                              #:multiple? #t))
-      (cond
-        [substs
-         (define result
-           (for*/first ([subst (in-list substs)]
-                        [argtys (in-value (for/list ([arg (in-syntax #'args)]
-                                                     [v (in-list vs)])
-                                            (tc-expr/check/t? arg (ret (subst-all subst (make-F v))))))]
-                        #:when (andmap values argtys))
-             (ret (-Tuple argtys))))
-         (or result
-             (begin (expected-but-got t (-Tuple (stx-map tc-expr/t #'args)))
-                    expected))]
-        [else (ret (-Tuple (stx-map tc-expr/t #'args)))])]
-     [_ (ret (-Tuple (stx-map tc-expr/t #'args)))]))
+      (match t
+        [(List: ts)
+         (cond
+           [(= (length ts) (length args-list))
+            (for ([arg (in-list args-list)]
+                  [t (in-list ts)])
+              (tc-expr/check arg (ret t)))
+            expected]
+           [else
+            (expected-but-got t (-Tuple (map tc-expr/t args-list)))
+            expected])]
+        [_
+         (define vs (map (λ (_) (gensym)) args-list))
+         (define l-type (-Tuple (map make-F vs)))
+         ;; We want to infer the largest vs that are still under the element types
+         (define substs (i:infer vs null (list l-type) (list t) (-values (list (-> l-type Univ)))
+                                 #:multiple? #t))
+         (cond
+           [substs
+            (define result
+              (for*/first ([subst (in-list substs)]
+                           [argtys (in-value (for/list ([arg (in-list args-list)]
+                                                        [v (in-list vs)])
+                                               (tc-expr/check/t? arg (ret (subst-all subst (make-F v))))))]
+                           #:when (andmap values argtys))
+                (ret (-Tuple argtys))))
+            (or result
+                (begin (expected-but-got t (-Tuple (map tc-expr/t args-list)))
+                       expected))]
+           [else (ret (-Tuple (map tc-expr/t args-list)))])])]
+     [_ (ret (-Tuple (map tc-expr/t args-list)))])))
   ;; special case for `list*'
   (pattern (list* (~between args:expr 1 +inf.0) ...)
     (match-let* ([(list tys ... last) (stx-map tc-expr/t #'(args ...))])

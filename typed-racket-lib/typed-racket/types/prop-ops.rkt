@@ -6,6 +6,7 @@
          (rep type-rep prop-rep object-rep values-rep rep-utils)
          (only-in (infer infer) intersect)
          compatibility/mlist
+         racket/set
          (types subtype overlap subtract abbrev tc-result union))
 
 (provide/cond-contract
@@ -131,43 +132,50 @@
   (and (implies? p q)
        (implies? q p)))
 
-(define ((∩ t1) t2) (intersect t1 t2))
-(define ((∪ t1) t2) (union t1 t2))
+;; helpers for compact 
+(define (intersect-update! dict t1 p)
+  (hash-update! dict p (λ (t2) (intersect t1 t2)) Univ))
+(define (union-update! dict t1 p)
+  (hash-update! dict p (λ (t2) (Un t1 t2)) -Bottom))
 
-;; compact-or-props : (Listof prop) boolean? -> (Listof prop)
+;; compact : (listof prop) bool -> (listof prop)
+;; props : propositions to compress
+;; or? : is this an Or (alternative is And)
 ;;
-;; This combines all the TypeProps at the same path into one TypeProp with Un, and
-;; all of the NotTypeProps at the same path into one NotTypeProp with intersect.
-;; The Or then simplifies to -tt if any of the atomic props simplified to -tt, and
-;; any values of -ff are removed.
-;; NOTE: this getting inlined is important, so the 'or?' based dispatching
-;; is eliminated entirely.
+;; This combines all the TypeProps at the same path into one TypeProp. If it is an Or the
+;; combination is done using Un, otherwise, intersect. The reverse is done for NotTypeProps.
+;; If it is an Or this simplifies to -tt if any of the atomic props simplified to -tt, and
+;; removes any -ff values. The reverse is done if this is an And.
+;;
+;; NOTE: this is significantly faster as a macro than a function (even
+;; with define-inline)
 (define-syntax-rule (compact props or?)
   (match props
     [(or (list) (list _)) props]
     [_
      (define tf-map (make-hash))
      (define ntf-map (make-hash))
-     (define (intersect-update dict t1 p)
-       (hash-update! dict p (λ (t2) (intersect t1 t2)) Univ))
-     (define (union-update dict t1 p)
-       (hash-update! dict p (λ (t2) (Un t1 t2)) -Bottom))
 
+     ;; consolidate type info and separate out other props
      (define others
        (for/fold ([others '()])
                  ([prop (in-list props)])
          (match prop
            [(TypeProp: o t1)
-            ((if or? union-update intersect-update) tf-map t1 o)
+            ((if or? union-update! intersect-update!) tf-map t1 o)
             others]
            [(NotTypeProp: o t1)
-            ((if or? intersect-update union-update) ntf-map t1 o)
+            ((if or? intersect-update! union-update!) ntf-map t1 o)
             others]
            [_ (cons prop others)])))
+     ;; convert consolidated types into props and gather everything
      (define raw-results
-       (append (for/fold ([ps '()]) ([(k v) (in-hash tf-map)]) (cons (-is-type k v) ps))
-               (for/fold ([ps '()]) ([(k v) (in-hash ntf-map)]) (cons (-not-type k v) ps))
+       (append (for/list ([(k v) (in-hash tf-map)])
+                 (-is-type k v))
+               (for/list([(k v) (in-hash ntf-map)])
+                 (-not-type k v))
                others))
+     ;; check for abort condition and remove trivial props
      (if or?
          (if (member -tt raw-results)
              (list -tt)
@@ -208,13 +216,13 @@
           (apply -and (for/list ([a (in-list elems)])
                         (apply -or a (append (cdr ands) others)))))))
   (define (flatten-ors/remove-duplicates ps)
-    (define results (make-hash))
+    (define results (mutable-set))
     (for ([p (in-list ps)])
       (match p
         [(OrProp: ps*) (for ([p* (in-list ps*)])
-                         (hash-set! results p* #t))]
-        [p (hash-set! results p #t)]))
-    (hash-keys results))
+                         (set-add! results p*))]
+        [p (set-add! results p)]))
+    (set->list results))
   (let loop ([ps (flatten-ors/remove-duplicates args)]
              [result null])
     (match ps
@@ -250,26 +258,26 @@
   ;; strongest ones come first (note: this includes considering
   ;; smaller ors before larger ors)
   (define (flatten-ands/remove-duplicates/order ps)
-    (define ts (make-hash))
-    (define nts (make-hash))
+    (define ts (mutable-set))
+    (define nts (mutable-set))
     (define ors (make-hash))
-    (define others (make-hash))
+    (define others (mutable-set))
     (let partition! ([ps ps])
       (for ([p (in-list ps)])
         (match p
-          [(? TypeProp?) (hash-set! ts p #t)]
-          [(? NotTypeProp?) (hash-set! nts p #t)]
+          [(? TypeProp?) (set-add! ts p)]
+          [(? NotTypeProp?) (set-add! nts p)]
           [(OrProp: ps*) (hash-update! ors (length ps*) (λ (l) (cons p l)) '())]
           [(AndProp: ps*) (partition! ps*)]
-          [_ (hash-set! others p #t)])))
-    (define ors-smallest-to-largets
+          [_ (set-add! others p)])))
+    (define ors-smallest-to-largest
       (append-map cdr (sort (hash->list ors)
                             (λ (len/ors1 len/ors2)
                               (< (car len/ors1) (car len/ors2))))))
-    (append (hash-keys ts)
-            (hash-keys nts)
-            (hash-keys others)
-            ors-smallest-to-largets))
+    (append (set->list ts)
+            (set->list nts)
+            (set->list others)
+            ors-smallest-to-largest))
   (let loop ([ps (flatten-ands/remove-duplicates/order args)]
              [result null])
     (match ps

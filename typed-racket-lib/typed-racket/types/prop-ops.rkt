@@ -134,41 +134,47 @@
 (define ((∩ t1) t2) (intersect t1 t2))
 (define ((∪ t1) t2) (union t1 t2))
 
-;; compact-or-props : (Listof prop) -> (Listof prop)
+;; compact-or-props : (Listof prop) boolean? -> (Listof prop)
 ;;
 ;; This combines all the TypeProps at the same path into one TypeProp with Un, and
 ;; all of the NotTypeProps at the same path into one NotTypeProp with intersect.
 ;; The Or then simplifies to -tt if any of the atomic props simplified to -tt, and
 ;; any values of -ff are removed.
-(define/cond-contract (compact props or?)
-  ((c:listof Prop?) boolean? . c:-> . (c:listof Prop?))
-  (define tf-map (make-hash))
-  (define ntf-map (make-hash))
-  (define (intersect-update dict t1 p)
-    (hash-update! dict p (λ (t2) (intersect t1 t2)) Univ))
-  (define (union-update dict t1 p)
-    (hash-update! dict p (λ (t2) (Un t1 t2)) -Bottom))
+;; NOTE: this getting inlined is important, so the 'or?' based dispatching
+;; is eliminated entirely.
+(define-syntax-rule (compact props or?)
+  (match props
+    [(or (list) (list _)) props]
+    [_
+     (define tf-map (make-hash))
+     (define ntf-map (make-hash))
+     (define (intersect-update dict t1 p)
+       (hash-update! dict p (λ (t2) (intersect t1 t2)) Univ))
+     (define (union-update dict t1 p)
+       (hash-update! dict p (λ (t2) (Un t1 t2)) -Bottom))
 
-  (define-values (type-related-props others)
-    (partition (λ (p) (or (TypeProp? p) (NotTypeProp? p)))
-               props))
-  (for ([prop (in-list type-related-props)])
-    (match prop
-      [(TypeProp: o t1)
-       ((if or? union-update intersect-update) tf-map t1 o) ]
-      [(NotTypeProp: o t1)
-       ((if or? intersect-update union-update) ntf-map t1 o) ]))
-  (define raw-results
-    (append others
-            (for/list ([(k v) (in-hash tf-map)]) (-is-type k v))
-            (for/list ([(k v) (in-hash ntf-map)]) (-not-type k v))))
-  (if or?
-      (if (member -tt raw-results)
-          (list -tt)
-          (filter-not FalseProp? raw-results))
-      (if (member -ff raw-results)
-          (list -ff)
-          (filter-not TrueProp? raw-results))))
+     (define others
+       (for/fold ([others '()])
+                 ([prop (in-list props)])
+         (match prop
+           [(TypeProp: o t1)
+            ((if or? union-update intersect-update) tf-map t1 o)
+            others]
+           [(NotTypeProp: o t1)
+            ((if or? intersect-update union-update) ntf-map t1 o)
+            others]
+           [_ (cons prop others)])))
+     (define raw-results
+       (append (for/fold ([ps '()]) ([(k v) (in-hash tf-map)]) (cons (-is-type k v) ps))
+               (for/fold ([ps '()]) ([(k v) (in-hash ntf-map)]) (cons (-not-type k v) ps))
+               others))
+     (if or?
+         (if (member -tt raw-results)
+             (list -tt)
+             (filter-not FalseProp? raw-results))
+         (if (member -ff raw-results)
+             (list -ff)
+             (filter-not TrueProp? raw-results)))]))
 
 
 

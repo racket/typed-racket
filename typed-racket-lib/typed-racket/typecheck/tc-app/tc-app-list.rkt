@@ -90,10 +90,10 @@
             (for ([arg (in-list args-list)]
                   [t (in-list ts)])
               (tc-expr/check arg (ret t)))
-            expected]
+            (ret t)]
            [else
             (expected-but-got t (-Tuple (map tc-expr/t args-list)))
-            expected])]
+            (ret t)])]
         [_
          (define vs (map (λ (_) (gensym)) args-list))
          (define l-type (-Tuple (map make-F vs)))

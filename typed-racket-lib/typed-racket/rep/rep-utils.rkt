@@ -75,6 +75,35 @@
          (declare-predefined-type! id)))
 
 
+;; fetches an interned Rep based on the given _single_ key
+;; NOTE: the #:construct expression is only run if there
+;; is no interned copy, so we should avoid unnecessary
+;; allocation w/ this approach
+(define-simple-macro (intern-single-ref! table-exp:expr
+                                         key-exp:expr
+                                         #:construct val-exp:expr)
+  (let ([table table-exp])
+    (define key key-exp)
+    (define intern-box (hash-ref table key #f))
+    (cond
+      [(and intern-box (weak-box-value intern-box #f))]
+      [else
+       (define val val-exp)
+       (hash-set! table key (make-weak-box val))
+       val])))
+
+;; fetches an interned Rep based on the given _two_ keys
+;; see 'intern-single-ref!'
+(define-simple-macro (intern-double-ref! table:id
+                                         key-exp1:expr
+                                         key-exp2:expr
+                                         #:construct val-exp:expr)
+  (intern-single-ref! (hash-ref! table key-exp1 make-weak-hash)
+                      key-exp2
+                      #:construct val-exp))
+
+
+
 ;; - - - - - - - - - - - -
 ;; Rep Properties
 ;; - - - - - - - - - - - -

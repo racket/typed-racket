@@ -7,7 +7,8 @@
          "core-rep.rkt"
          "object-rep.rkt"
          racket/match
-         racket/lazy-require)
+         racket/lazy-require
+         (only-in racket/unsafe/ops unsafe-fx<=))
 
 (lazy-require
  ["../types/prop-ops.rkt" (-and -or)])
@@ -25,7 +26,12 @@
      [(Empty? obj) -tt]
      [(Univ? type) -tt]
      [(Bottom? type) -ff]
-     [else (make-TypeProp obj type)])])
+     [else
+      (intern-double-ref!
+       tprop-intern-table
+       obj type #:construct (make-TypeProp obj type))])])
+
+(define tprop-intern-table (make-weak-hash))
 
 ;; Abbreviation for props
 ;; `i` can be an integer or name-ref/c for backwards compatibility
@@ -49,8 +55,12 @@
      [(Empty? obj) -tt]
      [(Univ? type) -ff]
      [(Bottom? type) -tt]
-     [else (make-NotTypeProp obj type)])])
+     [else
+      (intern-double-ref!
+       ntprop-intern-table
+       obj type #:construct (make-NotTypeProp obj type))])])
 
+(define ntprop-intern-table (make-weak-hash))
 
 ;; Abbreviation for not props
 ;; `i` can be an integer or name-ref/c for backwards compatibility
@@ -68,7 +78,16 @@
 (def-prop OrProp ([ps (listof (or/c TypeProp? NotTypeProp?))])
   [#:frees (f) (combine-frees (map f ps))]
   [#:fmap (f) (apply -or (map f ps))]
-  [#:for-each (f) (for-each f ps)])
+  [#:for-each (f) (for-each f ps)]
+  [#:custom-constructor
+   (let ([ps (sort ps (λ (p q) (unsafe-fx<= (eq-hash-code p)
+                                            (eq-hash-code q))))])
+     (intern-single-ref!
+      orprop-intern-table
+      ps
+      #:construct (make-OrProp ps)))])
+
+(define orprop-intern-table (make-weak-hash))
 
 (def-prop AndProp ([ps (listof (or/c OrProp? TypeProp? NotTypeProp?))])
   [#:frees (f) (combine-frees (map f ps))]

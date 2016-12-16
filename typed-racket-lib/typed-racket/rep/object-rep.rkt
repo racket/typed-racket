@@ -35,7 +35,14 @@
      [(identifier? name)
       (if (is-var-mutated? name)
           -empty-obj
-          (make-Path elems (normalize-id name)))]
-     [else (make-Path elems name)])])
+          (let ([name (normalize-id name)])
+            (intern-double-ref!
+             path-intern-table
+             name elems #:construct (make-Path elems name))))]
+     [else (intern-double-ref!
+            path-intern-table
+            name elems #:construct (make-Path elems name))])])
+
+(define path-intern-table (make-weak-hash))
 
 (define (-id-path name) (make-Path null name))

@@ -5,8 +5,6 @@
          (prefix-in c: (contract-req))
          (rep type-rep prop-rep object-rep values-rep rep-utils)
          (only-in (infer infer) intersect)
-         compatibility/mlist
-         racket/set
          (types subtype overlap subtract abbrev tc-result union))
 
 (provide/cond-contract
@@ -216,13 +214,14 @@
           (apply -and (for/list ([a (in-list elems)])
                         (apply -or a (append (cdr ands) others)))))))
   (define (flatten-ors/remove-duplicates ps)
-    (define results (mutable-set))
-    (for ([p (in-list ps)])
-      (match p
-        [(OrProp: ps*) (for ([p* (in-list ps*)])
-                         (set-add! results p*))]
-        [p (set-add! results p)]))
-    (set->list results))
+    (let loop ([ps ps]
+               [result '()])
+      (match ps
+        [(cons p rst)
+         (match p
+           [(OrProp: ps*) (loop rst (append ps* result))]
+           [_ (loop rst (cons p result))])]
+        [_ (remove-duplicates result)])))
   (let loop ([ps (flatten-ors/remove-duplicates args)]
              [result null])
     (match ps
@@ -258,26 +257,23 @@
   ;; strongest ones come first (note: this includes considering
   ;; smaller ors before larger ors)
   (define (flatten-ands/remove-duplicates/order ps)
-    (define ts (mutable-set))
-    (define nts (mutable-set))
+    (define ts '())
+    (define nts '())
     (define ors (make-hash))
-    (define others (mutable-set))
+    (define others '())
     (let partition! ([ps ps])
       (for ([p (in-list ps)])
         (match p
-          [(? TypeProp?) (set-add! ts p)]
-          [(? NotTypeProp?) (set-add! nts p)]
+          [(? TypeProp?) (set! ts (cons p ts))]
+          [(? NotTypeProp?) (set! nts (cons p nts))]
           [(OrProp: ps*) (hash-update! ors (length ps*) (λ (l) (cons p l)) '())]
           [(AndProp: ps*) (partition! ps*)]
-          [_ (set-add! others p)])))
+          [_ (set! others (cons p others))])))
     (define ors-smallest-to-largest
       (append-map cdr (sort (hash->list ors)
                             (λ (len/ors1 len/ors2)
                               (< (car len/ors1) (car len/ors2))))))
-    (append (set->list ts)
-            (set->list nts)
-            (set->list others)
-            ors-smallest-to-largest))
+    (remove-duplicates (append ts nts others ors-smallest-to-largest) eq?))
   (let loop ([ps (flatten-ands/remove-duplicates/order args)]
              [result null])
     (match ps

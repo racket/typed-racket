@@ -72,7 +72,7 @@
  ("../types/overlap.rkt" (overlap?))
  ("../types/resolve.rkt" (resolve-app)))
 
-(define var-name-table (make-weak-hash))
+(define var-name-table (make-hash))
 
 ;; Name = Symbol
 

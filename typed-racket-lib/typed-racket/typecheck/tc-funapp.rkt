@@ -8,7 +8,7 @@
          (for-syntax syntax/parse racket/base)
          (types utils subtype resolve abbrev
                 substitute classes prop-ops)
-         (typecheck tc-metafunctions tc-app-helper)
+         (typecheck tc-metafunctions tc-app-helper tc-subst)
          (rep type-rep)
          (r:infer infer))
 
@@ -35,8 +35,15 @@
                         #:name (and (identifier? f-stx) f-stx)
                         #:expected expected))))]))
 
+(define (subst-dom-objs argtys argobjs rng)
+  (subst-rep rng (for/list ([o (in-list argobjs)]
+                            [t (in-list argtys)]
+                            [idx (in-naturals)]
+                            #:when (not (Empty? o)))
+                   (list (cons 0 idx) o t))))
+
 (define (tc/funapp f-stx args-stx f-type args-res expected)
-  (match-define (list (tc-result1: argtys (PropSet: argps+ argps-) _) ...) args-res)
+  (match-define (list (tc-result1: argtys (PropSet: argps+ argps-) argobjs) ...) args-res)
   (define result
     (match f-type
       ;; we special-case this (no case-lambda) for improved error messages
@@ -74,18 +81,19 @@
         ;; Only try to infer the free vars of the rng (which includes the vars
         ;; in props/objects).
         (λ (dom rng rest drest a)
-          (extend-tvars fixed-vars
-                        (cond
-                          [drest
-                           (infer/dots
-                            fixed-vars dotted-var argtys dom (car drest) rng (fv rng)
-                            #:expected (and expected (tc-results->values expected)))]
-                          [rest
-                           (infer/vararg fixed-vars (list dotted-var) argtys dom rest rng
-                                         (and expected (tc-results->values expected)))]
-                          ;; no rest or drest
-                          [else (infer fixed-vars (list dotted-var) argtys dom rng
-                                       (and expected (tc-results->values expected)))])))
+          (let ([rng (subst-dom-objs argtys argobjs rng)])
+            (extend-tvars fixed-vars
+                          (cond
+                            [drest
+                             (infer/dots
+                              fixed-vars dotted-var argtys dom (car drest) rng (fv rng)
+                              #:expected (and expected (tc-results->values expected)))]
+                            [rest
+                             (infer/vararg fixed-vars (list dotted-var) argtys dom rest rng
+                                           (and expected (tc-results->values expected)))]
+                            ;; no rest or drest
+                            [else (infer fixed-vars (list dotted-var) argtys dom rng
+                                         (and expected (tc-results->values expected)))]))))
         f-type args-res expected)]
       ;; regular polymorphic functions without dotted rest, 
       ;; we do not choose any instantiations with mandatory keyword arguments
@@ -99,9 +107,10 @@
         ;; Only try to infer the free vars of the rng (which includes the vars
         ;; in props/objects).
         (λ (dom rng rest kw? a)
-          (extend-tvars vars
-                        (infer/vararg vars null argtys dom rest rng
-                                      (and expected (tc-results->values expected)))))
+          (let ([rng (subst-dom-objs argtys argobjs rng)])
+            (extend-tvars vars
+                          (infer/vararg vars null argtys dom rest rng
+                                        (and expected (tc-results->values expected))))))
         f-type args-res expected)]
       ;; Row polymorphism. For now we do really dumb inference that only works
       ;; in very restricted cases, but is probably enough for most cases in

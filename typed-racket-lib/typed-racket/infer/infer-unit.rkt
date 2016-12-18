@@ -220,12 +220,12 @@
       (substitute (make-F var) v ty*))))
 
 
-(define/cond-contract (cgen/prop context s t)
+(define/cond-contract (cgen/prop context p q)
   (context? Prop? Prop? . -> . (or/c #f cset?))
-  (match* (s t)
-    [(e e) (empty-cset/context context)]
-    [(e (TrueProp:)) (empty-cset/context context)]
-    [((FalseProp:) e) (empty-cset/context context)]
+  (match* (p q)
+    [(p p) (empty-cset/context context)]
+    [(p (TrueProp:)) (empty-cset/context context)]
+    [((FalseProp:) q) (empty-cset/context context)]
     ;; FIXME - is there something to be said about the logical ones?
     [((TypeProp: o s) (TypeProp: o t)) (cgen/inv context s t)]
     [((NotTypeProp: o s) (NotTypeProp: o t)) (cgen/inv context s t)]
@@ -919,7 +919,7 @@
    (substs-gen m X (list dotted-var) R #f)))
 
 
-;(trace subst-gen)
+;(trace substs-gen)
 ;(trace cgen)
 ;(trace cgen/list)
 ;(trace cgen/arr)

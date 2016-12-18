@@ -27,6 +27,7 @@
                   tc-results/c
                   tc-results/c)])
 
+(provide subst-rep)
 
 ;; Substitutes the given objects into the values and turns it into a
 ;; tc-result.  This matches up to the substitutions in the T-App rule

@@ -5,7 +5,7 @@
          (except-in (types abbrev utils prop-ops tc-result)
                     -> ->* one-of/c)
          (rep type-rep prop-rep object-rep values-rep rep-utils)
-         (typecheck tc-subst check-below)
+         (typecheck tc-subst)
          (contract-req))
 
 (provide abstract-results

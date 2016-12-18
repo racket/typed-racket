@@ -298,7 +298,7 @@
 ;; Useful to express properties of the form: if this expressions returns at all, we learn this
 (define (add-unconditional-prop results prop)
   (match results
-    [(tc-any-results: f) (tc-any-results (-and prop f))]
+    [(tc-any-results: p) (tc-any-results (-and prop p))]
     [(tc-results: ts (list (PropSet: ps+ ps-) ...) os)
      (ret ts
           (for/list ([p+ (in-list ps+)]

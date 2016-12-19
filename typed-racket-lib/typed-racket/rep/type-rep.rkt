@@ -199,11 +199,7 @@
 ;; left and right are Types
 (def-structural Pair ([left #:covariant]
                       [right #:covariant])
-  [#:mask mask:pair]
-  [#:custom-constructor
-   (if (or (Bottom? left) (Bottom? right))
-       -Bottom
-       (make-Pair left right))])
+  [#:mask mask:pair])
 
 ;;----------------
 ;; Mutable Pairs
@@ -216,11 +212,7 @@
 ;; *mutable* pairs - distinct from regular pairs
 ;; left and right are Types
 (def-structural MPair ([left #:invariant] [right #:invariant])
-  [#:mask mask:mpair]
-  [#:custom-constructor
-   (if (or (Bottom? left) (Bottom? right))
-       -Bottom
-       (make-MPair left right))])
+  [#:mask mask:mpair])
 
 ;;----------
 ;; Vectors
@@ -242,11 +234,7 @@
   [#:singleton -BoxTop])
 
 (def-structural Box ([elem #:invariant])
-  [#:mask mask:box]
-  [#:custom-constructor
-   (if (Bottom? elem)
-       -Bottom
-       (make-Box elem))])
+  [#:mask mask:box])
 
 ;;----------
 ;; Channel
@@ -257,11 +245,7 @@
   [#:singleton -ChannelTop])
 
 (def-structural Channel ([elem #:invariant])
-  [#:mask mask:channel]
-  [#:custom-constructor
-   (if (Bottom? elem)
-       -Bottom
-       (make-Channel elem))])
+  [#:mask mask:channel])
 
 ;;----------------
 ;; Async-Channel
@@ -272,11 +256,7 @@
   [#:singleton -Async-ChannelTop])
 
 (def-structural Async-Channel ([elem #:invariant])
-  [#:mask mask:channel]
-  [#:custom-constructor
-   (if (Bottom? elem)
-       -Bottom
-       (make-Async-Channel elem))])
+  [#:mask mask:channel])
 
 ;;-------------
 ;; ThreadCell
@@ -287,33 +267,21 @@
   [#:singleton -ThreadCellTop])
 
 (def-structural ThreadCell ([elem #:invariant])
-  [#:mask mask:thread-cell]
-  [#:custom-constructor
-   (if (Bottom? elem)
-       -Bottom
-       (make-ThreadCell elem))])
+  [#:mask mask:thread-cell])
 
 ;;----------
 ;; Promise
 ;;----------
 
 (def-structural Promise ([elem #:covariant])
-  [#:mask mask:promise]
-  [#:custom-constructor
-   (if (Bottom? elem)
-       -Bottom
-       (make-Promise elem))])
+  [#:mask mask:promise])
 
 ;;------------
 ;; Ephemeron
 ;;------------
 
 (def-structural Ephemeron ([elem #:covariant])
-  [#:mask mask:ephemeron]
-  [#:custom-constructor
-   (if (Bottom? elem)
-       -Bottom
-       (make-Ephemeron elem))])
+  [#:mask mask:ephemeron])
 
 
 ;;-----------
@@ -325,11 +293,7 @@
   [#:singleton -Weak-BoxTop])
 
 (def-structural Weak-Box ([elem #:invariant])
-  [#:mask mask:other-box]
-  [#:custom-constructor
-   (if (Bottom? elem)
-       -Bottom
-       (make-Weak-Box elem))])
+  [#:mask mask:other-box])
 
 
 ;;---------------
@@ -337,11 +301,7 @@
 ;;---------------
 
 (def-structural CustodianBox ([elem #:covariant])
-  [#:mask mask:other-box]
-  [#:custom-constructor
-   (if (Bottom? elem)
-       -Bottom
-       (make-CustodianBox elem))])
+  [#:mask mask:other-box])
 
 ;;------
 ;; Set
@@ -385,22 +345,14 @@
 
 ;; t is the type of the result of syntax-e, not the result of syntax->datum
 (def-structural Syntax ([t #:covariant])
-  [#:mask mask:syntax]
-  [#:custom-constructor
-   (if (Bottom? t)
-       -Bottom
-       (make-Syntax t))])
+  [#:mask mask:syntax])
 
 ;;---------
 ;; Future
 ;;---------
 
 (def-structural Future ([t #:covariant])
-  [#:mask mask:future]
-  [#:custom-constructor
-   (if (Bottom? t)
-       -Bottom
-       (make-Future t))])
+  [#:mask mask:future])
 
 
 ;;---------------
@@ -417,11 +369,7 @@
 ;;   and the codomains of `handler`
 (def-structural Prompt-Tagof ([body #:invariant]
                               [handler #:invariant])
-  [#:mask mask:prompt-tag]
-  [#:custom-constructor
-   (if (or (Bottom? body) (Bottom? handler))
-       -Bottom
-       (make-Prompt-Tagof body handler))])
+  [#:mask mask:prompt-tag])
 
 ;;--------------------------
 ;; Continuation-Mark-Keyof
@@ -460,11 +408,7 @@
   [#:frees (f) (make-invariant (combine-frees (map f elems)))]
   [#:fmap (f) (make-HeterogeneousVector (map f elems))]
   [#:for-each (f) (for-each f elems)]
-  [#:mask mask:vector]
-  [#:custom-constructor
-   (if (ormap Bottom? elems)
-       -Bottom
-       (make-HeterogeneousVector elems))])
+  [#:mask mask:vector])
 
 
 ;; * * * * * * *
@@ -617,14 +561,12 @@
   ;; This should eventually be based on understanding of struct properties.
   [#:mask (mask-union mask:struct mask:procedure)]
   [#:custom-constructor
-   (cond
-     [(ormap (λ (fld) (Bottom? (fld-t fld))) flds) -Bottom]
-     [else (make-Struct (normalize-id name)
-                        parent
-                        flds
-                        proc
-                        poly?
-                        (normalize-id pred-id))])])
+   (make-Struct (normalize-id name)
+                parent
+                flds
+                proc
+                poly?
+                (normalize-id pred-id))])
 
 ;; Represents prefab structs
 ;; key  : prefab key encoding mutability, auto-fields, etc.
@@ -634,11 +576,7 @@
   [#:frees (f) (combine-frees (map f flds))]
   [#:fmap (f) (make-Prefab key (map f flds))]
   [#:for-each (f) (for-each f flds)]
-  [#:mask mask:prefab]
-  [#:custom-constructor
-   (cond
-     [(ormap Bottom? flds) -Bottom]
-     [else (make-Prefab key flds)])])
+  [#:mask mask:prefab])
 
 (def-type StructTypeTop ()
   [#:mask mask:struct-type]
@@ -772,10 +710,7 @@
   [#:fmap (f) (make-Refinement (f parent) pred)]
   [#:for-each (f) (f parent)]
   [#:mask (λ (t) (mask (Refinement-parent t)))]
-  [#:custom-constructor
-   (if (Bottom? parent)
-       -Bottom
-       (make-Refinement parent (normalize-id pred)))])
+  [#:custom-constructor (make-Refinement parent (normalize-id pred))])
 
 ;; A Row used in type instantiation
 ;; For now, this should not appear in user code. It's used

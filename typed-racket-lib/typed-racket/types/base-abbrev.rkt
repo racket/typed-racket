@@ -22,6 +22,16 @@
          (rename-out [make-Listof -lst]
                      [make-MListof -mlst]))
 
+(define-syntax (rebuild stx)
+  (syntax-case stx ()
+    [(_ mk args ...)
+     (with-syntax ([(t ...) (generate-temporaries #'(args ...))])
+       (syntax/loc stx
+         (let ([t args] ...)
+           (if (or (Bottom? t) ...)
+               -Bottom
+               (mk t ...)))))]))
+
 (define/decl -False (make-Value #f))
 (define/decl -True (make-Value #t))
 (define/decl -Boolean (Un -False -True))

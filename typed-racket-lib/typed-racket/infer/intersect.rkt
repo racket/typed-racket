@@ -51,15 +51,15 @@
      
          ;; structural recursion on types
          [((Pair: a1 d1) (Pair: a2 d2))
-          (-pair (rec a1 a2) (rec d1 d2))]
+          (rebuild -pair (rec a1 a2) (rec d1 d2))]
          ;; FIXME: support structural updating for structs when structs are updated to
          ;; contain not only *if* they are polymorphic, but *which* fields are too
          ;;[((Struct: _ _ _ _ _ _)
          ;; (Struct: _ _ _ _ _ _))]
          [((Syntax: t1*) (Syntax: t2*))
-          (-Syntax (rec t1* t2*))]
+          (rebuild -Syntax (rec t1* t2*))]
          [((Promise: t1*) (Promise: t2*))
-          (-Promise (rec t1* t2*))]
+          (rebuild -Promise (rec t1* t2*))]
 
          [((Union: t1s) t2)
           (match t2
@@ -130,9 +130,6 @@
 ;; and sometimes we want to make sure and _not_ add t2 to the result
 ;; we just want to keep the parts of t1 consistent with t2)
 (define (restrict t1 t2)
-  ;; build-type: build a type while propogating bottom
-  (define (build-type constructor . args)
-    (if (memf Bottom? args) -Bottom (apply constructor args)))
   ;; resolved is a set tracking previously seen restrict cases
   ;; (i.e. pairs of t1 t2) to prevent infinite unfolding.
   ;; subtyping performs a similar check for the same
@@ -150,17 +147,17 @@
       
       ;; structural recursion on types
       [((Pair: a1 d1) (Pair: a2 d2)) 
-       (build-type -pair 
-                   (restrict a1 a2 resolved) 
-                   (restrict d1 d2 resolved))]
+       (rebuild -pair
+                (restrict a1 a2 resolved)
+                (restrict d1 d2 resolved))]
       ;; FIXME: support structural updating for structs when structs are updated to
       ;; contain not only *if* they are polymorphic, but *which* fields are too  
       ;;[((Struct: _ _ _ _ _ _)
       ;; (Struct: _ _ _ _ _ _))]
       [((Syntax: t1*) (Syntax: t2*))
-       (build-type -Syntax (restrict t1* t2* resolved))]
+       (rebuild -Syntax (restrict t1* t2* resolved))]
       [((Promise: t1*) (Promise: t2*))
-       (build-type -Promise (restrict t1* t2* resolved))]
+       (rebuild -Promise (restrict t1* t2* resolved))]
       
       ;; unions
       [((Union: t1s) t2)

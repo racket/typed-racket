@@ -23,9 +23,6 @@
 ;;   in *syntactic order* (e.g. (car (cdr x)) -> '(car cdr))  
 (define/cond-contract (update t new-t pos? path-elems)
   (Type? Type? boolean? (listof PathElem?) . -> . Type?)
-  ;; build-type: build a type while propogating bottom
-  (define (build constructor . args)
-    (if (memf Bottom? args) -Bottom (apply constructor args)))
   ;; update's inner recursive loop
   ;; puts path in *accessed* order
   ;; (i.e. (car (cdr x)) --> (list cdr car))
@@ -38,15 +35,15 @@
        (match* ((resolve t) path-elem)
          ;; pair ops
          [((Pair: t s) (CarPE:))
-          (build -pair (update t rst) s)]
+          (rebuild -pair (update t rst) s)]
          [((Pair: t s) (CdrPE:))
-          (build -pair t (update s rst))]
+          (rebuild -pair t (update s rst))]
          ;; syntax ops
          [((Syntax: t) (SyntaxPE:))
-          (build -Syntax (update t rst))]
+          (rebuild -Syntax (update t rst))]
          ;; promise op
          [((Promise: t) (ForcePE:))
-          (build -Promise (update t rst))]
+          (rebuild -Promise (update t rst))]
          
          ;; struct ops
          [((Struct: nm par flds proc poly pred)

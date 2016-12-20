@@ -72,7 +72,8 @@
     [(_ ps:expr
         #:expected expected
         u:unreachable? . b)
-     #'(let ([old-props (env-props (lexical-env))]
+     (syntax/loc stx
+       (let ([old-props (env-props (lexical-env))]
              [new-env (env+ (lexical-env) ps)])
          (cond
            [new-env
@@ -83,7 +84,7 @@
                   ;; if there was not any expected results, then
                   ;; return any new info that was learned while
                   ;; extending the environment
-                  [(or #f (tc-any-results #f))
+                  [(or #f (tc-any-results: #f))
                    (define new-props
                      (make-AndProp (set-subtract (env-props new-env) old-props)))
                    (add-unconditional-prop result new-props)]
@@ -92,4 +93,4 @@
            [else
             ;; unreachable, bail out
             u.form
-            (ret -Bottom)]))]))
+            (ret -Bottom)])))]))

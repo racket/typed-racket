@@ -197,5 +197,8 @@
  [full-tc-results/c c:flat-contract?]
  [fix-results (c:-> tc-results/c full-tc-results/c)]
  [fix-results/bottom (c:-> tc-results/c full-tc-results/c)]
- [fix-props (c:->* (Prop?) (Prop?) Prop?)]
- [fix-object (c:->* (OptObject?) (OptObject?) OptObject?)])
+ [fix-props
+  (c:->* ((c:or/c #f Prop? PropSet?))
+         ((c:or/c Prop? PropSet?))
+         (c:or/c Prop? PropSet?))]
+ [fix-object (c:->* ((c:or/c #f OptObject?)) (OptObject?) OptObject?)])

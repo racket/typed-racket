@@ -869,8 +869,10 @@
       (or/c #f Values/c ValuesDots?))
      ((or/c #f Values/c AnyValues? ValuesDots?)
       #:multiple? boolean?)
-     . ->* . (or/c #f substitution/c (cons/c substitution/c
-                                             (listof substitution/c))))
+     . ->* . (or/c boolean?
+                   substitution/c
+                   (cons/c substitution/c
+                           (listof substitution/c))))
     (define ctx (context null X Y ))
     (define expected-cset
       (if expected

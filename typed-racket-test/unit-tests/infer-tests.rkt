@@ -71,8 +71,8 @@
   (test-suite
    "Test suite for fi"
    [fi-t (make-ValuesDots null (-v a) 'a) [a variance:co]]
-   [fi-t (->... (list) ((-v a) (-v a)) (make-ValuesDots null (-v a) 'a))
-         [a variance:co]]))
+   [fi-t (->... (list) ((-lst (-v a)) b) -Symbol)
+         [b variance:contra]]))
 
 (define-syntax (pd-t stx)
   (syntax-parse stx

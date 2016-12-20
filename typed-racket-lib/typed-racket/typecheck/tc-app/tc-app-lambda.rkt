@@ -53,8 +53,7 @@
                       expected)))))
 
 
-(define/cond-contract
-  (let-loop-check lam lp actuals args body expected)
+(define/cond-contract (let-loop-check lam lp actuals args body expected)
   (syntax? syntax? syntax? syntax? syntax? tc-results/c . --> . full-tc-results/c)
   (syntax-parse #`(#,args #,body #,actuals)
     #:literal-sets (kernel-literals lambda-literals)

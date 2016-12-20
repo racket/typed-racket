@@ -111,7 +111,7 @@
                 (ret (-Tuple argtys))))
             (or result
                 (begin (expected-but-got t (-Tuple (map tc-expr/t args-list)))
-                       expected))]
+                       (fix-results expected)))]
            [else (ret (-Tuple (map tc-expr/t args-list)))])])]
      [_ (ret (-Tuple (map tc-expr/t args-list)))])))
   ;; special case for `list*'

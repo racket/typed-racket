@@ -865,11 +865,11 @@
     [_ #f]))
 
 (module predicates racket/base
-  (require racket/extflonum)
+  (require racket/extflonum (only-in racket/contract/base >=/c <=/c))
   (provide nonnegative? nonpositive?
            extflonum? extflzero? extflnonnegative? extflnonpositive?)
-  (define nonnegative? (lambda (x) (>= x 0)))
-  (define nonpositive? (lambda (x) (<= x 0)))
+  (define nonnegative? (>=/c 0))
+  (define nonpositive? (<=/c 0))
   (define extflzero? (lambda (x) (extfl= x 0.0t0)))
   (define extflnonnegative? (lambda (x) (extfl>= x 0.0t0)))
   (define extflnonpositive? (lambda (x) (extfl<= x 0.0t0))))
@@ -922,9 +922,9 @@
   (define inexact-real/sc (numeric/sc Inexact-Real inexact-real?))
   (define real-zero/sc (numeric/sc Real-Zero (and/c real? zero?)))
   (define positive-real/sc (numeric/sc Positive-Real (and/c real? positive?)))
-  (define nonnegative-real/sc (numeric/sc Nonnegative-Real (and/c real? nonnegative?)))
+  (define nonnegative-real/sc (numeric/sc Nonnegative-Real nonnegative?)) ; implies `real?`
   (define negative-real/sc (numeric/sc Negative-Real (and/c real? negative?)))
-  (define nonpositive-real/sc (numeric/sc Nonpositive-Real (and/c real? nonpositive?)))
+  (define nonpositive-real/sc (numeric/sc Nonpositive-Real nonpositive?)) ; implies `real?`
   (define real/sc (numeric/sc Real real?))
   (define exact-number/sc (numeric/sc Exact-Number (and/c number? exact?)))
   (define inexact-complex/sc

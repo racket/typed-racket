@@ -268,7 +268,7 @@
 
    [infer-t
     (-lst (-mu A (Un (-v b) (-lst A))))
-    (-mu C (Un (-v b2) (-lst C)))
+    (-mu C (Un (-lst C) (-v b2)))
     #:vars '(b2)
     #:result [(-vec (-v b2)) (-vec (-lst (-mu A (Un (-v b) (-lst A)))))]]
 

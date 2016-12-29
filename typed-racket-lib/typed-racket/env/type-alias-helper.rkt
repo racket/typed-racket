@@ -3,7 +3,7 @@
 ;; This module provides helper functions for type aliases
 
 (require "../utils/utils.rkt"
-         (utils tarjan tc-utils hset)
+         (utils tarjan tc-utils)
          (env type-alias-env type-name-env)
          (rep type-rep)
          (private parse-type)
@@ -57,8 +57,8 @@
 ;;
 (define (check-type-alias-contractive id type)
   (define/match (check type)
-    [((Union: elems)) (for/and ([elem (in-hset elems)]) (check elem))]
-    [((Intersection: elems)) (for/and ([elem (in-hset elems)]) (check elem))]
+    [((Union: _ ts)) (andmap check ts)]
+    [((Intersection: elems)) (andmap check elems)]
     [((Name/simple: name-id))
      (and (not (free-identifier=? name-id id))
           (check (resolve-once type)))]
@@ -90,11 +90,7 @@
 ;; Identifier -> Type
 ;; Construct a fresh placeholder type
 (define (make-placeholder-type id)
-  (make-Base ;; the uninterned symbol here ensures that no two type
-             ;; aliases get the same placeholder type
-             (string->uninterned-symbol (symbol->string (syntax-e id)))
-             #'(int-err "Encountered unresolved alias placeholder")
-             (lambda _ #f) #f))
+  (make-Opaque id))
 
 ;; register-all-type-aliases : Listof<Id> Dict<Id, TypeAliasInfo> -> Void
 ;;

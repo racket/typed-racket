@@ -8,7 +8,7 @@
                            classes prefab signatures)
                     [make-arr* make-arr])
          (only-in (infer-in infer) intersect)
-         (utils tc-utils stxclass-util literal-syntax-class hset)
+         (utils tc-utils stxclass-util literal-syntax-class)
          syntax/stx (prefix-in c: (contract-req))
          syntax/parse racket/sequence
          (env tvar-env type-alias-env mvar-env
@@ -453,10 +453,10 @@
                        (let ([t* (parse-type #'t)])
                          ;; is t in a productive position?
                          (define productive
-                           (let loop ((ty t*))
+                           (let loop ([ty t*])
                              (match ty
-                               [(Union: elems) (for/and ([elem (in-hset elems)]) (loop elem))]
-                               [(Intersection: elems) (for/and ([elem (in-hset elems)]) (loop elem))]
+                               [(Union: _ elems) (andmap loop elems)]
+                               [(Intersection: elems) (andmap loop elems)]
                                [(F: _) (not (equal? ty tvar))]
                                [(App: rator rands)
                                 (loop (resolve-app rator rands stx))]

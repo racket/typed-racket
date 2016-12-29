@@ -133,7 +133,7 @@
   (match t
     [(Pair: (Value: (? keyword? k)) b)
      (cons k (type->list b))]
-    [(Value: '()) null]
+    [(? Base:Null?) null]
     [_ (int-err "bad value in type->list: ~a" t)]))
 
 

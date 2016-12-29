@@ -12,8 +12,7 @@
          racket/function
 
          (prefix-in c: (contract-req))
-         (rename-in (rep rep-utils type-rep prop-rep object-rep values-rep)
-                    [make-Base make-Base*])
+         (rep rep-utils type-rep prop-rep object-rep values-rep)
          (types numeric-tower prefab)
          ;; Using this form so all-from-out works
          "base-abbrev.rkt" "match-expanders.rkt"
@@ -49,12 +48,8 @@
          (only-in racket/future fsemaphore?)
          (only-in '#%place place? place-channel?))
 
-(provide (except-out (all-defined-out) make-Base)
+(provide (all-defined-out)
          (except-out (all-from-out "base-abbrev.rkt" "match-expanders.rkt") make-arr))
-
-;; All the types defined here are not numeric
-(define (make-Base name contract predicate)
-  (make-Base* name contract predicate #f))
 
 ;; Convenient constructors
 (define -App make-App)
@@ -86,10 +81,6 @@
 
 (define (-ne-lst t) (-pair t (-lst t)))
 
-;; For casted-exprs in unreachable code, to fill in the cast table.
-;; TODO: This contract normally gets optimized away. Is there away to stop that?
-(define -Dead-Code (make-Base 'Dead-Code #'(make-none/c 'dead-code/c) (λ (v) #f)))
-
 ;; Convenient constructor for Values
 ;; (wraps arg types with Result)
 (define/cond-contract (-values args)
@@ -107,29 +98,9 @@
 
 ;; Basic types
 (define -Listof (-poly (list-elem) (make-Listof list-elem)))
-(define/decl -Undefined
-  (make-Base 'Undefined
-             #'(lambda (x) (eq? x undefined))
-             (lambda (x) (eq? x undefined))))
-(define/decl -Bytes (make-Base 'Bytes #'bytes? bytes?))
-(define/decl -Base-Regexp (make-Base 'Base-Regexp
-                           #'(and/c regexp? (not/c pregexp?))
-                           (conjoin regexp? (negate pregexp?))))
-(define/decl -PRegexp (make-Base 'PRegexp
-				 #'pregexp?
-				 pregexp?))
 (define/decl -Regexp (Un -PRegexp -Base-Regexp))
-(define/decl -Byte-Base-Regexp
-  (make-Base 'Byte-Base-Regexp
-	     #'(and/c byte-regexp? (not/c byte-pregexp?))
-	     (conjoin byte-regexp? (negate byte-pregexp?))))
-(define/decl -Byte-PRegexp
-  (make-Base 'Byte-PRegexp #'byte-pregexp? byte-pregexp?))
 (define/decl -Byte-Regexp (Un -Byte-Base-Regexp -Byte-PRegexp))
 (define/decl -Pattern (Un -Bytes -Regexp -Byte-Regexp -String))
-(define/decl -Keyword (make-Base 'Keyword #'keyword? keyword?))
-(define/decl -Thread (make-Base 'Thread #'thread? thread?))
-(define/decl -Path (make-Base 'Path #'path? path?))
 (define/decl -Module-Path
   (-mu X
        (Un -Symbol -String -Path
@@ -148,27 +119,7 @@
                                                  -Nat)))))))
            (-lst* (-val 'submod) X
                   #:tail (-lst (Un -Symbol (-val "..")))))))
-(define/decl -Resolved-Module-Path (make-Base 'Resolved-Module-Path #'resolved-module-path? resolved-module-path?))
-(define/decl -Module-Path-Index (make-Base 'Module-Path-Index #'module-path-index? module-path-index?))
-(define/decl -Compiled-Module-Expression (make-Base 'Compiled-Module-Expression #'compiled-module-expression? compiled-module-expression?))
-(define/decl -Compiled-Non-Module-Expression
-  (make-Base 'Compiled-Non-Module-Expression
-             #'(and/c    compiled-expression? (not/c  compiled-module-expression?))
-	     (conjoin  compiled-expression? (negate compiled-module-expression?))))
 (define/decl -Compiled-Expression (Un -Compiled-Module-Expression -Compiled-Non-Module-Expression))
-(define/decl -Cont-Mark-Set (make-Base 'Continuation-Mark-Set #'continuation-mark-set? continuation-mark-set?))
-(define/decl -OtherSystemPath
-  (make-Base 'OtherSystemPath
-	     #'(and/c path-for-some-system? (not/c path?))
-	     (conjoin path-for-some-system? (negate path?))))
-(define/decl -Namespace (make-Base 'Namespace #'namespace? namespace?))
-(define/decl -Output-Port (make-Base 'Output-Port #'output-port? output-port?))
-(define/decl -Input-Port (make-Base 'Input-Port #'input-port? input-port?))
-(define/decl -TCP-Listener (make-Base 'TCP-Listener #'tcp-listener? tcp-listener?))
-(define/decl -UDP-Socket (make-Base 'UDP-Socket #'udp? udp?))
-(define/decl -FlVector (make-Base 'FlVector #'flvector? flvector?))
-(define/decl -ExtFlVector (make-Base 'ExtFlVector #'extflvector? extflvector?))
-(define/decl -FxVector (make-Base 'FxVector #'fxvector? fxvector?))
 ;; in the type (-Syntax t), t is the type of the result of syntax-e, not syntax->datum
 (define -Syntax make-Syntax)
 (define/decl In-Syntax
@@ -203,47 +154,16 @@
 (define/decl -SomeSystemPathlike*
   (Un -String -SomeSystemPath(-val 'up) (-val 'same)))
 (define/decl -PathConventionType (Un (-val 'unix) (-val 'windows)))
-(define/decl -Pretty-Print-Style-Table
-  (make-Base 'Pretty-Print-Style-Table #'pretty-print-style-table? pretty-print-style-table?))
-(define/decl -Read-Table
-  (make-Base 'Read-Table #'readtable? readtable?))
-(define/decl -Special-Comment
-  (make-Base 'Special-Comment #'special-comment? special-comment?))
-(define/decl -Custodian (make-Base 'Custodian #'custodian? custodian?))
-(define/decl -Parameterization (make-Base 'Parameterization #'parameterization? parameterization?))
-(define/decl -Inspector (make-Base 'Inspector #'inspector? inspector?))
-(define/decl -Namespace-Anchor (make-Base 'Namespace-Anchor #'namespace-anchor? namespace-anchor?))
-(define/decl -Variable-Reference (make-Base 'Variable-Reference #'variable-reference? variable-reference?))
-(define/decl -Internal-Definition-Context
-  (make-Base 'Internal-Definition-Context
-	     #'internal-definition-context?
-	     internal-definition-context?))
-(define/decl -Subprocess
-  (make-Base 'Subprocess #'subprocess? subprocess?))
-(define/decl -Security-Guard
-  (make-Base 'Security-Guard #'security-guard? security-guard?))
-(define/decl -Thread-Group
-  (make-Base 'Thread-Group #'thread-group? thread-group?))
-(define/decl -Struct-Type-Property
-  (make-Base 'Struct-Type-Property #'struct-type-property? struct-type-property?))
-(define/decl -Impersonator-Property
-  (make-Base 'Impersonator-Property #'impersonator-property? impersonator-property?))
-(define/decl -Semaphore (make-Base 'Semaphore #'semaphore? semaphore?))
-(define/decl -FSemaphore (make-Base 'FSemaphore #'fsemaphore? fsemaphore?))
-(define/decl -Bytes-Converter (make-Base 'Bytes-Converter #'bytes-converter? bytes-converter?))
-(define/decl -Pseudo-Random-Generator
-  (make-Base 'Pseudo-Random-Generator #'pseudo-random-generator? pseudo-random-generator?))
-(define/decl -Logger (make-Base 'Logger #'logger? logger?))
-(define/decl -Log-Receiver (make-Base 'LogReceiver #'log-receiver? log-receiver?))
 (define/decl -Log-Level (one-of/c 'fatal 'error 'warning 'info 'debug))
-(define/decl -Place (make-Base 'Place #'place? place?))
-(define/decl -Base-Place-Channel
-  (make-Base 'Base-Place-Channel #'(and/c place-channel? (not/c place?))  (conjoin place-channel? (negate place?))))
 (define/decl -Place-Channel (Un -Place -Base-Place-Channel))
-(define/decl -Will-Executor
-  (make-Base 'Will-Executor #'will-executor? will-executor?))
-(define/decl -Environment-Variables
-  (make-Base 'Environment-Variables #'environment-variables? environment-variables?))
+
+;; note, these are number? #f
+(define/decl -ExtFlonumZero (Un -ExtFlonumPosZero -ExtFlonumNegZero -ExtFlonumNan))
+(define/decl -PosExtFlonum (Un -PosExtFlonumNoNan -ExtFlonumNan))
+(define/decl -NonNegExtFlonum (Un -PosExtFlonum -ExtFlonumZero))
+(define/decl -NegExtFlonum (Un -NegExtFlonumNoNan -ExtFlonumNan))
+(define/decl -NonPosExtFlonum (Un -NegExtFlonum -ExtFlonumZero))
+(define/decl -ExtFlonum (Un -NegExtFlonumNoNan -ExtFlonumNegZero -ExtFlonumPosZero -PosExtFlonumNoNan -ExtFlonumNan))
 
 ;; Type alias names
 (define (-struct-name name)

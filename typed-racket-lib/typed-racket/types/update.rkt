@@ -5,7 +5,7 @@
          (contract-req)
          (infer-in infer)
          (rep core-rep type-rep prop-rep object-rep values-rep rep-utils)
-         (utils tc-utils hset)
+         (utils tc-utils)
          (types resolve subtype subtract)
          (rename-in (types abbrev)
                     [-> -->]
@@ -78,12 +78,15 @@
           (make-Function
            (list (make-arr* doms (update rng rst))))]
          
-         [((Union: ts) _)
-          (Union-map ts (λ (t) (update t path)))]
+         [((Union: _ ts) _)
+          ;; Note: if there is a path element, then all Base types are
+          ;; incompatible with the type and we can therefore drop the
+          ;; bases from the union
+          (Union-fmap (λ (t) (update t path)) -Bottom ts)]
 
          [((Intersection: ts) _)
           (for/fold ([t Univ])
-                    ([elem (in-hset ts)])
+                    ([elem (in-list ts)])
             (intersect t (update elem path)))]
          
          [(_ _)

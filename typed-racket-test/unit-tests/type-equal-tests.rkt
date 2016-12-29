@@ -8,7 +8,7 @@
 (provide tests)
 (gen-test-main)
 
-(define (-base x) (make-Base x #'dummy values #f))
+(define (-opaque x) (make-Opaque x))
 
 
 (define-syntax (te-tests stx)
@@ -38,9 +38,15 @@
    ;; found bug
    [FAIL (Un (-mu heap-node
                   (-struct #'heap-node #f
-                           (map fld* (list (-base 'comparator) -Number (-v a) (Un heap-node (-base 'heap-empty))))))
-             (-base 'heap-empty))
+                           (map fld* (list (-opaque #'comparator)
+                                           -Number
+                                           (-v a)
+                                           (Un heap-node (-opaque #'heap-empty))))))
+             (-opaque #'heap-empty))
          (Un (-mu heap-node
                   (-struct #'heap-node #f
-                           (map fld* (list (-base 'comparator) -Number (-pair -Number -Number) (Un heap-node (-base 'heap-empty))))))
-             (-base 'heap-empty))]))
+                           (map fld* (list (-opaque #'comparator)
+                                           -Number
+                                           (-pair -Number -Number)
+                                           (Un heap-node (-opaque #'heap-empty))))))
+             (-opaque #'heap-empty))]))

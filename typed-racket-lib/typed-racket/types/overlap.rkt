@@ -1,10 +1,10 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils hset)
          (rep type-rep rep-utils type-mask)
          (prefix-in c: (contract-req))
          (types abbrev subtype resolve utils)
+         racket/set
          racket/match)
 
 
@@ -61,37 +61,46 @@
          (overlap? t (resolve-once s))]
         [((? Mu? t1) t2) #:no-order (overlap? (unfold t1) t2)]
         [((Refinement: t1 _) t2) #:no-order (overlap? t1 t2)]
-        [((Union: ts1) t2)
-         (match t2
-           [(Union: ts2)
-            (or (hset-overlap? ts1 ts2)
-                (for*/or ([t1 (in-hset ts1)]
-                          [t2 (in-hset ts2)])
-                  (overlap? t1 t2)))]
-           [_ (or (hset-member? ts1 t2)
-                  (for/or ([t1 (in-hset ts1)])
-                    (overlap? t1 t2)))])]
-        [(t1 (Union: ts2))
-         (or (hset-member? ts2 t1)
-             (for/or ([t2 (in-hset ts2)]) (overlap? t1 t2)))]
+        [((BaseUnion: bbits1 nbits1)
+          (BaseUnion: bbits2 nbits2))
+         (or (bbits-overlap? bbits1 bbits2)
+             (nbits-overlap? nbits1 nbits2))]
+        [((BaseUnion: bbits nbits) (Base-bits: num? bits))
+         #:no-order
+         (if num?
+             (nbits-overlap? nbits bits)
+             (bbits-overlap? bbits bits))]
+        [((BaseUnion-bases: bases1) t2)
+         #:no-order
+         (for/or ([b1 (in-list bases1)]) (overlap? b1 t2))]
+        [((Union: (BaseUnion: bbits1 nbits1) _)
+          (Union: (BaseUnion: bbits2 nbits2) _))
+         #:when (or (bbits-overlap? bbits1 bbits2)
+                    (nbits-overlap? nbits1 nbits2))
+         #t]
+        [((Union/set: base1 ts1 elems1) t2)
+         #:no-order
+         (or (set-member? elems1 t2)
+             (overlap? base1 t2)
+             (for/or ([t1 (in-list ts1)]) (overlap? t1 t2)))]
         [((Intersection: ts) s)
          #:no-order
-         (for/and ([t (in-hset ts)]) (overlap? t s))]
+         (for/and ([t (in-list ts)]) (overlap? t s))]
         [((or (Poly-unsafe: _ t1)
               (PolyDots-unsafe: _ t1))
           t2)
          #:no-order
          (overlap? t1 t2)] ;; conservative
-        [((Base: s1 _ _ _) (Base: s2 _ _ _)) (or (subtype t1 t2) (subtype t2 t1))]
+        [((? Base?) (? Base?)) (or (subtype t1 t2) (subtype t2 t1))]
         [((? Base? t) (? Value? s)) #:no-order (subtype s t)] ;; conservative
         [((Syntax: t) (Syntax: t*)) (overlap? t t*)]
         [((Syntax: _) _) #:no-order #f]
-        [((Base: _ _ _ _) _) #:no-order #f]
+        [((? Base?) _) #:no-order #f]
         [((Value: (? pair?)) (Pair: _ _)) #:no-order #t]
         [((Pair: a b) (Pair: a* b*)) (and (overlap? a a*)
                                           (overlap? b b*))]
         ;; lots of things are sequences, but not values where sequence? produces #f
-        [((Sequence: _) (Value: v)) #:no-order (sequence? v)]
+        [((Sequence: _) (Val-able: v)) #:no-order (sequence? v)]
         ;; hash tables are two-valued sequences
         [((Sequence: (or (list _) (list _ _ _ ...)))
           (or (? Hashtable?) (? HashtableTop?)))
@@ -105,16 +114,16 @@
         ;; be conservative about other kinds of sequences
         [((Sequence: _) _) #:no-order #t]
         ;; Values where evt? produces #f cannot be Evt
-        [((Evt: _) (Value: v)) #:no-order (evt? v)]
+        [((Evt: _) (Val-able: v)) #:no-order (evt? v)]
         [((Pair: _ _) _) #:no-order #f]
-        [((Value: (? simple-datum? v1))
-          (Value: (? simple-datum? v2)))
+        [((Val-able: (? simple-datum? v1))
+          (Val-able: (? simple-datum? v2)))
          (equal? v1 v2)]
-        [((Value: (? simple-datum?))
+        [((Val-able: (? simple-datum?))
           (or (? Struct?) (? StructTop?) (? Function?)))
          #:no-order
          #f]
-        [((Value: (not (? hash?)))
+        [((Val-able: (not (? hash?)))
           (or (? Hashtable?) (? HashtableTop?)))
          #:no-order
          #f]
@@ -128,12 +137,19 @@
           (StructTop: (Struct: n* #f _ _ _ _)))
          #:when (free-identifier=? n n*)
          #t]
+        [((StructTop: (Struct: n* #f _ _ _ _))
+          (Struct: n #f _ _ _ _))
+         #:when (free-identifier=? n n*)
+         #t]
         ;; n and n* must be different, so there's no overlap
         [((Struct: n #f flds _ _ _)
           (Struct: n* #f flds* _ _ _))
          #f]
         [((Struct: n #f flds _ _ _)
           (StructTop: (Struct: n* #f flds* _ _ _)))
+         #f]
+        [((StructTop: (Struct: n* #f flds* _ _ _))
+          (Struct: n #f flds _ _ _))
          #f]
         [((and t1 (Struct: _ _ _ _ _ _))
           (and t2 (Struct: _ _ _ _ _ _)))

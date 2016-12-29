@@ -1,7 +1,6 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils hset)
          (rep type-rep rep-utils)
          (prefix-in c: (contract-req))
          (types subtype base-abbrev resolve current-seen)
@@ -27,20 +26,11 @@
 ;; The output is a non overlapping hset of non Union types.
 (define (merge t ts)
   (let ([t (normalize-type t)])
-    (define t* (make-Union ts))
+    (define t* (apply Un ts))
     (cond
-      [(subtype t* t) (hset t)]
+      [(subtype t* t) (list t)]
       [(subtype t t*) ts]
-      [else (hset-add (hset-filter ts (λ (b-elem) (not (subtype b-elem t))))
-                      t)])))
-
-;; list[Type] -> hset[Type]
-(define (flatten ts)
-  (for/fold ([s (hset)])
-            ([t (in-hset ts)])
-    (match t
-      [(Union: ts) (hset-union s ts)]
-      [_ (hset-add s t)])))
+      [else (cons t (filter-not (λ (ts-elem) (subtype ts-elem t)) ts))])))
 
 ;; Recursively reduce unions so that they do not contain
 ;; reduntant information w.r.t. subtyping. We used to maintain
@@ -49,7 +39,6 @@
 ;; don't want to do redundant runtime checks, etc.
 (define (normalize-type t)
   (match t
-    [(Union: ts) (make-Union (for/fold ([ts (hset)])
-                                       ([t (in-hset (flatten ts))])
-                               (merge t ts)))]
+    [(? BaseUnion?) t]
+    [(Union-all-flat: ts) (apply Un (foldl merge '() ts))]
     [_ (Rep-fmap t normalize-type)]))

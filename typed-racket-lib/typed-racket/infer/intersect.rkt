@@ -3,7 +3,7 @@
 (require "../utils/utils.rkt"
          (utils hset)
          (rep type-rep type-mask rep-utils)
-         (types abbrev base-abbrev subtype resolve overlap)
+         (types abbrev subtype resolve overlap)
          "signatures.rkt"
          racket/match
          racket/set)
@@ -11,19 +11,15 @@
 (import infer^)
 (export intersect^)
 
-;; compute the intersection of two types
-;; (note: previously called restrict, however now restrict is
-;;  a non-additive intersection computation defined below
-;; (i.e. only parts of t1 will remain, no parts from t2 are added))
-(define (intersect t1 t2)
+
+(define ((intersect-types additive?) t1 t2)
   (cond
     ;; we dispatch w/ Error first, because it behaves in
     ;; strange ways (e.g. it is ⊤ and ⊥ w.r.t subtyping) and
     ;; mucks up what might otherwise be commutative behavior
     [(or (Error? t1) (Error? t2)) Err]
     [else
-     (let intersect
-       ([t1 t2] [t2 t1] [seen '()])
+     (let intersect ([t1 t1] [t2 t2] [seen '()])
        ;; t1   : Type?
        ;; t2   : Type?
        ;; seen : (listof (cons/c (cons/c Type? Type?) symbol?))
@@ -34,7 +30,7 @@
        (define (rec t1 t2) (intersect t1 t2 seen))
        (match* (t1 t2)
          ;; quick overlap check
-         [(_ _) #:when (disjoint-masks? (mask t1) (mask t2)) -Bottom]
+         [(_ _) #:when (not (overlap? t1 t2)) -Bottom]
       
          ;; already a subtype
          [(_ _) #:when (subtype t1 t2) t1]
@@ -61,17 +57,19 @@
          [((Promise: t1*) (Promise: t2*))
           (rebuild -Promise (rec t1* t2*))]
 
-         [((Union: t1s) t2)
+         [((Union: base1 t1s) t2)
           (match t2
             ;; let's be consistent in slamming together unions
             ;; (i.e. if we don't do this dual traversal, the order the
             ;; unions are passed to 'intersect' can produces different
             ;; (albeit equivalent modulo subtyping, we believe) answers)
-            [(Union: t2s) (make-Union (for*/hset ([t1 (in-hset t1s)]
-                                                  [t2 (in-hset t2s)])
-                                                 (rec t1 t2)))]
-            [_ (Union-map t1s (λ (t1) (rec t1 t2)))])]
-         [(t1 (Union: t2s)) (Union-map t2s (λ (t2) (rec t1 t2)))]
+            [(Union-all: t2s)
+             (let ([t1s (if (Bottom? base1) t1s (hset-add t1s base1))])
+               (make-Union (for*/hset ([t1 (in-hset t1s)]
+                                       [t2 (in-hset t2s)])
+                             (rec t1 t2))))]
+            [_ (Union-fmap (λ (t1) (rec t1 t2)) base1 t1s)])]
+         [(t1 (Union: base2 t2s)) (Union-fmap (λ (t2) (rec t1 t2)) base2 t2s)]
 
          [((Intersection: t1s) t2)
           (apply -unsafe-intersect (hset-map t1s (λ (t1) (rec t1 t2))))]
@@ -115,10 +113,49 @@
                ;; otherwise just return the result
                [else t])])]
 
-         ;; t2 and t1 have a complex relationship, so we build an intersection
-         ;; (note: intersection checks for overlap)
-         [(t1 t2) (-unsafe-intersect t1 t2)]))]))
+         ;; Base Unions
+         [((BaseUnion: bbits1 nbits1)
+           (BaseUnion: bbits2 nbits2))
+          (make-BaseUnion (bbits-intersect bbits1 bbits2)
+                          (nbits-intersect nbits1 nbits2))]
+         [((BaseUnion: bbits nbits)
+           (Base-bits: numeric? bits))
+          (cond [numeric? (if (nbits-overlap? nbits bits)
+                              t2
+                              -Bottom)]
+                [else (if (bbits-overlap? bbits bits)
+                          t2
+                          -Bottom)])]
+         [((Base-bits: numeric? bits)
+           (BaseUnion: bbits nbits))
+          (cond [numeric? (if (nbits-overlap? nbits bits)
+                              t1
+                              -Bottom)]
+                [else (if (bbits-overlap? bbits bits)
+                          t1
+                          -Bottom)])]
+         [((BaseUnion-bases: bases1) t2)
+          (make-Union (for/hset ([b (in-list bases1)])
+                                (rec b t2)))]
+         [(t1 (BaseUnion-bases: bases2))
+          (make-Union (for/hset ([b (in-list bases2)])
+                                (rec t1 b)))]
 
+         ;; t2 and t1 have a complex relationship, so we build an intersection
+         ;; if additive, otherwise t1 remains unchanged
+         [(t1 t2) (if additive?
+                      (-unsafe-intersect t1 t2)
+                      t1)]))]))
+
+
+;; intersect
+;; Type Type -> Type
+;;
+;; compute the intersection of two types
+;; (note: previously called restrict, however now restrict is
+;;  a non-additive intersection computation defined below
+;; (i.e. only parts of t1 will remain, no parts from t2 are added))
+(define intersect (intersect-types #t))
 
 ;; restrict
 ;; Type Type -> Type
@@ -129,66 +166,4 @@
 ;; will create an intersection type if the intersection is not obvious,
 ;; and sometimes we want to make sure and _not_ add t2 to the result
 ;; we just want to keep the parts of t1 consistent with t2)
-(define (restrict t1 t2)
-  ;; resolved is a set tracking previously seen restrict cases
-  ;; (i.e. pairs of t1 t2) to prevent infinite unfolding.
-  ;; subtyping performs a similar check for the same
-  ;; reason
-  (let restrict
-    ([t1 t1] [t2 t2] [resolved '()])
-    (match* (t1 t2)
-      ;; no overlap
-      [(_ _) #:when (not (overlap? t1 t2)) -Bottom]
-      ;; already a subtype
-      [(t1 t2) #:when (subtype t1 t2) t1]
-      
-      ;; polymorphic restrict
-      [(t1 (Poly: vars t)) #:when (infer vars null (list t1) (list t) #f) t1]
-      
-      ;; structural recursion on types
-      [((Pair: a1 d1) (Pair: a2 d2)) 
-       (rebuild -pair
-                (restrict a1 a2 resolved)
-                (restrict d1 d2 resolved))]
-      ;; FIXME: support structural updating for structs when structs are updated to
-      ;; contain not only *if* they are polymorphic, but *which* fields are too  
-      ;;[((Struct: _ _ _ _ _ _)
-      ;; (Struct: _ _ _ _ _ _))]
-      [((Syntax: t1*) (Syntax: t2*))
-       (rebuild -Syntax (restrict t1* t2* resolved))]
-      [((Promise: t1*) (Promise: t2*))
-       (rebuild -Promise (restrict t1* t2* resolved))]
-      
-      ;; unions
-      [((Union: t1s) t2)
-       (Union-map  t1s (λ (t1) (restrict t1 t2 resolved)))]
-
-      [(t1 (Union: t2s))
-       (Union-map t2s (λ (t2) (restrict t1 t2 resolved)))]
-      
-      ;; restrictions
-      [((Intersection: t1s) t2)
-       (apply -unsafe-intersect (for/list ([t1 (in-list t1s)])
-                                  (restrict t1 t2 resolved)))]
-
-      [(t1 (Intersection: t2s))
-       (apply -unsafe-intersect (for/list ([t2 (in-list t2s)])
-                                  (restrict t1 t2 resolved)))]
-      
-      ;; resolve resolvable types if we haven't already done so
-      [((? resolvable? t1) t2)
-       #:when (not (member (cons t1 t2) resolved))
-       (restrict (resolve t1) t2 (cons (cons t1 t2) resolved))]
-
-      [(t1 (? resolvable? t2))
-       #:when (not (member (cons t1 t2) resolved))
-       (restrict t1 (resolve t2) (cons (cons t1 t2) resolved))]
-      
-      ;; if we're intersecting two recursive types, intersect their body
-      ;; and have their recursive references point back to the result
-      [((? Mu?) (? Mu?))
-       (define name (gensym))
-       (make-Mu name (restrict (Mu-body name t1) (Mu-body name t2) resolved))]
-
-      ;; else it's complicated and t1 remains unchanged
-      [(_ _) t1])))
+(define restrict (intersect-types #f))

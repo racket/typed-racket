@@ -538,15 +538,19 @@
          (and cs (cset-meet* (cons empty cs)))]
         
         ;; constrain *each* element of es to be below T, and then combine the constraints
-        [((Union: es) T)
+        [((BaseUnion-bases: es) T)
+         (define cs (for/list/fail ([e (in-list es)]) (cg e T)))
+         (and cs (cset-meet* (cons empty cs)))]
+        [((Union-all: es) T)
          (define cs (for/list/fail ([e (in-hset es)]) (cg e T)))
          (and cs (cset-meet* (cons empty cs)))]
 
+        [(_ (Bottom:)) (cset-join '())]
+        
         ;; find *an* element of es which can be made to be a supertype of S
         ;; FIXME: we're using multiple csets here, but I don't think it makes a difference
         ;; not using multiple csets will break for: ???
-        [(S (or (Union: es)
-                (and (Bottom:) (bind es (hset)))))
+        [(S (Union-all: es))
          (cset-join
           (for*/list ([e (in-hset es)]
                       [v (in-value (cg S e))]
@@ -617,11 +621,11 @@
                                       (cg t t*)))]
         [((Vector: t) (Sequence: (list t*)))
          (cg t t*)]
-        [((Base: 'String _ _ _) (Sequence: (list t*)))
+        [((? Base:String?) (Sequence: (list t*)))
          (cg -Char t*)]
-        [((Base: 'Bytes _ _ _) (Sequence: (list t*)))
+        [((? Base:Bytes?) (Sequence: (list t*)))
          (cg -Nat t*)]
-        [((Base: 'Input-Port _ _ _) (Sequence: (list t*)))
+        [((? Base:Input-Port?) (Sequence: (list t*)))
          (cg -Nat t*)]
         [((Value: (? exact-nonnegative-integer? n)) (Sequence: (list t*)))
          (define possibilities
@@ -636,7 +640,8 @@
                [(list pred? type)
                 (and (pred? n) type)])))
          (cg type t*)]
-        [((Base: _ _ _ #t) (Sequence: (list t*)))
+        ;; numeric? == #true
+        [((Base-bits: #t _) (Sequence: (list t*)))
          (define type
            (for/or ([t (in-list (list -Byte -Index -NonNegFixnum -Nat))])
              (and (subtype S t) t)))
@@ -694,28 +699,28 @@
          (cg a a*)]
         [((Evt: a) (Evt: a*))
          (cg a a*)]
-        [((Base: 'Semaphore _ _ _) (Evt: t))
+        [((? Base:Semaphore?) (Evt: t))
          (cg S t)]
-        [((Base: 'Output-Port _ _ _) (Evt: t))
+        [((? Base:Output-Port?) (Evt: t))
          (cg S t)]
-        [((Base: 'Input-Port _ _ _) (Evt: t))
+        [((? Base:Input-Port?) (Evt: t))
          (cg S t)]
-        [((Base: 'TCP-Listener _ _ _) (Evt: t))
+        [((? Base:TCP-Listener?) (Evt: t))
          (cg S t)]
-        [((Base: 'Thread _ _ _) (Evt: t))
+        [((? Base:Thread?) (Evt: t))
          (cg S t)]
-        [((Base: 'Subprocess _ _ _) (Evt: t))
+        [((? Base:Subprocess?) (Evt: t))
          (cg S t)]
-        [((Base: 'Will-Executor _ _ _) (Evt: t))
+        [((? Base:Will-Executor?) (Evt: t))
          (cg S t)]
-        [((Base: 'LogReceiver _ _ _) (Evt: t ))
+        [((? Base:Log-Receiver?) (Evt: t ))
          (cg (make-HeterogeneousVector
               (list -Symbol -String Univ
                     (Un (-val #f) -Symbol)))
              t)]
-        [((Base: 'Place _ _ _) (Evt: t))
+        [((? Base:Place?) (Evt: t))
          (cg Univ t)]
-        [((Base: 'Base-Place-Channel _ _ _) (Evt: t))
+        [((? Base:Base-Place-Channel?) (Evt: t))
          (cg Univ t)]
         [((CustodianBox: t) (Evt: t*)) (cg S t*)]
         [((Channel: t) (Evt: t*)) (cg t t*)]
@@ -864,26 +869,26 @@
 ;; just return a boolean result
 (define infer
  (let ()
-  (define/cond-contract (infer X Y S T R [expected #f] #:multiple? [multiple-substitutions? #f])
-    (((listof symbol?) (listof symbol?) (listof Type?) (listof Type?)
-      (or/c #f Values/c ValuesDots?))
-     ((or/c #f Values/c AnyValues? ValuesDots?)
-      #:multiple? boolean?)
-     . ->* . (or/c boolean?
-                   substitution/c
-                   (cons/c substitution/c
-                           (listof substitution/c))))
-    (define ctx (context null X Y ))
-    (define expected-cset
-      (if expected
-          (cgen ctx R expected)
-          (empty-cset '() '())))
-    (and expected-cset
-         (let* ([cs (cgen/list ctx S T #:expected-cset expected-cset)]
-                [cs* (% cset-meet cs expected-cset)])
-           (and cs* (cond
-                      [R (substs-gen cs* X Y R multiple-substitutions?)]
-                      [else #t])))))
+   (define/cond-contract (infer X Y S T R [expected #f] #:multiple? [multiple-substitutions? #f])
+     (((listof symbol?) (listof symbol?) (listof Type?) (listof Type?)
+       (or/c #f Values/c ValuesDots?))
+      ((or/c #f Values/c AnyValues? ValuesDots?)
+       #:multiple? boolean?)
+      . ->* . (or/c boolean?
+                    substitution/c
+                    (cons/c substitution/c
+                            (listof substitution/c))))
+     (define ctx (context null X Y ))
+     (define expected-cset
+       (if expected
+           (cgen ctx R expected)
+           (empty-cset '() '())))
+     (and expected-cset
+          (let* ([cs (cgen/list ctx S T #:expected-cset expected-cset)]
+                 [cs* (% cset-meet cs expected-cset)])
+            (and cs* (cond
+                       [R (substs-gen cs* X Y R multiple-substitutions?)]
+                       [else #t])))))
   ;(trace infer)
   infer)) ;to export a variable binding and not syntax
 

@@ -10,8 +10,30 @@
 
 (provide Listof: List: MListof: AnyPoly: AnyPoly-names: Function/arrs:
          SimpleListof: SimpleMListof:
-         PredicateProp:)
+         PredicateProp:
+         Val-able:)
 
+
+;; some types used to be represented by a Value rep,
+;; but are now represented by a Base rep. This function
+;; helps us recover the singleton values for those types.
+(define (Base->val? b)
+  (match b
+    [(== -Null) (box-immutable '())]
+    [(== -Void) (box-immutable (void))]
+    [(== -True) (box-immutable #t)]
+    [(== -False) (box-immutable #f)]
+    [(== -Zero) (box-immutable 0)]
+    [(== -One) (box-immutable 1)]
+    [_ #f]))
+
+(define-match-expander Val-able:
+  (lambda (stx)
+    (syntax-parse stx
+      [(_ pat)
+       (syntax/loc stx
+         (or (Value: pat)
+             (app Base->val? (box pat))))])))
 
 (define-match-expander Listof:
   (lambda (stx)
@@ -31,20 +53,18 @@
 (define-simple-macro (make-Listof-pred listof-pred?:id pair-matcher:id)
   (define (listof-pred? t [simple? #f])
     (match t
-      [(Mu-unsafe: (Union: elems))
-       #:when (and (= 2 (hset-count elems))
-                   (hset-member? elems -Null))
-       (match (hset-first (hset-remove elems -Null))
+      [(Mu-unsafe: (Union: (== -Null) elems))
+       #:when (= 1 (hset-count elems))
+       (match (hset-first elems)
          [(pair-matcher elem-t (B: 0))
           (define elem-t* (instantiate-raw-type t elem-t))
           (cond
             [simple? (and (equal? elem-t elem-t*) elem-t)]
             [else elem-t*])]
          [_ #f])]
-      [(Union: elems)
-       #:when (and (= 2 (hset-count elems))
-                   (hset-member? elems -Null))
-       (match (hset-first (hset-remove elems -Null))
+      [(Union: (== -Null) elems)
+       #:when (= 1 (hset-count elems))
+       (match (hset-first elems)
          [(pair-matcher hd-t tl-t)
           (cond
             [(listof-pred? tl-t)
@@ -62,7 +82,7 @@
   (lambda (stx)
     (syntax-parse stx
       [(_ elem-pats)
-       #'(? Type? (app untuple (? values elem-pats) (Value: '())))]
+       #'(? Type? (app untuple (? values elem-pats) (== -Null)))]
       [(_ elem-pats #:tail tail-pat)
        #'(? Type? (app untuple (? values elem-pats) tail-pat))])))
 

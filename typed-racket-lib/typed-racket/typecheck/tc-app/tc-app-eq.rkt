@@ -5,7 +5,7 @@
          "utils.rkt"
          syntax/parse syntax/stx racket/match
          (typecheck signatures tc-funapp)
-         (types abbrev prop-ops utils)
+         (types abbrev prop-ops utils match-expanders)
          (rep type-rep object-rep)
 
          (for-label racket/base racket/bool))
@@ -53,23 +53,23 @@
         (alt eqv? eqv?-able)
         (alt equal? equal?-able)))
   (match* ((single-value v1) (single-value v2))
-    [((tc-result1: (Value: (? ok? val1)) _ o1)
-      (tc-result1: (Value: (? ok? val2)) _ o2))
+    [((tc-result1: (Val-able: (? ok? val1)) _ o1)
+      (tc-result1: (Val-able: (? ok? val2)) _ o2))
      (ret -Boolean (-PS (-and (-is-type o1 (-val val2))
                               (-is-type o2 (-val val1)))
                         (-and (-not-type o1 (-val val2))
                               (-not-type o2 (-val val1)))))]
-    [((tc-result1: t _ o) (tc-result1: (Value: (? ok? val))))
+    [((tc-result1: t _ o) (tc-result1: (Val-able: (? ok? val))))
      (ret -Boolean (-PS (-is-type o (-val val)) (-not-type o (-val val))))]
-    [((tc-result1: (Value: (? ok? val))) (tc-result1: t _ o))
+    [((tc-result1: (Val-able: (? ok? val))) (tc-result1: t _ o))
      (ret -Boolean (-PS (-is-type o (-val val)) (-not-type o (-val val))))]
     [((tc-result1: t _ o)
       (or (and (? (lambda _ (id=? #'member comparator)))
-               (tc-result1: (List: (list (and ts (Value: _)) ...))))
+               (tc-result1: (List: (list (and ts (Val-able: _)) ...))))
           (and (? (lambda _ (id=? #'memv comparator)))
-               (tc-result1: (List: (list (and ts (Value: (? eqv?-able))) ...))))
+               (tc-result1: (List: (list (and ts (Val-able: (? eqv?-able))) ...))))
           (and (? (lambda _ (id=? #'memq comparator)))
-               (tc-result1: (List: (list (and ts (Value: (? eq?-able))) ...))))))
+               (tc-result1: (List: (list (and ts (Val-able: (? eq?-able))) ...))))))
      (let ([ty (apply Un ts)])
        (ret (Un (-val #f) t)
             (-PS (-is-type o ty)

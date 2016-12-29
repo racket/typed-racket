@@ -453,9 +453,9 @@
                        (let ([t* (parse-type #'t)])
                          ;; is t in a productive position?
                          (define productive
-                           (let loop ((ty t*))
+                           (let loop ([ty t*])
                              (match ty
-                               [(Union: elems) (for/and ([elem (in-hset elems)]) (loop elem))]
+                               [(Union: _ elems) (for/and ([elem (in-hset elems)]) (loop elem))]
                                [(Intersection: elems) (for/and ([elem (in-hset elems)]) (loop elem))]
                                [(F: _) (not (equal? ty tvar))]
                                [(App: rator rands)

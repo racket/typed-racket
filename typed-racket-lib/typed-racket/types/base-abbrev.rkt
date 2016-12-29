@@ -7,6 +7,8 @@
 
 (require "../utils/utils.rkt"
          "../rep/type-rep.rkt"
+         "../rep/base-types.rkt"
+         "../rep/numeric-base-types.rkt"
          (rep prop-rep object-rep values-rep rep-utils)
          (env mvar-env)
          racket/match racket/list (prefix-in c: (contract-req))
@@ -18,7 +20,9 @@
          -is-type
          -not-type
          -id-path
-         (all-from-out "../rep/type-rep.rkt")
+         (all-from-out "../rep/type-rep.rkt"
+                       "../rep/base-types.rkt"
+                       "../rep/numeric-base-types.rkt")
          (rename-out [make-Listof -lst]
                      [make-MListof -mlst]))
 
@@ -32,24 +36,15 @@
                -Bottom
                (mk t ...)))))]))
 
-(define/decl -False (make-Value #f))
-(define/decl -True (make-Value #t))
+
 (define/decl -Boolean (Un -False -True))
 
 (define -val make-Value)
 (define/decl -Null (-val null))
 
 ;; Char type and List type (needed because of how sequences are checked in subtype)
-(define/decl -Char (make-Base 'Char #'char? char? #f))
 (define (make-Listof elem) (-mu list-rec (Un -Null (make-Pair elem list-rec))))
 (define (make-MListof elem) (-mu list-rec (Un -Null (make-MPair elem list-rec))))
-
-;; Needed for evt checking in subtype.rkt
-(define/decl -Symbol (make-Base 'Symbol #'symbol? symbol? #f))
-(define/decl -String (make-Base 'String #'string? string? #f))
-
-;; Void is needed for Params
-(define/decl -Void (make-Base 'Void #'void? void? #f))
 
 ;; -Tuple Type is needed by substitute for ListDots
 (define -pair make-Pair)

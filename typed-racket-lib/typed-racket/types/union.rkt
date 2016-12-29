@@ -31,16 +31,8 @@
     (cond
       [(subtype t* t) (hset t)]
       [(subtype t t*) ts]
-      [else (hset-add (hset-filter ts (λ (b-elem) (not (subtype b-elem t))))
+      [else (hset-add (hset-filter ts (λ (ts-elem) (not (subtype ts-elem t))))
                       t)])))
-
-;; list[Type] -> hset[Type]
-(define (flatten ts)
-  (for/fold ([s (hset)])
-            ([t (in-hset ts)])
-    (match t
-      [(Union: ts) (hset-union s ts)]
-      [_ (hset-add s t)])))
 
 ;; Recursively reduce unions so that they do not contain
 ;; reduntant information w.r.t. subtyping. We used to maintain
@@ -49,7 +41,7 @@
 ;; don't want to do redundant runtime checks, etc.
 (define (normalize-type t)
   (match t
-    [(Union: ts) (make-Union (for/fold ([ts (hset)])
-                                       ([t (in-hset (flatten ts))])
-                               (merge t ts)))]
+    [(Union-all: ts) (make-Union (for/fold ([ts (hset)])
+                                           ([t (in-hset ts)])
+                                   (merge t ts)))]
     [_ (Rep-fmap t normalize-type)]))

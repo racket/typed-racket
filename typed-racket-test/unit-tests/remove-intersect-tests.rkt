@@ -71,6 +71,12 @@
   (remo-tests
    [(Un -Number -Symbol) -Number -Symbol]
    [-Number -Number (Un)]
+   [(Un -Zero -Symbol (make-Listof Univ))
+    -Zero
+    (Un -Symbol (make-Listof Univ))]
+   [(-mu x (Un -Zero -Symbol (make-Listof x)))
+    -Zero
+    (Un -Symbol (make-Listof (-mu x (Un -Zero -Symbol (make-Listof x)))))]
    [(-mu x (Un -Number -Symbol (make-Listof x)))
     -Number
     (Un -Symbol (make-Listof (-mu x (Un -Number -Symbol (make-Listof x)))))]

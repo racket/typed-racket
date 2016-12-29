@@ -95,22 +95,13 @@
 
 ;; Helper for type->sexp
 (define (recur ty)
-  (define (numeric? t) (match t [(Base: _ _ _ b) b] [(Value: (? number?)) #t] [_ #f]))
-  (define (split-union ts)
-    (let ([ts (hset->list ts)])
-      (define-values (nums others) (partition numeric? ts))
-      (cond [(or (null? nums) (null? others))
-             ;; nothing interesting to do in this case
-             `(Un ,@(map type->sexp ts))]
-            [else
-             ;; we do a little more work to hopefully save a bunch in serialization space
-             ;; if we get a hit in the predefined-type-table
-             `(Un ,(type->sexp (apply Un nums)) ,(type->sexp (apply Un others)))])))
-
+  (define (numeric? t) (match t
+                         [(Base-bits: num? _) num?]
+                         [(Value: (? number?)) #t]
+                         [_ #f]))
   (match ty
     [(In-Predefined-Table: id) id]
-    [(Base: n cnt pred _)
-     (int-err "Base type ~a not in predefined-type-table" n)]
+    [(? Base?) (int-err "Base type ~a not in predefined-type-table" ty)]
     [(B: nat) `(make-B ,nat)]
     [(F: sym) `(make-F (quote ,sym))]
     [(Pair: ty (Listof: ty))
@@ -214,10 +205,13 @@
                    ,(object->sexp obj))]
     [(AnyValues: prop)
      `(make-AnyValues ,(prop->sexp prop))]
-    [(Union: (app hset->list (list (Value: vs) ...)))
-     `(one-of/c ,@(for/list ([v (in-list vs)])
-                    `(quote ,v)))]
-    [(Union: elems) (split-union elems)]
+    [(Union: (? Bottom?) ts) #:when (for/and ([t (in-hset ts)]) (Value? t))
+     `(one-of/c ,@(for/list ([t (in-hset ts)])
+                    `(quote ,(Value-val t))))]
+    
+    [(BaseUnion: bbits nbits) `(make-BaseUnion ,bbits ,nbits)]
+    [(Union: base elems) `(Un . ,(append (if (Bottom? base) '() (list (type->sexp base)))
+                                         (hset-map elems type->sexp)))]
     [(Intersection: elems)
      `(make-Intersection (hset ,@(hset-map elems type->sexp)))]
     [(Name: stx 0 #t)

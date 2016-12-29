@@ -10,7 +10,7 @@
          (only-in (utils literal-syntax-class)
            [define-literal-syntax-class define-literal-syntax-class*])
          (for-template racket/base)
-         (types type-table utils subtype)
+         (types type-table utils subtype match-expanders)
          (rep type-rep))
 
 (provide *show-optimized-code*
@@ -130,10 +130,11 @@
     #:with opt this-syntax)
   (pattern (~and e :opt-expr)
     #:when (match (type-of #'e)
-             [(tc-result1: (Value: _)) #t]
+             [(tc-result1: (Val-able: _))
+              #t]
              [_ #f])
     #:attr val (match (type-of #'e)
-                 [(tc-result1: (Value: v)) v]
+                 [(tc-result1: (Val-able: v)) v]
                  [_ #f])))
 
 (define-syntax-class kernel-expression

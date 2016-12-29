@@ -57,7 +57,7 @@
 ;;
 (define (check-type-alias-contractive id type)
   (define/match (check type)
-    [((Union: elems)) (for/and ([elem (in-hset elems)]) (check elem))]
+    [((Union: _ elems)) (for/and ([elem (in-hset elems)]) (check elem))]
     [((Intersection: elems)) (for/and ([elem (in-hset elems)]) (check elem))]
     [((Name/simple: name-id))
      (and (not (free-identifier=? name-id id))
@@ -90,11 +90,7 @@
 ;; Identifier -> Type
 ;; Construct a fresh placeholder type
 (define (make-placeholder-type id)
-  (make-Base ;; the uninterned symbol here ensures that no two type
-             ;; aliases get the same placeholder type
-             (string->uninterned-symbol (symbol->string (syntax-e id)))
-             #'(int-err "Encountered unresolved alias placeholder")
-             (lambda _ #f) #f))
+  (make-Opaque id))
 
 ;; register-all-type-aliases : Listof<Id> Dict<Id, TypeAliasInfo> -> Void
 ;;

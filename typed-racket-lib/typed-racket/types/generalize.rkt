@@ -14,8 +14,8 @@
   (let/ec exit
     (let loop ([t* t])
       (match t*
-        [(Value: '()) (-lst Univ)]
-        [(Value: 0) -Int]
+        [(== -Null) (-lst Univ)]
+        [(== -Zero) -Int]
         [(List: ts) (-lst (apply Un ts))]
         [(? (lambda (t) (subtype t -Bottom))) Univ]
         [(? (lambda (t) (subtype t -Int))) -Int]
@@ -30,8 +30,8 @@
         [(? (lambda (t) (subtype t -Number))) -Number]
         [(? (lambda (t) (subtype t -ExtFlonum))) -ExtFlonum]
         [(Listof: _) t*]
-        [(Pair: t1 (Value: '())) (-lst t1)]
-        [(MPair: t1 (Value: '())) (-mlst t1)]
+        [(Pair: t1 (== -Null)) (-lst t1)]
+        [(MPair: t1 (== -Null)) (-mlst t1)]
         [(or (Pair: t1 t2) (MPair: t1 t2))
          (let ([t-new (loop t2)])
            (define -lst-type
@@ -44,5 +44,5 @@
                (exit t)))]
         [(ListDots: t bound) (-lst (substitute Univ bound t))]
         [(? (lambda (t) (subtype t -Symbol))) -Symbol]
-        [(Value: #t) -Boolean]
+        [(== -True) -Boolean]
         [_ t*]))))

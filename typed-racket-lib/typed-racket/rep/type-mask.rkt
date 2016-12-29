@@ -30,7 +30,8 @@
          disjoint-masks?
          sub-mask?
          mask:bottom
-         mask:unknown)
+         mask:unknown
+         mask:base+number)
 
 (define-syntax OR (make-rename-transformer #'unsafe-fxior))
 (define-syntax AND (make-rename-transformer #'unsafe-fxand))
@@ -121,16 +122,7 @@
 ;; but which we are not specifically tracking
 
 (declare-type-flags
- ;; a few common base types have their own masks
- mask:null
- mask:true
- mask:false
- mask:char
- mask:symbol
- mask:void
- mask:string
- ;; the other base types use this catch-all
- mask:base-other
+ mask:base
  mask:number
  mask:pair
  mask:mpair
@@ -154,3 +146,5 @@
  mask:class
  mask:instance
  mask:unit)
+
+(define mask:base+number (mask-union mask:base mask:number))

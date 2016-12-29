@@ -10,9 +10,10 @@
          (types utils resolve match-expanders current-seen
                 numeric-tower substitute prefab signatures)
          (for-syntax racket/base syntax/parse racket/sequence)
-         (rename-in "base-abbrev.rkt"
-                    [-> t->]
-                    [->* t->*]))
+         (except-in (rename-in "abbrev.rkt"
+                               [-> t->]
+                               [->* t->*])
+                    one-of/c))
 
 (lazy-require
   ("../infer/infer.rkt" (infer))
@@ -425,43 +426,43 @@
               ;; check needed for if a name that hasn't been resolved yet
               (and (Type? t2) (subtype* A t1 t2)))))]
        [_
-        (or
-         ;; then we try a switch on t1
-         (subtype-switch
-          t1 t2 A
-          ;; if we're still not certain after the switch,
-          ;; check the cases that need to come at the end
-          (λ (A t1 t2)
-            (match* (t1 t2)
-              [(t1 (Union: elems2))
-               (cond
-                 [(hset-member? elems2 t1) A]
-                 [(cache-ref union-super-cache t2 t1)
-                  => (λ (b) (and (unbox b) A))]
-                 [else
-                  (define result
-                    (for/or ([elem (in-hset elems2)])
-                      (and (subtype* A t1 elem) A)))
-                  (when (null? A)
-                    (cache-set! union-super-cache t2 t1 (and result #t)))
-                  result])]
-              [((Intersection: t1s) _)
-               (for/or ([t1 (in-hset t1s)])
-                 (subtype* A t1 t2))]
-              [(_ (Instance: (? resolvable? t2*)))
-               (let ([A (remember t1 t2 A)])
-                 (with-updated-seen A
-                   (let ([t2* (resolve-once t2*)])
-                     (and (Type? t2*)
-                          (subtype* A t1 (make-Instance t2*))))))]
-              [(_ (Poly: vs2 b2))
-               #:when (null? (fv b2))
-               (subtype* A t1 b2)]
-              [(_ (PolyDots: vs2 b2))
-               #:when (and (null? (fv b2))
-                           (null? (fi b2)))
-               (subtype* A t1 b2)]
-              [(_ _) #f]))))])]))
+        ;; then we try a switch on t1
+        (subtype-switch
+         t1 t2 A
+         ;; if we're still not certain after the switch,
+         ;; check the cases that need to come at the end
+         (λ (A t1 t2)
+           (match* (t1 t2)
+             [(t1 (Union: base2 elems2))
+              (cond
+                [(hset-member? elems2 t1) A]
+                [(cache-ref union-super-cache t2 t1)
+                 => (λ (b) (and (unbox b) A))]
+                [else
+                 (define result
+                   (or (subtype* A t1 base2)
+                       (for/or ([elem (in-hset elems2)])
+                         (subtype* A t1 elem))))
+                 (when (null? A)
+                   (cache-set! union-super-cache t2 t1 (and result #t)))
+                 result])]
+             [((Intersection: t1s) _)
+              (for/or ([t1 (in-hset t1s)])
+                (subtype* A t1 t2))]
+             [(_ (Instance: (? resolvable? t2*)))
+              (let ([A (remember t1 t2 A)])
+                (with-updated-seen A
+                  (let ([t2* (resolve-once t2*)])
+                    (and (Type? t2*)
+                         (subtype* A t1 (make-Instance t2*))))))]
+             [(_ (Poly: vs2 b2))
+              #:when (null? (fv b2))
+              (subtype* A t1 b2)]
+             [(_ (PolyDots: vs2 b2))
+              #:when (and (null? (fv b2))
+                          (null? (fi b2)))
+              (subtype* A t1 b2)]
+             [(_ _) #f])))])]))
 
 
 
@@ -480,18 +481,24 @@
      [(Async-Channel: elem2) (type-equiv? A elem1 elem2)]
      [(Evt: evt-t) (subtype* A elem1 evt-t)]
      [_ (continue A t1 t2)])]
-  [(case: Base (Base: kind _ pred numeric?))
+  [(case: Base (Base-bits: num? bits))
    (match t2
+     [(BaseUnion: bbits nbits)
+      (and (if num?
+               (nbits-overlap? nbits bits)
+               (bbits-overlap? bbits bits))
+           A)]
      [(Sequence: (list seq-t))
       (cond
-        [(assq kind `((FlVector . ,-Flonum)
-                      (ExtFlVector . ,-ExtFlonum)
-                      (FxVector . ,-Fixnum)
-                      (String . ,-Char)
-                      (Bytes . ,-Byte)
-                      (Input-Port . ,-Nat)))
+        [(Base:Null? t1) A]
+        [(assoc t1 `((,-FlVector . ,-Flonum)
+                     (,-ExtFlVector . ,-ExtFlonum)
+                     (,-FxVector . ,-Fixnum)
+                     (,-String . ,-Char)
+                     (,-Bytes . ,-Byte)
+                     (,-Input-Port . ,-Nat)))
          => (λ (p) (subtype* A (cdr p) seq-t))]
-        [numeric?
+        [num?
          (define type
            ;; FIXME: thread the store through here
            (for/or ([num-t (in-list (list -Byte -Index -NonNegFixnum -Nat))])
@@ -502,24 +509,49 @@
         [else #f])]
      [(Evt: evt-t)
       (cond
-        [(memq kind '(Semaphore
-                      Output-Port
-                      Input-Port
-                      TCP-Listener
-                      Thread
-                      Subprocess
-                      Will-Executor))
+        [(member t1 (list -Semaphore
+                          -Output-Port
+                          -Input-Port
+                          -TCP-Listener
+                          -Thread
+                          -Subprocess
+                          -Will-Executor))
          (subtype* A t1 evt-t)]
         ;; FIXME: change Univ to Place-Message-Allowed if/when that type is defined
-        [(and (Univ? evt-t) (memq kind '(Place Base-Place-Channel)))
+        [(and (Univ? evt-t) (member t1 (list -Place -Base-Place-Channel)))
          A]
-        [(eq? kind 'LogReceiver) (subtype* A
-                                           (make-HeterogeneousVector
-                                            (list -Symbol -String Univ
-                                                  (Un (-val #f) -Symbol)))
-                                           evt-t)]
+        [(Base:Log-Receiver? t1)
+         (subtype* A
+                   (make-HeterogeneousVector
+                    (list -Symbol -String Univ
+                          (Un -False -Symbol)))
+                   evt-t)]
         [else #f])]
      [_ (continue A t1 t2)])]
+  [(case: BaseUnion (BaseUnion: bbits1 nbits1))
+   (match t2
+     [(? Base?) #f]
+     [(BaseUnion: bbits2 nbits2)
+      (and (bbits-subset? bbits1 bbits2)
+           (nbits-subset? nbits1 nbits2)
+           A)]
+     [(Union: (BaseUnion: bbits2 nbits2) _)
+      #:when (and (bbits-subset? bbits1 bbits2)
+                  (nbits-subset? nbits1 nbits2))
+      A]
+     [_
+      (cond
+        [(cache-ref union-sub-cache t1 t2)
+         => (λ (b) (and (unbox b) A))]
+        [else
+         (define result
+           (for/fold ([A A])
+                     ([b (in-list (BaseUnion-bases t1))]
+                      #:break (not A))
+             (subtype* A b t2)))
+         (when (null? A)
+           (cache-set! union-sub-cache t1 t2 (and result #t)))
+         result])])]
   [(case: Box (Box: elem1))
    (match t2
      [(? BoxTop?) A]
@@ -681,7 +713,8 @@
                   (assq key map))
                 (let/ec escape
                   (for/fold ([A A])
-                            ([key+type (in-list map)])
+                            ([key+type (in-list map)]
+                             #:break (not A))
                     (match-define (list key type) key+type)
                     (define result (assq (car key+type) map*))
                     (or (and (not result) A)
@@ -866,7 +899,7 @@
      [(StructTop: (Struct: nm2 _ _ _ _ _))
       #:when (free-identifier=? nm1 nm2)
       A]
-     [(Value: (? (negate struct?) _)) #f]
+     [(Val-able: (? (negate struct?) _)) #f]
      ;; subtyping on structs follows the declared hierarchy
      [_ (cond
           [(and (Type? parent1)
@@ -888,24 +921,27 @@
      [(? ThreadCellTop?) A]
      [(ThreadCell: elem2) (type-equiv? A elem1 elem2)]
      [_ (continue A t1 t2)])]
-  [(case: Union (Union: elems1))
+  [(case: Union (Union: base1 elems1))
    (cond
      [(cache-ref union-sub-cache t1 t2)
       => (λ (b) (and (unbox b) A))]
      [else
       (define result
-        (match t2
-          [(Union: elems2)
-           (for/fold ([A A])
-                     ([elem1 (in-hset elems1)]
-                      #:break (not A))
-             (if (hset-member? elems2 elem1)
-                 A
-                 (subtype* A elem1 t2)))]
-          [_ (for/fold ([A A])
-                       ([elem1 (in-hset elems1)]
-                        #:break (not A))
-               (subtype* A elem1 t2))]))
+        (let ([A (subtype* A base1 t2)])
+          (and A
+               (match t2
+                 [(Union: base2 elems2)
+                  (for/fold ([A A])
+                            ([elem1 (in-hset elems1)]
+                             #:break (not A))
+                    (cond
+                      [(hset-member? elems2 elem1) A]
+                      [(subtype* A elem1 base2)]
+                      [else (subtype* A elem1 t2)]))]
+                 [_ (for/fold ([A A])
+                              ([elem1 (in-hset elems1)]
+                               #:break (not A))
+                      (subtype* A elem1 t2))]))))
       (when (null? A)
         (cache-set! union-sub-cache t1 t2 (and result #t)))
       result])]
@@ -924,10 +960,12 @@
      [_ (continue A t1 t2)])]
   [(case: Value (Value: val1))
    (match t2
-     [(Base: _ _ pred _) (and (pred val1) A)]
+     [(Base-pred: pred) (and (pred val1) A)]
+     [(BaseUnion-bases: bs)
+      (for/or ([b (in-list bs)])
+        (match b [(Base-pred: pred) (and (pred val1) A)]))]
      [(Sequence: (list seq-t))
       (cond
-        [(null? val1) A]
         [(exact-nonnegative-integer? val1)
          (define possibilities
            (list

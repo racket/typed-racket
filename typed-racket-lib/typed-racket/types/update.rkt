@@ -78,8 +78,11 @@
           (make-Function
            (list (make-arr* doms (update rng rst))))]
          
-         [((Union: ts) _)
-          (Union-map ts (λ (t) (update t path)))]
+         [((Union: _ ts) _)
+          ;; Note: if there is a path element, then all Base types are
+          ;; incompatible with the type and we can therefore drop the
+          ;; bases from the union
+          (Union-fmap (λ (t) (update t path)) -Bottom ts)]
 
          [((Intersection: ts) _)
           (for/fold ([t Univ])

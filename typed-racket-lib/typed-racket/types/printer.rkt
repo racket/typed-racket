@@ -13,7 +13,7 @@
                   "types/match-expanders.rkt"
                   "types/kw-types.rkt"
                   "types/utils.rkt" "types/abbrev.rkt"
-                  "types/union.rkt"
+                  "types/union.rkt" "types/numeric-tower.rkt"
                   "types/resolve.rkt"
                   "types/prefab.rkt"
                   "utils/utils.rkt"
@@ -166,8 +166,7 @@
 ;; be nicer to print them using higher-level descriptions instead.
 ;; We do set coverage, with the elements of the union being what we want to
 ;; cover, and all the names types we know about being the sets.
-(define (cover-union t ignored-names)
-  (match-define (Union: (app hset->list elems)) t)
+(define (cover-union t elems ignored-names)
   (define valid-names
     ;; We keep only unions, and only those that are subtypes of t.
     ;; It's no use attempting to cover t with things that go outside of t.
@@ -182,7 +181,7 @@
   ;; note that racket/set supports lists with equal?, which in
   ;; the case of Types will be type-equal?
   (define candidates
-    (map (match-lambda [(cons name (Union: (app hset->list elts))) (cons name elts)])
+    (map (match-lambda [(cons name (Union-all-flat: (app hset->list elts))) (cons name elts)])
          valid-names))
   ;; some types in the union may not be coverable by the candidates
   ;; (e.g. type variables, etc.)
@@ -439,12 +438,12 @@
   (define (tuple? t)
     (match t
       [(Pair: a (? tuple?)) #t]
-      [(Value: '()) #t]
+      [(== -Null) #t]
       [_ #f]))
   (define (tuple-elems t)
     (match t
       [(Pair: a e) (cons a (tuple-elems e))]
-      [(Value: '()) null]))
+      [(== -Null) null]))
   (match type
     [(Univ:) 'Any]
     [(Bottom:) 'Nothing]
@@ -529,10 +528,13 @@
     [(Evt: r) `(Evtof ,(t->s r))]
     [(? Union? (app normalize-type type))
      (match type
-       [(? Union?)
-        (define-values (covered remaining) (cover-union type ignored-names))
+       [(Union-all-flat: (app hset->list ts))
+        (define-values (covered remaining) (cover-union type ts ignored-names))
         (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
        [_ (t->s type)])]
+    [(BaseUnion-bases: bs)
+     (define-values (covered remaining) (cover-union type bs ignored-names))
+     (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
     [(Intersection: (app hset->list elems))
      (cons '∩ (sort (map t->s elems) primitive<=?))]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
@@ -555,18 +557,31 @@
     [(PolyRow-names: names _ body)
      `(All (,(car names) #:row) ,(t->s body))]
     ;; x1 --> ()
-    [(Mu: x (Syntax: (Union: (list
-                              (Base: 'Number _ _ _)
-                              (Base: 'Boolean _ _ _)
-                              (Base: 'Symbol _ _ _)
-                              (Base: 'String _ _ _)
-                              (Mu: var (Union: (list (Value: '())
-                                                     (Pair: (F: x) (F: var)))))
-                              (Mu: y (Union: (list (F: x)
-                                                   (Pair: (F: x) (F: y)))))
-                              (Vector: (F: x))
-                              (Box: (F: x))))))
-     'Syntax]
+    [(Mu-unsafe:
+      (Syntax: (Union: (== (Un -Number -Boolean -Symbol -String))
+                       ts)))
+     (=> continue)
+     (cond
+       [(not (= 4 (hset-count ts))) (continue)]
+       [(not (and (hset-member? ts (-vec (make-B 0)))
+                  (hset-member? ts (-box (make-B 0)))))
+        (continue)]
+       [else
+        (let ([ts (hset-remove
+                   (hset-remove ts (-vec (make-B 0)))
+                   (-box (make-B 0)))])
+          (match (hset->list ts)
+            [(list-no-order (Mu-unsafe:
+                             (Union: (== -Null)
+                                     (app hset->list (list (Pair: (B: 1) (B: 0))))))
+                            (Mu-unsafe:
+                             (Union: (== -Bottom)
+                                     (app hset->list
+                                          (list-no-order
+                                           (B: 1)
+                                           (Pair: (B: 1) (B: 0)))))))
+             'Syntax]
+            [_ (continue)]))])]
     [(Mu-name: name body)
      `(Rec ,name ,(t->s body))]
     [(B: idx) `(B ,idx)]

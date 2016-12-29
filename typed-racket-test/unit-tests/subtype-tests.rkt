@@ -207,7 +207,7 @@
     [FAIL (-channel -String) (-evt -Int)]
     [-Log-Receiver (-evt (make-HeterogeneousVector
                           (list -Symbol -String Univ
-                                (Un (-val #f) -Symbol))))]
+                                (Un -False -Symbol))))]
     [FAIL -Log-Receiver (-evt -Int)])
    (subtyping-tests
     "Sequence special cases"
@@ -228,6 +228,7 @@
     [(-pair -String (-lst -String)) (-seq -String)]
     [FAIL (-pair -String (-lst -Symbol)) (-seq -String)]
     [FAIL (-pair -String (-vec -String)) (-seq -String)]
+    [-Null (-seq -String)]
     [(-mpair -String -Null) (-seq -String)]
     [(-mlst -String) (-seq -String)]
     [(-mpair -String (-mlst -String)) (-seq -String)]
@@ -246,6 +247,8 @@
    [(Un (-pair Univ (-lst Univ)) -Null) (-lst Univ)]
    [(-lst* -Number -Number (-val 'foo)) (-lst Univ)]
    [(Un (-val #f) (Un (-val 6) (-val 7))) (-mu x (Un -Number (Un -Boolean -Symbol)))]
+   [(-mu x (Un -Zero (make-Listof x)))
+    (-mu x (Un -Number (make-Listof x)))]
    [(Un -Number (-val #f) (-mu x (Un -Number -Symbol (make-Listof x))))
     (-mu x (Un -Number -Symbol -Boolean (make-Listof x)))]
    ;; sexps vs list*s of nums
@@ -309,6 +312,8 @@
    [(Un -Number -Symbol) (Un -Symbol -Number)]
    [(Un (-val 6) (-val 7)) -Number]
    [(Un (-val #f) (Un (-val 6) (-val 7))) (Un -Number (Un -Boolean -Symbol))]
+   [(Un -Number (-pair -Number -Number)) (Un -Number -Symbol (-pair Univ Univ))]
+   [(Un -Number -Symbol (-pair -Number -Number)) (Un -Number -Symbol (-pair Univ Univ))]
    ;; intersections
    [(-unsafe-intersect -Number) -Number]
    [(-unsafe-intersect -Number -Symbol) -Number]
@@ -373,11 +378,11 @@
    [(-poly (a) (a . -> . a)) top-func]
    [FAIL (-> Univ) (null Univ . ->* . Univ)]
 
-   [(-poly (b) ((Un (make-Base 'foo #'dummy values #f)
+   [(-poly (b) ((Un (make-Opaque #'dummy)
                     (-struct #'bar #f
                              (list (make-fld -Number #'values #f) (make-fld b #'values #f))))
                 . -> . (-lst b)))
-    ((Un (make-Base 'foo #'dummy values #f) (-struct #'bar #f (list (make-fld -Number #'values #f) (make-fld (-pair -Number (-v a)) #'values #f))))
+    ((Un (make-Opaque #'dummy) (-struct #'bar #f (list (make-fld -Number #'values #f) (make-fld (-pair -Number (-v a)) #'values #f))))
      . -> . (-lst (-pair -Number (-v a))))]
    [(-poly (b) ((-struct #'bar #f (list (make-fld -Number #'values #f) (make-fld b #'values #f))) . -> . (-lst b)))
     ((-struct #'bar #f (list (make-fld -Number #'values #f) (make-fld (-pair -Number (-v a)) #'values #f)))

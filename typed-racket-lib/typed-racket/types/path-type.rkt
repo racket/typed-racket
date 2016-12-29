@@ -32,6 +32,8 @@
       ;; empty path
       [(t (list)) t]
 
+      ;; -- non-empty path beyond here --
+      
       ;; pair ops
       [((Pair: t s) (cons (CarPE:) rst))
        (path-type rst t (hash))]
@@ -57,8 +59,9 @@
                                             [t (in-value (path-type path t resolved))]
                                             #:when t)
                                   t))]
-      [((Union: ts) _)
-       (Union-map ts (λ (t) (or (path-type path t resolved) -Bottom)))]
+      [((Union: _ ts) _)
+       ;; drop base types, since they are incompatible w/ a path element
+       (Union-fmap (λ (t) (or (path-type path t resolved) -Bottom)) -Bottom ts)]
 
       ;; paths into polymorphic types
       ;; TODO can this expose unbound type indices... probably. It should be

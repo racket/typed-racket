@@ -11,8 +11,11 @@
          "core-rep.rkt"
          "values-rep.rkt"
          "type-mask.rkt"
-         "object-rep.rkt"
          "free-variance.rkt"
+         "base-type-rep.rkt"
+         "base-types.rkt"
+         "numeric-base-types.rkt"
+         "base-union.rkt"
          racket/match racket/list
          syntax/id-table
          racket/contract
@@ -21,7 +24,9 @@
                      racket/syntax
                      syntax/parse))
 
-(provide (except-out (all-from-out "core-rep.rkt")
+(provide (except-out (all-from-out "core-rep.rkt"
+                                   "base-type-rep.rkt"
+                                   "base-union.rkt")
                      Type Prop Object PathElem SomeValues)
          Type?
          Mu-name:
@@ -40,9 +45,11 @@
          unfold
          Union?
          Union-elems
-         Union-map
+         Union-fmap
          Un
          resolvable?
+         Union-all:
+         Union-all-flat:
          (rename-out [instantiate instantiate-raw-type]
                      [make-Union* make-Union]
                      [Union:* Union:]
@@ -129,33 +136,6 @@
   [#:for-each (f)
    (f rator)
    (for-each f rands)])
-
-(define base-table (make-hasheq))
-
-;; name is a Symbol (not a Name)
-;; contract is used when generating contracts from types
-;; predicate is used to check (at compile-time) whether a value belongs
-;; to that base type. This is used to check for subtyping between value
-;; types and base types.
-;; numeric determines if the type is a numeric type
-(def-type Base ([name symbol?]
-                [contract syntax?]
-                [predicate procedure?]
-                [numeric? boolean?])
-  #:base 
-  [#:mask (match-lambda
-            [(Base: name _ _ numeric?)
-             (if numeric?
-                 mask:number
-                 (case name
-                   [(Char) mask:char]
-                   [(String) mask:string]
-                   [(Void) mask:void]
-                   [(Symbol) mask:symbol]
-                   [else mask:base-other]))])]
-  #:non-transparent
-  [#:custom-constructor
-   (hash-ref! base-table name (λ () (make-Base name contract predicate numeric?)))])
 
 
 ;;************************************************************
@@ -425,7 +405,9 @@
   [#:custom-constructor
    (cond
      [(Bottom? body) -Bottom]
-     [(or (Value? body) (Base? body)) body]
+     [(or (Base? body)
+          (BaseUnion? body))
+      body]
      [else (make-Mu body)])])
 
 ;; n is how many variables are bound here
@@ -605,42 +587,74 @@
   #:base
   [#:mask (λ (t) (match (Value-val t)
                    [(? number?) mask:number]
-                   [#t mask:true]
-                   [#f mask:false]
-                   [(? symbol?) mask:symbol]
-                   [(? string?) mask:string]
-                   [(? char?) mask:char]
-                   [(? null?) mask:null]
-                   [(? void?) mask:void]
-                   [_ mask:unknown]))])
+                   [(? symbol?) mask:base]
+                   [(? string?) mask:base]
+                   [(? char?) mask:base]
+                   [_ mask:unknown]))]
+  [#:custom-constructor
+   (match val
+     [#f -False]
+     [#t -True]
+     ['() -Null]
+     [(? void?) -Void]
+     [0 -Zero]
+     [1 -One]
+     [_ (make-Value val)])])
 
 ;; elems : Listof[Type]
 (def-type Union ([mask type-mask?]
+                 [base (or/c Bottom? Base? BaseUnion?)]
                  [elems (and/c (hsetof Type?)
-                               (λ (h) (zero? (hset-count h))))])
+                               (λ (h) (> (hset-count h) 1)))])
   #:no-provide
+  #:non-transparent
   [#:frees (f) (combine-frees (hset-map elems f))]
-  [#:fmap (f) (Union-map elems f)]
+  [#:fmap (f) (Union-fmap f base elems)]
   [#:for-each (f) (hset-for-each elems f)]
-  [#:mask (λ (t) (Union-mask t))])
+  [#:mask (λ (t) (Union-mask t))]
+  [#:custom-constructor
+   (cond
+     [(hset-member? elems Univ) Univ]
+     [else
+      (let ([elems (hset-remove elems -Bottom)])
+        (match (hset-count elems)
+          [0 base]
+          [1 #:when (Bottom? base) (hset-first elems)]
+          [else (intern-double-ref!
+                 union-intern-table
+                 elems base #:construct (make-Union mask base elems))]))])])
+
+
+(define union-intern-table (make-weak-hash))
 
 (define-match-expander Union:*
-  (syntax-rules () [(_ elems-pat) (Union: _ elems-pat)]))
+  (syntax-rules () [(_ b elems) (Union: _ b elems)]))
 
-(define build-union
-  (let ([union-intern-table (make-weak-hash)])
-    (λ (m ts)
-      (cond
-        [(hset-member? ts Univ) Univ]
-        [else
-         (let ([ts (hset-remove ts -Bottom)])
-           (case (hset-count ts)
-             [(0) -Bottom]
-             [(1) (hset-first ts)]
-             [else (ephemeron-value
-                    (hash-ref! union-intern-table ts
-                               (λ () (let ([t (make-Union m ts)])
-                                       (make-ephemeron ts t)))))]))]))))
+(define-match-expander Union-all:
+  (syntax-rules () [(_ elems) (app Union-all? (? hset? elems))]))
+
+(define-match-expander Union-all-flat:
+  (syntax-rules () [(_ elems) (app Union-all-flat? (? hset? elems))]))
+
+(define (Union-all? t)
+  (match t
+    [(Union: _ b ts)
+     (if (Bottom? b)
+         ts
+         (hset-add ts b))]
+    [_ #f]))
+
+(define (Union-all-flat? t)
+  (match t
+    [(Union: _ b ts)
+     (match b
+       [(? Bottom?) ts]
+       [(BaseUnion-bases: bs)
+        (for/fold ([ts ts])
+                  ([b (in-list bs)])
+          (hset-add ts b))]
+       [_ (hset-add ts b)])]
+    [_ #f]))
 
 ;; Union-map
 ;;
@@ -650,26 +664,48 @@
 ;; but in a way which does not leak memory (i.e. Unions which
 ;; are no longer referenced outside of the interning machinery
 ;; will be garbage collected)
-(define/cond-contract (Union-map args f)
-  (-> (hsetof Type?) procedure? Type?)
-  (define-values (m ts)
-    (for*/fold ([m mask:bottom] [ts (hset)])
-               ([arg (in-hset args)]
-                [arg (in-value (f arg))])
+(define/cond-contract (Union-fmap f base elems)
+  (-> procedure? (or/c Bottom? Base? BaseUnion?) (hsetof Type?) Type?)
+  (define m mask:bottom)
+  (define bbits #b0)
+  (define nbits #b0)
+  (define ts (hset))
+  (define (process-base! numeric? bits)
+    (cond
+      [numeric? (set! nbits (nbits-union nbits bits))]
+      [else (set! bbits (bbits-union bbits bits))]))
+  (define (process-base-union! bbits* nbits*)
+    (set! nbits (nbits-union nbits nbits*))
+    (set! bbits (bbits-union bbits bbits*)))
+  (define (process-any-base! b)
+    (match b
+      [(Base-bits: numeric? bits) (process-base! numeric? bits)]
+      [(BaseUnion: bbits* nbits*) (process-base-union! bbits* nbits*)]
+      [_ (void)]))
+  (define (process! args)
+    (for* ([arg (in-hset args)]
+           [arg (in-value (f arg))])
       (match arg
-        [(Union: m* ts*)
-         (values (mask-union m m*)
-                 (hset-union ts ts*))]
-        [_ (values
-            (mask-union m (mask arg))
-            (hset-add ts arg))])))
-  (build-union m ts))
+        [(Base-bits: numeric? bits) (process-base! numeric? bits)]
+        [(BaseUnion: bbits* nbits*) (process-base-union! bbits* nbits*)]
+        [(Union: m* b* ts*)
+         (set! m (mask-union m m*))
+         (process-any-base! b*)
+         (set! ts (hset-union ts ts*))]
+        [_ (set! m (mask-union m (mask arg)))
+           (set! ts (hset-add ts arg))])))
+  (process-any-base! (f base))
+  (process! elems)
+  (define bs (make-BaseUnion bbits nbits))
+  (make-Union (mask-union m (mask bs))
+              bs
+              ts))
 
 (define (Un . args)
-  (Union-map (list->hset args) values))
+  (Union-fmap (λ (x) x) -Bottom (list->hset args)))
 
 (define (make-Union* args)
-  (Union-map args values))
+  (Union-fmap (λ (x) x) -Bottom args))
 
 ;; Intersection
 (def-type Intersection ([elems (and/c (hsetof Type?)

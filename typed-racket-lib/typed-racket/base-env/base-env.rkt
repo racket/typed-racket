@@ -1810,7 +1810,9 @@
 
 ;; Section 13.1.4
 [port-count-lines! (-> (Un -Input-Port -Output-Port) -Void)]
+[port-counts-lines? (-> (Un -Input-Port -Output-Port) -Boolean)]
 [port-next-location (-> (Un -Input-Port -Output-Port) (-values (list (-opt -PosInt) (-opt -Nat) (-opt -PosInt))))]
+[set-port-next-location! (-> (Un -Input-Port -Output-Port) (-opt -PosInt) (-opt -Nat) (-opt -PosInt) -Void)]
 [port-count-lines-enabled (-Param Univ B)]
 
 ;; Section 13.1.5

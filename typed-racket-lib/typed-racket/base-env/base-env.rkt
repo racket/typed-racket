@@ -3026,7 +3026,9 @@
 
 [current-command-line-arguments (-Param (-vec -String) (-vec -String))]
 [current-thread-initial-stack-size (-Param -PosInt -PosInt)]
-;vector-set-performance-stats! TODO complicated
+[vector-set-performance-stats! (cl->* [-> (-vec -Int) -Void]
+                                      [-> (-vec -Int) -False -Void]
+                                      [-> (-vec (Un -Boolean -Int)) -Thread -Void])]
 
 ;; Section 15.9 (racket/cmdline)
 [parse-command-line

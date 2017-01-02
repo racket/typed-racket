@@ -19,12 +19,15 @@
 ;; Base Type
 ;;-----------------
 
-;; name is a Symbol (not a Name)
-;; contract is used when generating contracts from types
-;; predicate is used to check (at compile-time) whether a value belongs
+;; name - a printable type name (unique for each Base)
+;; numeric? - is this Base type for values where 'number?' is #t
+;; bits - the binary representation of this Base type, used in BaseUnions
+;; to efficiently represent unions of Bases. NOTE: this should include only
+;; one bit set to 1.
+;; contract - used when generating contracts from types
+;; predicate - used to check (at compile-time) whether a value belongs
 ;; to that base type. This is used to check for subtyping between value
 ;; types and base types.
-;; numeric determines if the type is a numeric type
 (def-type Base ([name symbol?]
                 [numeric? boolean?]
                 [bits exact-nonnegative-integer?]

@@ -38,10 +38,11 @@
          bbits-intersect
          bbits-subtract)
 
-(define ((¬ f) x) (not (f x)))
-
-(define-syntax-rule (compose/and f ...)
-  (λ (x) (and (f x) ...)))
+;; these logical combinators are for single argument 
+;; functions and perform better than the generic
+;; variants from racket/function
+(define-syntax-rule (¬ f) (λ (x) (not (f x))))
+(define-syntax-rule (compose/and f ...) (λ (x) (and (f x) ...)))
 
 (define (bbits->atom? bits)
   (hash-ref base-atom-hash bits #f))
@@ -202,6 +203,4 @@
    Positive-ExtFlonum-No-NaN
    #'(and/c extflonum? (λ (x) (extfl>= x 0.0t0)))
    (λ (x) (and (extflonum? x) (extfl>= x 0.0t0)))]
-  ;; For casted-exprs in unreachable code, to fill in the cast table.
-  ;; TODO: This contract normally gets optimized away. Is there away to stop that?
   [-Dead-Code Dead-Code #'(make-none/c 'dead-code/c) (λ (v) #f)])

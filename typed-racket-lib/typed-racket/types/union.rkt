@@ -41,7 +41,8 @@
 ;; don't want to do redundant runtime checks, etc.
 (define (normalize-type t)
   (match t
-    [(Union-all: ts) (make-Union (for/fold ([ts (hset)])
-                                           ([t (in-hset ts)])
-                                   (merge t ts)))]
+    [(? BaseUnion?) t]
+    [(Union-all-flat: ts) (make-Union (for/fold ([ts (hset)])
+                                                ([t (in-hset ts)])
+                                        (merge t ts)))]
     [_ (Rep-fmap t normalize-type)]))

@@ -464,7 +464,7 @@
                           (append names ignored-names)))]
            [else
             ;; to allow :type to cue the user on unexpanded aliases
-            (when (Union? type) ; only unions can be expanded
+            (when (or (Union? type) (BaseUnion? type)) ; only unions can be expanded
               (set-box! (current-print-unexpanded)
                         (cons (car names) (unbox (current-print-unexpanded)))))
             (car names)])]

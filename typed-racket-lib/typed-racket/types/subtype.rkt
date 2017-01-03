@@ -1,12 +1,12 @@
 #lang racket/base
 (require (except-in "../utils/utils.rkt" infer)
          racket/match racket/function racket/lazy-require
-         racket/list
+         racket/list racket/set
          (contract-req)
          (rep type-rep prop-rep object-rep
               core-rep type-mask values-rep rep-utils
               free-variance rep-switch)
-         (utils tc-utils hset)
+         (utils tc-utils)
          (types utils resolve match-expanders current-seen
                 numeric-tower substitute prefab signatures)
          (for-syntax racket/base syntax/parse racket/sequence)
@@ -417,7 +417,7 @@
      (match t2
        [(Intersection: t2s)
         (for/fold ([A A])
-                  ([t2 (in-hset t2s)]
+                  ([t2 (in-list t2s)]
                    #:break (not A))
           (subtype* A t1 t2))]
        [(? resolvable?)
@@ -434,21 +434,21 @@
          ;; check the cases that need to come at the end
          (λ (A t1 t2)
            (match* (t1 t2)
-             [(t1 (Union: base2 elems2))
+             [(t1 (Union/set: base2 ts2 elems2))
               (cond
-                [(hset-member? elems2 t1) A]
+                [(set-member? elems2 t1) A]
                 [(cache-ref union-super-cache t2 t1)
                  => (λ (b) (and (unbox b) A))]
                 [else
                  (define result
                    (or (subtype* A t1 base2)
-                       (for/or ([elem (in-hset elems2)])
+                       (for/or ([elem (in-list ts2)])
                          (subtype* A t1 elem))))
                  (when (null? A)
                    (cache-set! union-super-cache t2 t1 (and result #t)))
                  result])]
              [((Intersection: t1s) _)
-              (for/or ([t1 (in-hset t1s)])
+              (for/or ([t1 (in-list t1s)])
                 (subtype* A t1 t2))]
              [(_ (Instance: (? resolvable? t2*)))
               (let ([A (remember t1 t2 A)])
@@ -728,7 +728,7 @@
         [(_ _) (continue A t1 t2)])])]
   [(case: Intersection (Intersection: t1s))
    (cond
-     [(for/or ([t1 (in-hset t1s)])
+     [(for/or ([t1 (in-list t1s)])
         (subtype* A t1 t2))]
      [else (continue A t1 t2)])]
   [(case: ListDots (ListDots: dty1 dbound1))
@@ -922,7 +922,7 @@
      [(? ThreadCellTop?) A]
      [(ThreadCell: elem2) (type≡? A elem1 elem2)]
      [_ (continue A t1 t2)])]
-  [(case: Union (Union: base1 elems1))
+  [(case: Union (Union/set: base1 ts1 elems1))
    (cond
      [(cache-ref union-sub-cache t1 t2)
       => (λ (b) (and (unbox b) A))]
@@ -931,16 +931,16 @@
         (let ([A (subtype* A base1 t2)])
           (and A
                (match t2
-                 [(Union: base2 elems2)
+                 [(Union/set: base2 ts2 elems2)
                   (for/fold ([A A])
-                            ([elem1 (in-hset elems1)]
+                            ([elem1 (in-list ts1)]
                              #:break (not A))
                     (cond
-                      [(hset-member? elems2 elem1) A]
+                      [(set-member? elems2 elem1) A]
                       [(subtype* A elem1 base2)]
                       [else (subtype* A elem1 t2)]))]
                  [_ (for/fold ([A A])
-                              ([elem1 (in-hset elems1)]
+                              ([elem1 (in-list ts1)]
                                #:break (not A))
                       (subtype* A elem1 t2))]))))
       (when (null? A)

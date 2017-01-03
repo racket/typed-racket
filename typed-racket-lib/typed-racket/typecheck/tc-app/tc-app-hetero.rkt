@@ -1,7 +1,6 @@
 #lang racket/unit
 
 (require "../../utils/utils.rkt"
-         (utils hset)
          syntax/parse syntax/stx racket/match racket/sequence
          "signatures.rkt"
          "utils.rkt"
@@ -129,7 +128,7 @@
       ;; we re-run this whole algorithm with that.  Otherwise, we treat
       ;; it like any other expected type.
       [(tc-result1: (app resolve (Union: _ ts))) (=> continue)
-       (define u-ts (for/list ([t (in-hset ts)]
+       (define u-ts (for/list ([t (in-list ts)]
                                #:when (eq? mask:vector (mask t)))
                       t))
        (match u-ts

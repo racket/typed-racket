@@ -1,10 +1,10 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils hset)
          (rep type-rep rep-utils type-mask)
          (prefix-in c: (contract-req))
          (types abbrev subtype resolve utils)
+         racket/set
          racket/match)
 
 
@@ -78,13 +78,14 @@
          #:when (or (bbits-overlap? bbits1 bbits2)
                     (nbits-overlap? nbits1 nbits2))
          #t]
-        [((Union-all: ts1) t2)
+        [((Union/set: base1 ts1 elems1) t2)
          #:no-order
-         (or (hset-member? ts1 t2)
-             (for/or ([t1 (in-hset ts1)]) (overlap? t1 t2)))]
+         (or (set-member? elems1 t2)
+             (overlap? base1 t2)
+             (for/or ([t1 (in-list ts1)]) (overlap? t1 t2)))]
         [((Intersection: ts) s)
          #:no-order
-         (for/and ([t (in-hset ts)]) (overlap? t s))]
+         (for/and ([t (in-list ts)]) (overlap? t s))]
         [((or (Poly-unsafe: _ t1)
               (PolyDots-unsafe: _ t1))
           t2)

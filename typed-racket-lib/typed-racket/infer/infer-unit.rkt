@@ -10,7 +10,7 @@
 (require "../utils/utils.rkt"
          (except-in
           (combine-in
-           (utils tc-utils hset)
+           (utils tc-utils)
            (rep free-variance type-rep prop-rep object-rep
                 values-rep rep-utils type-mask)
            (types utils abbrev numeric-tower subtype resolve
@@ -527,14 +527,14 @@
         ;; find *an* element of elems which can be made a subtype of T
         [((Intersection: ts) T)
          (cset-join
-          (for*/list ([t (in-hset ts)]
+          (for*/list ([t (in-list ts)]
                       [v (in-value (cg t T))]
                       #:when v)
             v))]
         
         ;; constrain S to be below *each* element of elems, and then combine the constraints
         [(S (Intersection: ts))
-         (define cs (for/list/fail ([ts (in-hset ts)]) (cg S ts)))
+         (define cs (for/list/fail ([ts (in-list ts)]) (cg S ts)))
          (and cs (cset-meet* (cons empty cs)))]
         
         ;; constrain *each* element of es to be below T, and then combine the constraints
@@ -542,7 +542,7 @@
          (define cs (for/list/fail ([e (in-list es)]) (cg e T)))
          (and cs (cset-meet* (cons empty cs)))]
         [((Union-all: es) T)
-         (define cs (for/list/fail ([e (in-hset es)]) (cg e T)))
+         (define cs (for/list/fail ([e (in-list es)]) (cg e T)))
          (and cs (cset-meet* (cons empty cs)))]
 
         [(_ (Bottom:)) (cset-join '())]
@@ -552,7 +552,7 @@
         ;; not using multiple csets will break for: ???
         [(S (Union-all: es))
          (cset-join
-          (for*/list ([e (in-hset es)]
+          (for*/list ([e (in-list es)]
                       [v (in-value (cg S e))]
                       #:when v)
             v))]

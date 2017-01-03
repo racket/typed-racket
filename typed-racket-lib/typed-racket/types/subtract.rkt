@@ -1,7 +1,6 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils hset)
          (rep type-rep rep-utils type-mask)
          (types abbrev subtype resolve utils)
          racket/match)
@@ -33,11 +32,11 @@
            [(BaseUnion: bbits* nbits*)
             (make-BaseUnion (bbits-subtract bbits bbits*)
                             (nbits-subtract nbits nbits*))]
-           [_ (make-Union (for/hset ([b (in-list (BaseUnion-bases t))])
-                                    (sub b)))])]
+           [_ (apply Un (for/list ([b (in-list (BaseUnion-bases t))])
+                          (sub b)))])]
         [(Union: base elems) (Union-fmap sub base elems)]
         [(Intersection: ts)
-         (apply -unsafe-intersect (hset-map ts sub))]
+         (apply -unsafe-intersect (map sub ts))]
         [(? Mu?) (sub (unfold t))]
         [(Poly: vs b) (make-Poly vs (sub b))]
         [_ t])))

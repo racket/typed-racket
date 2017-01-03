@@ -6,7 +6,7 @@
 (require "../utils/utils.rkt")
 
 ;; TODO use contract-req
-(require (utils tc-utils hset)
+(require (utils tc-utils)
          "rep-utils.rkt"
          "core-rep.rkt"
          "values-rep.rkt"
@@ -19,6 +19,7 @@
          racket/match racket/list
          syntax/id-table
          racket/contract
+         racket/set
          racket/lazy-require
          (for-syntax racket/base
                      racket/syntax
@@ -50,9 +51,12 @@
          resolvable?
          Union-all:
          Union-all-flat:
+         Union/set:
+         Intersection?
          (rename-out [instantiate instantiate-raw-type]
-                     [make-Union* make-Union]
                      [Union:* Union:]
+                     [Intersection:* Intersection:]
+                     [make-Intersection* make-Intersection]
                      [Class:* Class:]
                      [Class* make-Class]
                      [Row* make-Row]
@@ -604,56 +608,57 @@
 ;; elems : Listof[Type]
 (def-type Union ([mask type-mask?]
                  [base (or/c Bottom? Base? BaseUnion?)]
-                 [elems (and/c (hsetof Type?)
-                               (λ (h) (> (hset-count h) 1)))])
+                 [ts (cons/c Type? (cons/c Type? (listof Type?)))]
+                 [elems (and/c (set/c Type?)
+                               (λ (h) (> (set-count h) 1)))])
   #:no-provide
   #:non-transparent
-  [#:frees (f) (combine-frees (hset-map elems f))]
-  [#:fmap (f) (Union-fmap f base elems)]
-  [#:for-each (f) (hset-for-each elems f)]
+  [#:frees (f) (combine-frees (map f ts))]
+  [#:fmap (f) (Union-fmap f base ts)]
+  [#:for-each (f) (for-each f ts)]
   [#:mask (λ (t) (Union-mask t))]
   [#:custom-constructor
    (cond
-     [(hset-member? elems Univ) Univ]
+     [(set-member? elems Univ) Univ]
      [else
-      (let ([elems (hset-remove elems -Bottom)])
-        (match (hset-count elems)
-          [0 base]
-          [1 #:when (Bottom? base) (hset-first elems)]
-          [else (intern-double-ref!
-                 union-intern-table
-                 elems base #:construct (make-Union mask base elems))]))])])
+      (set-remove! elems -Bottom)
+      (match (set-count elems)
+        [0 base]
+        [1 #:when (Bottom? base) (set-first elems)]
+        [_ (intern-double-ref!
+            union-intern-table
+            elems
+            base
+            #:construct (make-Union mask base (remove-duplicates ts) elems))])])])
 
 
 (define union-intern-table (make-weak-hash))
 
 (define-match-expander Union:*
-  (syntax-rules () [(_ b elems) (Union: _ b elems)]))
+  (syntax-rules () [(_ b ts) (Union: _ b ts _)]))
+
+(define-match-expander Union/set:
+  (syntax-rules () [(_ b ts elems) (Union: _ b ts elems)]))
 
 (define-match-expander Union-all:
-  (syntax-rules () [(_ elems) (app Union-all? (? hset? elems))]))
+  (syntax-rules () [(_ elems) (app Union-all-list? (? list? elems))]))
 
 (define-match-expander Union-all-flat:
-  (syntax-rules () [(_ elems) (app Union-all-flat? (? hset? elems))]))
+  (syntax-rules () [(_ elems) (app Union-all-flat-list? (? list? elems))]))
 
-(define (Union-all? t)
+(define (Union-all-list? t)
   (match t
-    [(Union: _ b ts)
-     (if (Bottom? b)
-         ts
-         (hset-add ts b))]
+    [(Union: _ (? Bottom? b) ts _) ts]
+    [(Union: _ b ts _) (cons b ts)]
     [_ #f]))
 
-(define (Union-all-flat? t)
+(define (Union-all-flat-list? t)
   (match t
-    [(Union: _ b ts)
+    [(Union: _ b ts _)
      (match b
        [(? Bottom?) ts]
-       [(BaseUnion-bases: bs)
-        (for/fold ([ts ts])
-                  ([b (in-list bs)])
-          (hset-add ts b))]
-       [_ (hset-add ts b)])]
+       [(BaseUnion-bases: bs) (append bs ts)]
+       [_ (cons b ts)])]
     [_ #f]))
 
 ;; Union-map
@@ -664,12 +669,13 @@
 ;; but in a way which does not leak memory (i.e. Unions which
 ;; are no longer referenced outside of the interning machinery
 ;; will be garbage collected)
-(define/cond-contract (Union-fmap f base elems)
-  (-> procedure? (or/c Bottom? Base? BaseUnion?) (hsetof Type?) Type?)
+(define/cond-contract (Union-fmap f base-arg args)
+  (-> procedure? (or/c Bottom? Base? BaseUnion?) (listof Type?) Type?)
   (define m mask:bottom)
   (define bbits #b0)
   (define nbits #b0)
-  (define ts (hset))
+  (define ts '())
+  (define elems (mutable-set))
   (define (process-base! numeric? bits)
     (cond
       [numeric? (set! nbits (nbits-union nbits bits))]
@@ -683,62 +689,78 @@
       [(BaseUnion: bbits* nbits*) (process-base-union! bbits* nbits*)]
       [_ (void)]))
   (define (process! args)
-    (for* ([arg (in-hset args)]
+    (for* ([arg (in-list args)]
            [arg (in-value (f arg))])
       (match arg
         [(Base-bits: numeric? bits) (process-base! numeric? bits)]
         [(BaseUnion: bbits* nbits*) (process-base-union! bbits* nbits*)]
-        [(Union: m* b* ts*)
+        [(Union: m* b* ts* _)
          (set! m (mask-union m m*))
          (process-any-base! b*)
-         (set! ts (hset-union ts ts*))]
+         (set! ts (append ts* ts))
+         (for ([t* (in-list ts*)])
+           (set-add! elems t*))]
         [_ (set! m (mask-union m (mask arg)))
-           (set! ts (hset-add ts arg))])))
-  (process-any-base! (f base))
-  (process! elems)
+           (set! ts (cons arg ts))
+           (set-add! elems arg)])))
+  (process-any-base! (f base-arg))
+  (process! args)
   (define bs (make-BaseUnion bbits nbits))
   (make-Union (mask-union m (mask bs))
               bs
-              ts))
+              ts
+              elems))
 
 (define (Un . args)
-  (Union-fmap (λ (x) x) -Bottom (list->hset args)))
-
-(define (make-Union* args)
   (Union-fmap (λ (x) x) -Bottom args))
 
 ;; Intersection
-(def-type Intersection ([elems (and/c (hsetof Type?)
-                                      (λ (h) (zero? (hset-count h))))])
-  [#:frees (f) (combine-frees (hset-map elems f))]
-  [#:fmap (f) (apply -unsafe-intersect (hset-map elems f))]
-  [#:for-each (f) (hset-for-each elems f)]
+(def-type Intersection ([ts (cons/c Type? (cons/c Type? (listof Type?)))]
+                        [elems (set/c Type?)])
+  #:non-transparent
+  #:no-provide
+  [#:frees (f) (combine-frees (map f ts))]
+  [#:fmap (f) (apply -unsafe-intersect (map f ts))]
+  [#:for-each (f) (for-each f ts)]
   [#:mask (λ (t) (for/fold ([m mask:unknown])
-                           ([elem (in-hset (Intersection-elems t))])
-                   (mask-intersect m (mask elem))))])
+                           ([elem (in-list (Intersection-ts t))])
+                   (mask-intersect m (mask elem))))]
+  [#:custom-constructor
+   (intern-single-ref! intersection-table
+                       elems
+                       #:construct (make-Intersection ts elems))])
+
+(define intersection-table (make-weak-hash))
+
+(define-match-expander Intersection:*
+  (syntax-rules () [(_ ts) (Intersection: ts _)]))
+
+(define (make-Intersection* ts)
+  (apply -unsafe-intersect ts))
 
 ;;  constructor for intersections
 ;; in general, intersections should be built
 ;; using the 'intersect' operator, which worries
 ;; about actual subtyping, etc...
 (define (-unsafe-intersect . ts)
-  (let loop ([elems (hset)]
+  (let loop ([elems (set)]
              [ts ts])
     (match ts
       [(list)
-       (cond
-         [(hset-empty? elems) Univ]
-         ;; size = 1 ?
-         [(= 1 (hset-count elems)) (hset-first elems)]
-         ;; size > 1, build an intersection
-         [else (make-Intersection elems)])]
+       (let ([ts (set->list elems)])
+         (cond
+           [(null? ts) Univ]
+           ;; size = 1 ?
+           [(null? (cdr ts)) (car ts)]
+           ;; size > 1, build an intersection
+           [else (make-Intersection ts elems)]))]
       [(cons t ts)
        (match t
          [(Univ:) (loop elems ts)]
-         [(Intersection: ts*) (loop elems (append (hset->list ts*) ts))]
-         [_ #:when (for/or ([elem (in-hset elems)]) (not (overlap? elem t)))
+         [(Intersection: ts* _) (loop elems (append ts* ts))]
+         [_ #:when (for/or ([elem (in-immutable-set elems)]) (not (overlap? elem t)))
             -Bottom]
-         [_ (loop (hset-add elems t) ts)])])))
+         [_ (loop (set-add elems t) ts)])])))
 
 
 (def-type Refinement ([parent Type?] [pred identifier?])

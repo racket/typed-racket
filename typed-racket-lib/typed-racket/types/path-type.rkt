@@ -4,7 +4,7 @@
          racket/match racket/set
          (contract-req)
          (rep object-rep type-rep values-rep)
-         (utils tc-utils hset)
+         (utils tc-utils)
          (typecheck renamer)
          (types subtype resolve)
          (except-in (types utils abbrev kw-types) -> ->* one-of/c))
@@ -55,7 +55,7 @@
          (path-type rst ft (hash)))]
 
       [((Intersection: ts) _)
-       (apply -unsafe-intersect (for*/list ([t (in-hset ts)]
+       (apply -unsafe-intersect (for*/list ([t (in-list ts)]
                                             [t (in-value (path-type path t resolved))]
                                             #:when t)
                                   t))]

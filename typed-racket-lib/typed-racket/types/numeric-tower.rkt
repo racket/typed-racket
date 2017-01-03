@@ -1,7 +1,6 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils hset)
          (rep rep-utils type-mask numeric-base-types)
          (types numeric-predicates)
          (only-in (rep type-rep) Un make-Value)

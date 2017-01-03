@@ -6,7 +6,7 @@
  "../utils/utils.rkt"
  syntax/parse
  (rep type-rep prop-rep object-rep)
- (utils tc-utils hset)
+ (utils tc-utils)
  (env type-name-env row-constraint-env)
  (rep core-rep rep-utils type-mask values-rep base-types numeric-base-types)
  (types resolve utils printer match-expanders union)
@@ -418,13 +418,13 @@
             (apply or/sc (append other-scs (map t->sc (nbits->base-types nbits)))))]
        [(? Union? t)
         (match (normalize-type t)
-          [(Union: (? Bottom?) elems) (apply or/sc (hset-map elems t->sc))]
-          [(Union: base elems) (apply or/sc (t->sc base) (hset-map elems t->sc))]
+          [(Union: (? Bottom?) elems) (apply or/sc (map t->sc elems))]
+          [(Union: base elems) (apply or/sc (t->sc base) (map t->sc elems))]
           [t (t->sc t)])]
        [(Intersection: ts)
         (define-values (chaperones/impersonators others)
           (for/fold ([cs/is null] [others null])
-                    ([elem (in-hset ts)])
+                    ([elem (in-list ts)])
             (define c (t->sc elem))
             (if (equal? flat-sym (get-max-contract-kind c))
                 (values cs/is (cons c others))
@@ -789,8 +789,8 @@
           (let loop ([ty b])
             (match (resolve ty)
               [(Function: _) #t]
-              [(Union: _ elems) (for/and ([elem (in-hset elems)]) (loop elem))]
-              [(Intersection: elems) (for/or ([elem (in-hset elems)]) (loop elem))]
+              [(Union: _ elems) (andmap loop elems)]
+              [(Intersection: elems) (ormap loop elems)]
               [(Poly: _ body) (loop body)]
               [(PolyDots: _ body) (loop body)]
               [_ #f])))
@@ -828,8 +828,8 @@
           (let loop ([ty b])
             (match (resolve ty)
               [(Function: _) #t]
-              [(Union: _ elems) (for/and ([elem (in-hset elems)]) (loop elem))]
-              [(Intersection: elems) (for/or ([elem (in-hset elems)]) (loop elem))]
+              [(Union: _ elems) (andmap loop elems)]
+              [(Intersection: elems) (ormap loop elems)]
               [(Poly: _ body) (loop body)]
               [(PolyDots: _ body) (loop body)]
               [_ #f])))

@@ -5,7 +5,7 @@
          (contract-req)
          (infer-in infer)
          (rep core-rep type-rep prop-rep object-rep values-rep rep-utils)
-         (utils tc-utils hset)
+         (utils tc-utils)
          (types resolve subtype subtract)
          (rename-in (types abbrev)
                     [-> -->]
@@ -86,7 +86,7 @@
 
          [((Intersection: ts) _)
           (for/fold ([t Univ])
-                    ([elem (in-hset ts)])
+                    ([elem (in-list ts)])
             (intersect t (update elem path)))]
          
          [(_ _)

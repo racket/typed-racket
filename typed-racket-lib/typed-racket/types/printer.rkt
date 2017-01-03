@@ -18,8 +18,7 @@
                   "types/prefab.rkt"
                   "utils/utils.rkt"
                   "utils/primitive-comparison.rkt"
-                  "utils/tc-utils.rkt"
-                  "utils/hset.rkt")
+                  "utils/tc-utils.rkt")
          (for-syntax racket/base syntax/parse))
 
 ;; printer-type: (one-of/c 'custom 'debug)
@@ -180,7 +179,7 @@
   ;; names and the sets themselves (not the union types)
   ;; note that racket/set supports lists with equal?
   (define candidates
-    (map (match-lambda [(cons name (Union-all-flat: (app hset->list elts))) (cons name elts)]
+    (map (match-lambda [(cons name (Union-all-flat: elts)) (cons name elts)]
                        [(cons name (BaseUnion-bases: elts)) (cons name elts)])
          valid-names))
   ;; some types in the union may not be coverable by the candidates
@@ -528,14 +527,14 @@
     [(Evt: r) `(Evtof ,(t->s r))]
     [(? Union? (app normalize-type type))
      (match type
-       [(Union-all-flat: (app hset->list ts))
+       [(Union-all-flat: ts)
         (define-values (covered remaining) (cover-union type ts ignored-names))
         (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
        [_ (t->s type)])]
     [(BaseUnion-bases: bs)
      (define-values (covered remaining) (cover-union type bs ignored-names))
      (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
-    [(Intersection: (app hset->list elems))
+    [(Intersection: elems)
      (cons '∩ (sort (map t->s elems) primitive<=?))]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
@@ -562,24 +561,22 @@
                        ts)))
      (=> continue)
      (cond
-       [(not (= 4 (hset-count ts))) (continue)]
-       [(not (and (hset-member? ts (-vec (make-B 0)))
-                  (hset-member? ts (-box (make-B 0)))))
+       [(not (= 4 (length ts))) (continue)]
+       [(not (and (member (-vec (make-B 0)) ts)
+                  (member (-box (make-B 0)) ts)))
         (continue)]
        [else
-        (let ([ts (hset-remove
-                   (hset-remove ts (-vec (make-B 0)))
-                   (-box (make-B 0)))])
-          (match (hset->list ts)
+        (let ([ts (remove (-box (make-B 0))
+                          (remove (-vec (make-B 0)) ts))])
+          (match ts
             [(list-no-order (Mu-unsafe:
                              (Union: (== -Null)
-                                     (app hset->list (list (Pair: (B: 1) (B: 0))))))
+                                     (list (Pair: (B: 1) (B: 0)))))
                             (Mu-unsafe:
                              (Union: (== -Bottom)
-                                     (app hset->list
-                                          (list-no-order
-                                           (B: 1)
-                                           (Pair: (B: 1) (B: 0)))))))
+                                     (list-no-order
+                                      (B: 1)
+                                      (Pair: (B: 1) (B: 0))))))
              'Syntax]
             [_ (continue)]))])]
     [(Mu-name: name body)

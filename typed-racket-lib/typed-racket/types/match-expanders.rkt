@@ -1,10 +1,10 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils hset)
          (rep type-rep values-rep rep-utils)
          racket/match
          syntax/parse/define
+         racket/set
          (types resolve base-abbrev)
          (for-syntax racket/base syntax/parse))
 
@@ -53,24 +53,18 @@
 (define-simple-macro (make-Listof-pred listof-pred?:id pair-matcher:id)
   (define (listof-pred? t [simple? #f])
     (match t
-      [(Mu-unsafe: (Union: (== -Null) elems))
-       #:when (= 1 (hset-count elems))
-       (match (hset-first elems)
-         [(pair-matcher elem-t (B: 0))
-          (define elem-t* (instantiate-raw-type t elem-t))
-          (cond
-            [simple? (and (equal? elem-t elem-t*) elem-t)]
-            [else elem-t*])]
-         [_ #f])]
-      [(Union: (== -Null) elems)
-       #:when (= 1 (hset-count elems))
-       (match (hset-first elems)
-         [(pair-matcher hd-t tl-t)
-          (cond
-            [(listof-pred? tl-t)
-             => (λ (lst-t) (and (equal? hd-t lst-t) hd-t))]
-            [else #f])]
-         [_ #f])]
+      [(Mu-unsafe:
+        (Union: (== -Null)
+                (list (pair-matcher elem-t (B: 0)))))
+       (define elem-t* (instantiate-raw-type t elem-t))
+       (cond
+         [simple? (and (equal? elem-t elem-t*) elem-t)]
+         [else elem-t*])]
+      [(Union: (== -Null) (list (pair-matcher hd-t tl-t)))
+       (cond
+         [(listof-pred? tl-t)
+          => (λ (lst-t) (and (equal? hd-t lst-t) hd-t))]
+         [else #f])]
       [_ #f])))
 
 (make-Listof-pred Listof? Pair:)
@@ -104,11 +98,11 @@
 ;; The last type may contain pairs if it is a list type.
 (define (untuple t)
   (let loop ([t t]
-             [seen (hset)])
-    (if (not (hset-member? seen t))
+             [seen (set)])
+    (if (not (set-member? seen t))
         (match (resolve t)
           [(Pair: a b)
-           (define-values (elems tail) (loop b (hset-add seen t)))
+           (define-values (elems tail) (loop b (set-add seen t)))
            (values (cons a elems) tail)]
           [_ (values null t)])
         (values null t))))

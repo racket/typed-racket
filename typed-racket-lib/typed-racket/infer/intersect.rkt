@@ -1,7 +1,6 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
-         (utils hset)
          (rep type-rep type-mask rep-utils)
          (types abbrev subtype resolve overlap)
          "signatures.rkt"
@@ -64,17 +63,19 @@
             ;; unions are passed to 'intersect' can produces different
             ;; (albeit equivalent modulo subtyping, we believe) answers)
             [(Union-all: t2s)
-             (let ([t1s (if (Bottom? base1) t1s (hset-add t1s base1))])
-               (make-Union (for*/hset ([t1 (in-hset t1s)]
-                                       [t2 (in-hset t2s)])
-                             (rec t1 t2))))]
+             (let ([t1s (if (Bottom? base1) t1s (cons base1 t1s))])
+               (apply Un (for*/list ([t1 (in-list t1s)]
+                                     [t2 (in-list t2s)]
+                                     [t* (in-value (rec t1 t2))]
+                                     #:unless (Bottom? t*))
+                           t*)))]
             [_ (Union-fmap (λ (t1) (rec t1 t2)) base1 t1s)])]
          [(t1 (Union: base2 t2s)) (Union-fmap (λ (t2) (rec t1 t2)) base2 t2s)]
 
          [((Intersection: t1s) t2)
-          (apply -unsafe-intersect (hset-map t1s (λ (t1) (rec t1 t2))))]
+          (apply -unsafe-intersect (map (λ (t1) (rec t1 t2)) t1s))]
          [(t1 (Intersection: t2s))
-          (apply -unsafe-intersect (hset-map t2s (λ (t2) (rec t1 t2))))]
+          (apply -unsafe-intersect (map (λ (t2) (rec t1 t2)) t2s))]
 
          ;; For resolvable types, we record the occurrence and save a back pointer
          ;; in 'seen'. Then, if this pair of types emerges again, we know that we are
@@ -135,11 +136,11 @@
                           t1
                           -Bottom)])]
          [((BaseUnion-bases: bases1) t2)
-          (make-Union (for/hset ([b (in-list bases1)])
-                        (rec b t2)))]
+          (apply Un (for/list ([b (in-list bases1)])
+                      (rec b t2)))]
          [(t1 (BaseUnion-bases: bases2))
-          (make-Union (for/hset ([b (in-list bases2)])
-                        (rec t1 b)))]
+          (apply Un (for/list ([b (in-list bases2)])
+                      (rec t1 b)))]
 
          ;; t2 and t1 have a complex relationship, so we build an intersection
          ;; if additive, otherwise t1 remains unchanged

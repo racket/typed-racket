@@ -3,7 +3,7 @@
 ;; Support for defining the initial TR environment
 
 (require "../utils/utils.rkt"
-         (utils tc-utils hset)
+         (utils tc-utils)
          "global-env.rkt"
          "type-name-env.rkt"
          "type-alias-env.rkt"
@@ -205,15 +205,16 @@
                    ,(object->sexp obj))]
     [(AnyValues: prop)
      `(make-AnyValues ,(prop->sexp prop))]
-    [(Union: (? Bottom?) ts) #:when (for/and ([t (in-hset ts)]) (Value? t))
-     `(one-of/c ,@(for/list ([t (in-hset ts)])
+    [(Union: (? Bottom?) ts)
+     #:when (andmap Value? ts)
+     `(one-of/c ,@(for/list ([t (in-list ts)])
                     `(quote ,(Value-val t))))]
     
     [(BaseUnion: bbits nbits) `(make-BaseUnion ,bbits ,nbits)]
     [(Union: base elems) `(Un . ,(append (if (Bottom? base) '() (list (type->sexp base)))
-                                         (hset-map elems type->sexp)))]
+                                         (map type->sexp elems)))]
     [(Intersection: elems)
-     `(make-Intersection (hset ,@(hset-map elems type->sexp)))]
+     `(make-Intersection (list ,@(map type->sexp elems)))]
     [(Name: stx 0 #t)
      `(-struct-name (quote-syntax ,stx))]
     [(Name: stx args struct?)

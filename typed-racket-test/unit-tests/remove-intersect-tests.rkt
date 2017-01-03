@@ -25,7 +25,7 @@
     [(_ [t1 t2 res] ...)
      #'(test-suite "Tests for intersect"
                    (test-check (format "~a ~a" 't1 't2)
-                               type-compare?
+                               type-equiv?
                                (intersect t1 t2) res) ...)]))
 
 
@@ -65,7 +65,7 @@
     [(_ [t1 t2 res] ...)
      (syntax/loc stx
        (test-suite "Tests for subtract"
-                   (test-check (format "~a ~a" 't1 't2) type-compare? (subtract t1 t2) res) ...))]))
+                   (test-check (format "~a ~a" 't1 't2) type-equiv? (subtract t1 t2) res) ...))]))
 
 (define subtract-tests
   (remo-tests

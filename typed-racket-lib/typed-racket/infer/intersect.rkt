@@ -136,10 +136,10 @@
                           -Bottom)])]
          [((BaseUnion-bases: bases1) t2)
           (make-Union (for/hset ([b (in-list bases1)])
-                                (rec b t2)))]
+                        (rec b t2)))]
          [(t1 (BaseUnion-bases: bases2))
           (make-Union (for/hset ([b (in-list bases2)])
-                                (rec t1 b)))]
+                        (rec t1 b)))]
 
          ;; t2 and t1 have a complex relationship, so we build an intersection
          ;; if additive, otherwise t1 remains unchanged

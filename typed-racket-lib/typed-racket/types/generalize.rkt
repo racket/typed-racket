@@ -39,7 +39,7 @@
                 [(Pair: _ _) -lst]
                 [(MPair: _ _) -mlst])
               t1))
-           (if (type-compare? -lst-type t-new)
+           (if (type-equiv? -lst-type t-new)
                -lst-type
                (exit t)))]
         [(ListDots: t bound) (-lst (substitute Univ bound t))]

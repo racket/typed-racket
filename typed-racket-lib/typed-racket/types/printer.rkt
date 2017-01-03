@@ -172,16 +172,16 @@
     ;; It's no use attempting to cover t with things that go outside of t.
     (filter (lambda (p)
               (match p
-                [(cons name (? Union? t*))
+                [(cons name (and t* (or (? Union?) (? BaseUnion?))))
                  (and (not (member name ignored-names))
                       (subtype t* t))]
                 [_ #f]))
             (force (current-type-names))))
   ;; names and the sets themselves (not the union types)
-  ;; note that racket/set supports lists with equal?, which in
-  ;; the case of Types will be type-equal?
+  ;; note that racket/set supports lists with equal?
   (define candidates
-    (map (match-lambda [(cons name (Union-all-flat: (app hset->list elts))) (cons name elts)])
+    (map (match-lambda [(cons name (Union-all-flat: (app hset->list elts))) (cons name elts)]
+                       [(cons name (BaseUnion-bases: elts)) (cons name elts)])
          valid-names))
   ;; some types in the union may not be coverable by the candidates
   ;; (e.g. type variables, etc.)
@@ -469,6 +469,9 @@
               (set-box! (current-print-unexpanded)
                         (cons (car names) (unbox (current-print-unexpanded)))))
             (car names)])]
+    ;; format as a string to preserve reader abbreviations and primitive
+    ;; values like characters (when `display`ed)
+    [(Val-able: v) (format "~v" v)]
     [(? Base?) (Base-name type)]
     [(StructType: (Struct: nm _ _ _ _ _)) `(StructType ,(syntax-e nm))]
     ;; this case occurs if the contained type is a type variable
@@ -498,9 +501,6 @@
      `(Listof ,(t->s elem-ty))]
     [(SimpleMListof: elem-ty)
      `(MListof ,(t->s elem-ty))]
-    ;; format as a string to preserve reader abbreviations and primitive
-    ;; values like characters (when `display`ed)
-    [(Value: v) (format "~v" v)]
     [(? tuple? t)
      `(List ,@(map type->sexp (tuple-elems t)))]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]

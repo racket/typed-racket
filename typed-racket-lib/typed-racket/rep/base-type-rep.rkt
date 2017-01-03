@@ -11,9 +11,10 @@
 (provide define-base-types
          Base?
          Base-name
+         Base-predicate
          Base-bits:
-         Base-pred:
-         Base-ctc:)
+         Base-predicate:
+         Base-name/contract:)
 
 ;;-----------------
 ;; Base Type
@@ -54,12 +55,12 @@
              [(_ numeric? bits)
               (syntax/loc stx (Base: _ numeric? bits _ _))])))
 
-(define-match-expander Base-pred:
+(define-match-expander Base-predicate:
   (λ (stx) (syntax-case stx ()
              [(_ pred)
               (syntax/loc stx (Base: _ _ _ _ pred))])))
 
-(define-match-expander Base-ctc:
+(define-match-expander Base-name/contract:
   (λ (stx) (syntax-case stx ()
              [(_ name ctc)
               (syntax/loc stx (Base: name _ _ ctc _))])))

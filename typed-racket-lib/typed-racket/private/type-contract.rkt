@@ -403,7 +403,7 @@
                  (not (regexp? v)))
             (flat/sc #`(quote #,v))
             (flat/sc #`(flat-named-contract '#,v (lambda (x) (equal? x '#,v))) v))]
-       [(Base-ctc: sym ctc)
+       [(Base-name/contract: sym ctc)
         (flat/sc #`(flat-named-contract '#,sym (flat-contract-predicate #,ctc)) sym)]
        [(Distinction: _ _ t) ; from define-new-subtype
         (t->sc t)]
@@ -418,7 +418,8 @@
             (apply or/sc (append other-scs (map t->sc (nbits->base-types nbits)))))]
        [(? Union? t)
         (match (normalize-type t)
-          [(Union-all: elems) (apply or/sc (hset-map elems t->sc))]
+          [(Union: (? Bottom?) elems) (apply or/sc (hset-map elems t->sc))]
+          [(Union: base elems) (apply or/sc (t->sc base) (hset-map elems t->sc))]
           [t (t->sc t)])]
        [(Intersection: ts)
         (define-values (chaperones/impersonators others)

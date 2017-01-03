@@ -16,17 +16,19 @@
                     one-of/c))
 
 (lazy-require
-  ("../infer/infer.rkt" (infer))
-  ("../typecheck/tc-subst.rkt" (restrict-values)))
+ ("../infer/infer.rkt" (infer))
+ ("../typecheck/tc-subst.rkt" (restrict-values)))
 
+(provide NameStruct:)
 
 (provide/cond-contract
  [subtype (-> Type? Type? boolean?)]
  [subresult (-> Result? Result? boolean?)]
  [subval (-> SomeValues? SomeValues? boolean?)]
- [type-compare? (-> (or/c Type? SomeValues?) (or/c Type? SomeValues?) boolean?)]
+ [type-equiv? (-> Type? Type? boolean?)]
  [subtypes (-> (listof Type?) (listof Type?) boolean?)]
- [subtypes/varargs (-> (listof Type?) (listof Type?) (or/c Type? #f) boolean?)])
+ [subtypes/varargs (-> (listof Type?) (listof Type?) (or/c Type? #f) boolean?)]
+ [unrelated-structs (-> Struct? Struct? boolean?)])
 
 
 ;;************************************************************
@@ -46,9 +48,8 @@
   (and (subval* (seen) v1 v2) #t))
 
 ;; are t1 and t2 equivalent types (w.r.t. subtyping)
-(define (type-compare? t1 t2)
-  (or (equal? t1 t2) (and (subtype t1 t2)
-                          (subtype t2 t1))))
+(define (type-equiv? t1 t2)
+  (type≡? (seen) t1 t2))
 
 ;; are all the s's subtypes of all the t's?
 ;; [type] [type] -> boolean
@@ -146,15 +147,15 @@
      A
      (match* (kws1 kws2)
        [((cons (Keyword: k1 t1 r1) rest1) (cons (Keyword: k2 t2 r2) rest2))
-	(cond [(eq? k2 k1)
-	       (and ;; if t is optional, s must be as well
-		(or r2 (not r1))
-		(loop (subtype* A t2 t1) rest1 rest2))]
-	      ;; optional extra keywords in s are ok
-	      ;; we just ignore them
-	      [(and (not r1) (keyword<? k1 k2)) (loop A rest1 kws2)]
-	      ;; extra keywords in t are a problem
-	      [else #f])]
+        (cond [(eq? k2 k1)
+               (and ;; if t is optional, s must be as well
+                (or r2 (not r1))
+                (loop (subtype* A t2 t1) rest1 rest2))]
+              ;; optional extra keywords in s are ok
+              ;; we just ignore them
+              [(and (not r1) (keyword<? k1 k2)) (loop A rest1 kws2)]
+              ;; extra keywords in t are a problem
+              [else #f])]
        ;; no more keywords to satisfy, the rest in t must be optional
        [(_ '()) (and (andmap (match-lambda [(Keyword: _ _ r1) (not r1)])
                              kws1) A)]
@@ -353,7 +354,7 @@
 
 (define/cond-contract (subresult* A res1 res2)
   (-> (listof (cons/c Type? Type?)) Result? Result?
-        any/c)
+      any/c)
   (match* (res1 res2)
     [((Result: t1 (PropSet: p1+ p1-) o1)
       (Result: t2 (PropSet: p2+ p2-) o2))
@@ -367,14 +368,14 @@
 ;; Type Subtyping
 ;;************************************************************
 
-(define/cond-contract (type-equiv? A t1 t2)
+(define/cond-contract (type≡? A t1 t2)
   (-> list? Type? Type? any/c)
   (subtype-seq A
-	       (subtype* t1 t2)
-	       (subtype* t2 t1)))
+               (subtype* t1 t2)
+               (subtype* t2 t1)))
 
-(define union-super-cache (make-weak-hasheq))
-(define union-sub-cache (make-weak-hasheq))
+(define union-super-cache (make-weak-hash))
+(define union-sub-cache (make-weak-hash))
 
 ;; cache-set!
 ;; caches 'result' as the answer for 't1 <: t2'
@@ -478,7 +479,7 @@
   [(case: Async-Channel (Async-Channel: elem1))
    (match t2
      [(? Async-ChannelTop?) A]
-     [(Async-Channel: elem2) (type-equiv? A elem1 elem2)]
+     [(Async-Channel: elem2) (type≡? A elem1 elem2)]
      [(Evt: evt-t) (subtype* A elem1 evt-t)]
      [_ (continue A t1 t2)])]
   [(case: Base (Base-bits: num? bits))
@@ -555,12 +556,12 @@
   [(case: Box (Box: elem1))
    (match t2
      [(? BoxTop?) A]
-     [(Box: elem2) (type-equiv? A elem1 elem2)]
+     [(Box: elem2) (type≡? A elem1 elem2)]
      [_ (continue A t1 t2)])]
   [(case: Channel (Channel: elem1))
    (match t2
      [(? ChannelTop?) A]
-     [(Channel: elem2) (type-equiv? A elem1 elem2)]
+     [(Channel: elem2) (type≡? A elem1 elem2)]
      [(Evt: evt-t) (subtype* A elem1 evt-t)]
      [_ (continue A t1 t2)])]
   [(case: Class (Class: row inits fields methods augments init-rest))
@@ -607,7 +608,7 @@
    (match t2
      [(? Continuation-Mark-KeyTop?) A]
      [(Continuation-Mark-Keyof: val2)
-      (type-equiv? A val1 val2)]
+      (type≡? A val1 val2)]
      [_ (continue A t1 t2)])]
   [(case: CustodianBox (CustodianBox: elem1))
    (match t2
@@ -666,8 +667,8 @@
    (match t2
      [(? HashtableTop?) A]
      [(Hashtable: key2 val2) (subtype-seq A
-                                          (type-equiv? key1 key2)
-                                          (type-equiv? val1 val2))]
+                                          (type≡? key1 key2)
+                                          (type≡? val1 val2))]
      [(Sequence: (list key2 val2))
       (subtype-seq A
                    (subtype* key1 key2)
@@ -683,12 +684,12 @@
                        ([elem1 (in-list elems1)]
                         [elem2 (in-list elems2)]
                         #:break (not A))
-               (type-equiv? A elem1 elem2))]
+               (type≡? A elem1 elem2))]
             [else #f])]
      [(Vector: elem2)
       (for/fold ([A A])
                 ([elem1 (in-list elems1)] #:break (not A))
-        (type-equiv? A elem1 elem2))]
+        (type≡? A elem1 elem2))]
      [(Sequence: (list seq-t))
       (for/fold ([A A])
                 ([elem1 (in-list elems1)]
@@ -749,8 +750,8 @@
      [(? MPairTop?) A]
      [(MPair: t21 t22)
       (subtype-seq A
-                   (type-equiv? t11 t21)
-                   (type-equiv? t12 t22))]
+                   (type≡? t11 t21)
+                   (type≡? t12 t22))]
      ;; To check that mutable pair is a sequence we check that the cdr
      ;; is both an mutable list and a sequence 
      [(Sequence: (list seq-t))
@@ -859,8 +860,8 @@
      [(? Prompt-TagTop?) A]
      [(Prompt-Tagof: body2 handler2)
       (subtype-seq A
-                   (type-equiv? body1 body2)
-                   (type-equiv? handler1 handler2))]
+                   (type≡? body1 body2)
+                   (type≡? handler1 handler2))]
      [_ (continue A t1 t2)])]
   [(case: Refinement (Refinement: t1-parent id1))
    (match t2
@@ -919,7 +920,7 @@
   [(case: ThreadCell (ThreadCell: elem1))
    (match t2
      [(? ThreadCellTop?) A]
-     [(ThreadCell: elem2) (type-equiv? A elem1 elem2)]
+     [(ThreadCell: elem2) (type≡? A elem1 elem2)]
      [_ (continue A t1 t2)])]
   [(case: Union (Union: base1 elems1))
    (cond
@@ -960,10 +961,11 @@
      [_ (continue A t1 t2)])]
   [(case: Value (Value: val1))
    (match t2
-     [(Base-pred: pred) (and (pred val1) A)]
+     [(Base-predicate: pred) (and (pred val1) A)]
      [(BaseUnion-bases: bs)
-      (for/or ([b (in-list bs)])
-        (match b [(Base-pred: pred) (and (pred val1) A)]))]
+      (for*/or ([b (in-list bs)]
+                [pred (in-value (Base-predicate b))])
+        (and (pred val1) A))]
      [(Sequence: (list seq-t))
       (cond
         [(exact-nonnegative-integer? val1)
@@ -987,12 +989,12 @@
   [(case: Vector (Vector: elem1))
    (match t2
      [(? VectorTop?) A]
-     [(Vector: elem2) (type-equiv? A elem1 elem2)]
+     [(Vector: elem2) (type≡? A elem1 elem2)]
      [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
      [_ (continue A t1 t2)])]
   [(case: Weak-Box (Weak-Box: elem1))
    (match t2
      [(? Weak-BoxTop?) A]
-     [(Weak-Box: elem2) (type-equiv? A elem1 elem2)]
+     [(Weak-Box: elem2) (type≡? A elem1 elem2)]
      [_ (continue A t1 t2)])]
   [else: (continue A t1 t2)])

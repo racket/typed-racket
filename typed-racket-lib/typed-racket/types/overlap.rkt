@@ -71,6 +71,7 @@
              (nbits-overlap? nbits bits)
              (bbits-overlap? bbits bits))]
         [((BaseUnion-bases: bases1) t2)
+         #:no-order
          (for/or ([b1 (in-list bases1)]) (overlap? b1 t2))]
         [((Union: (BaseUnion: bbits1 nbits1) _)
           (Union: (BaseUnion: bbits2 nbits2) _))
@@ -135,12 +136,19 @@
           (StructTop: (Struct: n* #f _ _ _ _)))
          #:when (free-identifier=? n n*)
          #t]
+        [((StructTop: (Struct: n* #f _ _ _ _))
+          (Struct: n #f _ _ _ _))
+         #:when (free-identifier=? n n*)
+         #t]
         ;; n and n* must be different, so there's no overlap
         [((Struct: n #f flds _ _ _)
           (Struct: n* #f flds* _ _ _))
          #f]
         [((Struct: n #f flds _ _ _)
           (StructTop: (Struct: n* #f flds* _ _ _)))
+         #f]
+        [((StructTop: (Struct: n* #f flds* _ _ _))
+          (Struct: n #f flds _ _ _))
          #f]
         [((and t1 (Struct: _ _ _ _ _ _))
           (and t2 (Struct: _ _ _ _ _ _)))

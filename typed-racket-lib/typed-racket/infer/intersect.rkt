@@ -1,8 +1,9 @@
 #lang racket/unit
 
-(require "../utils/utils.rkt")
-(require (rep type-rep type-mask)
-         (types abbrev base-abbrev union subtype resolve overlap)
+(require "../utils/utils.rkt"
+         (utils hset)
+         (rep type-rep type-mask rep-utils)
+         (types abbrev base-abbrev subtype resolve overlap)
          "signatures.rkt"
          racket/match
          racket/set)
@@ -15,9 +16,6 @@
 ;;  a non-additive intersection computation defined below
 ;; (i.e. only parts of t1 will remain, no parts from t2 are added))
 (define (intersect t1 t2)
-  ;; build-type: build a type while propogating bottom
-  (define (build-type constructor . args)
-    (if (memf Bottom? args) -Bottom (apply constructor args)))
   (cond
     ;; we dispatch w/ Error first, because it behaves in
     ;; strange ways (e.g. it is ⊤ and ⊥ w.r.t subtyping) and
@@ -36,11 +34,11 @@
        (define (rec t1 t2) (intersect t1 t2 seen))
        (match* (t1 t2)
          ;; quick overlap check
-         [(_ _) #:when (disjoint-masks? (Type-mask t1) (Type-mask t2)) -Bottom]
+         [(_ _) #:when (disjoint-masks? (mask t1) (mask t2)) -Bottom]
       
          ;; already a subtype
-         [(t1 t2) #:when (subtype t1 t2) t1]
-         [(t1 t2) #:when (subtype t2 t1) t2]
+         [(_ _) #:when (subtype t1 t2) t1]
+         [(_ _) #:when (subtype t2 t1) t2]
 
      
          ;; polymorphic intersect
@@ -53,32 +51,32 @@
      
          ;; structural recursion on types
          [((Pair: a1 d1) (Pair: a2 d2))
-          (build-type -pair  (rec a1 a2) (rec d1 d2))]
+          (rebuild -pair (rec a1 a2) (rec d1 d2))]
          ;; FIXME: support structural updating for structs when structs are updated to
          ;; contain not only *if* they are polymorphic, but *which* fields are too
          ;;[((Struct: _ _ _ _ _ _)
          ;; (Struct: _ _ _ _ _ _))]
          [((Syntax: t1*) (Syntax: t2*))
-          (build-type -Syntax (rec t1* t2*))]
+          (rebuild -Syntax (rec t1* t2*))]
          [((Promise: t1*) (Promise: t2*))
-          (build-type -Promise (rec t1* t2*))]
+          (rebuild -Promise (rec t1* t2*))]
 
          [((Union: t1s) t2)
           (match t2
             ;; let's be consistent in slamming together unions
             ;; (i.e. if we don't do this dual traversal, the order the
             ;; unions are passed to 'intersect' can produces different
-            ;; albeit equivalent (modulo subtyping, we hope) answers)
-            [(Union: t2s) (apply Un (for*/list ([t1 (in-list t1s)]
-                                                [t2 (in-list t2s)])
-                                      (rec t1 t2)))]
-            [_ (apply Un (map (λ (t1) (rec t1 t2)) t1s))])]
-         [(t1 (Union: t2s)) (apply Un (map (λ (t2) (rec t1 t2)) t2s))]
+            ;; (albeit equivalent modulo subtyping, we believe) answers)
+            [(Union: t2s) (make-Union (for*/hset ([t1 (in-hset t1s)]
+                                                  [t2 (in-hset t2s)])
+                                                 (rec t1 t2)))]
+            [_ (Union-map t1s (λ (t1) (rec t1 t2)))])]
+         [(t1 (Union: t2s)) (Union-map t2s (λ (t2) (rec t1 t2)))]
 
          [((Intersection: t1s) t2)
-          (apply -unsafe-intersect (map (λ (t1) (rec t1 t2)) t1s))]
+          (apply -unsafe-intersect (hset-map t1s (λ (t1) (rec t1 t2))))]
          [(t1 (Intersection: t2s))
-          (apply -unsafe-intersect (map (λ (t2) (rec t1 t2)) t2s))]
+          (apply -unsafe-intersect (hset-map t2s (λ (t2) (rec t1 t2))))]
 
          ;; For resolvable types, we record the occurrence and save a back pointer
          ;; in 'seen'. Then, if this pair of types emerges again, we know that we are
@@ -132,9 +130,6 @@
 ;; and sometimes we want to make sure and _not_ add t2 to the result
 ;; we just want to keep the parts of t1 consistent with t2)
 (define (restrict t1 t2)
-  ;; build-type: build a type while propogating bottom
-  (define (build-type constructor . args)
-    (if (memf Bottom? args) -Bottom (apply constructor args)))
   ;; resolved is a set tracking previously seen restrict cases
   ;; (i.e. pairs of t1 t2) to prevent infinite unfolding.
   ;; subtyping performs a similar check for the same
@@ -152,24 +147,24 @@
       
       ;; structural recursion on types
       [((Pair: a1 d1) (Pair: a2 d2)) 
-       (build-type -pair 
-                   (restrict a1 a2 resolved) 
-                   (restrict d1 d2 resolved))]
+       (rebuild -pair
+                (restrict a1 a2 resolved)
+                (restrict d1 d2 resolved))]
       ;; FIXME: support structural updating for structs when structs are updated to
       ;; contain not only *if* they are polymorphic, but *which* fields are too  
       ;;[((Struct: _ _ _ _ _ _)
       ;; (Struct: _ _ _ _ _ _))]
       [((Syntax: t1*) (Syntax: t2*))
-       (build-type -Syntax (restrict t1* t2* resolved))]
+       (rebuild -Syntax (restrict t1* t2* resolved))]
       [((Promise: t1*) (Promise: t2*))
-       (build-type -Promise (restrict t1* t2* resolved))]
+       (rebuild -Promise (restrict t1* t2* resolved))]
       
       ;; unions
       [((Union: t1s) t2)
-       (apply Un (map (λ (t1) (restrict t1 t2 resolved)) t1s))]
+       (Union-map  t1s (λ (t1) (restrict t1 t2 resolved)))]
 
       [(t1 (Union: t2s))
-       (apply Un (map (λ (t2) (restrict t1 t2 resolved)) t2s))]
+       (Union-map t2s (λ (t2) (restrict t1 t2 resolved)))]
       
       ;; restrictions
       [((Intersection: t1s) t2)

@@ -13,7 +13,7 @@
            (rep type-rep values-rep)
 
            (submod typed-racket/base-env/base-types initialize)
-           (rename-in (types union abbrev numeric-tower resolve)
+           (rename-in (types abbrev numeric-tower resolve)
                       [Un t:Un] [-> t:->] [->* t:->*]))
          (only-in typed-racket/typed-racket do-standard-inits)
          (base-env base-types base-types-extra colon)
@@ -68,7 +68,7 @@
                             [delay-errors? #f])
                 (define expected ty-val)
                 (define actual (parse-type (quote-syntax ty-stx)))
-                #`(values #,expected #,actual #,(type-equal? actual expected)))))
+                #`(values #,expected #,actual #,(equal? actual expected)))))
           (unless same?
             (with-check-info (['expected expected] ['actual actual])
               (fail-check "Unequal types")))))]))
@@ -121,6 +121,7 @@
    [(-> Number Number Number * Boolean) ((list N N) N . t:->* . B)]
    ;[((. Number) -> Number) (->* (list) N N)] ;; not legal syntax
    [(U Number Boolean) (t:Un N B)]
+   [(Union Number Boolean) (t:Un N B)]
    [(U Number Boolean Number) (t:Un N B)]
    [(U Number Boolean 1) (t:Un N B)]
    [(All (a) (Listof a)) (-poly (a) (make-Listof  a))]
@@ -252,7 +253,7 @@
    [(Struct-Type arity-at-least) (make-StructType (resolve -Arity-At-Least))]
    [FAIL (Struct-Type Integer)]
    [FAIL (Struct-Type foo)]
-   [Struct-TypeTop (make-StructTypeTop)]
+   [Struct-TypeTop -StructTypeTop]
 
    ;; keyword function types
    [(#:a String -> String)
@@ -396,7 +397,7 @@
     (make-Unit null null null (-values (list -Void)))]
    [(Unit (import) (export))
     (make-Unit null null null (-values (list -Void)))]
-   [UnitTop (make-UnitTop)]
+   [UnitTop -UnitTop]
    [FAIL (Unit (export) String)]
    [FAIL (Unit (import) String)]
    [FAIL (Unit (init-depend) String)]
@@ -411,6 +412,7 @@
    [(∩) Univ]
    [(∩ Any) Univ]
    [(∩ String Symbol) -Bottom]
+   [(Intersection String Symbol) -Bottom]
    [(∩ (-> Number Number) (-> String String))
     (-unsafe-intersect (t:-> -String -String)
                        (t:-> -Number -Number))]

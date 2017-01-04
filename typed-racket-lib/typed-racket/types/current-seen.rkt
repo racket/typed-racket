@@ -31,8 +31,6 @@
   (append t1s/t2s A))
 
 (define-syntax-rule (seen? t1 t2 seen-ts)
-  (let ([seq1 (Rep-seq t1)]
-        [seq2 (Rep-seq t2)])
-    (for/or ([p (in-list seen-ts)])
-      (and (= (Rep-seq (car p)) seq1)
-           (= (Rep-seq (cdr p)) seq2)))))
+  (for/or ([p (in-list seen-ts)])
+    (and (equal? (car p) t1)
+         (equal? (cdr p) t2))))

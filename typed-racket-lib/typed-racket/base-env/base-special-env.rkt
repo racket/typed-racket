@@ -4,14 +4,15 @@
 ;; that are expanded into by Racket macros
 (require
  "../utils/utils.rkt"
- (only-in "../rep/type-rep.rkt" make-StructTypeTop)
+ (only-in "../rep/type-rep.rkt" -StructTypeTop)
  racket/promise
  string-constants/string-constant
  racket/private/kw racket/file racket/port syntax/parse racket/path
  (for-template (only-in racket/private/kw kw-expander-proc kw-expander-impl)
                racket/base racket/file racket/port racket/path racket/list)
  (env init-envs)
- (rename-in (types abbrev numeric-tower union) [make-arr* make-arr])
+ (rename-in (types abbrev numeric-tower)
+            [make-arr* make-arr])
  (for-syntax racket/base syntax/parse
              (only-in racket/syntax syntax-local-eval)))
 (provide make-template-identifier)
@@ -47,6 +48,31 @@
          (cl->*
           (-> (-lst a) -Null (-lst a))
           (-> (-lst a) (-lst b) (-lst (Un a b)))))]
+  ;; range
+  [(make-template-identifier 'range-proc 'racket/list)
+   (cl->* (-> -NonPosReal -Null)
+          (-> -One (-lst* -Zero))
+          (-> -Byte (-lst -Byte))
+          (-> -Index (-lst -Index))
+          (-> -Fixnum (-lst -NonNegFixnum))
+          (-> -Real (-lst -Nat))
+          (->opt -PosInt -Byte [-Int] (-lst -PosByte))
+          (->opt -Nat -Byte [-Int] (-lst -Byte))
+          (->opt -PosInt -Index [-Int] (-lst -PosIndex))
+          (->opt -Nat -Index [-Int] (-lst -Index))
+          (->opt -Nat -NonNegFixnum [-Int] (-lst -NonNegFixnum))
+          (->opt -PosInt -Fixnum [-Nat] (-lst -PosFixnum))
+          (->opt -Nat -Fixnum [-Nat] (-lst -NonNegFixnum))
+          (->opt -Nat -Nat [-Int] (-lst -Nat))
+          (->opt -PosInt -Int [-Nat] (-lst -PosInt))
+          (->opt -Nat -Int [-Nat] (-lst -Nat))
+          ;; could add cases that guarantee lists of negatives, etc.
+          (->opt -Int -Real [-Int] (-lst -Int))
+          (->opt -Rat -Real [-Rat] (-lst -Rat))
+          (->opt -Flonum -Real [-Flonum] (-lst -Flonum))
+          (->opt -SingleFlonum -Real [-SingleFlonum] (-lst -SingleFlonum))
+          (->opt -InexactReal -Real [-InexactReal] (-lst -InexactReal))
+          (->opt -Real -Real [-Real] (-lst -Real)))]
   ;; normalise-inputs
   [(make-template-identifier 'normalise-inputs 'racket/private/for)
    (-poly (a)
@@ -58,6 +84,7 @@
                  (lambda (a)
                    (-values (list
                              (-> Univ (-values a))
+                             (Un (-> Univ Univ) (-val #f))
                              (-> Univ Univ)
                              Univ
                              (Un (-> Univ Univ) (-val #f))
@@ -120,67 +147,67 @@
   [(make-template-identifier 'default-in-hash 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq a b)]
-                [(-HashTop) (-seq Univ Univ)]))]
+                [(-HashtableTop) (-seq Univ Univ)]))]
   [(make-template-identifier 'default-in-hash-keys 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq a)]
-                [(-HashTop) (-seq Univ)]))]
+                [(-HashtableTop) (-seq Univ)]))]
   [(make-template-identifier 'default-in-hash-values 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq b)]
-                [(-HashTop) (-seq Univ)]))]
+                [(-HashtableTop) (-seq Univ)]))]
   [(make-template-identifier 'default-in-hash-pairs 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq (-pair a b))]
-                [(-HashTop) (-seq (-pair Univ Univ))]))]
+                [(-HashtableTop) (-seq (-pair Univ Univ))]))]
   [(make-template-identifier 'default-in-immutable-hash 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq a b)]
-                [(-HashTop) (-seq Univ Univ)]))]
+                [(-HashtableTop) (-seq Univ Univ)]))]
   [(make-template-identifier 'default-in-immutable-hash-keys 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq a)]
-                [(-HashTop) (-seq Univ)]))]
+                [(-HashtableTop) (-seq Univ)]))]
   [(make-template-identifier 'default-in-immutable-hash-values 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq b)]
-                [(-HashTop) (-seq Univ)]))]
+                [(-HashtableTop) (-seq Univ)]))]
   [(make-template-identifier 'default-in-immutable-hash-pairs 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq (-pair a b))]
-                [(-HashTop) (-seq (-pair Univ Univ))]))]
+                [(-HashtableTop) (-seq (-pair Univ Univ))]))]
   [(make-template-identifier 'default-in-mutable-hash 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq a b)]
-                [(-HashTop) (-seq Univ Univ)]))]
+                [(-HashtableTop) (-seq Univ Univ)]))]
   [(make-template-identifier 'default-in-mutable-hash-keys 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq a)]
-                [(-HashTop) (-seq Univ)]))]
+                [(-HashtableTop) (-seq Univ)]))]
   [(make-template-identifier 'default-in-mutable-hash-values 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq b)]
-                [(-HashTop) (-seq Univ)]))]
+                [(-HashtableTop) (-seq Univ)]))]
   [(make-template-identifier 'default-in-mutable-hash-pairs 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq (-pair a b))]
-                [(-HashTop) (-seq (-pair Univ Univ))]))]
+                [(-HashtableTop) (-seq (-pair Univ Univ))]))]
   [(make-template-identifier 'default-in-weak-hash 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq a b)]
-                [(-HashTop) (-seq Univ Univ)]))]
+                [(-HashtableTop) (-seq Univ Univ)]))]
   [(make-template-identifier 'default-in-weak-hash-keys 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq a)]
-                [(-HashTop) (-seq Univ)]))]
+                [(-HashtableTop) (-seq Univ)]))]
   [(make-template-identifier 'default-in-weak-hash-values 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq b)]
-                [(-HashTop) (-seq Univ)]))]
+                [(-HashtableTop) (-seq Univ)]))]
   [(make-template-identifier 'default-in-weak-hash-pairs 'racket/private/for)
    (-poly (a b)
           (cl-> [((-HT a b)) (-seq (-pair a b))]
-                [(-HashTop) (-seq (-pair Univ Univ))]))]
+                [(-HashtableTop) (-seq (-pair Univ Univ))]))]
   ;; in-port
   [(make-template-identifier 'in-port 'racket/private/for)
    (-poly (a)
@@ -245,9 +272,9 @@
   [(make-template-identifier 'prop:named-keyword-procedure 'racket/private/kw)
    -Struct-Type-Property]
   [(make-template-identifier 'struct:keyword-procedure/arity-error 'racket/private/kw)
-   (make-StructTypeTop)]
+   -StructTypeTop]
   [(make-template-identifier 'struct:keyword-method/arity-error 'racket/private/kw)
-   (make-StructTypeTop)]
+   -StructTypeTop]
   ;; from the expansion of `define-runtime-path`
   [(make-template-identifier 'path-of 'racket/runtime-path)
    (-> -Path -Path)]

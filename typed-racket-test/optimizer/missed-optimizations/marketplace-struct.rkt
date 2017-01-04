@@ -10,11 +10,14 @@ TR opt: marketplace-struct.rkt 112:60 (vm-processes state) -- struct ref
 TR opt: marketplace-struct.rkt 118:14 state -- dead else branch
 TR opt: marketplace-struct.rkt 118:14 state -- dead else branch
 TR opt: marketplace-struct.rkt 118:2 (for/fold ((state state)) ((pid (in-hash-keys (vm-processes state)))) (let-values (((state wp) (extract-process state pid))) (if (not wp) state (unwrap-process State vm (p wp) (inject-process state (mkProcess (f p))))))) -- dead else branch
+TR opt: marketplace-struct.rkt 118:2 (for/fold ((state state)) ((pid (in-hash-keys (vm-processes state)))) (let-values (((state wp) (extract-process state pid))) (if (not wp) state (unwrap-process State vm (p wp) (inject-process state (mkProcess (f p))))))) -- dead else branch
 TR opt: marketplace-struct.rkt 118:48 (vm-processes state) -- struct ref
 TR opt: marketplace-struct.rkt 127:14 seed -- dead else branch
 TR opt: marketplace-struct.rkt 127:14 seed -- dead else branch
 TR opt: marketplace-struct.rkt 127:2 (for/fold ((seed seed)) ((pid (in-hash-keys (vm-processes state)))) (let-values (((state wp) (extract-process state pid))) (if (not wp) seed (unwrap-process State A (p wp) (for/fold ((seed seed)) ((pre-eid (in-hash-keys (process-endpoints p)))) (define ep (hash-ref (process-endpoints p) pre-eid)) ((inst f State) p ep seed)))))) -- dead else branch
+TR opt: marketplace-struct.rkt 127:2 (for/fold ((seed seed)) ((pid (in-hash-keys (vm-processes state)))) (let-values (((state wp) (extract-process state pid))) (if (not wp) seed (unwrap-process State A (p wp) (for/fold ((seed seed)) ((pre-eid (in-hash-keys (process-endpoints p)))) (define ep (hash-ref (process-endpoints p) pre-eid)) ((inst f State) p ep seed)))))) -- dead else branch
 TR opt: marketplace-struct.rkt 127:46 (vm-processes state) -- struct ref
+TR opt: marketplace-struct.rkt 132:12 (for/fold ((seed seed)) ((pre-eid (in-hash-keys (process-endpoints p)))) (define ep (hash-ref (process-endpoints p) pre-eid)) ((inst f State) p ep seed)) -- dead else branch
 TR opt: marketplace-struct.rkt 132:12 (for/fold ((seed seed)) ((pre-eid (in-hash-keys (process-endpoints p)))) (define ep (hash-ref (process-endpoints p) pre-eid)) ((inst f State) p ep seed)) -- dead else branch
 TR opt: marketplace-struct.rkt 132:24 seed -- dead else branch
 TR opt: marketplace-struct.rkt 132:24 seed -- dead else branch

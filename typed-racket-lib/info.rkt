@@ -2,7 +2,7 @@
 
 (define collection 'multi)
 
-(define deps '(("base" #:version "6.4.0.5")
+(define deps '(("base" #:version "6.7.0.4")
                "source-syntax"
                "compatibility-lib" ;; to assign types
                "string-constants-lib"))

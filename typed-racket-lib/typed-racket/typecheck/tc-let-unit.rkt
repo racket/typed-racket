@@ -120,8 +120,9 @@
      #:aliased-objects aliased-objs]
     (erase-names
      ids-to-erase
-     (with-lexical-env/extend-props
+     (with-lexical-env+props
        props
+       #:expected expected
        ;; if a let rhs does not return, the body isn't checked
        #:unreachable (for ([form (in-list (syntax->list body))])
                        (register-ignored! form))
@@ -129,7 +130,7 @@
        ;; before checking the body
        (pre-body-thunk)
        ;; typecheck the body
-       (tc-body/check body (and expected (erase-props expected)))))))
+       (tc-body/check body expected)))))
 
 (define (tc-expr/maybe-expected/t e names)
   (syntax-parse names

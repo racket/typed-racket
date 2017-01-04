@@ -163,15 +163,15 @@
   (define poly-base
     (if (null? tvars)
         name-type
-        (make-App name-type (map make-F tvars) #f)))
+        (make-App name-type (map make-F tvars))))
 
   ;; is this structure covariant in *all* arguments?
   (define (covariant-for? fields mutable)
     (for*/and ([var (in-list tvars)]
                [t (in-list fields)])
-      (let ([variance (hash-ref (free-vars-hash (free-vars* t)) var Constant)])
-        (or (eq? variance Constant)
-            (and (not mutable) (eq? variance Covariant))))))
+      (let ([variance (hash-ref (free-vars-hash (free-vars* t)) var variance:const)])
+        (or (variance:const? variance)
+            (and (not mutable) (variance:co? variance))))))
   (define covariant?
     (and (covariant-for? self-fields mutable)
          (covariant-for? parent-fields parent-mutable)))

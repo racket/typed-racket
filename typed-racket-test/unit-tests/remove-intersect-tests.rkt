@@ -3,7 +3,7 @@
          (for-syntax racket/base)
          (r:infer infer)
          (rep type-rep)
-         (types abbrev numeric-tower subtype union subtract overlap)
+         (types abbrev numeric-tower subtype subtract overlap)
          rackunit)
 (provide tests)
 (gen-test-main)
@@ -57,7 +57,7 @@
     (-mu x (Un (Un -Number -Symbol) (-pair -Number x)))
     (-mu x (Un -Number (-pair -Number x)))]
    [(make-Listof (-mu x (Un -String (-HT -String x))))
-    (make-Listof (make-HashtableTop))
+    (make-Listof -HashtableTop)
     (make-Listof (-HT -String (-mu x (Un -String (-HT -String x)))))]))
 
 (define-syntax (remo-tests stx)

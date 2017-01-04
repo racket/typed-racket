@@ -4,7 +4,7 @@
  "../utils/utils.rkt"
  (for-template racket/base racket/list racket/unsafe/ops racket/flonum racket/extflonum racket/fixnum)
  (utils tc-utils) 
- (rename-in (types union abbrev numeric-tower) [-Number N] [-Boolean B] [-Symbol Sym]))
+ (rename-in (types abbrev numeric-tower) [-Number N] [-Boolean B] [-Symbol Sym]))
 
 (provide indexing)
 
@@ -204,40 +204,6 @@
        (-BtsRx (Un -String -BtsInput) [N ?N -Bytes] . ->opt . (output -Bytes))
        (-Pattern -BtsInput            [N ?N -Bytes] . ->opt . (output -Bytes))))]
 
-
-
-
-
-
-
-
-
-
-
-
-   [range (cl->* (-> -NonPosReal -Null)
-                 (-> -One (-lst* -Zero))
-                 (-> -Byte (-lst -Byte))
-                 (-> -Index (-lst -Index))
-                 (-> -Fixnum (-lst -NonNegFixnum))
-                 (-> -Real (-lst -Nat))
-                 (->opt -PosInt -Byte [-Int] (-lst -PosByte))
-                 (->opt -Nat -Byte [-Int] (-lst -Byte))
-                 (->opt -PosInt -Index [-Int] (-lst -PosIndex))
-                 (->opt -Nat -Index [-Int] (-lst -Index))
-                 (->opt -Nat -NonNegFixnum [-Int] (-lst -NonNegFixnum))
-                 (->opt -PosInt -Fixnum [-Nat] (-lst -PosFixnum))
-                 (->opt -Nat -Fixnum [-Nat] (-lst -NonNegFixnum))
-                 (->opt -Nat -Nat [-Int] (-lst -Nat))
-                 (->opt -PosInt -Int [-Nat] (-lst -PosInt))
-                 (->opt -Nat -Int [-Nat] (-lst -Nat))
-                 ;; could add cases that guarantee lists of negatives, etc.
-                 (->opt -Int -Real [-Int] (-lst -Int))
-                 (->opt -Rat -Real [-Rat] (-lst -Rat))
-                 (->opt -Flonum -Real [-Flonum] (-lst -Flonum))
-                 (->opt -SingleFlonum -Real [-SingleFlonum] (-lst -SingleFlonum))
-                 (->opt -InexactReal -Real [-InexactReal] (-lst -InexactReal))
-                 (->opt -Real -Real [-Real] (-lst -Real)))]
    [list-update (-poly (a b) ((-lst a) index-type . -> . (-> a b) (-lst (Un a b))))]
    [list-set (-poly (a b) ((-lst a) index-type . -> . b (-lst (Un a b))))]
    [take   (-poly (a) ((-lst a) index-type . -> . (-lst a)))]

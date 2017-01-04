@@ -10,23 +10,21 @@
 (require "../utils/utils.rkt"
          (except-in
           (combine-in
-           (utils tc-utils)
+           (utils tc-utils hset)
            (rep free-variance type-rep prop-rep object-rep
                 values-rep rep-utils type-mask)
-           (types utils abbrev numeric-tower union subtype resolve
+           (types utils abbrev numeric-tower subtype resolve
                   substitute generalize prefab)
            (env index-env tvar-env))
           make-env -> ->* one-of/c)
          "constraint-structs.rkt"
          "signatures.rkt" "fail.rkt"
          "promote-demote.rkt"
-         racket/match racket/set
-         mzlib/etc
+         racket/match
          (contract-req)
          (for-syntax
            racket/base
            syntax/parse)
-         racket/dict
          racket/hash racket/list)
 
 (import dmap^ constraints^)
@@ -41,8 +39,7 @@
 
 ;; Type Type -> Pair<Seq, Seq>
 ;; construct a pair for the set of seen type pairs
-(define (seen-before s t)
-  (cons (Rep-seq s) (Rep-seq t)))
+(define seen-before cons)
 
 ;; Context, contains which type variables and indices to infer and which cannot be mentioned in
 ;; constraints.
@@ -88,27 +85,24 @@
 ;; Add the type pair to the set of seen type pairs
 (define/cond-contract (remember s t A)
   ((or/c AnyValues? Values/c ValuesDots?) (or/c AnyValues? Values/c ValuesDots?)
-   (listof (cons/c exact-nonnegative-integer?
-                   exact-nonnegative-integer?))
+   (listof (cons/c Rep? Rep?))
    . -> .
-   (listof (cons/c exact-nonnegative-integer?
-                   exact-nonnegative-integer?)))
+   (listof (cons/c Rep? Rep?)))
  (cons (seen-before s t) A))
 
 ;; Type Type -> Boolean
 ;; Check if a given type pair have been seen before
 (define/cond-contract (seen? s t cs)
   ((or/c AnyValues? Values/c ValuesDots?) (or/c AnyValues? Values/c ValuesDots?)
-   (listof (cons/c exact-nonnegative-integer?
-                   exact-nonnegative-integer?))
+   (listof (cons/c Rep? Rep?))
    . -> . any/c)
  (member (seen-before s t) cs))
 
 ;; (CMap DMap -> Pair<CMap, DMap>) CSet -> CSet
 ;; Map a function over a constraint set
 (define (map/cset f cset)
-  (% make-cset (for/list/fail ([(cmap dmap) (in-dict (cset-maps cset))])
-                 (f cmap dmap))))
+  (% make-cset (for/list/fail ([cmap/dmap (in-list (cset-maps cset))])
+                 (f (car cmap/dmap) (cdr cmap/dmap)))))
 
 ;; Symbol DCon -> DMap
 ;; Construct a dmap containing only a single mapping
@@ -192,7 +186,7 @@
 
 (define (List->end v)
   (match v
-    [(== -Null type-equal?) (null-end)]
+    [(== -Null) (null-end)]
     [(Listof: t) (uniform-end t)]
     [(ListDots: t dbound) (dotted-end t dbound)]
     [_ #f]))
@@ -226,12 +220,12 @@
       (substitute (make-F var) v ty*))))
 
 
-(define/cond-contract (cgen/prop context s t)
+(define/cond-contract (cgen/prop context p q)
   (context? Prop? Prop? . -> . (or/c #f cset?))
-  (match* (s t)
-    [(e e) (empty-cset/context context)]
-    [(e (TrueProp:)) (empty-cset/context context)]
-    [((FalseProp:) e) (empty-cset/context context)]
+  (match* (p q)
+    [(p p) (empty-cset/context context)]
+    [(p (TrueProp:)) (empty-cset/context context)]
+    [((FalseProp:) q) (empty-cset/context context)]
     ;; FIXME - is there something to be said about the logical ones?
     [((TypeProp: o s) (TypeProp: o t)) (cgen/inv context s t)]
     [((NotTypeProp: o s) (NotTypeProp: o t)) (cgen/inv context s t)]
@@ -430,7 +424,7 @@
   (define cs (current-seen))
   ;; if we've been around this loop before, we're done (for rec types)
   (cond
-    [(type-equal? S T) empty] ;; (CG-Refl)
+    [(equal? S T) empty] ;; (CG-Refl)
     [(Univ? T) empty] ;; CG-Top
     [(seen? S T cs) empty]
     [else
@@ -448,11 +442,12 @@
               (ValuesDots: (list (Result: _ psets _) ...) _ _))
           (AnyValues: q))
          (cset-join
-          (filter identity
-                  (for/list ([pset (in-list psets)])
-                    (match pset
-                      [(PropSet: p+ p-)
-                       (% cset-meet (cgen/prop context p+ q) (cgen/prop context p- q))]))))]
+          (for*/list ([pset (in-list psets)]
+                      [cs (in-value (% cset-meet
+                                       (cgen/prop context (PropSet-thn pset) q)
+                                       (cgen/prop context (PropSet-els pset) q)))]
+                      #:when cs)
+            cs))]
 
         ;; check all non Type? first so that calling subtype is safe
 
@@ -532,28 +527,28 @@
         ;; find *an* element of elems which can be made a subtype of T
         [((Intersection: ts) T)
          (cset-join
-          (for*/list ([t (in-list ts)]
+          (for*/list ([t (in-hset ts)]
                       [v (in-value (cg t T))]
                       #:when v)
             v))]
         
         ;; constrain S to be below *each* element of elems, and then combine the constraints
         [(S (Intersection: ts))
-         (define cs (for/list/fail ([ts (in-list ts)]) (cg S ts)))
+         (define cs (for/list/fail ([ts (in-hset ts)]) (cg S ts)))
          (and cs (cset-meet* (cons empty cs)))]
         
         ;; constrain *each* element of es to be below T, and then combine the constraints
         [((Union: es) T)
-         (define cs (for/list/fail ([e (in-list es)]) (cg e T)))
+         (define cs (for/list/fail ([e (in-hset es)]) (cg e T)))
          (and cs (cset-meet* (cons empty cs)))]
 
         ;; find *an* element of es which can be made to be a supertype of S
         ;; FIXME: we're using multiple csets here, but I don't think it makes a difference
         ;; not using multiple csets will break for: ???
         [(S (or (Union: es)
-                (and (Bottom:) (bind es '()))))
+                (and (Bottom:) (bind es (hset)))))
          (cset-join
-          (for*/list ([e (in-list es)]
+          (for*/list ([e (in-hset es)]
                       [v (in-value (cg S e))]
                       #:when v)
             v))]
@@ -608,7 +603,7 @@
         ;; To check that mutable pair is a sequence we check that the cdr is
         ;; both an mutable list and a sequence
         [((MPair: t1 t2) (Sequence: (list t*)))
-         (% cset-meet (cg t1 t*) (cg t2 T) (cg t2 (Un -Null (make-MPairTop))))]
+         (% cset-meet (cg t1 t*) (cg t2 T) (cg t2 (Un -Null -MPairTop)))]
         [((List: ts) (Sequence: (list t*)))
          (% cset-meet* (for/list/fail ([t (in-list ts)])
                                       (cg t t*)))]
@@ -653,9 +648,9 @@
 
 
         ;; resolve applications
-        [((App: _ _ _) _)
+        [((App: _ _) _)
          (% cg (resolve-once S) T)]
-        [(_ (App: _ _ _))
+        [(_ (App: _ _))
          (% cg S (resolve-once T))]
 
         ;; If the struct names don't match, try the parent of S
@@ -755,13 +750,21 @@
          ;; nothing worked, and we fail
          #f]))]))
 
-;; C : cset? - set of constraints found by the inference engine
-;; X : (listof symbol?) - type variables that must have entries
-;; Y : (listof symbol?) - index variables that must have entries
-;; R : Type? - result type into which we will be substituting
-(define/cond-contract (subst-gen C X Y R)
-  (cset? (listof symbol?) (listof symbol?) (or/c Values/c AnyValues? ValuesDots?)
-         . -> . (or/c #f substitution/c))
+;; C : set of constraints found by the inference engine
+;; X : type variables that must have entries
+;; Y : index variables that must have entries
+;; R : result type into which we will be substituting
+;; multiple-substitutions? : should we return one substitution (#f), or
+;; all the substitutions that were possible? (#t)
+;; NOTE: multiple substitutions are rare -- at the time of adding this
+;; parameter this feature is only used by the tc-app/list.
+;; NOTE: if multiple substitutions is #t, a list is returned,
+;; otherwise a single substitution (not in a list) is returned.
+(define/cond-contract (substs-gen C X Y R multiple-substitutions?)
+  (cset? (listof symbol?) (listof symbol?) (or/c Values/c AnyValues? ValuesDots?) boolean?
+         . -> . (or/c substitution/c
+                      (cons/c substitution/c
+                              (listof substitution/c))))
   (define var-hash (free-vars-hash (free-vars* R)))
   (define idx-hash (free-vars-hash (free-idxs* R)))
   ;; c : Constaint
@@ -769,15 +772,14 @@
   (define (constraint->type v variance)
     (match v
       [(c S T)
-       (evcase variance
-               [Constant S]
-               [Covariant S]
-               [Contravariant T]
-               [Invariant
-                (let ([gS (generalize S)])
-                  (if (subtype gS T)
-                      gS
-                      S))])]))
+       (match variance
+         [(? variance:const?) S]
+         [(? variance:co?) S]
+         [(? variance:contra?) T]
+         [(? variance:inv?) (let ([gS (generalize S)])
+                             (if (subtype gS T)
+                                 gS
+                                 S))])]))
 
   ;; Since we don't add entries to the empty cset for index variables (since there is no
   ;; widest constraint, due to dcon-exacts), we must add substitutions here if no constraint
@@ -787,46 +789,50 @@
     (hash-union
      (for/hash ([v (in-list Y)]
                 #:unless (hash-has-key? S v))
-       (let ([var (hash-ref idx-hash v Constant)])
+       (let ([var (hash-ref idx-hash v variance:const)])
          (values v
-                 (evcase var
-                         [Constant (i-subst null)]
-                         [Covariant (i-subst null)]
-                         [Contravariant (i-subst/starred null Univ)]
-                         ;; TODO figure out if there is a better subst here
-                         [Invariant (i-subst null)]))))
+                 (match var
+                   [(? variance:const?) (i-subst null)]
+                   [(? variance:co?) (i-subst null)]
+                   [(? variance:contra?) (i-subst/starred null Univ)]
+                   ;; TODO figure out if there is a better subst here
+                   [(? variance:inv) (i-subst null)]))))
      S))
-  (match (car (cset-maps C))
-    [(cons cmap (dmap dm))
-     (let* ([subst (hash-union
-                    (for/hash ([(k dc) (in-hash dm)])
-                      (define (c->t c) (constraint->type c (hash-ref idx-hash k Constant)))
-                      (values
-                       k
-                       (match dc
-                         [(dcon fixed #f)
-                          (i-subst (map c->t fixed))]
-                         [(or (dcon fixed rest) (dcon-exact fixed rest))
-                          (i-subst/starred
-                           (map c->t fixed)
-                           (c->t rest))]
-                         [(dcon-dotted fixed dc dbound)
-                          (i-subst/dotted
-                           (map c->t fixed)
-                           (c->t dc)
-                           dbound)])))
-                    (for/hash ([(k v) (in-hash cmap)])
-                      (values k (t-subst (constraint->type v (hash-ref var-hash k Constant))))))]
-            [subst (for/fold ([subst subst]) ([v (in-list X)])
-                     (let ([entry (hash-ref subst v #f)])
-                       ;; Make sure we got a subst entry for a type var
-                       ;; (i.e. just a type to substitute)
-                       ;; If we don't have one, there are no constraints on this variable
-                       (if (and entry (t-subst? entry))
-                           subst
-                           (hash-set subst v (t-subst Univ)))))])
-       ;; verify that we got all the important variables
-       (extend-idxs subst))]))
+  (define (build-subst m)
+    (match m
+      [(cons cmap (dmap dm))
+       (let* ([subst (hash-union
+                      (for/hash ([(k dc) (in-hash dm)])
+                        (define (c->t c) (constraint->type c (hash-ref idx-hash k variance:const)))
+                        (values
+                         k
+                         (match dc
+                           [(dcon fixed #f)
+                            (i-subst (map c->t fixed))]
+                           [(or (dcon fixed rest) (dcon-exact fixed rest))
+                            (i-subst/starred
+                             (map c->t fixed)
+                             (c->t rest))]
+                           [(dcon-dotted fixed dc dbound)
+                            (i-subst/dotted
+                             (map c->t fixed)
+                             (c->t dc)
+                             dbound)])))
+                      (for/hash ([(k v) (in-hash cmap)])
+                        (values k (t-subst (constraint->type v (hash-ref var-hash k variance:const))))))]
+              [subst (for/fold ([subst subst]) ([v (in-list X)])
+                       (let ([entry (hash-ref subst v #f)])
+                         ;; Make sure we got a subst entry for a type var
+                         ;; (i.e. just a type to substitute)
+                         ;; If we don't have one, there are no constraints on this variable
+                         (if (and entry (t-subst? entry))
+                             subst
+                             (hash-set subst v (t-subst Univ)))))])
+         ;; verify that we got all the important variables
+         (extend-idxs subst))]))
+  (if multiple-substitutions?
+      (map build-subst (cset-maps C))
+      (build-subst (car (cset-maps C)))))
 
 ;; context : the context of what to infer/not infer
 ;; S : a list of types to be the subtypes of T
@@ -858,11 +864,15 @@
 ;; just return a boolean result
 (define infer
  (let ()
-  (define/cond-contract (infer X Y S T R [expected #f])
+  (define/cond-contract (infer X Y S T R [expected #f] #:multiple? [multiple-substitutions? #f])
     (((listof symbol?) (listof symbol?) (listof Type?) (listof Type?)
       (or/c #f Values/c ValuesDots?))
-     ((or/c #f Values/c AnyValues? ValuesDots?))
-     . ->* . (or/c boolean? substitution/c))
+     ((or/c #f Values/c AnyValues? ValuesDots?)
+      #:multiple? boolean?)
+     . ->* . (or/c boolean?
+                   substitution/c
+                   (cons/c substitution/c
+                           (listof substitution/c))))
     (define ctx (context null X Y ))
     (define expected-cset
       (if expected
@@ -871,7 +881,10 @@
     (and expected-cset
          (let* ([cs (cgen/list ctx S T #:expected-cset expected-cset)]
                 [cs* (% cset-meet cs expected-cset)])
-           (and cs* (if R (subst-gen cs* X Y R) #t)))))
+           (and cs* (cond
+                      [R (substs-gen cs* X Y R multiple-substitutions?)]
+                      [else #t])))))
+  ;(trace infer)
   infer)) ;to export a variable binding and not syntax
 
 ;; like infer, but T-var is the vararg type:
@@ -905,4 +918,12 @@
    #:return-unless cs #f
    (define m (cset-meet cs expected-cset))
    #:return-unless m #f
-   (subst-gen m X (list dotted-var) R)))
+   (substs-gen m X (list dotted-var) R #f)))
+
+
+;(trace substs-gen)
+;(trace cgen)
+;(trace cgen/list)
+;(trace cgen/arr)
+;(trace cgen/seq)
+

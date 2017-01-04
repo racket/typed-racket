@@ -1,26 +1,62 @@
 #lang racket/base
 
-
-(require "../utils/utils.rkt")
-
-(require (rep type-rep values-rep rep-utils)
+(require "../utils/utils.rkt"
+         (utils hset)
+         (rep type-rep values-rep rep-utils)
          racket/match
-         (types resolve)
-         (contract-req)
-         racket/set
+         syntax/parse/define
+         (types resolve base-abbrev)
          (for-syntax racket/base syntax/parse))
 
 (provide Listof: List: MListof: AnyPoly: AnyPoly-names: Function/arrs:
+         SimpleListof: SimpleMListof:
          PredicateProp:)
 
 
 (define-match-expander Listof:
   (lambda (stx)
     (syntax-parse stx
-      [(_ elem-pat (~optional var-pat #:defaults ([var-pat #'var])))
+      [(_ elem-pat)
        (syntax/loc stx
-         (or (Mu: var-pat (Union: (list (Value: '()) (Pair: elem-pat (F: var-pat)))))
-             (Mu: var-pat (Union: (list (Pair: elem-pat (F: var-pat)) (Value: '()))))))])))
+         (app Listof? (? Type? elem-pat)))])))
+
+(define-match-expander SimpleListof:
+  (lambda (stx)
+    (syntax-parse stx
+      [(_ elem-pat)
+       (syntax/loc stx
+         (app (λ (t) (Listof? t #t)) (? Type? elem-pat)))])))
+
+
+(define-simple-macro (make-Listof-pred listof-pred?:id pair-matcher:id)
+  (define (listof-pred? t [simple? #f])
+    (match t
+      [(Mu-unsafe: (Union: elems))
+       #:when (and (= 2 (hset-count elems))
+                   (hset-member? elems -Null))
+       (match (hset-first (hset-remove elems -Null))
+         [(pair-matcher elem-t (B: 0))
+          (define elem-t* (instantiate-raw-type t elem-t))
+          (cond
+            [simple? (and (equal? elem-t elem-t*) elem-t)]
+            [else elem-t*])]
+         [_ #f])]
+      [(Union: elems)
+       #:when (and (= 2 (hset-count elems))
+                   (hset-member? elems -Null))
+       (match (hset-first (hset-remove elems -Null))
+         [(pair-matcher hd-t tl-t)
+          (cond
+            [(listof-pred? tl-t)
+             => (λ (lst-t) (and (equal? hd-t lst-t) hd-t))]
+            [else #f])]
+         [_ #f])]
+      [_ #f])))
+
+(make-Listof-pred Listof? Pair:)
+(make-Listof-pred MListof? MPair:)
+
+
 
 (define-match-expander List:
   (lambda (stx)
@@ -30,26 +66,32 @@
       [(_ elem-pats #:tail tail-pat)
        #'(? Type? (app untuple (? values elem-pats) tail-pat))])))
 
+(define-match-expander MListof:
+  (lambda (stx)
+    (syntax-parse stx
+      [(_ elem-pat)
+       (syntax/loc stx (app MListof? (? Type? elem-pat)))])))
+
+(define-match-expander SimpleMListof:
+  (lambda (stx)
+    (syntax-parse stx
+      [(_ elem-pat)
+       (syntax/loc stx (app (λ (t) (MListof? t #t)) (? Type? elem-pat)))])))
+
+
 ;; Type? -> (or/c (values/c #f #f) (values/c (listof Type?) Type?)))
 ;; Returns the prefix of types that are consed on to the last type (a non finite-pair type).
 ;; The last type may contain pairs if it is a list type.
 (define (untuple t)
-  (let loop ((t t) (seen (set)))
-    (if (not (set-member? seen (Rep-seq t)))
+  (let loop ([t t]
+             [seen (hset)])
+    (if (not (hset-member? seen t))
         (match (resolve t)
           [(Pair: a b)
-           (define-values (elems tail) (loop b (set-add seen (Rep-seq t))))
+           (define-values (elems tail) (loop b (hset-add seen t)))
            (values (cons a elems) tail)]
           [_ (values null t)])
         (values null t))))
-
-(define-match-expander MListof:
-  (lambda (stx)
-    (syntax-parse stx
-      [(_ elem-pat (~optional var-pat #:defaults ([var-pat #'var])))
-       ;; see note above
-       #'(or (Mu: var-pat (Union: (list (Value: '()) (MPair: elem-pat (F: var-pat)))))
-             (Mu: var-pat (Union: (list (MPair: elem-pat (F: var-pat)) (Value: '())))))])))
 
 (define (unpoly t)
   (match t

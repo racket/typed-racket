@@ -22,6 +22,7 @@ at least theoretically.
  list-extend
  filter-multiple
  syntax-length
+ in-pair
  in-sequence-forever
  match*/no-order
  bind)
@@ -272,3 +273,12 @@ at least theoretically.
   (syntax-parser
     [(_ x:id val:expr)
      #'(app (λ (_) val) x)]))
+
+(define-syntax (assert stx)
+    (syntax-case stx ()
+      [(_ expr)
+       #`(unless expr #,(quasisyntax/loc stx (error 'assert "failed!")))]))
+
+
+(define-syntax-rule (in-pair p)
+  (in-parallel (in-value (car p)) (in-value (cdr p))))

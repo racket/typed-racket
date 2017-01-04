@@ -3,7 +3,7 @@
 (require
  "../utils/utils.rkt"
  (rep type-rep)
- (types abbrev numeric-tower union)
+ (types abbrev numeric-tower)
  (typecheck tc-structs)
  ;;For tests
  (prefix-in k: '#%kernel))

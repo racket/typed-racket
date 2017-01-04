@@ -7,7 +7,7 @@
          racket/format
          racket/list
          (typecheck signatures)
-         (types base-abbrev resolve subtype type-table union utils)
+         (types base-abbrev resolve subtype type-table utils)
          (rep type-rep)
          (utils tc-utils)
 

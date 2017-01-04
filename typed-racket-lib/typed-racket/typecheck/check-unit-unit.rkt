@@ -71,7 +71,7 @@
          (only-in (base-env base-special-env) make-template-identifier)
          (env lexical-env tvar-env global-env 
               signature-env)
-         (types utils abbrev union subtype resolve generalize signatures)
+         (types utils abbrev subtype resolve generalize signatures)
          (typecheck check-below internal-forms)
          (utils tc-utils)
          (rep type-rep values-rep)

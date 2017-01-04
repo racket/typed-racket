@@ -1,20 +1,20 @@
 #lang racket/base
 (require "../utils/utils.rkt"
-         "../utils/print-struct.rkt"
+         (utils tc-utils)
          
          racket/match
-         racket/generic
          (contract-req)
          "free-variance.rkt"
          "type-mask.rkt"
          racket/stxparam
          syntax/parse/define
          syntax/id-table
-         racket/unsafe/ops
+         racket/generic
+         (only-in racket/unsafe/ops unsafe-struct-ref)
          (for-syntax
+          (utils tc-utils)
           racket/match
           racket/list
-          racket/sequence
           (except-in syntax/parse id identifier keyword)
           racket/base
           syntax/struct
@@ -24,7 +24,11 @@
 
 
 (provide (all-defined-out)
+         get-uid-count
          (for-syntax var-name))
+
+
+;; Contract and Hash related helpers
 
 (provide-for-cond-contract length>=/c)
 
@@ -32,151 +36,213 @@
   (and (list? l)
        (>= (length l) len)))
 
-;; seq: interning-generated serial number used to compare Reps (type<).
-;; free-vars: cached free type variables
-;; free-idxs: cached free dot sequence variables
-;; stx: originating syntax for error-reporting
-(struct Rep (seq free-vars free-idxs) #:transparent
-  #:methods gen:equal+hash
-  [(define (equal-proc x y recur)
-     (unsafe-fx= (Rep-seq x) (Rep-seq y)))
-   (define (hash-proc x recur) (Rep-seq x))
-   (define (hash2-proc x recur) (Rep-seq x))])
+(define-for-cond-contract name-ref/c
+  (or/c identifier?
+        (cons/c exact-integer? exact-integer?)))
 
-(define (Rep<? x y)
-  (unsafe-fx< (Rep-seq x) (Rep-seq y)))
+(define (name-ref=? x y)
+  (cond
+    [(identifier? x)
+     (and (identifier? y) (free-identifier=? x y))]
+    [else (equal? x y)]))
 
-;; prop:get-values
-(define-values (prop:Rep-name Rep-name)
-  (let-values ([(prop _ accessor) (make-struct-type-property 'named)])
-    (values prop accessor)))
+(define id-table (make-free-id-table))
+(define (normalize-id id)
+  (free-id-table-ref! id-table id id))
 
+(define (hash-id id)
+  (eq-hash-code (identifier-binding-symbol id)))
 
-;; prop:get-values
-(define-values (prop:values-fun values-fun)
-  (let-values ([(prop _ accessor) (make-struct-type-property 'values)])
-    (values prop accessor)))
-
-;; Rep-values
-(define (Rep-values x)
-  ((values-fun x) x))
-
-;; prop:get-constructor
-(define-values (prop:constructor-fun Rep-constructor)
-  (let-values ([(prop _ accessor) (make-struct-type-property 'constructor)])
-    (values prop accessor)))
-
-;; structural type info for simple/straightforward types
-;; (i.e. we store the list of field variances)
-(define-values (prop:structural structural? Type-variances)
-  (make-struct-type-property 'structural))
-
-;; top type predicates
-(define-values (prop:top-type has-top-type? top-type-pred)
-  (make-struct-type-property 'top-type))
-
-;; prop:walk-fun
-(define-values (prop:walk-fun walkable? walk-fun)
-  (make-struct-type-property 'walk))
-;; Rep-walk
-(define (Rep-walk f x)
-  (define fun (walk-fun x))
-  (when (procedure? fun)
-    (fun f x)))
-
-;; prop:fold-fun
-(define-values (prop:fold-fun foldable? fold-fun)
-  (make-struct-type-property 'fold))
-
-;; Rep-fold
-(define (Rep-fold f x)
-  (define fun (fold-fun x))
-  (if (procedure? fun)
-      (fun f x)
-      x))
+(define (hash-name-ref name rec)
+  (if (identifier? name)
+      (hash-id name)
+      (rec name)))
 
 
-;; Is this a type that can be a 'back-edge' into the type graph?
-;; (i.e. could blindly following this type lead to infinite recursion?)
-(define-values (prop:resolvable resolvable?)
-  (let-values ([(prop predicate _) (make-struct-type-property 'resolvable)])
-    (values prop predicate)))
+;; This table maps a type to an identifier bound to the type.
+;; This allows us to avoid reconstructing the type when using
+;; it from its marshaled representation.
+;; The table is referenced in env/init-env.rkt
+;;
+;; For example, instead of marshalling a big union for `Integer`, we
+;; simply emit `-Integer`, which evaluates to the right type.
+(define predefined-type-table (make-hash))
+(define-syntax-rule (declare-predefined-type! id)
+  (hash-set! predefined-type-table id #'id))
+(provide predefined-type-table)
+(define-syntax-rule (define/decl id e)
+  (begin (define id e)
+         (declare-predefined-type! id)))
+
+
+;; fetches an interned Rep based on the given _single_ key
+;; NOTE: the #:construct expression is only run if there
+;; is no interned copy, so we should avoid unnecessary
+;; allocation w/ this approach
+(define-simple-macro (intern-single-ref! table-exp:expr
+                                         key-exp:expr
+                                         #:construct val-exp:expr)
+  (let ([table table-exp])
+    (define key key-exp)
+    (define intern-box (hash-ref table key #f))
+    (cond
+      [(and intern-box (weak-box-value intern-box #f))]
+      [else
+       (define val val-exp)
+       (hash-set! table key (make-weak-box val))
+       val])))
+
+;; fetches an interned Rep based on the given _two_ keys
+;; see 'intern-single-ref!'
+(define-simple-macro (intern-double-ref! table:id
+                                         key-exp1:expr
+                                         key-exp2:expr
+                                         #:construct val-exp:expr)
+  (intern-single-ref! (hash-ref! table key-exp1 make-weak-hash)
+                      key-exp2
+                      #:construct val-exp))
+
+
+
+;; - - - - - - - - - - - -
+;; Rep Properties
+;; - - - - - - - - - - - -
+(define-generics Rep
+  ;; A symbol name for a Rep
+  ;; Rep-name : Rep -> symbol
+  (Rep-name Rep)
+  ;; The values this rep contains (see Rep-constructor).
+  ;; Rep-values : Rep -> (listof any/c)
+  (Rep-values Rep)
+  ;; is there a simple, structural description for the variances
+  ;; of this Rep's fields? (currently only used for 'structural' types,
+  ;; see type-rep.rkt
+  ;; Rep-constructor : Rep -> (any ... -> Rep)
+  (Rep-variances Rep)
+  ;; The intended constructor for this Rep.
+  ;; i.e. (equal? ((Rep-constructor rep) (Rep-values rep)) rep) = #t
+  ;; Rep-constructor : Rep -> (any ... -> Rep)
+  (Rep-constructor Rep)
+  ;; can this Rep contain free type variables?
+  ;; (i.e. 'F' types from rep/type-rep.rkt)
+  ;; Rep-free-ty-vars-fun : Rep -> free-vars
+  (Rep-free-vars Rep)
+  ;; can this Rep contain free dotted type variables (idxs)?
+  ;; (e.g. things like ListDots, etc rep/type-rep.rkt
+  ;;  which have an arity/structure which depends on instantiation)
+  ;; Rep-free-ty-idxs-fun : Rep -> free-dotted-vars
+  (Rep-free-idxs Rep)
+  ;; is this Rep mappable?
+  ;; (i.e. can we traverse it w/ applying a function to
+  ;;  the fields? a lá map for lists)
+  ;; Rep-fmap : Rep procedure -> Rep
+  (Rep-fmap Rep f)
+  ;; is this Rep walkable?
+  ;; (i.e. can we traverse it w/ some effectful function
+  ;;  a lá for-each for lists)
+  ;; Rep-walk-fun : Rep procedure -> void
+  (Rep-for-each Rep f))
+
+;; used internally when generating gen:Rep method definitions
+;; so that we don't have to mess around w/ 'define/generic'
+(define-syntax free-vars* (make-rename-transformer #'Rep-free-vars))
+(define-syntax free-idxs* (make-rename-transformer #'Rep-free-idxs))
+
+;; A variant-unique fixnum.
+;; Rep-uid : Rep -> fixnum
+(define-values (prop:uid Rep-uid)
+  (let-values ([(prop _ acc) (make-struct-type-property 'uid)])
+    (values prop acc)))
+
+
+(define-values (prop:mask raw-mask)
+  (let-values ([(prop _ acc) (make-struct-type-property 'mask)])
+    (values prop acc)))
+
+;; Type-mask : Rep -> fixnum
+(define-syntax-rule (mask rep)
+  (let ([mask (raw-mask rep)])
+    (if (procedure? mask)
+        (mask rep)
+        mask)))
 
 
 ;;************************************************************
 ;; Rep Declaration Syntax Classes
 ;;************************************************************
-(define (make-counter!)
-  (let ([state 0])
-    (λ () (begin0 state (set! state (unsafe-fx+ 1 state))))))
-
-(define count! (make-counter!))
-(define id-count! (make-counter!))
-
-(define identifier-table (make-free-id-table))
-
-(define (hash-id id)
-  (free-id-table-ref!
-   identifier-table
-   id
-   (λ () (let ([c (id-count!)])
-           (free-id-table-set! identifier-table id c)
-           c))))
-
-(define (hash-name name)
-  (if (identifier? name)
-      (hash-id name)
-      name))
+(define-values (next-uid! get-uid-count)
+  (let ([state 0]
+        [finalized? #f])
+    (values (λ () (if finalized?
+                      (int-err "next-uid! called after uid count finalized!")
+                      (begin0 state (set! state (add1 state)))))
+            (λ () (set! finalized? #t) state))))
 
 (begin-for-syntax
+  ;; defines a "rep transformer"
+  ;; These are functions defined to fold over Reps (e.g. Rep-fmap, Rep-for-each).
+  ;; Because they are defined within the definition of the struct, they bind the same
+  ;; identifiers which declare the Rep's fields to those same fields.
+  (define (rep-transform self f-id struct-fields body)
+    (with-syntax ([f-id f-id]
+                  [self self]
+                  [(fld ...) struct-fields]
+                  [body body])
+      #'(λ (self f-id)
+          (let ([fld (unsafe-struct-ref self (struct-field-index fld))] ...) . body))))
+  ;; like "rep-transform" but the folding function is fixed (e.g. free-vars)
+  (define (fixed-rep-transform self f-id fun struct-fields body)
+    (with-syntax ([transformer (rep-transform self f-id struct-fields body)]
+                  [self self]
+                  [fun fun])
+      #'(λ (self) (transformer self fun))))
   ;; #:frees definition parsing
-  (define-syntax-class freesspec
+  (define-syntax-class (freesspec struct-fields)
     #:attributes (free-vars free-idxs)
-    (pattern ([#:vars (f1) . vars-body]
-              [#:idxs (f2) . idxs-body])
-             #:with free-vars #'(let ([f1 Rep-free-vars]) . vars-body)
-             #:with free-idxs #'(let ([f2 Rep-free-idxs]) . idxs-body))
-    (pattern ((f:id) . body)
-             #:with free-vars #'(let ([f Rep-free-vars]) . body)
-             #:with free-idxs #'(let ([f Rep-free-idxs]) . body)))
-  ;; #:fold definition parsing
-  (define-syntax-class (walkspec name match-expdr struct-fields)
+    (pattern
+     ([#:vars (f1 (~optional (~seq #:self self1:id)
+                             #:defaults ([self1 (generate-temporary 'self)])))
+       . vars-body]
+      [#:idxs (f2 (~optional (~seq #:self self2:id)
+                             #:defaults ([self2 (generate-temporary 'self)])))
+       . idxs-body])
+     #:with free-vars (fixed-rep-transform #'self1 #'f1 #'free-vars* struct-fields #'vars-body)
+     #:with free-idxs (fixed-rep-transform #'self2 #'f2 #'free-idxs* struct-fields #'idxs-body))
+    (pattern
+     ((f:id (~optional (~seq #:self self:id)
+                       #:defaults ([self (generate-temporary 'self)])))
+      . body)
+     #:with free-vars (fixed-rep-transform #'self #'f #'free-vars* struct-fields #'body)
+     #:with free-idxs (fixed-rep-transform #'self #'f #'free-idxs* struct-fields #'body)))
+  (define-syntax-class (constructor-spec constructor-name raw-constructor-name struct-fields)
     #:attributes (def)
-    (pattern ((f:id) . body)
+    (pattern body
              #:with def
-             (with-syntax ([name name]
-                           [(flds ...) struct-fields]
-                           [mexpdr match-expdr])
-               #'(λ (f self)
-                   (match self
-                     [(mexpdr flds ...) . body]
-                     [_ (error 'Rep-walk "bad match in ~a's walk" (quote name))])))))
-  ;; #:map definition parsing
-  (define-syntax-class (foldspec name match-expdr struct-fields)
+             (with-syntax ([constructor-name constructor-name]
+                           [raw-constructor-name raw-constructor-name]
+                           [(struct-fields ...) struct-fields])
+               #'(define (constructor-name struct-fields ...)
+                   (let ([constructor-name raw-constructor-name])
+                     . body)))))
+  ;; definer parser for functions who operate on Reps. Fields are automatically bound
+  ;; to the struct-field id names in the body. An optional self argument can be specified.
+  (define-syntax-class (generic-transformer struct-fields)
     #:attributes (def)
     (pattern ((f:id (~optional (~seq #:self self:id)
                                #:defaults ([self (generate-temporary 'self)])))
               . body)
-             #:with def
-             (with-syntax ([name name]
-                           [(flds ...) struct-fields]
-                           [mexpdr match-expdr])
-               #'(λ (f self)
-                   (match self
-                     [(mexpdr flds ...) . body]
-                     [_ (error 'Rep-fold "bad match in ~a's fold" (quote name))])))))
+             #:with def (rep-transform #'self #'f struct-fields #'body)))
   ;; variant name parsing
   (define-syntax-class var-name
-    #:attributes (name raw-constructor constructor mexpdr pred)
+    #:attributes (name constructor raw-constructor match-expander predicate)
     (pattern name:id
-             #:with raw-constructor
-             ;; raw constructor should only be used by macros (hence the gensym)
-             (format-id #'name "raw-make-~a" (gensym (syntax-e #'name)))
              #:with constructor
              (format-id #'name "make-~a" (syntax-e #'name))
-             #:with mexpdr
+             ;; hidden constructor for use inside custom constructor defs
+             #:with raw-constructor (format-id #'name "raw-make-~a" (syntax-e #'name))
+             #:with match-expander
              (format-id #'name "~a:" (syntax-e #'name))
-             #:with pred
+             #:with predicate
              (format-id #'name "~a?" (syntax-e #'name))))
   ;; structure accessor parsing
   (define-syntax-class (fld-id struct-name)
@@ -208,31 +274,25 @@
       ;; options
       (~or
        ;; parent struct (if any)
-       (~optional (~optional [#:parent parent:id])
-                  #:defaults ([parent #'Rep]))
+       (~optional [#:parent parent:id])
        ;; base declaration (i.e. no fold/map)
        (~optional (~and #:base base?))
-       ;; All Reps are interned
-       (~optional [#:intern-key provided-intern-key])
        ;; #:frees spec (how to compute this Rep's free type variables)
-       (~optional [#:frees . frees-spec:freesspec])
-       ;; #:walk spec (how to traverse this structure for effect)
-       (~optional [#:walk . (~var walk-spec (walkspec #'var.name
-                                                      #'var.mexpdr
-                                                      #'(flds.ids ...)))])
+       (~optional [#:frees . (~var frees-spec (freesspec #'(flds.ids ...)))])
+       ;; #:for-each spec (how to traverse this structure for effect)
+       (~optional [#:for-each . (~var for-each-spec (generic-transformer #'(flds.ids ...)))])
        ;; #:fold spec (how to transform & fold this structure)
-       (~optional [#:fold . (~var fold-spec (foldspec #'var.name
-                                                      #'var.mexpdr
-                                                      #'(flds.ids ...)))])
-       (~optional [#:type-mask . type-mask-body])
-       ;; is this a Type w/ a Top type? (e.g. Vector --> VectorTop)
-       (~optional [#:top top-pred:id])
+       (~optional [#:fmap . (~var fold-spec (generic-transformer #'(flds.ids ...)))])
+       (~optional [#:mask . rep-mask-body])
+       (~optional [#:variances ((~literal list) variances ...)])
        ;; #:no-provide option (i.e. don't provide anything automatically)
-       (~optional (~and #:needs-resolving needs-resolving?))
-       ;; #:no-provide option (i.e. don't provide anything automatically)
-       (~optional (~and #:no-provide no-provide?))
-       ;; field variances (e.g. covariant/contravariant/etc) declarations
-       (~optional (~and [#:variances variances ...] structural))
+       (~optional (~and #:no-provide no-provide?-kw))
+       (~optional [#:singleton singleton:id])
+       (~optional [#:custom-constructor . (~var constr-def
+                                                (constructor-spec #'var.constructor
+                                                                  #'var.raw-constructor
+                                                                  #'(flds.ids ...)))])
+       (~optional (~and #:non-transparent non-transparent-kw))
        ;; #:extras to specify other struct properties in a per-definition manner
        (~optional [#:extras . extras]))
       ...)
@@ -242,141 +302,156 @@
      ;; - - - - - - - - - - - - - - -
      
      ;; build convenient boolean flags
-     (define is-a-type? (eq? 'Type (syntax-e #'parent)))
-     (define intern-key (if (attribute provided-intern-key)
-                            #'provided-intern-key
-                            #'#t))
-     ;; intern-key is required (when the number of fields is > 0)
-     (when (and (not (attribute provided-intern-key))
-                (> (length (syntax->list #'flds)) 0))
-       (raise-syntax-error 'def-rep "intern key specification required when the number of fields > 0"
+     (define is-a-type? (and (attribute parent) (eq? 'Type (syntax-e #'parent))))
+     ;; singletons cannot have fields or #:no-provide
+     (when (and (attribute singleton)
+                (or (attribute no-provide?-kw)
+                    (> (length (syntax->list #'flds)) 0)))
+       (raise-syntax-error 'def-rep "singletons cannot have fields or the #:no-provide option"
                            #'var))
-     ;; no frees, walk, or fold for #:base Reps
-     (when (and (attribute base?) (or (attribute frees-spec)
-                                      (attribute walk-spec)
-                                      (attribute fold-spec)))
-       (raise-syntax-error 'def-rep "base reps cannot have #:frees, #:walk, or #:fold"
+     (when (and (attribute base?)
+                (attribute singleton))
+       (raise-syntax-error 'def-rep "singletons are base by def, do not provide #:base option"
                            #'var))
-     ;; if non-base, frees, walk, and fold are required
-     (when (and (not (attribute base?))
+     ;; no frees, for-each, fold, or abs/inst for #:base Reps
+     (when (and (or (attribute base?)
+                    (attribute singleton))
+                (or (attribute frees-spec)
+                    (attribute for-each-spec)
+                    (attribute fold-spec)))
+       (raise-syntax-error 'def-rep "base reps and singletons cannot have #:frees, #:for-each, or #:fold"
+                           #'var))
+     ;; if non-base, frees, for-each, and fold are required
+     (when (and (not (or (attribute base?) (attribute singleton)))
                 (or (not (attribute frees-spec))
-                    (not (attribute walk-spec))
+                    (not (attribute for-each-spec))
                     (not (attribute fold-spec))))
-       (raise-syntax-error 'def-rep "non-base reps require #:frees, #:walk, and #:fold"
+       (raise-syntax-error 'def-rep "non-base reps require #:frees, #:for-each, and #:fold"
                            #'var))
-     ;; can't be structural and not a type
-     (when (and (not is-a-type?) (attribute structural))
-       (raise-syntax-error 'def-rep "only types can be structural" #'structural))
 
      ;; - - - - - - - - - - - - - - -
      ;; Let's build the definitions!
      ;; - - - - - - - - - - - - - - -
-     
      (with-syntax*
-       ([intern-key intern-key]
+       ([uid-id (format-id #'var.name "uid:~a" (syntax->datum #'var.name))]
+        [(parent ...) (if (attribute parent) #'(parent) #'())]
         ;; contract for constructor
-        [constructor-contract #'(-> flds.contracts ... var.pred)]
+        [constructor-contract #'(-> flds.contracts ... any)]
+        [constructor-name (if (attribute constr-def)
+                              #'var.raw-constructor
+                              #'var.constructor)]
+        [constructor-def (if (attribute constr-def)
+                             #'constr-def.def
+                             #'(begin))]
+        [(maybe-transparent ...) (if (attribute non-transparent-kw)
+                                     #'()
+                                     #'(#:transparent))]
         ;; match expander (skips 'meta' fields)
         [mexpdr-def
-         #`(define-match-expander var.mexpdr
+         #`(define-match-expander var.match-expander
              (λ (s)
                (syntax-parse s
-                 [(_ . pats)
-                  #,(if is-a-type? ;; skip Type-mask and subtype cache
-                        #'(syntax/loc s (var.name _ _ _ _ _ . pats))
-                        #'(syntax/loc s (var.name _ _ _ . pats)))])))]
+                 [(_ . pats) (syntax/loc s (var.name . pats))])))]
+        ;; Rep generic definitions
+        ;; -----------------------
         ;; free var/idx defs
-        [free-vars-def (cond
-                         [(attribute base?) #'empty-free-vars]
-                         [else #'frees-spec.free-vars])]
-        [free-idxs-def (cond
-                         [(attribute base?) #'empty-free-vars]
-                         [else #'frees-spec.free-idxs])]
-        ;; top type info
-        [(maybe-top-type-spec ...)
-         (if (attribute top-pred)
-             #'(#:property prop:top-type top-pred)
-             #'())]
-        ;; if it's a structural type, save its field variances
-        [(maybe-structural ...)
-         (if (attribute structural)
-             #'(#:property prop:structural (list variances ...))
-             #'())]
-        ;; an argument if we accept a type mask
-        [mask-arg (generate-temporary 'mask)]
-        ;; constructor w/ interning and Type-mask handeling if necessary
-        [constructor-def
+        [Rep-name-def
+         #'(define (Rep-name _) 'var.name)]
+        [Rep-values-def
+         #'(define (Rep-values rep)
+             (match rep
+               [(var.name flds.ids ...) (list flds.ids ...)]))]
+        [Rep-variances-def
          (cond
-           ;; non-Types don't need masks
-           [(not is-a-type?)
-            #'(define var.constructor
-                (let ([intern-table (make-hash)])
-                  (λ (flds.ids ...)
-                    (let ([key intern-key]
-                          [fail (λ () (let ([fvs free-vars-def]
-                                            [fis free-idxs-def])
-                                        (var.raw-constructor (count!) fvs fis flds.ids ...)))])
-                      (hash-ref! intern-table key fail)))))]
+           [(attribute variances)
+            #'(define (Rep-variances _)
+                (list variances ...))]
            [else
-            ;; Types have to provide Type-masks and subtype caches
-            #`(define var.constructor
-                (let ([intern-table (make-hash)])
-                  (λ (flds.ids ...)
-                    (let ([key intern-key]
-                          [fail (λ () (let ([fvs free-vars-def]
-                                            [fis free-idxs-def]
-                                            [mask-val #,(if (attribute type-mask-body)
-                                                            #'(let () . type-mask-body)
-                                                            #'mask:unknown)])
-                                        (var.raw-constructor (count!) fvs fis (make-hash) mask-val flds.ids ...)))])
-                      (hash-ref! intern-table key fail)))))])]
-        ;; walk def
-        [walk-def (cond
-                    [(attribute base?) #'#f]
-                    [else #'walk-spec.def])]
+            #'(define (Rep-variances _) #f)])]
+        [Rep-constructor-def
+         #'(define (Rep-constructor rep) var.constructor)]
+        ;; free var/idx defs
+        [Rep-free-vars-def
+         (cond
+           [(or (attribute base?)
+                (attribute singleton))
+            #'(define (Rep-free-vars _) empty-free-vars)]
+           [else #'(define Rep-free-vars frees-spec.free-vars)])]
+        [Rep-free-idxs-def
+         (cond
+           [(or (attribute base?)
+                (attribute singleton))
+            #'(define (Rep-free-idxs _) empty-free-vars)]
+           [else #'(define Rep-free-idxs frees-spec.free-idxs)])]
+        ;; for-each def
+        [Rep-for-each-def
+         (cond
+           [(or (attribute base?) (attribute singleton))
+            #'(define (Rep-for-each rep f) (void))]
+           [else #'(define Rep-for-each for-each-spec.def)])]
         ;; fold def
-        [fold-def (cond
-                    [(attribute base?) #'#f]
-                    [else #'fold-spec.def])]
-        ;; is this a type that needs resolving (e.g. Mu)
-        [(maybe-needs-resolving ...)
-         (if (attribute needs-resolving?)
-             #'(#:property prop:resolvable #t)
-             #'())]
+        [Rep-fmap-def
+         (cond
+           [(or (attribute base?) (attribute singleton))
+            #'(define (Rep-fmap rep f) rep)]
+           [else #'(define Rep-fmap fold-spec.def)])]
         ;; how do we pull out the values required to fold this Rep?
-        [values-def #'(match-lambda
-                        [(var.mexpdr flds.ids ...) (list flds.ids ...)])]
+        [rep-mask-body 
+         (cond
+           [(attribute rep-mask-body) #'(let () . rep-mask-body)]
+           [else #'mask:unknown])]
         ;; module provided defintions, if any
         [(provides ...)
          (cond
-           [(attribute no-provide?) #'()]
+           [(attribute no-provide?-kw) #'()]
            [else
-            #'((provide var.mexpdr var.pred flds.accessors ...)
+            #'((provide var.match-expander var.predicate flds.accessors ...)
                (provide/cond-contract (var.constructor constructor-contract)))])]
-        [(extra-defs ...) (if (attribute extras) #'extras #'())])
+        [(extra-defs ...) (if (attribute extras) #'extras #'())]
+        [struct-def #'(struct var.name parent ... (flds.ids ...)
+                        maybe-transparent ...
+                        #:constructor-name constructor-name
+                        #:property prop:uid uid-id
+                        #:property prop:mask rep-mask-body
+                        #:methods gen:Rep
+                        [Rep-name-def
+                         Rep-values-def
+                         Rep-constructor-def
+                         Rep-variances-def
+                         Rep-free-vars-def
+                         Rep-free-idxs-def
+                         Rep-for-each-def
+                         Rep-fmap-def]
+                        extra-defs ...)])
        ;; - - - - - - - - - - - - - - -
        ;; macro output
        ;; - - - - - - - - - - - - - - -
-       #'(begin
-           (struct var.name parent (flds.ids ...) #:transparent
-             #:constructor-name
-             var.raw-constructor
-             #:property prop:Rep-name (quote var.name)
-             #:property prop:constructor-fun
-             (λ (flds.ids ...) (var.constructor flds.ids ...))
-             #:property prop:values-fun
-             values-def
-             #:property prop:walk-fun
-             walk-def
-             #:property prop:fold-fun
-             fold-def
-             maybe-top-type-spec ...
-             maybe-structural ...
-             maybe-needs-resolving ...
-             extra-defs ...)
-           constructor-def
-           mexpdr-def
-           provides ...))]))
+       (cond
+         [(attribute singleton)
+          (syntax/loc stx
+            (begin
+              (define uid-id (next-uid!))
+              (define singleton
+                (let ()
+                  struct-def
+                  (var.constructor)))
+              (declare-predefined-type! singleton)
+              (define (var.predicate x) (eq? x singleton))
+              (define-match-expander var.match-expander
+                (λ (s)
+                  (syntax-parse s
+                    [(_) (syntax/loc s (? var.predicate))])))
+              (provide singleton var.predicate var.match-expander
+                       uid-id)))]
+         [else
+          (syntax/loc stx
+            (begin
+              (define uid-id (next-uid!))
+              struct-def
+              constructor-def
+              mexpdr-def
+              provides ...
+              (provide uid-id)))]))]))
 
 
 ;; macro for easily defining sets of types represented by fixnum bitfields
@@ -465,9 +540,3 @@
            ;; provide the bit variables (e.g. bits:Null)
            atoms.provide ...
            unions.provide ...))]))
-
-
-(provide
-  Rep-values
-  (rename-out [Rep-free-vars free-vars*]
-              [Rep-free-idxs free-idxs*]))

@@ -14,9 +14,9 @@
 
 
 (define-syntax-class/specialize string-expr
-  (typed-expr (λ (t) (type-equal? t -String))))
+  (typed-expr (λ (t) (equal? t -String))))
 (define-syntax-class/specialize bytes-expr
-  (typed-expr (λ (t) (type-equal? t -Bytes))))
+  (typed-expr (λ (t) (equal? t -Bytes))))
 (define-syntax-class/specialize list-expr
   (typed-expr (λ (t)
                  (match t
@@ -48,7 +48,7 @@
   (pattern (#%plain-app op:make-sequence _ l:list-expr)
     #:do [(log-seq-opt "in-list" #'l)]
     #:with opt #'(let ((i l.opt))
-                   (values unsafe-car unsafe-cdr i
+                   (values unsafe-car unsafe-cdr values i
                            (lambda (x) (not (null? x)))
                            (lambda (x) #t)
                            (lambda (x y) #t))))
@@ -58,6 +58,7 @@
     #:with opt #'(let* ((i   v.opt)
                         (len (unsafe-vector-length i)))
                    (values (lambda (x) (unsafe-vector-ref i x))
+                           #f
                            (lambda (x) (unsafe-fx+ 1 x))
                            0
                            (lambda (x) (unsafe-fx< x len))
@@ -69,6 +70,7 @@
     #:with opt #'(let* ((i   s.opt)
                         (len (string-length i)))
                    (values (lambda (x) (string-ref i x))
+                           #f
                            (lambda (x) (unsafe-fx+ 1 x))
                            0
                            (lambda (x) (unsafe-fx< x len))
@@ -79,6 +81,7 @@
     #:with opt #'(let* ((i   s.opt)
                         (len (bytes-length i)))
                    (values (lambda (x) (bytes-ref i x))
+                           #f
                            (lambda (x) (unsafe-fx+ 1 x))
                            0
                            (lambda (x) (unsafe-fx< x len))
@@ -88,6 +91,7 @@
     #:do [(log-seq-opt "in-range" #'s)]
     #:with opt #'(let* ((end s.opt))
                    (values (lambda (x) x)
+                           #f
                            (lambda (x) (unsafe-fx+ 1 x))
                            0
                            (lambda (x) (unsafe-fx< x end))

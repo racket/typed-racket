@@ -132,6 +132,38 @@
                      (list (-tc-result t pset o)))
                  (cons dty dbound))]))
 
+
+;; fix-props:
+;;  PropSet [PropSet] -> PropSet
+;;    or
+;;  Prop [Prop]       -> Prop
+;; Turns #f prop/propset into the actual prop; leaves other props alone.
+(define (fix-props p1 [p2 -tt-propset])
+  (or p1 p2))
+
+;; fix-object: Object [Object] -> Object
+;; Turns #f into the actual object; leaves other objects alone.
+(define (fix-object o1 [o2 -empty-obj])
+  (or o1 o2))
+
+;; fix-results: tc-results -> tc-results
+;; Turns #f Prop or Obj into the Empty/Trivial
+(define (fix-results r)
+  (match r
+    [(tc-any-results: f) (tc-any-results (fix-props f -tt))]
+    [(tc-results: ts ps os)
+     (ret ts (map fix-props ps) (map fix-object os))]
+    [(tc-results: ts ps os dty dbound)
+     (ret ts (map fix-props ps) (map fix-object os) dty dbound)]))
+
+(define (fix-results/bottom r)
+  (match r
+    [(tc-any-results: f) (tc-any-results (fix-props f -ff))]
+    [(tc-results: ts ps os)
+     (ret ts (for/list ([p ps]) (fix-props p -ff-propset)) (map fix-object os))]
+    [(tc-results: ts ps os dty dbound)
+     (ret ts (for/list ([p ps]) (fix-props p -ff-propset)) (map fix-object os) dty dbound)]))
+
 (provide/cond-contract
  [ret
   (c:->i ([t (c:or/c Type? (c:listof Type?))])
@@ -162,4 +194,11 @@
  [tc-results? (c:any/c . c:-> . boolean?)]
  [tc-results/c c:flat-contract?]
  [tc-results1/c c:flat-contract?]
- [full-tc-results/c c:flat-contract?])
+ [full-tc-results/c c:flat-contract?]
+ [fix-results (c:-> tc-results/c full-tc-results/c)]
+ [fix-results/bottom (c:-> tc-results/c full-tc-results/c)]
+ [fix-props
+  (c:->* ((c:or/c #f Prop? PropSet?))
+         ((c:or/c Prop? PropSet?))
+         (c:or/c Prop? PropSet?))]
+ [fix-object (c:->* ((c:or/c #f OptObject?)) (OptObject?) OptObject?)])

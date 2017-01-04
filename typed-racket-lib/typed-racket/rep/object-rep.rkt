@@ -6,37 +6,43 @@
 ;; See "Logical Types for Untyped Languages" pg.3
 
 (require "../utils/utils.rkt"
+         racket/match
          "rep-utils.rkt"
          "core-rep.rkt"
          "free-variance.rkt"
          (env mvar-env)
          (contract-req))
 
-(provide -id-path)
+(provide -id-path name-ref=?)
 
-(def-pathelem CarPE () #:base)
-(def-pathelem CdrPE () #:base)
-(def-pathelem SyntaxPE () #:base)
-(def-pathelem ForcePE () #:base)
-;; t is always a Name (can't put that into the contract b/c of circularity)
+(def-pathelem CarPE () [#:singleton -car])
+(def-pathelem CdrPE () [#:singleton -cdr])
+(def-pathelem SyntaxPE () [#:singleton -syntax-e])
+(def-pathelem ForcePE () [#:singleton -force])
+(def-pathelem FieldPE () [#:singleton -field])
+
 (def-pathelem StructPE ([t Type?] [idx natural-number/c])
-  [#:intern-key (cons (Rep-seq t) idx)]
   [#:frees (f) (f t)]
-  [#:fold (f) (make-StructPE (f t) idx)]
-  [#:walk (f) (f t)])
-(def-pathelem FieldPE () #:base)
+  [#:fmap (f) (make-StructPE (f t) idx)]
+  [#:for-each (f) (f t)])
 
 (def-object Path ([elems (listof PathElem?)] [name name-ref/c])
-  [#:intern-key (cons (hash-name name) (map Rep-seq elems))]
   [#:frees (f)  (combine-frees (map f elems))]
-  [#:fold (f) (make-Path (map f elems) name)]
-  [#:walk (f) (for-each f elems)])
+  [#:fmap (f) (make-Path (map f elems) name)]
+  [#:for-each (f) (for-each f elems)]
+  [#:custom-constructor
+   (cond
+     [(identifier? name)
+      (if (is-var-mutated? name)
+          -empty-obj
+          (let ([name (normalize-id name)])
+            (intern-double-ref!
+             path-intern-table
+             name elems #:construct (make-Path elems name))))]
+     [else (intern-double-ref!
+            path-intern-table
+            name elems #:construct (make-Path elems name))])])
 
-(define (-id-path id)
-  (cond
-    [(identifier? id)
-     (if (is-var-mutated? id)
-         (make-Empty)
-         (make-Path null id))]
-    [else
-     (make-Path null id)]))
+(define path-intern-table (make-weak-hash))
+
+(define (-id-path name) (make-Path null name))

@@ -3,10 +3,11 @@
 (require "../utils/utils.rkt"
          racket/match (prefix-in - (contract-req))
          racket/format
-         (types utils union subtype prop-ops abbrev)
+         (env lexical-env)
+         (types utils subtype prop-ops abbrev tc-result)
          (utils tc-utils)
          (rep type-rep object-rep prop-rep)
-         (typecheck error-message))
+         (typecheck error-message tc-envops))
 
 (provide/cond-contract
  [check-below (-->i ([s (-or/c Type? full-tc-results/c)]
@@ -14,8 +15,7 @@
                     [_ (s) (if (Type? s) Type? full-tc-results/c)])]
  [cond-check-below (-->i ([s (-or/c Type? full-tc-results/c)]
                           [t (s) (-or/c #f (if (Type? s) Type? tc-results/c))])
-                         [_ (s) (-or/c #f (if (Type? s) Type? full-tc-results/c))])]
- [fix-results (--> tc-results/c full-tc-results/c)])
+                         [_ (s) (-or/c #f (if (Type? s) Type? full-tc-results/c))])])
 
 (provide type-mismatch)
 
@@ -45,38 +45,6 @@
     (value-string expected) (value-string actual)
     "mismatch in number of values"))
 
-;; fix-props:
-;;  PropSet [PropSet] -> PropSet
-;;    or
-;;  Prop [Prop]       -> Prop
-;; Turns #f prop/propset into the actual prop; leaves other props alone.
-(define (fix-props p1 [p2 -tt-propset])
-  (or p1 p2))
-
-;; fix-object: Object [Object] -> Object
-;; Turns #f into the actual object; leaves other objects alone.
-(define (fix-object o1 [o2 -empty-obj])
-  (or o1 o2))
-
-;; fix-results: tc-results -> tc-results
-;; Turns #f Prop or Obj into the Empty/Trivial
-(define (fix-results r)
-  (match r
-    [(tc-any-results: f) (tc-any-results (fix-props f -tt))]
-    [(tc-results: ts ps os)
-     (ret ts (map fix-props ps) (map fix-object os))]
-    [(tc-results: ts ps os dty dbound)
-     (ret ts (map fix-props ps) (map fix-object os) dty dbound)]))
-
-(define (fix-results/bottom r)
-  (match r
-    [(tc-any-results: f) (tc-any-results (fix-props f -ff))]
-    [(tc-results: ts ps os)
-     (ret ts (for/list ([p ps]) (fix-props p -ff-propset)) (map fix-object os))]
-    [(tc-results: ts ps os dty dbound)
-     (ret ts (for/list ([p ps]) (fix-props p -ff-propset)) (map fix-object os) dty dbound)]))
-
-
 
 ;; check-below : (/\ (Results Type -> Result)
 ;;                   (Results Results -> Result)
@@ -88,8 +56,18 @@
       [(p p) #t]
       [(p #f) #t]
       [((PropSet: p1+ p1-) (PropSet: p2+ p2-))
-       (and (implies-atomic? p1+ p2+)
-            (implies-atomic? p1- p2-))]
+       (define positive-implies?
+         (or (TrueProp? p2+)
+             (FalseProp? p1+)
+             (let ([p1-and-not-p2 (-and p1+ (negate-prop p2+))])
+               (or (FalseProp? p1-and-not-p2)
+                   (impossible-in-lexical-env? p1-and-not-p2)))))
+       (and positive-implies?
+            (or (TrueProp? p2-)
+                (FalseProp? p1-)
+                (let ([p1-and-not-p2 (-and p1- (negate-prop p2-))])
+                  (or (FalseProp? p1-and-not-p2)
+                      (impossible-in-lexical-env? p1-and-not-p2)))))]
       [(_ _) #f]))
   (define (object-better? o1 o2)
     (match* (o1 o2)
@@ -98,13 +76,13 @@
       [(_ _) #f]))
   (define (prop-better? p1 p2)
     (or (not p2)
-        (implies-atomic? p1 p2)))
+        (implies? p1 p2)))
 
   (match* (tr1 expected)
     ;; This case has to be first so that bottom (exceptions, etc.) can be allowed in cases
     ;; where multiple values are expected.
     ;; We can ignore the props and objects in the actual value because they would never be about a value
-    [((tc-result1: (? (lambda (t) (type-equal? t (Un))))) _)
+    [((tc-result1: (? Bottom?)) _)
      (fix-results/bottom expected)]
 
     [((tc-any-results: p1) (tc-any-results: p2))
@@ -205,3 +183,4 @@
     [((tc-results: ts fs os dty dbound) (tc-results: ts* fs* os* dty* dbound*))
      (int-err "dotted types with different bounds/propositions/objects in check-below nyi: ~a ~a" tr1 expected)]
     [(a b) (int-err "unexpected input for check-below: ~a ~a" a b)]))
+

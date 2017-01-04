@@ -13,11 +13,13 @@
                   "types/match-expanders.rkt"
                   "types/kw-types.rkt"
                   "types/utils.rkt" "types/abbrev.rkt"
+                  "types/union.rkt"
                   "types/resolve.rkt"
                   "types/prefab.rkt"
                   "utils/utils.rkt"
                   "utils/primitive-comparison.rkt"
-                  "utils/tc-utils.rkt")
+                  "utils/tc-utils.rkt"
+                  "utils/hset.rkt")
          (for-syntax racket/base syntax/parse))
 
 ;; printer-type: (one-of/c 'custom 'debug)
@@ -65,7 +67,7 @@
 (define (has-name? t)
   (define candidates
     (for/list ([(n t*) (in-dict (force (current-type-names)))]
-               #:when (and print-aliases (Type? t*) (type-equal? t t*)))
+               #:when (and print-aliases (Type? t*) (equal? t t*)))
       n))
   (and (pair? candidates)
        (sort candidates string>? #:key symbol->string #:cache-keys? #t)))
@@ -165,13 +167,13 @@
 ;; We do set coverage, with the elements of the union being what we want to
 ;; cover, and all the names types we know about being the sets.
 (define (cover-union t ignored-names)
-  (match-define (Union: elems) t)
+  (match-define (Union: (app hset->list elems)) t)
   (define valid-names
     ;; We keep only unions, and only those that are subtypes of t.
     ;; It's no use attempting to cover t with things that go outside of t.
     (filter (lambda (p)
               (match p
-                [(cons name (and t* (Union: elts)))
+                [(cons name (? Union? t*))
                  (and (not (member name ignored-names))
                       (subtype t* t))]
                 [_ #f]))
@@ -180,7 +182,7 @@
   ;; note that racket/set supports lists with equal?, which in
   ;; the case of Types will be type-equal?
   (define candidates
-    (map (match-lambda [(cons name (Union: elts)) (cons name elts)])
+    (map (match-lambda [(cons name (Union: (app hset->list elts))) (cons name elts)])
          valid-names))
   ;; some types in the union may not be coverable by the candidates
   ;; (e.g. type variables, etc.)
@@ -487,16 +489,15 @@
     [(MPairTop:) 'MPairTop]
     [(Prompt-TagTop:) 'Prompt-TagTop]
     [(Continuation-Mark-KeyTop:) 'Continuation-Mark-KeyTop]
-    [(App: rator rands stx)
+    [(App: rator rands)
      (list* (type->sexp rator) (map type->sexp rands))]
     ;; Special cases for lists. Avoid printing with these cases if the
     ;; element type refers to the Mu variable (otherwise it prints the
     ;; type variable with no binding).
-    [(Listof: elem-ty var)
-     #:when (not (memq var (fv elem-ty)))
+    [(SimpleListof: elem-ty)
+     ;; in the 'elem-ty' type
      `(Listof ,(t->s elem-ty))]
-    [(MListof: elem-ty var)
-     #:when (not (memq var (fv elem-ty)))
+    [(SimpleMListof: elem-ty)
      `(MListof ,(t->s elem-ty))]
     ;; format as a string to preserve reader abbreviations and primitive
     ;; values like characters (when `display`ed)
@@ -526,10 +527,13 @@
     [(CustodianBox: e) `(CustodianBoxof ,(t->s e))]
     [(Set: e) `(Setof ,(t->s e))]
     [(Evt: r) `(Evtof ,(t->s r))]
-    [(Union: elems)
-     (define-values (covered remaining) (cover-union type ignored-names))
-     (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
-    [(Intersection: elems)
+    [(? Union? (app normalize-type type))
+     (match type
+       [(? Union?)
+        (define-values (covered remaining) (cover-union type ignored-names))
+        (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
+       [_ (t->s type)])]
+    [(Intersection: (app hset->list elems))
      (cons '∩ (sort (map t->s elems) primitive<=?))]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
@@ -563,7 +567,8 @@
                               (Vector: (F: x))
                               (Box: (F: x))))))
      'Syntax]
-    [(Mu-name: name body) `(Rec ,name ,(t->s body))]
+    [(Mu-name: name body)
+     `(Rec ,name ,(t->s body))]
     [(B: idx) `(B ,idx)]
     [(Syntax: t) `(Syntaxof ,(t->s t))]
     [(Instance: (and (? has-name?) cls)) `(Instance ,(t->s cls))]
@@ -577,6 +582,7 @@
        (export ,@(map signature->sexp exports))
        (init-depend ,@(map signature->sexp init-depends))
        ,(values->sexp body))]
+    [(UnitTop:) 'UnitTop]
     [(MPair: s t) `(MPairof ,(t->s s) ,(t->s t))]
     [(Refinement: parent p?)
      `(Refinement ,(t->s parent) ,(syntax-e p?))]

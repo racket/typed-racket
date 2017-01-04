@@ -9,7 +9,7 @@
 
 (provide 
   ;; Variances
-  Covariant Contravariant Invariant Constant Dotted
+  variance:co variance:contra variance:inv variance:const variance:dotted
   variance? variance->binding
 
   ;; Construcing frees
@@ -23,12 +23,21 @@
   ;; Examining frees
   free-vars-hash
   free-vars-names
-  free-vars-has-key?)
+  free-vars-has-key?
+  variance:co?
+  variance:contra?
+  variance:inv?
+  variance:const?
+  variance:dotted?)
 
 
 ;; this file contains support for calculating the free variables/indexes of types
 ;; actual computation is done in rep-utils.rkt  and type-rep.rkt
-(define-values (variance? Covariant Contravariant Invariant Constant Dotted)
+(define-values (variance? variance:co
+                          variance:contra
+                          variance:inv
+                          variance:const
+                          variance:dotted)
   (let ()
     (define-struct Variance () #:transparent)
     (define-struct (Covariant Variance) () #:transparent)
@@ -39,19 +48,26 @@
     (define-struct (Dotted Variance) () #:transparent)
     (values Variance? (make-Covariant) (make-Contravariant) (make-Invariant) (make-Constant) (make-Dotted))))
 
+(define (variance:co? x) (eq? x variance:co))
+(define (variance:contra? x) (eq? x variance:contra))
+(define (variance:inv? x) (eq? x variance:inv))
+(define (variance:const? x) (eq? x variance:const))
+(define (variance:dotted? x) (eq? x variance:dotted))
+
+
 (define (variance->binding var)
   (match var
-   ((== Covariant) #'Covariant)
-   ((== Contravariant) #'Contravariant)
-   ((== Invariant) #'Invariant)
-   ((== Constant) #'Constant)
-   ((== Dotted) #'Dotted)))
+    [(? variance:co?) #'variance:co]
+    [(? variance:contra?) #'variance:contra]
+    [(? variance:inv?) #'variance:inv]
+    [(? variance:const?) #'variance:const]
+    [(? variance:dotted?) #'variance:dotted]))
 
 (define (flip-variance v)
   (match v
-   ((== Covariant) Contravariant)
-   ((== Contravariant) Covariant)
-   (else v)))
+    [(? variance:co?) variance:contra]
+    [(? variance:contra?) variance:co]
+    [_ v]))
 
 ;;All of these are used internally
 ;;Only combined-frees is used externally
@@ -61,7 +77,7 @@
 
 
 ;; Base constructors
-(define (single-free-var name (variance Covariant))
+(define (single-free-var name [variance variance:co])
   (combined-frees (hasheq name variance) null))
 
 (define empty-free-vars 
@@ -89,13 +105,13 @@
 (define (make-invariant frees)
   (combined-frees
     (for/hasheq ([name (free-vars-names frees)])
-      (values name Invariant))
+      (values name variance:inv))
     null))
 
 (define (make-constant frees)
   (combined-frees
     (for/hasheq ([name (free-vars-names frees)])
-      (values name Constant))
+      (values name variance:const))
     null))
 
 ;; Listof[frees] -> frees
@@ -141,11 +157,11 @@
      (combine-hashes
       (for/list ((var (lookup-type-variance name)) (arg args))
         (free-vars-hash
-         (cond
-           [(eq? var Covariant) arg]
-           [(eq? var Contravariant) (flip-variances arg)]
-           [(eq? var Invariant) (make-invariant arg)]
-           [(eq? var Constant) (make-constant arg)]))))]))
+         (match var
+           [(? variance:co?) arg]
+           [(? variance:contra?) (flip-variances arg)]
+           [(? variance:inv?) (make-invariant arg)]
+           [(? variance:const?) (make-constant arg)]))))]))
 
 
 ;; frees = HT[Idx,Variance] where Idx is either Symbol or Number
@@ -154,11 +170,11 @@
   (define ((combine-var v) w)
     (cond
       [(eq? v w) v]
-      [(eq? v Dotted) w]
-      [(eq? w Dotted) v]
-      [(eq? v Constant) w]
-      [(eq? w Constant) v]
-      [else Invariant]))
+      [(variance:dotted? v) w]
+      [(variance:dotted? w) v]
+      [(variance:const? v) w]
+      [(variance:const? w) v]
+      [else variance:inv]))
     (for*/fold ([ht #hasheq()])
       ([old-free (in-list hashes)]
        [(sym var) (in-hash old-free)])

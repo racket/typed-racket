@@ -9,7 +9,7 @@
          (typecheck signatures tc-funapp tc-metafunctions)
          (types base-abbrev resolve utils type-table)
          (rep type-rep)
-         (utils tc-utils)
+         (utils tc-utils hset)
          (for-template racket/base))
 
 (import tc-expr^)
@@ -41,8 +41,8 @@
          [_ (int-err "non-symbol methods not supported by Typed Racket: ~a"
                      rcvr-type)])]
       ;; union of objects, check pointwise and union the results
-      [(Union: (list (and objs (Instance: _)) ...))
-       (merge-tc-results (map do-check objs))]
+      [(Union: objs) #:when (for/and ([t (in-hset objs)]) (Instance? t))
+       (merge-tc-results (hset-map objs do-check))]
       [_ (tc-error/expr/fields
           "send: type mismatch"
           "expected" "an object"

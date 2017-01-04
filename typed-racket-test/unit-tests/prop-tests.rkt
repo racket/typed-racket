@@ -3,7 +3,7 @@
 (require "test-utils.rkt"
          rackunit racket/format
          (rep prop-rep)
-         (types abbrev union prop-ops)
+         (types abbrev prop-ops)
          (for-syntax racket/base syntax/parse))
 
 (provide tests)

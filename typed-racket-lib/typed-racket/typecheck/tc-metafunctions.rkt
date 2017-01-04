@@ -2,10 +2,10 @@
 
 (require "../utils/utils.rkt"
          racket/match racket/list
-         (except-in (types abbrev union utils prop-ops tc-result)
+         (except-in (types abbrev utils prop-ops tc-result)
                     -> ->* one-of/c)
          (rep type-rep prop-rep object-rep values-rep rep-utils)
-         (typecheck tc-subst check-below)
+         (typecheck tc-subst)
          (contract-req))
 
 (provide abstract-results
@@ -96,8 +96,8 @@
           (loop derived-ors (cons p derived-atoms) worklist)]
 
          [(AndProp: qs) (loop derived-ors derived-atoms (append qs worklist))]
-         [(== -tt prop-equal?) (loop derived-ors derived-atoms worklist)]
-         [(== -ff prop-equal?) (values #f #f)])]
+         [(TrueProp:) (loop derived-ors derived-atoms worklist)]
+         [(FalseProp:) (values #f #f)])]
       [_ (values derived-ors derived-atoms)])))
 
 
@@ -148,8 +148,10 @@
                     (merge-dty dty1 dty2))]
        ;; otherwise, error
        [else
-        (tc-error/expr "Expected the same number of values, but got ~a and ~a"
-                         (length results1) (length results2))])])
+        (tc-error/expr "Expected the same number of values, but got ~a"
+                       (if (< (length results1) (length results2))
+                           (format "~a and ~a." (length results1) (length results2))
+                           (format "~a and ~a." (length results2) (length results1))))])])
 
   (for/fold ([res (ret -Bottom)]) ([res2 (in-list results)])
     (merge-two-results res res2)))

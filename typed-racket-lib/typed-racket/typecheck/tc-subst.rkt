@@ -27,6 +27,7 @@
                   tc-results/c
                   tc-results/c)])
 
+(provide subst-rep)
 
 ;; Substitutes the given objects into the values and turns it into a
 ;; tc-result.  This matches up to the substitutions in the T-App rule
@@ -201,4 +202,4 @@
            [else
             (-not-type (make-Path flds nm) (subst not-ty-at-flds))]))]
       ;; else default fold over subfields
-      [_ (Rep-fold subst rep)])))
+      [_ (Rep-fmap rep subst)])))

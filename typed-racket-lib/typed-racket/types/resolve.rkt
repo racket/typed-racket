@@ -12,7 +12,9 @@
 (provide resolve-name resolve-app resolvable?
          resolve-app-check-error
          resolver-cache-remove!
-         current-check-polymorphic-recursion)
+         current-check-polymorphic-recursion
+         register-app-for-checking!
+         check-registered-apps!)
 (provide/cond-contract
  [resolve-once (Type? . -> . (or/c Type? #f))]
  [resolve (Type? . -> . Type?)])
@@ -38,6 +40,29 @@
 
 (define already-resolving? (make-parameter #f))
 
+;; list of (cons/c App? syntax?) of parsed Apps
+;; during early phase of typechecking,
+;; `check-registered-apps!` consumes these to verify
+;; they are correct
+(define apps-to-check (box '()))
+
+;; registers an App for checking
+;; used while parsing types initially,
+;; once all definitions are loaded, we can verify
+;; Apps are well formed (i.e. take the correct number of args, etc)
+(define (register-app-for-checking! app stx)
+  (set-box! apps-to-check
+            (cons (cons app stx)
+                  (unbox apps-to-check))))
+
+;; checks apps registered with `register-app-for-checking!`
+(define (check-registered-apps!)
+  (for* ([p (in-list (unbox apps-to-check))]
+         [(app stx) (in-pair p)])
+    (match app
+      [(App: (? Name? rator) rands)
+       (resolve-app-check-error rator rands stx)]))
+  (set-box! apps-to-check '()))
 
 (define (resolve-app-check-error rator rands stx)
   (parameterize ([current-orig-stx stx])
@@ -54,7 +79,7 @@
        (define poly-num (length (poly-vars (current-poly-struct))))
        (if (= poly-num (length rands))
            (when (not (or (ormap Error? rands)
-                          (andmap type-equal? rands
+                          (andmap equal? rands
                                   (poly-vars (current-poly-struct)))))
              (tc-error (~a "structure type constructor applied to non-regular arguments"
                            "\n  type: " rator
@@ -112,25 +137,27 @@
                  [var (in-list current-vars)])
             (check-argument rand var))]
          [_ (void)])]
-      [(Mu: _ _) (void)]
-      [(App: _ _ _) (void)]
-      [(Error:) (void)]
+      [(? Mu?) (void)]
+      [(? App?) (void)]
+      [(? Error?) (void)]
       [_ (tc-error/delayed (~a "type cannot be applied"
                                "\n  type: " rator
                                "\n  arguments...: " rands))])))
 
 
-(define (resolve-app rator rands stx)
-  (parameterize ([current-orig-stx stx]
+(define (resolve-app rator rands [stx #f])
+  (parameterize ([current-orig-stx (or stx (current-orig-stx))]
                  [already-resolving? #t])
     (resolve-app-check-error rator rands stx)
     (match rator
       [(? Name?)
        (let ([r (resolve-name rator)])
          (and r (resolve-app r rands stx)))]
-      [(Poly: _ _) (instantiate-poly rator rands)]
-      [(Mu: _ _) (resolve-app (unfold rator) rands stx)]
-      [(App: r r* s) (resolve-app (resolve-app r r* s) rands stx)]
+      [(? Poly?) (instantiate-poly rator rands)]
+      [(? Mu?) (resolve-app (unfold rator) rands stx)]
+      [(App: r r*) (resolve-app (resolve-app r r* (current-orig-stx))
+                                rands
+                                (current-orig-stx))]
       [_ (tc-error (~a "cannot apply a non-polymorphic type"
                        "\n  type: " rator
                        "\n  arguments: " rands))])))
@@ -145,7 +172,7 @@
   (or r
       (let ([r* (match t
                   [(Mu: _ _) (unfold t)]
-                  [(App: r r* s) (resolve-app r r* s)]
+                  [(App: r r*) (resolve-app r r* #f)]
                   [(? Name?) (resolve-name t)])])
         (when (and r* (not (currently-subtyping?)))
           (hash-set! resolver-cache t r*))

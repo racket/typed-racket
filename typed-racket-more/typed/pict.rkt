@@ -5,8 +5,7 @@
 (require pict
          "racket/private/gui-types.rkt"
          (for-syntax (only-in typed-racket/rep/type-rep
-                              make-Name
-                              make-Union)
+                              make-Name)
                      (submod "racket/private/gui-types.rkt" #%type-decl)))
 
 (begin-for-syntax
@@ -19,7 +18,7 @@
    (-inst (parse-type #'Color%)))
  (define -pict (-struct-name #'pict))
  (define -pict-path
-   (make-Union (list (-val #f) -pict (-lst -pict))))
+   (Un (-val #f) -pict (-lst -pict)))
  (define -child (-struct-name #'child))
  (define -text-style
    (-mu -text-style

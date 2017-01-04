@@ -5,7 +5,7 @@
          racket/match (prefix-in - (contract-req))
          "signatures.rkt"
          "check-below.rkt" "../types/kw-types.rkt"
-         (types utils abbrev union subtype type-table path-type
+         (types utils abbrev subtype type-table path-type
                 prop-ops overlap resolve generalize tc-result)
          (private-in syntax-properties parse-type)
          (rep type-rep prop-rep object-rep)
@@ -339,33 +339,29 @@
 ;; Body must be a non empty sequence of expressions to typecheck.
 ;; The final one will be checked against expected.
 (define (tc-body/check body expected)
-  (match (syntax->list body)
-    [(list es ... e-final)
-     ;; First, typecheck all the forms whose results are discarded.
-     ;; If any one those causes the rest to be unreachable (e.g. `exit' or `error`,
-     ;; then mark the rest as ignored.
-     (let loop ([es es])
-       (cond [(empty? es) ; Done, typecheck the return form.
-              (tc-expr/check e-final expected)]
-             [else
-              ;; Typecheck the first form.
-              (define e (first es))
-              (define results (tc-expr/check e (tc-any-results #f)))
-              (define props
-                (match results
-                  [(tc-any-results: f) (list f)]
-                  [(tc-results: _ (list (PropSet: p+ p-) ...) _)
-                   (map -or p+ p-)]
-                  [(tc-results: _ (list (PropSet: p+ p-) ...) _ _ _)
-                   (map -or p+ p-)]))
-              (with-lexical-env/extend-props
-               props
-               ;; If `e` bails out, mark the rest as ignored.
-               #:unreachable (for ([x (in-list (cons e-final (rest es)))])
-                               (register-ignored! x))
-               ;; Keep going with an environment extended with the propositions that are
-               ;; true if execution reaches this point.
-               (loop (rest es)))]))]))
+  (define any-res (tc-any-results #f))
+  (define exps (syntax->list body))
+  (let loop ([exps exps])
+    (match exps
+      [(list tail-exp) (tc-expr/check tail-exp expected)]
+      [(cons e rst)
+       (define results (tc-expr/check e any-res))
+       (define props
+         (match results
+           [(tc-any-results: p) (list p)]
+           [(tc-results: _ (list (PropSet: p+ p-) ...) _)
+            (map -or p+ p-)]
+           [(tc-results: _ (list (PropSet: p+ p-) ...) _ _ _)
+            (map -or p+ p-)]))
+       (with-lexical-env+props
+         props
+         #:expected any-res
+         ;; If `e` bails out, mark the rest as ignored.
+         #:unreachable (for-each register-ignored! rst)
+         ;; Keep going with an environment extended with the
+         ;; propositions that are true if execution reaches this
+         ;; point.
+         (loop rst))])))
 
 ;; find-stx-type : Any [(or/c Type? #f)] -> Type?
 ;; recursively find the type of either a syntax object or the result of syntax-e
@@ -403,7 +399,7 @@
        [(Box: t) (-box (check-below (find-stx-type x t) t))]
        [_ (-box (generalize (find-stx-type x)))])]
     [(? hash? h)
-     (match (and expected (resolve (intersect expected -HashTop)))
+     (match (and expected (resolve (intersect expected -HashtableTop)))
        [(Hashtable: kt vt)
         (define kts (hash-map h (lambda (x y) (find-stx-type x kt))))
         (define vts (hash-map h (lambda (x y) (find-stx-type y vt))))

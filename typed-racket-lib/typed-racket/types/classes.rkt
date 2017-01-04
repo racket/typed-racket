@@ -140,7 +140,7 @@
                    (append (dict-keys fields) field-cs)
                    (append (dict-keys methods) method-cs)
                    (append (dict-keys augments) augment-cs)))]
-      [_ (Rep-walk infer! cur)]))
+      [_ (Rep-for-each cur infer!)]))
   (map remove-duplicates constraints))
 
 ;; infer-row : RowConstraints Type -> Row

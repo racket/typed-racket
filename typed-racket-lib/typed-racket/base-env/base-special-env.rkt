@@ -48,6 +48,31 @@
          (cl->*
           (-> (-lst a) -Null (-lst a))
           (-> (-lst a) (-lst b) (-lst (Un a b)))))]
+  ;; range
+  [(make-template-identifier 'range-proc 'racket/list)
+   (cl->* (-> -NonPosReal -Null)
+          (-> -One (-lst* -Zero))
+          (-> -Byte (-lst -Byte))
+          (-> -Index (-lst -Index))
+          (-> -Fixnum (-lst -NonNegFixnum))
+          (-> -Real (-lst -Nat))
+          (->opt -PosInt -Byte [-Int] (-lst -PosByte))
+          (->opt -Nat -Byte [-Int] (-lst -Byte))
+          (->opt -PosInt -Index [-Int] (-lst -PosIndex))
+          (->opt -Nat -Index [-Int] (-lst -Index))
+          (->opt -Nat -NonNegFixnum [-Int] (-lst -NonNegFixnum))
+          (->opt -PosInt -Fixnum [-Nat] (-lst -PosFixnum))
+          (->opt -Nat -Fixnum [-Nat] (-lst -NonNegFixnum))
+          (->opt -Nat -Nat [-Int] (-lst -Nat))
+          (->opt -PosInt -Int [-Nat] (-lst -PosInt))
+          (->opt -Nat -Int [-Nat] (-lst -Nat))
+          ;; could add cases that guarantee lists of negatives, etc.
+          (->opt -Int -Real [-Int] (-lst -Int))
+          (->opt -Rat -Real [-Rat] (-lst -Rat))
+          (->opt -Flonum -Real [-Flonum] (-lst -Flonum))
+          (->opt -SingleFlonum -Real [-SingleFlonum] (-lst -SingleFlonum))
+          (->opt -InexactReal -Real [-InexactReal] (-lst -InexactReal))
+          (->opt -Real -Real [-Real] (-lst -Real)))]
   ;; normalise-inputs
   [(make-template-identifier 'normalise-inputs 'racket/private/for)
    (-poly (a)

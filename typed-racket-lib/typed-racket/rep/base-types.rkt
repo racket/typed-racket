@@ -1,5 +1,8 @@
 #lang racket/base
 
+;; This file contains the definitions for Base types that are not numeric
+;; (i.e. where number? returns #f for values of the type)
+
 (require "../utils/utils.rkt"
          (rep rep-utils base-type-rep type-mask core-rep)
          racket/undefined
@@ -43,9 +46,14 @@
 (define-syntax-rule (¬ f) (λ (x) (not (f x))))
 (define-syntax-rule (compose/and f ...) (λ (x) (and (f x) ...)))
 
+;; returns the single non-numeric Base type represented
+;; represented by bits, or #f if it is #b0 or more than
+;; one bit is set
 (define (bbits->atom? bits)
   (hash-ref base-atom-hash bits #f))
 
+;; takes the bitwise representation of a union of non-numeric
+;; Base types and returns a list of the present Base types
 (define (bbits->base-types bbits)
   (cond
     [(eqv? 0 bbits) '()]
@@ -58,6 +66,13 @@
                  ([idx (in-range low high)]
                   #:when (bitwise-bit-set? bbits idx))
          (cons (vector-ref base-atom-vector idx) acc)))]))
+
+;; bitwise set operations
+;;
+;; Note that for for non-numeric Base bits we assume they
+;; can be up to 62 bits (see declarations below), so we use
+;; 'bitwise' operations since on 32-bit machines they are
+;; not guaranteed to be fixnums.
 
 (define (bbits-subset? bbits1 bbits2)
   (eqv? 0 (bbits-subtract bbits1 bbits2)))

@@ -11,6 +11,18 @@
 (provide BaseUnion-bases:
          BaseUnion-bases)
 
+;; BaseUnion
+;;
+;; BaseUnions contain a compact representation for unions
+;; of Base types. Base types are divided into two categories:
+;; those that are numeric (i.e. number? returns #t) and those
+;; that are not. See 'base-types.rkt' and 'numeric-base-types.rkt'
+;; for the various defined Base types.
+;; 
+;; bbits - the combined bits (via inclusive bit or) for
+;; all Base members where Base-numeric? is #f
+;; nbits - the combined bits (via inclusive bit or) for
+;; all Base members where Base-numeric? is #t
 (def-type BaseUnion ([bbits exact-nonnegative-integer?]
                      [nbits exact-nonnegative-integer?])
   #:base
@@ -20,6 +32,8 @@
                            [(eqv? #b0 nbits) mask:base]
                            [else mask:base+number])])]
   [#:custom-constructor
+   ;; make sure we do not build BaseUnions equivalent to
+   ;; Bottom or a *single* Base type
    (cond
      [(eqv? bbits 0)
       (cond

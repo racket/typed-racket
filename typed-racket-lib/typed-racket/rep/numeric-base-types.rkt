@@ -1,5 +1,9 @@
 #lang racket/base
 
+;; This file contains the definitions for Base types that are numeric
+;; (i.e. where number? returns #t for values of the type)
+
+
 (require "../utils/utils.rkt"
          (rep rep-utils base-type-rep type-mask core-rep)
          (types numeric-predicates)
@@ -32,8 +36,19 @@
        (>= n 0)))
 
 
+;; returns the single numeric Base type represented
+;; represented by bits, or #f if it is #b0 or more than
+;; one bit is set
 (define (nbits->atom? bits)
   (hash-ref numeric-atom-hash bits #f))
+
+
+;; bitwise set operations
+;;
+;; Note that for numeric Base bits we assume they can be up
+;; to 30 bits (see declarations below), so we use 'unsafe-fx'
+;; operations since even on 32-bit machines they are all fixnums.
+
 
 (define (nbits-subset? nbits1 nbits2)
   (unsafe-fx= 0 (nbits-subtract nbits1 nbits2)))
@@ -50,6 +65,8 @@
 (define (nbits-subtract nbits1 nbits2)
   (unsafe-fxand nbits1 (unsafe-fxnot nbits2)))
 
+;; takes the bitwise representation of a union of numeric Base types
+;; and returns a list of the present Base types
 (define (nbits->base-types nbits)
   (cond
     [(eqv? 0 nbits) '()]

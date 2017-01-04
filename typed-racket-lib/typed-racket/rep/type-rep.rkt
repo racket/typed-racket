@@ -605,7 +605,24 @@
      [1 -One]
      [_ (make-Value val)])])
 
-;; elems : Listof[Type]
+;; mask - cached type mask
+;; base - any Base types, or Bottom if none are present
+;; ts - the list of types in the union (contains no duplicates,
+;; gives us deterministic iteration order)
+;; elems - the set equivalent of 'ts', useful for equality
+;; and constant time membership tests
+;; NOTE: The types contained in a union have had complicated
+;; invariants in the past. Currently, we are using a few simple
+;; guidelines:
+;; 1. Unions do not contain duplicate types
+;; 2. Unions do not contain Univ or Bottom
+;; 3. Unions do not contain 'Base' or 'BaseUnion'
+;;    types outside of the 'base' field.
+;; That's it -- we may contain some redundant types,
+;; but in general its quicker to not worry about those
+;; until we're printing to the user or generating contracts,
+;; at which point the 'normalize-type' function from 'types/union.rkt'
+;; is used to remove overlapping types from unions.
 (def-type Union ([mask type-mask?]
                  [base (or/c Bottom? Base? BaseUnion?)]
                  [ts (cons/c Type? (cons/c Type? (listof Type?)))]
@@ -618,6 +635,8 @@
   [#:for-each (f) (for-each f ts)]
   [#:mask (λ (t) (Union-mask t))]
   [#:custom-constructor
+   ;; make sure we do not build Unions equivalent to
+   ;; Bottom, a single BaseUnion, or a single type
    (cond
      [(set-member? elems Univ) Univ]
      [else
@@ -629,11 +648,13 @@
             union-intern-table
             elems
             base
+            ;; now, if we need to build a new union, remove duplicates from 'ts'
             #:construct (make-Union mask base (remove-duplicates ts) elems))])])])
-
 
 (define union-intern-table (make-weak-hash))
 
+;; Custom match expanders for Union that expose various
+;; components or combinations of components
 (define-match-expander Union:*
   (syntax-rules () [(_ b ts) (Union: _ b ts _)]))
 
@@ -646,12 +667,18 @@
 (define-match-expander Union-all-flat:
   (syntax-rules () [(_ elems) (app Union-all-flat-list? (? list? elems))]))
 
+;; returns all of the elements of a Union (sans Bottom),
+;; and any BaseUnion is left in tact
+;; if a non-Union is passed, returns #f
 (define (Union-all-list? t)
   (match t
     [(Union: _ (? Bottom? b) ts _) ts]
     [(Union: _ b ts _) (cons b ts)]
     [_ #f]))
 
+;; returns all of the elements of a Union (sans Bottom),
+;; and any BaseUnion is flattened into the atomic Base elements
+;; if a non-Union is passed, returns #f
 (define (Union-all-flat-list? t)
   (match t
     [(Union: _ b ts _)
@@ -661,33 +688,43 @@
        [_ (cons b ts)])]
     [_ #f]))
 
-;; Union-map
+;; Union-fmap
 ;;
-;; maps function 'f' over hashet 'args', producing a Union
-;; Note: this is the core constructor for all Unions!
-;; Unions are interned according to their element set,
-;; but in a way which does not leak memory (i.e. Unions which
-;; are no longer referenced outside of the interning machinery
-;; will be garbage collected)
+;; maps function 'f' over 'base-arg' and 'args', producing a Union
+;; of all of the arguments.
+;;
+;; This is often used in functions that walk over and rebuild types
+;; in the following form:
+;; (match t
+;;  [(Union: b ts) (Union-fmap f b ts)]
+;;  ...)
+;;
+;; Note: this is also the core constructor for all Unions!
 (define/cond-contract (Union-fmap f base-arg args)
   (-> procedure? (or/c Bottom? Base? BaseUnion?) (listof Type?) Type?)
+  ;; these fields are destructively updated during this process
   (define m mask:bottom)
   (define bbits #b0)
   (define nbits #b0)
   (define ts '())
   (define elems (mutable-set))
+  ;; process a Base element
   (define (process-base! numeric? bits)
     (cond
       [numeric? (set! nbits (nbits-union nbits bits))]
       [else (set! bbits (bbits-union bbits bits))]))
+  ;; process a BaseUnion element
   (define (process-base-union! bbits* nbits*)
     (set! nbits (nbits-union nbits nbits*))
     (set! bbits (bbits-union bbits bbits*)))
+  ;; process a type from the 'base' field of a Union
   (define (process-any-base! b)
     (match b
       [(Base-bits: numeric? bits) (process-base! numeric? bits)]
       [(BaseUnion: bbits* nbits*) (process-base-union! bbits* nbits*)]
+      ;; else Bottom
       [_ (void)]))
+  ;; process a list of types
   (define (process! args)
     (for* ([arg (in-list args)]
            [arg (in-value (f arg))])
@@ -703,9 +740,13 @@
         [_ (set! m (mask-union m (mask arg)))
            (set! ts (cons arg ts))
            (set-add! elems arg)])))
+  ;; process the input arguments
   (process-any-base! (f base-arg))
   (process! args)
+  ;; construct a BaseUnion (or Base or Bottom) based on the
+  ;; Base data gathered during processing
   (define bs (make-BaseUnion bbits nbits))
+  ;; call the Union smart constructor
   (make-Union (mask-union m (mask bs))
               bs
               ts
@@ -715,6 +756,8 @@
   (Union-fmap (λ (x) x) -Bottom args))
 
 ;; Intersection
+;; ts - the list of types (gives deterministic behavior)
+;; elems - the set equivalent of 'ts', useful for equality tests
 (def-type Intersection ([ts (cons/c Type? (cons/c Type? (listof Type?)))]
                         [elems (set/c Type?)])
   #:non-transparent

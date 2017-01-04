@@ -966,6 +966,12 @@
                                 [(-HashtableTop Univ) -HashtableTop]))]
 [hash-remove! (-poly (a b) (cl-> [((-HT a b) a) -Void]
                                  [(-HashtableTop a) -Void]))]
+[hash-clear! (-> -HashtableTop -Void)]
+[hash-clear (-poly (a b) (cl-> [((-HT a b)) (-HT a b)]
+                               [(-HashtableTop) -HashtableTop]))]
+[hash-copy-clear (-poly (a b) (cl-> [((-HT a b)) (-HT a b)]
+                                    [(-HashtableTop) -HashtableTop]))]
+
 [hash-map (-poly (a b c) (cl-> [((-HT a b) (a b . -> . c)) (-lst c)]
                                [(-HashtableTop (Univ Univ . -> . c)) (-lst c)]))]
 [hash-for-each (-poly (a b c) (cl-> [((-HT a b) (-> a b c)) -Void]

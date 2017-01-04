@@ -221,6 +221,7 @@ written in Typed Racket or have adapter modules that are typed:
 @defmodule/also[images/flomap]
 @defmodule/incl[typed/images/logos]
 @defmodule/incl[typed/images/icons]
+@defmodule/incl[typed/images/compile-time]
 
 @section{Porting Untyped Modules to Typed Racket}
 

@@ -49,7 +49,7 @@
 
 ;; are t1 and t2 equivalent types (w.r.t. subtyping)
 (define (type-equiv? t1 t2)
-  (type≡? (seen) t1 t2))
+  (and (type≡? (seen) t1 t2) #t))
 
 ;; are all the s's subtypes of all the t's?
 ;; [type] [type] -> boolean

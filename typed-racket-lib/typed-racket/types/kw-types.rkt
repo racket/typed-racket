@@ -42,13 +42,11 @@
       [else
        ;; The different types for each possibile combination of keywords
        (define keyword-possibilities
-         (map append*
-           (apply cartesian-product
-             (for/list ([k (in-list sorted-kws)])
-               (match k
-                 [(Keyword: _ t #t) (list (list t))]
-                 [(Keyword: _ t #f) (list (list t -True)
-                                          (list -False -False))])))))
+         (for/fold ([pos '()])
+                   ([k (in-list (reverse sorted-kws))])
+           (match k
+             [(Keyword: _ t #t) (cons t pos)]
+             [(Keyword: _ t #f) (list* t -Boolean pos)])))
 
        ;; The different types for each possibile supplied number of optional arguments
        (define optional-possibilities
@@ -61,9 +59,10 @@
               (make-list unsupplied -False))))
 
        (remove-duplicates
-         (for*/list ([kw-pos (in-list keyword-possibilities)]
-                     [opt-pos (in-list optional-possibilities)])
-          (make-arr* (append kw-pos plain-t opt-pos rest-type) rng #:drest drest)))])))
+        (for/list ([opt-pos (in-list optional-possibilities)])
+          (make-arr* (append keyword-possibilities plain-t opt-pos rest-type)
+                     rng
+                     #:drest drest)))])))
 
 ;; This is used to fix the props of keyword types.
 ;; TODO: This should also explore deeper into the actual types and remove props in there as well.

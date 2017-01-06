@@ -466,6 +466,38 @@
              [(_ _) #f])))])]))
 
 
+;; these data structures are allocated once and
+;; used below in 'subtype-switch'
+(define seq->elem-table
+  (hash -FlVector    -Flonum
+        -ExtFlVector -ExtFlonum
+        -FxVector    -Fixnum
+        -String      -Char
+        -Bytes       -Byte
+        -Input-Port  -Nat))
+
+(define event-types
+  (list -Semaphore
+        -Output-Port
+        -Input-Port
+        -TCP-Listener
+        -Thread
+        -Subprocess
+        -Will-Executor))
+
+(define event-univ-types (list -Place -Base-Place-Channel))
+(define num-seq-types (list -Byte -Index -NonNegFixnum -Nat))
+(define log-vect-type (make-HeterogeneousVector
+                       (list -Symbol -String Univ
+                             (Un -False -Symbol))))
+(define null-or-mpair-top (Un -Null -MPairTop))
+
+(define value-numeric-seq-possibilities
+  (list
+   (cons byte? -Byte)
+   (cons portable-index? -Index)
+   (cons portable-fixnum? -NonNegFixnum)
+   (cons values -Nat)))
 
 (define-switch (subtype-switch t1 t2 A continue)
   ;; NOTE: keep these in alphabetical order
@@ -492,17 +524,12 @@
      [(Sequence: (list seq-t))
       (cond
         [(Base:Null? t1) A]
-        [(assoc t1 `((,-FlVector . ,-Flonum)
-                     (,-ExtFlVector . ,-ExtFlonum)
-                     (,-FxVector . ,-Fixnum)
-                     (,-String . ,-Char)
-                     (,-Bytes . ,-Byte)
-                     (,-Input-Port . ,-Nat)))
-         => (λ (p) (subtype* A (cdr p) seq-t))]
+        [(hash-ref seq->elem-table t1 #f)
+         => (λ (elem-ty) (subtype* A elem-ty seq-t))]
         [num?
          (define type
            ;; FIXME: thread the store through here
-           (for/or ([num-t (in-list (list -Byte -Index -NonNegFixnum -Nat))])
+           (for/or ([num-t (in-list num-seq-types)])
              (or (and (subtype* A t1 num-t) num-t))))
          (if type
              (subtype* A type seq-t)
@@ -510,23 +537,13 @@
         [else #f])]
      [(Evt: evt-t)
       (cond
-        [(member t1 (list -Semaphore
-                          -Output-Port
-                          -Input-Port
-                          -TCP-Listener
-                          -Thread
-                          -Subprocess
-                          -Will-Executor))
+        [(member t1 event-types)
          (subtype* A t1 evt-t)]
         ;; FIXME: change Univ to Place-Message-Allowed if/when that type is defined
-        [(and (Univ? evt-t) (member t1 (list -Place -Base-Place-Channel)))
+        [(and (Univ? evt-t) (member t1 event-univ-types))
          A]
         [(Base:Log-Receiver? t1)
-         (subtype* A
-                   (make-HeterogeneousVector
-                    (list -Symbol -String Univ
-                          (Un -False -Symbol)))
-                   evt-t)]
+         (subtype* A log-vect-type evt-t)]
         [else #f])]
      [_ (continue A t1 t2)])]
   [(case: BaseUnion (BaseUnion: bbits1 nbits1))
@@ -757,7 +774,7 @@
      [(Sequence: (list seq-t))
       (subtype-seq A
                    (subtype* t11 seq-t)
-                   (subtype* t12 (Un -Null -MPairTop))
+                   (subtype* t12 null-or-mpair-top)
                    (subtype* t12 (make-Sequence (list seq-t))))]
      [_ (continue A t1 t2)])]
   [(case: Mu _)
@@ -969,17 +986,11 @@
      [(Sequence: (list seq-t))
       (cond
         [(exact-nonnegative-integer? val1)
-         (define possibilities
-           (list
-            (list byte? -Byte)
-            (list portable-index? -Index)
-            (list portable-fixnum? -NonNegFixnum)
-            (list values -Nat)))
          (define type
-           (for/or ([pred-type (in-list possibilities)])
-             (match pred-type
-               [(list pred? type)
-                (and (pred? val1) type)])))
+           (for*/or ([pred/type (in-list value-numeric-seq-possibilities)]
+                     [pred? (in-value (car pred/type))]
+                     #:when (pred? val1))
+             (cdr pred/type)))
          (subtype* A type seq-t)]
         [else #f])]
      [(or (? Struct? s1) (NameStruct: s1))

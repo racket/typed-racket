@@ -559,26 +559,23 @@
     [(Mu-unsafe:
       (Syntax: (Union: (== (Un -Number -Boolean -Symbol -String))
                        ts)))
-     (=> continue)
-     (cond
-       [(not (= 4 (length ts))) (continue)]
-       [(not (and (member (-vec (make-B 0)) ts)
-                  (member (-box (make-B 0)) ts)))
-        (continue)]
-       [else
-        (let ([ts (remove (-box (make-B 0))
-                          (remove (-vec (make-B 0)) ts))])
-          (match ts
-            [(list-no-order (Mu-unsafe:
-                             (Union: (== -Null)
-                                     (list (Pair: (B: 1) (B: 0)))))
-                            (Mu-unsafe:
-                             (Union: (== -Bottom)
-                                     (list-no-order
-                                      (B: 1)
-                                      (Pair: (B: 1) (B: 0))))))
-             'Syntax]
-            [_ (continue)]))])]
+     #:when (and (= 4 (length ts))
+                 (member (-vec (make-B 0)) ts)
+                 (member (-box (make-B 0)) ts)
+                 (let ([ts (remove (-box (make-B 0))
+                                   (remove (-vec (make-B 0)) ts))])
+                   (match ts
+                     [(list-no-order (Mu-unsafe:
+                                      (Union: (== -Null)
+                                              (list (Pair: (B: 1) (B: 0)))))
+                                     (Mu-unsafe:
+                                      (Union: (== -Bottom)
+                                              (list-no-order
+                                               (B: 1)
+                                               (Pair: (B: 1) (B: 0))))))
+                      #t]
+                     [_ #f])))
+     'Syntax]
     [(Mu-name: name body)
      `(Rec ,name ,(t->s body))]
     [(B: idx) `(B ,idx)]

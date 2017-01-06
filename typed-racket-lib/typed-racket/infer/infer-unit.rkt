@@ -397,6 +397,7 @@
 (define (cgen/inv context s t)
   (% cset-meet (cgen context s t) (cgen context t s)))
 
+(define no-cset (cset-join '()))
 
 ;; context : the context of what to infer/not infer
 ;; S : a type to be the subtype of T
@@ -545,7 +546,7 @@
          (define cs (for/list/fail ([e (in-list es)]) (cg e T)))
          (and cs (cset-meet* (cons empty cs)))]
 
-        [(_ (Bottom:)) (cset-join '())]
+        [(_ (Bottom:)) no-cset]
         
         ;; find *an* element of es which can be made to be a supertype of S
         ;; FIXME: we're using multiple csets here, but I don't think it makes a difference

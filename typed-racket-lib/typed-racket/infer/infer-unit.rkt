@@ -397,8 +397,6 @@
 (define (cgen/inv context s t)
   (% cset-meet (cgen context s t) (cgen context t s)))
 
-(define no-cset (cset-join '()))
-
 ;; context : the context of what to infer/not infer
 ;; S : a type to be the subtype of T
 ;; T : a type

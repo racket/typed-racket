@@ -81,7 +81,7 @@
 (begin-for-syntax
  (define-syntax-class object/c-clause
    #:attributes (method-names method-ctcs field-names field-ctcs)
-   (pattern (field [name:id ctc:expr] ...)
+   (pattern ((~literal field) [name:id ctc:expr] ...)
             #:with field-names #'(list (quote name) ...)
             #:with field-ctcs #'(list ctc ...)
             #:with method-names #'null

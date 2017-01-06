@@ -1,24 +1,26 @@
-#lang typed/racket
+#lang typed/racket/base
 
 (provide (all-defined-out))
 
+(require (for-syntax racket/base))
 (require (for-syntax racket/syntax))
 
 (define-type Data-Source data-source)
 (define-type Simple-Result simple-result)
 (define-type Rows-Result rows-result)
 
-(define-type Null-Mode (U 'preserve-null 'list))
+(define-type Group-Mode (U 'preserve-null 'list))
 (define-type Isolation-Level (U 'serializable 'repeatable-read 'read-committed 'read-uncommitted False))
 (define-type Schema-Option (U 'search-or-current 'search 'current))
 
-(define-type SQL-Datum Any)
+(define-type SQL-Datum (U Boolean String Real Char Bytes SQL-Null))
 (define-type SQL-Type (List Boolean (Option Symbol) SQL-Datum))
 (define-type Statement (U String Prepared-Statement Virtual-Statement Statement-Binding))
 
 (define-type SQL-Field (U String Natural))
 (define-type SQL-Grouping (U SQL-Field (Vectorof SQL-Field)))
-(define-type SQL-Group (U SQL-Grouping (Vectorof SQL-Grouping)))
+(define-type SQL-Group (U SQL-Grouping (Listof SQL-Grouping)))
+(define-type SQL-Dictionary (HashTable SQL-Field (U (Vectorof SQL-Datum) (Listof (Vectorof SQL-Datum)))))
 
 (require/typed/provide
  db/base
@@ -59,22 +61,22 @@
 (require/typed/provide
  db/base
  [query-exec (-> Connection Statement SQL-Datum * Void)]
- [query-list (All (a) (-> Connection Statement SQL-Datum * (Listof a)))]
+ [query-list (-> Connection Statement SQL-Datum * (Listof SQL-Datum))]
  [query-row (-> Connection Statement SQL-Datum * (Vectorof SQL-Datum))]
  [query-maybe-row (-> Connection Statement SQL-Datum * (Option (Vectorof SQL-Datum)))]
  [query-value (-> Connection Statement SQL-Datum * SQL-Datum)]
  [query-maybe-value (-> Connection Statement SQL-Datum * (Option SQL-Datum))]
  [query-rows (-> Connection Statement
                  [#:group SQL-Group]
-                 [#:group-mode (Listof Null-Mode)]
+                 [#:group-mode (Listof Group-Mode)]
                  SQL-Datum *
                  (Listof (Vectorof SQL-Datum)))]
  [in-query (-> Connection Statement
                [#:fetch (U Positive-Integer +inf.0)]
                [#:group SQL-Group]
-               [#:group-mode (Listof Null-Mode)]
+               [#:group-mode (Listof Group-Mode)]
                SQL-Datum *
-               (Sequenceof (Vectorof SQL-Datum)))])
+               (Sequenceof SQL-Datum))])
 
 (require/typed/provide
  db/base
@@ -82,13 +84,13 @@
  [#:struct rows-result ([headers : (Listof Any)] [rows : (Listof (Vectorof SQL-Datum))])]
  [query (-> Connection Statement SQL-Datum * (U Simple-Result Rows-Result))]
  [group-rows (->* (Rows-Result #:group SQL-Group)
-                  (#:group-mode (Listof Null-Mode))
+                  (#:group-mode (Listof Group-Mode))
                   Rows-Result)]
  [rows->dict (->* (Rows-Result
-                   #:key SQL-Field ; if Grouping/c: required a flat contract but got a chaperone one
+                   #:key SQL-Field
                    #:value SQL-Grouping)
-                  (#:value-mode (Listof Null-Mode))
-                  (HashTable (U SQL-Field SQL-Null) SQL-Grouping))])
+                  (#:value-mode (Listof Group-Mode))
+                  SQL-Dictionary)])
 
 (require/typed/provide
  db/base

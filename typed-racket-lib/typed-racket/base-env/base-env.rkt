@@ -2708,6 +2708,7 @@
      ((Un funarg funarg*) a [(-opt -Pathlike) Univ]. ->opt . a)))]
 
 [make-directory* (-> -Pathlike -Void)]
+[make-parent-directory* (-> -Pathlike -Void)]
 #;[make-temporary-file (->opt [-String (Un -Pathlike (-val 'directory) (-val #f)) (-opt -Pathlike)] -Path)]
 
 [put-preferences (->opt (-lst -Symbol) (-lst Univ) [(-> -Path Univ) (-opt -Pathlike)] -Void)]

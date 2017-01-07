@@ -22,7 +22,9 @@
          with-lexical-env 
          with-extended-lexical-env)
 (provide/cond-contract
- [lookup-type/lexical ((identifier?) (env? #:fail (or/c #f (-> any/c #f))) . ->* . (or/c Type? #f))]
+ [lookup-type/lexical ((identifier?) (env? #:fail (or/c #f Type? (-> any/c (or/c Type? #f))))
+                       . ->* .
+                       (or/c Type? #f))]
  [lookup-alias/lexical ((identifier?) (env?) . ->* . (or/c Path? Empty?))])
 
 ;; the current lexical environment

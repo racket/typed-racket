@@ -9,11 +9,12 @@
          "tc-result.rkt"
          racket/list racket/set racket/match
          racket/format racket/string
+         racket/dict
          syntax/parse)
 
 ;; convert : [Listof Keyword] [Listof Type] [Listof Type] [Option Type]
 ;;           [Option Type] [Option (Pair Type symbol)] boolean -> Type
-(define (convert kw-t plain-t opt-t rng rest drest split?)
+(define (convert kw-ts plain-ts opt-ts rng rest drest split?)
   (when drest
     (int-err "drest passed to kw-convert"))
   ;; the kw function protocol passes rest args as an explicit list
@@ -22,7 +23,8 @@
   ;; the kw protocol puts the arguments in keyword-sorted order in the
   ;; function header, so we need to sort the types to match
   (define sorted-kws
-    (sort kw-t keyword<? #:key (match-lambda [(Keyword: kw _ _) kw])))
+    (sort kw-ts (λ (kw1 kw2) (keyword<? (Keyword-kw kw1)
+                                       (Keyword-kw kw2)))))
 
   (make-Function
     (cond
@@ -34,35 +36,32 @@
              (match k
                [(Keyword: _ t #t) t]
                [(Keyword: _ t #f) (list (-opt t) -Boolean)]))
-           plain-t
-           (for/list ([t (in-list opt-t)]) (-opt t))
-           (for/list ([t (in-list opt-t)]) -Boolean)
+           plain-ts
+           (for/list ([t (in-list opt-ts)]) (-opt t))
+           (for/list ([t (in-list opt-ts)]) -Boolean)
            rest-type)))
        (list (make-arr* ts rng #:rest rest #:drest drest))]
       [else
-       ;; The different types for each possibile combination of keywords
-       (define keyword-possibilities
+       ;; The keyword argument types including boolean flags for
+       ;; optional keyword arguments
+       (define kw-args
          (for/fold ([pos '()])
                    ([k (in-list (reverse sorted-kws))])
            (match k
+             ;; mandatory keyword arguments have no extra args
              [(Keyword: _ t #t) (cons t pos)]
+             ;; we can safely assume 't' and not (-opt t) here
+             ;; because if the keyword is not provided, the value
+             ;; will only appear in dead code (i.e. where the kw-flag arg is #f)
+             ;; within the body of the function
              [(Keyword: _ t #f) (list* t -Boolean pos)])))
 
-       ;; The different types for each possibile supplied number of optional arguments
-       (define optional-possibilities
-         (for/list ([supplied (in-range (add1 (length opt-t)))])
-            (define unsupplied (- (length opt-t) supplied))
-            (append
-              (take opt-t supplied)
-              (make-list unsupplied -False)
-              (make-list supplied -True)
-              (make-list unsupplied -False))))
+       ;; Add boolean arguments for the optional type flaggs.
+       (define opt-flags (make-list (length opt-ts) -Boolean))
 
-       (remove-duplicates
-        (for/list ([opt-pos (in-list optional-possibilities)])
-          (make-arr* (append keyword-possibilities plain-t opt-pos rest-type)
-                     rng
-                     #:drest drest)))])))
+       (list (make-arr* (append kw-args plain-ts opt-ts opt-flags rest-type)
+                        rng
+                        #:drest drest))])))
 
 ;; This is used to fix the props of keyword types.
 ;; TODO: This should also explore deeper into the actual types and remove props in there as well.
@@ -103,7 +102,7 @@
 
 (define (arity-length a)
   (match a
-    [(arr: args result rest drest kws) (length args)]))
+    [(arr: args _ _ _ _) (length args)]))
 
 
 (define (arg-diff a1 a2)
@@ -111,13 +110,14 @@
     [(arr: args _ _ _ _) (drop args (arity-length a1))]))
 
 (define (find-prefixes l)
-  (define l* (sort l < #:key arity-length))
-  (for/fold ([h (hash)]) ([e (in-list l*)])
-    (define prefix (for/or ([p (in-hash-keys h)])
+  (define l* (sort l (λ (arr1 arr2) (< (arity-length arr1)
+                                       (arity-length arr2)))))
+  (for/fold ([d '()]) ([e (in-list l*)])
+    (define prefix (for/or ([p (in-dict-keys d)])
                      (and (prefix-of p e) p)))
     (if prefix
-        (hash-set h prefix (arg-diff prefix e))
-        (hash-set h e null))))
+        (dict-set d prefix (arg-diff prefix e))
+        (dict-set d e null))))
 
 ;; handle-extra-or-missing-kws : (Listof Keyword) LambdaKeywords
 ;;                               -> (Listof Keyword)
@@ -146,14 +146,15 @@
   (define fns
     ;; use for/list and remove duplicates afterwards instead of
     ;; set and set->list to retain determinism
-    (for/list ([(k v) (in-hash table)])
-      (match k
-        [(arr: mand rng rest drest kws)
-         (define kws* (if actual-kws
-                          (handle-extra-or-missing-kws kws actual-kws)
-                          kws))
-         (convert kws* mand v rng rest drest split?)])))
-  (apply cl->* (remove-duplicates fns)))
+    (remove-duplicates
+     (for/list ([(k v) (in-dict table)])
+       (match k
+         [(arr: mand rng rest drest kws)
+          (define kws* (if actual-kws
+                           (handle-extra-or-missing-kws kws actual-kws)
+                           kws))
+          (convert kws* mand v rng rest drest split?)]))))
+  (apply cl->* fns))
 
 ;; kw-convert : Type (Option LambdaKeywords) [Boolean] -> Type
 ;; Given an ordinary function type, convert it to a type that matches the keyword
@@ -324,19 +325,21 @@
     [(arr: args result _ _ _) #f]))
 
 (define (opt-convert ft required-pos optional-pos)
-  (let/ec exit
-    (let loop ((ft ft))
-      (match ft
-        [(Function: arrs)
-         (let ((arrs (map (opt-convert-arr required-pos optional-pos) arrs)))
-           (if (andmap values arrs)
-               (make-Function arrs)
-               (exit #f)))]
-        [(Poly-names: names f)
-         (make-Poly names (loop f))]
-        [(PolyDots-names: names f)
-         (make-PolyDots names (loop f))]
-        [t t]))))
+  (let loop ([ft ft])
+    (match ft
+      [(Function: arrs)
+       (let ([arrs (map (opt-convert-arr required-pos optional-pos) arrs)])
+         (and (andmap values arrs)
+              (make-Function arrs)))]
+      [(Poly-names: names f)
+       (match (loop f)
+         [#f #f]
+         [t (make-Poly names t)])]
+      [(PolyDots-names: names f)
+       (match (loop f)
+         [#f #f]
+         [t (make-PolyDots names t)])]
+      [t t])))
 
 ;; opt-unconvert : Type (Listof Syntax) -> Type
 ;; Given a type for a core optional arg function, unconvert it to a

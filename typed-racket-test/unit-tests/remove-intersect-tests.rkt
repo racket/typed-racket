@@ -50,6 +50,22 @@
    [(Un (-val "one") (-val "two")) (Un (-val "one") (-val 1)) (-val "one")]
    ;; intersection cases
    [(-v a) -String (-unsafe-intersect (-v a) -String)]
+   [(-v a)
+    (Un -String (-pair Univ Univ))
+    (Un (-unsafe-intersect (-v a) -String)
+        (-unsafe-intersect (-v a) (-pair Univ Univ)))]
+   [(-v a)
+    (Un -String -Symbol (-pair Univ Univ))
+    (Un (-unsafe-intersect (-v a) -String)
+        (-unsafe-intersect (-v a) -Symbol)
+        (-unsafe-intersect (-v a) (-pair Univ Univ)))]
+   [(-v a)
+    (Un -String -Symbol -Zero -One (-pair Univ Univ))
+    (Un (-unsafe-intersect (-v a) -String)
+        (-unsafe-intersect (-v a) -Symbol)
+        (-unsafe-intersect (-v a) -Zero)
+        (-unsafe-intersect (-v a) -One)
+        (-unsafe-intersect (-v a) (-pair Univ Univ)))]
    [-String (-v a) (-unsafe-intersect (-v a) -String)]
    [(-> -Number -Number) (-> -String -String) (-unsafe-intersect (-> -Number -Number)
                                                                  (-> -String -String))]

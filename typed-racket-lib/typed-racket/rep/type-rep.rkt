@@ -647,7 +647,6 @@
    (cond
      [(set-member? elems Univ) Univ]
      [else
-      (set-remove! elems -Bottom)
       (match (set-count elems)
         [0 base]
         [1 #:when (Bottom? base) (set-first elems)]
@@ -715,41 +714,39 @@
   (define nbits #b0)
   (define ts '())
   (define elems (mutable-set))
-  ;; process a Base element
-  (define (process-base! numeric? bits)
+  ;; add a Base element to the union
+  (define (add-base! numeric? bits)
     (cond
       [numeric? (set! nbits (nbits-union nbits bits))]
       [else (set! bbits (bbits-union bbits bits))]))
-  ;; process a BaseUnion element
-  (define (process-base-union! bbits* nbits*)
+  ;; add a BaseUnion to the union
+  (define (add-base-union! bbits* nbits*)
     (set! nbits (nbits-union nbits nbits*))
     (set! bbits (bbits-union bbits bbits*)))
-  ;; process a type from the 'base' field of a Union
-  (define (process-any-base! b)
+  ;; add the type from a 'base' field of a Union to this union
+  (define (add-any-base! b)
     (match b
-      [(Base-bits: numeric? bits) (process-base! numeric? bits)]
-      [(BaseUnion: bbits* nbits*) (process-base-union! bbits* nbits*)]
-      ;; else Bottom
-      [_ (void)]))
-  ;; process a list of types
-  (define (process! args)
-    (for* ([arg (in-list args)]
-           [arg (in-value (f arg))])
-      (match arg
-        [(Base-bits: numeric? bits) (process-base! numeric? bits)]
-        [(BaseUnion: bbits* nbits*) (process-base-union! bbits* nbits*)]
-        [(Union: m* b* ts* _)
-         (set! m (mask-union m m*))
-         (process-any-base! b*)
-         (set! ts (append ts* ts))
-         (for ([t* (in-list ts*)])
-           (set-add! elems t*))]
-        [_ (set! m (mask-union m (mask arg)))
-           (set! ts (cons arg ts))
-           (set-add! elems arg)])))
+      [(? Bottom?) (void)]
+      [(Base-bits: numeric? bits) (add-base! numeric? bits)]
+      [(BaseUnion: bbits* nbits*) (add-base-union! bbits* nbits*)]))
+  ;; apply 'f' to a type and add it to the union appropriately
+  (define (process! arg)
+    (match (f arg)
+      [(? Bottom?) (void)]
+      [(Base-bits: numeric? bits) (add-base! numeric? bits)]
+      [(BaseUnion: bbits* nbits*) (add-base-union! bbits* nbits*)]
+      [(Union: m* b* ts* _)
+       (set! m (mask-union m m*))
+       (add-any-base! b*)
+       (set! ts (append ts* ts))
+       (for ([t* (in-list ts*)])
+         (set-add! elems t*))]
+      [t (set! m (mask-union m (mask t)))
+         (set! ts (cons t ts))
+         (set-add! elems t)]))
   ;; process the input arguments
-  (process-any-base! (f base-arg))
-  (process! args)
+  (process! base-arg)
+  (for-each process! args)
   ;; construct a BaseUnion (or Base or Bottom) based on the
   ;; Base data gathered during processing
   (define bs (make-BaseUnion bbits nbits))

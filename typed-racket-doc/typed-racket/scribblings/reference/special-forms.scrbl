@@ -238,12 +238,7 @@ variants.
 @defform[(for*/hasheq type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/hasheqv type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/vector type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/flvector type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/extflvector type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/and type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/or   type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/first type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/last type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/sum type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/product type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/set type-ann-maybe (for-clause ...) expr ...+)]
@@ -261,6 +256,11 @@ annotated with a @racket[Listof] type. All annotations are optional.
 @defform[(for/and type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/first type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/last type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for*/flvector type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for*/extflvector type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for*/and type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for*/first type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for*/last type-ann-maybe (for-clause ...) expr ...+)]
 ]]{
 Like the above, except they are not yet supported by the typechecker.
 }

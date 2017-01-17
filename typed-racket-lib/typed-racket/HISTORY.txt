@@ -1,3 +1,11 @@
+6.8
+- Restructured internal representations, especially of Union types.
+  See https://pnwamk.github.io/blog/2017/01/08/some-changes-in-typed-racket-v6-8/
+  for more details.
+- Add `typed/setup/getinfo`, `typed/images/compile-time`, `typed/file/glob`,
+  `typed/racket/gui/no-check`
+- Add `(Intersection ...)` syntax.
+- Fix type checking of optional & keyword arguments to be sound.
 6.7
 - Add `row-inst` and `Row`
 - Support polymorphic structs in `unsafe-require/typed`

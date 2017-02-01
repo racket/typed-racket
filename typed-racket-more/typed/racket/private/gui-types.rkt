@@ -1838,7 +1838,7 @@
                   ((Option (Boxof Integer)) (Option (Boxof Real)) -> (Listof Real))
                   ((Option (Boxof Integer)) (Option (Boxof Real))
                    (Option (Boxof Any)) -> (Listof Real)))]
-         [get-text (Integer (U Integer 'eof) -> String)]
+         [get-text (->* () (Integer (U Integer 'eof) Any Any) String)]
          [get-top-line-base (-> Nonnegative-Real)]
          [get-visible-line-range
           (case-> ((Option (Boxof Integer)) (Option (Boxof Real)) -> Void)

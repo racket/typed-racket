@@ -56,10 +56,10 @@
 
 
 
-(struct msg ([str : String]) #:prefab)
+(struct msg ([str : String] [maybe-str : (Option String)]) #:prefab)
 
 ;; tests let bindings fields of prefab structs
-;; works as expected
+;; works as expected (requires path-type.rkt to be correct w.r.t. prefabs)
 (: test-let-binding (-> Any String))
 (define (test-let-binding x)
   (cond
@@ -69,9 +69,29 @@
     [else "Not a msg"]))
 
 ;; tests matching w/ fields of prefab structs
-;; works as expected
+;; works as expected (requires path-type.rkt to be correct w.r.t. prefabs)
 (: test-let-binding-via-match (-> Any String))
 (define (test-let-binding-via-match x)
   (match x
-    [(msg str) str]
-    [_ "no match found"]))
+    [(msg str _) str]
+    [_ "no match found"])) 
+
+
+;; tests if prefab fields are updated with let
+;; (requires update.rkt to be correct w.r.t. prefabs)
+(: test-update-for-prefab (-> msg String))
+(define (test-update-for-prefab x)
+  (let ([maybe-str (msg-maybe-str x)])
+    (cond
+      [maybe-str maybe-str]
+      [else "oops no string"])))
+
+;; tests if prefab fields are updated with match
+;; (requires update.rkt to be correct w.r.t. prefabs)
+(: test-update-for-prefab/match (-> msg String))
+(define (test-update-for-prefab/match x)
+  (match x
+    [(msg _ maybe-str)
+     (cond
+       [maybe-str maybe-str]
+       [else "oops no string"])]))

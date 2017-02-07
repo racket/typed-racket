@@ -53,3 +53,25 @@
 ;; Test match (indirectly tests unsafe-struct-ref)
 (match (foo 'x) [(foo s) s])
 (match (foo* 'x) [(foo* s) s])
+
+
+
+(struct msg ([str : String]) #:prefab)
+
+;; tests let bindings fields of prefab structs
+;; works as expected
+(: test-let-binding (-> Any String))
+(define (test-let-binding x)
+  (cond
+    [(msg? x)
+     (let ([str (msg-str x)])
+       str)]
+    [else "Not a msg"]))
+
+;; tests matching w/ fields of prefab structs
+;; works as expected
+(: test-let-binding-via-match (-> Any String))
+(define (test-let-binding-via-match x)
+  (match x
+    [(msg str) str]
+    [_ "no match found"]))

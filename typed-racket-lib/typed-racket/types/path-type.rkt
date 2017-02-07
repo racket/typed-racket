@@ -49,10 +49,15 @@
        (path-type rst t (hash))]
 
       ;; struct ops
-      [((Struct: nm par flds proc poly pred) (cons (StructPE: struct-ty idx) rst))
+      [((Struct: _ _ flds _ _ _) (cons (StructPE: struct-ty idx) rst))
        #:when  (subtype t struct-ty)
        (match-let ([(fld: ft _ _) (list-ref flds idx)])
          (path-type rst ft (hash)))]
+
+      ;; prefab struct ops
+      [((Prefab: _ flds) (cons (StructPE: struct-ty idx) rst))
+       #:when  (subtype t struct-ty)
+       (path-type rst (list-ref flds idx) (hash))]
 
       [((Intersection: ts) _)
        (apply -unsafe-intersect (for*/list ([t (in-list ts)]

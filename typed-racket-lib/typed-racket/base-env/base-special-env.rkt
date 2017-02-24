@@ -98,6 +98,33 @@
              (-> Univ -Int          (seq-vals (list -Nat)))
              (-> Univ (-seq a) (seq-vals (list a)))
              (-> Univ (-seq a b) (seq-vals (list a b))))))]
+  ;; check-range
+  [(make-template-identifier 'check-range 'racket/private/for)
+   (-> Univ Univ Univ -Void)]
+  ;; check-naturals
+  [(make-template-identifier 'check-naturals 'racket/private/for)
+   (-> Univ -Void)]
+  ;; check-string
+  [(make-template-identifier 'check-string 'racket/private/for)
+   (-> Univ -Void)]
+  ;; check-bytes
+  [(make-template-identifier 'check-bytes 'racket/private/for)
+   (-> Univ -Void)]
+  ;; check-list
+  [(make-template-identifier 'check-list 'racket/private/for)
+   (-> Univ -Void)]
+  ;; check-fXvector for flvector
+  [(make-template-identifier 'check-flvector 'racket/flonum)
+   (-> Univ -Void)]
+  ;; check-fXvector for fxvector
+  [(make-template-identifier 'check-fxvector 'racket/fixnum)
+   (-> Univ -Void)]
+  ;; check-vector
+  [(make-template-identifier 'check-vector 'racket/private/for)
+   (-> Univ -Void)]
+  ;; check-in-hash
+  [(make-template-identifier 'check-in-hash 'racket/private/for)
+   (-> Univ -Void)]
   ;; in-range
   [(make-template-identifier 'in-range 'racket/private/for)
    (cl->* (-> -Byte (-seq -Byte))

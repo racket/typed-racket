@@ -19,7 +19,7 @@
 
 (define (maybe-optimize body)
   ;; do we optimize?
-  (if (optimize?)
+  (if (and (optimize?) (not (getenv "PLT_TR_NO_OPTIMIZE")))
       (begin
         (do-time "Starting optimizer")
         (begin0 (stx-map optimize-top body)

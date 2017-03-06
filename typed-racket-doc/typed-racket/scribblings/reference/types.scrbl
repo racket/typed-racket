@@ -775,6 +775,9 @@ functions and continuation mark functions.
 types @racket[t ...].  This can only appear as the return type of a
 function.
 @ex[(values 1 2 3)]}
+Note that a type variable cannot be instantiated with a @racket[(Values ....)]
+type. For example, the type @racket[(All (A) (-> A))] describes a thunk that
+returns exactly one value.
 @defform/none[v]{where @racket[v] is a number, boolean or string, is the singleton type containing only that value}
 @defform/none[(quote val)]{where @racket[val] is a Racket value, is the singleton type containing only that value}
 @defform/none[i]{where @racket[i] is an identifier can be a reference to a type

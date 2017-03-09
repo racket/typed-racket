@@ -7,12 +7,10 @@ typed/scheme
 #:info make-info
 #:language-info make-language-info
 
-(require typed-racket/private/oc-button)
-
 (define (make-info key default use-default)
   (case key
-    [(drscheme:toolbar-buttons)
-     (maybe-show-OC)]
+    [(drracket:opt-in-toolbar-buttons)
+     '(optimization-coach)]
     [else (use-default key default)]))
 
 (define make-language-info

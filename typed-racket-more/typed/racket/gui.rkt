@@ -16,13 +16,11 @@
   #:language-info #(typed-racket/language-info get-info ())
   #:info make-info
 
-  (require typed-racket/private/oc-button)
-
   ;; see typed/racket/lang/reader.rkt
   (define (make-info key default use-default)
     (case key
-      [(drscheme:toolbar-buttons)
-       (maybe-show-OC)]
+      [(drracket:opt-in-toolbar-buttons)
+       '(optimization-coach)]
       [else (use-default key default)]))
 
   (require typed-racket/typed-reader))

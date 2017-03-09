@@ -6,11 +6,10 @@ typed-scheme
 #:read-syntax r:read-syntax
 #:info make-info
 
-(require (prefix-in r: typed-racket/typed-reader)
-         typed-racket/private/oc-button)
+(require (prefix-in r: typed-racket/typed-reader))
 
 (define (make-info key default use-default)
   (case key
-    [(drscheme:toolbar-buttons)
-     (maybe-show-OC)]
+    [(drracket:opt-in-toolbar-buttons)
+     '(optimization-coach)]
     [else (use-default key default)]))

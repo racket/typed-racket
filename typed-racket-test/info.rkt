@@ -28,7 +28,7 @@
 
 (define pkg-authors '(samth stamourv endobson asumu))
 
-(define version "1.6")
+(define version "1.7")
 
 
 ;; Collection info

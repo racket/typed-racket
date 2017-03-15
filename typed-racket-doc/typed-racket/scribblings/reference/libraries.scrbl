@@ -205,7 +205,7 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/web-server/http]
 @defmodule/incl[typed/db]
 @defmodule/incl[typed/db/base]
-@defmodule/incl[typed/db/splite3]
+@defmodule/incl[typed/db/sqlite3]
 
 In some cases, these typed adapters may not contain all of exports of the
 original module, or their types may be more limited.

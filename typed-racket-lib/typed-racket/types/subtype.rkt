@@ -374,25 +374,6 @@
                (subtype* t1 t2)
                (subtype* t2 t1)))
 
-(define union-super-cache (make-weak-hash))
-(define union-sub-cache (make-weak-hash))
-
-;; cache-set!
-;; caches 'result' as the answer for 't1 <: t2'
-(define/cond-contract (cache-set! cache t1 t2 result)
-  (-> hash? Type? Type? boolean? void?)
-  (hash-set! (hash-ref cache t1 (λ () (make-weak-hash))) t2 (box-immutable result)))
-
-;; cache-ref
-;; checks if 't1 <: t2 = b' has already been calculated
-;; and if so, returning (box b), otherwise return #f
-(define/cond-contract (cache-ref cache t1 t2)
-  (-> hash? Type? Type? (or/c #f (box/c boolean?)))
-  (cond
-    [(hash-ref cache t1 #f)
-     => (λ (inner-cache) (hash-ref inner-cache t2 #f))]
-    [else #f]))
-
 ;; the algorithm for recursive types transcribed directly from TAPL, pg 305
 ;; List[(cons Number Number)] type type -> List[(cons Number Number)] or #f
 ;; is s a subtype of t, taking into account previously seen pairs A
@@ -437,16 +418,9 @@
              [(t1 (Union/set: base2 ts2 elems2))
               (cond
                 [(set-member? elems2 t1) A]
-                [(cache-ref union-super-cache t2 t1)
-                 => (λ (b) (and (unbox b) A))]
-                [else
-                 (define result
-                   (or (subtype* A t1 base2)
-                       (for/or ([elem (in-list ts2)])
-                         (subtype* A t1 elem))))
-                 (when (null? A)
-                   (cache-set! union-super-cache t2 t1 (and result #t)))
-                 result])]
+                [(subtype* A t1 base2)]
+                [else (for/or ([elem2 (in-list ts2)])
+                        (subtype* A t1 elem2))])]
              [((Intersection: t1s) _)
               (for/or ([t1 (in-list t1s)])
                 (subtype* A t1 t2))]
@@ -557,19 +531,10 @@
       #:when (and (bbits-subset? bbits1 bbits2)
                   (nbits-subset? nbits1 nbits2))
       A]
-     [_
-      (cond
-        [(cache-ref union-sub-cache t1 t2)
-         => (λ (b) (and (unbox b) A))]
-        [else
-         (define result
-           (for/fold ([A A])
-                     ([b (in-list (BaseUnion-bases t1))]
-                      #:break (not A))
-             (subtype* A b t2)))
-         (when (null? A)
-           (cache-set! union-sub-cache t1 t2 (and result #t)))
-         result])])]
+     [_ (for/fold ([A A])
+                  ([b (in-list (BaseUnion-bases t1))]
+                   #:break (not A))
+          (subtype* A b t2))])]
   [(case: Box (Box: elem1))
    (match t2
      [(? BoxTop?) A]
@@ -940,29 +905,21 @@
      [(ThreadCell: elem2) (type≡? A elem1 elem2)]
      [_ (continue A t1 t2)])]
   [(case: Union (Union/set: base1 ts1 elems1))
-   (cond
-     [(cache-ref union-sub-cache t1 t2)
-      => (λ (b) (and (unbox b) A))]
-     [else
-      (define result
-        (let ([A (subtype* A base1 t2)])
-          (and A
-               (match t2
-                 [(Union/set: base2 ts2 elems2)
-                  (for/fold ([A A])
-                            ([elem1 (in-list ts1)]
-                             #:break (not A))
-                    (cond
-                      [(set-member? elems2 elem1) A]
-                      [(subtype* A elem1 base2)]
-                      [else (subtype* A elem1 t2)]))]
-                 [_ (for/fold ([A A])
-                              ([elem1 (in-list ts1)]
-                               #:break (not A))
-                      (subtype* A elem1 t2))]))))
-      (when (null? A)
-        (cache-set! union-sub-cache t1 t2 (and result #t)))
-      result])]
+   (let ([A (subtype* A base1 t2)])
+     (and A
+          (match t2
+            [(Union/set: base2 ts2 elems2)
+             (for/fold ([A A])
+                       ([elem1 (in-list ts1)]
+                        #:break (not A))
+               (cond
+                 [(set-member? elems2 elem1) A]
+                 [(subtype* A elem1 base2)]
+                 [else (subtype* A elem1 t2)]))]
+            [_ (for/fold ([A A])
+                         ([elem1 (in-list ts1)]
+                          #:break (not A))
+                 (subtype* A elem1 t2))])))]
   ;; For Unit types invoke-types are covariant
   ;; imports and init-depends are covariant in that importing fewer
   ;; signatures results in a subtype

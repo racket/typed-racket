@@ -1938,23 +1938,9 @@
  (-poly (a) (cl->*
              (-> (-lst Univ))
              (->opt (-> -Input-Port a) [-Input-Port] (-lst a))))]
-[port->string (->opt [-Input-Port] -String)]
-[port->bytes (->opt [-Input-Port] -Bytes)]
-#|
-[port->lines
- (cl->*
-  (->key #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f (-lst -String))
-  (->key -Input-Port #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f (-lst -String)))]
-[port->bytes-lines
- (cl->*
-  (->key #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f (-lst -Bytes))
-  (->key -Input-Port #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f (-lst -Bytes)))]
+[port->string (->optkey [-Input-Port] #:close? Univ #f -String)]
+[port->bytes  (->optkey [-Input-Port] #:close? Univ #f -Bytes)]
 
-
-[display-lines (cl->*
- ((-lst Univ) #:separator Univ #f . ->key . -Void)
- ((-lst Univ) -Output-Port #:separator Univ #f . ->key . -Void))]
-|#
 
 [call-with-output-string (-> (-> -Output-Port ManyUniv) -String)]
 [call-with-output-bytes (-> (-> -Output-Port ManyUniv) -Bytes)]
@@ -3359,9 +3345,15 @@
       #f
       a)))
 (port->lines
- (->optkey [-Input-Port] #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f (-lst -String)))
+ (->optkey [-Input-Port]
+           #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f
+           #:close? Univ #f
+           (-lst -String)))
 (port->bytes-lines
-  (->optkey [-Input-Port] #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f (-lst -Bytes)))
+  (->optkey [-Input-Port]
+            #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f
+            #:close? Univ #f
+            (-lst -Bytes)))
 (display-lines
  (->optkey (-lst Univ) [-Output-Port] #:separator Univ #f -Void))
 (find-relative-path (->key -SomeSystemPathlike -SomeSystemPathlike #:more-than-root? Univ #f -SomeSystemPath))

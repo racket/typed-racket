@@ -26,6 +26,7 @@
          initialize-type-name-env
          initialize-type-env
          type->sexp ; for types/printer.rkt
+         object->sexp ; for testing
          make-env-init-codes)
 
 (define-syntax (define-initial-env stx)
@@ -339,9 +340,9 @@
 (define (object->sexp obj)
   (match obj
     [(Empty:) `-empty-obj]
-    [(Path: null (cons 0 arg))
+    [(Path: (list) (cons 0 arg))
      `(-arg-path ,arg)]
-    [(Path: null (cons depth arg))
+    [(Path: (list) (cons depth arg))
      `(-arg-path ,arg ,depth)]
     [(Path: pes i)
      `(make-Path (list ,@(map path-elem->sexp pes))

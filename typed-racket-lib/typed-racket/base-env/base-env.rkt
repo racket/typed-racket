@@ -3356,7 +3356,11 @@
             (-lst -Bytes)))
 (display-lines
  (->optkey (-lst Univ) [-Output-Port] #:separator Univ #f -Void))
-(find-relative-path (->key -SomeSystemPathlike -SomeSystemPathlike #:more-than-root? Univ #f -SomeSystemPath))
+(find-relative-path (->key -SomeSystemPathlike 
+                           -SomeSystemPathlike 
+                           #:more-than-root? Univ #f
+                           #:normalize-case? Univ #f
+			   -SomeSystemPath))
 (regexp-match*
  (let ((N -Integer)
        (?N (-opt -Integer))

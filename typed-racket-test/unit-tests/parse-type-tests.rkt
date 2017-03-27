@@ -13,7 +13,7 @@
            (rep type-rep values-rep)
 
            (submod typed-racket/base-env/base-types initialize)
-           (rename-in (types abbrev numeric-tower resolve)
+           (rename-in (types abbrev numeric-tower resolve prop-ops)
                       [Un t:Un] [-> t:->] [->* t:->*]))
          (only-in typed-racket/typed-racket do-standard-inits)
          (base-env base-types base-types-extra colon)
@@ -31,6 +31,10 @@
 
 (define mutated-var #f)
 (define not-mutated-var #f)
+
+(define x #'x)
+(define y #'y)
+(define z #'z)
 
 (begin-for-syntax
   (do-standard-inits)
@@ -416,6 +420,128 @@
    [(∩ (-> Number Number) (-> String String))
     (-unsafe-intersect (t:-> -String -String)
                        (t:-> -Number -Number))]
+   ;; refinements
+   ;; top/bot
+   [(Refine [x : Number] Top) -Number]
+   [(Refine [x : Number] Bot) -Bottom]
+   ;; simplify props about subject
+   [(Refine [x : Any] (: x String)) -String]
+   [(Refine [x : Integer] (: x Integer)) -Int]
+   [(Refine [x : Integer] (: x Symbol)) -Bottom]
+   ;; refinements w/ inequalities
+   [(Refine [val : Integer] (<= val 42))
+    (-refine/fresh x -Int (-leq (-lexp x)
+                                (-lexp 42)))]
+   [(Refine [vec : (Vectorof Any)] (<= (vector-length vec) 42))
+    (-refine/fresh x (-vec Univ) (-leq (-lexp (-vec-len-of (-id-path x)))
+                                       (-lexp 42)))]
+   [(Refine [p : (Pairof Integer Integer)] (<= (car p) (cdr p)))
+    (-refine/fresh p (-pair -Int -Int) (-leq (-lexp (-car-of (-id-path p)))
+                                             (-lexp (-cdr-of (-id-path p)))))]
+   [(Refine [x : Integer] (<= (* 2 x) 42))
+    (-refine/fresh x -Int (-leq (-lexp (list 2 x))
+                                (-lexp 42)))]
+   [(Refine [x : Integer] (<= (+ 1 x) 42))
+    (-refine/fresh x -Int (-leq (-lexp 1 x)
+                                (-lexp 42)))]
+   [(Refine [x : Integer] (<= (+ 1 (* 3 x)) 42))
+    (-refine/fresh x -Int (-leq (-lexp 1 (list 3 x))
+                                (-lexp 42)))]
+   [(Refine [x : Integer] (<= (+ 1 (* 3 x) (* 2 x)) 42))
+    (-refine/fresh x -Int (-leq (-lexp 1 (list 5 x))
+                                (-lexp 42)))]
+   [(Refine [x : Integer] (<= 42 (+ 1 (* 3 x) (* 2 x))))
+    (-refine/fresh x -Int (-leq (-lexp 42)
+                                (-lexp 1 (list 5 x))))]
+   [(Refine [x : Integer] (<= 42 (* 2 x)))
+    (-refine/fresh x -Int (-leq (-lexp 42)
+                                (-lexp (list 2 x))))]
+   [(Refine [x : Integer] (<= 42 (+ 1 x)))
+    (-refine/fresh x -Int (-leq (-lexp 42)
+                                (-lexp 1 x)))]
+   [(Refine [x : Integer] (<= x 42))
+    (-refine/fresh x -Int (-leq (-lexp x)
+                                (-lexp 42)))]
+   [(Refine [x : Integer] (< x 42))
+    (-refine/fresh x -Int (-leq (-lexp 1 (list 1 x))
+                                (-lexp 42)))]
+   [(Refine [x : Integer] (>= x 42))
+    (-refine/fresh x -Int (-leq (-lexp 42)
+                                (-lexp x)))]
+   [(Refine [x : Integer] (>= x 42))
+    (-refine/fresh x -Int (-leq (-lexp 42)
+                                (-lexp x)))]
+   [(Refine [x : Integer] (> x 42))
+    (-refine/fresh x -Int (-leq (-lexp 43)
+                                (-lexp x)))]
+   ;; refinements w/ equality
+   [(Refine [x : Integer] (= x 42))
+    (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 42))
+                                (-leq (-lexp 42) (-lexp x))))]
+   ;; other abritrary propositions in refinements
+   [(Refine [x : Integer] (and (<= x 42)
+                               (<= 0 x)))
+    (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 42))
+                                (-leq (-lexp 0) (-lexp x))))]
+   [(Refine [x : String] (and (: z Symbol)
+                              (! y String)))
+    (-refine/fresh x -String (-and (-is-type #'z -Symbol)
+                                   (-not-type #'y -String)))]
+   [(Refine [x : String] (or (: z Symbol)
+                             (: y String)))
+    (-refine/fresh x -String (-or (-is-type #'z -Symbol)
+                                  (-is-type #'y -String)))]
+   [(Refine [x : String] (unless (: z Symbol)
+                           (: y String)))
+    (-refine/fresh x -String (-or (-is-type #'z -Symbol)
+                                  (-is-type #'y -String)))]
+   [(Refine [x : String] (or (not (: y String))
+                             (: z Symbol)))
+    (-refine/fresh x -String (-or (-not-type #'y -String)
+                                  (-is-type #'z -Symbol)))]
+   [(Refine [x : Any] (if (: x String) (! y String) (: z Symbol)))
+    (-refine/fresh x Univ (-or (-and (-is-type x -String) (-not-type #'y -String))
+                               (-and (-not-type x -String) (-is-type #'z -Symbol))))]
+   [(Refine [x : String] (when (: z Symbol) (: y String)))
+    (-refine/fresh x -String (-or (-not-type #'z -Symbol)
+                                  (-is-type #'y -String)))]
+   [(Refine [x : String] (when (not (not (: z Symbol)))
+                           (: y String)))
+    (-refine/fresh x -String (-or (-not-type #'z -Symbol)
+                                  (-is-type #'y -String)))]
+   [(Refine [x : (Refine [x : Integer] (<= 42 x))] (<= x 42))
+    (-refine/fresh z -Int (-and (-leq (-lexp 42) (-lexp z))
+                                (-leq (-lexp z) (-lexp 42))))]
+   ;; fail for unbound identifiers
+   [FAIL (Refine [x : String] (: r Symbol))]
+   [FAIL (Refine [x String] (: x Symbol))]
+   [FAIL (Refine [x y : String] (: x Symbol))]
+   [FAIL (Refine [x : String] (: r Symbol) (: r Symbol))]
+   ;; fail for bad path element usage
+   [FAIL (Refine [p : Integer] (<= (car p) 42))]
+   [FAIL (Refine [p : Integer] (<= (cdr p) 42))]
+   [FAIL (Refine [p : (Pairof Integer Integer)] (<= (car (car p)) 42))]
+   [FAIL (Refine [p : (Pairof Integer Integer)] (<= (car (cdr p)) 42))]
+   [FAIL (Refine [p : (Pairof Integer Integer)] (<= (cdr (car p)) 42))]
+   [FAIL (Refine [p : (Pairof Integer Integer)] (<= (cdr (cdr p)) 42))]
+   [FAIL (Refine [vec : Any] (<= (vector-length vec) 42))]
+   ;; fail for bad linear expression (i.e. not an integer)
+   [FAIL (Refine [q : Any] (<= q 42))]
+   [FAIL (Refine [q : Any] (<= 42 q))]
+   [FAIL (Refine [q : Any] (< q 42))]
+   [FAIL (Refine [q : Any] (< 42 q))]
+   [FAIL (Refine [q : Any] (>= 42 q))]
+   [FAIL (Refine [q : Any] (>= q 42))]
+   [FAIL (Refine [q : Any] (> q 42))]
+   [FAIL (Refine [q : Any] (> 42 q))]
+   [FAIL (Refine [q : Any] (= 42 q))]
+   [FAIL (Refine [q : Any] (= q 42))]
+   [FAIL (Refine [q : Any] (<= (+ 1 q) 42))]
+   [FAIL (Refine [q : Any] (<= 42 (+ 1 q)))]
+   [FAIL (Refine [q : Any] (<= (* 2 q) 42))]
+   [FAIL (Refine [q : Any] (<= 42 (* 2 q)))]
+   [FAIL (Refine [q : Any] (<= (+ 1 (* 2 q)) 42))]
+   [FAIL (Refine [q : Any] (<= 42 (+ 1 (* 2 q))))]
    ))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

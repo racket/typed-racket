@@ -33,7 +33,9 @@
       [(_ pat)
        (syntax/loc stx
          (or (Value: pat)
-             (app Base->val? (box pat))))])))
+             (app Base->val? (box pat))
+             (Intersection: (list (or (Value: pat)
+                                      (app Base->val? (box pat)))) _)))])))
 
 (define-match-expander Listof:
   (lambda (stx)

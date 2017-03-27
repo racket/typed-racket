@@ -59,15 +59,11 @@
        (define positive-implies?
          (or (TrueProp? p2+)
              (FalseProp? p1+)
-             (let ([p1-and-not-p2 (-and p1+ (negate-prop p2+))])
-               (or (FalseProp? p1-and-not-p2)
-                   (impossible-in-lexical-env? p1-and-not-p2)))))
+             (implies-in-env? (lexical-env) p1+ p2+)))
        (and positive-implies?
             (or (TrueProp? p2-)
                 (FalseProp? p1-)
-                (let ([p1-and-not-p2 (-and p1- (negate-prop p2-))])
-                  (or (FalseProp? p1-and-not-p2)
-                      (impossible-in-lexical-env? p1-and-not-p2)))))]
+                (implies-in-env? (lexical-env) p1- p2-)))]
       [(_ _) #f]))
   (define (object-better? o1 o2)
     (match* (o1 o2)

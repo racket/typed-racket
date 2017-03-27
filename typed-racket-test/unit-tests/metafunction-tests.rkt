@@ -23,6 +23,11 @@
              #t))
          #,(syntax/loc stx (check-equal? success box-v))))]))
 
+;; we create some bindings so that syntax for the unit tests
+;; refers to identifiers that produce #t for identifier-binding
+(define x 42)
+(define y 42)
+(define z 42)
 
 (define tests
   (test-suite "Metafunctions"
@@ -37,11 +42,37 @@
         #t)
 
       (test-combine-props
-        (list (-or (-is-type #'x -String) (-is-type #'y -String)))
-        (list (-is-type #'x (Un -String -Symbol)) (-is-type #'y (Un -String -Symbol)))
-        (list (-or (-is-type #'y -String) (-is-type #'x -String))
-              (-is-type #'y (Un -String -Symbol)) (-is-type #'x (Un -String -Symbol)))
-        #t)
+       (list (-or (-is-type #'x -String) (-is-type #'y -String)))
+       (list (-is-type #'x (Un -String -Symbol)) (-is-type #'y (Un -String -Symbol)))
+       (list (-or (-is-type #'y -String) (-is-type #'x -String))
+             (-is-type #'y (Un -String -Symbol)) (-is-type #'x (Un -String -Symbol)))
+       #t)
+
+      (test-combine-props
+       (list (-is-type (-car-of (-id-path #'y)) -Int))
+       (list (-or (-is-type #'x (-pair -Int -Int))
+                  (-is-type #'y (-pair -String -String))))
+       (list (-is-type #'x (-pair -Int -Int))
+             (-is-type (-car-of (-id-path #'y)) -Int))
+       #t)
+
+      (test-combine-props
+       (list (-is-type (-car-of (-id-path #'y)) -Int)
+             (-is-type (-car-of (-id-path #'x)) -String))
+       (list (-or (-is-type #'x (-pair -Int -Int))
+                  (-is-type #'y (-pair -String -String))))
+       #f
+       #t)
+
+      (test-combine-props
+       (list (-leq (-lexp 1 (-id-path #'x))
+                   (-lexp (-id-path #'y)))
+             (-is-type (-car-of (-id-path #'x)) -String))
+       (list (-or (-is-type #'x (-pair -Int -Int))
+                  (-leq (-lexp 1 (-id-path #'y))
+                        (-lexp (-id-path #'x)))))
+       #f
+       #t)
     )
 
     (test-suite "merge-tc-results"
@@ -171,5 +202,22 @@
         (replace-names (list #'x) (list (make-Path null '(0 . 0)))
                        (ret (-> Univ Univ : -tt-propset : (make-Path null #'x))))
         (ret (-> Univ Univ : -tt-propset : (make-Path null '(1 . 0)))))
+      (check-equal?
+        (replace-names (list #'x) (list (make-Path null '(0 . 0)))
+                       (ret (-refine y -Int (-leq (-lexp y) (-lexp #'x)))
+                            -tt-propset
+                            (make-Path null #'x)))
+        (ret (-refine y -Int (-leq (-lexp y) (-lexp (make-Path null '(1 . 0)))))
+             -tt-propset
+             (make-Path null '(0 . 0))))
+
+      (check-equal?
+       (replace-names (list #'x) (list -empty-obj)
+                      (ret (-refine y -Int (-leq (-lexp y) (-lexp #'x)))
+                           -tt-propset
+                           (make-Path null #'x)))
+       (ret -Int
+            -tt-propset
+            -empty-obj))
     )
   ))

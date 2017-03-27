@@ -4,59 +4,98 @@
          syntax/id-table
          (except-in "../utils/utils.rkt" env)
          (contract-req)
-         (rep core-rep object-rep))
+         ;; dict ops only used for convenient printing
+         ;; (e.g. performance is irrelevant)
+         (only-in racket/dict dict->list dict-map)
+         (rep core-rep object-rep)
+         (for-syntax racket/base syntax/parse))
 
 (require-for-cond-contract (rep type-rep prop-rep))
 
 ;; types is a free-id-table of identifiers to types
 ;; props is a list of known propositions
-(define-struct/cond-contract env ([types immutable-free-id-table?] 
+(define-struct/cond-contract env ([types immutable-free-id-table?]
+                                  [obj-types (hash/c Object? Type? #:immutable #t)]
                                   [props (listof Prop?)]
                                   [aliases immutable-free-id-table?])
   #:transparent
   #:property prop:custom-write
   (lambda (e prt mode)
     (fprintf prt "(env ~a ~a ~a)"
-             (free-id-table-map (env-types e)
-                                (λ (id ty) (format "[~a ∈ ~a]" id ty)))
+             (dict-map (append (dict->list (env-types e))
+                               (hash->list (env-obj-types e)))
+                       (λ (id ty) (format "[~a ∈ ~a]" id ty)))
              (env-props e)
              (free-id-table-map (env-aliases e)
                                 (λ (id ty) (format "[~a ≡ ~a]" id ty))))))
 
 (provide/cond-contract
   [env? predicate/c]
-  [env-set-type (env? identifier? Type? . -> . env?)]
+  [env-set-id-type (env? identifier? Type? . -> . env?)]
+  [env-set-obj-type (env? Object? Type? . -> . env?)]
   [env-extend/bindings (env? (listof identifier?)
                              (listof Type?)
                              (or/c (listof OptObject?) #f)
                              . -> .
                              env?)]
-  [env-lookup (env? identifier? (identifier? . -> . any) . -> . any)]
+  [env-lookup-id (env? identifier? (identifier? . -> . any) . -> . any)]
+  [env-lookup-obj (env? Object? (Object? . -> . any) . -> . any)]
   [env-props (env? . -> . (listof Prop?))]
   [env-replace-props (env? (listof Prop?) . -> . env?)]
   [empty-env env?]
   [env-lookup-alias (env? identifier? (identifier? . -> . (or/c OptObject? #f)) . -> . (or/c OptObject? #f))])
 
+
+(provide lexical-env
+         with-lexical-env
+         with-naively-extended-lexical-env)
+
 (define empty-env
   (env
     (make-immutable-free-id-table)
+    (hash)
     null
     (make-immutable-free-id-table)))
 
+(define lexical-env (make-parameter empty-env))
+
+;; run code in a new env
+(define-syntax-rule (with-lexical-env e . b)
+  (parameterize ([lexical-env e]) . b))
+
+;; "naively" extends the environment by simply adding the props
+;; to the environments prop list (i.e. it doesn't do any logical
+;; simplifications like env+ in tc-envops.rkt)
+(define-syntax (with-naively-extended-lexical-env stx)
+  (syntax-parse stx
+    [(_ [#:props ps:expr]
+        . body)
+     (syntax/loc stx
+       (with-lexical-env (env-replace-props (lexical-env) (append ps (env-props (lexical-env)))) . body))]))
+
 
 (define (env-replace-props e props)
-  (match-let ([(env tys _ als) e])
-    (env tys props als)))
+  (match-let ([(env tys otys _ als) e])
+    (env tys otys props als)))
 
-(define (env-lookup e key fail)
-  (match-let ([(env tys _ _) e])
+(define (env-lookup-id e key fail)
+  (match-let ([(env tys _ _ _) e])
     (free-id-table-ref tys key (λ () (fail key)))))
+
+(define (env-lookup-obj e key fail)
+  (match-let ([(env _ otys _ _) e])
+    (hash-ref otys key (λ () (fail key)))))
 
 
 ;; like hash-set, but for the type of an ident in the lexical environment
-(define (env-set-type e ident type)
-  (match-let ([(env tys ps als) e])
-    (env (free-id-table-set tys ident type) ps als)))
+(define (env-set-id-type e ident type)
+  (match-let ([(env tys otys ps als) e])
+    (env (free-id-table-set tys ident type) otys ps als)))
+
+;; like hash-set, but for the type of an object in the lexical environment
+(define (env-set-obj-type e obj type)
+  (match-let ([(env tys otys ps als) e])
+    (env tys (hash-set otys obj type) ps als)))
 
 ;; extends an environment with types and aliases
 ;; e : the 'env' struct to be updated
@@ -67,11 +106,13 @@
 ;;               there are no aliases, you can pass #f
 ;;               for 'aliased-objs' to simplify the computation.
 (define (env-extend/bindings e idents types maybe-aliased-objs)
-  (match-define (env tys ps als) e)
+  (match-define (env tys otys ps als) e)
   ;; NOTE: we mutate the identifiers 'tys' and 'als' for convenience,
   ;; but the free-id-tables themselves are immutable.
   (define (update/type! id t)
     (set! tys (free-id-table-set tys id t)))
+  (define (update/obj-type! lexp t)
+    (set! otys (hash-set otys lexp t)))
   (define (update/alias! id o)
     (set! als (free-id-table-set als id o)))
   (define (update/type+alias! id t o)
@@ -82,16 +123,18 @@
       ;; record the alias relation 'id ≡ id*' *and* that 'id* ∈ t'
       [(Path: '() id*) (update/type! id* t)
                        (update/alias! id o)]
-      ;; id is aliased to an object which is not a simple identifier;
-      ;; just record the alias. (NOTE: if we move to supporting more
-      ;; complicated objects, we _may_ want to add o ∈ t to Γ as well)
-      [o (update/alias! id o)]))
+      ;; id is aliased to a Path w/ a non-empty path element list;
+      ;; just record the alias.
+      [(? Path? p) (update/alias! id p)]
+      ;; for ids that alias non-Path objs, we record the type and alias
+      [o (update/obj-type! o t)
+         (update/alias! id o)]))
   (if maybe-aliased-objs
       (for-each update/type+alias! idents types maybe-aliased-objs)
       (for-each update/type! idents types))
-  (env tys ps als))
+  (env tys otys ps als))
 
 (define (env-lookup-alias e key fail)
-  (match-let ([(env _ _ als) e])
+  (match-let ([(env _ _ _ als) e])
     (free-id-table-ref als key (λ () (fail key)))))
 

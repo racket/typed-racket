@@ -27,7 +27,13 @@
                   tc-results/c
                   tc-results/c)])
 
-(provide subst-rep)
+(provide subst-rep
+         instantiate-rep/obj)
+
+
+(define (instantiate-rep/obj rep obj [t Univ])
+  (subst-rep rep (list (list (cons 0 0) obj t))))
+
 
 ;; Substitutes the given objects into the values and turns it into a
 ;; tc-result.  This matches up to the substitutions in the T-App rule
@@ -114,15 +120,6 @@
    (subst-rep r-o targets)))
 
 
-;; inc-lvl
-;; (cons nat nat) -> (cons nat nat)
-;; DeBruijn indexes are represented as a pair of naturals.
-;; This function increments the 'lvl' field of such an index.
-(define (inc-lvl x)
-  (match x
-    [(cons lvl arg) (cons (add1 lvl) arg)]
-    [_ x]))
-
 ;; inc-lvls
 ;; This function increments the 'lvl' field in all of the targets
 ;; and objects of substitution (see 'inc-lvl' above)
@@ -144,7 +141,7 @@
 (define/cond-contract (subst-rep rep targets)
   (-> any/c (listof (list/c name-ref/c OptObject? Type?))
       any/c)
-  (define (sub/inc rep)
+  (define (subst/inc rep)
     (subst-rep rep (inc-lvls targets)))
   ;; substitution loop
   (let subst ([rep rep])
@@ -153,53 +150,66 @@
       ;; increment the level of the substituted object
       [(arr: dom rng rest drest kws)
        (make-arr (map subst dom)
-                 (sub/inc rng)
+                 (subst/inc rng)
                  (and rest (subst rest))
                  (and drest (cons (subst (car drest)) (cdr drest)))
                  (map subst kws))]
+      [(Intersection: ts raw-prop)
+       (-refine (make-Intersection (map subst ts))
+                (subst/inc raw-prop))]
       [(Path: flds nm)
        (let ([flds (map subst flds)])
          (cond
-           [(assoc nm targets name-ref=?) =>
+           [(assoc nm targets name-ref=?)
+            =>
             (λ (l) (match (second l)
                      [(Empty:) -empty-obj]
                      [(Path: flds* nm*)
-                      (make-Path (append flds flds*) nm*)]))]
+                      (make-Path (append flds flds*) nm*)]
+                     [(? LExp? l) #:when (null? flds) l]
+                     [_ -empty-obj]))]
            [else (make-Path flds nm)]))]
       ;; restrict with the type for results and props
-      [(TypeProp: (Path: flds nm) ty-at-flds)
+      [(TypeProp: (and obj (Path: flds nm)) obj-ty)
        (let ([flds (map subst flds)])
          (cond
            [(assoc nm targets name-ref=?) =>
             (match-lambda
-              [(list _ new-obj new-obj-ty)
-               (define arg-ty-at-flds (or (path-type flds new-obj-ty) Univ))
-               (define new-ty-at-flds (intersect ty-at-flds arg-ty-at-flds))
-               (match new-obj
-                 [_ #:when (Bottom? new-ty-at-flds) -ff]
-                 [_ #:when (subtype arg-ty-at-flds ty-at-flds) -tt]
+              [(list _ inner-obj inner-obj-ty)
+               (define inner-obj-ty-at-flds (or (path-type flds inner-obj-ty) Univ))
+               (define new-obj-ty (intersect obj-ty inner-obj-ty-at-flds #:obj obj))
+               (match inner-obj
+                 [_ #:when (Bottom? new-obj-ty) -ff]
+                 [_ #:when (subtype inner-obj-ty-at-flds obj-ty) -tt]
                  [(Empty:) -tt]
                  [(Path: flds* nm*)
                   (define resulting-obj (make-Path (append flds flds*) nm*))
-                  (-is-type resulting-obj new-ty-at-flds)])])]
-           [else (-is-type (make-Path flds nm) (subst ty-at-flds))]))]
-      [(NotTypeProp: (Path: flds nm) not-ty-at-flds)
+                  (-is-type resulting-obj new-obj-ty)]
+                 [(? LExp? l) (if (null? flds)
+                                  (-is-type l new-obj-ty)
+                                  -ff)])])]
+           [else (-is-type (make-Path flds nm) (subst obj-ty))]))]
+      [(NotTypeProp: (and obj (Path: flds nm)) neg-obj-ty)
        (let ([flds (map subst flds)])
          (cond
-           [(assoc nm targets name-ref=?) =>
+           [(assoc nm targets name-ref=?)
+            =>
             (match-lambda
-              [(list _ new-obj new-obj-ty)
-               (define arg-ty-at-flds (or (path-type flds new-obj-ty) Univ))
-               (define new-ty-at-flds (subtract arg-ty-at-flds not-ty-at-flds))
-               (define new-not-ty-at-flds (restrict not-ty-at-flds arg-ty-at-flds))
-               (match new-obj
-                 [_ #:when (Bottom? new-ty-at-flds) -ff]
-                 [_ #:when (Bottom? new-not-ty-at-flds) -tt]
+              [(list _ inner-obj inner-obj-ty)
+               (define inner-obj-ty-at-flds (or (path-type flds inner-obj-ty) Univ))
+               (define new-obj-ty (subtract inner-obj-ty-at-flds neg-obj-ty #:obj obj))
+               (define new-neg-obj-ty (restrict neg-obj-ty inner-obj-ty-at-flds #:obj obj))
+               (match inner-obj
+                 [_ #:when (Bottom? new-obj-ty) -ff]
+                 [_ #:when (Bottom? new-neg-obj-ty) -tt]
                  [(Empty:) -tt]
                  [(Path: flds* nm*)
                   (define resulting-obj (make-Path (append flds flds*) nm*))
-                  (-not-type resulting-obj new-not-ty-at-flds)])])]
+                  (-not-type resulting-obj new-neg-obj-ty)]
+                 [(? LExp? l) (if (null? flds)
+                                  (-not-type l new-neg-obj-ty)
+                                  -ff)])])]
            [else
-            (-not-type (make-Path flds nm) (subst not-ty-at-flds))]))]
+            (-not-type (make-Path flds nm) (subst neg-obj-ty))]))]
       ;; else default fold over subfields
       [_ (Rep-fmap rep subst)])))

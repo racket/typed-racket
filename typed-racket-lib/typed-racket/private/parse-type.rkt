@@ -3,9 +3,10 @@
 ;; This module provides functions for parsing types written by the user
 
 (require (rename-in "../utils/utils.rkt" [infer infer-in])
-         (except-in (rep core-rep type-rep object-rep) make-arr)
+         (except-in (rep core-rep type-rep object-rep rep-utils) make-arr)
          (rename-in (types abbrev utils prop-ops resolve
-                           classes prefab signatures)
+                           classes prefab signatures
+                           subtype path-type numeric-tower)
                     [make-arr* make-arr])
          (only-in (infer-in infer) intersect)
          (utils tc-utils stxclass-util literal-syntax-class)
@@ -45,6 +46,12 @@
          current-referenced-class-parents
          current-type-alias-name)
 
+;; current-term-names : Parameter<(Listof Id)>
+;; names currently "bound" by a type we are parsing
+;; e.g. (Refine [x : τ] ψ) -- x would be added to
+;; current-term-names when parsing ψ
+(define current-term-names (make-parameter '()))
+
 ;; current-type-alias-name : Parameter<(Option Id)>
 ;; This parameter stores the name of the type alias that is
 ;; being parsed (set in type-alias-helper.rkt), #f if the
@@ -79,6 +86,7 @@
 
 (define-literal-syntax-class #:for-label car)
 (define-literal-syntax-class #:for-label cdr)
+(define-literal-syntax-class #:for-label vector-length)
 (define-literal-syntax-class #:for-label colon^ (:))
 (define-literal-syntax-class #:for-label quote)
 (define-literal-syntax-class #:for-label cons)
@@ -116,6 +124,22 @@
 (define-literal-syntax-class #:for-label Sequenceof)
 (define-literal-syntax-class #:for-label ∩)
 (define-literal-syntax-class #:for-label Intersection)
+(define-literal-syntax-class #:for-label Refine)
+(define-literal-syntax-class #:for-label not)
+(define-literal-syntax-class #:for-label and)
+(define-literal-syntax-class #:for-label or)
+(define-literal-syntax-class #:for-label unless)
+(define-literal-syntax-class #:for-label when)
+(define-literal-syntax-class #:for-label if)
+(define-literal-syntax-class #:for-label <)
+(define-literal-syntax-class #:for-label <=)
+(define-literal-syntax-class #:for-label >)
+(define-literal-syntax-class #:for-label >=)
+(define-literal-syntax-class #:for-label =)
+(define-literal-syntax-class #:for-label *)
+(define-literal-syntax-class #:for-label +)
+
+
 
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
@@ -238,9 +262,9 @@
 (define-syntax-class path-elem
   #:description "path element"
   (pattern :car^
-           #:attr pe -car)
+           #:attr val -car)
   (pattern :cdr^
-           #:attr pe -cdr))
+           #:attr val -cdr))
 
 
 (define-syntax-class @
@@ -255,11 +279,152 @@
   #:description "latent prop"
   (pattern (~seq t:expr :@ pe:path-elem ...)
            #:attr type (parse-type #'t)
-           #:attr path (attribute pe.pe))
+           #:attr path (attribute pe.val))
   (pattern t:expr
            #:attr type (parse-type #'t)
            #:attr path '()))
 
+;; old + deprecated
+(define-syntax-class proposition
+  #:description "proposition"
+  #:attributes (val)
+  (pattern :Top^ #:attr val -tt)
+  (pattern :Bot^ #:attr val -ff)
+  (pattern (:colon^ o:symbolic-object t:expr)
+           #:attr val (-is-type (attribute o.val) (parse-type #'t)))
+  (pattern (:! o:symbolic-object t:expr)
+           #:attr val (-not-type (attribute o.val) (parse-type #'t)))
+  (pattern (:and^ p:proposition ...)
+           #:attr val (apply -and (attribute p.val)))
+  (pattern (:or^ p:proposition ...)
+           #:attr val (apply -or (attribute p.val)))
+  (pattern (:unless^ p1:proposition p2:proposition)
+           #:attr val (-or (attribute p1.val) (attribute p2.val)))
+  (pattern (:when^ p1:proposition p2:proposition)
+           #:attr val (-or (negate-prop (attribute p1.val))
+                           (-and (attribute p1.val) (attribute p2.val))))
+  (pattern (:if^ p1:proposition p2:proposition p3:proposition)
+           #:attr val (let ([tst (attribute p1.val)]
+                            [thn (attribute p2.val)]
+                            [els (attribute p3.val)])
+                        (-or (-and tst thn)
+                             (-and (negate-prop tst) els))))
+  (pattern (:not^ p:proposition)
+           #:attr val (negate-prop (attribute p.val)))
+  (pattern (:<=^ lhs:inequality-symbolic-object
+                 rhs:inequality-symbolic-object)
+           #:attr val (-leq (attribute lhs.val)
+                            (attribute rhs.val)))
+  (pattern (:<^ lhs:inequality-symbolic-object
+                rhs:inequality-symbolic-object)
+           #:attr val (-lt (attribute lhs.val)
+                            (attribute rhs.val)))
+  (pattern (:>=^ lhs:inequality-symbolic-object
+                 rhs:inequality-symbolic-object)
+           #:attr val (-geq (attribute lhs.val)
+                            (attribute rhs.val)))
+  (pattern (:>^ lhs:inequality-symbolic-object
+                rhs:inequality-symbolic-object)
+           #:attr val (-gt (attribute lhs.val)
+                           (attribute rhs.val)))
+  (pattern (:=^ lhs:inequality-symbolic-object
+                rhs:inequality-symbolic-object)
+           #:attr val (-eq (attribute lhs.val)
+                           (attribute rhs.val))))
+
+(define-syntax-class inequality-symbolic-object
+  #:description "symbolic object in an inequality"
+  #:attributes (val)
+  (pattern o:symbolic-object
+           #:do [(define obj (attribute o.val))
+                 (define obj-ty (lookup-obj-type/lexical obj))]
+           #:fail-unless (subtype obj-ty -Int)
+           (format "terms in linear constraints must be integers, got ~a for ~a"
+                   obj-ty obj)
+           #:attr val (attribute o.val)))
+
+(define-syntax-class symbolic-object
+  #:description "symbolic object"
+  #:attributes (val)
+  (pattern (:+^ ~! . l:linear-expression-body)
+           #:attr val (attribute l.val))
+  (pattern (:*^ ~! n:exact-integer o:symbolic-object-w/o-lexp)
+           #:do [(define obj (attribute o.val))
+                 (define obj-ty (lookup-obj-type/lexical obj))]
+           #:fail-unless (subtype obj-ty -Int)
+           (format "terms in linear constraints must be integers, got ~a for ~a"
+                   obj-ty obj)
+           #:attr val (-lexp (list (syntax->datum #'n) (attribute o.val))))
+  (pattern n:exact-integer
+           #:attr val (-lexp (syntax->datum #'n)))
+  (pattern o:symbolic-object-w/o-lexp
+           #:attr val (attribute o.val))
+  )
+
+
+(define-syntax-class symbolic-object-w/o-lexp
+  #:description "symbolic object"
+  #:attributes (val)
+  (pattern i:id
+           #:fail-unless (or (identifier-binding #'i)
+                             (assoc #'i (current-term-names) free-identifier=?))
+           "Propositions may not reference identifiers that are unbound"
+           #:fail-when (is-var-mutated? #'i)
+           "Propositions may not reference identifiers that are mutated"
+           #:attr val (match (assoc #'i (current-term-names) free-identifier=?)
+                        [(cons _ local-name) (-id-path local-name)]
+                        [_ (-id-path #'i)]))
+  (pattern (:car^ ~! o:symbolic-object-w/o-lexp)
+           #:do [(define obj (attribute o.val))
+                 (define obj-ty (lookup-obj-type/lexical obj))]
+           #:fail-unless (subtype obj-ty (-pair Univ Univ))
+           (format "car expects a pair, but got ~a for ~a"
+                   obj-ty obj)
+           #:attr val (-car-of (attribute o.val)))
+  (pattern (:cdr^ ~! o:symbolic-object-w/o-lexp)
+           #:do [(define obj (attribute o.val))
+                 (define obj-ty (lookup-obj-type/lexical obj))]
+           #:fail-unless (subtype obj-ty (-pair Univ Univ))
+           (format "cdr expects a pair, but got ~a for ~a"
+                   obj-ty obj)
+           #:attr val (-cdr-of (attribute o.val)))
+  (pattern (:vector-length^ ~! o:symbolic-object-w/o-lexp)
+           #:do [(define obj (attribute o.val))
+                 (define obj-ty (lookup-obj-type/lexical obj))]
+           #:fail-unless (subtype obj-ty -VectorTop)
+           (format "vector-length expects a vector, but got ~a for ~a"
+                   obj-ty obj)
+           #:attr val (-vec-len-of (attribute o.val))))
+
+(define-syntax-class linear-expression-body
+  #:description "symbolic object"
+  #:attributes (val)
+  (pattern (t:linear-expression-term ts:linear-expression-term ...)
+           #:attr val (apply -lexp (attribute t.val) (attribute ts.val)))
+  )
+
+(define-syntax-class linear-expression-term
+  #:description "symbolic object"
+  #:attributes (val)
+  (pattern (:*^ ~! coeff:exact-integer o:symbolic-object-w/o-lexp)
+           #:do [(define obj (attribute o.val))
+                 (define obj-ty (lookup-obj-type/lexical obj))]
+           #:fail-unless (subtype obj-ty -Int)
+           (format "terms in linear expressions must be integers, got ~a for ~a"
+                   obj-ty obj)
+           #:attr val (-lexp (list (syntax->datum #'coeff) (attribute o.val))))
+  (pattern n:exact-integer
+           #:attr val (-lexp (syntax-e (attribute n))))
+  (pattern o:symbolic-object-w/o-lexp
+           #:do [(define obj (attribute o.val))
+                 (define obj-ty (lookup-obj-type/lexical obj))]
+           #:fail-unless (subtype obj-ty -Int)
+           (format "terms in linear expressions must be integers, got ~a for ~a"
+                   obj-ty obj)
+           #:attr val (attribute o.val))
+  )
+
+;; old + deprecated
 (define-syntax-class (prop doms)
   #:description "proposition"
   #:attributes (prop)
@@ -267,10 +432,10 @@
   (pattern :Bot^ #:attr prop -ff)
   ;; Here is wrong check
   (pattern (t:expr :@ ~! pe:path-elem ... (~var o (prop-object doms)))
-           #:attr prop (-is-type (-acc-path (attribute pe.pe) (attribute o.obj)) (parse-type #'t)))
+           #:attr prop (-is-type (-acc-path (attribute pe.val) (attribute o.obj)) (parse-type #'t)))
   ;; Here is wrong check
   (pattern (:! t:expr :@ ~! pe:path-elem ... (~var o (prop-object doms)))
-           #:attr prop (-not-type (-acc-path (attribute pe.pe) (attribute o.obj)) (parse-type #'t)))
+           #:attr prop (-not-type (-acc-path (attribute pe.val) (attribute o.obj)) (parse-type #'t)))
   (pattern (:! t:expr)
            #:attr prop (-not-type 0 (parse-type #'t)))
   (pattern ((~datum and) (~var p (prop doms)) ...)
@@ -352,7 +517,7 @@
       [(:Object^ e ...)
        (parse-object-type stx)]
       [(:Refinement^ p?:id)
-       (match (lookup-type/lexical #'p?)
+       (match (lookup-id-type/lexical #'p?)
          [(and t (Function: (list (arr: (list dom) _ #f #f '()))))
           (make-Refinement dom #'p?)]
          [t (parse-error "expected a predicate for argument to Refinement"
@@ -382,6 +547,17 @@
                       "key" (prefab-key->field-count new-key)
                       "fields" num-fields))
        (make-Prefab new-key (parse-types #'(ts ...)))]
+      [(:Refine^ [x:id :colon^ type:expr] prop:expr)
+       (define local-name (gen-pretty-id (syntax->datum #'x)))
+       (define t (parse-type #'type))
+       (define p (with-extended-lexical-env
+                     [#:identifiers (list local-name)
+                      #:types (list t)]
+                   (parameterize ([current-term-names (cons (cons #'x local-name) (current-term-names))])
+                     (syntax-parse #'prop [p:proposition (attribute p.val)]))))
+       (define refinement-type (-refine local-name t p))
+       (save-term-var-names! refinement-type (list local-name))
+       refinement-type]
       [(:Instance^ t)
        (let ([v (parse-type #'t)])
          (if (not (or (F? v) (Mu? v) (Name? v) (Class? v) (Error? v)))
@@ -453,18 +629,24 @@
                        (let ([t* (parse-type #'t)])
                          ;; is t in a productive position?
                          (define productive
-                           (let loop ([ty t*])
-                             (match ty
-                               [(Union: _ elems) (andmap loop elems)]
-                               [(Intersection: elems) (andmap loop elems)]
-                               [(F: _) (not (equal? ty tvar))]
-                               [(App: rator rands)
-                                (loop (resolve-app rator rands stx))]
-                               [(Mu: _ body) (loop body)]
-                               [(Poly: names body) (loop body)]
-                               [(PolyDots: names body) (loop body)]
-                               [(PolyRow: _ _ body) (loop body)]
-                               [else #t])))
+                           (let/ec return
+                             (let check ([ty t*])
+                               (match ty
+                                 [(== tvar) (return #f)]
+                                 [(Union: _ elems) (for-each check elems)]
+                                 [(Intersection: elems prop)
+                                  (for-each check elems)
+                                  (check prop)]
+                                 [(App: rator rands)
+                                  (check (resolve-app rator rands stx))]
+                                 [(Mu: _ body) (check body)]
+                                 [(Poly: names body) (check body)]
+                                 [(PolyDots: names body) (check body)]
+                                 [(PolyRow: _ _ body) (check body)]
+                                 [(? Type?) (void)]
+                                 [(? Rep?) (Rep-for-each check ty)]
+                                 [_ (void)]))
+                             #t))
                          (unless productive
                            (parse-error
                             #:stx stx

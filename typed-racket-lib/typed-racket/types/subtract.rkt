@@ -12,13 +12,14 @@
 ;; Type Type -> Type
 ;; conservatively calculates set subtraction
 ;; between the types (i.e. t - s)
-(define (subtract t s)
+(define (subtract t s #:obj [obj -empty-obj])
   (define s-mask (mask s))
   (define result
-    (let sub ([t t])
+    (let recurse ([t t] [obj obj])
+      (define (sub t [obj -empty-obj]) (recurse t obj))
       (match t
         [_ #:when (disjoint-masks? (mask t) s-mask) t]
-        [_ #:when (subtype t s) -Bottom]
+        [_ #:when (subtype t s #:obj obj) -Bottom]
         [(or (App: _ _) (? Name?))
          ;; must be different, since they're not subtypes
          ;; and n must refer to a distinct struct type
@@ -33,13 +34,14 @@
             (make-BaseUnion (bbits-subtract bbits bbits*)
                             (nbits-subtract nbits nbits*))]
            [_ (apply Un (for/list ([b (in-list (BaseUnion-bases t))])
-                          (sub b)))])]
-        [(Union: base elems) (Union-fmap sub base elems)]
-        [(Intersection: ts)
-         (apply -unsafe-intersect (map sub ts))]
-        [(? Mu?) (sub (unfold t))]
-        [(Poly: vs b) (make-Poly vs (sub b))]
+                          (sub b obj)))])]
+        [(Union: base elems) (Union-fmap (λ (t) (sub t obj)) base elems)]
+        [(Intersection: ts raw-prop)
+         (-refine (apply -unsafe-intersect (map (λ (t) (sub t obj)) ts))
+                  raw-prop)]
+        [(? Mu?) (sub (unfold t) obj)]
+        [(Poly: vs b) (make-Poly vs (sub b) obj)]
         [_ t])))
   (cond
-    [(subtype t result) t]
+    [(subtype t result #:obj obj) t]
     [else result]))

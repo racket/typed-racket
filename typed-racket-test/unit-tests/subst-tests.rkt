@@ -24,7 +24,7 @@
                result))
 
 (define tests
-  (test-suite "Tests for substitution"
+  (test-suite "Tests for type substitution"
     (s -Number a (-v a) -Number)
     (s -Number a (-pair (-v a) -String) (-pair -Number -String))
     (s -Number a (-pair -String (-v a)) (-pair -String -Number))

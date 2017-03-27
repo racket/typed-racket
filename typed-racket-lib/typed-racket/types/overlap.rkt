@@ -4,7 +4,6 @@
          (rep type-rep rep-utils type-mask)
          (prefix-in c: (contract-req))
          (types abbrev subtype resolve utils)
-         racket/set
          racket/match)
 
 
@@ -80,10 +79,11 @@
          #t]
         [((Union/set: base1 ts1 elems1) t2)
          #:no-order
-         (or (set-member? elems1 t2)
+         (or (hash-ref elems1 t2 #f)
              (overlap? base1 t2)
              (for/or ([t1 (in-list ts1)]) (overlap? t1 t2)))]
-        [((Intersection: ts) s)
+        ;; we ignore the possible refining prop for simplicities sake
+        [((Intersection: ts _) s)
          #:no-order
          (for/and ([t (in-list ts)]) (overlap? t s))]
         [((or (Poly-unsafe: _ t1)

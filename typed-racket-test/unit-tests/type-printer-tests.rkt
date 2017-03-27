@@ -4,11 +4,13 @@
 
 (require "test-utils.rkt"
          rackunit
+         racket/match
          typed-racket/standard-inits
          typed-racket/tc-setup
          typed-racket/rep/type-rep
          typed-racket/rep/values-rep
          typed-racket/types/abbrev
+         typed-racket/types/prop-ops
          typed-racket/types/numeric-tower
          typed-racket/types/printer
          typed-racket/utils/tc-utils
@@ -17,8 +19,14 @@
 (provide tests)
 (gen-test-main)
 
-(define (prints-as? thing str)
-  (string=? (format "~a" thing) str))
+(define y #'y)
+(define z #'z)
+
+(define (prints-as? thing expected)
+  (cond
+    [(string? expected) (string=? (format "~a" thing) expected)]
+    [(procedure? expected) (expected (format "~a" thing))]
+    [else (error 'prints-as? "unsupported expected ~a" expected)]))
 
 (define (pretty-prints-as? thing str)
   (string=? (pretty-format-rep thing) str))
@@ -50,11 +58,11 @@
 
     ;; next three cases for PR 14552
     (check-prints-as? (-mu x (Un (-pair x x) -Null))
-                      "(Rec x (U Null (Pairof x x)))")
+                      "(Rec x (U (Pairof x x) Null))")
     (check-prints-as? (-mu x (Un (-pair (-box x) x) -Null))
-                      "(Rec x (U Null (Pairof (Boxof x) x)))")
+                      "(Rec x (U (Pairof (Boxof x) x) Null))")
     (check-prints-as? (-mu x (Un (-mpair x x) -Null))
-                      "(Rec x (U Null (MPairof x x)))")
+                      "(Rec x (U (MPairof x x) Null))")
 
     (check-prints-as? -Custodian "Custodian")
     (check-prints-as? (make-Opaque #'integer?) "(Opaque integer?)")
@@ -119,10 +127,10 @@
                                      " 'binary 'text)] Void)"))
     (check-prints-as? (-> Univ (-AnyValues -tt)) "(-> Any AnyValues)")
     (check-prints-as? (-> Univ (-AnyValues (-is-type '(0 . 0) -String)))
-                      "(-> Any AnyValues : (String @ (0 0)))")
+                      "(-> Any AnyValues : (: (0 0) String))")
     (check-prints-as? (-AnyValues -tt) "AnyValues")
     (check-prints-as? (-AnyValues (-is-type '(0 . 0) -String))
-                      "(AnyValues : (String @ (0 0)))")
+                      "(AnyValues : (: (0 0) String))")
 
     (check-prints-as? (->opt Univ [] -Void) "(-> Any Void)")
     (check-prints-as? (->opt [-String] -Void) "(->* () (String) Void)")
@@ -171,7 +179,50 @@
                         "(Unit (import a^ b^) (export c^ d^) (init-depend b^) String)")
       (check-prints-as? (make-Unit (list a^ b^) (list c^ d^) (list b^ a^) (-values (list -String)))
                         "(Unit (import a^ b^) (export c^ d^) (init-depend b^ a^) String)"))
-    (check-prints-as? -UnitTop "UnitTop"))
+    (check-prints-as? -UnitTop "UnitTop")
+    (check-prints-as? (-refine/fresh x -Int (-leq (-lexp x) (-lexp 42)))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (<= ,x 42)) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x (-pair -Int -Int) (-leq (-lexp (-car-of (-id-path x)))
+                                                         (-lexp (-cdr-of (-id-path x)))))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : (Pairof Integer Integer)] (<= (car ,x) (cdr ,x))) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x (-vec Univ) (-leq (-lexp (-vec-len-of (-id-path x)))
+                                                   (-lexp 42)))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : (Vectorof Any)] (<= (vector-length ,x) 42)) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 42))
+                                            (-leq (-lexp 42) (-lexp x))
+                                            (-leq (-lexp 1 x) (-lexp #'y))))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (and (= ,x 42) (< ,x y))) #t]
+                                 [`(Refine [,x : Integer] (and (= 42 ,x) (< ,x y))) #t]
+                                 [`(Refine [,x : Integer] (and (< ,x y) (= ,x 42))) #t]
+                                 [`(Refine [,x : Integer] (and (< ,x y) (= ,x 42))) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 42))
+                                            (-leq (-lexp 42) (-lexp x))))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (= ,x 42)) #t]
+                                 [`(Refine [,x : Integer] (= 42 ,x)) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x -Int (-is-type #'y -Int))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (: y Integer)) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x -Int (-not-type #'y -Int))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (! y Integer)) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x -Int (-or (-is-type #'y -Int)
+                                           (-is-type #'z -String)))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (or (: y Integer) (: z String))) #t]
+                                 [`(Refine [,x : Integer] (or (: z String) (: y Integer))) #t]
+                                 [_ #f]))))
    (test-suite
     "Pretty printing tests"
     (check-pretty-prints-as? (-val 3) "3")

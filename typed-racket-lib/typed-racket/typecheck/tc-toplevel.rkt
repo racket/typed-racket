@@ -32,6 +32,15 @@
 
 (define unann-defs (make-free-id-table))
 
+;; adds any latent propositions inside of types to
+;; the initial lexical environment that is used
+;; for typechecking the rest of the program
+(define (add-extracted-props-to-lexical-env obj t)
+  (when (Object? obj)
+    (define props (extract-props obj t))
+    (unless (null? props)
+      (add-props-to-current-lexical! props))))
+
 (define (parse-typed-struct form)
   (parameterize ([current-orig-stx form])
     (syntax-parse form
@@ -80,7 +89,7 @@
       ;; declare-refinement
       ;; FIXME - this sucks and should die
       [t:type-refinement
-       (match (lookup-type/lexical #'t.predicate)
+       (match (lookup-id-type/lexical #'t.predicate)
               [(and t (Function: (list (arr: (list dom) (Values: (list (Result: rng _ _))) #f #f '()))))
                (let ([new-t (make-pred-ty (list dom)
                                           rng
@@ -93,6 +102,7 @@
       [r:typed-require
        (let ([t (parse-type #'r.type)])
          (register-type #'r.name t)
+         (add-extracted-props-to-lexical-env (-id-path #'r.name) t)
          (list (make-def-binding #'r.name t)))]
 
       [r:typed-require/struct
@@ -119,6 +129,7 @@
       ;; top-level type annotation
       [t:type-declaration
        (register-type/undefined #'t.id (parse-type #'t.type))
+       (add-extracted-props-to-lexical-env (-id-path #'r.name) (parse-type #'t.type))
        (register-scoped-tvars #'t.id (parse-literal-alls #'t.type))
        (list)]
 
@@ -144,7 +155,10 @@
          ;; if all the variables have types, we stick them into the environment
          [(v:type-label^ ...)
           (let ([ts (map (λ (x) (get-type x #:infer #f)) vars)])
-            (for-each register-type-if-undefined vars ts)
+            (for ([var (in-list vars)]
+                  [t (in-list ts)])
+              (register-type-if-undefined var t)
+              (add-extracted-props-to-lexical-env (-id-path var) t))
             (map make-def-binding vars ts))]
          ;; if this already had an annotation, we just construct the binding reps
          [(v:typed-id^ ...)
@@ -153,7 +167,10 @@
             (when (free-id-table-ref unann-defs var #f)
               (free-id-table-remove! unann-defs var))
             (finish-register-type var top-level?))
-          (stx-map make-def-binding #'(v ...) (attribute v.type))]
+          (for/list ([var (in-syntax #'(v ...))]
+                     [t (in-list (attribute v.type))])
+            (add-extracted-props-to-lexical-env (-id-path var) t)
+            (make-def-binding var t))]
          ;; defer to pass1.5
          [_ (list)])]
 
@@ -206,6 +223,7 @@
             [(list (tc-result: ts) ...)
              (for/list ([i (in-list vars)] [t (in-list ts)])
                (register-type i t)
+               (add-extracted-props-to-lexical-env (-id-path i) t)
                (free-id-table-set! unann-defs i #t)
                (make-def-binding i t))])])]
 
@@ -243,7 +261,7 @@
              [import-ids (in-list (syntax->list #'(dviu.import.members ...)))])
          (for ([member (in-list (syntax->list  import-ids))]
                [expected-type (in-list (map cdr (signature->bindings import-sig)))])
-           (define lexical-type (lookup-type/lexical member))
+           (define lexical-type (lookup-id-type/lexical member))
            (check-below lexical-type expected-type)))
        (register-ignored! #'dviu)
        'no-type]

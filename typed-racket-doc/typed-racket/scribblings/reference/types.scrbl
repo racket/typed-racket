@@ -717,13 +717,6 @@ functions and continuation mark functions.
   contract combinator, but with types instead of contracts.
   }
 
-@deftogether[(
-@defidform[Top]
-@defidform[Bot])]{ These are propositions that can be used with @racket[->].
-  @racket[Top] is the propositions with no information.
-  @racket[Bot] is the propositions which means the result cannot happen.
-}
-
 
 @defidform[Procedure]{is the supertype of all function types. The @racket[Procedure]
   type corresponds to values that satisfy the @racket[procedure?] predicate.
@@ -823,11 +816,84 @@ this top type.
         #s((salad food 1) "quinoa" "EVOO" salad))]
 }
 
+
 @defalias[Union U]
 @defalias[Intersection ∩]
 @defalias[→ ->]
 @defalias[case→ case->]
 @defalias[∀ All]
+
+
+@section{Logical Refinements and Propositions}
+
+
+@defform[#:literals (Refine : Top Bot ! and or when
+                            unless if < <= = > >= car cdr
+                            vector-length + *)
+         (Refine [id : type] proposition)
+         #:grammar
+         ([proposition Top
+           Bot
+           (: symbolic-object type)
+           (! symbolic-object type)
+           (and proposition ...)
+           (or proposition ...)
+           (when proposition proposition)
+           (unless proposition proposition)
+           (if proposition proposition proposition)
+           (linear-comp symbolic-object symbolic-object)]
+          [linear-comp < <= = >= >]
+          [symbolic-object exact-integer
+           linear-term
+           (+ linear-term linear-term ...)]
+          [linear-term symbolic-path
+           (* exact-integer symbolic-path)]
+          [symbolic-path id
+           (path-elem symbolic-path)]
+          [path-elem car
+           cdr
+           vector-length])]{@racket[(Refine [v : t] p)] is a
+ refinement of type @racket[t] with logical proposition
+ @racket[p], or in other words it describes any value
+ @racket[v] of type @racket[t] for which the logical
+ proposition @racket[p] holds.
+
+ @ex[(ann 42 (Refine [n : Integer] (= n 42)))]
+
+ Note: The identifier in a refinement type is in scope
+ inside the proposition, but not the type.
+
+}
+
+@deftogether[(
+@defidform[Top]
+@defidform[Bot])]{ These are propositions that can be used with
+ @racket[->] and @racket[Refine].
+  @racket[Top] is the proposition with no information (i.e. the trivially true
+ proposition).
+  @racket[Bot] is the propositions which means the result cannot happen
+ (i.e. the impossible proposition).
+}
+
+@racket[(: o t)] used as a proposition holds when symbolic object @racket[o]
+is of type @racket[t.]
+
+@defform[(! sym-obj type)]{This is the dual of @racket[(: o t)], holding
+when @racket[o] is not of type @racket[t].}
+
+Propositions can also describe linear inequalities (e.g. @racket[(<= x 42)]
+holds when @racket[x] is less than or equal to @racket[42]), using any
+of the following relations: @racket[<=], @racket[<], @racket[=],
+@racket[>=], @racket[>].
+
+The following logical combinators hold as one would expect
+depending on which of their subcomponents hold hold:
+@racket[and], @racket[or], @racket[if], @racket[not].
+
+@racket[(when p q)] is equivalent to @racket[(or (not p) (and p q))].
+
+@racket[(unless p q)] is equivalent to @racket[(or p q)].
+
 
 @section{Other Types}
 

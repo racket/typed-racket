@@ -7,9 +7,11 @@
 
 (require "../utils/utils.rkt"
          "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/object-rep.rkt"
          "../rep/base-types.rkt"
          "../rep/numeric-base-types.rkt"
-         (rep prop-rep object-rep values-rep rep-utils)
+         (rep values-rep rep-utils)
          (env mvar-env)
          racket/match racket/list (prefix-in c: (contract-req))
          (for-syntax racket/base syntax/parse racket/list)
@@ -17,11 +19,10 @@
          (for-template racket/base))
 
 (provide (all-defined-out)
-         -is-type
-         -not-type
-         -id-path
          (all-from-out "../rep/type-rep.rkt"
+                       "../rep/object-rep.rkt"
                        "../rep/base-types.rkt"
+                       "../rep/prop-rep.rkt"
                        "../rep/numeric-base-types.rkt")
          (rename-out [make-Listof -lst]
                      [make-MListof -mlst]))

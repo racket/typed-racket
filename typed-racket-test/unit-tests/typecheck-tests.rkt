@@ -3906,6 +3906,28 @@
              (-seq Univ)]
        [tc-e (ann (in-hash-pairs (hash)) (Sequenceof (Pairof Any Any)))
              (-seq (-pair Univ Univ))]
+
+       ;; integer literals w/ refinements
+       [tc-e (ann -1 (Refine [x : Integer] (= x -1)))
+             (-refine/fresh x -Int (-eq (-lexp x) (-lexp -1)))]
+       [tc-e (ann 0 (Refine [x : Zero] (= x 0)))
+             (-refine/fresh x -Zero (-eq (-lexp x) (-lexp 0)))]
+       [tc-e (ann 0 (Refine [x : Integer] (= x 0)))
+             (-refine/fresh x -Int (-eq (-lexp x) (-lexp 0)))]
+       [tc-e (ann 1 (Refine [x : One] (= x 1)))
+             (-refine/fresh x -One (-eq (-lexp x) (-lexp 1)))]
+       [tc-e (ann 1 (Refine [x : Integer] (= x 1)))
+             (-refine/fresh x -Int (-eq (-lexp x) (-lexp 1)))]
+       [tc-e (ann 2 (Refine [x : Byte] (= x 2)))
+             (-refine/fresh x -Byte (-eq (-lexp x) (-lexp 2)))]
+       [tc-e (ann 2 (Refine [x : Integer] (= x 2)))
+             (-refine/fresh x -Int (-eq (-lexp x) (-lexp 2)))]
+       [tc-e (ann 123456 (Refine [x : Index] (= x 123456)))
+             (-refine/fresh x -Index (-eq (-lexp x) (-lexp 123456)))]
+       [tc-e (ann 123456 (Refine [x : Fixnum] (= x 123456)))
+             (-refine/fresh x -Fixnum (-eq (-lexp x) (-lexp 123456)))]
+       [tc-e (ann 123456 (Refine [x : Integer] (= x 123456)))
+             (-refine/fresh x -Int (-eq (-lexp x) (-lexp 123456)))]
        )
 
   (test-suite

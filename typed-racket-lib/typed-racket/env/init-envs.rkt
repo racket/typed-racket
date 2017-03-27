@@ -214,8 +214,11 @@
     [(BaseUnion: bbits nbits) `(make-BaseUnion ,bbits ,nbits)]
     [(Union: base elems) `(Un . ,(append (if (Bottom? base) '() (list (type->sexp base)))
                                          (map type->sexp elems)))]
-    [(Intersection: elems)
-     `(make-Intersection (list ,@(map type->sexp elems)))]
+    [(Intersection: elems raw-prop)
+     (if (not (TrueProp? raw-prop))
+         `(-refine (make-Intersection (list ,@(map type->sexp elems)))
+                   ,(prop->sexp raw-prop))
+         `(make-Intersection (list ,@(map type->sexp elems))))]
     [(Name: stx 0 #t)
      `(-struct-name (quote-syntax ,stx))]
     [(Name: stx args struct?)
@@ -331,6 +334,7 @@
      `(make-AndProp (list ,@(map prop->sexp fs)))]
     [(OrProp: fs)
      `(make-OrProp (list ,@(map prop->sexp fs)))]
+    [(LeqProp: lhs rhs) `(-leq ,(object->sexp lhs) ,(object->sexp rhs))]
     [(PropSet: thn els)
      `(make-PropSet ,(prop->sexp thn) ,(prop->sexp els))]))
 
@@ -339,15 +343,17 @@
 (define (object->sexp obj)
   (match obj
     [(Empty:) `-empty-obj]
-    [(Path: null (cons 0 arg))
+    [(Path: (list) (cons 0 arg))
      `(-arg-path ,arg)]
-    [(Path: null (cons depth arg))
+    [(Path: (list) (cons depth arg))
      `(-arg-path ,arg ,depth)]
     [(Path: pes i)
      `(make-Path (list ,@(map path-elem->sexp pes))
                  ,(if (identifier? i)
                       `(quote-syntax ,i)
-                      `(cons ,(car i) ,(cdr i))))]))
+                      `(cons ,(car i) ,(cdr i))))]
+    [(LExp: const terms) `(-lexp ,@(for/list ([(o c) (in-terms terms)])
+                                     `(list ,c ,(object->sexp o))))]))
 
 ;; Path-Element -> SExp
 ;; Convert a path element in an object to an s-expression

@@ -8,26 +8,36 @@ at least theoretically.
 (require (for-syntax racket/base racket/string)
          racket/require-syntax racket/provide-syntax
          racket/match
+         racket/list
          syntax/parse/define
          racket/struct-info "timing.rkt")
 
 (provide
  ;; optimization
  optimize?
+ ;; parameter to toggle linear integer reasoning
+ with-linear-integer-arithmetic?
  ;; timing
  start-timing do-time
  ;; provide macros
  rep utils typecheck infer env private types static-contracts
  ;; misc
  list-extend
+ ends-with?
  filter-multiple
  syntax-length
  in-pair
  in-sequence-forever
  match*/no-order
- bind)
+ bind
+ genid
+ gen-pretty-id
+ local-tr-identifier?
+ mark-id-as-normalized
+ normalized-id?)
 
 (define optimize? (make-parameter #t))
+(define with-linear-integer-arithmetic? (make-parameter #f))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
 
 (define-syntax do-contract-req
@@ -91,6 +101,7 @@ at least theoretically.
 (define-requirer env env-out)
 (define-requirer private private-out)
 (define-requirer types types-out)
+(define-requirer logic logic-out)
 (define-requirer optimizer optimizer-out)
 (define-requirer base-env base-env-out)
 (define-requirer static-contracts static-contracts-out)
@@ -230,6 +241,14 @@ at least theoretically.
 (define (list-extend s t extra)
   (append t (build-list (max 0 (- (length s) (length t))) (lambda _ extra))))
 
+;; does l1 end with l2?
+;; e.g. (list 1 2 3) ends with (list 2 3)
+(define (ends-with? l1 l2)
+  (define len1 (length l1))
+  (define len2 (length l2))
+  (and (<= len2 len1)
+       (equal? l2 (drop l1 (- len1 len2)))))
+
 (define (filter-multiple l . fs)
   (apply values
          (map (lambda (f) (filter f l)) fs)))
@@ -282,3 +301,46 @@ at least theoretically.
 
 (define-syntax-rule (in-pair p)
   (in-parallel (in-value (car p)) (in-value (cdr p))))
+
+
+(module local-ids racket
+  (provide local-tr-identifier?
+           genid
+           gen-pretty-id
+           mark-id-as-normalized
+           normalized-id?)
+  ;; we use this syntax location to recognized gensymed identifiers
+  (define-for-syntax loc #'x)
+  (define dummy-id (datum->syntax #'loc (gensym 'x)))
+  ;; tools for marking identifiers as normalized and recognizing normalized
+  ;; identifiers (we normalize ids so free-identifier=? ids are represented
+  ;; with the same syntax object and are thus equal?)
+  (define-values (mark-id-as-normalized
+                  normalized-id?)
+    (let ([normalized-identifier-sym (gensym 'normal-id)])
+      (values (λ (id) (syntax-property id normalized-identifier-sym #t))
+              (λ (id) (syntax-property id normalized-identifier-sym)))))
+  ;; generates fresh identifiers for use while typechecking
+  (define (genid [sym (gensym 'local)])
+    (mark-id-as-normalized (datum->syntax #'loc sym)))
+  (define letters '("x" "y" "z" "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k"
+                        "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v"  "w"))
+  ;; this is just a silly helper function that gives us a letter from
+  ;; the latin alphabet in a cyclic manner
+  (define next-letter
+    (let ([i 0])
+      (λ ()
+        (define letter (string->uninterned-symbol (list-ref letters i)))
+        (set! i (modulo (add1 i) (length letters)))
+        letter)))
+  ;; generates a fresh identifier w/ a "pretty" printable representation
+  (define (gen-pretty-id [sym (next-letter)])
+    (mark-id-as-normalized (datum->syntax #'loc sym)))
+  ;; allows us to recognize and distinguish gensym'd identifiers
+  ;; from ones that came from the program we're typechecking
+  (define (local-tr-identifier? id)
+    (and (identifier? id)
+         (eq? (syntax-source-module dummy-id)
+              (syntax-source-module id)))))
+
+(require 'local-ids)

@@ -1134,7 +1134,7 @@
 ;; Determine the field type based on its private setter name
 ;; (assumption: the type environment maps this name already)
 (define (setter->type id)
-  (define f-type (lookup-type/lexical id))
+  (define f-type (lookup-id-type/lexical id))
   (match f-type
     [(Function: (list (arr: (list _ type) _ _ _ _)))
      type]

@@ -8,7 +8,7 @@
          racket/list
          racket/set
          (path-up "rep/type-rep.rkt" "rep/prop-rep.rkt" "rep/object-rep.rkt"
-                  "rep/core-rep.rkt" "rep/values-rep.rkt"
+                  "rep/core-rep.rkt" "rep/values-rep.rkt" "rep/fme-utils.rkt"
                   "rep/rep-utils.rkt" "types/subtype.rkt" "types/overlap.rkt"
                   "types/match-expanders.rkt"
                   "types/kw-types.rkt"
@@ -17,7 +17,6 @@
                   "types/resolve.rkt"
                   "types/prefab.rkt"
                   "utils/utils.rkt"
-                  "utils/primitive-comparison.rkt"
                   "utils/tc-utils.rkt")
          (for-syntax racket/base syntax/parse))
 
@@ -70,6 +69,14 @@
       n))
   (and (pair? candidates)
        (sort candidates string>? #:key symbol->string #:cache-keys? #t)))
+
+;; primitive<=?
+;;
+;; provides a consistent ordering when printing things like
+;; unions, intersections, etc
+(define (primitive<=? s1 s2)
+  (string<=? (format "~a" s1)
+             (format "~a" s2)))
 
 ;; print-<thing> : <thing> Output-Port Boolean -> Void
 ;; print-type also takes an optional (Listof Symbol)
@@ -126,19 +133,41 @@
 ;; prop->sexp : Prop -> S-expression
 ;; Print a Prop (see prop-rep.rkt) to the given port
 (define (prop->sexp prop)
-  (define (path->sexps path)
-    (if (null? path)
-        '()
-        (list (map pathelem->sexp path))))
   (match prop
-    [(NotTypeProp: (Path: path nm) type)
-     `(! ,(type->sexp type) @ ,@(path->sexps path) ,(name-ref->sexp nm))]
-    [(TypeProp: (Path: path nm) type)
-     `(,(type->sexp type) @ ,@(path->sexps path) ,(name-ref->sexp nm))]
+    [(NotTypeProp: o type)
+     `(! ,(object->sexp o) ,(type->sexp type))]
+    [(TypeProp: o type)
+     `(: ,(object->sexp o) ,(type->sexp type))]
     [(TrueProp:) 'Top]
     [(FalseProp:) 'Bot]
-    [(AndProp: a) `(AndProp ,@(map prop->sexp a))]
-    [(OrProp: a) `(OrProp ,@(map prop->sexp a))]
+    [(AndProp: ps)
+     ;; We do a little bit of work here to print equalities
+     ;; instead of (<= x y) (<= y x) when we have both inequalities
+     (define-values (leqs others) (partition LeqProp? ps))
+     (define-values (eqs simple-leqs)
+       (for/fold ([eqs '()] [simple-leqs '()])
+                 ([leq (in-list leqs)])
+         (match leq
+           [(LeqProp: lhs rhs)
+            (define flip (-leq rhs lhs))
+            (cond
+              [(not (member flip leqs))
+               (values eqs (cons leq simple-leqs))]
+              [(member flip eqs) (values eqs simple-leqs)]
+              [else (values (cons leq eqs) simple-leqs)])])))
+     (let ([simple-leqs (map prop->sexp simple-leqs)]
+           [eqs (for/list ([leq (in-list eqs)])
+                  (match leq
+                    [(LeqProp: lhs rhs) `(= ,(object->sexp lhs) ,(object->sexp rhs))]))]
+           [others (map prop->sexp others)])
+       (match (append eqs simple-leqs others)
+         [(list sexp) sexp]
+         [sexps `(and ,@sexps)]))]
+    [(OrProp: ps) `(or ,@(map prop->sexp ps))]
+    [(LeqProp: (and lhs (LExp: 1 _))
+               (and rhs (LExp: 0 _)))
+     `(< ,(object->sexp (-lexp-sub1 lhs)) ,(object->sexp rhs))]
+    [(LeqProp: lhs rhs) `(<= ,(object->sexp lhs) ,(object->sexp rhs))]
     [else `(Unknown Prop: ,(struct->vector prop))]))
 
 ;; pathelem->sexp : PathElem -> S-expression
@@ -149,6 +178,7 @@
     [(CdrPE:) 'cdr]
     [(ForcePE:) 'force]
     [(StructPE: t i) `(,(type->sexp t)-,i)]
+    [(VecLenPE:) 'vector-length]
     [(SyntaxPE:) 'syntax]
     [else `(Invalid Path-Element: ,(struct->vector pathelem))]))
 
@@ -157,7 +187,24 @@
 (define (object->sexp object)
   (match object
     [(Empty:) '-]
-    [(Path: pes n) (append (map pathelem->sexp pes) (list (name-ref->sexp n)))]
+    [(Path: pes n)
+     (let ([pes (map pathelem->sexp pes)])
+       (cond
+         [(null? pes) (name-ref->sexp n)]
+         [else (append pes (list (name-ref->sexp n)))]))]
+    [(LExp: c terms)
+     (cond
+       [(terms-empty? terms) c]
+       [else
+        (define term-list
+          (let ([terms (for/list ([(obj coeff) (in-terms terms)])
+                         (if (= 1 coeff)
+                             (object->sexp obj)
+                             `(* ,coeff ,(object->sexp obj))))])
+            (if (zero? c) terms (cons c terms))))
+        (cond
+          [(null? (cdr term-list)) (car term-list)]
+          [else (cons '+ term-list)])])]
     [else `(Unknown Object: ,(struct->vector object))]))
 
 ;; cover-union : Type LSet<Type> -> Listof<Symbol> Listof<Type>
@@ -534,7 +581,9 @@
     [(BaseUnion-bases: bs)
      (define-values (covered remaining) (cover-union type bs ignored-names))
      (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
-    [(Intersection: elems)
+    [(Refine-name: x ty prop)
+     `(Refine [,(name-ref->sexp x) : ,ty] ,(prop->sexp prop))]
+    [(Intersection: elems _)
      (cons '∩ (sort (map t->s elems) primitive<=?))]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]

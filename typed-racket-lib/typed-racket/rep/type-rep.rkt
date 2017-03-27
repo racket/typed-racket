@@ -9,6 +9,8 @@
 (require (utils tc-utils)
          "rep-utils.rkt"
          "core-rep.rkt"
+         "object-rep.rkt"
+         "prop-rep.rkt"
          "values-rep.rkt"
          "type-mask.rkt"
          "free-variance.rkt"
@@ -19,7 +21,6 @@
          racket/match racket/list
          syntax/id-table
          racket/contract
-         racket/set
          racket/lazy-require
          (for-syntax racket/base
                      racket/syntax
@@ -53,6 +54,15 @@
          Union-all-flat:
          Union/set:
          Intersection?
+         subst-names
+         inc-lvl
+         abstract-names
+         -refine
+         Refine:
+         Refine-obj:
+         Refine-name:
+         save-term-var-names!
+         extract-props
          (rename-out [instantiate instantiate-raw-type]
                      [Union:* Union:]
                      [Intersection:* Intersection:]
@@ -72,7 +82,9 @@
                      [Mu-body Mu-body-unsafe]
                      [Poly-body* Poly-body]
                      [PolyDots-body* PolyDots-body]
-                     [PolyRow-body* PolyRow-body]))
+                     [PolyRow-body* PolyRow-body]
+                     [Intersection-prop* Intersection-prop]
+                     [Intersection:* Intersection:]))
 
 (define (resolvable? x)
   (or (Mu? x)
@@ -81,9 +93,15 @@
 
 (lazy-require
  ("../types/overlap.rkt" (overlap?))
- ("../types/resolve.rkt" (resolve-app)))
+ ("../types/prop-ops.rkt" (-and))
+ ("../types/resolve.rkt" (resolve-app))
+ ("../infer/infer.rkt" (intersect)))
 
-(define var-name-table (make-hash))
+;; tables that save variables from parsed types
+;; so that later printing/checking can use the
+;; the same variables
+(define type-var-name-table (make-hash))
+(define term-var-name-table (make-hash))
 
 ;; Name = Symbol
 
@@ -448,8 +466,7 @@
 
 (def-type Opaque ([pred identifier?])
   #:base
-  [#:custom-constructor
-   (make-Opaque (normalize-id pred))])
+  [#:custom-constructor (make-Opaque (normalize-id pred))])
 
 
 
@@ -526,8 +543,7 @@
   [#:frees (f) (if mutable? (make-invariant (f t)) (f t))]
   [#:fmap (f) (make-fld (f t) acc mutable?)]
   [#:for-each (f) (f t)]
-  [#:custom-constructor
-   (make-fld t (normalize-id acc) mutable?)])
+  [#:custom-constructor (make-fld t (normalize-id acc) mutable?)])
 
 ;; poly? : is this type polymorphically variant
 ;;         If not, then the predicate is enough for higher order checks
@@ -554,12 +570,9 @@
   ;; This should eventually be based on understanding of struct properties.
   [#:mask (mask-union mask:struct mask:procedure)]
   [#:custom-constructor
-   (make-Struct (normalize-id name)
-                parent
-                flds
-                proc
-                poly?
-                (normalize-id pred-id))])
+   (let ([name (normalize-id name)]
+         [pred-id (normalize-id pred-id)])
+     (make-Struct name parent flds proc poly? pred-id))])
 
 ;; Represents prefab structs
 ;; key  : prefab key encoding mutability, auto-fields, etc.
@@ -632,24 +645,28 @@
 ;; is used to remove overlapping types from unions.
 (def-type Union ([mask type-mask?]
                  [base (or/c Bottom? Base? BaseUnion?)]
-                 [ts (cons/c Type? (cons/c Type? (listof Type?)))]
-                 [elems (and/c (set/c Type?)
-                               (λ (h) (> (set-count h) 1)))])
+                 [ts (cons/c Type? (listof Type?))]
+                 [elems (hash/c Type? #t #:immutable #t #:flat? #t)])
   #:no-provide
   #:non-transparent
   [#:frees (f) (combine-frees (map f ts))]
   [#:fmap (f) (Union-fmap f base ts)]
   [#:for-each (f) (for-each f ts)]
   [#:mask (λ (t) (Union-mask t))]
-  [#:custom-constructor
+  [#:custom-constructor/contract
+   (-> type-mask?
+       (or/c Bottom? Base? BaseUnion?)
+       (listof Type?)
+       (hash/c Type? #t #:immutable #t #:flat? #t)
+       Type?)
    ;; make sure we do not build Unions equivalent to
    ;; Bottom, a single BaseUnion, or a single type
    (cond
-     [(set-member? elems Univ) Univ]
+     [(hash-has-key? elems Univ) Univ]
      [else
-      (match (set-count elems)
+      (match (hash-count elems)
         [0 base]
-        [1 #:when (Bottom? base) (set-first elems)]
+        [1 #:when (Bottom? base) (hash-iterate-key elems (hash-iterate-first elems))]
         [_ (intern-double-ref!
             union-intern-table
             elems
@@ -713,7 +730,7 @@
   (define bbits #b0)
   (define nbits #b0)
   (define ts '())
-  (define elems (mutable-set))
+  (define elems (hash))
   ;; add a Base element to the union
   (define (add-base! numeric? bits)
     (cond
@@ -740,10 +757,10 @@
        (add-any-base! b*)
        (set! ts (append ts* ts))
        (for ([t* (in-list ts*)])
-         (set-add! elems t*))]
+         (set! elems (hash-set elems t* #t)))]
       [t (set! m (mask-union m (mask t)))
          (set! ts (cons t ts))
-         (set-add! elems t)]))
+         (set! elems (hash-set elems t #t))]))
   ;; process the input arguments
   (process! base-arg)
   (for-each process! args)
@@ -759,28 +776,34 @@
 (define (Un . args)
   (Union-fmap (λ (x) x) -Bottom args))
 
+
 ;; Intersection
 ;; ts - the list of types (gives deterministic behavior)
 ;; elems - the set equivalent of 'ts', useful for equality tests
-(def-type Intersection ([ts (cons/c Type? (cons/c Type? (listof Type?)))]
-                        [elems (set/c Type?)])
+(def-type Intersection ([ts (cons/c Type? (listof Type?))]
+                        [prop (and/c Prop? (not/c FalseProp?))]
+                        [elems (hash/c Type? #t #:immutable #t #:flat? #t)])
   #:non-transparent
   #:no-provide
-  [#:frees (f) (combine-frees (map f ts))]
-  [#:fmap (f) (apply -unsafe-intersect (map f ts))]
-  [#:for-each (f) (for-each f ts)]
+  [#:frees (f) (combine-frees (cons (f prop) (map f ts)))]
+  [#:fmap (f) (-refine
+               (for*/fold ([res Univ])
+                          ([t (in-list ts)]
+                           [t (in-value (f t))])
+                 (intersect res t))
+               (f prop))]
+  [#:for-each (f) (for-each f ts) (f prop)]
   [#:mask (λ (t) (for/fold ([m mask:unknown])
                            ([elem (in-list (Intersection-ts t))])
                    (mask-intersect m (mask elem))))]
   [#:custom-constructor
-   (intern-single-ref! intersection-table
-                       elems
-                       #:construct (make-Intersection ts elems))])
+   (intern-double-ref!
+    intersection-table
+    elems
+    prop
+    #:construct (make-Intersection ts prop elems))])
 
 (define intersection-table (make-weak-hash))
-
-(define-match-expander Intersection:*
-  (syntax-rules () [(_ ts) (Intersection: ts _)]))
 
 (define (make-Intersection* ts)
   (apply -unsafe-intersect ts))
@@ -789,27 +812,116 @@
 ;; in general, intersections should be built
 ;; using the 'intersect' operator, which worries
 ;; about actual subtyping, etc...
-(define (-unsafe-intersect . ts)
-  (let loop ([elems (set)]
-             [ts ts])
-    (match ts
-      [(list)
-       (let ([ts (set->list elems)])
-         (cond
-           [(null? ts) Univ]
-           ;; size = 1 ?
-           [(null? (cdr ts)) (car ts)]
-           ;; size > 1, build an intersection
-           [else (make-Intersection ts elems)]))]
-      [(cons t ts)
-       (match t
-         [(Univ:) (loop elems ts)]
-         [(Intersection: ts* _) (loop elems (append ts* ts))]
-         [_ #:when (for/or ([elem (in-immutable-set elems)]) (not (overlap? elem t)))
-            -Bottom]
-         [_ (loop (set-add elems t) ts)])])))
+(define -unsafe-intersect
+  (case-lambda
+    [() Univ]
+    [(t) t]
+    [args
+     (let loop ([ts '()]
+                [elems (hash)]
+                [prop -tt]
+                [args args])
+       (match args
+         [(list)
+          (match ts
+            [(list) (-refine Univ prop)]
+            [(list t) (-refine (car ts) prop)]
+            [_ (let ([t (make-Intersection ts -tt elems)])
+                 (-refine t prop))])]
+         [(cons arg args)
+          (match arg
+            [(Univ:) (loop ts elems prop args)]
+            [(Intersection: ts* (TrueProp:) _) (loop ts elems prop (append ts* args))]
+            [(Intersection: ts* prop* _)
+             (loop ts
+                   elems
+                   (-and prop* prop)
+                   (append ts* args))]
+            [_ #:when (for/or ([elem (in-list args)])
+                        (not (overlap? elem arg)))
+               -Bottom]
+            [t (let ([count (hash-count elems)]
+                     [elems (hash-set elems t #t)])
+                 (if (eqv? count (hash-count elems))
+                     (loop ts elems prop args)
+                     (loop (cons t ts) elems prop args)))])]))]))
 
+(define/provide (Intersection-w/o-prop t)
+  (match t
+    [(Intersection: _ (TrueProp:) _) t]
+    [(Intersection: (list t) prop _) t]
+    [(Intersection: ts prop tset) (make-Intersection ts -tt tset)]))
 
+;; -refine
+;;
+;; Constructor for refinements
+;;
+;; (-refine t p) constructs a refinement type
+;; and assumes 'p' is already in the locally nameless form
+;;
+;; (-refine x t p) constructs a refinement type
+;; after abstracting the identifier 'x' from 'p'
+(define/provide -refine
+  (case-lambda
+    [(t prop)
+     (match* (t prop)
+       [(_ (TrueProp:)) t]
+       [(_ (FalseProp:)) -Bottom]
+       [(_ (TypeProp: (Path: '() (cons 0 0)) t*)) (intersect t t*)]
+       [((Intersection: ts (TrueProp:) tset) _) (make-Intersection ts prop tset)]
+       [((Intersection: ts prop* tset) _)
+        (-refine (make-Intersection ts -tt tset) (-and prop prop*))]
+       [(_ _) (make-Intersection (list t) prop (hash t #t))])]
+    [(nm t prop) (-refine t (abstract-names prop (list nm)))]))
+
+(define-match-expander Intersection:*
+  (λ (stx) (syntax-case stx ()
+             [(_ ts prop) (syntax/loc stx (Intersection ts prop _))]
+             [(_ x ts prop) (syntax/loc stx (and (Intersection ts _ _)
+                                                 (app (λ (i)
+                                                        (define x (genid))
+                                                        (cons x (Intersection-prop* (-id-path x) i)))
+                                                      (cons x prop))))])))
+
+(define-match-expander Refine:
+  (λ (stx) (syntax-case stx ()
+             [(_ t prop)
+              (syntax/loc stx
+                (and (Intersection: _ (and (not (TrueProp:)) prop) _)
+                     (app Intersection-w/o-prop t)))]
+             [(_ x t prop)
+              (syntax/loc stx
+                (and (Intersection _ (not (TrueProp:)) _)
+                     (app Intersection-w/o-prop t)
+                     (app (λ (i)
+                            (define x (genid))
+                            (cons x (Intersection-prop* (-id-path x) i)))
+                          (cons x prop))))])))
+
+(define-match-expander Refine-name:
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ x t prop)
+       (syntax/loc stx
+         (and (Intersection _ (not (TrueProp:)) _)
+              (app Intersection-w/o-prop t)
+              (app (λ (i)
+                     (match-define (list x) (hash-ref term-var-name-table i (list (gen-pretty-id))))
+                     (cons x (Intersection-prop* (-id-path x) i)))
+                   (cons x prop))))])))
+
+(define (save-term-var-names! t xs)
+  (hash-set! term-var-name-table t (map (λ (id) (gen-pretty-id (syntax->datum id))) xs)))
+
+(define-match-expander Refine-obj:
+  (λ (stx) (syntax-case stx ()
+             [(_ obj t prop)
+              (syntax/loc stx
+                (and (Intersection _ (not (TrueProp:)) _)
+                     (app Intersection-w/o-prop t)
+                     (app (λ (i) (Intersection-prop* obj i)) prop)))])))
+
+;; refinement based on some predicate function 'pred'
 (def-type Refinement ([parent Type?] [pred identifier?])
   [#:frees (f) (f parent)]
   [#:fmap (f) (make-Refinement (f parent) pred)]
@@ -1055,7 +1167,7 @@
 ;; the 'smart' constructor
 (define (Mu* name body)
   (let ([v (make-Mu (abstract name body))])
-    (hash-set! var-name-table v name)
+    (hash-set! type-var-name-table v name)
     v))
 
 ;; the 'smart' destructor
@@ -1079,7 +1191,7 @@
 (define (Poly* names body #:original-names [orig names])
   (if (null? names) body
       (let ([v (make-Poly (length names) (abstract-many names body))])
-        (hash-set! var-name-table v orig)
+        (hash-set! type-var-name-table v orig)
         v)))
 
 ;; the 'smart' destructor
@@ -1094,7 +1206,7 @@
 (define (PolyDots* names body)
   (if (null? names) body
       (let ([v (make-PolyDots (length names) (abstract-many names body))])
-        (hash-set! var-name-table v names)
+        (hash-set! type-var-name-table v names)
         v)))
 
 ;; the 'smart' destructor
@@ -1113,7 +1225,7 @@
 ;;
 (define (PolyRow* names constraints body #:original-names [orig names])
   (let ([v (make-PolyRow constraints (abstract-many names body))])
-    (hash-set! var-name-table v orig)
+    (hash-set! type-var-name-table v orig)
     v))
 
 (define (PolyRow-body* names t)
@@ -1152,7 +1264,7 @@
     (syntax-case stx ()
       [(_ np bp)
        #'(? Mu?
-            (app (lambda (t) (let ([sym (hash-ref var-name-table t (lambda _ (gensym)))])
+            (app (lambda (t) (let ([sym (hash-ref type-var-name-table t (lambda _ (gensym)))])
                                (list sym (Mu-body* sym t))))
                  (list np bp)))])))
 
@@ -1182,7 +1294,7 @@
        #'(? Poly?
             (app (lambda (t)
                    (let* ([n (Poly-n t)]
-                          [syms (hash-ref var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
+                          [syms (hash-ref type-var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
                      (list syms (Poly-body* syms t))))
                  (list nps bp)))])))
 
@@ -1201,7 +1313,7 @@
        #'(? Poly?
             (app (lambda (t)
                    (let* ([n (Poly-n t)]
-                          [syms (hash-ref var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))]
+                          [syms (hash-ref type-var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))]
                           [fresh-syms (map fresh-name syms)])
                      (list syms fresh-syms (Poly-body* fresh-syms t))))
                  (list nps freshp bp)))])))
@@ -1227,7 +1339,7 @@
        #'(? PolyDots?
             (app (lambda (t)
                    (let* ([n (PolyDots-n t)]
-                          [syms (hash-ref var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
+                          [syms (hash-ref type-var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
                      (list syms (PolyDots-body* syms t))))
                  (list nps bp)))])))
 
@@ -1249,7 +1361,7 @@
       [(_ nps constrp bp)
        #'(? PolyRow?
             (app (lambda (t)
-                   (define syms (hash-ref var-name-table t (λ _ (list (gensym)))))
+                   (define syms (hash-ref type-var-name-table t (λ _ (list (gensym)))))
                    (list syms
                          (PolyRow-constraints t)
                          (PolyRow-body* syms t)))
@@ -1261,7 +1373,7 @@
       [(_ nps freshp constrp bp)
        #'(? PolyRow?
             (app (lambda (t)
-                   (define syms (hash-ref var-name-table t (λ _ (list (gensym)))))
+                   (define syms (hash-ref type-var-name-table t (λ _ (list (gensym)))))
                    (define fresh-syms (list (gensym (car syms))))
                    (list syms fresh-syms
                          (PolyRow-constraints t)
@@ -1363,3 +1475,95 @@
   (match t
     [(Mu-unsafe: body) (instantiate t body)]
     [t (error 'unfold "not a mu! ~a" t)]))
+
+
+;; inc-lvl
+;; (cons nat nat) -> (cons nat nat)
+;; DeBruijn indexes are represented as a pair of naturals.
+;; This function increments the 'lvl' field of such an index.
+(define (inc-lvl x)
+  (match x
+    [(cons lvl arg) (cons (add1 lvl) arg)]
+    [_ x]))
+
+;; inc-lvls
+;; This function increments the 'lvl' field in all of the targets
+;; and objects of substitution (see 'inc-lvl' above)
+;; (side note: there is a similar but _different_ version
+;; of this function in tc-subst.rkt)
+(define (inc-lvls targets)
+  (for/list ([tgt (in-list targets)])
+    (match tgt
+      [(cons nm1 (Path: flds nm2))
+       (cons (inc-lvl nm1) (make-Path flds (inc-lvl nm2)))]
+      [(cons nm1 rst)
+       (cons (inc-lvl nm1) rst)])))
+
+
+;; name substitution -- like subst-rep in
+;; tc-subst but much simpler
+(define/cond-contract (subst-names rep targets)
+  (-> Rep? (listof (cons/c name-ref/c OptObject?)) Rep?)
+  (define (rec/inc-lvl rep)
+    (subst-names rep (inc-lvls targets)))
+  (let rec ([rep rep])
+    (match rep
+      ;; Functions
+      ;; increment the level of the substituted object
+      [(arr: dom rng rest drest kws)
+       (make-arr (map rec dom)
+                 (rec/inc-lvl rng)
+                 (and rest (rec rest))
+                 (and drest (cons (rec (car drest)) (cdr drest)))
+                 (map rec kws))]
+      ;; Refinement types e.g. {x ∈ τ | ψ(x)}
+      ;; increment the level of the substituted object
+      [(Intersection: ts p _) (-refine
+                               (for/fold ([res Univ])
+                                         ([t (in-list ts)])
+                                 (intersect res t))
+                               (rec/inc-lvl p))]
+      [(Path: flds nm)
+       (let ([flds (map rec flds)])
+         (cond
+           [(assoc nm targets name-ref=?)
+            => (match-lambda
+                 [(cons _ (Path: flds* nm*)) (make-Path (append flds flds*) nm*)]
+                 [(cons _ (Empty:)) -empty-obj]
+                 [(cons _ (? LExp? l)) #:when (null? flds) l]
+                 [_ -empty-obj])]
+           [else (make-Path flds nm)]))]
+      [_ (Rep-fmap rep rec)])))
+
+(define (abstract-names rep ids)
+  (define sub (for/list ([id (in-list ids)]
+                         [idx (in-range (length ids))])
+                (cons id (-id-path (cons 0 idx)))))
+  (subst-names rep sub))
+
+
+(define (Intersection-prop* obj t)
+  (define p (Intersection-prop t))
+  (and p (subst-names p (list (cons (cons 0 0) obj)))))
+
+
+;; given the fact that 'obj' is of type 'type',
+;; look inside of type trying to learn
+;; more info about obj
+(define (extract-props obj type)
+  (cond
+    [(Empty? obj) '()]
+    [else
+     (define props '())
+     (let extract! ([rep type]
+                    [obj obj])
+       (match rep
+         [(Pair: t1 t2) (extract! t1 (-car-of obj))
+                        (extract! t2 (-cdr-of obj))]
+         [(Refine-obj: obj t prop)
+          (set! props (cons prop props))
+          (extract! t obj)]
+         [(Intersection: ts _ _) (for ([t (in-list ts)])
+                                   (extract! t obj))]
+         [_ (void)]))
+     props]))

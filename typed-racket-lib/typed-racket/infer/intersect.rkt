@@ -11,14 +11,14 @@
 (export intersect^)
 
 
-(define ((intersect-types additive?) t1 t2)
+(define ((intersect-types additive?) t1 t2 #:obj [obj -empty-obj])
   (cond
     ;; we dispatch w/ Error first, because it behaves in
     ;; strange ways (e.g. it is ⊤ and ⊥ w.r.t subtyping) and
     ;; mucks up what might otherwise be commutative behavior
     [(or (Error? t1) (Error? t2)) Err]
     [else
-     (let intersect ([t1 t1] [t2 t2] [seen '()])
+     (let intersect ([t1 t1] [t2 t2] [seen '()] [obj obj])
        ;; t1   : Type?
        ;; t2   : Type?
        ;; seen : (listof (cons/c (cons/c Type? Type?) symbol?))
@@ -26,14 +26,14 @@
        ;; recursive types in order to prevent infinite looping
        ;; and build a recursive type when appropriate. See the 'resolvable?'
        ;; cases below.
-       (define (rec t1 t2) (intersect t1 t2 seen))
+       (define (rec t1 t2 [obj -empty-obj]) (intersect t1 t2 seen obj))
        (match* (t1 t2)
          ;; quick overlap check
          [(_ _) #:when (not (overlap? t1 t2)) -Bottom]
       
          ;; already a subtype
-         [(_ _) #:when (subtype t1 t2) t1]
-         [(_ _) #:when (subtype t2 t1) t2]
+         [(_ _) #:when (subtype t1 t2 #:obj obj) t1]
+         [(_ _) #:when (subtype t2 t1 #:obj obj) t2]
 
      
          ;; polymorphic intersect
@@ -46,7 +46,7 @@
      
          ;; structural recursion on types
          [((Pair: a1 d1) (Pair: a2 d2))
-          (rebuild -pair (rec a1 a2) (rec d1 d2))]
+          (rebuild -pair (rec a1 a2 (-car-of obj)) (rec d1 d2 (-cdr-of obj)))]
          ;; FIXME: support structural updating for structs when structs are updated to
          ;; contain not only *if* they are polymorphic, but *which* fields are too
          ;;[((Struct: _ _ _ _ _ _)
@@ -66,16 +66,18 @@
              (let ([t1s (if (Bottom? base1) t1s (cons base1 t1s))])
                (apply Un (for*/list ([t1 (in-list t1s)]
                                      [t2 (in-list t2s)]
-                                     [t* (in-value (rec t1 t2))]
+                                     [t* (in-value (rec t1 t2 obj))]
                                      #:unless (Bottom? t*))
                            t*)))]
-            [_ (Union-fmap (λ (t1) (rec t1 t2)) base1 t1s)])]
-         [(t1 (Union: base2 t2s)) (Union-fmap (λ (t2) (rec t1 t2)) base2 t2s)]
+            [_ (Union-fmap (λ (t1) (rec t1 t2 obj)) base1 t1s)])]
+         [(t1 (Union: base2 t2s)) (Union-fmap (λ (t2) (rec t1 t2 obj)) base2 t2s)]
 
-         [((Intersection: t1s) t2)
-          (apply -unsafe-intersect (map (λ (t1) (rec t1 t2)) t1s))]
-         [(t1 (Intersection: t2s))
-          (apply -unsafe-intersect (map (λ (t2) (rec t1 t2)) t2s))]
+         [((Intersection: t1s raw-prop) t2)
+          (-refine (apply -unsafe-intersect (map (λ (t1) (rec t1 t2 obj)) t1s))
+                   raw-prop)]
+         [(t1 (Intersection: t2s raw-prop))
+          (-refine (apply -unsafe-intersect (map (λ (t2) (rec t1 t2 obj)) t2s))
+                   raw-prop)]
 
          ;; For resolvable types, we record the occurrence and save a back pointer
          ;; in 'seen'. Then, if this pair of types emerges again, we know that we are
@@ -106,7 +108,8 @@
                                   (resolve t2)
                                   (list* (cons (cons t1 t2) record)
                                          (cons (cons t2 t1) record)
-                                         seen)))
+                                         seen)
+                                  obj))
              (cond
                ;; check if we used the backpointer, if so,
                ;; make a recursive type using that name
@@ -137,10 +140,10 @@
                           -Bottom)])]
          [((BaseUnion-bases: bases1) t2)
           (apply Un (for/list ([b (in-list bases1)])
-                      (rec b t2)))]
+                      (rec b t2 obj)))]
          [(t1 (BaseUnion-bases: bases2))
           (apply Un (for/list ([b (in-list bases2)])
-                      (rec t1 b)))]
+                      (rec t1 b obj)))]
 
          ;; t2 and t1 have a complex relationship, so we build an intersection
          ;; if additive, otherwise t1 remains unchanged

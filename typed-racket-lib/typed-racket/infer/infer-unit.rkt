@@ -15,7 +15,8 @@
                 values-rep rep-utils type-mask)
            (types utils abbrev numeric-tower subtype resolve
                   substitute generalize prefab)
-           (env index-env tvar-env))
+           (env lexical-env index-env tvar-env)
+           (logic proves))
           make-env -> ->* one-of/c)
          "constraint-structs.rkt"
          "signatures.rkt" "fail.rkt"
@@ -524,7 +525,7 @@
         [(s (? Mu? t)) (cg s (unfold t))]
 
         ;; find *an* element of elems which can be made a subtype of T
-        [((Intersection: ts) T)
+        [((Intersection: ts raw-prop) T)
          (cset-join
           (for*/list ([t (in-list ts)]
                       [v (in-value (cg t T))]
@@ -532,9 +533,14 @@
             v))]
         
         ;; constrain S to be below *each* element of elems, and then combine the constraints
-        [(S (Intersection: ts))
+        [(S (Intersection: ts raw-prop))
          (define cs (for/list/fail ([ts (in-list ts)]) (cg S ts)))
-         (and cs (cset-meet* (cons empty cs)))]
+         (let ([obj (-id-path (genid))])
+           (and cs
+                (implies-in-env? (lexical-env)
+                                 (-is-type obj S)
+                                 (instantiate-rep/obj raw-prop obj S))
+                (cset-meet* (cons empty cs))))]
         
         ;; constrain *each* element of es to be below T, and then combine the constraints
         [((BaseUnion-bases: es) T)

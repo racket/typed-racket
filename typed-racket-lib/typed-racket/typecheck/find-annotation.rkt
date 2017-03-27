@@ -58,12 +58,12 @@
        #:with n:id #'c.e
        #:with (v) #'(c.v ...)
        #:fail-unless (free-identifier=? name #'n) #f
-       (or (type-annotation #'v) (lookup-type/lexical #'v #:fail (lambda _ #f)))]
+       (or (type-annotation #'v) (lookup-id-type/lexical #'v #:fail (lambda _ #f)))]
       [c:lv-clause
        #:with (#%plain-app reverse n:id) #'c.e
        #:with (v) #'(c.v ...)
        #:fail-unless (free-identifier=? name #'n) #f
-       (or (type-annotation #'v) (lookup-type/lexical #'v #:fail (lambda _ #f)))]
+       (or (type-annotation #'v) (lookup-id-type/lexical #'v #:fail (lambda _ #f)))]
       [_ #f]))
   (syntax-parse stx
     #:literal-sets (kernel-literals)

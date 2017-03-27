@@ -1,11 +1,13 @@
 #lang racket/base
 
-(require "rep-utils.rkt"
+(require "../utils/utils.rkt"
+         "rep-utils.rkt"
          "type-mask.rkt"
          "core-rep.rkt"
          "base-types.rkt"
          "numeric-base-types.rkt"
          racket/match
+         (contract-req)
          (for-syntax racket/base))
 
 (provide BaseUnion-bases:
@@ -31,7 +33,10 @@
                            [(eqv? #b0 bbits) mask:number]
                            [(eqv? #b0 nbits) mask:base]
                            [else mask:base+number])])]
-  [#:custom-constructor
+  [#:custom-constructor/contract
+   (-> exact-nonnegative-integer?
+       exact-nonnegative-integer?
+       Type?)
    ;; make sure we do not build BaseUnions equivalent to
    ;; Bottom or a *single* Base type
    (cond

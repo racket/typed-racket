@@ -6,7 +6,8 @@
          "signatures.rkt"
          "check-below.rkt" "../types/kw-types.rkt"
          (types utils abbrev subtype type-table path-type
-                prop-ops overlap resolve generalize tc-result)
+                prop-ops overlap resolve generalize tc-result
+                numeric-tower)
          (private-in syntax-properties parse-type)
          (rep type-rep prop-rep object-rep)
          (only-in (infer infer) intersect)
@@ -15,13 +16,12 @@
          racket/list
          racket/private/class-internal
          syntax/parse
-         (only-in racket/list split-at)
          (typecheck internal-forms tc-envops)
          racket/sequence
          racket/extflonum
          ;; Needed for current implementation of typechecking letrec-syntax+values
-         (for-template (only-in racket/base letrec-values)
-                       (only-in racket/base list)
+         (for-template (only-in racket/base list letrec-values
+                                + * < <= = >= >)
                        ;; see tc-app-contracts.rkt
                        racket/contract/private/provide)
 
@@ -46,13 +46,10 @@
   ;; see if id* is an alias for an object
   ;; if not (-id-path id*) is returned
   (define obj (lookup-alias/lexical id*))
-  (define-values (alias-path alias-id)
+  (define ty
     (match obj
-      [(Path: p x) (values p x)]
-      [(Empty:) (values (list) id*)]))
-  ;; calculate the type, resolving aliasing and paths if necessary
-  (define ty (or (path-type alias-path (lookup-type/lexical alias-id))
-                 Univ))
+      [(Empty:) (lookup-id-type/lexical id*)]
+      [_ (lookup-obj-type/lexical obj)]))
  
   (ret ty
        (if (overlap? ty (-val #f))
@@ -110,7 +107,7 @@
     [#f #f]))
 
 (define (explicit-fail stx msg var)
-  (cond [(and (identifier? var) (lookup-type/lexical var #:fail (λ _ #f)))
+  (cond [(and (identifier? var) (lookup-id-type/lexical var #:fail (λ _ #f)))
          =>
          (λ (t)
            (tc-error/expr #:stx stx
@@ -149,11 +146,17 @@
       [(quote #f) (ret (-val #f) -false-propset)]
       [(quote #t) (ret (-val #t) -true-propset)]
       [(quote val)
-       (match expected
-         [(tc-result1: t)
-          (ret (tc-literal #'val t) -true-propset)]
-         [_
-          (ret (tc-literal #'val) -true-propset)])]
+       (ret (match expected
+              [(tc-result1: t) (tc-literal #'val t)]
+              [_ (tc-literal #'val)])
+            -true-propset
+            ;; sometimes we want integer's symbolic objects
+            ;; to be themselves
+            (let ([v (syntax-e #'val)])
+              (if (and (exact-integer? v)
+                       (with-linear-integer-arithmetic?))
+                  (-lexp v)
+                  -empty-obj)))]
       ;; syntax
       [(quote-syntax datum . _)
        (define expected-type
@@ -195,7 +198,12 @@
           ;(tc-expr/check #'e3 expected)
           (tc-error/expr "with-continuation-mark requires a continuation-mark-key, but got ~a" key-t)])]
       ;; application
-      [(#%plain-app . _) (tc/app form expected)]
+      [(#%plain-app . _)
+       (define result (tc/app form expected))
+       (cond
+         [(with-linear-integer-arithmetic?)
+          (add-applicable-linear-info form result)]
+         [else result])]
       ;; #%expression
       [(#%expression e) (tc/#%expression form expected)]
       ;; begin
@@ -412,3 +420,86 @@
      ;; FIXME is there a type for prefab structs?
      Univ]
     [_ Univ]))
+
+
+
+;; adds linear info for the following operations:
+;; + * < <= = >= >
+;; when the arguments are integers w/ objects
+(define (add-applicable-linear-info form result)
+  ;; class to recognize expressions that typecheck at a subtype of -Int
+  ;; and whose object is non-empty
+  (define-syntax-class int/obj
+    #:attributes (obj)
+    (pattern e:expr
+             #:do [(define o
+                     (match (type-of #'e)
+                       [(tc-result1: t _ (? Object? o))
+                        #:when (subtype t -Int)
+                        o]
+                       [_ #f]))]
+             #:fail-unless o "not an integer with a non-empty object"
+             #:attr obj o))
+  ;; class to recognize int comparisons and associate their
+  ;; internal TR prop constructors
+  (define-syntax-class int-comparison
+    #:attributes (constructor)
+    (pattern (~literal <) #:attr constructor -lt)
+    (pattern (~literal <=) #:attr constructor -leq)
+    (pattern (~literal >=) #:attr constructor -geq)
+    (pattern (~literal >) #:attr constructor -gt)
+    (pattern (~literal =) #:attr constructor -eq))
+
+  ;; takes a result and adds p to the then proposition
+  ;; and (not p) to the else proposition
+  (define (add-p/not-p result p)
+    (match result
+      [(tc-result1: t (PropSet: p+ p-) o)
+       (ret t
+            (-PS (-and p p+) (-and (negate-prop p) p-))
+            o)]
+      [_ result]))
+
+  ;; takes a list of arguments to a comparison function
+  ;; and returns the list of atomic facts that would hold
+  ;; if returned #t
+  (define (comparison-props comp obj1 obj2 obj-rest)
+    (define-values (props _)
+      (for/fold ([atoms (list (comp obj1 obj2))]
+                 [prev-obj obj2])
+                ([obj (in-list obj-rest)])
+        (values (cons (-lt prev-obj obj) atoms)
+                obj)))
+    props)
+  ;; inspect the function appplication to see if it is a linear
+  ;; integer compatible form we want to enrich with info when
+  ;; #:with-linear-integer-arithmetic is specified by the user
+  (syntax-parse form
+    [(#%plain-app (~literal *) e1:int/obj e2:int/obj)
+     (match result
+       [(tc-result1: t ps _)
+        (define o1*o2 (-obj* (attribute e1.obj) (attribute e2.obj)))
+        (cond
+          [(Object? o1*o2)
+           (ret (-refine/fresh x t (-eq (-lexp x) o1*o2))
+                ps
+                o1*o2)]
+          [else result])]
+       [_ result])]
+    [(#%plain-app (~literal +) e:int/obj es:int/obj ...)
+     (match result
+       [(tc-result1: t ps _)
+        (define l (apply -lexp (attribute e.obj) (attribute es.obj)))
+        (ret (-refine/fresh x t (-eq (-lexp x) l))
+             ps
+             l)])]
+    [(#%plain-app comp:int-comparison
+                  e1:int/obj
+                  e2:int/obj
+                  es:int/obj ...)
+     (define p (apply -and (comparison-props (attribute comp.constructor)
+                                             (attribute e1.obj)
+                                             (attribute e2.obj)
+                                             (attribute es.obj))))
+     (add-p/not-p result p)]
+    [_ result]))

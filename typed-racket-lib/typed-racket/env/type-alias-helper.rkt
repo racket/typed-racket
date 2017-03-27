@@ -58,7 +58,7 @@
 (define (check-type-alias-contractive id type)
   (define/match (check type)
     [((Union: _ ts)) (andmap check ts)]
-    [((Intersection: elems)) (andmap check elems)]
+    [((Intersection: elems _)) (andmap check elems)]
     [((Name/simple: name-id))
      (and (not (free-identifier=? name-id id))
           (check (resolve-once type)))]

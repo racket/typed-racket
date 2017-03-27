@@ -9,12 +9,20 @@
          (only-in (infer infer) intersect)
          (utils stxclass-util)
          syntax/parse
-         racket/function
-         racket/sequence
          racket/extflonum)
 
 (import)
 (export tc-literal^)
+
+;; racket/function's conjoin is very general and therefore slow
+;; and it's trivial to just define the specific version we need:
+(define-syntax-rule (conjoin f ...)
+  (λ (x) (and (f x) ...)))
+
+(define (maybe-add-linear-integer-info int t)
+  (if (with-linear-integer-arithmetic?)
+      (-refine/fresh x t (-eq (-lexp x) (-lexp int)))
+      t))
 
 ;; return the type of a literal value
 ;; tc-literal: racket-value-syntax [type] -> type
@@ -22,21 +30,29 @@
   (define-syntax-class exp
     (pattern (~and i (~or :number :str :bytes))
              #:fail-unless expected #f
-             #:fail-unless (subtype (-val (syntax-e #'i)) expected) #f))
+             #:fail-unless (let ([n (syntax-e #'i)])
+                             (subtype (-val n) expected #:obj (if (exact-integer? n) (-lexp n) -empty-obj))) #f))
   (syntax-parse v-stx
     [i:exp expected]
     [i:boolean (-val (syntax-e #'i))]
     [i:identifier (-val (syntax-e #'i))]
     ;; Numbers
-    [0 -Zero]
-    [1 -One]
-    [(~var i (3d (conjoin byte? positive?))) -PosByte]
-    [(~var i (3d byte?)) -Byte]
-    [(~var i (3d (conjoin portable-index? positive?))) -PosIndex]
-    [(~var i (3d (conjoin portable-fixnum? positive?))) -PosFixnum]
-    [(~var i (3d (conjoin portable-fixnum? negative?))) -NegFixnum]
-    [(~var i (3d exact-positive-integer?)) -PosInt]
-    [(~var i (3d (conjoin exact-integer? negative?))) -NegInt]
+    [0 (maybe-add-linear-integer-info 0 -Zero)]
+    [1 (maybe-add-linear-integer-info 1 -One)]
+    [(~var i (3d (conjoin byte? positive?)))
+     (maybe-add-linear-integer-info (syntax-e #'i) -PosByte)]
+    [(~var i (3d byte?))
+     (maybe-add-linear-integer-info (syntax-e #'i) -Byte)]
+    [(~var i (3d (conjoin portable-index? positive?)))
+     (maybe-add-linear-integer-info (syntax-e #'i) -PosIndex)]
+    [(~var i (3d (conjoin portable-fixnum? positive?)))
+     (maybe-add-linear-integer-info (syntax-e #'i) -PosFixnum)]
+    [(~var i (3d (conjoin portable-fixnum? negative?)))
+     (maybe-add-linear-integer-info (syntax-e #'i) -NegFixnum)]
+    [(~var i (3d exact-positive-integer?))
+     (maybe-add-linear-integer-info (syntax-e #'i) -PosInt)]
+    [(~var i (3d (conjoin exact-integer? negative?)))
+     (maybe-add-linear-integer-info (syntax-e #'i) -NegInt)]
     [(~var i (3d (conjoin number? exact? rational? positive?))) -PosRat]
     [(~var i (3d (conjoin number? exact? rational? negative?))) -NegRat]
     [(~var i (3d (lambda (x) (eqv? x 0.0)))) -FlonumPosZero]

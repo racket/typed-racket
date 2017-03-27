@@ -488,7 +488,7 @@
        (define types (map cdr (Signature-mapping sig)))
        (for ([type (in-list types)]
              [id (in-list ids)])
-         (define lexical-type (lookup-type/lexical id))
+         (define lexical-type (lookup-id-type/lexical id))
          (unless (subtype lexical-type type)
            (tc-error/fields "type mismatch in unit-from-context export"
                             "expected" type
@@ -597,7 +597,7 @@
        (define types (map cdr (Signature-mapping sig)))
        (for ([type (in-list types)]
              [id (in-list ids)])
-         (define lexical-type (lookup-type/lexical id))
+         (define lexical-type (lookup-id-type/lexical id))
          (unless (subtype lexical-type type)
            (tc-error/fields "type mismatch in invoke-unit import"
                             "expected" type
@@ -663,7 +663,7 @@
               [sig (in-value (car sig-mapping))]
               [mapping (in-value (cdr sig-mapping))]
               [(id expected-type) (in-dict mapping)])
-         (define id-lexical-type (lookup-type/lexical id))
+         (define id-lexical-type (lookup-id-type/lexical id))
          (unless (subtype id-lexical-type expected-type)
            (tc-error/fields "type mismatch in unit export"
                             "expected" expected-type

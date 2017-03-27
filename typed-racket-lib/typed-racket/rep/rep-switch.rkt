@@ -8,7 +8,7 @@
                      racket/list
                      racket/syntax))
 
-(provide define-switch)
+(provide define-rep-switch)
 
 
 ;; a macro for defining a switch function of the form:
@@ -17,21 +17,22 @@
 ;; This allows us to dispatch on the first arguments Rep-uid,
 ;; which can be more efficient than long match statements with a case
 ;; for large numbers of Reps (e.g. subtype)
-(define-syntax (define-switch stx)
-  (define-syntax-class (switch-clause arg other-args)
+(define-syntax (define-rep-switch stx)
+  (define-syntax-class (switch-clause pre-args arg post-args)
     (pattern (((~datum case:) rep-name:id pattern:expr) . body)
              #:with name #'rep-name
              #:with idx (format-id #'rep-name "uid:~a" (syntax->datum #'rep-name))
              #:with function
-             (with-syntax ([arg arg]
-                           [other-args other-args])
+             (with-syntax ([(pre-args ...) pre-args]
+                           [arg arg]
+                           [(post-args ...) post-args])
                (syntax/loc #'body
-                 (λ (arg . other-args)
+                 (λ (pre-args ... arg post-args ...)
                    (match arg
                      [pattern . body]))))))
   (syntax-parse stx
-    [(_ (name:id arg:id args:id ...)
-        (~var clause (switch-clause #'arg #'(args ...))) ...
+    [(_ (name:id pre-args:id ... (#:switch arg:id) post-args:id ...)
+        (~var clause (switch-clause #'(pre-args ...) #'arg #'(post-args ...))) ...
         [(~datum else:) . default])
      (define name-symbols (map syntax->datum (syntax->list #'(clause.name ...))))
      (unless (not (null? name-symbols))
@@ -61,8 +62,9 @@
                              cur-stx)))
      (syntax/loc stx
        (define name
-         (let* ([default-fun (λ (arg args ...) . default)]
+         (let* ([default-fun (λ (pre-args ... arg post-args ...) . default)]
                 [switch-table (make-vector (get-uid-count) default-fun)])
            (vector-set! switch-table clause.idx clause.function)
            ...
-           (λ (arg args ...) ((unsafe-vector-ref switch-table (Rep-uid arg)) arg args ...)))))]))
+           (λ (pre-args ... arg post-args ...)
+             ((unsafe-vector-ref switch-table (Rep-uid arg)) pre-args ... arg post-args ...)))))]))

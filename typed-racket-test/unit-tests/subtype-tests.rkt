@@ -1,9 +1,9 @@
 #lang racket/base
 
 (require "test-utils.rkt"
-         (types subtype numeric-tower utils abbrev)
+         (types subtype numeric-tower utils abbrev prop-ops)
          (rep type-rep values-rep)
-         (env init-envs type-env-structs)
+         (env lexical-env init-envs type-env-structs)
          rackunit
          (for-syntax racket/base))
 
@@ -11,8 +11,14 @@
 (gen-test-main)
 
 (define-for-syntax (single-subtype-test stx)
-  (syntax-case stx (FAIL)
-    [(FAIL t s) (syntax/loc stx (test-check (format "FAIL ~a" '(t s)) (lambda (a b) (not (subtype a b))) t s))]
+  (syntax-case stx (FAIL ENV ENV/FAIL)
+    [(FAIL t s) (syntax/loc stx (test-check (format "FAIL ~a" '(t s))
+                                            (λ (a b) (not (subtype a b))) t s))]
+    [(ENV ps t s) (syntax/loc stx (with-naively-extended-lexical-env [#:props ps]
+                                    (test-check (format "ENV ~a" '(ps t s)) subtype t s)))]
+    [(ENV/FAIL ps t s) (syntax/loc stx (with-naively-extended-lexical-env [#:props ps]
+                                         (test-check (format "ENV/FAIL ~a" '(ps t s))
+                                                     (λ (a b) (not (subtype a b))) t s)))]
     [(t s) (syntax/loc stx (test-check (format "~a" '(t s)) subtype t s))]))
 
 (define-syntax (subtyping-tests stx)
@@ -25,6 +31,9 @@
 
 (define x1 #'x)
 (define x2 #'x)
+(define x #'x)
+(define y #'y)
+(define z #'z)
 (define A (make-F (gensym 'A)))
 (define B (make-F (gensym 'B)))
 (define AorB (Un A B))
@@ -584,6 +593,114 @@
    ))
 
 
+(define refinement-tests
+  (subtyping-tests
+   "Refinement Subtyping"
+   ;; weakening
+   [(-refine/fresh x -Int (-leq (-lexp x) (-lexp 42)))
+    -Int]
+   ;; τ not a subtype of refined τ
+   [FAIL -Int
+         (-refine/fresh x -Int (-leq (-lexp x) (-lexp 42)))]
+   ;; prop implies w/ leqs
+   [(-refine/fresh x -Int (-leq (-lexp x) (-lexp 99)))
+    (-refine/fresh x -Int (-leq (-lexp x) (-lexp 100)))]
+   ;; prop doesn't imply
+   [FAIL
+    (-refine/fresh x -Int (-leq (-lexp x) (-lexp 99)))
+    (-refine/fresh x -Nat (-leq (-lexp x) (-lexp 100)))]
+   [FAIL
+    (-refine/fresh x -Int (-is-type y -String))
+    (-refine/fresh x -Nat (-is-type y -String))]
+   ;; logical implication w/ types
+   [(-refine/fresh x -Int (-is-type y -Int))
+    (-refine/fresh x -Int (-is-type y -Number))]
+   [(-refine/fresh x -Int (-and (-is-type y -Nat)
+                                (-is-type z -Nat)))
+    (-refine/fresh x -Int (-or (-is-type y -Int)
+                               (-is-type z -Int)))]
+   [(-refine/fresh x -Int (-or (-is-type y -Nat)
+                               (-is-type z -Nat)))
+    (-refine/fresh x -Int (-or (-is-type y -Int)
+                               (-is-type z -Int)))]
+   [FAIL
+    (-refine/fresh x -Int (-or (-is-type y -Nat)
+                               (-is-type z -String)))
+    (-refine/fresh x -Int (-or (-is-type y -Int)
+                               (-is-type z -Int)))]
+   [(-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 99))
+                                (-leq (-lexp 1) (-lexp x))))
+    (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 100))
+                                (-leq (-lexp 0) (-lexp x))))]
+   [FAIL
+    (-refine/fresh x -Int (-or (-leq (-lexp x) (-lexp 99))
+                               (-leq (-lexp 1) (-lexp x))))
+    (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 100))
+                                (-leq (-lexp 0) (-lexp x))))]
+   ;; refinements in unions
+   [(Un -String (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 99))
+                                            (-leq (-lexp 1) (-lexp x)))))
+    (Un -String (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 100))
+                                            (-leq (-lexp 0) (-lexp x)))))]
+   [(Un (-refine/fresh x -String (-and (-is-type y -Nat)
+                                       (-is-type z -Nat)))
+        (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 99))
+                                    (-leq (-lexp 1) (-lexp x)))))
+    (Un (-refine/fresh x -String (-or (-is-type y -Int)
+                                      (-is-type z -Int)))
+        (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 100))
+                                    (-leq (-lexp 0) (-lexp x)))))]
+   [FAIL
+    (Un (-refine/fresh x -String (-or (-is-type y -Int)
+                                      (-is-type z -Int)))
+        (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 99))
+                                    (-leq (-lexp 1) (-lexp x)))))
+    (Un (-refine/fresh x -String (-and (-is-type y -Nat)
+                                       (-is-type z -Nat)))
+        (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 100))
+                                    (-leq (-lexp 0) (-lexp x)))))]
+   ;; refinements with "structural" types
+   [(-pair -String (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 99))
+                                               (-leq (-lexp 1) (-lexp x)))))
+    (-pair -String (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 100))
+                                               (-leq (-lexp 0) (-lexp x)))))]
+   [(-pair (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 99))
+                                       (-leq (-lexp 1) (-lexp x))))
+           -String)
+    (-pair (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 100))
+                                       (-leq (-lexp 0) (-lexp x))))
+           -String)]
+   [(-refine/fresh x (-pair -Int -Int)
+                   (-and (-leq (-lexp (-car-of (-id-path x))) (-lexp 99))
+                         (-leq (-lexp 1) (-lexp (-car-of (-id-path x))))))
+    (-pair (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 100))
+                                       (-leq (-lexp 0) (-lexp x))))
+           -Number)]
+   [(-refine/fresh x (-pair -Int -Int)
+                   (-and (-leq (-lexp (-cdr-of (-id-path x))) (-lexp 99))
+                         (-leq (-lexp 1) (-lexp (-cdr-of (-id-path x))))))
+    (-pair -Number
+           (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 100))
+                                       (-leq (-lexp 0) (-lexp x)))))]
+   [FAIL
+    (-refine/fresh x -Int (-leq (-lexp x) (-lexp y)))
+    (-refine/fresh x -Int (-leq (-lexp x) (-lexp z)))]
+   ;; some tests w/ environments
+   [ENV
+    (list (-leq (-lexp y) (-lexp z)))
+    (-refine/fresh x -Int (-leq (-lexp x) (-lexp y)))
+    (-refine/fresh x -Int (-leq (-lexp x) (-lexp z)))]
+   [ENV
+    (list (-not-type z -String))
+    (-refine/fresh x -Int (-or (-is-type y -Nat)
+                               (-is-type z -String)))
+    (-refine/fresh x -Int (-or (-is-type y -Int)
+                               (-is-type z -Int)))]
+   [ENV/FAIL
+    (list (-leq (-lexp z) (-lexp y)))
+    (-refine/fresh x -Int (-leq (-lexp x) (-lexp y)))
+    (-refine/fresh x -Int (-leq (-lexp x) (-lexp z)))]))
+
 
 (define tests
   (test-suite
@@ -596,4 +713,5 @@
    function-tests
    oo-tests
    values-tests
-   other-tests))
+   other-tests
+   refinement-tests))

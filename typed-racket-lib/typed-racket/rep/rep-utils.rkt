@@ -17,7 +17,6 @@
           racket/list
           (except-in syntax/parse id identifier keyword)
           racket/base
-          syntax/struct
           syntax/id-table
           (contract-req)
           racket/syntax))
@@ -36,9 +35,11 @@
   (and (list? l)
        (>= (length l) len)))
 
-(define-for-cond-contract name-ref/c
-  (or/c identifier?
-        (cons/c exact-integer? exact-integer?)))
+(define (name-ref/c x)
+  (or (identifier? x)
+      (and (pair? x)
+           (exact-integer? (car x))
+           (exact-integer? (cdr x)))))
 
 (define (name-ref=? x y)
   (cond
@@ -46,9 +47,41 @@
      (and (identifier? y) (free-identifier=? x y))]
     [else (equal? x y)]))
 
-(define id-table (make-free-id-table))
+;; normal-id-table
+;;
+;; id table to map all free-identifier=? ids from
+;; the users program to the same id for typechecking
+;; purposes (this gives us equal?, which is really nice.
+;; the alternative is implementing gen:equal-hash for all
+;; the structs that carry identifiers, but this was noticably
+;; slower when I tried it out in late 2016 -amk)
+;; Note: we use a free-id-table, which could _potentially_
+;; leak memory if we're encountering lots of identifiers
+;; that shouldn't stay in memory for the entirety of typechecking,
+;; HOWEVER, we don't put our gensymed identifiers into this table
+;; (they are 'normal' from the get-go -- see utils/utils.rkt),
+;; so this shouldnt be an issue, we should just be putting
+;; identifiers from the program itself in here, and those
+;; will be in memory for typechecking anyway.
+(define normal-id-table (make-free-id-table))
+
+;; gets the "canonical" representative for this id.
+;; if one does not exist yet, the id is marked
 (define (normalize-id id)
-  (free-id-table-ref! id-table id id))
+  (cond
+    ;; if it's alread normal, just return it
+    [(normalized-id? id) id]
+    ;; otherwise check if id-table has the normal
+    ;; version already and if so, return that
+    [(free-id-table-ref normal-id-table id #f)]
+    [else
+     ;; otherwise mark this id as normal, put it
+     ;; in the table, and return it (this is now
+     ;; the canonical id for all other ids
+     ;; free-identifier=? to this one
+     (let ([id (mark-id-as-normalized id)])
+       (free-id-table-set! normal-id-table id id)
+       id)]))
 
 (define (hash-id id)
   (eq-hash-code (identifier-binding-symbol id)))
@@ -214,16 +247,27 @@
       . body)
      #:with free-vars (fixed-rep-transform #'self #'f #'free-vars* struct-fields #'body)
      #:with free-idxs (fixed-rep-transform #'self #'f #'free-idxs* struct-fields #'body)))
-  (define-syntax-class (constructor-spec constructor-name raw-constructor-name struct-fields)
+  (define-syntax-class (constructor-spec constructor-name
+                                         constructor-contract
+                                         internal-constructor-name
+                                         raw-constructor-name
+                                         raw-constructor-contract
+                                         struct-fields)
     #:attributes (def)
     (pattern body
              #:with def
              (with-syntax ([constructor-name constructor-name]
+                           [constructor-contract constructor-contract]
+                           [internal-constructor-name internal-constructor-name]
                            [raw-constructor-name raw-constructor-name]
+                           [raw-constructor-contract raw-constructor-contract]
                            [(struct-fields ...) struct-fields])
-               #'(define (constructor-name struct-fields ...)
-                   (let ([constructor-name raw-constructor-name])
-                     . body)))))
+               #'(define/cond-contract (constructor-name struct-fields ...)
+                   constructor-contract
+                   (define/cond-contract constructor-name
+                     raw-constructor-contract
+                     raw-constructor-name)
+                   . body))))
   ;; definer parser for functions who operate on Reps. Fields are automatically bound
   ;; to the struct-field id names in the body. An optional self argument can be specified.
   (define-syntax-class (generic-transformer struct-fields)
@@ -236,8 +280,7 @@
   (define-syntax-class var-name
     #:attributes (name constructor raw-constructor match-expander predicate)
     (pattern name:id
-             #:with constructor
-             (format-id #'name "make-~a" (syntax-e #'name))
+             #:with constructor (format-id #'name "make-~a" (syntax-e #'name))
              ;; hidden constructor for use inside custom constructor defs
              #:with raw-constructor (format-id #'name "raw-make-~a" (syntax-e #'name))
              #:with match-expander
@@ -288,10 +331,23 @@
        ;; #:no-provide option (i.e. don't provide anything automatically)
        (~optional (~and #:no-provide no-provide?-kw))
        (~optional [#:singleton singleton:id])
-       (~optional [#:custom-constructor . (~var constr-def
-                                                (constructor-spec #'var.constructor
-                                                                  #'var.raw-constructor
-                                                                  #'(flds.ids ...)))])
+       (~optional (~or [#:custom-constructor
+                        . (~var constr-def
+                                (constructor-spec #'var.constructor
+                                                  #'(-> flds.contracts ... any)
+                                                  #'var.internal-constructor
+                                                  #'var.raw-constructor
+                                                  #'(-> flds.contracts ... any)
+                                                  #'(flds.ids ...)))]
+                       [#:custom-constructor/contract
+                        custom-constructor-contract
+                        . (~var constr-def
+                                (constructor-spec #'var.constructor
+                                                  #'custom-constructor-contract
+                                                  #'var.internal-constructor
+                                                  #'var.raw-constructor
+                                                  #'(-> flds.contracts ... any)
+                                                  #'(flds.ids ...)))]))
        (~optional (~and #:non-transparent non-transparent-kw))
        ;; #:extras to specify other struct properties in a per-definition manner
        (~optional [#:extras . extras]))
@@ -336,7 +392,9 @@
        ([uid-id (format-id #'var.name "uid:~a" (syntax->datum #'var.name))]
         [(parent ...) (if (attribute parent) #'(parent) #'())]
         ;; contract for constructor
-        [constructor-contract #'(-> flds.contracts ... any)]
+        [constructor-contract (if (attribute custom-constructor-contract)
+                                  #'custom-constructor-contract
+                                  #'(-> flds.contracts ... any))]
         [constructor-name (if (attribute constr-def)
                               #'var.raw-constructor
                               #'var.constructor)]

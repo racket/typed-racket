@@ -12,6 +12,8 @@
 (provide tests)
 (gen-test-main)
 
+(define x #'x)
+
 ;; Ensure that we never return a prop or object of #f.
 (define (check-prop f)
   (match f

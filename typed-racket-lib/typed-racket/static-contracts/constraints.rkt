@@ -13,7 +13,7 @@
 ;;     referenced by the variable.
 ;;
 ;;   merge-restricts: kind? contract-restrict? ... -> contract-restrict?
-;;   merge-restricts*: kind? (listof contracct-restrict?) -> contract-restrict?
+;;   merge-restricts*: kind? (listof contract-restrict?) -> contract-restrict?
 ;;     This means that the generated contract will be the max of kind and all of the other contract
 ;;     restricts.
 ;;

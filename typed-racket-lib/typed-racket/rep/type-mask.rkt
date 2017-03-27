@@ -21,8 +21,8 @@
 ;;************************************************************
 
 (require (for-syntax racket/base syntax/parse)
-         racket/unsafe/ops
-         racket/fixnum)
+         ;racket/fixnum
+         racket/unsafe/ops)
 
 (provide type-mask?
          mask-union

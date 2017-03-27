@@ -45,4 +45,5 @@
         [(ListDots: t bound) (-lst (substitute Univ bound t))]
         [(? (lambda (t) (subtype t -Symbol))) -Symbol]
         [(== -True) -Boolean]
+        [(Refine: t _) (loop t)]
         [_ t*]))))

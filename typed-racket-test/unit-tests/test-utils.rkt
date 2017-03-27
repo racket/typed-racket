@@ -11,7 +11,9 @@
          (rep type-rep)
          rackunit rackunit/text-ui)
 
-(provide private typecheck (rename-out [infer r:infer]) utils env rep types base-env static-contracts
+(provide private typecheck (rename-out [infer r:infer])
+         utils env rep types base-env static-contracts
+         logic
          (all-defined-out))
 
 (define (tc-result-equal/test? res1 res2)

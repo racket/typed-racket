@@ -6,6 +6,7 @@
                     -> ->* one-of/c)
          (rep type-rep prop-rep object-rep values-rep rep-utils)
          (typecheck tc-subst)
+         (logic ineq)
          (contract-req))
 
 (provide abstract-results
@@ -36,24 +37,6 @@
     [(tc-results: ts fs os dty dbound)
      (make-ValuesDots (map -result ts fs os) dty dbound)]))
 
-(define/cond-contract (resolve atoms prop)
-  ((listof Prop?)
-   Prop?
-   . -> .
-   Prop?)
-  (for/fold ([prop prop])
-            ([a (in-list atoms)])
-    (match prop
-      [(AndProp: ps)
-       (let loop ([ps ps] [result null])
-         (match ps
-           [(cons p ps)
-            (cond [(contradictory? a p) -ff]
-                  [(implies-atomic? a p) (loop ps result)]
-                  [else (loop ps (cons p result))])]
-           [_ (apply -and result)]))]
-      [_ prop])))
-
 (define (flatten-props ps)
   (let loop ([ps ps])
     (match ps
@@ -64,41 +47,83 @@
 (define/cond-contract (combine-props new-props old-props)
   ((listof Prop?) (listof Prop?)
                   . -> .
-                  (values (or/c #f (listof OrProp?))
+                  (values (or/c #f (listof (or/c OrProp? LeqProp?)))
                           (or/c #f (listof (or/c TypeProp? NotTypeProp?)))))
-  (define (atomic-prop? p) (or (TypeProp? p) (NotTypeProp? p)))
-  (define-values (new-atoms new-formulas) (partition atomic-prop? (flatten-props new-props)))
-  (let loop ([derived-ors null]
-             [derived-atoms new-atoms]
-             [worklist (append old-props new-formulas)])
-    (match worklist
-      [(cons (app (λ (p) (resolve derived-atoms p)) p)
-             worklist)
-       (match p
-         [(OrProp: qs)
-          (let or-loop ([qs qs] [result null])
-            (match qs
-              [(cons q qs)
-               (let check-loop ([atoms derived-atoms])
-                 (match atoms
-                   [(cons a atoms)
-                    (cond
-                      [(contradictory? q a) (or-loop qs result)]
-                      [(implies-atomic? a q) (loop derived-ors derived-atoms worklist)]
-                      [else (check-loop atoms)])]
-                   [_ (or-loop qs (cons q result))]))]
-              [_ (define new-or (apply -or result))
-                 (if (OrProp? new-or)
-                     (loop (cons new-or derived-ors) derived-atoms worklist)
-                     (loop derived-ors derived-atoms (cons new-or worklist)))]))]
-         [(or (? TypeProp?)
-              (? NotTypeProp?))
-          (loop derived-ors (cons p derived-atoms) worklist)]
-
-         [(AndProp: qs) (loop derived-ors derived-atoms (append qs worklist))]
-         [(TrueProp:) (loop derived-ors derived-atoms worklist)]
-         [(FalseProp:) (values #f #f)])]
-      [_ (values derived-ors derived-atoms)])))
+  (define-values (atoms leqs ors)
+    (let ([atoms '()]
+          [leqs '()]
+          [ds '()])
+      (let partition! ([args (append old-props new-props)])
+        (match args
+          [(list) (void)]
+          [(cons p rst)
+           (match p
+             [(TrueProp:) (partition! rst)]
+             [(TypeProp: obj (Refine: t p))
+              (partition! (list (-is-type obj t)
+                                (instantiate-rep/obj p obj t)))
+              (partition! rst)]
+             [(? TypeProp? p)
+              (set! atoms (cons p atoms))
+              (partition! rst)]
+             [(NotTypeProp: obj (Refine: t p))
+              (partition! (list (-or (-not-type obj t)
+                                     (negate-prop (instantiate-rep/obj p obj t)))))
+              (when atoms (partition! rst))]
+             [(? NotTypeProp? p)
+              (set! atoms (cons p atoms))
+              (partition! rst)]
+             [(? LeqProp? p) (set! leqs (cons p leqs))
+                             (partition! rst)]
+             [(? OrProp? p) (set! ds (cons p ds))
+                            (partition! rst)]
+             [(AndProp: ps) (partition! ps)
+                            (when atoms
+                              (partition! rst))]
+             [(FalseProp:) (set! atoms #f)
+                           (set! leqs #f)
+                           (set! ds #f)])]))
+      (values atoms leqs ds)))
+  (cond
+    [(not atoms) (values #f #f)]
+    [else
+     (let loop ([worklist ors]
+                [atoms atoms]
+                [leqs leqs]
+                [ors null])
+       (match worklist
+         [(cons cur rst)
+          (match cur
+            [(OrProp: qs)
+             (let or-loop ([qs qs] [result null])
+               (match qs
+                 [(cons (? LeqProp? ineq) qs)
+                  (match (Leqs-imply-Leq-or-not-Leq? leqs ineq)
+                    [#t (loop rst atoms leqs ors)]
+                    [#f (or-loop qs result)]
+                    [_ (or-loop qs (cons ineq result))])]
+                 [(cons q qs)
+                  (let check-loop ([ps atoms])
+                    (match ps
+                      [(cons p ps)
+                       (cond
+                         [(contradiction? q p) (or-loop qs result)]
+                         [(atomic-implies? p q) (loop rst atoms leqs ors)]
+                         [else (check-loop ps)])]
+                      [_ (or-loop qs (cons q result))]))]
+                 [_ (define new-or (apply -or result))
+                    (if (OrProp? new-or)
+                        (loop rst atoms leqs (cons new-or ors))
+                        (loop (cons new-or rst) atoms leqs ors))]))]
+            [(or (? TypeProp?)
+                 (? NotTypeProp?))
+             (loop rst (cons cur atoms) leqs ors)]
+            [(AndProp: qs) (loop (append qs rst) atoms leqs ors)]
+            [(TrueProp:) (loop rst atoms leqs ors)]
+            [(FalseProp:) (values #f #f)]
+            [(? LeqProp?) (loop rst atoms (cons cur leqs) ors)])]
+         [_ #:when (not (satisfiable-Leqs? leqs)) (values #f #f)]
+         [_ (values (append leqs ors) atoms)]))]))
 
 
 (define (unconditional-prop res)

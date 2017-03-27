@@ -4,18 +4,20 @@
          racket/list racket/match
          (prefix-in c: (contract-req))
          (rep type-rep prop-rep object-rep values-rep rep-utils)
+         (logic ineq)
          (only-in (infer infer) intersect)
-         (types subtype overlap subtract abbrev tc-result union))
+         (types subtype overlap subtract abbrev tc-result union path-type update))
 
 (provide/cond-contract
   [-and (c:->* () #:rest (c:listof Prop?) Prop?)]
   [-or (c:->* () #:rest (c:listof Prop?) Prop?)]
-  [implies-atomic? (c:-> Prop? Prop? boolean?)]
+  [atomic-implies? (c:-> Prop? Prop? boolean?)]
   [implies? (c:-> Prop? Prop? boolean?)]
   [prop-equiv? (c:-> Prop? Prop? boolean?)]
   [negate-prop (c:-> Prop? Prop?)]
-  [complementary? (c:-> Prop? Prop? boolean?)]
-  [contradictory? (c:-> Prop? Prop? boolean?)]
+  [atomic-complement? (c:-> Prop? Prop? boolean?)]
+  [atomic-contradiction? (c:-> Prop? Prop? boolean?)]
+  [contradiction? (c:-> Prop? Prop? boolean?)]
   [add-unconditional-prop-all-args (c:-> Function? Type? Function?)]
   [add-unconditional-prop (c:-> tc-results/c Prop? tc-results/c)]
   [erase-props (c:-> tc-results/c tc-results/c)]
@@ -60,32 +62,104 @@
     [(tc-results: ts pss os)
      (tc-results (map update-ps ts pss os) #f)]
     [(tc-results: ts pss os dt db)
-     (tc-results (map update-ps ts pss os) (cons dt db))]
-    [_ (error 'reduce-tc-results/subsumption
-              "invalid res in subst-tc-results: ~a"
-              res)]))
+     (tc-results (map update-ps ts pss os) (cons dt db))]))
 
 
-;; contradictory: Prop? Prop? -> boolean?
+;; atomic-contradiction?: Prop? Prop? -> boolean?
 ;; Returns true if the AND of the two props is equivalent to FalseProp
-(define (contradictory? p1 p2)
+(define (atomic-contradiction? p1 p2)
   (match* (p1 p2)
     [((TypeProp: o1 t1) (NotTypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t1 t2))]
+     (and (eq? o1 o2) (subtype t1 t2 #:obj o1))]
     [((NotTypeProp: o2 t2) (TypeProp: o1 t1))
-     (and (eq? o1 o2) (subtype t1 t2))]
+     (and (eq? o1 o2) (subtype t1 t2 #:obj o1))]
+    [((? LeqProp?) (? LeqProp?)) (contradictory-Leqs? p1 p2)]
     [((FalseProp:) _) #t]
     [(_ (FalseProp:)) #t]
     [(_ _) #f]))
 
-;; complementary: Prop? Prop? -> boolean?
+
+;; do pes1 and pes2 share a common suffix and,
+;; if so, does updating the shorter w/ the longer
+;; result in bottom?
+;; e.g. For the following args:
+;;      pes1 = (car (cdr x))
+;;      t1   = String
+;;      pes2 = (cdr x)
+;;      t2   = (Pairof Symbol Symbol)
+;; it would see that both sets are talking
+;; about (cdr x), and the first path actually
+;; talks about a structural subcomponent of that
+;; so it would update the 'car' of (Pairof Symbol Symbol)
+;; with String and see that that is Bottom,
+;; so it would return #t
+(define (updates/pos-to-bot? pes1 t1 pes2 t2)
+  (define (check pes1 t1 pes2 t2 prefix-len)
+    (and (equal? pes1 (drop pes2 prefix-len))
+         (let ([prefix (take pes2 prefix-len)])
+           (Bottom? (update t1 t2 #t prefix)))))
+  (let ([len1 (length pes1)]
+        [len2 (length pes2)])
+    (cond
+      [(<= len1 len2)
+       (check pes1 t1 pes2 t2 (- len2 len1))]
+      [else
+       (check pes2 t2 pes1 t1 (- len1 len2))])))
+
+;; does pes2 refer to the same or a subcomponent of
+;; pes1 and if so, does updating the t1+ w/ the t2-
+;; alond the difference result in bottom?
+;; e.g. For the following args:
+;;      pes1 = (cdr x)
+;;      t1+  = (Pairof Symbol Symbol)
+;;      pes2 = (car (cdr x))
+;;      t2-  = Symbol
+;; would basically see that the path elements
+;; are compatible and would update the car
+;; field of (Pairof Symbol Symbol) to be _not_
+;; Symbol, and so it would return #t
+(define (updates/neg-to-bot? pes1 t1+ pes2 t2-)
+  (define len1 (length pes1))
+  (define len2 (length pes2))
+  (and (<= len1 len2)
+       (let ([prefix-len (- len2 len1)])
+         (and (equal? pes1 (drop pes2 prefix-len))
+              (let ([prefix (take pes2 prefix-len)])
+                (Bottom? (update t1+ t2- #f prefix)))))))
+
+;; like atomic-contradiction? but it tries a little
+;; harder, reasoning about how paths overlap
+(define (contradiction? p1 p2)
+  (match* (p1 p2)
+    [((FalseProp:) _) #t]
+    [(_ (FalseProp:)) #t]
+    [((TypeProp: o t1) (NotTypeProp: o t2)) (subtype t1 t2 #:obj o)]
+    [((NotTypeProp: o t2) (TypeProp: o t1)) (subtype t1 t2 #:obj o)]
+    [((? LeqProp?) (? LeqProp?)) (contradictory-Leqs? p1 p2)]
+    [((TypeProp: (Path: pes1 x1) t1)
+      (TypeProp: (Path: pes2 x2) t2))
+     #:when (name-ref=? x1 x2)
+     (updates/pos-to-bot? pes1 t1 pes2 t2)]
+    [((TypeProp:    (Path: pes1 x1) t1)
+      (NotTypeProp: (Path: pes2 x2) t2))
+     #:when (name-ref=? x1 x2)
+     (updates/neg-to-bot? pes1 t1 pes2 t2)]
+    [((NotTypeProp: (Path: pes2 x2) t2)
+      (TypeProp:    (Path: pes1 x1) t1))
+     #:when (name-ref=? x1 x2)
+     (updates/neg-to-bot? pes1 t1 pes2 t2)]
+    [(_ _) #f]))
+
+
+;; atomic-complement?: Prop? Prop? -> boolean?
 ;; Returns true if the OR of the two props is equivalent to Top
-(define (complementary? p1 p2)
+(define (atomic-complement? p1 p2)
   (match* (p1 p2)
     [((TypeProp: o1 t1) (NotTypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t2 t1))]
+     (and (eq? o1 o2) (subtype t2 t1 #:obj o1))]
     [((NotTypeProp: o2 t2) (TypeProp: o1 t1))
-     (and (eq? o1 o2) (subtype t2 t1))]
+     (and (eq? o1 o2) (subtype t2 t1 #:obj o1))]
+    [((? LeqProp?) (? LeqProp?)) (complementary-Leqs? p1 p2)]
     [((TrueProp:) _) #t]
     [(_ (TrueProp:)) #t]
     [(_ _) #f]))
@@ -93,7 +167,7 @@
 ;; does p imply q? (but only directly/simply)
 ;; NOTE: because Ors and Atomic props are
 ;; interned, we use eq? and memq
-(define (implies-atomic? p q)
+(define (atomic-implies? p q)
   (match* (p q)
     ;; reflexivity
     [(_ _) #:when (or (eq? p q)
@@ -111,15 +185,17 @@
     ;; t1 <: t2 ?
     [((TypeProp: o1 t1)
       (TypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t1 t2))]
+     (and (eq? o1 o2) (subtype t1 t2 #:obj o1))]
     ;; t2 <: t1 ?
     [((NotTypeProp: o1 t1)
       (NotTypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t2 t1))]
+     (and (eq? o1 o2) (subtype t2 t1 #:obj o1))]
     ;; t1 ∩ t2 = ∅ ?
     [((TypeProp:    o1 t1)
       (NotTypeProp: o2 t2))
      (and (eq? o1 o2) (not (overlap? t1 t2)))]
+    [((? LeqProp? p) (? LeqProp? q))
+     (Leq-implies-Leq? p q)]
     ;; otherwise we give up
     [(_ _) #f]))
 
@@ -155,32 +231,39 @@
      (define ntf-map (make-hash))
 
      ;; consolidate type info and separate out other props
-     (define others
-       (for/fold ([others '()])
+     (define-values (leqs others)
+       (for/fold ([leqs '()]
+                  [others '()])
                  ([prop (in-list props)])
          (match prop
            [(TypeProp: o t1)
             ((if or? union-update! intersect-update!) tf-map t1 o)
-            others]
+            (values leqs others)]
            [(NotTypeProp: o t1)
             ((if or? intersect-update! union-update!) ntf-map t1 o)
-            others]
-           [_ (cons prop others)])))
+            (values leqs others)]
+           [(? LeqProp? p) (values (cons p leqs) others)]
+           [_ (values leqs (cons prop others))])))
      ;; convert consolidated types into props and gather everything
      (define raw-results
        (append (for/list ([(k v) (in-hash tf-map)])
                  (-is-type k v))
                (for/list([(k v) (in-hash ntf-map)])
                  (-not-type k v))
+               leqs
                others))
      ;; check for abort condition and remove trivial props
-     (if or?
-         (if (member -tt raw-results)
-             (list -tt)
-             (filter-not FalseProp? raw-results))
-         (if (member -ff raw-results)
-             (list -ff)
-             (filter-not TrueProp? raw-results)))]))
+     (cond
+       [or?
+        (if (member -tt raw-results)
+            (list -tt)
+            (filter-not FalseProp? raw-results))]
+       [else
+        (cond
+          [(or (member -ff raw-results)
+               (not (satisfiable-Leqs? leqs)))
+           (list -ff)]
+          [else (filter-not TrueProp? raw-results)])])]))
 
 
 
@@ -193,7 +276,9 @@
     [(TypeProp: o t) (-not-type o t)]
     [(NotTypeProp: o t) (-is-type o t)]
     [(AndProp: ps) (apply -or (map negate-prop ps))]
-    [(OrProp: ps) (apply -and (map negate-prop ps))]))
+    [(OrProp: ps) (apply -and (map negate-prop ps))]
+    [(LeqProp: lhs rhs)
+     (-leq (-lexp-add1 rhs) lhs)]))
 
 ;; -or
 ;; (listof Prop?) -> Prop?
@@ -231,12 +316,12 @@
          [(TrueProp? cur) -tt]
          [(FalseProp? cur) (loop rst result)]
          ;; is there a complementary case e.g. (ϕ ∨ ¬ϕ)? if so abort
-         [(for/or ([p (in-list rst)])    (complementary? p cur)) -tt]
-         [(for/or ([p (in-list result)]) (complementary? p cur)) -tt]
+         [(for/or ([p (in-list rst)])    (atomic-complement? p cur)) -tt]
+         [(for/or ([p (in-list result)]) (atomic-complement? p cur)) -tt]
          ;; don't include 'cur' if its covered by another prop
-         [(for/or ([p (in-list rst)]) (implies-atomic? cur p))
+         [(for/or ([p (in-list rst)]) (atomic-implies? cur p))
           (loop rst result)]
-         [(for/or ([p (in-list result)]) (implies-atomic? cur p))
+         [(for/or ([p (in-list result)]) (atomic-implies? cur p))
           (loop rst result)]
          ;; otherwise keep 'cur' in this disjunction
          [else (loop rst (cons cur result))])]
@@ -283,11 +368,11 @@
          [(FalseProp? cur) -ff]
          [(TrueProp? cur) (loop rst result)]
          ;; is there a contradition e.g. (ϕ ∧ ¬ϕ), if so abort
-         [(for/or ([p (in-list rst)])    (contradictory? p cur)) -ff]
-         [(for/or ([p (in-list result)]) (contradictory? p cur)) -ff]
+         [(for/or ([p (in-list rst)])    (atomic-contradiction? p cur)) -ff]
+         [(for/or ([p (in-list result)]) (atomic-contradiction? p cur)) -ff]
          ;; don't include 'cur' if its implied by another prop
          ;; already in our result (this is why we order the props!)
-         [(for/or ([p (in-list result)]) (implies-atomic? p cur))
+         [(for/or ([p (in-list result)]) (atomic-implies? p cur))
           (loop rst result)]
          ;; otherwise keep 'cur' in this conjunction
          [else (loop rst (cons cur result))])]

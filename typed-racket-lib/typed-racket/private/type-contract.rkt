@@ -5,7 +5,7 @@
 (require
  "../utils/utils.rkt"
  syntax/parse
- (rep type-rep prop-rep object-rep)
+ (rep type-rep prop-rep object-rep fme-utils)
  (utils tc-utils)
  (env type-name-env row-constraint-env)
  (rep core-rep rep-utils type-mask values-rep base-types numeric-base-types)
@@ -346,7 +346,40 @@
         (loop t 'both recursive-values))
       (define (t->sc/fun t) (t->sc/function t fail typed-side recursive-values loop #f))
       (define (t->sc/meth t) (t->sc/method t fail typed-side recursive-values loop))
+      (define (prop->sc p)
+        (match p
+          [(TypeProp: o (app t->sc tc))
+           (cond
+             [(not (equal? flat-sym (get-max-contract-kind tc)))
+              (fail #:reason "proposition contract generation not supported for non-flat types")]
+             [else (is-flat-type/sc (obj->sc o) tc)])]
+          [(NotTypeProp: o (app t->sc tc))
+           (cond
+             [(not (equal? flat-sym (get-max-contract-kind tc)))
+              (fail #:reason "proposition contract generation not supported for non-flat types")]
+             [else (not-flat-type/sc (obj->sc o) tc)])]
+          [(LeqProp: (app obj->sc lhs) (app obj->sc rhs))
+           (leq/sc lhs rhs)]
+          ;; TODO: check for (<= x y) and (<= y x)
+          ;; and generate and = instead of two <=
+          [(AndProp: ps)
+           (and-prop/sc (map prop->sc ps))]
+          [(OrProp: ps)
+           (or-prop/sc (map prop->sc ps))]))
 
+      (define (obj->sc o)
+        (match o
+          [(Path: pes (? identifier? x))
+           (for/fold ([obj (id/sc x)])
+                     ([pe (in-list (reverse pes))])
+             (match pe
+               [(CarPE:) (acc-obj/sc #'car obj)]
+               [(CdrPE:) (acc-obj/sc #'cdr obj)]
+               [(VecLenPE:) (acc-obj/sc #'vector-length obj)]))]
+          [(LExp: const terms)
+           (linear-exp/sc const
+                          (for/hash ([(obj coeff) (in-terms terms)])
+                            (values (obj->sc obj) coeff)))]))
       (define (only-untyped sc)
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
@@ -375,7 +408,7 @@
                              (recursive-sc-use name*))])]
        ;; Implicit recursive aliases
        [(Name: name-id args #f)
-        (cond [ ;; recursive references are looked up in a special table
+        (cond [;; recursive references are looked up in a special table
                ;; that's handled differently by sc instantiation
                (lookup-name-sc type typed-side)]
               [else
@@ -420,21 +453,39 @@
           [(Union: (? Bottom?) elems) (apply or/sc (map t->sc elems))]
           [(Union: base elems) (apply or/sc (t->sc base) (map t->sc elems))]
           [t (t->sc t)])]
-       [(Intersection: ts)
-        (define-values (chaperones/impersonators others)
-          (for/fold ([cs/is null] [others null])
+       [(Intersection: ts raw-prop)
+        (define-values (impersonators chaperones others)
+          (for/fold ([imps null]
+                     [chaps null]
+                     [flats null])
                     ([elem (in-list ts)])
             (define c (t->sc elem))
-            (if (equal? flat-sym (get-max-contract-kind c))
-                (values cs/is (cons c others))
-                (values (cons c cs/is) others))))
+            (match (get-max-contract-kind c)
+              [(== flat-sym) (values imps chaps (cons c flats))]
+              [(== chaperone-sym) (values imps (cons c chaps) flats)]
+              [(== impersonator-sym) (values (cons c imps) chaps flats)])))
+        (define prop
+          (cond
+            [(TrueProp? raw-prop) #f]
+            [else (define x (gen-pretty-id))
+                  (define prop (Intersection-prop (-id-path x) type))
+                  (define name (format "~a" `(λ (,(syntax->datum x)) ,prop)))
+                  (flat-named-lambda/sc name
+                                        (id/sc x)
+                                        (prop->sc prop))]))
         (cond
-          [(> (length chaperones/impersonators) 1)
+          [(> (+ (length impersonators) (length chaperones)) 1)
            (fail #:reason (~a "Intersection type contract contains"
                               " more than 1 non-flat contract: "
                               type))]
+          [(and prop (not (null? impersonators)))
+           (fail #:reason (~a "Cannot logically refine an impersonated value: "
+                              type))]
           [else
-           (apply and/sc (append others chaperones/impersonators))])]
+           (apply and/sc (append others
+                                 chaperones
+                                 (if prop (list prop) '())
+                                 impersonators))])]
        [(and t (Function: arrs))
         #:when (any->bool? arrs)
         ;; Avoid putting (-> any T) contracts on struct predicates (where Boolean <: T)
@@ -647,8 +698,13 @@
         (channel/sc (t->sc t))]
        [(Evt: t)
         (evt/sc (t->sc t))]
-       [else
-        (fail #:reason "contract generation not supported for this type")]))))
+       [rep
+        (cond
+          [(Prop? rep)
+           (fail #:reason "contract generation not supported for this proposition")]
+          [else
+           (fail #:reason "contract generation not supported for this type")])]))))
+
 
 (define (t->sc/function f fail typed-side recursive-values loop method?)
   (define (t->sc t #:recursive-values (recursive-values recursive-values))
@@ -789,7 +845,7 @@
             (match (resolve ty)
               [(Function: _) #t]
               [(Union: _ elems) (andmap loop elems)]
-              [(Intersection: elems) (ormap loop elems)]
+              [(Intersection: elems _) (ormap loop elems)]
               [(Poly: _ body) (loop body)]
               [(PolyDots: _ body) (loop body)]
               [_ #f])))
@@ -828,7 +884,7 @@
             (match (resolve ty)
               [(Function: _) #t]
               [(Union: _ elems) (andmap loop elems)]
-              [(Intersection: elems) (ormap loop elems)]
+              [(Intersection: elems _) (ormap loop elems)]
               [(Poly: _ body) (loop body)]
               [(PolyDots: _ body) (loop body)]
               [_ #f])))

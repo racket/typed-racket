@@ -15,6 +15,8 @@
    (filename-extension p)
    (path-only long-path)
    (some-system-path->string long-path)
+   (path-add-extension p ".bak")
+   (path-add-extension p ".bak" ".")
 
    ))
 

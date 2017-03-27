@@ -2595,7 +2595,9 @@
 [path-add-extension
  (cl->*
   (-> -Pathlike (Un -String -Bytes) -Path)
-  (-> -SomeSystemPathlike (Un -String -Bytes) -SomeSystemPath))]
+  (-> -Pathlike (Un -String -Bytes) (Un -String -Bytes) -Path)
+  (-> -SomeSystemPathlike (Un -String -Bytes) -SomeSystemPath)
+  (-> -SomeSystemPathlike (Un -String -Bytes) (Un -String -Bytes) -SomeSystemPath))]
 
 [path-replace-suffix
  (cl->*

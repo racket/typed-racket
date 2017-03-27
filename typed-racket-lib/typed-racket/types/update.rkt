@@ -47,23 +47,37 @@
          
          ;; struct ops
          [((Struct: nm par flds proc poly pred)
-           (StructPE: (? (λ (s) (subtype t s))) idx))
+           (StructPE: struct-type idx))
+          #:when (subtype t struct-type)
           ;; Note: this updates fields even if they are not polymorphic.
           ;; Because subtyping is nominal and accessor functions do not
           ;; reflect this, this behavior is unobservable except when a
           ;; variable aliases the field in a let binding
-          (define-values (lhs rhs) (split-at flds idx))
-          (define-values (ty* acc-id)
-            (match rhs
-              [(cons (fld: ty acc-id #f) _)
-               (values (update ty rst) acc-id)]
-              [_ (int-err "update on mutable struct field")]))
-          (cond 
-            [(Bottom? ty*) ty*]
-            [else
-             (define flds*
-               (append lhs (cons (make-fld ty* acc-id #f) (cdr rhs))))
-             (make-Struct nm par flds* proc poly pred)])]
+          (match-define-values (lhs (cons (fld: ty acc-id #f) rhs)) (split-at flds idx))
+          (let ([ty (update ty rst)])
+            (cond
+              [(Bottom? ty) ty]
+              [else
+               (make-Struct nm
+                            par
+                            (append lhs (cons (make-fld ty acc-id #f) rhs))
+                            proc
+                            poly
+                            pred)]))]
+
+         ;; prefab struct ops
+         [((Prefab: nm flds) (StructPE: struct-type idx))
+          #:when (subtype t struct-type)
+          ;; Note: this updates fields even if they are not polymorphic.
+          ;; Because subtyping is nominal and accessor functions do not
+          ;; reflect this, this behavior is unobservable except when a
+          ;; variable aliases the field in a let binding
+          (match-define-values (lhs (cons fld-ty rhs)) (split-at flds idx))
+          (let ([fld-ty (update fld-ty rst)])
+            (cond
+              [(Bottom? fld-ty) fld-ty]
+              [else
+               (make-Prefab nm (append lhs (cons fld-ty rhs)))]))]
          
          ;; class field ops
          ;;

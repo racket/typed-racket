@@ -193,6 +193,7 @@
   (->* () () #:rest (listof (or/c exact-integer?
                                   name-ref/c
                                   Path?
+                                  LExp?
                                   (list/c exact-integer? (or/c name-ref/c Path?))))
        (or/c LExp? Path?))
   (define-values (const terms)
@@ -223,7 +224,7 @@
 
 ;; LExp-add1
 (define/cond-contract (-lexp-add1 l)
-  (-> LExp? LExp?)
+  (-> OptObject? OptObject?)
   (match l
     [(LExp: c terms)
      (make-LExp* (add1 c) terms)]
@@ -233,7 +234,7 @@
 
 ;; LExp-add1
 (define/cond-contract (-lexp-sub1 l)
-  (-> LExp? LExp?)
+  (-> OptObject? OptObject?)
   (match l
     [(LExp: c terms)
      (make-LExp* (sub1 c) terms)]
@@ -244,12 +245,13 @@
 ;; returns #f if this LExp contains non-zero variables
 ;; else returns the constant value of the LExp
 (define/cond-contract (constant-LExp? l)
-  (-> LExp? (or/c #f exact-integer?))
+  (-> OptObject? (or/c #f exact-integer?))
   (match l
     [(LExp: c terms)
      (if (hash-empty? terms)
          c
-         #f)]))
+         #f)]
+    [_ #f]))
 
 (define/cond-contract (in-LExp? obj l)
   (-> Path? LExp? boolean?)

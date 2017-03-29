@@ -262,12 +262,9 @@
                            [raw-constructor-name raw-constructor-name]
                            [raw-constructor-contract raw-constructor-contract]
                            [(struct-fields ...) struct-fields])
-               #'(define/cond-contract (constructor-name struct-fields ...)
-                   constructor-contract
-                   (define/cond-contract constructor-name
-                     raw-constructor-contract
-                     raw-constructor-name)
-                   . body))))
+               #'(define (constructor-name struct-fields ...)
+                   (let ([constructor-name raw-constructor-name])
+                     . body)))))
   ;; definer parser for functions who operate on Reps. Fields are automatically bound
   ;; to the struct-field id names in the body. An optional self argument can be specified.
   (define-syntax-class (generic-transformer struct-fields)

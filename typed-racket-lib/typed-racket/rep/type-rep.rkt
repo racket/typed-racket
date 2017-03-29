@@ -1521,7 +1521,7 @@
       [(Intersection: ts p _) (-refine
                                (for/fold ([res Univ])
                                          ([t (in-list ts)])
-                                 (intersect res t))
+                                 (intersect res (rec t)))
                                (rec/inc-lvl p))]
       [(Path: flds nm)
        (let ([flds (map rec flds)])

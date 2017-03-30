@@ -27,6 +27,9 @@ script:
 - raco setup -j 1 math
 - racket -l typed-racket-test -- --math
 - racket -l typed-racket-test/test-docs-complete
+- echo ';; please rebuild me' >> typed-racket-lib/typed-racket/utils/utils.rkt
+- PLT_TR_CONTRACTS=1 raco setup -D typed-racket && raco setup -D typed && raco setup -D typed-racket-test
+- racket -l typed-racket-test -- --unit
 - echo "done"
 
 after_script:

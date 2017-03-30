@@ -16,7 +16,9 @@
          (for-template racket/base))
 
 (provide/cond-contract
- [add-typeof-expr (syntax? tc-results/c . -> . any/c)]
+ [add-typeof-expr (->* (syntax? tc-results/c)
+                       (#:combine (-> tc-results/c tc-results/c tc-results/c))
+                       any/c)]
  [type-of (syntax? . -> . tc-results/c)]
  [reset-type-table (-> any/c)]
  [type-table->tooltips
@@ -50,7 +52,7 @@
 
 (define (reset-type-table) (set! type-table (make-hasheq)))
 
-(define (add-typeof-expr e t)
+(define (add-typeof-expr e t #:combine [combine (λ (t1 t2) (merge-tc-results (list t1 t2)))])
   (when (and (syntax-position e) (syntax-span e))
     ;; Only keep the latest type for a given location, which means that
     ;; since typechecking proceeds inside-out we will only record the most
@@ -65,11 +67,11 @@
            ;; the car should be the latest stx for the location
            (if (equal? e (car seen))
                ;; combine types seen at the latest
-               (tooltip seen (merge-tc-results (list t results)))
+               (tooltip seen (combine t results))
                old)
            (tooltip (cons e seen) t)))
      (tooltip (list e) t)))
-  (hash-update! type-table e (λ (res) (merge-tc-results (list t res))) t))
+  (hash-update! type-table e (λ (res) (combine t res)) t))
 
 (define (type-of e)
   (hash-ref type-table e

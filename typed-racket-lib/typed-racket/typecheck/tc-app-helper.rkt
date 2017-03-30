@@ -4,7 +4,8 @@
          racket/match racket/sequence racket/set racket/list
          (only-in racket/list make-list)
          (contract-req)
-         (typecheck check-below tc-subst tc-metafunctions possible-domains)
+         (typecheck check-below tc-subst tc-metafunctions possible-domains
+                    tc-res-intersect)
          (utils tc-utils)
          (rep type-rep prop-rep values-rep)
          (except-in (types utils abbrev subtype type-table)
@@ -15,43 +16,77 @@
 (provide/cond-contract
   [tc/funapp1
     ((syntax? stx-list? arr? (listof tc-results/c) (or/c #f tc-results/c))
-     (#:check boolean?)
-     . ->* . full-tc-results/c)])
-(define (tc/funapp1 f-stx args-stx ftype0 argtys expected #:check [check? #t])
-  ;; update tooltip-table with inferred function type
-  (add-typeof-expr f-stx (ret (make-Function (list ftype0))))
+     (#:check boolean?
+      #:error-on-fail? boolean?)
+     ;; #f should only be returned if #:error-on-fail is #f
+     . ->* . (or/c #f full-tc-results/c))])
+(define (tc/funapp1 f-stx args-stx ftype0 argtys expected
+                    #:check [check? #t]
+                    #:error-on-fail? [error-on-fail? #t])
+  ;; update tooltip-table with inferred function type (unless we're using this
+  ;; function as a boolean query, in which case error-on-fail? is #f)
+  (when error-on-fail?
+    (add-typeof-expr f-stx (ret (make-Function (list ftype0)))))
   (match* (ftype0 argtys)
     ;; we check that all kw args are optional
     [((arr: dom rng rest #f (and kws (list (Keyword: _ _ #f) ...)))
-      (list (tc-result1: t-a phi-a o-a) ...))
+      (list (tc-result1: t-a _ o-a) ...))
+
+     (define (invalid-num-args? t-a dom rest)
+       (and (not rest) (not (= (length dom) (length t-a)))))
+     (define (wrong-num-args? t-a dom rest)
+       (and rest (< (length t-a) (length dom))))
+
+     (define continue-and-calculate-result?
+       (cond
+         [check?
+          (cond
+            [error-on-fail?
+             (cond [(invalid-num-args? t-a dom rest)
+                    (tc-error/fields
+                     "could not apply function"
+                     #:more "wrong number of arguments provided"
+                     "expected" (length dom)
+                     "given" (length t-a)
+                     #:delayed? #t)]
+                   [(wrong-num-args? t-a dom rest)
+                    (tc-error/fields
+                     "could not apply function"
+                     #:more "wrong number of arguments provided"
+                     "expected at least" (length dom)
+                     "given" (length t-a)
+                     #:delayed? #t)])
+             (for ([dom-t (if rest (in-sequence-forever dom rest) (in-list dom))]
+                   [a (in-syntax args-stx)]
+                   [arg-t (in-list t-a)])
+               (parameterize ([current-orig-stx a]) (check-below arg-t dom-t)))
+             #t]
+            [else
+             (and (not (invalid-num-args? t-a dom rest))
+                  (not (wrong-num-args?   t-a dom rest))
+                  (for/and ([arg-t (in-list t-a)]
+                            [dom-t (if rest (in-sequence-forever dom rest) (in-list dom))])
+                    (subtype arg-t dom-t)))])]
+         [else #t]))
      
-     (when check?
-       (cond [(and (not rest) (not (= (length dom) (length t-a))))
-              (tc-error/fields "could not apply function"
-                               #:more "wrong number of arguments provided"
-                               "expected" (length dom)
-                               "given" (length t-a)
-                               #:delayed? #t)]
-             [(and rest (< (length t-a) (length dom)))
-              (tc-error/fields "could not apply function"
-                               #:more "wrong number of arguments provided"
-                               "expected at least" (length dom)
-                               "given" (length t-a)
-                               #:delayed? #t)])
-       (for ([dom-t (if rest (in-sequence-forever dom rest) (in-list dom))]
-             [a (in-syntax args-stx)]
-             [arg-t (in-list t-a)])
-         (parameterize ([current-orig-stx a]) (check-below arg-t dom-t))))
-     (let* ([dom-count (length dom)])
-       ;; Currently do nothing with rest args and keyword args as there are no support for them in
-       ;; objects yet.
-       (let-values
-           ([(o-a t-a) (for/lists (os ts)
-                         ([_ (in-range dom-count)]
-                          [oa (in-sequence-forever (in-list o-a) -empty-obj)]
-                          [ta (in-sequence-forever (in-list t-a) Univ)])
-                         (values oa ta))])
-           (values->tc-results rng o-a t-a)))]
+     (cond
+       [continue-and-calculate-result?
+        ;; if we were querying if this would work (e.g. trying the function
+        ;; types in an arbitrary intersection) and it did!, _then_
+        ;; go ahead add the tooltip for this type
+        (unless error-on-fail?
+          (add-typeof-expr f-stx (ret (make-Function (list ftype0))) #:combine tc-res-intersect))
+        (let* ([dom-count (length dom)])
+          ;; Currently do nothing with rest args and keyword args as there are no support for them in
+          ;; objects yet.
+          (let-values
+              ([(o-a t-a) (for/lists (os ts)
+                            ([_ (in-range dom-count)]
+                             [oa (in-sequence-forever (in-list o-a) -empty-obj)]
+                             [ta (in-sequence-forever (in-list t-a) Univ)])
+                            (values oa ta))])
+            (values->tc-results rng o-a t-a)))]
+       [else #f])]
     ;; this case should only match if the function type has mandatory keywords
     ;; but no keywords were provided in the application
     [((arr: _ _ _ _

@@ -204,16 +204,16 @@
         (ret (-> Univ Univ : -tt-propset : (make-Path null '(1 . 0)))))
       (check-equal?
         (replace-names (list #'x) (list (make-Path null '(0 . 0)))
-                       (ret (-refine y -Int (-leq (-lexp y) (-lexp #'x)))
+                       (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp #'x)))
                             -tt-propset
                             (make-Path null #'x)))
-        (ret (-refine y -Int (-leq (-lexp y) (-lexp (make-Path null '(1 . 0)))))
+        (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp (make-Path null '(1 . 0)))))
              -tt-propset
              (make-Path null '(0 . 0))))
 
       (check-equal?
        (replace-names (list #'x) (list -empty-obj)
-                      (ret (-refine y -Int (-leq (-lexp y) (-lexp #'x)))
+                      (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp #'x)))
                            -tt-propset
                            (make-Path null #'x)))
        (ret -Int

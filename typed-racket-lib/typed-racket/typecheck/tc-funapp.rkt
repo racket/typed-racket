@@ -160,7 +160,7 @@
        (define row-var-idxs
          (for/list ([dom (in-list doms)])
            (define num-occurs
-             (for/list ([dom-type dom]
+             (for/list ([dom-type (in-list dom)]
                         [idx (in-naturals)]
                         #:when (member row-var (fv dom-type)))
                idx))

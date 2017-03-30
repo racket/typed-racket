@@ -19,20 +19,33 @@
     (c:or/c #f tc-results/c)
     . c:-> . full-tc-results/c)])
 
-(define-syntax (handle-clauses stx)
+;; macro that abstracts the common structure required to iterate over
+;; the arrs of a polymorphic case lambda trying to infer the correct
+;; substitution for the range when the inference algorithm succeeds
+(define-syntax (for/first-valid-inference stx)
   (syntax-parse stx
-    [(_  (lsts ... arrs) f-stx args-stx pred infer t args-res expected)
-     (with-syntax ([(vars ... a) (generate-temporaries #'(lsts ... arrs))])
-       (syntax/loc stx
-         (or (for/or ([vars (in-list lsts)] ... [a (in-list arrs)]
-                      #:when (pred vars ... a))
-               (let ([substitution (infer vars ... a)])
-                 (and substitution
-                      (tc/funapp1 f-stx args-stx (subst-all substitution a)
-                                  args-res expected #:check #f))))
-             (poly-fail f-stx args-stx t args-res
-                        #:name (and (identifier? f-stx) f-stx)
-                        #:expected expected))))]))
+    [(_  #:in-arrs [arr arrs-seq]
+         #:arr-match match-expr
+         #:function-syntax f-stx
+         #:args-syntax args-stx
+         #:infer-when when-expr
+         #:maybe-inferred-substitution infer-expr
+         #:function-type t
+         #:args-results args-res
+         #:expected expected)
+     (syntax/loc stx
+       (or (for/or ([arr arrs-seq])
+             (match arr
+               [match-expr
+                #:when when-expr
+                (let ([substitution infer-expr])
+                  (and substitution
+                       (tc/funapp1 f-stx args-stx (subst-all substitution arr)
+                                   args-res expected #:check #f)))]
+               [_ #f]))
+           (poly-fail f-stx args-stx t args-res
+                      #:name (and (identifier? f-stx) f-stx)
+                      #:expected expected)))]))
 
 (define (subst-dom-objs argtys argobjs rng)
   (subst-rep rng (for/list ([o (in-list argobjs)]
@@ -49,68 +62,89 @@
       ;; tc/funapp1 currently cannot handle drest arities
       [(Function: (list (and a (arr: _ _ _ #f _))))
        (tc/funapp1 f-stx args-stx a args-res expected)]
-      [(Function/arrs: doms rngs rests (and drests #f) kws #:arrs arrs)
-       (or
-        ;; find the first function where the argument types match
-        (for/first ([dom (in-list doms)] [rng (in-list rngs)] [rest (in-list rests)] [a (in-list arrs)]
-                                         #:when (subtypes/varargs argtys dom rest))
-          ;; then typecheck here
-          ;; we call the separate function so that we get the appropriate
-          ;; props/objects
-          (tc/funapp1 f-stx args-stx a args-res expected #:check #f))
-        ;; if nothing matched, error
-        (domain-mismatches
-         f-stx args-stx f-type doms rests drests rngs args-res #f #f
-         #:expected expected
-         #:msg-thunk (lambda (dom)
-                       (string-append
-                        "No function domains matched in function application:\n"
-                        dom))))]
+      [(Function: arrs)
+       ;; check there are no drests
+       #:when (not (ormap arr-drest arrs))
+       (cond
+         ;; find the first function where the argument types match
+         [(for/or ([a (in-list arrs)])
+            (match a [(arr: dom _ rest _ _) (and (subtypes/varargs argtys dom rest) a)]))
+          => (λ (a)
+               ;; then typecheck here -- we call the separate function so that we get
+               ;; the appropriate props/objects
+               (tc/funapp1 f-stx args-stx a args-res expected #:check #f))]
+         [else
+          ;; if nothing matched, error
+          (match arrs
+            [(list (arr: doms rngs rests drests _) ...)
+             (domain-mismatches
+              f-stx args-stx f-type doms rests drests rngs args-res #f #f
+              #:expected expected
+              #:msg-thunk (lambda (dom)
+                            (string-append
+                             "No function domains matched in function application:\n"
+                             dom)))])])]
       ;; any kind of dotted polymorphic function without mandatory keyword args
       [(PolyDots: (list fixed-vars ... dotted-var)
-                  (Function/arrs: doms rngs rests drests (list (Keyword: _ _ #f) ...) #:arrs arrs))
-       (handle-clauses
-        (doms rngs rests drests arrs) f-stx args-stx
-        ;; only try inference if the argument lengths are appropriate
-        (lambda (dom _ rest drest a)
-          (cond [rest (<= (length dom) (length argtys))]
-                [drest (and (<= (length dom) (length argtys))
-                            (eq? dotted-var (cdr drest)))]
-                [else (= (length dom) (length argtys))]))
-        ;; Only try to infer the free vars of the rng (which includes the vars
-        ;; in props/objects).
-        (λ (dom rng rest drest a)
-          (let ([rng (subst-dom-objs argtys argobjs rng)])
-            (extend-tvars fixed-vars
-                          (cond
-                            [drest
-                             (infer/dots
-                              fixed-vars dotted-var argtys dom (car drest) rng (fv rng)
-                              #:expected (and expected (tc-results->values expected)))]
-                            [rest
-                             (infer/vararg fixed-vars (list dotted-var) argtys dom rest rng
-                                           (and expected (tc-results->values expected)))]
-                            ;; no rest or drest
-                            [else (infer fixed-vars (list dotted-var) argtys dom rng
-                                         (and expected (tc-results->values expected)))]))))
-        f-type args-res expected)]
+                  (Function: arrs))
+       ;; check there are no mandatory kw args
+       #:when (not (for*/or ([a (in-list arrs)]
+                             [kws (in-value (arr-kws a))])
+                     (ormap Keyword-required? kws)))
+       (for/first-valid-inference
+           #:in-arrs [a (in-list arrs)]
+         #:arr-match (arr: dom rng rest drest _)
+         #:function-syntax f-stx
+         #:args-syntax args-stx
+         #:infer-when
+         ;; only try inference if the argument lengths are appropriate
+         (cond [rest (<= (length dom) (length argtys))]
+               [drest (and (<= (length dom) (length argtys))
+                           (eq? dotted-var (cdr drest)))]
+               [else (= (length dom) (length argtys))])
+         ;; Only try to infer the free vars of the rng (which includes the vars
+         ;; in props/objects).
+         #:maybe-inferred-substitution
+         (let ([rng (subst-dom-objs argtys argobjs rng)])
+           (extend-tvars fixed-vars
+                         (cond
+                           [drest
+                            (infer/dots
+                             fixed-vars dotted-var argtys dom (car drest) rng (fv rng)
+                             #:expected (and expected (tc-results->values expected)))]
+                           [rest
+                            (infer/vararg fixed-vars (list dotted-var) argtys dom rest rng
+                                          (and expected (tc-results->values expected)))]
+                           ;; no rest or drest
+                           [else (infer fixed-vars (list dotted-var) argtys dom rng
+                                        (and expected (tc-results->values expected)))])))
+         #:function-type f-type
+         #:args-results args-res
+         #:expected expected)]
       ;; regular polymorphic functions without dotted rest, 
       ;; we do not choose any instantiations with mandatory keyword arguments
-      [(Poly: vars (Function/arrs: doms rngs rests #f (list (Keyword: _ _ kw?) ...) #:arrs arrs))
-       (handle-clauses
-        (doms rngs rests kw? arrs) f-stx args-stx
-        ;; only try inference if the argument lengths are appropriate
-        ;; and there's no mandatory kw
-        (λ (dom _ rest kw? a) 
-          (and (andmap not kw?) ((if rest <= =) (length dom) (length argtys))))
-        ;; Only try to infer the free vars of the rng (which includes the vars
-        ;; in props/objects).
-        (λ (dom rng rest kw? a)
-          (let ([rng (subst-dom-objs argtys argobjs rng)])
-            (extend-tvars vars
-                          (infer/vararg vars null argtys dom rest rng
-                                        (and expected (tc-results->values expected))))))
-        f-type args-res expected)]
+      [(Poly: vars (Function: arrs))
+       ;; check there are no drests
+       #:when (not (ormap arr-drest arrs))
+       (for/first-valid-inference
+           #:in-arrs [a (in-list arrs)]
+         #:arr-match (arr: dom rng rest _ kws)
+         #:function-syntax f-stx
+         #:args-syntax args-stx
+         ;; only try inference if the argument lengths are appropriate
+         ;; and there's no mandatory kw
+         #:infer-when
+         (and (not (ormap Keyword-required? kws)) ((if rest <= =) (length dom) (length argtys)))
+         ;; Only try to infer the free vars of the rng (which includes the vars
+         ;; in props/objects).
+         #:maybe-inferred-substitution
+         (let ([rng (subst-dom-objs argtys argobjs rng)])
+           (extend-tvars vars
+                         (infer/vararg vars null argtys dom rest rng
+                                       (and expected (tc-results->values expected)))))
+         #:function-type f-type
+         #:args-results args-res
+         #:expected expected)]
       ;; Row polymorphism. For now we do really dumb inference that only works
       ;; in very restricted cases, but is probably enough for most cases in
       ;; the Racket codebase. Eventually this should be extended.
@@ -124,10 +158,11 @@
        ;; only infer if there is only one argument type that has the relevant
        ;; row type variable in its free variables in all cases
        (define row-var-idxs
-         (for/list ([dom doms])
+         (for/list ([dom (in-list doms)])
            (define num-occurs
-             (for/list ([dom-type dom] [idx (in-naturals)]
-                                       #:when (member row-var (fv dom-type)))
+             (for/list ([dom-type dom]
+                        [idx (in-naturals)]
+                        #:when (member row-var (fv dom-type)))
                idx))
            (unless (<= (length num-occurs) 1)
              (fail))

@@ -28,7 +28,7 @@
 ;; tc-literal: racket-value-syntax [type] -> type
 (define (tc-literal v-stx [expected #f])
   (define-syntax-class exp
-    (pattern (~and i (~or :number :str :bytes))
+    (pattern (~and i (~or :number :str :bytes :char))
              #:fail-unless expected #f
              #:fail-unless (let ([n (syntax-e #'i)])
                              (subtype (-val n) expected #:obj (if (exact-integer? n) (-lexp n) -empty-obj))) #f))

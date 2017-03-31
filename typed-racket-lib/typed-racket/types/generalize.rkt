@@ -28,6 +28,7 @@
         [(? (lambda (t) (subtype t -FloatComplex))) -FloatComplex]
         [(? (lambda (t) (subtype t -SingleFlonumComplex))) -SingleFlonumComplex]
         [(? (lambda (t) (subtype t -Number))) -Number]
+        [(? (lambda (t) (subtype t -Char))) -Char]
         [(? (lambda (t) (subtype t -ExtFlonum))) -ExtFlonum]
         [(Listof: _) t*]
         [(Pair: t1 (== -Null)) (-lst t1)]

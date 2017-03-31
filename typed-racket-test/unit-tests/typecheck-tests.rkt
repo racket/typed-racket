@@ -3928,6 +3928,17 @@
              (-refine/fresh x -Fixnum (-eq (-lexp x) (-lexp 123456)))]
        [tc-e (ann 123456 (Refine [x : Integer] (= x 123456)))
              (-refine/fresh x -Int (-eq (-lexp x) (-lexp 123456)))]
+
+       ;; chars can be typechecked at their precise, singleton type
+       ;; when it is the expected type
+       [tc-e (ann #\nul #\nul) (-val #\nul)]
+       [tc-e (ann #\a #\a) (-val #\a)]
+       [tc-e (ann #\b '#\b) (-val '#\b)]
+       ;; Check that the inferred type is still implicitly widened to Char by default,
+       ;; for backwards compatibility (previously, all chars had the type Char):
+       ;; * Check that when passed as a #:∀ type, the inferred type is Char
+       [tc-e #\b -Char]
+       [tc-e (ann #\b Char) -Char]
        )
 
   (test-suite

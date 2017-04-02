@@ -1558,14 +1558,19 @@
      (let extract! ([rep type]
                     [obj obj])
        (match rep
-         [(== -Zero) (set! props (cons (-eq obj (-lexp 0)) props))]
-         [(== -One) (set! props (cons (-eq obj (-lexp 1)) props))]
+         [(== -Zero)
+          #:when (with-linear-integer-arithmetic?)
+          (set! props (cons (-eq obj (-lexp 0)) props))]
+         [(== -One)
+          #:when (with-linear-integer-arithmetic?)
+          (set! props (cons (-eq obj (-lexp 1)) props))]
          [(Pair: t1 t2) (extract! t1 (-car-of obj))
                         (extract! t2 (-cdr-of obj))]
          [(Refine-obj: obj t prop)
           (set! props (cons prop props))
           (extract! t obj)]
          [(HeterogeneousVector: ts)
+          #:when (with-linear-integer-arithmetic?)
           (set! props (cons (-eq (-vec-len-of obj) (-lexp (length ts)))
                             props))]
          [(Intersection: ts _ _) (for ([t (in-list ts)])

@@ -869,7 +869,7 @@
                                  #:objs [objs (map  (λ (_) #f) S)])
   (->* (context? (listof Values/c) (listof Values/c))
        (#:expected-cset cset?
-        #:objs (listof (or/c #f OptObject)))
+        #:objs (listof (or/c #f OptObject?)))
        (or/c cset? #f))
   (and (= (length S) (length T))
        (% cset-meet*

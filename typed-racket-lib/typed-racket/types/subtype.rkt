@@ -26,7 +26,7 @@
 (provide NameStruct:)
 
 (provide/cond-contract
- [subtype (->* (Type? Type?) (#:obj OptObject?) boolean?)]
+ [subtype (->* (Type? Type?) (#:obj (or/c #f OptObject?)) boolean?)]
  [subresult (-> Result? Result? boolean?)]
  [subval (-> SomeValues? SomeValues? boolean?)]
  [type-equiv? (-> Type? Type? boolean?)]

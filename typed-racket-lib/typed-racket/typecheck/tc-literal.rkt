@@ -113,21 +113,26 @@
        [t 
         (-pair (tc-literal #'i) (tc-literal #'r))])]
     [(~var i (3d vector?))
-     (match (and expected (resolve (intersect expected -VectorTop)))
-       [(Vector: t)
-        (make-Vector
-          (check-below
-            (apply Un
-              (for/list ([l (in-vector (syntax-e #'i))])
-                (tc-literal l t)))
+     (define vec-val (syntax-e #'i))
+     (define vec-ty
+       (match (and expected (resolve (intersect expected -VectorTop)))
+         [(Is-a: (Vector: t))
+          (make-Vector
+           (check-below
+            (apply Un (for/list ([l (in-vector vec-val)])
+                        (tc-literal l t)))
             t))]
-       [(HeterogeneousVector: ts)
-        (make-HeterogeneousVector
-         (for/list ([l (in-vector (syntax-e #'i))]
-                    [t (in-sequence-forever (in-list ts) #f)])
-           (cond-check-below (tc-literal l t) t)))]
-       [_ (make-HeterogeneousVector (for/list ([l (in-vector (syntax-e #'i))])
-                                      (generalize (tc-literal l #f))))])]
+         [(Is-a: (HeterogeneousVector: ts))
+          (make-HeterogeneousVector
+           (for/list ([l (in-vector (syntax-e #'i))]
+                      [t (in-sequence-forever (in-list ts) #f)])
+             (cond-check-below (tc-literal l t) t)))]
+         [_ (make-HeterogeneousVector (for/list ([l (in-vector (syntax-e #'i))])
+                                        (generalize (tc-literal l #f))))]))
+     (if (with-linear-integer-arithmetic?)
+         (-refine/fresh v vec-ty (-eq (-lexp (vector-length vec-val))
+                                      (-vec-len-of (-id-path v))))
+         vec-ty)]
     [(~var i (3d hash?))
      (match (and expected (resolve (intersect expected -HashtableTop)))
        [(Hashtable: k v)

@@ -405,11 +405,14 @@
 ;; implements the V |-_X S <: T => C judgment from Pierce+Turner, extended with
 ;; the index variables from the TOPLAS paper
 (define/cond-contract (cgen context S T #:obj [obj #f])
-  (context? (or/c Values/c ValuesDots? AnyValues?) (or/c Values/c ValuesDots? AnyValues?)
-   . -> . (or/c #F cset?))
+  (->* (context? (or/c Values/c ValuesDots? AnyValues?)
+                 (or/c Values/c ValuesDots? AnyValues?))
+       (#:obj (or/c #f OptObject?))
+       (or/c #F cset?))
   ;; useful quick loop
   (define/cond-contract (cg S T #:obj [obj #f])
-   (Type? Type? . -> . (or/c #f cset?))
+   (->* (Type? Type?) (#:obj (or/c #f OptObject?))
+        (or/c #f cset?))
    (cgen context S T #:obj obj))
   (define/cond-contract (cg/inv S T)
    (Type? Type? . -> . (or/c #f cset?))
@@ -864,7 +867,10 @@
 (define/cond-contract (cgen/list context S T
                                  #:expected-cset [expected-cset (empty-cset '() '())]
                                  #:objs [objs (map  (λ (_) #f) S)])
-  ((context? (listof Values/c) (listof Values/c)) (#:expected-cset cset?) . ->* . (or/c cset? #f))
+  (->* (context? (listof Values/c) (listof Values/c))
+       (#:expected-cset cset?
+        #:objs (listof (or/c #f OptObject)))
+       (or/c cset? #f))
   (and (= (length S) (length T))
        (% cset-meet*
           (for/list/fail ([s (in-list S)]

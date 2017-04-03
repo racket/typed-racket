@@ -21,8 +21,8 @@
    [cond-contracted c-meet ((c? c?) (symbol?) . ->* . (or/c #f c?))]))
 
 (define-signature intersect^
-  ([cond-contracted intersect ((Type? Type?) (#:obj OptObject?) . ->* . Type?)]
-   [cond-contracted restrict  ((Type? Type?) (#:obj OptObject?) . ->* . Type?)]))
+  ([cond-contracted intersect ((Type? Type?) (OptObject?) . ->* . Type?)]
+   [cond-contracted restrict  ((Type? Type?) (OptObject?) . ->* . Type?)]))
 
 (define-signature infer^
   ([cond-contracted infer ((;; variables from the forall

@@ -31,7 +31,7 @@
     (pattern (~and i (~or :number :str :bytes :char))
              #:fail-unless expected #f
              #:fail-unless (let ([n (syntax-e #'i)])
-                             (subtype (-val n) expected #:obj (if (exact-integer? n) (-lexp n) -empty-obj))) #f))
+                             (subtype (-val n) expected (if (exact-integer? n) (-lexp n) -empty-obj))) #f))
   (syntax-parse v-stx
     [i:exp expected]
     [i:boolean (-val (syntax-e #'i))]

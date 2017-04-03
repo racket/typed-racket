@@ -481,7 +481,7 @@
 
         ;; they're subtypes. easy.
         [(a b) #:when (cond
-                        [(Type? a) (subtype a b #:obj obj)]
+                        [(Type? a) (subtype a b obj)]
                         [(Result? a) (subresult a b)]
                         [else (subval a b)])
          empty]

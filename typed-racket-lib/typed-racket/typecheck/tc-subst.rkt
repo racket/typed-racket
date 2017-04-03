@@ -177,7 +177,7 @@
             (match-lambda
               [(list _ inner-obj inner-obj-ty)
                (define inner-obj-ty-at-flds (or (path-type flds inner-obj-ty) Univ))
-               (define new-obj-ty (intersect obj-ty inner-obj-ty-at-flds #:obj obj))
+               (define new-obj-ty (intersect obj-ty inner-obj-ty-at-flds obj))
                (match inner-obj
                  [_ #:when (Bottom? new-obj-ty) -ff]
                  [_ #:when (subtype inner-obj-ty-at-flds obj-ty) -tt]
@@ -197,8 +197,8 @@
             (match-lambda
               [(list _ inner-obj inner-obj-ty)
                (define inner-obj-ty-at-flds (or (path-type flds inner-obj-ty) Univ))
-               (define new-obj-ty (subtract inner-obj-ty-at-flds neg-obj-ty #:obj obj))
-               (define new-neg-obj-ty (restrict neg-obj-ty inner-obj-ty-at-flds #:obj obj))
+               (define new-obj-ty (subtract inner-obj-ty-at-flds neg-obj-ty obj))
+               (define new-neg-obj-ty (restrict neg-obj-ty inner-obj-ty-at-flds obj))
                (match inner-obj
                  [_ #:when (Bottom? new-obj-ty) -ff]
                  [_ #:when (Bottom? new-neg-obj-ty) -tt]

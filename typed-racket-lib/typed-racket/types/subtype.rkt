@@ -26,7 +26,7 @@
 (provide NameStruct:)
 
 (provide/cond-contract
- [subtype (->* (Type? Type?) (#:obj (or/c #f OptObject?)) boolean?)]
+ [subtype (->* (Type? Type?) ((or/c #f OptObject?)) boolean?)]
  [subresult (-> Result? Result? boolean?)]
  [subval (-> SomeValues? SomeValues? boolean?)]
  [type-equiv? (-> Type? Type? boolean?)]
@@ -49,10 +49,10 @@
 
 ;; is t1 a subtype of t2?
 ;; type type -> boolean
-(define (subtype t1 t2 #:obj [obj #f])
+(define (subtype t1 t2 [obj #f])
   (and
    (cond
-     [obj (subtype* (seen) t1 t2 obj)]
+     [(Object? obj) (subtype* (seen) t1 t2 obj)]
      [else
       (define-values (o os) (obj-seq-next (temp-objs)))
       (parameterize ([temp-objs os])

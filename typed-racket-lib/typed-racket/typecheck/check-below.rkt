@@ -86,10 +86,10 @@
        (type-mismatch p2 p1 "mismatch in proposition"))
      (tc-any-results (fix-props p2 p1))]
 
-    [((or (tc-results: _ (list (PropSet: fs+ fs-) ...) _)
-          (tc-results: _ (list (PropSet: fs+ fs-) ...) _ _ _))
+    [((or (tc-results: _ (list (PropSet: ps+ ps-) ...) _)
+          (tc-results: _ (list (PropSet: ps+ ps-) ...) _ _ _))
       (tc-any-results: p2))
-     (define merged-prop (apply -and (map -or fs+ fs-)))
+     (define merged-prop (apply -and (map -or ps+ ps-)))
      (unless (prop-better? merged-prop p2)
        (type-mismatch p2 merged-prop "mismatch in proposition"))
      (tc-any-results (fix-props p2 merged-prop))]
@@ -97,7 +97,7 @@
 
     [((tc-result1: t1 p1 o1) (tc-result1: t2 p2 o2))
      (cond
-       [(not (subtype t1 t2))
+       [(not (subtype t1 t2 o1))
         (expected-but-got t2 t1)]
        [(and (not (prop-set-better? p1 p2))
              (object-better? o1 o2))
@@ -124,48 +124,53 @@
 
     [((tc-results: t1 p1 o1 dty1 dbound)
       (tc-results: t2 (list (or #f (PropSet: (TrueProp:) (TrueProp:))) ...)
-                      (list (or #f (Empty:)) ...) dty2 dbound))
+                   (list (or #f (Empty:)) ...) dty2 dbound))
      (cond
        [(= (length t1) (length t2))
-        (unless (andmap subtype t1 t2)
+        (unless (andmap subtype t1 t2 o1)
           (expected-but-got (stringify t2) (stringify t1)))
         (unless (subtype dty1 dty2)
           (type-mismatch dty2 dty1 "mismatch in ... argument"))]
        [else
-         (value-mismatch expected tr1)])
+        (value-mismatch expected tr1)])
      (fix-results expected)]
 
     [((tc-results: t1 p1 o1 dty1 dbound) (tc-results: t2 p2 o2 dty2 dbound))
      (cond
        [(= (length t1) (length t2))
-        (unless (andmap subtype t1 t2)
+        (unless (andmap subtype t1 t2 o1)
           (expected-but-got (stringify t2) (stringify t1)))
         (unless (subtype dty1 dty2)
           (type-mismatch dty2 dty1 "mismatch in ... argument"))]
        [else
-         (value-mismatch expected tr1)])
+        (value-mismatch expected tr1)])
      (fix-results expected)]
 
     [((tc-results: t1 p1 o1)
       (tc-results: t2 (list (or #f (PropSet: (TrueProp:) (TrueProp:))) ...)
-                      (list (or #f (Empty:)) ...)))
+                   (list (or #f (Empty:)) ...)))
      (unless (= (length t1) (length t2))
        (value-mismatch expected tr1))
-     (unless (for/and ([t (in-list t1)] [s (in-list t2)]) (subtype t s))
+     (unless (for/and ([t (in-list t1)]
+                       [s (in-list t2)]
+                       [o (in-list o1)])
+               (subtype t s o1))
        (expected-but-got (stringify t2) (stringify t1)))
      (fix-results expected)]
 
     [((tc-results: t1 fs os) (tc-results: t2 fs os))
      (unless (= (length t1) (length t2))
        (value-mismatch expected tr1))
-     (unless (for/and ([t (in-list t1)] [s (in-list t2)]) (subtype t s))
+     (unless (for/and ([t (in-list t1)]
+                       [s (in-list t2)]
+                       [o (in-list os)])
+               (subtype t s o))
        (expected-but-got (stringify t2) (stringify t1)))
      (fix-results expected)]
 
-    [((tc-results: t1 p1 o1) (tc-results: t2 p2 o2)) (=> continue)
-     (if (= (length t1) (length t2))
-         (continue)
-         (value-mismatch expected tr1))
+    [((tc-results: t1 p1 o1) (tc-results: t2 p2 o2))
+     #:when (not (= (length t1) (length t2)))
+     (value-mismatch expected tr1)
      (fix-results expected)]
 
     [((tc-any-results: _) (? tc-results?))

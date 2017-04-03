@@ -70,9 +70,9 @@
 (define (atomic-contradiction? p1 p2)
   (match* (p1 p2)
     [((TypeProp: o1 t1) (NotTypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t1 t2 #:obj o1))]
+     (and (eq? o1 o2) (subtype t1 t2 o1))]
     [((NotTypeProp: o2 t2) (TypeProp: o1 t1))
-     (and (eq? o1 o2) (subtype t1 t2 #:obj o1))]
+     (and (eq? o1 o2) (subtype t1 t2 o1))]
     [((? LeqProp?) (? LeqProp?)) (contradictory-Leqs? p1 p2)]
     [((FalseProp:) _) #t]
     [(_ (FalseProp:)) #t]
@@ -133,8 +133,8 @@
   (match* (p1 p2)
     [((FalseProp:) _) #t]
     [(_ (FalseProp:)) #t]
-    [((TypeProp: o t1) (NotTypeProp: o t2)) (subtype t1 t2 #:obj o)]
-    [((NotTypeProp: o t2) (TypeProp: o t1)) (subtype t1 t2 #:obj o)]
+    [((TypeProp: o t1) (NotTypeProp: o t2)) (subtype t1 t2 o)]
+    [((NotTypeProp: o t2) (TypeProp: o t1)) (subtype t1 t2 o)]
     [((? LeqProp?) (? LeqProp?)) (contradictory-Leqs? p1 p2)]
     [((TypeProp: (Path: pes1 x1) t1)
       (TypeProp: (Path: pes2 x2) t2))
@@ -156,9 +156,9 @@
 (define (atomic-complement? p1 p2)
   (match* (p1 p2)
     [((TypeProp: o1 t1) (NotTypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t2 t1 #:obj o1))]
+     (and (eq? o1 o2) (subtype t2 t1 o1))]
     [((NotTypeProp: o2 t2) (TypeProp: o1 t1))
-     (and (eq? o1 o2) (subtype t2 t1 #:obj o1))]
+     (and (eq? o1 o2) (subtype t2 t1 o1))]
     [((? LeqProp?) (? LeqProp?)) (complementary-Leqs? p1 p2)]
     [((TrueProp:) _) #t]
     [(_ (TrueProp:)) #t]
@@ -185,11 +185,11 @@
     ;; t1 <: t2 ?
     [((TypeProp: o1 t1)
       (TypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t1 t2 #:obj o1))]
+     (and (eq? o1 o2) (subtype t1 t2 o1))]
     ;; t2 <: t1 ?
     [((NotTypeProp: o1 t1)
       (NotTypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t2 t1 #:obj o1))]
+     (and (eq? o1 o2) (subtype t2 t1 o1))]
     ;; t1 ∩ t2 = ∅ ?
     [((TypeProp:    o1 t1)
       (NotTypeProp: o2 t2))

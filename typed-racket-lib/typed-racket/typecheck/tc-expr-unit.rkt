@@ -21,7 +21,7 @@
          racket/extflonum
          ;; Needed for current implementation of typechecking letrec-syntax+values
          (for-template (only-in racket/base list letrec-values
-                                + * < <= = >= > add1 sub1 modulo
+                                + - * < <= = >= > add1 sub1 modulo
                                 min max vector-length random)
                        ;; see tc-app-contracts.rkt
                        racket/contract/private/provide)
@@ -492,13 +492,13 @@
     [(tc-result1: ret-t ps _)
      (syntax-parse form
        ;; *
-       [(#%plain-app (~literal *) (~var e1 (t/obj -Int)) (~var e2 (t/obj -Int)))
-        (define o1*o2 (-obj* (obj e1) (obj e2)))
+       [(#%plain-app (~literal *) (~var e1 (t/obj -Int)) (~var es (t/obj -Int)) ...)
+        (define product-obj (apply -obj* (obj e1) (obj es)))
         (cond
-          [(Object? o1*o2)
-           (ret (-refine/fresh x ret-t (-eq (-lexp x) o1*o2))
+          [(Object? product-obj)
+           (ret (-refine/fresh x ret-t (-eq (-lexp x) product-obj))
                 ps
-                o1*o2)]
+                product-obj)]
           [else result])]
        ;; +
        [(#%plain-app (~literal +) (~var e (t/obj -Int)) (~var es (t/obj -Int)) ...)
@@ -507,7 +507,7 @@
              ps
              l)]
        ;; -
-       [(#%plain-app (~literal -) (~var e (t/obj -Int)) (~var es (t/obj -Int)))
+       [(#%plain-app (~literal -) (~var e (t/obj -Int)) (~var es (t/obj -Int)) ...)
         (define l (apply -lexp
                          (obj e)
                          (for/list ([o (in-list (obj es))])
@@ -536,7 +536,7 @@
        [(#%plain-app (~literal max) (~var e1 (t/obj -Int)) (~var es (t/obj -Int)) ...)
         (ret (-refine/fresh x ret-t
                             (apply -and (let ([l (-lexp x)])
-                                          (for/list ([o (in-list (cons (obj e1)) (obj es))])
+                                          (for/list ([o (in-list (cons (obj e1) (obj es)))])
                                             (-geq l o)))))
              ps
              -empty-obj)]
@@ -544,7 +544,7 @@
        [(#%plain-app (~literal min) (~var e1 (t/obj -Int)) (~var es (t/obj -Int)) ...)
         (ret (-refine/fresh x ret-t
                             (apply -and (let ([l (-lexp x)])
-                                          (for/list ([o (in-list (cons (obj e1)) (obj es))])
+                                          (for/list ([o (in-list (cons (obj e1) (obj es)))])
                                             (-leq l o)))))
              ps
              -empty-obj)]

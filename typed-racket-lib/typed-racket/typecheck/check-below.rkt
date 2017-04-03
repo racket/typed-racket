@@ -154,7 +154,7 @@
      (unless (for/and ([t (in-list t1)]
                        [s (in-list t2)]
                        [o (in-list o1)])
-               (subtype t s o1))
+               (subtype t s o))
        (expected-but-got (stringify t2) (stringify t1)))
      (fix-results expected)]
 

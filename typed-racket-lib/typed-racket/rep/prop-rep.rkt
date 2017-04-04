@@ -139,7 +139,19 @@
 
 (def-prop OrProp ([ps (listof (or/c TypeProp? NotTypeProp? LeqProp?))])
   [#:frees (f) (combine-frees (map f ps))]
-  [#:fmap (f) (apply -or (map f ps))]
+  [#:fmap (f) (define-values (new-ps triv?)
+                (for*/fold ([new-ps '()]
+                            [triv? #f])
+                           ([p (in-list ps)]
+                            [p (in-value (f p))]
+                            #:unless (FalseProp? p))
+                  (values (cons p new-ps)
+                          (or triv? (TrueProp? p)))))
+   (match new-ps
+     [_ #:when triv? -tt]
+     ['() -ff]
+     [(cons p '()) p]
+     [_ (make-OrProp new-ps)])]
   [#:for-each (f) (for-each f ps)]
   [#:custom-constructor/contract
    (-> (listof (or/c TypeProp? NotTypeProp? LeqProp?)) OrProp?)
@@ -154,5 +166,17 @@
 
 (def-prop AndProp ([ps (listof (or/c OrProp? TypeProp? NotTypeProp? LeqProp?))])
   [#:frees (f) (combine-frees (map f ps))]
-  [#:fmap (f) (apply -and (map f ps))]
+  [#:fmap (f) (define-values (new-ps contra?)
+                (for*/fold ([new-ps '()]
+                            [contra? #f])
+                           ([p (in-list ps)]
+                            [p (in-value (f p))]
+                            #:unless (TrueProp? p))
+                  (values (cons p new-ps)
+                          (or contra? (FalseProp? p)))))
+   (match new-ps
+     [_ #:when contra? -ff]
+     ['() -tt]
+     [(cons p '()) p]
+     [_ (make-AndProp new-ps)])]
   [#:for-each (f) (for-each f ps)])

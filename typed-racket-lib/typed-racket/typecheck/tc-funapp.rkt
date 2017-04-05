@@ -112,11 +112,11 @@
                             (infer/dots
                              fixed-vars dotted-var argtys dom (car drest) rng (fv rng)
                              #:expected (and expected (tc-results->values expected))
-                             #:objs argobjs)]
+                             )]
                            [rest
                             (infer/vararg fixed-vars (list dotted-var) argtys dom rest rng
                                           (and expected (tc-results->values expected))
-                                          #:objs argobjs)]
+                                          )]
                            ;; no rest or drest
                            [else (infer fixed-vars
                                         (list dotted-var)
@@ -124,7 +124,7 @@
                                         dom
                                         rng
                                         (and expected (tc-results->values expected))
-                                        #:objs argobjs)])))
+                                        )])))
          #:function-type f-type
          #:args-results args-res
          #:expected expected)]
@@ -149,7 +149,7 @@
            (extend-tvars vars
                          (infer/vararg vars null argtys dom rest rng
                                        (and expected (tc-results->values expected))
-                                       #:objs argobjs)))
+                                       )))
          #:function-type f-type
          #:args-results args-res
          #:expected expected)]

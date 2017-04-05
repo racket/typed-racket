@@ -27,7 +27,8 @@ at least theoretically.
  filter-multiple
  syntax-length
  in-pair
- in-sequence-forever
+ in-list/rest
+ list-ref/default
  match*/no-order
  bind
  genid
@@ -257,17 +258,6 @@ at least theoretically.
   (let ((list (syntax->list stx)))
     (and list (length list))))
 
-(define (in-sequence-forever seq val)
-  (make-do-sequence
-   (λ ()
-     (let-values ([(more? gen) (sequence-generate seq)])
-       (values (λ (e) (if (more?) (gen) val))
-               (λ (_) #t)
-               #t
-               (λ (_) #t)
-               (λ _ #t)
-               (λ _ #t))))))
-
 (define-syntax (match*/no-order stx)
   (define (parse-clauses clauses)
     (syntax-parse clauses
@@ -344,3 +334,58 @@ at least theoretically.
               (syntax-source-module id)))))
 
 (require 'local-ids)
+
+
+;; in-list/rest
+;; (in-list/rest l v)
+;;
+;; iterates through the elements of the
+;; list 'l' until they are exhausted, at which
+;; point 'v' is used for each subsequent iteration
+
+(define (in-list/rest-proc l rest)
+  (in-sequences l (in-cycle (in-value rest))))
+
+(define-sequence-syntax in-list/rest
+  (λ () #'in-list/rest-proc)
+  (λ (stx)
+    (syntax-case stx ()
+      [[(val) (_ list-exp rest-exp)]
+       #'[(val)
+          (:do-in
+           ;; ([(outer-id ...) outer-expr] ...)
+           ([(list) list-exp]
+            [(rest) rest-exp])
+           ;; outer-check
+           #t
+           ;; ([loop-id loop-expr] ...)
+           ([pos list])
+           ;; pos-guard
+           #t
+           ;; ([(inner-id ...) inner-expr] ...)
+           ([(val pos) (if (pair? pos)
+                           (values (car pos) (cdr pos))
+                           (values rest '()))])
+           ;; pre-guard
+           #t
+           ;; post-guard
+           #t
+           ;; (loop-arg ...)
+           (pos))]]
+      [[xs (_ dd-exp)]
+       (list? (syntax->datum #'xs))
+       (raise-syntax-error 'in-list/rest
+                           (format "expected an identifier, given ~a"
+                                   (syntax->list #'xs))
+                           #'xs)]
+      [blah (raise-syntax-error 'in-list/rest "invalid usage" #'blah)])))
+
+
+
+(define (list-ref/default xs idx default)
+  (match xs
+    ['() default]
+    [(cons x xs)
+     (if (eqv? 0 idx)
+         x
+         (list-ref/default xs (sub1 idx) default))]))

@@ -125,7 +125,7 @@
          [(Is-a: (HeterogeneousVector: ts))
           (make-HeterogeneousVector
            (for/list ([l (in-vector (syntax-e #'i))]
-                      [t (in-sequence-forever (in-list ts) #f)])
+                      [t (in-list/rest ts #f)])
              (cond-check-below (tc-literal l t) t)))]
          [_ (make-HeterogeneousVector (for/list ([l (in-vector (syntax-e #'i))])
                                         (generalize (tc-literal l #f))))]))
@@ -154,7 +154,7 @@
 (define (tc-prefab struct-inst expected)
   (define expected-ts
     (match (and expected (resolve expected))
-      [(Prefab: _ ts) (in-sequence-forever (in-list ts) #f)]
+      [(Prefab: _ ts) (in-list/rest ts #f)]
       [_ (in-cycle (in-value #f))]))
   (define key (prefab-struct-key struct-inst))
   (define struct-vec (struct->vector struct-inst))

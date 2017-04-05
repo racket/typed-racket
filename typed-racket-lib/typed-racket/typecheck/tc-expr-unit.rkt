@@ -400,7 +400,7 @@
        [(HeterogeneousVector: ts)
         (make-HeterogeneousVector
          (for/list ([x (in-list xs)]
-                    [t (in-sequence-forever (in-list ts) #f)])
+                    [t (in-list/rest ts #f)])
            (cond-check-below (find-stx-type x t) t)))]
        [_ (make-HeterogeneousVector (for/list ([x (in-list xs)])
                                       (generalize (find-stx-type x #f))))])]

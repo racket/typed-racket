@@ -38,7 +38,7 @@
                                "expected at least" (length dom)
                                "given" (length t-a)
                                #:delayed? #t)])
-       (for ([dom-t (if rest (in-sequence-forever dom rest) (in-list dom))]
+       (for ([dom-t (if rest (in-list/rest dom rest) (in-list dom))]
              [a (in-syntax args-stx)]
              [arg-t (in-list t-a)])
          (parameterize ([current-orig-stx a]) (check-below arg-t dom-t))))
@@ -48,8 +48,8 @@
        (let-values
            ([(o-a t-a) (for/lists (os ts)
                          ([_ (in-range dom-count)]
-                          [oa (in-sequence-forever (in-list o-a) -empty-obj)]
-                          [ta (in-sequence-forever (in-list t-a) Univ)])
+                          [oa (in-list/rest o-a -empty-obj)]
+                          [ta (in-list/rest t-a Univ)])
                          (values oa ta))])
            (values->tc-results rng o-a t-a)))]
     ;; this case should only match if the function type has mandatory keywords

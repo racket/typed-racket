@@ -38,11 +38,11 @@
 ;; Substitutes the given objects into the values and turns it into a
 ;; tc-result.  This matches up to the substitutions in the T-App rule
 ;; from the ICFP paper.
-(define (values->tc-results v os [ts (map (λ (_) Univ) os)])
+(define (values->tc-results v os [ts '()])
   (define targets
     (for/list ([o (in-list os)]
                [arg (in-naturals)]
-               [t (in-list ts)])
+               [t (in-list/rest ts Univ)])
       (list (cons 0 arg) o t)))
   (define res
     (match v

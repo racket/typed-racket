@@ -33,6 +33,8 @@ at least theoretically.
  bind
  genid
  gen-pretty-id
+ gen-existential-id
+ existential-id?
  local-tr-identifier?
  mark-id-as-normalized
  normalized-id?)
@@ -297,8 +299,10 @@ at least theoretically.
   (provide local-tr-identifier?
            genid
            gen-pretty-id
+           gen-existential-id
            mark-id-as-normalized
-           normalized-id?)
+           normalized-id?
+           existential-id?)
   ;; we use this syntax location to recognized gensymed identifiers
   (define-for-syntax loc #'x)
   (define dummy-id (datum->syntax #'loc (gensym 'x)))
@@ -310,22 +314,29 @@ at least theoretically.
     (let ([normalized-identifier-sym (gensym 'normal-id)])
       (values (λ (id) (syntax-property id normalized-identifier-sym #t))
               (λ (id) (syntax-property id normalized-identifier-sym)))))
+  (define-values (mark-id-as-existential
+                  existential-id?)
+    (let ([existential-identifier-sym (gensym 'existential-id)])
+      (values (λ (id) (syntax-property id existential-identifier-sym #t))
+              (λ (id) (syntax-property id existential-identifier-sym)))))
   ;; generates fresh identifiers for use while typechecking
   (define (genid [sym (gensym 'local)])
     (mark-id-as-normalized (datum->syntax #'loc sym)))
-  (define letters '("x" "y" "z" "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k"
-                        "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v"  "w"))
+  (define letters (vector-immutable "x" "y" "z" "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k"
+                                    "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v"  "w"))
   ;; this is just a silly helper function that gives us a letter from
   ;; the latin alphabet in a cyclic manner
   (define next-letter
     (let ([i 0])
       (λ ()
-        (define letter (string->uninterned-symbol (list-ref letters i)))
-        (set! i (modulo (add1 i) (length letters)))
+        (define letter (string->uninterned-symbol (vector-ref letters i)))
+        (set! i (modulo (add1 i) (vector-length letters)))
         letter)))
   ;; generates a fresh identifier w/ a "pretty" printable representation
   (define (gen-pretty-id [sym (next-letter)])
     (mark-id-as-normalized (datum->syntax #'loc sym)))
+  (define (gen-existential-id [sym (next-letter)])
+    (mark-id-as-existential (genid sym)))
   ;; allows us to recognize and distinguish gensym'd identifiers
   ;; from ones that came from the program we're typechecking
   (define (local-tr-identifier? id)

@@ -16,7 +16,7 @@
          racket/list
          racket/private/class-internal
          syntax/parse
-         (typecheck internal-forms tc-envops)
+         (typecheck internal-forms tc-envops tc-metafunctions)
          racket/sequence
          racket/extflonum
          ;; Needed for current implementation of typechecking letrec-syntax+values
@@ -221,9 +221,11 @@
       [(if tst thn els) (tc/if-twoarm #'tst #'thn #'els expected)]
       ;; lambda
       [(#%plain-lambda formals . body)
-       (tc/lambda form #'(formals) #'(body) expected)]
+       (erase-existentials
+        (tc/lambda form #'(formals) #'(body) expected))]
       [(case-lambda [formals . body] ...)
-       (tc/lambda form #'(formals ...) #'(body ...) expected)]
+       (erase-existentials
+        (tc/lambda form #'(formals ...) #'(body ...) expected))]
       ;; send
       [(let-values ([(_) meth])
          (let-values ([(rcvr-var) rcvr])
@@ -246,15 +248,16 @@
       ;; TODO simplify this case
       [(~and (let-values ([(f) fun]) . body) kw:kw-lambda^)
        #:when expected
-       (match expected
-         [(tc-result1: (and f (or (Function: _)
-                                  (Poly: _ (Function: _)))))
-          (define actual-kws (attribute kw.value))
-          (check-kw-arity actual-kws f)
-          (tc-expr/check/type #'fun (kw-convert f actual-kws #:split #t))
-          (ret f -true-propset)]
-         [(or (tc-results: _) (tc-any-results: _))
-          (tc-expr/check form #f)])]
+       (erase-existentials
+        (match expected
+          [(tc-result1: (and f (or (Function: _)
+                                   (Poly: _ (Function: _)))))
+           (define actual-kws (attribute kw.value))
+           (check-kw-arity actual-kws f)
+           (tc-expr/check/type #'fun (kw-convert f actual-kws #:split #t))
+           (ret f -true-propset)]
+          [(or (tc-results: _) (tc-any-results: _))
+           (tc-expr/check form #f)]))]
       ;; opt function def
       [(~and (let-values ([(f) fun]) . body) opt:opt-lambda^)
        #:when expected
@@ -265,9 +268,10 @@
                           (attribute opt.value))
             (opt-convert fun-type required-pos optional-pos)]
            [_ #f]))
-       (if conv-type
-           (begin (tc-expr/check/type #'fun conv-type) expected)
-           (tc-expr/check form #f))]
+       (erase-existentials
+        (if conv-type
+            (begin (tc-expr/check/type #'fun conv-type) expected)
+            (tc-expr/check form #f)))]
       [(~and _:kw-lambda^
          (let-values ([(f) fun])
            (let-values _
@@ -280,15 +284,17 @@
                    (~and _ (~bind [(mand-kw 1) '()])))
               (quote (all-kw:keyword ...))
               . rst))))
-       (ret (kw-unconvert (tc-expr/t #'fun)
-                          (syntax->list #'(formals ...))
-                          (syntax->datum #'(mand-kw ...))
-                          (syntax->datum #'(all-kw ...))))]
+       (erase-existentials
+        (ret (kw-unconvert (tc-expr/t #'fun)
+                           (syntax->list #'(formals ...))
+                           (syntax->datum #'(mand-kw ...))
+                           (syntax->datum #'(all-kw ...)))))]
       [(~and opt:opt-lambda^
              (let-values ([(f) fun])
                (case-lambda (formals . cl-body) ...)))
-       (ret (opt-unconvert (tc-expr/t #'fun)
-                           (syntax->list #'(formals ...))))]
+       (erase-existentials
+        (ret (opt-unconvert (tc-expr/t #'fun)
+                            (syntax->list #'(formals ...)))))]
       ;; let
       [(let-values bindings . body)
        (define bindings*

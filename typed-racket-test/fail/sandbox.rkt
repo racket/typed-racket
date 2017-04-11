@@ -7,6 +7,10 @@
 
 (require racket/sandbox)
 
+(environment-variables-set!	(current-environment-variables)
+                            (string->bytes/locale "PLT_TR_NO_OPTIMIZE")
+                            #f)
+
 (define (make-sandbox-code-inspector)
   (make-inspector (current-code-inspector)))
 
@@ -17,19 +21,19 @@
                               '(module untyped racket/base
                                  (provide extract-field
                                           (struct-out int-wrapper))
-                                 
+
                                  (require syntax/location)
                                  (require syntax/modresolve)
-                                 
+
                                  (struct int-wrapper (value))
-                                 
+
                                  (module typed typed/racket
                                    (provide extract-integer)
                                    (define (extract-integer [p : (Pair Integer Integer)])
                                      (cdr p)))
-                                 
+
                                  (require 'typed)
-                                 
+
                                  (define extract-field
                                    (eval 'extract-integer (module->namespace (quote-module-path typed)))))
                               '(require (submod "." untyped)))])

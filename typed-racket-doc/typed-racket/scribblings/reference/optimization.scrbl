@@ -21,7 +21,7 @@ program:
 
 @racketmod[typed/racket #:no-optimize]
 
-The optimizer is also disabled if the current code inspector (see
+The optimizer is also disabled if the environment variable @envvar{PLT_TR_NO_OPTIMIZE} is set (to any value) or if the current code inspector (see
 @secref["modprotect" #:doc '(lib "scribblings/reference/reference.scrbl")])
 is insufficiently powerful to access @racketmodname[racket/unsafe/ops],
 for example when executing in a sandbox (see @secref["Sandboxed_Evaluation"

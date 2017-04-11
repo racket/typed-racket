@@ -26,9 +26,12 @@
 
 (define (maybe-optimize body)
   ;; do we optimize?
-  ;; only if the current module requested optimization and the
+  ;; only if the current module requested optimization,
+  ;; PLT_TR_NO_OPTIMIZE is not set, and the
   ;; current code inspector has sufficient privileges
-  (if (and (optimize?) (authorized-code-inspector?))
+  (if (and (optimize?)
+           (not (getenv "PLT_TR_NO_OPTIMIZE"))
+           (authorized-code-inspector?))
       (begin
         (do-time "Starting optimizer")
         (begin0 (stx-map optimize-top body)

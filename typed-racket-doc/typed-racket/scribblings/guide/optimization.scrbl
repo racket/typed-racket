@@ -23,7 +23,8 @@ program:
 
 The optimizer is also disabled when executing a typed racket program in
 a sandbox (see @secref["Sandboxed_Evaluation" #:doc
-'(lib "scribblings/reference/reference.scrbl")]).
+'(lib "scribblings/reference/reference.scrbl")]) and when the environment
+variable @envvar{PLT_TR_NO_OPTIMIZE} is set (to any value).
 
 @section{Getting the most out of the optimizer}
 Typed Racket's optimizer can improve the performance of various common

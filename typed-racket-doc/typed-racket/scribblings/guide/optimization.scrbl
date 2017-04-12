@@ -10,9 +10,7 @@ benchmarking, see @secref[#:doc '(lib
 "scribblings/guide/guide.scrbl")]{performance}.}
 
 Typed Racket provides a type-driven optimizer that rewrites well-typed
-programs to potentially make them faster. It should in no way make
-your programs slower or unsafe.
-
+programs to potentially make them faster.
 
 @section{Turning the optimizer off}
 
@@ -22,6 +20,11 @@ deactivate it (for debugging, for instance), you must add the
 program:
 
 @racketmod[typed/racket #:no-optimize]
+
+The optimizer is also disabled when executing a typed racket program in
+a sandbox (see @secref["Sandboxed_Evaluation" #:doc
+'(lib "scribblings/reference/reference.scrbl")]) and when the environment
+variable @envvar{PLT_TR_NO_OPTIMIZE} is set (to any value).
 
 @section{Getting the most out of the optimizer}
 Typed Racket's optimizer can improve the performance of various common

@@ -17,9 +17,21 @@
          tc-module/full
          tc-toplevel/full)
 
+(define (authorized-code-inspector?)
+  ;; Check whether the current code inspector has sufficient
+  ;; privileges to access unsafe operations.
+  (with-handlers ([exn:fail? (lambda (e) #f)])
+    (module->namespace 'racket/unsafe/ops)
+    #t))
+
 (define (maybe-optimize body)
   ;; do we optimize?
-  (if (and (optimize?) (not (getenv "PLT_TR_NO_OPTIMIZE")))
+  ;; only if the current module requested optimization,
+  ;; PLT_TR_NO_OPTIMIZE is not set, and the
+  ;; current code inspector has sufficient privileges
+  (if (and (optimize?)
+           (not (getenv "PLT_TR_NO_OPTIMIZE"))
+           (authorized-code-inspector?))
       (begin
         (do-time "Starting optimizer")
         (begin0 (stx-map optimize-top body)

@@ -55,14 +55,10 @@
                  (List Integer Integer Any Any)
                  (List Integer Integer Any Any Real)
                  (List (U Path-String Input-Port))
-                 (List (U Path-String Input-Port) Any)
-                 (List (U Path-String Input-Port)
-                       Any (Option (Instance Color%)))
-                 (List (U Path-String Input-Port)
-                       Any (Option (Instance Color%)) Any)
-                 (List (U Path-String Input-Port)
-                       Any (Option (Instance Color%)) Any
-                       Real)
+                 (List (U Path-String Input-Port) LoadFileKind)
+                 (List (U Path-String Input-Port) LoadFileKind (Option (Instance Color%)))
+                 (List (U Path-String Input-Port) LoadFileKind (Option (Instance Color%)) Any)
+                 (List (U Path-String Input-Port) LoadFileKind (Option (Instance Color%)) Any Real)
                  (List Bytes Integer Integer)))
    [get-argb-pixels
     (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
@@ -863,8 +859,12 @@
          [swap-gl-buffers (-> Void)]
          [with-gl-context ((-> Any) [#:fail (-> Any)] -> Any)]))
 
+(define-type CursorID
+  (U 'arrow 'bullseye 'cross 'hand 'ibeam 'watch 'blank
+     'size-n/s 'size-e/w 'size-ne/sw 'size-nw/se))
+
 (define-type Cursor%
-  (Class (init [id  Symbol])
+  (Class (init [id  CursorID])
          [ok? (-> Boolean)]))
 
 (define-type Frame%

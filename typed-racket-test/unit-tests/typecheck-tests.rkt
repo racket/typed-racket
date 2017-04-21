@@ -290,8 +290,8 @@
   (except-in racket/class class)
   racket/file
   racket/fixnum
-  (except-in racket/flonum for/flvector for*/flvector)
-  (except-in racket/extflonum for/extflvector for*/extflvector)
+  typed/racket/flonum
+  typed/racket/extflonum
   racket/function
   racket/future
   racket/list

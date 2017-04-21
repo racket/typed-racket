@@ -174,6 +174,21 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/racket/async-channel @history[#:added "1.1"]]
 @defmodule/incl[typed/racket/date]
 @defmodule/incl[typed/racket/draw]
+
+@defmodule/incl[typed/racket/extflonum]{
+  @deftogether[[
+    @defform[(for/extflvector type-ann-maybe (for-clause ...) expr ...+)]
+    @defform[(for*/extflvector type-ann-maybe (for-clause ...) expr ...+)]
+  ]]
+}
+
+@defmodule/incl[typed/racket/flonum]{
+  @deftogether[[
+    @defform[(for/flvector type-ann-maybe (for-clause ...) expr ...+)]
+    @defform[(for*/flvector type-ann-maybe (for-clause ...) expr ...+)]
+  ]]
+}
+
 @defmodule/incl[typed/racket/gui]
 @defmodule/incl[typed/racket/gui/no-check]
 @defmodule/incl[typed/racket/random @history[#:added "1.5"]]

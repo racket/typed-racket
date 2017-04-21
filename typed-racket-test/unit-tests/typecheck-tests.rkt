@@ -290,8 +290,8 @@
   (except-in racket/class class)
   racket/file
   racket/fixnum
-  racket/flonum
-  racket/extflonum
+  typed/racket/flonum
+  typed/racket/extflonum
   racket/function
   racket/future
   racket/list
@@ -2556,6 +2556,29 @@
                (define f3 (sequence-ref s3 1))
                (list f1 f2 f3))
              (-lst* -Flonum -Fixnum -ExtFlonum)]
+
+       ;; The typechecker should be able to handle the expansion of
+       ;; for/flvector, for*/flvector, for/extflvector, and for*/extflvector
+       [tc-e
+         (for/flvector ([a (list 0 1 1 2 3)]
+                        [b (list 1 1 2 3 5)])
+           (real->double-flonum (+ a b)))
+         -FlVector]
+       [tc-e
+         (for*/flvector ([a (list 0 1 1 2 3)]
+                         [b (list 1 1 2 3 5)])
+           (real->double-flonum (+ a b)))
+         -FlVector]
+       [tc-e
+         (for/extflvector ([a (list 0 1 1 2 3)]
+                           [b (list 1 1 2 3 5)])
+           (real->extfl (+ a b)))
+         -ExtFlVector]
+       [tc-e
+         (for*/extflvector ([a (list 0 1 1 2 3)]
+                            [b (list 1 1 2 3 5)])
+           (real->extfl (+ a b)))
+         -ExtFlVector]
 
        ;; for/hash, for*/hash - PR 14306
        [tc-e (for/hash: : (HashTable Symbol String)

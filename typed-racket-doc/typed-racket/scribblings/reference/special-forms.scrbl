@@ -251,13 +251,9 @@ annotated with a @racket[Listof] type. All annotations are optional.
 }
 
 @deftogether[[
-@defform[(for/flvector type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/extflvector type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/and type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/first type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/last type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/flvector type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/extflvector type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/and type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/first type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/last type-ann-maybe (for-clause ...) expr ...+)]

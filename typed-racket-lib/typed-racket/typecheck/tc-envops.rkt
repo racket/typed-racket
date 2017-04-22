@@ -51,7 +51,7 @@
                      (loop ps negs (append new-props new) (env-set-id-type Γ x new-t))]))]
                [(TypeProp: obj pt)
                 (let ([t (lookup-obj-type/lexical obj Γ #:fail (λ (_) Univ))])
-                  (define new-t (intersect t pt #:obj obj))
+                  (define new-t (intersect t pt obj))
                   (cond
                     [(Bottom? new-t) #f]
                     [(equal? t new-t) (loop ps negs new Γ)]

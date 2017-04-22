@@ -38,11 +38,11 @@
 ;; Substitutes the given objects into the values and turns it into a
 ;; tc-result.  This matches up to the substitutions in the T-App rule
 ;; from the ICFP paper.
-(define (values->tc-results v os [ts (map (λ (_) Univ) os)])
+(define (values->tc-results v os [ts '()])
   (define targets
     (for/list ([o (in-list os)]
                [arg (in-naturals)]
-               [t (in-list ts)])
+               [t (in-list/rest ts Univ)])
       (list (cons 0 arg) o t)))
   (define res
     (match v
@@ -177,7 +177,7 @@
             (match-lambda
               [(list _ inner-obj inner-obj-ty)
                (define inner-obj-ty-at-flds (or (path-type flds inner-obj-ty) Univ))
-               (define new-obj-ty (intersect obj-ty inner-obj-ty-at-flds #:obj obj))
+               (define new-obj-ty (intersect obj-ty inner-obj-ty-at-flds obj))
                (match inner-obj
                  [_ #:when (Bottom? new-obj-ty) -ff]
                  [_ #:when (subtype inner-obj-ty-at-flds obj-ty) -tt]
@@ -197,8 +197,8 @@
             (match-lambda
               [(list _ inner-obj inner-obj-ty)
                (define inner-obj-ty-at-flds (or (path-type flds inner-obj-ty) Univ))
-               (define new-obj-ty (subtract inner-obj-ty-at-flds neg-obj-ty #:obj obj))
-               (define new-neg-obj-ty (restrict neg-obj-ty inner-obj-ty-at-flds #:obj obj))
+               (define new-obj-ty (subtract inner-obj-ty-at-flds neg-obj-ty obj))
+               (define new-neg-obj-ty (restrict neg-obj-ty inner-obj-ty-at-flds obj))
                (match inner-obj
                  [_ #:when (Bottom? new-obj-ty) -ff]
                  [_ #:when (Bottom? new-neg-obj-ty) -tt]

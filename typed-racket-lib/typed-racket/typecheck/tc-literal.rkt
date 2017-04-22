@@ -31,7 +31,7 @@
     (pattern (~and i (~or :number :str :bytes :char))
              #:fail-unless expected #f
              #:fail-unless (let ([n (syntax-e #'i)])
-                             (subtype (-val n) expected #:obj (if (exact-integer? n) (-lexp n) -empty-obj))) #f))
+                             (subtype (-val n) expected (if (exact-integer? n) (-lexp n) -empty-obj))) #f))
   (syntax-parse v-stx
     [i:exp expected]
     [i:boolean (-val (syntax-e #'i))]
@@ -113,21 +113,26 @@
        [t 
         (-pair (tc-literal #'i) (tc-literal #'r))])]
     [(~var i (3d vector?))
-     (match (and expected (resolve (intersect expected -VectorTop)))
-       [(Vector: t)
-        (make-Vector
-          (check-below
-            (apply Un
-              (for/list ([l (in-vector (syntax-e #'i))])
-                (tc-literal l t)))
+     (define vec-val (syntax-e #'i))
+     (define vec-ty
+       (match (and expected (resolve (intersect expected -VectorTop)))
+         [(Is-a: (Vector: t))
+          (make-Vector
+           (check-below
+            (apply Un (for/list ([l (in-vector vec-val)])
+                        (tc-literal l t)))
             t))]
-       [(HeterogeneousVector: ts)
-        (make-HeterogeneousVector
-         (for/list ([l (in-vector (syntax-e #'i))]
-                    [t (in-sequence-forever (in-list ts) #f)])
-           (cond-check-below (tc-literal l t) t)))]
-       [_ (make-HeterogeneousVector (for/list ([l (in-vector (syntax-e #'i))])
-                                      (generalize (tc-literal l #f))))])]
+         [(Is-a: (HeterogeneousVector: ts))
+          (make-HeterogeneousVector
+           (for/list ([l (in-vector (syntax-e #'i))]
+                      [t (in-list/rest ts #f)])
+             (cond-check-below (tc-literal l t) t)))]
+         [_ (make-HeterogeneousVector (for/list ([l (in-vector (syntax-e #'i))])
+                                        (generalize (tc-literal l #f))))]))
+     (if (with-linear-integer-arithmetic?)
+         (-refine/fresh v vec-ty (-eq (-lexp (vector-length vec-val))
+                                      (-vec-len-of (-id-path v))))
+         vec-ty)]
     [(~var i (3d hash?))
      (match (and expected (resolve (intersect expected -HashtableTop)))
        [(Hashtable: k v)
@@ -149,7 +154,7 @@
 (define (tc-prefab struct-inst expected)
   (define expected-ts
     (match (and expected (resolve expected))
-      [(Prefab: _ ts) (in-sequence-forever (in-list ts) #f)]
+      [(Prefab: _ ts) (in-list/rest ts #f)]
       [_ (in-cycle (in-value #f))]))
   (define key (prefab-struct-key struct-inst))
   (define struct-vec (struct->vector struct-inst))

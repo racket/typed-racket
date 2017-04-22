@@ -88,7 +88,7 @@
   ;; vector-ref on het vectors
   (pattern (~and form ((~or vector-ref unsafe-vector-ref unsafe-vector*-ref) vec:expr index:expr))
     (match (single-value #'vec)
-      [(tc-result1: (and vec-t (app resolve (HeterogeneousVector: es))))
+      [(tc-result1: (and vec-t (app resolve (Is-a: (HeterogeneousVector: es)))))
        (tc/hetero-ref #'index es vec-t "vector")]
       [v-ty (tc/app-regular #'form expected)]))
   ;; unsafe struct-set! 
@@ -100,17 +100,17 @@
   ;; vector-set! on het vectors
   (pattern (~and form ((~or vector-set! unsafe-vector-set! unsafe-vector*-set!) v:expr index:expr val:expr))
     (match (single-value #'v)
-      [(tc-result1: (and vec-t (app resolve (HeterogeneousVector: es))))
+      [(tc-result1: (and vec-t (app resolve (Is-a: (HeterogeneousVector: es)))))
        (tc/hetero-set! #'index es #'val vec-t "vector")]
       [v-ty (tc/app-regular #'form expected)]))
   (pattern (~and form ((~or vector-immutable vector) args:expr ...))
     (match expected
-      [(tc-result1: (app resolve (Vector: t)))
+      [(tc-result1: (app resolve (Is-a: (Vector: t))))
        (ret (make-HeterogeneousVector 
               (for/list ([e (in-syntax #'(args ...))])
                 (tc-expr/check e (ret t))
                 t)))]
-      [(tc-result1: (app resolve (HeterogeneousVector: ts)))
+      [(tc-result1: (app resolve (Is-a: (HeterogeneousVector: ts))))
        (cond
          [(= (length ts) (syntax-length #'(args ...)))
           (ret

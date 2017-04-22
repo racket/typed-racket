@@ -11,7 +11,7 @@
 (export intersect^)
 
 
-(define ((intersect-types additive?) t1 t2 #:obj [obj -empty-obj])
+(define ((intersect-types additive?) t1 t2 [obj -empty-obj])
   (cond
     ;; we dispatch w/ Error first, because it behaves in
     ;; strange ways (e.g. it is ⊤ and ⊥ w.r.t subtyping) and
@@ -32,8 +32,8 @@
          [(_ _) #:when (not (overlap? t1 t2)) -Bottom]
       
          ;; already a subtype
-         [(_ _) #:when (subtype t1 t2 #:obj obj) t1]
-         [(_ _) #:when (subtype t2 t1 #:obj obj) t2]
+         [(_ _) #:when (subtype t1 t2 obj) t1]
+         [(_ _) #:when (subtype t2 t1 obj) t2]
 
      
          ;; polymorphic intersect

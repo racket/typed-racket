@@ -12,7 +12,8 @@
 (provide abstract-results
          combine-props
          merge-tc-results
-         tc-results->values)
+         tc-results->values
+         erase-existentials)
 
 ;; Objects representing the rest argument are currently not supported
 (define/cond-contract (abstract-results results arg-names #:rest-id [rest-id #f])
@@ -180,3 +181,28 @@
 
   (for/fold ([res (ret -Bottom)]) ([res2 (in-list results)])
     (merge-two-results res res2)))
+
+
+;; erase existential variables from tc-results
+;; which were introduced during typechecking
+(define (erase-existentials res)
+  (define (erase rep)
+    (match rep
+      [(Path: _ nm)
+       #:when (and (identifier? nm) (existential-id? nm))
+       -empty-obj]
+      [_ (Rep-fmap rep erase)]))
+  (define (erase* t ps o)
+    (tc-result (erase t) (erase ps) (erase o)))
+  (cond
+    [(not (with-linear-integer-arithmetic?)) res]
+    ;; right now we only add existentials when in linear
+    ;; arithmetic mode, so only erase them in that mode
+    [else
+     (match res
+       [(tc-any-results: p) (tc-any-results (erase p))]
+       [(tc-results: ts pss os)
+        (tc-results (map erase* ts pss os) #f)]
+       [(tc-results: ts pss os dt db)
+        (tc-results (map erase* ts pss os)
+                    (cons (erase dt) db))])]))

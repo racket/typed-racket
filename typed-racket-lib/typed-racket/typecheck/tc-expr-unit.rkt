@@ -16,17 +16,19 @@
          racket/list
          racket/private/class-internal
          syntax/parse
-         (typecheck internal-forms tc-envops)
+         (typecheck internal-forms tc-envops tc-metafunctions)
          racket/sequence
          racket/extflonum
          ;; Needed for current implementation of typechecking letrec-syntax+values
          (for-template (only-in racket/base list letrec-values
-                                + * < <= = >= >)
+                                + - * < <= = >= > add1 sub1 modulo
+                                min max vector-length random)
                        ;; see tc-app-contracts.rkt
                        racket/contract/private/provide)
 
          (for-label (only-in '#%paramz [parameterization-key pz:pk])
-                    (only-in racket/private/class-internal find-method/who)))
+                    (only-in racket/private/class-internal find-method/who))
+         (for-syntax racket/base racket/syntax))
 
 (import tc-if^ tc-lambda^ tc-app^ tc-let^ tc-send^ check-subforms^ tc-literal^
         check-class^ check-unit^ tc-expression^)
@@ -219,9 +221,11 @@
       [(if tst thn els) (tc/if-twoarm #'tst #'thn #'els expected)]
       ;; lambda
       [(#%plain-lambda formals . body)
-       (tc/lambda form #'(formals) #'(body) expected)]
+       (erase-existentials
+        (tc/lambda form #'(formals) #'(body) expected))]
       [(case-lambda [formals . body] ...)
-       (tc/lambda form #'(formals ...) #'(body ...) expected)]
+       (erase-existentials
+        (tc/lambda form #'(formals ...) #'(body ...) expected))]
       ;; send
       [(let-values ([(_) meth])
          (let-values ([(rcvr-var) rcvr])
@@ -244,15 +248,16 @@
       ;; TODO simplify this case
       [(~and (let-values ([(f) fun]) . body) kw:kw-lambda^)
        #:when expected
-       (match expected
-         [(tc-result1: (and f (or (Function: _)
-                                  (Poly: _ (Function: _)))))
-          (define actual-kws (attribute kw.value))
-          (check-kw-arity actual-kws f)
-          (tc-expr/check/type #'fun (kw-convert f actual-kws #:split #t))
-          (ret f -true-propset)]
-         [(or (tc-results: _) (tc-any-results: _))
-          (tc-expr/check form #f)])]
+       (erase-existentials
+        (match expected
+          [(tc-result1: (and f (or (Function: _)
+                                   (Poly: _ (Function: _)))))
+           (define actual-kws (attribute kw.value))
+           (check-kw-arity actual-kws f)
+           (tc-expr/check/type #'fun (kw-convert f actual-kws #:split #t))
+           (ret f -true-propset)]
+          [(or (tc-results: _) (tc-any-results: _))
+           (tc-expr/check form #f)]))]
       ;; opt function def
       [(~and (let-values ([(f) fun]) . body) opt:opt-lambda^)
        #:when expected
@@ -263,9 +268,10 @@
                           (attribute opt.value))
             (opt-convert fun-type required-pos optional-pos)]
            [_ #f]))
-       (if conv-type
-           (begin (tc-expr/check/type #'fun conv-type) expected)
-           (tc-expr/check form #f))]
+       (erase-existentials
+        (if conv-type
+            (begin (tc-expr/check/type #'fun conv-type) expected)
+            (tc-expr/check form #f)))]
       [(~and _:kw-lambda^
          (let-values ([(f) fun])
            (let-values _
@@ -278,15 +284,17 @@
                    (~and _ (~bind [(mand-kw 1) '()])))
               (quote (all-kw:keyword ...))
               . rst))))
-       (ret (kw-unconvert (tc-expr/t #'fun)
-                          (syntax->list #'(formals ...))
-                          (syntax->datum #'(mand-kw ...))
-                          (syntax->datum #'(all-kw ...))))]
+       (erase-existentials
+        (ret (kw-unconvert (tc-expr/t #'fun)
+                           (syntax->list #'(formals ...))
+                           (syntax->datum #'(mand-kw ...))
+                           (syntax->datum #'(all-kw ...)))))]
       [(~and opt:opt-lambda^
              (let-values ([(f) fun])
                (case-lambda (formals . cl-body) ...)))
-       (ret (opt-unconvert (tc-expr/t #'fun)
-                           (syntax->list #'(formals ...))))]
+       (erase-existentials
+        (ret (opt-unconvert (tc-expr/t #'fun)
+                            (syntax->list #'(formals ...)))))]
       ;; let
       [(let-values bindings . body)
        (define bindings*
@@ -398,7 +406,7 @@
        [(HeterogeneousVector: ts)
         (make-HeterogeneousVector
          (for/list ([x (in-list xs)]
-                    [t (in-sequence-forever (in-list ts) #f)])
+                    [t (in-list/rest ts #f)])
            (cond-check-below (find-stx-type x t) t)))]
        [_ (make-HeterogeneousVector (for/list ([x (in-list xs)])
                                       (generalize (find-stx-type x #f))))])]
@@ -426,20 +434,32 @@
 ;; adds linear info for the following operations:
 ;; + * < <= = >= >
 ;; when the arguments are integers w/ objects
+;; a lot of the content in this function should eventually
+;; just be moved to the actual types of the respective
+;; racket identifiers, but in an effort to move progress forward
+;; and not break programs currently typechecking, this more
+;; explicit, hard-coded helper will do (i.e. some of these functions
+;; currently have extremely large types in TR -- modifying their
+;; type is not always trivial)
 (define (add-applicable-linear-info form result)
   ;; class to recognize expressions that typecheck at a subtype of -Int
   ;; and whose object is non-empty
-  (define-syntax-class int/obj
+  (define-syntax-class (t/obj type)
     #:attributes (obj)
     (pattern e:expr
              #:do [(define o
                      (match (type-of #'e)
                        [(tc-result1: t _ (? Object? o))
-                        #:when (subtype t -Int)
+                        #:when (subtype t type)
                         o]
                        [_ #f]))]
-             #:fail-unless o "not an integer with a non-empty object"
+             #:fail-unless o (format "not a ~a expr with a non-empty object" type)
              #:attr obj o))
+  (define-syntax (obj stx)
+    (syntax-case stx ()
+      [(_ e)
+       (with-syntax ([e* (format-id #'e "~a.obj" (syntax->datum #'e))])
+         (syntax/loc #'e (attribute e*)))]))
   ;; class to recognize int comparisons and associate their
   ;; internal TR prop constructors
   (define-syntax-class int-comparison
@@ -474,32 +494,90 @@
   ;; inspect the function appplication to see if it is a linear
   ;; integer compatible form we want to enrich with info when
   ;; #:with-linear-integer-arithmetic is specified by the user
-  (syntax-parse form
-    [(#%plain-app (~literal *) e1:int/obj e2:int/obj)
-     (match result
-       [(tc-result1: t ps _)
-        (define o1*o2 (-obj* (attribute e1.obj) (attribute e2.obj)))
+  (match result
+    [(tc-result1: ret-t ps _)
+     (syntax-parse form
+       ;; *
+       [(#%plain-app (~literal *) (~var e1 (t/obj -Int)) (~var es (t/obj -Int)) ...)
+        (define product-obj (apply -obj* (obj e1) (obj es)))
         (cond
-          [(Object? o1*o2)
-           (ret (-refine/fresh x t (-eq (-lexp x) o1*o2))
+          [(Object? product-obj)
+           (ret (-refine/fresh x ret-t (-eq (-lexp x) product-obj))
                 ps
-                o1*o2)]
+                product-obj)]
           [else result])]
-       [_ result])]
-    [(#%plain-app (~literal +) e:int/obj es:int/obj ...)
-     (match result
-       [(tc-result1: t ps _)
-        (define l (apply -lexp (attribute e.obj) (attribute es.obj)))
-        (ret (-refine/fresh x t (-eq (-lexp x) l))
+       ;; +
+       [(#%plain-app (~literal +) (~var e (t/obj -Int)) (~var es (t/obj -Int)) ...)
+        (define l (apply -lexp (obj e) (obj es)))
+        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
              ps
-             l)])]
-    [(#%plain-app comp:int-comparison
-                  e1:int/obj
-                  e2:int/obj
-                  es:int/obj ...)
-     (define p (apply -and (comparison-props (attribute comp.constructor)
-                                             (attribute e1.obj)
-                                             (attribute e2.obj)
-                                             (attribute es.obj))))
-     (add-p/not-p result p)]
+             l)]
+       ;; -
+       [(#%plain-app (~literal -) (~var e (t/obj -Int)) (~var es (t/obj -Int)) ...)
+        (define l (apply -lexp
+                         (obj e)
+                         (for/list ([o (in-list (obj es))])
+                           (scale-obj -1 o))))
+        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
+             ps
+             l)]
+       ;; add1
+       [(#%plain-app (~literal add1) (~var e (t/obj -Int)))
+        (define l (-lexp 1 (obj e)))
+        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
+             ps
+             l)]
+       ;; sub1
+       [(#%plain-app (~literal sub1) (~var e (t/obj -Int)))
+        (define l (-lexp -1 (obj e)))
+        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
+             ps
+             l)]
+       ;; modulo
+       [(#%plain-app (~literal modulo) (~var e1 (t/obj -Int)) (~var e2 (t/obj -Nat)))
+        (ret (-refine/fresh x ret-t (-lt (-lexp x) (obj e2)))
+             ps
+             -empty-obj)]
+       ;; max
+       [(#%plain-app (~literal max) (~var e1 (t/obj -Int)) (~var es (t/obj -Int)) ...)
+        (ret (-refine/fresh x ret-t
+                            (apply -and (let ([l (-lexp x)])
+                                          (for/list ([o (in-list (cons (obj e1) (obj es)))])
+                                            (-geq l o)))))
+             ps
+             -empty-obj)]
+       ;; min
+       [(#%plain-app (~literal min) (~var e1 (t/obj -Int)) (~var es (t/obj -Int)) ...)
+        (ret (-refine/fresh x ret-t
+                            (apply -and (let ([l (-lexp x)])
+                                          (for/list ([o (in-list (cons (obj e1) (obj es)))])
+                                            (-leq l o)))))
+             ps
+             -empty-obj)]
+       ;; random
+       [(#%plain-app (~literal random) (~var e1 (t/obj -Int)))
+        (ret (-refine/fresh x ret-t (-lt (-lexp x) (obj e1)))
+             ps
+             -empty-obj)]
+       [(#%plain-app (~literal random) (~var e1 (t/obj -Int)) (~var e2 (t/obj -Int)))
+        (ret (-refine/fresh x ret-t (-and (-leq (obj e1) (-lexp x))
+                                          (-lt (-lexp x) (obj e2))))
+             ps
+             -empty-obj)]
+       ;; vector-length
+       [(#%plain-app (~literal vector-length) (~var e1 (t/obj -VectorTop)))
+        (define l (-vec-len-of (obj e1)))
+        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
+             ps
+             l)]
+       [(#%plain-app comp:int-comparison
+                     (~var e1 (t/obj -Int))
+                     (~var e2 (t/obj -Int))
+                     (~var es (t/obj -Int)) ...)
+        (define p (apply -and (comparison-props (attribute comp.constructor)
+                                                (obj e1)
+                                                (obj e2)
+                                                (obj es))))
+        (add-p/not-p result p)]
+       [_ result])]
     [_ result]))

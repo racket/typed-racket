@@ -70,9 +70,9 @@
 (define (atomic-contradiction? p1 p2)
   (match* (p1 p2)
     [((TypeProp: o1 t1) (NotTypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t1 t2 #:obj o1))]
+     (and (eq? o1 o2) (subtype t1 t2 o1))]
     [((NotTypeProp: o2 t2) (TypeProp: o1 t1))
-     (and (eq? o1 o2) (subtype t1 t2 #:obj o1))]
+     (and (eq? o1 o2) (subtype t1 t2 o1))]
     [((? LeqProp?) (? LeqProp?)) (contradictory-Leqs? p1 p2)]
     [((FalseProp:) _) #t]
     [(_ (FalseProp:)) #t]
@@ -133,8 +133,8 @@
   (match* (p1 p2)
     [((FalseProp:) _) #t]
     [(_ (FalseProp:)) #t]
-    [((TypeProp: o t1) (NotTypeProp: o t2)) (subtype t1 t2 #:obj o)]
-    [((NotTypeProp: o t2) (TypeProp: o t1)) (subtype t1 t2 #:obj o)]
+    [((TypeProp: o t1) (NotTypeProp: o t2)) (subtype t1 t2 o)]
+    [((NotTypeProp: o t2) (TypeProp: o t1)) (subtype t1 t2 o)]
     [((? LeqProp?) (? LeqProp?)) (contradictory-Leqs? p1 p2)]
     [((TypeProp: (Path: pes1 x1) t1)
       (TypeProp: (Path: pes2 x2) t2))
@@ -156,9 +156,9 @@
 (define (atomic-complement? p1 p2)
   (match* (p1 p2)
     [((TypeProp: o1 t1) (NotTypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t2 t1 #:obj o1))]
+     (and (eq? o1 o2) (subtype t2 t1 o1))]
     [((NotTypeProp: o2 t2) (TypeProp: o1 t1))
-     (and (eq? o1 o2) (subtype t2 t1 #:obj o1))]
+     (and (eq? o1 o2) (subtype t2 t1 o1))]
     [((? LeqProp?) (? LeqProp?)) (complementary-Leqs? p1 p2)]
     [((TrueProp:) _) #t]
     [(_ (TrueProp:)) #t]
@@ -185,11 +185,11 @@
     ;; t1 <: t2 ?
     [((TypeProp: o1 t1)
       (TypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t1 t2 #:obj o1))]
+     (and (eq? o1 o2) (subtype t1 t2 o1))]
     ;; t2 <: t1 ?
     [((NotTypeProp: o1 t1)
       (NotTypeProp: o2 t2))
-     (and (eq? o1 o2) (subtype t2 t1 #:obj o1))]
+     (and (eq? o1 o2) (subtype t2 t1 o1))]
     ;; t1 ∩ t2 = ∅ ?
     [((TypeProp:    o1 t1)
       (NotTypeProp: o2 t2))
@@ -227,8 +227,8 @@
   (match props
     [(or (list) (list _)) props]
     [_
-     (define tf-map (make-hash))
-     (define ntf-map (make-hash))
+     (define tf-map (make-hasheq))
+     (define ntf-map (make-hasheq))
 
      ;; consolidate type info and separate out other props
      (define-values (leqs others)
@@ -246,9 +246,9 @@
            [_ (values leqs (cons prop others))])))
      ;; convert consolidated types into props and gather everything
      (define raw-results
-       (append (for/list ([(k v) (in-hash tf-map)])
+       (append (for/list ([(k v) (in-mutable-hash tf-map)])
                  (-is-type k v))
-               (for/list([(k v) (in-hash ntf-map)])
+               (for/list([(k v) (in-mutable-hash ntf-map)])
                  (-not-type k v))
                leqs
                others))
@@ -287,45 +287,55 @@
 ;; will be a disjunction of only atomic propositions (i.e. a clause
 ;; in a CNF formula)
 (define (-or . args)
-  (define mk
-    (match-lambda [(list) -ff]
-                  [(list p) p]
-                  [ps (make-OrProp ps)]))
-  (define (distribute args)
-    (define-values (ands others) (partition AndProp? args))
-    (if (null? ands)
-        (mk others)
-        (match-let ([(AndProp: elems) (car ands)])
-          (apply -and (for/list ([a (in-list elems)])
-                        (apply -or a (append (cdr ands) others)))))))
-  (define (flatten-ors/remove-duplicates ps)
-    (let loop ([ps ps]
-               [result '()])
-      (match ps
-        [(cons p rst)
-         (match p
-           [(OrProp: ps*) (loop rst (append ps* result))]
-           [_ (loop rst (cons p result))])]
-        [_ (remove-duplicates result)])))
-  (let loop ([ps (flatten-ors/remove-duplicates args)]
-             [result null])
-    (match ps
-      [(cons cur rst)
-       (cond
-         ;; trivial cases
-         [(TrueProp? cur) -tt]
-         [(FalseProp? cur) (loop rst result)]
-         ;; is there a complementary case e.g. (ϕ ∨ ¬ϕ)? if so abort
-         [(for/or ([p (in-list rst)])    (atomic-complement? p cur)) -tt]
-         [(for/or ([p (in-list result)]) (atomic-complement? p cur)) -tt]
-         ;; don't include 'cur' if its covered by another prop
-         [(for/or ([p (in-list rst)]) (atomic-implies? cur p))
-          (loop rst result)]
-         [(for/or ([p (in-list result)]) (atomic-implies? cur p))
-          (loop rst result)]
-         ;; otherwise keep 'cur' in this disjunction
-         [else (loop rst (cons cur result))])]
-      [_ (distribute (compact result #t))])))
+  (match args
+    ;; specialize for trivial <=2 arg cases
+    [(list) -ff]
+    [(list p) p]
+    [(list p p) p]
+    [(list (TrueProp:) p) -tt]
+    [(list p (TrueProp:)) -tt]
+    [(list (FalseProp:) p) p]
+    [(list p (FalseProp:)) p]
+    [args
+     (define mk
+       (match-lambda [(list) -ff]
+                     [(list p) p]
+                     [ps (make-OrProp ps)]))
+     (define (distribute args)
+       (define-values (ands others) (partition AndProp? args))
+       (if (null? ands)
+           (mk others)
+           (match-let ([(AndProp: elems) (car ands)])
+             (apply -and (for/list ([a (in-list elems)])
+                           (apply -or a (append (cdr ands) others)))))))
+     (define (flatten-ors/remove-duplicates ps)
+       (let loop ([ps ps]
+                  [result '()])
+         (match ps
+           [(cons p rst)
+            (match p
+              [(OrProp: ps*) (loop rst (append ps* result))]
+              [_ (loop rst (cons p result))])]
+           [_ (remove-duplicates result)])))
+     (let loop ([ps (flatten-ors/remove-duplicates args)]
+                [result null])
+       (match ps
+         [(cons cur rst)
+          (cond
+            ;; trivial cases
+            [(TrueProp? cur) -tt]
+            [(FalseProp? cur) (loop rst result)]
+            ;; is there a complementary case e.g. (ϕ ∨ ¬ϕ)? if so abort
+            [(for/or ([p (in-list rst)])    (atomic-complement? p cur)) -tt]
+            [(for/or ([p (in-list result)]) (atomic-complement? p cur)) -tt]
+            ;; don't include 'cur' if its covered by another prop
+            [(for/or ([p (in-list rst)]) (atomic-implies? cur p))
+             (loop rst result)]
+            [(for/or ([p (in-list result)]) (atomic-implies? cur p))
+             (loop rst result)]
+            ;; otherwise keep 'cur' in this disjunction
+            [else (loop rst (cons cur result))])]
+         [_ (distribute (compact result #t))]))]))
 
 ;; -and
 ;; (listof Prop?) -> Prop?
@@ -334,49 +344,59 @@
 ;; will be a conjunction of only atomic propositions and disjunctions
 ;; (i.e. a CNF proposition)
 (define (-and . args)
-  (define mk
-    (match-lambda [(list) -tt]
-                  [(list p) p]
-                  [ps (make-AndProp ps)]))
-  ;; we remove duplicates and organize the props so that the
-  ;; strongest ones come first (note: this includes considering
-  ;; smaller ors before larger ors)
-  (define (flatten-ands/remove-duplicates/order ps)
-    (define ts '())
-    (define nts '())
-    (define ors (make-hash))
-    (define others '())
-    (let partition! ([ps ps])
-      (for ([p (in-list ps)])
-        (match p
-          [(? TypeProp?) (set! ts (cons p ts))]
-          [(? NotTypeProp?) (set! nts (cons p nts))]
-          [(OrProp: ps*) (hash-update! ors (length ps*) (λ (l) (cons p l)) '())]
-          [(AndProp: ps*) (partition! ps*)]
-          [_ (set! others (cons p others))])))
-    (define ors-smallest-to-largest
-      (append-map cdr (sort (hash->list ors)
-                            (λ (len/ors1 len/ors2)
-                              (< (car len/ors1) (car len/ors2))))))
-    (remove-duplicates (append ts nts others ors-smallest-to-largest) eq?))
-  (let loop ([ps (flatten-ands/remove-duplicates/order args)]
-             [result null])
-    (match ps
-      [(cons cur rst)
-       (cond
-         ;; trivial cases
-         [(FalseProp? cur) -ff]
-         [(TrueProp? cur) (loop rst result)]
-         ;; is there a contradition e.g. (ϕ ∧ ¬ϕ), if so abort
-         [(for/or ([p (in-list rst)])    (atomic-contradiction? p cur)) -ff]
-         [(for/or ([p (in-list result)]) (atomic-contradiction? p cur)) -ff]
-         ;; don't include 'cur' if its implied by another prop
-         ;; already in our result (this is why we order the props!)
-         [(for/or ([p (in-list result)]) (atomic-implies? p cur))
-          (loop rst result)]
-         ;; otherwise keep 'cur' in this conjunction
-         [else (loop rst (cons cur result))])]
-      [_ (mk (compact result #f))])))
+  (match args
+    ;; specialize for trivial <=2 arg cases
+    [(list) -tt]
+    [(list p) p]
+    [(list p p) p]
+    [(list (TrueProp:) p) p]
+    [(list p (TrueProp:)) p]
+    [(list (FalseProp:) p) -ff]
+    [(list p (FalseProp:)) -ff]
+    [args
+     (define mk
+       (match-lambda [(list) -tt]
+                     [(list p) p]
+                     [ps (make-AndProp ps)]))
+     ;; we remove duplicates and organize the props so that the
+     ;; strongest ones come first (note: this includes considering
+     ;; smaller ors before larger ors)
+     (define (flatten-ands/remove-duplicates/order ps)
+       (define ts '())
+       (define nts '())
+       (define ors (make-hash))
+       (define others '())
+       (let partition! ([ps ps])
+         (for ([p (in-list ps)])
+           (match p
+             [(? TypeProp?) (set! ts (cons p ts))]
+             [(? NotTypeProp?) (set! nts (cons p nts))]
+             [(OrProp: ps*) (hash-update! ors (length ps*) (λ (l) (cons p l)) '())]
+             [(AndProp: ps*) (partition! ps*)]
+             [_ (set! others (cons p others))])))
+       (define ors-smallest-to-largest
+         (append-map cdr (sort (hash->list ors)
+                               (λ (len/ors1 len/ors2)
+                                 (< (car len/ors1) (car len/ors2))))))
+       (remove-duplicates (append ts nts others ors-smallest-to-largest) eq?))
+     (let loop ([ps (flatten-ands/remove-duplicates/order args)]
+                [result null])
+       (match ps
+         [(cons cur rst)
+          (cond
+            ;; trivial cases
+            [(FalseProp? cur) -ff]
+            [(TrueProp? cur) (loop rst result)]
+            ;; is there a contradition e.g. (ϕ ∧ ¬ϕ), if so abort
+            [(for/or ([p (in-list rst)])    (atomic-contradiction? p cur)) -ff]
+            [(for/or ([p (in-list result)]) (atomic-contradiction? p cur)) -ff]
+            ;; don't include 'cur' if its implied by another prop
+            ;; already in our result (this is why we order the props!)
+            [(for/or ([p (in-list result)]) (atomic-implies? p cur))
+             (loop rst result)]
+            ;; otherwise keep 'cur' in this conjunction
+            [else (loop rst (cons cur result))])]
+         [_ (mk (compact result #f))]))]))
 
 ;; add-unconditional-prop: tc-results? Prop? -> tc-results?
 ;; Ands the given proposition to the props in the tc-results.

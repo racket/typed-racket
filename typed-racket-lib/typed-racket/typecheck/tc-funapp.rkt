@@ -6,8 +6,9 @@
          (env tvar-env)
          (for-syntax syntax/parse racket/base)
          (types utils subtype resolve abbrev
-                substitute classes prop-ops)
+                substitute classes prop-ops type-table)
          (typecheck tc-metafunctions tc-app-helper tc-subst)
+         racket/sequence
          (rep type-rep)
          (r:infer infer))
 
@@ -55,7 +56,23 @@
                    (list (cons 0 idx) o t))))
 
 (define (tc/funapp f-stx args-stx f-type args-res expected)
-  (match-define (list (tc-result1: argtys (PropSet: argps+ argps-) argobjs) ...) args-res)
+  (define-values (argtys argprops argobjs)
+    (cond
+      [(with-linear-integer-arithmetic?)
+       (for/lists (_1 _2 _3) ([stx (in-syntax args-stx)]
+                              [res (in-list args-res)])
+         (match res
+           [(tc-result1: t (PropSet: p+ p-) (? Empty?))
+            (define o (-id-path (gen-existential-id)))
+            (add-existential-obj! stx o)
+            (values t (-and (-is-type o t) (-or p+ p-)) o)]
+           [(tc-result1: t (PropSet: p+ p-) o)
+            (values t (-or p+ p-) o)]))]
+      [else
+       (for/lists (_1 _2 _3) ([res (in-list args-res)])
+         (match res
+           [(tc-result1: t (PropSet: p+ p-) o)
+            (values t (-or p+ p-) o)]))]))
   (define result
     (match f-type
       ;; we special-case this (no case-lambda) for improved error messages
@@ -111,13 +128,20 @@
                            [drest
                             (infer/dots
                              fixed-vars dotted-var argtys dom (car drest) rng (fv rng)
-                             #:expected (and expected (tc-results->values expected)))]
+                             #:expected (and expected (tc-results->values expected))
+                             )]
                            [rest
                             (infer/vararg fixed-vars (list dotted-var) argtys dom rest rng
-                                          (and expected (tc-results->values expected)))]
+                                          (and expected (tc-results->values expected))
+                                          )]
                            ;; no rest or drest
-                           [else (infer fixed-vars (list dotted-var) argtys dom rng
-                                        (and expected (tc-results->values expected)))])))
+                           [else (infer fixed-vars
+                                        (list dotted-var)
+                                        argtys
+                                        dom
+                                        rng
+                                        (and expected (tc-results->values expected))
+                                        )])))
          #:function-type f-type
          #:args-results args-res
          #:expected expected)]
@@ -141,7 +165,8 @@
          (let ([rng (subst-dom-objs argtys argobjs rng)])
            (extend-tvars vars
                          (infer/vararg vars null argtys dom rest rng
-                                       (and expected (tc-results->values expected)))))
+                                       (and expected (tc-results->values expected))
+                                       )))
          #:function-type f-type
          #:args-results args-res
          #:expected expected)]
@@ -221,4 +246,4 @@
         "Cannot apply expression of type ~a, since it is not a function type"
         f-type)]))
   ;; keep any info learned from the arguments
-  (add-unconditional-prop result (apply -and (map -or argps+ argps-))))
+  (add-unconditional-prop result (apply -and argprops)))

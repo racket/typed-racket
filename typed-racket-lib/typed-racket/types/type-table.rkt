@@ -17,6 +17,7 @@
 
 (provide/cond-contract
  [add-typeof-expr (syntax? tc-results/c . -> . any/c)]
+ [add-existential-obj! (syntax? Object? . -> . void?)]
  [type-of (syntax? . -> . tc-results/c)]
  [reset-type-table (-> any/c)]
  [type-table->tooltips
@@ -70,6 +71,12 @@
            (tooltip (cons e seen) t)))
      (tooltip (list e) t)))
   (hash-update! type-table e (λ (res) (merge-tc-results (list t res))) t))
+
+(define (add-existential-obj! e o)
+  (match (hash-ref type-table e #f)
+    [(tc-result1: t ps (? Empty?))
+     (hash-set! type-table e (ret t ps o))]
+    [_ (void)]))
 
 (define (type-of e)
   (hash-ref type-table e

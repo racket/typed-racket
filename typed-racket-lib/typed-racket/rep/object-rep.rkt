@@ -31,6 +31,7 @@
          genobj
          make-obj-seq
          obj-seq-next
+         scale-obj
          (rename-out [make-LExp* make-LExp]
                      [make-LExp raw-make-LExp])
          (all-from-out "fme-utils.rkt"))
@@ -283,18 +284,20 @@
   (cond
     [(or (Empty? o1) (Empty? o2)) -empty-obj]
     [(and (LExp? o1) (constant-LExp? o1))
-     => (scale-obj o2)]
+     => (λ (n) (scale-obj n o2))]
     [(and (LExp? o2) (constant-LExp? o2))
-     => (scale-obj o1)]
+     => (λ (n) (scale-obj n o1))]
     [else -empty-obj]))
 
-(define ((scale-obj o) c)
-  (match o
-    [(? Path?) (-lexp (list c o))]
+(define/cond-contract (scale-obj n obj)
+  (-> exact-integer? OptObject? OptObject?)
+  (match obj
+    [(? Path?) (-lexp (list n obj))]
     [(LExp: const terms)
      ;; scaling doesn't modify which objects are in the LExp! =)
      ;; just constants & coefficients
-     (make-LExp* (* c const) (terms-scale terms c))]))
+     (make-LExp* (* n const) (terms-scale terms n))]
+    [(Empty:) -empty-obj]))
 
 
 

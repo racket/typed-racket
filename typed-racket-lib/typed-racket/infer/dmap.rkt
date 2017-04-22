@@ -39,7 +39,7 @@
      #f
      (%1 make-dcon
       (for/list/fail ([c1 (in-list fixed1)]
-                      [c2 (in-sequence-forever fixed2 rest)])
+                      [c2 (in-list/rest fixed2 rest)])
         (c-meet c1 c2))
       #f)]
     ;; redo in the other order to call the previous case
@@ -52,7 +52,7 @@
                        (values fixed2 fixed1 rest2 rest1))])
        (% make-dcon
         (for/list/fail ([c1 (in-list longer)]
-                   [c2 (in-sequence-forever shorter srest)])
+                   [c2 (in-list/rest shorter srest)])
           (c-meet c1 c2))
         (c-meet lrest srest)))]
     [((struct dcon-dotted (fixed1 c1 bound1)) (struct dcon-dotted (fixed2 c2 bound2)))

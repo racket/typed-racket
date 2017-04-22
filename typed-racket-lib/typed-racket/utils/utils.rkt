@@ -27,11 +27,14 @@ at least theoretically.
  filter-multiple
  syntax-length
  in-pair
- in-sequence-forever
+ in-list/rest
+ list-ref/default
  match*/no-order
  bind
  genid
  gen-pretty-id
+ gen-existential-id
+ existential-id?
  local-tr-identifier?
  mark-id-as-normalized
  normalized-id?)
@@ -257,17 +260,6 @@ at least theoretically.
   (let ((list (syntax->list stx)))
     (and list (length list))))
 
-(define (in-sequence-forever seq val)
-  (make-do-sequence
-   (λ ()
-     (let-values ([(more? gen) (sequence-generate seq)])
-       (values (λ (e) (if (more?) (gen) val))
-               (λ (_) #t)
-               #t
-               (λ (_) #t)
-               (λ _ #t)
-               (λ _ #t))))))
-
 (define-syntax (match*/no-order stx)
   (define (parse-clauses clauses)
     (syntax-parse clauses
@@ -307,8 +299,10 @@ at least theoretically.
   (provide local-tr-identifier?
            genid
            gen-pretty-id
+           gen-existential-id
            mark-id-as-normalized
-           normalized-id?)
+           normalized-id?
+           existential-id?)
   ;; we use this syntax location to recognized gensymed identifiers
   (define-for-syntax loc #'x)
   (define dummy-id (datum->syntax #'loc (gensym 'x)))
@@ -320,22 +314,29 @@ at least theoretically.
     (let ([normalized-identifier-sym (gensym 'normal-id)])
       (values (λ (id) (syntax-property id normalized-identifier-sym #t))
               (λ (id) (syntax-property id normalized-identifier-sym)))))
+  (define-values (mark-id-as-existential
+                  existential-id?)
+    (let ([existential-identifier-sym (gensym 'existential-id)])
+      (values (λ (id) (syntax-property id existential-identifier-sym #t))
+              (λ (id) (syntax-property id existential-identifier-sym)))))
   ;; generates fresh identifiers for use while typechecking
   (define (genid [sym (gensym 'local)])
     (mark-id-as-normalized (datum->syntax #'loc sym)))
-  (define letters '("x" "y" "z" "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k"
-                        "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v"  "w"))
+  (define letters (vector-immutable "x" "y" "z" "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k"
+                                    "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v"  "w"))
   ;; this is just a silly helper function that gives us a letter from
   ;; the latin alphabet in a cyclic manner
   (define next-letter
     (let ([i 0])
       (λ ()
-        (define letter (string->uninterned-symbol (list-ref letters i)))
-        (set! i (modulo (add1 i) (length letters)))
+        (define letter (string->uninterned-symbol (vector-ref letters i)))
+        (set! i (modulo (add1 i) (vector-length letters)))
         letter)))
   ;; generates a fresh identifier w/ a "pretty" printable representation
   (define (gen-pretty-id [sym (next-letter)])
     (mark-id-as-normalized (datum->syntax #'loc sym)))
+  (define (gen-existential-id [sym (next-letter)])
+    (mark-id-as-existential (genid sym)))
   ;; allows us to recognize and distinguish gensym'd identifiers
   ;; from ones that came from the program we're typechecking
   (define (local-tr-identifier? id)
@@ -344,3 +345,58 @@ at least theoretically.
               (syntax-source-module id)))))
 
 (require 'local-ids)
+
+
+;; in-list/rest
+;; (in-list/rest l v)
+;;
+;; iterates through the elements of the
+;; list 'l' until they are exhausted, at which
+;; point 'v' is used for each subsequent iteration
+
+(define (in-list/rest-proc l rest)
+  (in-sequences l (in-cycle (in-value rest))))
+
+(define-sequence-syntax in-list/rest
+  (λ () #'in-list/rest-proc)
+  (λ (stx)
+    (syntax-case stx ()
+      [[(val) (_ list-exp rest-exp)]
+       #'[(val)
+          (:do-in
+           ;; ([(outer-id ...) outer-expr] ...)
+           ([(list) list-exp]
+            [(rest) rest-exp])
+           ;; outer-check
+           #t
+           ;; ([loop-id loop-expr] ...)
+           ([pos list])
+           ;; pos-guard
+           #t
+           ;; ([(inner-id ...) inner-expr] ...)
+           ([(val pos) (if (pair? pos)
+                           (values (car pos) (cdr pos))
+                           (values rest '()))])
+           ;; pre-guard
+           #t
+           ;; post-guard
+           #t
+           ;; (loop-arg ...)
+           (pos))]]
+      [[xs (_ dd-exp)]
+       (list? (syntax->datum #'xs))
+       (raise-syntax-error 'in-list/rest
+                           (format "expected an identifier, given ~a"
+                                   (syntax->list #'xs))
+                           #'xs)]
+      [blah (raise-syntax-error 'in-list/rest "invalid usage" #'blah)])))
+
+
+
+(define (list-ref/default xs idx default)
+  (match xs
+    ['() default]
+    [(cons x xs)
+     (if (eqv? 0 idx)
+         x
+         (list-ref/default xs (sub1 idx) default))]))

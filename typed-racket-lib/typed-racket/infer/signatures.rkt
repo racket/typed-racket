@@ -21,8 +21,8 @@
    [cond-contracted c-meet ((c? c?) (symbol?) . ->* . (or/c #f c?))]))
 
 (define-signature intersect^
-  ([cond-contracted intersect ((Type? Type?) (#:obj OptObject?) . ->* . Type?)]
-   [cond-contracted restrict  ((Type? Type?) (#:obj OptObject?) . ->* . Type?)]))
+  ([cond-contracted intersect ((Type? Type?) (OptObject?) . ->* . Type?)]
+   [cond-contracted restrict  ((Type? Type?) (OptObject?) . ->* . Type?)]))
 
 (define-signature infer^
   ([cond-contracted infer ((;; variables from the forall
@@ -38,7 +38,8 @@
                            ;; optional expected type
                            ((or/c #f Values/c AnyValues? ValuesDots?)
                             ;; optional multiple substitutions?
-                            #:multiple? boolean?)
+                            #:multiple? boolean?
+                            #:objs (listof OptObject?))
                            . ->* . any)]
    [cond-contracted infer/vararg ((;; variables from the forall
                                    (listof symbol?)
@@ -53,7 +54,9 @@
                                    ;; range
                                    (or/c #f Values/c ValuesDots?))
                                   ;; [optional] expected type
-                                  ((or/c #f Values/c AnyValues? ValuesDots?)) . ->* . any)]
+                                  ((or/c #f Values/c AnyValues? ValuesDots?)
+                                   #:objs (listof OptObject?))
+                                  . ->* . any)]
    [cond-contracted infer/dots (((listof symbol?)
                                  symbol?
                                  (listof Values/c)
@@ -61,4 +64,6 @@
                                  Values/c
                                  (or/c Values/c ValuesDots?)
                                  (listof symbol?))
-                                (#:expected (or/c #f Values/c AnyValues? ValuesDots?)) . ->* . any)]))
+                                (#:expected (or/c #f Values/c AnyValues? ValuesDots?)
+                                 #:objs (listof OptObject?))
+                                . ->* . any)]))

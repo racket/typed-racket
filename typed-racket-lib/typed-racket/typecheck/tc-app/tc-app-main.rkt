@@ -86,16 +86,21 @@
             (map single-value args*)]
            [(Function:
               (app matching-arities
-                (list (arr: doms ranges rests drests _) ..1)))
-            (define matching-domains
-              (in-values-sequence
-                (apply in-parallel
-                  (for/list ((dom (in-list doms)) (rest (in-list rests)))
-                    (in-sequences (in-list dom) (in-cycle (in-value rest)))))))
-            (for/list ([a (in-list args*)] [types matching-domains])
-              (match-define (cons t ts) types)
-              (if (for/and ((t2 (in-list ts))) (equal? t t2))
-                  (tc-expr/check a (ret t))
-                  (single-value a)))]
+                (list (arr: doms _ rests _ _) ..1)))
+            ;; if for a particular argument, all of the domain types
+            ;; agree for each arr type in the case->, then we use
+            ;; that type to check against
+            (for/list ([arg-stx (in-list args*)]
+                       [arg-idx (in-naturals)])
+              (define dom-ty (list-ref/default (car doms)
+                                               arg-idx
+                                               (car rests)))
+              (cond
+                [(for/and ([dom (in-list doms)]
+                           [rest (in-list rests)])
+                   (equal? dom-ty
+                           (list-ref/default dom arg-idx rest)))
+                 (tc-expr/check arg-stx (ret dom-ty))]
+                [else (single-value arg-stx)]))]
            [_ (map single-value args*)]))
        (tc/funapp #'f #'args f-ty arg-tys expected))]))

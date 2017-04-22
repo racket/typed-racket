@@ -11,8 +11,26 @@
 (provide Listof: List: MListof: AnyPoly: AnyPoly-names: Function/arrs:
          SimpleListof: SimpleMListof:
          PredicateProp:
-         Val-able:)
+         Val-able:
+         Is-a:)
 
+
+;; matches types that are exactly the pattern,
+;; or that are an intersection type of some kind where
+;; exactly 1 of the types in the intersection is of the type
+(define-match-expander Is-a:
+  (lambda (stx)
+    (syntax-parse stx
+      [(_ pat)
+       (syntax/loc stx
+         (or pat
+             (Intersection: (or (list pat)
+                                (app (λ (ts) (filter (match-lambda
+                                                       [pat #t]
+                                                       [_ #f])
+                                                     ts))
+                                     (list pat)))
+                            _)))])))
 
 ;; some types used to be represented by a Value rep,
 ;; but are now represented by a Base rep. This function
@@ -27,15 +45,14 @@
     [(== -One) (box-immutable 1)]
     [_ #f]))
 
+;; matches types that correspond to singleton values
 (define-match-expander Val-able:
   (lambda (stx)
     (syntax-parse stx
       [(_ pat)
        (syntax/loc stx
-         (or (Value: pat)
-             (app Base->val? (box pat))
-             (Intersection: (list (or (Value: pat)
-                                      (app Base->val? (box pat)))) _)))])))
+         (Is-a: (or (Value: pat)
+                    (app Base->val? (box pat)))))])))
 
 (define-match-expander Listof:
   (lambda (stx)

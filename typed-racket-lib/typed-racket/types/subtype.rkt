@@ -26,7 +26,7 @@
 (provide NameStruct:)
 
 (provide/cond-contract
- [subtype (->* (Type? Type?) (#:obj OptObject?) boolean?)]
+ [subtype (->* (Type? Type?) ((or/c #f OptObject?)) boolean?)]
  [subresult (-> Result? Result? boolean?)]
  [subval (-> SomeValues? SomeValues? boolean?)]
  [type-equiv? (-> Type? Type? boolean?)]
@@ -49,15 +49,8 @@
 
 ;; is t1 a subtype of t2?
 ;; type type -> boolean
-(define (subtype t1 t2 #:obj [obj #f])
-  (and
-   (cond
-     [obj (subtype* (seen) t1 t2 obj)]
-     [else
-      (define-values (o os) (obj-seq-next (temp-objs)))
-      (parameterize ([temp-objs os])
-        (subtype* (seen) t1 t2 o))])
-   #t))
+(define (subtype t1 t2 [obj #f])
+  (and (subtype* (seen) t1 t2 obj) #t))
 
 
 ;; is v1 a subval of v2?
@@ -380,6 +373,11 @@
                (subtype* t1 t2)
                (subtype* t2 t1)))
 
+(define-syntax-rule (with-fresh-obj obj . body)
+  (let-values ([(obj os) (obj-seq-next (temp-objs))])
+    (parameterize ([temp-objs os])
+      . body)))
+
 ;; the algorithm for recursive types transcribed directly from TAPL, pg 305
 ;; List[(cons Number Number)] type type -> List[(cons Number Number)] or #f
 ;; is s a subtype of t, taking into account previously seen pairs A
@@ -388,73 +386,63 @@
 ;; types as they are encountered:
 ;; needs-resolved? types (Mus, Names, Apps),
 ;; Instances, and Structs (Prefabs?)
-(define subtype*
-  (case-lambda
-    [(A t1 t2)
-     (define-values (o os) (obj-seq-next (temp-objs)))
-     (parameterize ([temp-objs os])
-       (subtype* A t1 t2 o))]
-    [(A t1 t2 obj)
-     (cond
-       [(Univ? t2) A]
-       [(Bottom? t1) A]
-       ;; error is top and bot
-       [(or (Error? t1) (Error? t2)) A]
-       [(disjoint-masks? (mask t1) (mask t2)) #f]
-       [(equal? t1 t2) A]
-       [(seen? t1 t2 A) A]
-       [else
-        ;; first we check on a few t2 cases
-        ;; that need to come early during checking
-        (match t2
-          [(Intersection: t2s raw-prop)
-           (let ([A (for/fold ([A A])
-                              ([t2 (in-list t2s)]
-                               #:break (not A))
-                      (subtype* A t1 t2 obj))])
-             (and A
-                  (or (TrueProp? raw-prop)
-                      (let* ([obj (if (Empty? obj) (-id-path (genid)) obj)]
-                             [prop (instantiate-rep/obj raw-prop obj t1)])
-                        (implies-in-env? (lexical-env)
-                                         (-is-type obj t1)
-                                         prop)))
-                  A))]
-          [(? resolvable?)
-           (let ([A (remember t1 t2 A)])
-             (with-updated-seen A
-               (let ([t2 (resolve-once t2)])
-                 ;; check needed for if a name that hasn't been resolved yet
-                 (and (Type? t2) (subtype* A t1 t2 obj)))))]
-          [_
-           ;; otherwise we case on t1
-           (subtype-cases
-            A t1 t2 obj
-            ;; if we're still not certain after the switch,
-            ;; check the cases that need to come at the end
-            (λ (A t1 t2 obj)
-              (match* (t1 t2)
-                [(t1 (Union/set: base2 ts2 elems2))
-                 (cond
-                   [(hash-has-key? elems2 t1) A]
-                   [(subtype* A t1 base2 obj)]
-                   [else (for/or ([elem2 (in-list ts2)])
-                           (subtype* A t1 elem2 obj))])]
-                [(_ (Instance: (? resolvable? t2*)))
-                 (let ([A (remember t1 t2 A)])
-                   (with-updated-seen A
-                     (let ([t2* (resolve-once t2*)])
-                       (and (Type? t2*)
-                            (subtype* A t1 (make-Instance t2*) obj)))))]
-                [(_ (Poly: vs2 b2))
-                 #:when (null? (fv b2))
-                 (subtype* A t1 b2 obj)]
-                [(_ (PolyDots: vs2 b2))
-                 #:when (and (null? (fv b2))
-                             (null? (fi b2)))
-                 (subtype* A t1 b2 obj)]
-                [(_ _) #f])))])])]))
+(define (subtype* A t1 t2 [obj #f])
+  (cond
+    [(Univ? t2) A]
+    [(Bottom? t1) A]
+    ;; error is top and bot
+    [(or (Error? t1) (Error? t2)) A]
+    [(disjoint-masks? (mask t1) (mask t2)) #f]
+    [(equal? t1 t2) A]
+    [(seen? t1 t2 A) A]
+    [else
+     ;; first we check on a few t2 cases
+     ;; that need to come early during checking
+     (match t2
+       [(Intersection: t2s raw-prop)
+        (let ([A (for/fold ([A A])
+                           ([t2 (in-list t2s)]
+                            #:break (not A))
+                   (subtype* A t1 t2 obj))])
+          (and A
+               (or (TrueProp? raw-prop)
+                   (let* ([obj (if (Object? obj) obj (-id-path (genid)))]
+                          [prop (instantiate-rep/obj raw-prop obj t1)])
+                     (implies-in-env? (lexical-env)
+                                      (-is-type obj t1)
+                                      prop)))
+               A))]
+       [(? resolvable?)
+        (let ([A (remember t1 t2 A)])
+          (with-updated-seen A
+            (let ([t2 (resolve-once t2)])
+              ;; check needed for if a name that hasn't been resolved yet
+              (and (Type? t2) (subtype* A t1 t2 obj)))))]
+       [_ ;; otherwise we case on t1
+        (subtype-cases A t1 t2 obj)])]))
 
+(define (continue<: A t1 t2 obj)
+  (match* (t1 t2)
+    [(t1 (Union/set: base2 ts2 elems2))
+     (cond
+       [(hash-has-key? elems2 t1) A]
+       [(subtype* A t1 base2 obj)]
+       [else (for/or ([elem2 (in-list ts2)])
+               (subtype* A t1 elem2 obj))])]
+    [(_ (Instance: (? resolvable? t2*)))
+     (let ([A (remember t1 t2 A)])
+       (with-updated-seen A
+         (let ([t2* (resolve-once t2*)])
+           (and (Type? t2*)
+                (subtype* A t1 (make-Instance t2*) obj)))))]
+    [(_ (Poly: vs2 b2))
+     #:when (null? (fv b2))
+     (subtype* A t1 b2 obj)]
+    [(_ (PolyDots: vs2 b2))
+     #:when (and (null? (fv b2))
+                 (null? (fi b2)))
+     (subtype* A t1 b2 obj)]
+    [(_ _) #f]))
 
 ;; these data structures are allocated once and
 ;; used below in 'subtype-switch'
@@ -489,7 +477,7 @@
    (cons portable-fixnum? -NonNegFixnum)
    (cons values -Nat)))
 
-(define-rep-switch (subtype-cases A (#:switch t1) t2 obj continue)
+(define-rep-switch (subtype-cases A (#:switch t1) t2 obj)
   ;; NOTE: keep these in alphabetical order
   ;; or ease of finding cases
   [(case: App _)
@@ -503,7 +491,7 @@
      [(? Async-ChannelTop?) A]
      [(Async-Channel: elem2) (type≡? A elem1 elem2)]
      [(Evt: evt-t) (subtype* A elem1 evt-t)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Base (Base-bits: num? bits))
    (match t2
      [(BaseUnion: bbits nbits)
@@ -535,7 +523,7 @@
         [(Base:Log-Receiver? t1)
          (subtype* A log-vect-type evt-t)]
         [else #f])]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: BaseUnion (BaseUnion: bbits1 nbits1))
    (match t2
      [(? Base?) #f]
@@ -555,13 +543,13 @@
    (match t2
      [(? BoxTop?) A]
      [(Box: elem2) (type≡? A elem1 elem2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Channel (Channel: elem1))
    (match t2
      [(? ChannelTop?) A]
      [(Channel: elem2) (type≡? A elem1 elem2)]
      [(Evt: evt-t) (subtype* A elem1 evt-t)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Class (Class: row inits fields methods augments init-rest))
    (match t2
      [(? ClassTop?) A]
@@ -601,13 +589,13 @@
                     (sub init-rest init-rest*))
                (and (not init-rest) (not init-rest*)
                     A)))]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Continuation-Mark-Keyof (Continuation-Mark-Keyof: val1))
    (match t2
      [(? Continuation-Mark-KeyTop?) A]
      [(Continuation-Mark-Keyof: val2)
       (type≡? A val1 val2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: CustodianBox (CustodianBox: elem1))
    (match t2
      [(CustodianBox: elem2) (subtype* A elem1 elem2)]
@@ -615,7 +603,7 @@
       ;; Note that it's the whole box type that's being
       ;; compared against evt-t here
       (subtype* A t1 evt-t)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Distinction (Distinction: nm1 id1 t1*))
    (match t2
      [(app resolve (Distinction: nm2 id2 t2*))
@@ -623,20 +611,20 @@
       (subtype* A t1* t2*)]
      [_ (cond
           [(subtype* A t1* t2 obj)]
-          [else (continue A t1 t2 obj)])])]
+          [else (continue<: A t1 t2 obj)])])]
   [(case: Ephemeron (Ephemeron: elem1))
    (match t2
      [(Ephemeron: elem2) (subtype* A elem1 elem2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Evt (Evt: result1))
    (match t2
      [(Evt: result2) (subtype* A result1 result2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: F (F: var1))
    (match t2
      ;; tvars are equal if they are the same variable
      [(F: var2) (eq? var1 var2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Function (Function: arrs1))
    (match t2
      ;; special-case for case-lambda/union with only one argument              
@@ -656,11 +644,11 @@
               [(supertype-of-one/arr A (car arrs2) arrs1)
                => (λ (A) (loop-arities A (cdr arrs2)))]
               [else #f])))]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Future (Future: elem1))
    (match t2
      [(Future: elem2) (subtype* A elem1 elem2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Hashtable (Hashtable: key1 val1))
    (match t2
      [(? HashtableTop?) A]
@@ -671,7 +659,7 @@
       (subtype-seq A
                    (subtype* key1 key2)
                    (subtype* val1 val2))]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: HeterogeneousVector (HeterogeneousVector: elems1))
    (match t2
      [(VectorTop:) A]
@@ -693,7 +681,7 @@
                 ([elem1 (in-list elems1)]
                  #:break (not A))
         (subtype* A elem1 seq-t))]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Instance (Instance: inst-t1))
    (cond
      [(resolvable? inst-t1)
@@ -723,7 +711,7 @@
          (and ;; Note that init & augment clauses don't matter for objects
           (subtype-clause? method-map method-map*)
           (subtype-clause? field-map field-map*))]
-        [(_ _) (continue A t1 t2 obj)])])]
+        [(_ _) (continue<: A t1 t2 obj)])])]
   [(case: Intersection (Intersection: t1s _))
    (match t1
      [(Refine: t1* raw-prop)
@@ -736,17 +724,16 @@
            [else (with-lexical-env env
                    (subtype* A t1* t2 obj))])]
         [else
-         (define id (genid))
-         (define obj (-id-path id))
-         (define prop (instantiate-rep/obj raw-prop obj t1*))
-         ;; since this is a fresh object, we will do a simpler environment extension
-         (with-naively-extended-lexical-env [#:props (list prop)]
-           (subtype* A t1* t2 obj))])]
+         (with-fresh-obj obj
+           (define prop (instantiate-rep/obj raw-prop obj t1*))
+           ;; since this is a fresh object, we will do a simpler environment extension
+           (with-naively-extended-lexical-env [#:props (list prop)]
+             (subtype* A t1* t2 obj)))])]
      [_
       (cond
         [(for/or ([t1 (in-list t1s)])
            (subtype* A t1 t2 obj))]
-        [else (continue A t1 t2 obj)])])]
+        [else (continue<: A t1 t2 obj)])])]
   [(case: ListDots (ListDots: dty1 dbound1))
    (match t2
      ;; recur structurally on dotted lists, assuming same bounds
@@ -760,7 +747,7 @@
      ;; variance issues.
      [(Listof: elem2)
       (subtype* A (-poly (dbound1) dty1) elem2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: MPair (MPair: t11 t12))
    (match t2
      [(? MPairTop?) A]
@@ -775,7 +762,7 @@
                    (subtype* t11 seq-t)
                    (subtype* t12 null-or-mpair-top)
                    (subtype* t12 (make-Sequence (list seq-t))))]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Mu _)
    (let ([A (remember t1 t2 A)])
      (with-updated-seen A
@@ -805,21 +792,21 @@
       (subtype-seq A
                    (subtype* t11 seq-t)
                    (subtype* t12 (-lst seq-t)))]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Param (Param: in1 out1))
    (match t2
      [(Param: in2 out2) (subtype-seq A
                                      (subtype* in2 in1)
                                      (subtype* out1 out2))]
      [_ (subtype* A (cl->* (t-> out1) (t-> in1 -Void)) t2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Poly (Poly: names b1))
    (match t2
      [(? Poly?) #:when (= (length names) (Poly-n t2))
                 (subtype* A b1 (Poly-body names t2))]
      ;; use local inference to see if we can use the polytype here
      [_ #:when (infer names null (list b1) (list t2) Univ) A]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: PolyDots (PolyDots: (list ns ... n-dotted) b1))
    (match t2
      [(PolyDots: (list ms ... m-dotted) b2)
@@ -847,7 +834,7 @@
       (subtype* A (subst-all subst b1) b2)]
      [_ #:when (infer ns (list n-dotted) (list b1) (list t2) Univ)
         A]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Prefab (Prefab: k1 ss))
    (match t2
      [(Prefab: k2 ts)
@@ -866,11 +853,11 @@
                                             (subtype* t s)
                                             (subtype* s t))
                                (subtype* A s t))))))))]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Promise (Promise: elem1))
    (match t2
      [(Promise: elem2) (subtype* A elem1 elem2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Prompt-Tagof (Prompt-Tagof: body1 handler1))
    (match t2
      [(? Prompt-TagTop?) A]
@@ -878,7 +865,7 @@
       (subtype-seq A
                    (type≡? body1 body2)
                    (type≡? handler1 handler2))]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Refinement (Refinement: t1-parent id1))
    (match t2
      [(Refinement: t2-parent id2)
@@ -886,17 +873,17 @@
       (subtype* A t1-parent t2-parent)]
      [_ (cond
           [(subtype* A t1-parent t2)]
-          [else (continue A t1 t2 obj)])])]
+          [else (continue<: A t1 t2 obj)])])]
   ;; sequences are covariant
   [(case: Sequence (Sequence: ts1))
    (match t2
      [(Sequence: ts2) (subtypes* A ts1 ts2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Set (Set: elem1))
    (match t2
      [(Set: elem2) (subtype* A elem1 elem2)]
      [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _))
    (match t2
      ;; Avoid resolving things that refer to different structs.
@@ -934,21 +921,21 @@
                 (let ([A (remember t1 t2 A)])
                   (with-updated-seen A
                     (subtype* A parent1 t2))))]
-          [else (continue A t1 t2 obj)])]
-     [_ (continue A t1 t2 obj)])]
+          [else (continue<: A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: StructType (StructType: t1*))
    (match t2
      [(StructTypeTop:) A]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Syntax (Syntax: elem1))
    (match t2
      [(Syntax: elem2) (subtype* A elem1 elem2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: ThreadCell (ThreadCell: elem1))
    (match t2
      [(? ThreadCellTop?) A]
      [(ThreadCell: elem2) (type≡? A elem1 elem2)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Union (Union/set: base1 ts1 elems1))
    (let ([A (subtype* A base1 t2 obj)])
      (and A
@@ -977,7 +964,7 @@
            (check-sub-signatures? exports1 exports2)
            (check-sub-signatures? init-depends2 init-depends1)
            (subval* A t1* t2*))]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Value (Value: val1))
    (match t2
      [(Base-predicate: pred) (and (pred val1) A)]
@@ -1006,16 +993,16 @@
                                           (-is-type obj t1)
                                           (instantiate-rep/obj p* obj t1)))))
       A]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Vector (Vector: elem1))
    (match t2
      [(? VectorTop?) A]
      [(Vector: elem2) (type≡? A elem1 elem2)]
      [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
-     [_ (continue A t1 t2 obj)])]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Weak-Box (Weak-Box: elem1))
    (match t2
      [(? Weak-BoxTop?) A]
      [(Weak-Box: elem2) (type≡? A elem1 elem2)]
-     [_ (continue A t1 t2 obj)])]
-  [else: (continue A t1 t2 obj)])
+     [_ (continue<: A t1 t2 obj)])]
+  [else: (continue<: A t1 t2 obj)])

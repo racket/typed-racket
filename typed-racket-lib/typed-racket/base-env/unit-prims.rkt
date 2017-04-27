@@ -327,13 +327,13 @@
        ;; The inserted lambda expression will be expanded to the internal
        ;; name of the variable being annotated, this internal name
        ;; can then be associated with the type annotation during typechecking
-       [(define-values () (colon-helper (: name:id type) rest ...))
+       [(define-values () (colon-helper (: name:id type ...) rest ...))
         (quasisyntax/loc stx
           (define-values ()
             #,(tr:unit:body-exp-def-type-property
                #`(#%expression
                   (begin (void (lambda () name))
-                         (colon-helper (: name type) rest ...)))
+                         (colon-helper (: name type ...) rest ...)))
                'def/type)))]
        [(define-values (name:id ...) rhs)
         (quasisyntax/loc stx

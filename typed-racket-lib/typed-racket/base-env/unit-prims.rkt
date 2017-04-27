@@ -32,7 +32,7 @@
                       syntax/id-table
                       racket/unit-exptime
                       syntax/strip-context
-                      (utils tc-utils)
+                      (utils tc-utils disarm)
                       syntax/id-table
                       syntax/id-set)
           (prefix-in untyped- (only-in racket/unit
@@ -313,7 +313,7 @@
   (syntax-parse stx
     [(_ e)
      (define exp-e (local-expand #'e (syntax-local-context) (kernel-form-identifier-list)))
-     (syntax-parse exp-e
+     (syntax-parse (disarm* exp-e)
        #:literals (begin define-values define-syntaxes :)
        [(begin b ...)
         #'(add-tags b ...)]

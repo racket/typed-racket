@@ -2737,7 +2737,7 @@
 [tcp-port? (asym-pred Univ B (-PS (-is-type 0 (Un -Input-Port -Output-Port)) -tt))]
 
 ;; Section 15.3.2 (racket/udp)
-[udp-open-socket (->opt [(-opt -String) (-opt -String)] -UDP-Socket)]
+[udp-open-socket (->opt [(-opt -String) (-opt -Int)] -UDP-Socket)]
 [udp-bind! (-> -UDP-Socket (-opt -String) -Nat -Void)]
 [udp-connect! (-> -UDP-Socket (-opt -String) (-opt -Nat) -Void)]
 

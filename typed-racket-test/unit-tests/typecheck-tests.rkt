@@ -4466,6 +4466,45 @@
         [tc-e/t (let: ([x : (Un Flonum Natural) 0.0])
                   (if (not (natural? x)) x 1.0))
                -Flonum]
+
+       ;; regexps can be typechecked at their precise, singleton type
+       ;; when it is the expected type
+       [tc-e (ann #rx"abc" #rx"abc") (-val #rx"abc")]
+       [tc-e (ann #px"abc" #px"abc") (-val #px"abc")]
+       [tc-e (ann #rx#"abc" #rx#"abc") (-val #rx#"abc")]
+       [tc-e (ann #px#"abc" #px#"abc") (-val #px#"abc")]
+       ;; Check that the inferred type is still implicitly widened to Regexp,
+       ;; Pregexp, Byte-Regexp or Byte-PRegexp by default, for backwards
+       ;; compatibility (previously, all regexps had the type Regexp, Pregexp,
+       ;; Byte-Regexp or Byte-PRegexp):
+       [tc-e #rx"abc" -Regexp]
+       [tc-e #px"abc" -PRegexp]
+       [tc-e #rx#"abc" -Byte-Regexp]
+       [tc-e #px#"abc" -Byte-PRegexp]
+       [tc-e (ann #rx"abc" Regexp) -Regexp]
+       [tc-e (ann #px"abc" PRegexp) -PRegexp]
+       [tc-e (ann #px"abc" Regexp) -Regexp] ;; PRegexp is a subtype of Regexp
+       [tc-e (ann #rx#"abc" Byte-Regexp) -Byte-Regexp]
+       [tc-e (ann #px#"abc" Byte-PRegexp) -Byte-PRegexp]
+       [tc-e (ann #px#"abc" Byte-Regexp) -Byte-Regexp]  ;; Byte-PRegexp is a subtype of Byte-Regexp
+
+       [tc-err (ann (ann #rx"abc" Regexp) PRegexp) #:ret (tc-ret -PRegexp)] ;; Regexp not a subtype of PRegexp
+       [tc-err (ann (ann #rx#"abc" Byte-Regexp) Byte-PRegexp) #:ret (tc-ret -Byte-PRegexp)] ;; Byte-Regexp not a subtype of Byte-PRegexp
+
+       [tc-err (ann (ann #rx"abc" Regexp) Byte-Regexp) #:ret (tc-ret -Byte-Regexp)] ;; Regexp not a subtype of Byte-Regexp
+       [tc-err (ann (ann #rx"abc" Regexp) Byte-PRegexp) #:ret (tc-ret -Byte-PRegexp)] ;; Regexp not a subtype of Byte-PRegexp
+       [tc-err (ann (ann #rx#"abc" Byte-Regexp) Regexp) #:ret (tc-ret -Regexp)] ;; Byte-Regexp not a subtype of Regexp
+       [tc-err (ann (ann #px#"abc" Byte-PRegexp) Regexp) #:ret (tc-ret -Regexp)] ;; Byte-PRegexp not a subtype of Regexp
+
+       [tc-err (ann (ann #px"abc" PRegexp) Byte-Regexp) #:ret (tc-ret -Byte-Regexp)] ;; PRegexp not a subtype of Byte-Regexp
+       [tc-err (ann (ann #px"abc" PRegexp) Byte-PRegexp) #:ret (tc-ret -Byte-PRegexp)] ;; PRegexp not a subtype of Byte-PRegexp
+       [tc-err (ann (ann #rx#"abc" Byte-Regexp) PRegexp) #:ret (tc-ret -PRegexp)] ;; Byte-Regexp not a subtype of PRegexp
+       [tc-err (ann (ann #px#"abc" Byte-PRegexp) PRegexp) #:ret (tc-ret -PRegexp)] ;; Byte-PRegexp not a subtype of PRegexp
+
+       ;; Inferred type should be PRegexp, so we should not be able to set a Regexp:
+       [tc-err (let () (define b2 (box #px".*")) (set-box! b2 #rx".*"))]
+       ;; Inferred type should be Byte-PRegexp, so we should not be able to set a Byte-Regexp:
+       [tc-err (let () (define b2 (box #px#".*")) (set-box! b2 #rx#".*"))]
        )
 
   (test-suite

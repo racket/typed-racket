@@ -2738,19 +2738,19 @@
 
 ;; Section 15.3.2 (racket/udp)
 [udp-open-socket (->opt [(-opt -String) (-opt -Int)] -UDP-Socket)]
-[udp-bind! (-> -UDP-Socket (-opt -String) -Nat -Void)]
-[udp-connect! (-> -UDP-Socket (-opt -String) (-opt -Nat) -Void)]
+[udp-bind! (-> -UDP-Socket (-opt -String) -Int -Void)]
+[udp-connect! (-> -UDP-Socket (-opt -String) (-opt -Int) -Void)]
 
-[udp-send-to (->opt -UDP-Socket -String -Nat -Bytes [-Nat -Nat] -Void)]
-[udp-send (->opt -UDP-Socket -Bytes [-Nat -Nat] -Void)]
-[udp-send-to* (->opt -UDP-Socket -String -Nat -Bytes [-Nat -Nat] B)]
-[udp-send* (->opt -UDP-Socket -Bytes [-Nat -Nat] B)]
-[udp-send-to/enable-break (->opt -UDP-Socket -String -Nat -Bytes [-Nat -Nat] -Void)]
-[udp-send/enable-break (->opt -UDP-Socket -Bytes [-Nat -Nat] -Void)]
+[udp-send-to (->opt -UDP-Socket -String -Int -Bytes [-Int -Int] -Void)]
+[udp-send (->opt -UDP-Socket -Bytes [-Int -Int] -Void)]
+[udp-send-to* (->opt -UDP-Socket -String -Int -Bytes [-Int -Int] B)]
+[udp-send* (->opt -UDP-Socket -Bytes [-Int -Int] B)]
+[udp-send-to/enable-break (->opt -UDP-Socket -String -Int -Bytes [-Int -Int] -Void)]
+[udp-send/enable-break (->opt -UDP-Socket -Bytes [-Int -Int] -Void)]
 
-[udp-receive! (->opt -UDP-Socket -Bytes [-Nat -Nat] (-values (list -Nat -String -Nat)))]
-[udp-receive!* (->opt -UDP-Socket -Bytes [-Nat -Nat] (-values (list (-opt -Nat) (-opt -String) (-opt -Nat))))]
-[udp-receive!/enable-break (->opt -UDP-Socket -Bytes [-Nat -Nat] (-values (list -Nat -String -Nat)))]
+[udp-receive! (->opt -UDP-Socket -Bytes [-Int -Int] (-values (list -Nat -String -Nat)))]
+[udp-receive!* (->opt -UDP-Socket -Bytes [-Int -Int] (-values (list (-opt -Nat) (-opt -String) (-opt -Nat))))]
+[udp-receive!/enable-break (->opt -UDP-Socket -Bytes [-Int -Int] (-values (list -Nat -String -Nat)))]
 
 [udp-close (-> -UDP-Socket -Void)]
 [udp? (make-pred-ty -UDP-Socket)]
@@ -2759,12 +2759,12 @@
 
 [udp-send-ready-evt (-> -UDP-Socket (-mu x (-evt x)))]
 [udp-receive-ready-evt (-> -UDP-Socket (-mu x (-evt x)))]
-[udp-send-to-evt (->opt -UDP-Socket -String -Nat -Bytes [-Nat -Nat]
+[udp-send-to-evt (->opt -UDP-Socket -String -Int -Bytes [-Int -Int]
                         (-evt -Void))]
-[udp-send-evt (->opt -UDP-Socket -Bytes [-Nat -Nat]
+[udp-send-evt (->opt -UDP-Socket -Bytes [-Int -Int]
                      (-evt -Void))]
 [udp-receive!-evt
- (->opt -UDP-Socket -Bytes [-Nat -Nat]
+ (->opt -UDP-Socket -Bytes [-Int -Int]
         (-evt (-lst* -Nat -String -Nat)))]
 
 [udp-addresses

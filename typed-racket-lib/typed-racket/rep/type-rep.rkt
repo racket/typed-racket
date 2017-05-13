@@ -1077,92 +1077,141 @@
        -Bottom
        (make-Distinction nm id ty))])
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;************************************************************
+;; Locally Nameles Type Variable Abstraction/Instantiation
+;;************************************************************
+
+
+;; abstract
+;;
+;; asbtracts type variable 'name'
+;; to De Bruijn index 0 in 'initial'
+(define/cond-contract (abstract name initial)
+  (-> symbol? Rep? Rep?)
+  (abstract-many (list name) initial))
+
+;; abstract-many
+;;
+;; abstracts the type variable names from 'names-to-abstract'
+;; to de bruijn indices in 'initial'.
+;; Specifically, if n = (length names-to-abstract) then
+;; names-to-abstract[0] gets mapped to n-1
+;; names-to-abstract[1] gets mapped to n-2
+;; ...
+;; names-to-abstract[n-1] gets mapped to 0
+(define/cond-contract (abstract-many names-to-abstract initial)
+  (-> (listof symbol?) Rep? Rep?)
+  (define n-1 (sub1 (length names-to-abstract)))
+  (define (abstract-name name lvl default dotted?)
+    (match (index-of names-to-abstract name eq?)
+      [#f default]
+      ;; adjust index properly before using (see comments above
+      ;; and note we are under 'lvl' additional binders)
+      [idx (let ([idx (+ lvl (- n-1 idx))])
+             (cond [dotted? idx]
+                   [else (make-B idx)]))]))
+  (let rec/lvl ([cur initial] [lvl 0])
+    (define (rec rep) (rec/lvl rep lvl))
+    (match cur
+      ;; Free type variables
+      [(F: name) (abstract-name name lvl cur #f)]
+      ;; forms w/ (potential) dotted type variables
+      [(arr: dom rng rest drest kws)
+       (make-arr (map rec dom)
+                 (rec rng)
+                 (and rest (rec rest))
+                 (match drest
+                   [(cons d-ty d)
+                    (cons (rec d-ty) (abstract-name d lvl d #t))]
+                   [_ #f])
+                 (map rec kws))]
+      [(ValuesDots: rs dty d)
+       (make-ValuesDots (map rec rs)
+                        (rec dty)
+                        (abstract-name d lvl d #t))]
+      [(ListDots: dty d)
+       (make-ListDots (rec dty)
+                      (abstract-name d lvl d #t))]
+      ;; forms which introduce bindings (increment lvls appropriately)
+      [(Mu: body) (make-Mu (rec/lvl body (add1 lvl)))]
+      [(PolyRow: constraints body)
+       (make-PolyRow constraints (rec/lvl body (add1 1 lvl)))]
+      [(PolyDots: n body)
+       (make-PolyDots n (rec/lvl body (+ n lvl)))]
+      [(Poly: n body)
+       (make-Poly n (rec/lvl body (+ n lvl)))]
+      [_ (Rep-fmap cur rec)])))
+
+
+;; instantiate
+;;
+;; instantiates De Bruijn index 0 with
+;; 'type' in 'initial'
+(define/cond-contract (instantiate type initial)
+  (-> Type? Rep? Rep?)
+  (instantiate-many (list type) initial))
+
+;; instantiate-many
+;;
+;; instantiates De Bruijn indices 0 through
+;; (sub1 (length images)) with the types from images.
+;; Specifically, if n = (length images), then
+;; index 0 gets mapped to images[n-1]
+;; index 1 gets mapped to images[n-2]
+;; ...
+;; index n-1 gets mapped to images[0]
+(define/cond-contract (instantiate-many images initial)
+  (-> (listof Type?) Rep? Rep?)
+  (define n-1 (sub1 (length images)))
+  (define (instantiate-idx idx lvl default dotted?)
+    ;; adjust for being under 'lvl' binders and for
+    ;; index 0 gets mapped to images[n-1], etc
+    (let ([idx (- n-1 (- idx lvl))])
+      (match (list-ref/default images idx #f)
+        [#f default]
+        [image (cond [dotted? (F-n image)]
+                     [else image])])))
+  (let rec/lvl ([cur initial] [lvl 0])
+    (define (rec rep) (rec/lvl rep lvl))
+    (match cur
+      ;; Bound De Bruijn indices
+      [(B: idx) (instantiate-idx idx lvl cur #f)]
+      ;; forms w/ (potential) dotted type indices
+      [(arr: dom rng rest (cons d-ty (? exact-integer? d)) kws)
+       (make-arr (map rec dom)
+                 (rec rng)
+                 (and rest (rec rest))
+                 (cons (rec d-ty) (instantiate-idx d lvl d #t))
+                 (map rec kws))]
+      [(ValuesDots: rs dty (? exact-integer? d))
+       (make-ValuesDots (map rec rs)
+                        (rec dty)
+                        (instantiate-idx d lvl d #t))]
+      [(ListDots: dty (? exact-integer? d))
+       (make-ListDots (rec dty)
+                      (instantiate-idx d lvl d #t))]
+      ;; forms which introduce bindings (increment lvls appropriately)
+      [(Mu: body) (make-Mu (rec/lvl body (add1 lvl)))]
+      [(PolyRow: constraints body)
+       (make-PolyRow constraints (rec/lvl body (add1 1 lvl)))]
+      [(PolyDots: n body)
+       (make-PolyDots n (rec/lvl body (+ n lvl)))]
+      [(Poly: n body)
+       (make-Poly n (rec/lvl body (+ n lvl)))]
+      [_ (Rep-fmap cur rec)])))
 
 
 ;;************************************************************
-;; Helpers: Type Variable Abstraction/Instantiation
+;; Smart Constructors/Destructors for Type Binders
+;;
+;; i.e. constructors and desctructors which use
+;; abstract/instantiate so free variables are always
+;; type variables (i.e. F) and bound variables are
+;; always De Bruijn indices (i.e. B)
 ;;************************************************************
 
-;; used for abstracting/instantiating type variables
-;; it recursively folds over the 'start' Rep, and as it
-;; passes structs which introduce type variables it increments
-;; the depth being tracked (the 'lvl'). When it raches type variables
-;; or DeBruijns (dependending on whether we are abstracting or instantiating)
-;; it transforms them with f
-(define (type-binder-transform f start abstracting?)
-  (define dbound-fn (if abstracting? values F-n))
-  (define not-abstracting? (not abstracting?))
-  (let rec/lvl ([cur start] [lvl 0])
-    (let rec ([cur cur])
-      (match cur
-        [(F: name*) #:when abstracting? (f name* make-B lvl cur)]
-        [(B: idx) #:when not-abstracting? (f idx (λ (x) x) lvl cur)]
-        [(arr: dom rng rest drest kws)
-         (make-arr (map rec dom)
-                   (rec rng)
-                   (and rest (rec rest))
-                   (if drest
-                       (cons (rec (car drest))
-                             (let ([c (cdr drest)])
-                               (f c dbound-fn lvl c)))
-                       #f)
-                   (map rec kws))]
-        [(Mu: body) (make-Mu (rec/lvl body (add1 lvl)))]
-        [(ValuesDots: rs dty dbound)
-         (make-ValuesDots (map rec rs)
-                          (rec dty)
-                          (f dbound dbound-fn lvl dbound))]
-        [(ListDots: dty dbound)
-         (make-ListDots (rec dty)
-                        (f dbound dbound-fn lvl dbound))]
-        [(PolyRow: constraints body)
-         (make-PolyRow constraints (rec/lvl body (add1 1 lvl)))]
-        [(PolyDots: n body)
-         (make-PolyDots n (rec/lvl body (+ n lvl)))]
-        [(Poly: n body)
-         (make-Poly n (rec/lvl body (+ n lvl)))]
-        [_ (Rep-fmap cur rec)]))))
 
-(define/cond-contract (abstract-many names ty)
-  (-> (listof symbol?) Type? Type?)
-  (define n (length names))
-  (define mapping (for/list ([nm (in-list names)]
-                             [i (in-range n 0 -1)])
-                    (cons nm (sub1 i))))
-  ;; transform : symbol (Integer -> a) a -> a
-  ;; apply `mapping` to `name*`, returning `default` if it's not there
-  ;; use `f` to wrap the result
-  ;; note that this takes into account the value of the outer lvl
-  (define (transform name* fn lvl default)
-    (cond [(assq name* mapping)
-           => (λ (pr) (fn (+ (cdr pr) lvl)))]
-          [else default]))
-  (type-binder-transform transform ty #t))
-
-
-(define/cond-contract (instantiate-many images ty)
-  (-> (listof Type?) Type? Type?)
-  (define n (length images))
-  (define mapping (for/list ([img (in-list images)]
-                             [i (in-range n 0 -1)])
-                    (cons (sub1 i) img)))
-  ;; transform : Integer (Name -> a) a -> a
-  ;; apply `mapping` to `n`, returning `default` if it's not there
-  ;; use `f` to wrap the result
-  ;; note that this takes into account the value of the outer `lvl`
-  (define (transform n fn lvl default)
-    (cond [(assf (λ (v) (eqv? (+ v lvl) n)) mapping)
-           => (λ (pr) (fn (cdr pr)))]
-          [else default]))
-  (type-binder-transform transform ty #f))
-
-(define/cond-contract (abstract name ty)
-  (-> symbol? Type? Type?)
-  (abstract-many (list name) ty))
-
-(define (instantiate type sc)
-  (instantiate-many (list type) sc))
 
 ;; the 'smart' constructor
 (define (Mu* name body)
@@ -1176,10 +1225,16 @@
     [(Mu: body)
      (instantiate (make-F name) body)]))
 
-;; the 'smart' constructor
+;; unfold : Mu -> Type
+(define/cond-contract (unfold t)
+  (Mu? . -> . Type?)
+  (match t
+    [(Mu-unsafe: body) (instantiate t body)]
+    [t (error 'unfold "not a mu! ~a" t)]))
+
+
+;; Poly 'smart' constructor
 ;;
-;; Corresponds to closing a type in locally nameless representation
-;; (turns free `names` into bound De Bruijn vars)
 ;; Also keeps track of the original name in a table to recover names
 ;; for debugging or to correlate with surface syntax
 ;;
@@ -1194,7 +1249,7 @@
         (hash-set! type-var-name-table v orig)
         v)))
 
-;; the 'smart' destructor
+;; Poly 'smart' destructor
 (define (Poly-body* names t)
   (match t
     [(Poly: n body)
@@ -1202,14 +1257,14 @@
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
      (instantiate-many (map make-F names) body)]))
 
-;; the 'smart' constructor
+;; PolyDots 'smart' constructor
 (define (PolyDots* names body)
   (if (null? names) body
       (let ([v (make-PolyDots (length names) (abstract-many names body))])
         (hash-set! type-var-name-table v names)
         v)))
 
-;; the 'smart' destructor
+;; PolyDots 'smart' destructor
 (define (PolyDots-body* names t)
   (match t
     [(PolyDots: n body)
@@ -1217,7 +1272,8 @@
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
      (instantiate-many (map make-F names) body)]))
 
-;; Constructor and destructor for row polymorphism
+
+;; PolyRow 'smart' constructor
 ;;
 ;; Note that while `names` lets you specify multiple names, it's
 ;; expected that row polymorphic types only bind a single name at
@@ -1228,12 +1284,21 @@
     (hash-set! type-var-name-table v orig)
     v))
 
+;; PolyRow 'smart' desctrutor
 (define (PolyRow-body* names t)
   (match t
     [(PolyRow: constraints body)
      (instantiate-many (map make-F names) body)]))
 
-(print-struct #t)
+
+;;***************************************************************
+;; Smart Match Expanders for Type Binders
+;;
+;; i.e. match expanders which use the smart desctructors defined
+;; above -- many of these are provided w/ rename-out so they
+;; are the defacto match expanders
+;;***************************************************************
+
 
 (define-match-expander Mu-unsafe:
   (lambda (stx)
@@ -1380,6 +1445,13 @@
                          (PolyRow-body* fresh-syms t)))
                  (list nps freshp constrp bp)))])))
 
+
+
+;;***************************************************************
+;; Smart Constructors/Expanders for Class-related structs
+;;***************************************************************
+
+
 ;; Row*
 ;; This is a custom constructor for Row types
 ;; Sorts all clauses by the key (the clause name)
@@ -1454,6 +1526,12 @@
                  (list row-pat inits-pat fields-pat
                        methods-pat augments-pat init-rest-pat)))])))
 
+
+;;***************************************************************
+;; Special Name Expanders
+;;***************************************************************
+
+
 ;; alternative to Name: that only matches the name part
 (define-match-expander Name/simple:
   (λ (stx)
@@ -1468,13 +1546,9 @@
       [(_ name-pat) #'(Name: name-pat _ #t)])))
 
 
-;; unfold : Type -> Type
-;; must be applied to a Mu
-(define/cond-contract (unfold t)
-  (Mu? . -> . Type?)
-  (match t
-    [(Mu-unsafe: body) (instantiate t body)]
-    [t (error 'unfold "not a mu! ~a" t)]))
+;;***************************************************************
+;; Intersection/Refinement related tools
+;;***************************************************************
 
 
 ;; inc-lvl

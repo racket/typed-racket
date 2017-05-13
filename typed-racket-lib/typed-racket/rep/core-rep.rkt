@@ -14,8 +14,6 @@
          "free-variance.rkt"
          "type-mask.rkt"
          (contract-req)
-         racket/match
-         racket/list
          racket/lazy-require
          (for-syntax racket/base racket/syntax
                      syntax/parse))

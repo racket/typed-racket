@@ -3033,7 +3033,8 @@
    (-polydots (b a)
               (cl->* (-Pathlike
                       (Un (-lst -String) (-vec -String))
-                      (-lst (-pair mode-sym (-lst (-lst Univ))))
+                      (-lst (Un (-pair mode-sym (-lst (-lst Univ)))
+                                (-pair (-val 'ps) (-lst -String))))
                       ((list Univ) [a a] . ->... . b)
                       (-lst -String)
                       . -> . b))))]

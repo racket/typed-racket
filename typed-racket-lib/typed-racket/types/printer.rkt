@@ -515,10 +515,6 @@
               (set-box! (current-print-unexpanded)
                         (cons (car names) (unbox (current-print-unexpanded)))))
             (car names)])]
-    ;; format as a string to preserve reader abbreviations and primitive
-    ;; values like characters (when `display`ed)
-    [(Val-able: v) (format "~v" v)]
-    [(? Base?) (Base-name type)]
     [(StructType: (Struct: nm _ _ _ _ _)) `(StructType ,(syntax-e nm))]
     ;; this case occurs if the contained type is a type variable
     [(StructType: ty) `(Struct-Type ,(t->s ty))]
@@ -585,6 +581,12 @@
      `(Refine [,(name-ref->sexp x) : ,ty] ,(prop->sexp prop))]
     [(Intersection: elems _)
      (cons '∩ (sort (map t->s elems) primitive<=?))]
+    ;; format as a string to preserve reader abbreviations and primitive
+    ;; values like characters (when `display`ed)
+    ;; (comes after Intersection since Val-able will match
+    ;;  when an element of an intersection is a val)
+    [(Val-able: v) (format "~v" v)]
+    [(? Base?) (Base-name type)]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
     [(F: nm) nm]

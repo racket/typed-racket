@@ -222,7 +222,9 @@
                       (λ (str) (match (read (open-input-string str))
                                  [`(Refine [,x : Integer] (or (: y Integer) (: z String))) #t]
                                  [`(Refine [,x : Integer] (or (: z String) (: y Integer))) #t]
-                                 [_ #f]))))
+                                 [_ #f])))
+    (check-prints-as? (-unsafe-intersect (-val 2) (-v A)) "(∩ 2 A)"))
+
    (test-suite
     "Pretty printing tests"
     (check-pretty-prints-as? (-val 3) "3")

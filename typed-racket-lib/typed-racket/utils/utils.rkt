@@ -400,9 +400,9 @@ at least theoretically.
 
 
 (define (list-ref/default xs idx default)
-  (match xs
-    ['() default]
-    [(cons x xs)
+  (cond
+    [(pair? xs)
      (if (eqv? 0 idx)
-         x
-         (list-ref/default xs (sub1 idx) default))]))
+         (car xs)
+         (list-ref/default (cdr xs) (sub1 idx) default))]
+    [else default]))

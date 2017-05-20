@@ -188,4 +188,17 @@
     (test-form-exn #rx"exactly two arguments"
       (:query-type/result 1 2 3))
     (test-form #rx"not in the given function's range"
-      (:query-type/result syntax-local-expand-expression Boolean))))
+      (:query-type/result syntax-local-expand-expression Boolean))
+
+    ;; TR GH issues 541 and 532.
+    (test-form
+     #rx"^$"
+     (module mod-a typed/racket
+       (provide (all-defined-out))
+       (struct Foo ())
+       (define-type Bar (∀ (T) (∩ T Foo)))))
+    (test-form #rx"^$"
+      (require 'mod-a))
+    (test-form (regexp-quote "Nothing")
+      (:type (Bar Symbol)))
+    ))

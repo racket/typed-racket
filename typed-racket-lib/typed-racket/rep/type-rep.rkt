@@ -801,7 +801,7 @@
     intersection-table
     elems
     prop
-    #:construct (make-Intersection ts prop elems))])
+    #:construct (make-Intersection (remove-duplicates ts) prop elems))])
 
 (define intersection-table (make-weak-hash))
 
@@ -825,7 +825,7 @@
          [(list)
           (match ts
             [(list) (-refine Univ prop)]
-            [(list t) (-refine (car ts) prop)]
+            [(list t) (-refine t prop)]
             [_ (let ([t (make-Intersection ts -tt elems)])
                  (-refine t prop))])]
          [(cons arg args)
@@ -840,11 +840,7 @@
             [_ #:when (for/or ([elem (in-list args)])
                         (not (overlap? elem arg)))
                -Bottom]
-            [t (let ([count (hash-count elems)]
-                     [elems (hash-set elems t #t)])
-                 (if (eqv? count (hash-count elems))
-                     (loop ts elems prop args)
-                     (loop (cons t ts) elems prop args)))])]))]))
+            [t (loop (cons t ts) (hash-set elems t #t) prop args)])]))]))
 
 (define/provide (Intersection-w/o-prop t)
   (match t

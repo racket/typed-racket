@@ -7,7 +7,7 @@
 
 
 ;;************************************************************
-;; Current Seen Continuation Mark
+;; Current Seen Continuation Mark for Subtyping
 ;;************************************************************
 ;;
 ;; Prevents infinite loops when subtyping calls outside

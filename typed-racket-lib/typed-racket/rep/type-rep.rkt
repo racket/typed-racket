@@ -1081,7 +1081,7 @@
 
 ;; abstract
 ;;
-;; asbtracts type variable 'name'
+;; abstracts type variable 'name'
 ;; to De Bruijn index 0 in 'initial'
 (define/cond-contract (abstract name initial)
   (-> symbol? Rep? Rep?)
@@ -1132,7 +1132,7 @@
       ;; forms which introduce bindings (increment lvls appropriately)
       [(Mu: body) (make-Mu (rec/lvl body (add1 lvl)))]
       [(PolyRow: constraints body)
-       (make-PolyRow constraints (rec/lvl body (add1 1 lvl)))]
+       (make-PolyRow constraints (rec/lvl body (add1 lvl)))]
       [(PolyDots: n body)
        (make-PolyDots n (rec/lvl body (+ n lvl)))]
       [(Poly: n body)
@@ -1190,7 +1190,7 @@
       ;; forms which introduce bindings (increment lvls appropriately)
       [(Mu: body) (make-Mu (rec/lvl body (add1 lvl)))]
       [(PolyRow: constraints body)
-       (make-PolyRow constraints (rec/lvl body (add1 1 lvl)))]
+       (make-PolyRow constraints (rec/lvl body (add1 lvl)))]
       [(PolyDots: n body)
        (make-PolyDots n (rec/lvl body (+ n lvl)))]
       [(Poly: n body)
@@ -1201,7 +1201,7 @@
 ;;************************************************************
 ;; Smart Constructors/Destructors for Type Binders
 ;;
-;; i.e. constructors and desctructors which use
+;; i.e. constructors and destructors which use
 ;; abstract/instantiate so free variables are always
 ;; type variables (i.e. F) and bound variables are
 ;; always De Bruijn indices (i.e. B)
@@ -1290,7 +1290,7 @@
 ;;***************************************************************
 ;; Smart Match Expanders for Type Binders
 ;;
-;; i.e. match expanders which use the smart desctructors defined
+;; i.e. match expanders which use the smart destructors defined
 ;; above -- many of these are provided w/ rename-out so they
 ;; are the defacto match expanders
 ;;***************************************************************

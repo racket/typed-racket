@@ -738,8 +738,10 @@
 [complex? (make-pred-ty N)]
 ;; `rational?' includes all Reals, except infinities and NaN.
 [rational? (asym-pred Univ B (-PS (-is-type 0 -Real) (-not-type 0 -Rat)))]
-[exact? (make-pred-ty -ExactNumber)]
-[inexact? (make-pred-ty (Un -InexactReal -InexactImaginary -InexactComplex))]
+[exact?   (-> N B : (-PS (-is-type 0 -ExactNumber)
+                         (-is-type 0 (Un -InexactReal -InexactImaginary -InexactComplex))))]
+[inexact? (-> N B : (-PS (-is-type 0 (Un -InexactReal -InexactImaginary -InexactComplex))
+                         (-is-type 0 -ExactNumber)))]
 [fixnum? (make-pred-ty -Fixnum)]
 [index? (make-pred-ty -Index)]
 [positive? (-> -Real B : (-PS (-is-type 0 -PosReal) (-is-type 0 -NonPosReal)))]

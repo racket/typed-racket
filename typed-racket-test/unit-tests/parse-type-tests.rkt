@@ -377,6 +377,9 @@
    [(All (r #:row) ((Class #:row-var r) -> (Class #:row-var r)))
     (-polyrow (r) (list null null null null)
       (t:-> (-class #:row r) (-class #:row r)))]
+   [(Listof (All (r #:row) ((Class #:row-var r) -> (Class #:row-var r))))
+    (-lst (-polyrow (r) (list null null null null)
+                    (t:-> (-class #:row r) (-class #:row r))))]
    [(All (r #:row (init x y z) (field f) m n)
       ((Class #:row-var r) -> (Class #:row-var r)))
     (-polyrow (r) (list '(x y z) '(f) '(m n) '())

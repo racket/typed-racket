@@ -37,15 +37,13 @@
 
 (define (name-ref/c x)
   (or (identifier? x)
-      (and (pair? x)
-           (exact-integer? (car x))
-           (exact-integer? (cdr x)))))
+      exact-nonnegative-integer?))
 
 (define (name-ref=? x y)
   (cond
     [(identifier? x)
      (and (identifier? y) (free-identifier=? x y))]
-    [else (equal? x y)]))
+    [else (= x y)]))
 
 ;; normal-id-table
 ;;

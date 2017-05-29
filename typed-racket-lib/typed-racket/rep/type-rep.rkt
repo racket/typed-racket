@@ -68,6 +68,14 @@
          instantiate-many/obj
          abstract/obj
          abstract-many/obj
+         unsafe-Arrow-dom
+         unsafe-Arrow-rst
+         Arrow-has-rst?
+         Arrow-dotted-rst
+         Arrow-has-dotted-rst?
+         Arrow-kws
+         Arrow-has-kws?
+         unsafe-Arrow-rng
          (rename-out [Union:* Union:]
                      [Intersection:* Intersection:]
                      [make-Intersection* make-Intersection]
@@ -489,15 +497,15 @@
 ;; basic function arrow type with domain and range
 ;; Note: no term bindings are introduced
 ;; (i.e. they're not at all dependent)
-(def-arr Arrow ([dom (listof Type?)]
-                [rng SomeValues?])
+(def-arrow ArrowSimp ([dom (listof Type?)]
+                      [rng SomeValues?])
   [#:frees (f)
    (combine-frees
     (cons (f rng)
           (for/list ([d (in-list dom)])
             (flip-variances (f d)))))]
-  [#:fmap (f) (make-Arrow (map f dom)
-                          (f rng))]
+  [#:fmap (f) (make-ArrowSimp (map f dom)
+                              (f rng))]
   [#:for-each (f)
    (for-each f dom)
    (f rng)])
@@ -534,10 +542,10 @@
 ;; (simple or dotted dotted) and keyword arguments
 ;; Note: no term bindings are introduced
 ;; (i.e. they're not at all dependent)
-(def-arr ArrowStar ([dom (listof Type?)]
-                    [rst (or/c #f Type? RestDots?)]
-                    [kws (listof Keyword?)]
-                    [rng SomeValues?])
+(def-arrow ArrowStar ([dom (listof Type?)]
+                      [rst (or/c #f Type? RestDots?)]
+                      [kws (listof Keyword?)]
+                      [rng SomeValues?])
   [#:frees (f)
    (combine-frees
     (cons (f rng)
@@ -547,15 +555,20 @@
              (flip-variances (f kw)))
            (for/list ([d (in-list dom)])
              (flip-variances (f d))))))]
-  [#:fmap (f) (make-Arrow (map f dom)
-                          (f rng))]
+  [#:fmap (f) (make-ArrowStar (map f dom)
+                              (and rst (f rst))
+                              (map f kws)
+                              (f rng))]
   [#:for-each (f)
    (for-each f dom)
    (when rst (f rst))
+   (for-each f kws)
    (f rng)])
 
 
 ;; ArrowDep
+;;
+;; a dependent arrow
 ;;
 ;; 'dom' is a telescope of types which introduces term
 ;; binders for each type such that, let n = (length dom),
@@ -564,9 +577,9 @@
 ;; iii. (second dom) is index 0 in (third dom),
 ;;      and (first dom) is index 1 in (third dom),
 ;; etc, where 'index i' is actually (Path '() i)
-(def-arr ArrowDep ([dom (listof Type?)]
-                   [rst (or/c #f Type?)]
-                   [rng SomeValues?])
+(def-arrow ArrowDep ([dom (listof Type?)]
+                     [rst (or/c #f Type?)]
+                     [rng SomeValues?])
   [#:frees (f)
    (combine-frees
     (cons (f rng)
@@ -582,6 +595,62 @@
    (when rst (f rst))
    (f rng)])
 
+
+;; return a list of the mandatory arguments of the
+;; given arrow, unsafe since this could contain unbound
+;; De Bruijn indices if it is an ArrowDep
+(define/cond-contract (unsafe-Arrow-dom arrow)
+  (-> Arrow? (listof Type?))
+  (match arrow
+    [(ArrowSimp: dom _) dom]
+    [(ArrowStar: dom _ _ _) dom]
+    [(ArrowDep: dom _ _) dom]))
+
+;; return the rest argument for a given arrow,
+;; unsafe since this could contain unbound De Bruijn indices
+;; if it is an ArrowDep
+(define/cond-contract (unsafe-Arrow-rst arrow)
+  (-> Arrow? (or/c #f Type?))
+  (match arrow
+    [(? ArrowSimp?) #f]
+    [(ArrowStar: _ rst _ _) (and (Type? rst) rst)]
+    [(ArrowDep: _ rst _) rst]))
+
+(define/cond-contract (Arrow-has-rst? arrow)
+  (-> Arrow? boolean?)
+  (and (unsafe-Arrow-rst arrow) #t))
+
+;; returns the dotted rest argument for a given arrow,
+(define/cond-contract (Arrow-dotted-rst arrow)
+  (-> Arrow? (or/c #f RestDots?))
+  (match arrow
+    [(ArrowStar: _ (? RestDots? drst) _ _) drst]
+    [_ #f]))
+
+(define/cond-contract (Arrow-has-dotted-rst? arrow)
+  (-> Arrow? boolean?)
+  (and (Arrow-dotted-rst arrow) #t))
+
+;; return a list of the keyword arguments for a given arrow
+;; (not unsafe since ArrowDep contains no kws)
+(define/cond-contract (Arrow-kws arrow)
+  (-> Arrow? (listof Keyword?))
+  (match arrow
+    [(ArrowStar: _ _ kws _) kws]
+    [_ '()]))
+
+(define/cond-contract (Arrow-has-kws? arrow)
+  (-> Arrow? boolean?)
+  (not (null? (Arrow-kws arrow))))
+
+;; returns the range of the given arrow,
+;; unsafe since this could contain unbound De Bruijn indices
+;; if it is an ArrowDep
+(define (unsafe-Arrow-rng arrow)
+  (match arrow
+    [(ArrowSimp: _ rng) rng]
+    [(ArrowStar: _ _ _ rng) rng]
+    [(ArrowDep: _ _ rng) rng]))
 
 
 ;; all functions are case-> internally

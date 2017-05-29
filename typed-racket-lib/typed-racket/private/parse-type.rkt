@@ -3,11 +3,10 @@
 ;; This module provides functions for parsing types written by the user
 
 (require (rename-in "../utils/utils.rkt" [infer infer-in])
-         (except-in (rep core-rep type-rep object-rep rep-utils) make-arr)
-         (rename-in (types abbrev utils prop-ops resolve
-                           classes prefab signatures
-                           subtype path-type numeric-tower)
-                    [make-arr* make-arr])
+         (rep core-rep type-rep object-rep rep-utils)
+         (types abbrev utils prop-ops resolve
+                classes prefab signatures
+                subtype path-type numeric-tower)
          (only-in (infer-in infer) intersect)
          (utils tc-utils stxclass-util literal-syntax-class)
          syntax/stx (prefix-in c: (contract-req))

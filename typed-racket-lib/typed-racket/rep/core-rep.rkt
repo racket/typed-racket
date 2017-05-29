@@ -23,7 +23,7 @@
          Object Object? OptObject? def-object
          PathElem PathElem? def-path-elem
          SomeValues SomeValues? def-values
-         Arr Arr? def-arr)
+         Arrow Arrow? def-arrow)
 
 
 ;;************************************************************
@@ -34,7 +34,7 @@
  ["../types/printer.rkt" (print-type
                           print-prop print-object print-pathelem
                           print-values print-propset print-result
-                          print-arr)])
+                          print-arrow)])
 
 ;; comment out the above lazy-require and uncomment the following
 ;; s-exp for simple debug printing of Rep structs
@@ -214,4 +214,4 @@
 ;; Note: we represent all function types as case-> types
 ;; which contain a list of arrows (i.e. the individual function
 ;; types---see arrow-rep.rkt and  'Function' in type-rep.rkt)
-(def-rep-class Arr #:printer print-arr #:define-form def-arr)
+(def-rep-class Arrow #:printer print-arrow #:define-form def-arrow)

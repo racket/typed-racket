@@ -11,6 +11,7 @@
          "../rep/object-rep.rkt"
          "../rep/base-types.rkt"
          "../rep/numeric-base-types.rkt"
+         (utils tc-utils)
          (rep values-rep rep-utils)
          (env mvar-env)
          racket/match racket/list (prefix-in c: (contract-req))
@@ -113,32 +114,32 @@
     (cond
       ;; simple arrows (Arrow)
       [(not (or rst drst (pair? kws) props obj))
-       (make-Arrow dom rng)]
+       (make-ArrowSimp dom rng)]
       ;; complex arrows (ArrowStar)
       [(and (or rst drst (pair? kws))
             (not (or props obj)))
        (when (and rst drst)
-         (error -Arr "rst and drst provided: ~a ~a" rst drst))
+         (int-err "-Arr: rst and drst provided: ~a ~a" rst drst))
        (let ([rst (or rst drst)])
          (make-ArrowStar dom rst kws rng))]
       ;; dependent arrows (ArrowDep)
       [(or props obj)
        (when drst
-         (error -Arr "drst provided for dep arrow: ~a" drst))
+         (int-err "-Arr: drst provided for dependent arrow: ~a" drst))
        (unless (null? kws)
-         (error -Arr "dependent arrow cannot have kws, given ~a" kws))
+         (int-err "-Arr: dependent arrow cannot have kws, given ~a" kws))
        (let ([rst (or rst drst)])
          (make-ArrowDep dom rst rng))]
       [else
-       (error -Arr
-              "unsupported args ~a ~a ~a ~a ~a ~a ~a"
-              (format "dom ~a" rst)
-              (format "rng ~a" rst)
-              (format "#:rest ~a" rst)
-              (format "#:drest ~a" drst)
-              (format "#:kws ~a" kws)
-              (format "#:props ~a" props)
-              (format "#:object ~a" obj))])))
+       (int-err
+        "unsupported -Arr args: ~a ~a ~a ~a ~a ~a ~a"
+        (format "dom ~a" rst)
+        (format "rng ~a" rst)
+        (format "#:rest ~a" rst)
+        (format "#:drest ~a" drst)
+        (format "#:kws ~a" kws)
+        (format "#:props ~a" props)
+        (format "#:object ~a" obj))])))
 
 (begin-for-syntax
   (define-syntax-class c

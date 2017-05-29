@@ -80,8 +80,6 @@
 (define/decl -tt-propset (make-PropSet -tt -tt))
 (define/decl -ff-propset (make-PropSet -ff -ff))
 
-(define (-arg-path arg [depth 0])
-  (make-Path null (cons depth arg)))
 (define (-acc-path path-elems o)
   (match o
     [(Empty:) -empty-obj]
@@ -125,8 +123,8 @@
          (make-ArrowStar dom rst kws rng))]
       ;; dependent arrows (ArrowDep)
       [(or props obj)
-       (when (and rst drst)
-         (error -Arr "rst and drst provided: ~a ~a" rst drst))
+       (when drst
+         (error -Arr "drst provided for dep arrow: ~a" drst))
        (unless (null? kws)
          (error -Arr "dependent arrow cannot have kws, given ~a" kws))
        (let ([rst (or rst drst)])
@@ -212,15 +210,7 @@
     [(_ dom (dty dbound) rng)
      (syntax/loc stx
        (make-Function
-        (list (-Arr dom rng #:drest (make-RestDots dty 'dbound)))))]
-    [(_ dom rng _:c props)
-     (syntax/loc stx (dep-> dom rng : props))]
-    [(_ dom (dty dbound) rng _:c props)
-     (syntax/loc stx
-       (dep-> dom (make-RestDots dty 'dbound) rng : props))]
-    [(_ dom (dty dbound) rng _:c props _:c obj)
-     (syntax/loc stx
-       (dep-> dom (make-RestDots dty 'dbound) rng : props : obj))]))
+        (list (-Arr dom rng #:drest (make-RestDots dty 'dbound)))))]))
 
 (define (simple-> doms rng)
   (-Arr doms rng))

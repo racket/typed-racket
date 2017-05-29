@@ -565,7 +565,7 @@
 ;;      and (first dom) is index 1 in (third dom),
 ;; etc, where 'index i' is actually (Path '() i)
 (def-arr ArrowDep ([dom (listof Type?)]
-                   [rst (or/c #f Type? RestDots?)]
+                   [rst (or/c #f Type?)]
                    [rng SomeValues?])
   [#:frees (f)
    (combine-frees

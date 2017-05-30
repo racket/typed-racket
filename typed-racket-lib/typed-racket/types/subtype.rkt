@@ -101,9 +101,9 @@
         [else #f]))
 
 ;; check if s is a supertype of any element of ts
-(define (supertype-of-one/arr A s ts)
+(define (arrow-supertype-of-one A s ts)
   (for/or ([t (in-list ts)])
-    (arr-subtype*/no-fail A t s)))
+    (arrow-subtype* A t s)))
 
 (define-syntax (let*/and stx)
   (syntax-parse stx
@@ -174,68 +174,49 @@
        ;; we failed to satisfy all the keyword
        [(_ _) #f]))))
 
-
-;; combine-arrs
-;;
-;; Checks if this function is defined by an uneccessary case->
-;; matching the following pattern:
-;; τ0 -> σ ∧ τ1 -> σ ∧ τn -> σ ...
-;; and if so, returns the combined function type:
-;; (∪ τ0 τ1 ... τn)-> σ
-;; amk: would it be better to simplify function types ahead of time
-;; for cases like this where there is a preferable normal form?
-(define/cond-contract (combine-arrs arrs)
-  (-> (listof arr?) (or/c #f arr?))
-  (match arrs
-    [(list (and a1 (arr: dom1 rng1 #f #f '())) (arr: dom rng #f #f '()) ...)
-     (cond
-       [(null? dom) (make-arr dom1 rng1 #f #f '())]
-       [(not (apply = 1 (length dom1) (map length dom))) #f]
-       [(not (for/and ([rng2 (in-list rng)]) (equal? rng1 rng2)))
-        #f]
-       [else (make-arr (apply map Un (cons dom1 dom)) rng1 #f #f '())])]
-    [_ #f]))
-
 ;; simple co/contra-variance for ->
-(define/cond-contract (arr-subtype*/no-fail A arr1 arr2)
-  (-> list? arr? arr? any/c)
+(define/cond-contract (arrow-subtype* A arr1 arr2)
+  (-> list? Arrow? Arrow? any/c)
   (match* (arr1 arr2)
     ;; the really simple case
-    [((arr: dom1 rng1 #f #f '())
-      (arr: dom2 rng2 #f #f '()))
+    [((ArrowSimp: dom1 rng1)
+      (ArrowSimp: dom2 rng2))
      (subtype-seq A
                   (subtypes* dom2 dom1)
-                  (subval* (restrict-values rng1 dom2) rng2))]
-    [((arr: dom1 rng1 #f #f kws1)
-      (arr: dom2 rng2 #f #f kws2))
+                  (subval* rng1 rng2))]
+    ;; simple w/ kws
+    [((or (ArrowSimp: dom1      rng1)
+          (ArrowStar: dom1 #f _ rng1))
+      (ArrowStar: dom2 #f kws2 rng2))
      (subtype-seq A
                   (subtypes* dom2 dom1)
-                  (kw-subtypes* kws1 kws2)
-                  (subval* (restrict-values rng1 dom2) rng2))]
-    [((arr: dom1 rng1 rest1 #f kws1)
-      (arr: dom2 rng2 #f    #f kws2))
+                  (kw-subtypes* (Arrow-kws arr1) kws2)
+                  (subval* rng1 rng2))]
+    ;; only lhs has rst arg
+    [((ArrowStar: dom1 (? Type? rst1) kws1 rng1)
+      (or (ArrowSimp: dom2      rng2)
+          (ArrowStar: dom2 #f _ rng2)))
      (subtype-seq A
-                  (subtypes*/varargs dom2 dom1 rest1)
-                  (kw-subtypes* kws1 kws2)
-                  (subval* (restrict-values rng1 dom2) rng2))]
-    [((arr: dom1 rng1 #f    #f kws1)
-      (arr: dom2 rng2 rest2 #f kws2))
-     #f]
-    [((arr: dom1 rng1 rest1 #f kws1)
-      (arr: dom2 rng2 rest2 #f kws2))
+                  (subtypes*/varargs dom2 dom1 rst1)
+                  (kw-subtypes* kws1 (Arrow-kws arr2))
+                  (subval* rng1 rng2))]
+    ;; both have rst arguments
+    [((ArrowStar: dom1 (? Type? rst1) kws1 rng1)
+      (ArrowStar: dom2 (? Type? rst2) kws2 rng2))
      (subtype-seq A
-                  (subtypes*/varargs dom2 dom1 rest1)
-                  (subtype* rest2 rest1)
+                  (subtypes*/varargs dom2 dom1 rst1)
+                  (subtype* rst2 rst1)
                   (kw-subtypes* kws1 kws2)
-                  (subval* (restrict-values rng1 dom2) rng2))]
+                  (subval* rng1 rng2))]
     ;; handle ... varargs when the bounds are the same
-    [((arr: dom1 rng1 #f (cons drest1 dbound) kws1)
-      (arr: dom2 rng2 #f (cons drest2 dbound) kws2))
+    [((ArrowStar: dom1 (RestDots: drst1 dbound) kws1 rng1)
+      (ArrowStar: dom2 (RestDots: drst2 dbound) kws2 rng2))
      (subtype-seq A
-                  (subtype* drest2 drest1)
+                  (subtype* drst2 drst1)
                   (subtypes* dom2 dom1)
                   (kw-subtypes* kws1 kws2)
-                  (subval* (restrict-values rng1 dom2) rng2))]
+                  (subval* rng1 rng2))]
+    ;; TODO Dep cases
     [(_ _) #f]))
 
 
@@ -625,24 +606,19 @@
      ;; tvars are equal if they are the same variable
      [(F: var2) (eq? var1 var2)]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: Function (Function: arrs1))
+  [(case: Function (Function: arrows1))
    (match t2
-     ;; special-case for case-lambda/union with only one argument              
-     [(Function: (list arr2))
-      (cond [(null? arrs1) #f]
-            [else
-             (define comb (combine-arrs arrs1))
-             (or (and comb (arr-subtype*/no-fail A comb arr2))
-                 (supertype-of-one/arr A arr2 arrs1))])]
+     [(Function: (list arrow2))
+      (arrow-supertype-of-one A arrow2 arrows1)]
      ;; case-lambda
-     [(Function: arrs2)
-      (if (null? arrs1) #f
+     [(Function: arrows2)
+      (if (null? arrows1) #f
           (let loop-arities ([A A]
-                             [arrs2 arrs2])
+                             [arrows2 arrows2])
             (cond
-              [(null? arrs2) A]
-              [(supertype-of-one/arr A (car arrs2) arrs1)
-               => (λ (A) (loop-arities A (cdr arrs2)))]
+              [(null? arrows2) A]
+              [(arrow-supertype-of-one A (car arrows2) arrows1)
+               => (λ (A) (loop-arities A (cdr arrows2)))]
               [else #f])))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Future (Future: elem1))

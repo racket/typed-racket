@@ -149,22 +149,6 @@
 ;; Function type constructors
 (define/decl top-func (make-Function (list)))
 
-
-#;(define (asym-pred dom rng prop)
-    (make-Function (list (make-arr* (list dom) rng #:props prop))))
-
-#;(define/cond-contract make-pred-ty
-    (c:case-> (c:-> Type? Type?)
-              (c:-> (c:listof Type?) Type? Type? Type?)
-              (c:-> (c:listof Type?) Type? Type? Object? Type?))
-    (case-lambda
-      [(in out t o)
-       (->* in out : (-PS (-is-type o t) (-not-type o t)))]
-      [(in out t)
-       (make-pred-ty in out t (make-Path null (cons 0 0)))]
-      [(t)
-       (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)))]))
-
 (define-syntax (pred-> stx)
   (syntax-parse stx
     [(_ t:expr)

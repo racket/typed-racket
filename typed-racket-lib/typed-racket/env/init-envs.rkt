@@ -156,41 +156,8 @@
      `(make-Param ,(type->sexp in) ,(type->sexp out))]
     [(Hashtable: key val)
      `(make-Hashtable ,(type->sexp key) ,(type->sexp val))]
-    [(Function: (list (arr: dom (Values: (list (Result: t
-                                                        (PropSet: (TrueProp:)
-                                                                  (TrueProp:))
-                                                        (Empty:))))
-                            #f #f '())))
-     `(simple-> (list ,@(map type->sexp dom)) ,(type->sexp t))]
-    [(Function: (list (arr: dom (Values: (list (Result: t (PropSet: (TypeProp: pth ft)
-                                                                    (NotTypeProp: pth ft))
-                                                        (Empty:))))
-                            #f #f '())))
-     `(make-pred-ty (list ,@(map type->sexp dom))
-                    ,(type->sexp t)
-                    ,(type->sexp ft)
-                    ,(object->sexp pth))]
-    [(Function: (list (arr: dom (Values: (list (Result: t (PropSet: (NotTypeProp: (Path: pth (cons 0 0))
-                                                                                  (== -False))
-                                                                    (TypeProp: (Path: pth (cons 0 0))
-                                                                               (== -False)))
-                                                        (Path: pth (cons 0 0)))))
-                            #f #f '())))
-     `(->acc (list ,@(map type->sexp dom))
-             ,(type->sexp t)
-             (list ,@(map path-elem->sexp pth)))]
-    [(Function: (? has-optional-args? arrs))
-     (match-define (arr: fdoms rng rest _ *kws) (first arrs))
-     (match-define (arr: ldoms _ _ _ _) (last arrs))
-     (define opts (drop ldoms (length fdoms)))
-     (define kws (map type->sexp *kws))
-     `(opt-fn (list ,@(map type->sexp fdoms))
-              (list ,@(map type->sexp opts))
-              ,(type->sexp rng)
-              ,@(if rest `(#:rest ,rest) '())
-              ,@(if (null? kws) '() `(#:kws (list ,@kws))))]
-    [(Function: arrs)
-     `(make-Function (list ,@(map type->sexp arrs)))]
+    [(Function: arrows)
+     `(make-Function (list @,(map arrow->sexp arrows)))]
     [(Keyword: kw ty required?)
      `(make-Keyword (quote ,kw) ,(type->sexp ty) ,required?)]
     [(Values: rs)
@@ -289,22 +256,6 @@
                  (list ,@(map type->sexp exports))
                  (list ,@(map type->sexp init-depends))
                  ,(type->sexp result))]
-    [(arr: dom (Values: (list (Result: t (PropSet: (TrueProp:)
-                                                   (TrueProp:))
-                                       (Empty:))))
-           #f #f '())
-     `(make-arr* (list ,@(map type->sexp dom))
-                 ,(type->sexp t))]
-    [(arr: dom rng #f #f '())
-     `(make-arr* (list ,@(map type->sexp dom))
-                 ,(type->sexp rng))]
-    [(arr: dom rng rest drest kws)
-     `(make-arr (list ,@(map type->sexp dom))
-                ,(type->sexp rng)
-                ,(and rest (type->sexp rest))
-                ,(and drest `(cons ,(type->sexp (car drest))
-                                   (quote ,(cdr drest))))
-                (list ,@(map type->sexp kws)))]
     [(Distinction: nm id ty)
      `(make-Distinction (quote ,nm)
                         (quote ,id)
@@ -312,7 +263,23 @@
     [(Value: v) `(make-Value (quote ,v))]
     ;; Most Top types are in the predefined table, the ones here
     ;; are not
-    [(StructTop: name) `(make-StructTop ,(type->sexp name))]))
+    [(StructTop: name) `(make-StructTop ,(type->sexp name))]
+    [(RestDots: ty dbound) `(make-RestDots ,(type->sexp ty)
+                                           (quote ,dbound))]))
+
+(define (arrow->sexp arrow)
+  (match arrow
+    [(ArrowSimp: dom rng)
+     `(make-ArrowSimp (list ,@(map type->sexp dom)) ,(type->sexp rng))]
+    [(ArrowStar: dom rst kws rng)
+     `(make-ArrowStar (list ,@(map type->sexp dom))
+                      ,(and rst (type->sexp rst))
+                      (list ,@(map type->sexp kws))
+                      ,(type->sexp rng))]
+    [(ArrowDep: dom rst rng)
+     `(make-ArrowDep (list ,@(map type->sexp dom))
+                     ,(and rst (type->sexp rst))
+                     ,(type->sexp rng))]))
 
 ;; Helper for class/row clauses
 (define (convert-row-clause members [inits? #f])
@@ -344,15 +311,11 @@
 (define (object->sexp obj)
   (match obj
     [(Empty:) `-empty-obj]
-    [(Path: (list) (cons 0 arg))
-     `(-arg-path ,arg)]
-    [(Path: (list) (cons depth arg))
-     `(-arg-path ,arg ,depth)]
     [(Path: pes i)
      `(make-Path (list ,@(map path-elem->sexp pes))
-                 ,(if (identifier? i)
-                      `(quote-syntax ,i)
-                      `(cons ,(car i) ,(cdr i))))]
+                 ,(match i
+                    [(? identifier?) `(quote-syntax ,i)]
+                    [(? exact-nonnegative-integer?) i]))]
     [(LExp: const terms) `(-lexp ,@(for/list ([(o c) (in-terms terms)])
                                      `(list ,c ,(object->sexp o))))]))
 

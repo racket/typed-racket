@@ -11,6 +11,7 @@
          "../rep/object-rep.rkt"
          "../rep/base-types.rkt"
          "../rep/numeric-base-types.rkt"
+         (utils tc-utils)
          (rep values-rep rep-utils)
          (env mvar-env)
          racket/match racket/list (prefix-in c: (contract-req))
@@ -80,8 +81,6 @@
 (define/decl -tt-propset (make-PropSet -tt -tt))
 (define/decl -ff-propset (make-PropSet -ff -ff))
 
-(define (-arg-path arg [depth 0])
-  (make-Path null (cons depth arg)))
 (define (-acc-path path-elems o)
   (match o
     [(Empty:) -empty-obj]
@@ -98,87 +97,149 @@
 (define/decl ManyUniv (make-AnyValues -tt))
 
 ;; Function types
-(define/cond-contract (make-arr* dom rng
-                                 #:rest [rest #f] #:drest [drest #f] #:kws [kws null]
-                                 #:props [props -tt-propset] #:object [obj -empty-obj])
+(define/cond-contract (-Arr dom rng
+                            #:rest [rst #f] #:drest [drst #f]
+                            #:kws [kws null]
+                            #:props [props #f] #:object [obj #f])
   (c:->* ((c:listof Type?) (c:or/c SomeValues? Type?))
          (#:rest (c:or/c #f Type?)
-          #:drest (c:or/c #f (c:cons/c Type? symbol?))
+          #:drest (c:or/c #f Type? RestDots?)
           #:kws (c:listof Keyword?)
           #:props PropSet?
           #:object OptObject?)
          arr?)
-  (make-arr dom (if (Type? rng)
-                    (make-Values (list (-result rng props obj)))
-                    rng)
-            rest drest (sort #:key Keyword-kw kws keyword<?)))
+  (let ([rng (if (Type? rng)
+                 (make-Values (list (-result rng props obj)))
+                 rng)])
+    (cond
+      ;; simple arrows (Arrow)
+      [(not (or rst drst (pair? kws) props obj))
+       (make-ArrowSimp dom rng)]
+      ;; complex arrows (ArrowStar)
+      [(and (or rst drst (pair? kws))
+            (not (or props obj)))
+       (when (and rst drst)
+         (int-err "-Arr: rst and drst provided: ~a ~a" rst drst))
+       (let ([rst (or rst drst)])
+         (make-ArrowStar dom rst kws rng))]
+      ;; dependent arrows (ArrowDep)
+      [(or props obj)
+       (when drst
+         (int-err "-Arr: drst provided for dependent arrow: ~a" drst))
+       (unless (null? kws)
+         (int-err "-Arr: dependent arrow cannot have kws, given ~a" kws))
+       (let ([rst (or rst drst)])
+         (make-ArrowDep dom rst rng))]
+      [else
+       (int-err
+        "unsupported -Arr args: ~a ~a ~a ~a ~a ~a ~a"
+        (format "dom ~a" rst)
+        (format "rng ~a" rst)
+        (format "#:rest ~a" rst)
+        (format "#:drest ~a" drst)
+        (format "#:kws ~a" kws)
+        (format "#:props ~a" props)
+        (format "#:object ~a" obj))])))
+
+(begin-for-syntax
+  (define-syntax-class c
+    (pattern x:id #:fail-unless (eq? ': (syntax-e #'x)) #f)))
 
 (define-syntax (->* stx)
-  (define-syntax-class c
-    (pattern x:id #:fail-unless (eq? ': (syntax-e #'x)) #f))
   (syntax-parse stx
     [(_ dom rng)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng))))]
+       (make-Function (list (-Arr dom rng))))]
     [(_ dom rst rng)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:rest rst))))]
-    [(_ dom rng :c props)
-     (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:props props))))]
+       (make-Function (list (make-arr* dom rng #:rest rst))))]))
+
+(define-syntax (dep-> stx)
+  (syntax-parse stx
+    [(_ dom rng _:c props)
+     (syntax/loc stx (dep-> dom #f rng : props : -empty-obj))]
     [(_ dom rng _:c props _:c object)
-     (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:props props #:object object))))]
+     (syntax/loc stx (dep-> dom #f rng : props : object))]
     [(_ dom rst rng _:c props)
-     (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:rest rst #:props props))))]
-    [(_ dom rst rng _:c props : object)
-     (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:rest rst #:props props #:object object))))]))
+     (syntax/loc stx (dep-> dom rst rng : props : object))]
+    [(_ ([x0:id _:c t0:expr] [x-rst:id _:c t-rst:expr] ...)
+        rst
+        rng
+        _:c props
+        _:c object)
+     (define xs (syntax->list #'(x0 x-rst ...)))
+     (with-syntax
+         ([(dom-id ...) (generate-temporaries #'(x0 x-rst ...))])
+       (with-syntax
+           ([(domain-bindings ...)
+             (apply
+              append
+              (for/list ([x (in-list xs)]
+                         [dom (in-list (syntax->list #'(dom-id ...)))]
+                         [dom-ty (in-list (syntax->list #'(t0 t-rst ...)))]
+                         [n (in-naturals)])
+                ;; each domain arg is in scope for
+                ;; domain types that proceed it
+                (with-syntax ([(n-xs ...) (take xs n)])
+                  (list #`[#,dom (abstract-many/obj #,dom-ty (list n-xs ...))]
+                        #`[#,x (quote-syntax #,x)]))))])
+         (syntax/loc stx
+           (let* (domain-bindings ...
+                  [names (list (quote-syntax x0) (quote-syntax x-rst) ...)]
+                  [domain (list dom-id ...)])
+             (make-Function
+              (list
+               (-Arr domain
+                     (abstract-many/obj rng names)
+                     #:rest (and rst (abstract-many/obj rst names))
+                     #:props (abstract-many/obj props names)
+                     #:object (abstract-many/obj object names))))))))]))
+
 
 (define-syntax (-> stx)
-  (define-syntax-class c
-    (pattern x:id #:fail-unless (eq? ': (syntax-e #'x)) #f))
   (syntax-parse stx
-    [(_ dom ... rng _:c props _:c objects)
-     (syntax/loc stx
-       (->* (list dom ...) rng : props : objects))]
-    [(_ dom ... rng :c props)
-     (syntax/loc stx
-       (->* (list dom ...) rng : props))]
+    [(_ dom rng _:c props _:c objects)
+     (syntax/loc stx (dep-> dom rng : props : objects))]
+    [(_ dom rng :c props)
+     (syntax/loc stx (dep-> dom  rng : props))]
     [(_ dom ... rng)
-     (syntax/loc stx
-       (->* (list dom ...) rng))]))
+     (syntax/loc stx (->* (list dom ...) rng))]))
 
 (define-syntax (->... stx)
   (syntax-parse stx
     [(_ dom rng) (syntax/loc stx (->* dom rng))]
     [(_ dom (dty dbound) rng)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:drest (cons dty 'dbound)))))]
-    [(_ dom rng (~datum :) props)
-     (syntax/loc stx
-       (->* dom rng (~datum :) props))]
-    [(_ dom (dty dbound) rng (~datum :) props)
-     (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:drest (cons dty 'dbound) #:props props))))]))
+       (make-Function
+        (list (-Arr dom rng #:drest (make-RestDots dty 'dbound)))))]))
 
 (define (simple-> doms rng)
-  (->* doms rng))
+  (-Arr doms rng))
 
-(define (->acc dom rng path #:var [var (cons 0 0)])
-  (define obj (-acc-path path (-id-path var)))
-  (make-Function
-   (list (make-arr* dom rng
-                    #:props (-PS (-not-type obj (-val #f))
-                                 (-is-type obj (-val #f)))
-                    #:object obj))))
+;; specify a function which is an accessor into one
+;; of its arguments (but use a macro so use sites
+;; don't have to worry about our binder representation)
+(define-syntax (->acc stx)
+  (syntax-parse stx
+    [(_ ([x:id _:c ty:expr] ...)
+        rng:expr
+        path:expr
+        #:arg arg:id)
+     (define n (length (syntax->list #'(x ...))))
+     (with-syntax ([(idx ...) (range (sub1 n) -1 -1)])
+       (syntax/loc stx
+         (let ([obj (-acc-path path
+                               (-id-path (let ([x idx] ...)
+                                           arg)))])
+           (make-Function
+            (list (-Arr (list ty ...)
+                        rng
+                        #:props (-PS (-not-type obj (-val #f))
+                                     (-is-type obj (-val #f)))
+                        #:object obj))))))]))
 
 (define (cl->* . args)
-  (define (funty-arities f)
-    (match f
-      [(Function: as) as]))
-  (make-Function (apply append (map funty-arities args))))
+  (make-Function (apply append (map Function-arrows args))))
 
 (define-syntax (cl-> stx)
   (syntax-parse stx
@@ -194,13 +255,16 @@
         (list
          (make-arr* (list ty ...)
                     rng
-                    #:kws (sort #:key (match-lambda [(Keyword: kw _ _) kw])
+                    #:kws (sort #:key Keyword-kw
                                 (list (make-Keyword 'k kty opt) ...)
                                 keyword<?)))))]))
 
 (define-syntax (->optkey stx)
   (syntax-parse stx
-    [(_ ty:expr ... [oty:expr ...] #:rest rst:expr (~seq k:keyword kty:expr opt:boolean) ... rng)
+    [(_ ty:expr ... [oty:expr ...]
+        #:rest rst:expr
+        (~seq k:keyword kty:expr opt:boolean) ...
+        rng)
      (let ([l (syntax->list #'(oty ...))])
        (with-syntax ([((extra ...) ...)
                       (for/list ([i (in-range (add1 (length l)))])
@@ -209,14 +273,17 @@
          (syntax/loc stx
            (make-Function
             (list
-             (make-arr* (list ty ... extra ...)
-                        rng
-                        #:rest rsts
-                        #:kws (sort #:key (match-lambda [(Keyword: kw _ _) kw])
-                                    (list (make-Keyword 'k kty opt) ...)
-                                    keyword<?))
+             (-Arr (list ty ... extra ...)
+                   rng
+                   #:rest rsts
+                   #:kws (sort #:key Keyword-kw
+                               (list (make-Keyword 'k kty opt) ...)
+                               keyword<?))
              ...)))))]
-    [(_ ty:expr ... [oty:expr ...] (~seq k:keyword kty:expr opt:boolean) ... rng)
+    [(_ ty:expr ...
+        [oty:expr ...]
+        (~seq k:keyword kty:expr opt:boolean) ...
+        rng)
      (let ([l (syntax->list #'(oty ...))])
        (with-syntax ([((extra ...) ...)
                       (for/list ([i (in-range (add1 (length l)))])
@@ -224,16 +291,16 @@
          (syntax/loc stx
            (make-Function
             (list
-             (make-arr* (list ty ... extra ...)
-                        rng
-                        #:rest #f
-                        #:kws (sort #:key (match-lambda [(Keyword: kw _ _) kw])
-                                    (list (make-Keyword 'k kty opt) ...)
-                                    keyword<?))
+             (-Arr (list ty ... extra ...)
+                   rng
+                   #:rest #f
+                   #:kws (sort #:key Keyword-kw
+                               (list (make-Keyword 'k kty opt) ...)
+                               keyword<?))
              ...)))))]))
 
 (define (make-arr-dots dom rng dty dbound)
-  (make-arr* dom rng #:drest (cons dty dbound)))
+  (-Arr dom rng #:drest (make-RestDots dty dbound)))
 
 ;; Convenient syntax for polymorphic types
 (define-syntax -poly

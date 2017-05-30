@@ -18,16 +18,12 @@
          (for-syntax racket/base racket/syntax
                      syntax/parse))
 
-(provide Type Type?
-         Prop Prop?
-         Object Object? OptObject?
-         PathElem PathElem?
-         SomeValues SomeValues?
-         def-type
-         def-values
-         def-prop
-         def-object
-         def-path-elem)
+(provide Type Type? def-type
+         Prop Prop? def-prop
+         Object Object? OptObject? def-object
+         PathElem PathElem? def-path-elem
+         SomeValues SomeValues? def-values
+         Arrow Arrow? def-arrow)
 
 
 ;;************************************************************
@@ -37,7 +33,8 @@
 (lazy-require
  ["../types/printer.rkt" (print-type
                           print-prop print-object print-pathelem
-                          print-values print-propset print-result)])
+                          print-values print-propset print-result
+                          print-arrow)])
 
 ;; comment out the above lazy-require and uncomment the following
 ;; s-exp for simple debug printing of Rep structs
@@ -209,3 +206,12 @@
    #:methods gen:custom-write
    [(define (write-proc v port write?) (print-result v port write?))]])
 
+
+;;************************************************************
+;; Arrows (i.e. function types)
+;;************************************************************
+;;
+;; Note: we represent all function types as case-> types
+;; which contain a list of arrows (i.e. the individual function
+;; types---see arrow-rep.rkt and  'Function' in type-rep.rkt)
+(def-rep-class Arrow #:printer print-arrow #:define-form def-arrow)

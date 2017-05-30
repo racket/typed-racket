@@ -22,7 +22,7 @@
          (for-syntax racket/base syntax/parse))
 
 (provide (all-defined-out)
-         (except-out (all-from-out "base-abbrev.rkt" "match-expanders.rkt") make-arr))
+         (all-from-out "base-abbrev.rkt" "match-expanders.rkt"))
 
 ;; Convenient constructors
 (define -App make-App)
@@ -149,28 +149,27 @@
 ;; Function type constructors
 (define/decl top-func (make-Function (list)))
 
-(define (asym-pred dom rng prop)
-  (make-Function (list (make-arr* (list dom) rng #:props prop))))
-
-(define/cond-contract make-pred-ty
-  (c:case-> (c:-> Type? Type?)
-            (c:-> (c:listof Type?) Type? Type? Type?)
-            (c:-> (c:listof Type?) Type? Type? Object? Type?))
-  (case-lambda
-    [(in out t o)
-     (->* in out : (-PS (-is-type o t) (-not-type o t)))]
-    [(in out t)
-     (make-pred-ty in out t (make-Path null (cons 0 0)))]
-    [(t)
-     (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)))]))
+(define-syntax (pred-> stx)
+  (syntax-parse stx
+    [(_ t:expr)
+     (syntax/loc stx
+       (dep-> ([x : Univ]) -Boolean : (-PS (-is-type x t) (-not-type x t))))]
+    [(_ in:expr out:expr t:expr)
+     (syntax/loc stx
+       (dep-> ([x : in]) out : (-PS (-is-type x t) (-not-type x t))))]
+    [(_ ([x:id (~datum :) in:expr]) out:expr t:expr o:expr)
+     (syntax/loc stx
+       (dep-> ([x : in]) out : (-PS (-is-type o t) (-not-type o t))))]))
 
 (define/decl -true-propset (-PS -tt -ff))
 (define/decl -false-propset (-PS -ff -tt))
 
 (define (opt-fn args opt-args result #:rest [rest #f] #:kws [kws null])
   (apply cl->* (for/list ([i (in-range (add1 (length opt-args)))])
-                 (make-Function (list (make-arr* (append args (take opt-args i)) result
-                                                 #:rest rest #:kws kws))))))
+                 (make-Function (list (-Arr (append args (take opt-args i))
+                                            result
+                                            #:rest rest
+                                            #:kws kws))))))
 
 (define-syntax-rule (->opt args ... [opt ...] res)
   (opt-fn (list args ...) (list opt ...) res))

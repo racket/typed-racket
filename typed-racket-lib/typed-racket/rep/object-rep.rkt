@@ -66,9 +66,10 @@
   [#:frees (f)  (combine-frees (map f elems))]
   [#:fmap (f) (make-Path (map f elems) name)]
   [#:for-each (f) (for-each f elems)]
-  [#:custom-constructor
-   (cond
-     [(identifier? name)
+  [#:custom-constructor/contract
+   (-> (listof PathElem?) (or/c name-ref/c OptObject?) OptObject?)
+   (match name
+     [(? identifier?)
       ;; we don't want objects for visibly mutated or top level variables
       (if (or (is-var-mutated? name)
               (and (not (identifier-binding name))
@@ -78,9 +79,17 @@
             (intern-double-ref!
              Path-intern-table
              name elems #:construct (make-Path elems name))))]
-     [else (intern-double-ref!
-            Path-intern-table
-            name elems #:construct (make-Path elems name))])])
+     [(? exact-nonnegative-integer?)
+      (intern-double-ref!
+       Path-intern-table
+       name elems #:construct (make-Path elems name))]
+     [(Path: elems* name*)
+      (let ([elems* (append elems elems*)])
+        (intern-double-ref!
+         Path-intern-table
+         name* elems* #:construct (make-Path elems* name*)))]
+     [(? LExp? l) (if (null? elems) l -empty-obj)]
+     [(Empty:) -empty-obj])])
 
 (define Path-intern-table (make-weak-hash))
 

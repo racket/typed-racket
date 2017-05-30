@@ -63,43 +63,36 @@
 (define-struct poly (name vars) #:prefab)
 (define current-poly-struct (make-parameter #f))
 
-;; UNUSED
-;; a table indicating what variables should be abstracted away before using
-;; this expected type keyed on the numeric Rep sequence
-(define to-be-abstr
-  (make-weak-hash))
-
-(provide to-be-abstr)
-
-;; has-optional-args? : (Listof arr) -> Boolean
+;; has-optional-args? : (Listof Arr) -> Boolean
 ;; Check if the given arrs meet the necessary conditions to be printed
 ;; with a ->* constructor or for generating a ->* contract
 (define (has-optional-args? arrs)
  (and (> (length arrs) 1)
       ;; No polydots
-      (for/and ([arr (in-list arrs)])
-        (match arr [(arr: _ _ _ drest _) (not drest)]))
+      (not (ormap Arrow-has-dotted-rst? arrs))
       ;; Keyword args, range and rest specs all the same.
-      (let* ([xs (map (match-lambda [(arr: _ rng rest-spec _ kws)
-                                (list rng rest-spec kws)])
-                      arrs)]
-             [first-x (first xs)])
-        (for/and ([x (in-list (rest xs))])
-          (equal? x first-x)))
+      (let ([rst (unsafe-Arrow-rst (car arrs))]
+            [dotted-rst (Arrow-dotted-rst (car arrs))]
+            [kws (Arrow-kws (car arrs))]
+            [rng (unsafe-Arrow-rng (car arrs))])
+        (for/and ([arr (in-list (cdr arrs))])
+          (and (equal? rst        (unsafe-Arrow-rst arr))
+               (equal? dotted-rst (Arrow-dotted-rst arr))
+               (equal? kws        (Arrow-kws arr))
+               (equal? rng        (unsafe-Arrow-rng arr)))))
       ;; Positionals are monotonically increasing by at most one.
       (let-values ([(_ ok?)
-                    (for/fold ([positionals (arr-dom (first arrs))]
-                               [ok-so-far?  #t])
-                              ([arr (in-list (rest arrs))])
-                      (match arr
-                        [(arr: dom _ _ _ _)
-                         (define ldom         (length dom))
-                         (define lpositionals (length positionals))
-                         (values dom
-                                 (and ok-so-far?
-                                      (or (= ldom lpositionals)
-                                          (= ldom (add1 lpositionals)))
-                                      (equal? positionals (take dom lpositionals))))]))])
+                    (for*/fold ([positionals (unsafe-Arrow-dom (car arrs))]
+                                [ok-so-far?  #t])
+                               ([arr (in-list (rest arrs))]
+                                [dom (in-value (unsafe-Arrow-dom arr))])
+                      (define ldom         (length dom))
+                      (define lpositionals (length positionals))
+                      (values dom
+                              (and ok-so-far?
+                                   (or (= ldom lpositionals)
+                                       (= ldom (add1 lpositionals)))
+                                   (equal? positionals (take dom lpositionals)))))])
         ok?)))
 
 (provide/cond-contract

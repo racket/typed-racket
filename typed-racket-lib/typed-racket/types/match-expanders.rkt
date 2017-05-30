@@ -75,7 +75,7 @@
       [(Mu-unsafe:
         (Union: (== -Null)
                 (list (pair-matcher elem-t (B: 0)))))
-       (define elem-t* (instantiate-raw-type t elem-t))
+       (define elem-t* (instantiate/type elem-t t))
        (cond
          [simple? (and (equal? elem-t elem-t*) elem-t)]
          [else elem-t*])]

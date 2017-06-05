@@ -1,5 +1,5 @@
 #;
-(exn-pred ".*struct fields.*")
+(exn-pred ".*while parsing typed-field.*")
 #lang racket/base
 
 (module server racket

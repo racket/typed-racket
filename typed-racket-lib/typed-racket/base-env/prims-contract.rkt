@@ -165,7 +165,8 @@
    (pattern oc:opaque-clause #:attr spec
      #`(require/opaque-type oc.ty oc.pred #,lib #,@(if unsafe? #'(unsafe-kw) #'()) . oc.opt))
    (pattern (~var strc (struct-clause legacy)) #:attr spec
-     #`(require-typed-struct strc.nm (strc.tvar ...)
+     #`(require-typed-struct strc.nm #,@(let ([tvars #'(strc.tvar ...)])
+                                          (if (null? (syntax-e tvars)) '() (list tvars)))
                              (strc.body ...) strc.constructor-parts ...
                              #:type-name strc.type
                              #,@(if unsafe? #'(unsafe-kw) #'())
@@ -449,7 +450,7 @@
   (define ((rts legacy) stx)
     (syntax-parse stx #:literals (:)
       [(_ name:opt-parent
-          (~seq (tvar:id ...))
+          (~optional (~seq (tvar:id ...)) #:defaults ([(tvar 1) '()]))
           (~describe "struct fields" ([fld : ty] ...))
           (~var input-maker (constructor-term legacy #'name.nm))
           (~optional (~seq #:type-name type:id) #:defaults ([type #'name.nm]))

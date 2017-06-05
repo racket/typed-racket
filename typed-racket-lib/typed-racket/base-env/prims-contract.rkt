@@ -449,8 +449,8 @@
   (define ((rts legacy) stx)
     (syntax-parse stx #:literals (:)
       [(_ name:opt-parent
-          (~optional (~seq (tvar:id ...)) #:defaults ([(tvar 1) '()]))
-          ([fld : ty] ...)
+          (~seq (tvar:id ...))
+          (~describe "struct fields" ([fld : ty] ...))
           (~var input-maker (constructor-term legacy #'name.nm))
           (~optional (~seq #:type-name type:id) #:defaults ([type #'name.nm]))
           unsafe:unsafe-clause

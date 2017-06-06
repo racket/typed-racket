@@ -111,6 +111,10 @@
   (pattern nm:id #:with parent #'#f)
   (pattern (nm:id parent:id)))
 
+(define-syntax-class typed-field
+  #:attributes (field type)
+  #:literals (:)
+  (pattern [field:id : type]))
 
 (define-values (require/typed-legacy require/typed -unsafe-require/typed)
  (let ()
@@ -142,7 +146,7 @@
     #:attributes (nm type (body 1) (constructor-parts 1) (tvar 1))
     (pattern [(~or (~datum struct) #:struct)
               (~optional (~seq (tvar ...)) #:defaults ([(tvar 1) '()]))
-              nm:opt-parent (body ...)
+              nm:opt-parent (body:typed-field ...)
               (~var opts (struct-opts legacy #'nm.nm))]
              #:with (constructor-parts ...) #'opts.ctor-value
              #:attr type #'opts.type))
@@ -150,7 +154,9 @@
   (define-syntax-class signature-clause
     #:literals (:)
     #:attributes (sig-name [var 1] [type 1])
-    (pattern [#:signature sig-name:id ([var:id : type] ...)]))
+    (pattern [#:signature sig-name:id (body:typed-field ...)]
+      #:with (var ...) #'(body.field ...)
+      #:with (type ...) #'(body.type ...)))
 
   (define-syntax-class opaque-clause
     ;#:literals (opaque)
@@ -450,7 +456,7 @@
     (syntax-parse stx #:literals (:)
       [(_ name:opt-parent
           (~optional (~seq (tvar:id ...)) #:defaults ([(tvar 1) '()]))
-          ([fld : ty] ...)
+          (body:typed-field ...)
           (~var input-maker (constructor-term legacy #'name.nm))
           (~optional (~seq #:type-name type:id) #:defaults ([type #'name.nm]))
           unsafe:unsafe-clause
@@ -460,6 +466,8 @@
                       [hidden (generate-temporary #'name.nm)]
                       [orig-struct-info (generate-temporary #'nm)]
                       [spec (if (syntax-e #'name.parent) #'(nm parent) #'nm)]
+                      [(fld ...) #'(body.field ...)]
+                      [(ty ...) #'(body.type ...)]
                       [num-fields (syntax-length #'(fld ...))]
                       [(type-des _ pred sel ...)
                        (build-struct-names #'nm (syntax->list #'(fld ...)) #f #t)]
@@ -540,7 +548,7 @@
                                   (make-struct-info-self-ctor #'internal-maker si)
                                   si))
 
-                         (dtsi* (tvar ...) spec type ([fld : ty] ...) #:maker maker-name #:type-only)
+                         (dtsi* (tvar ...) spec type (body ...) #:maker maker-name #:type-only)
                          #,(ignore #'(require/contract pred hidden (or/c struct-predicate-procedure?/c (c-> any-wrap/c boolean?)) lib))
                          #,(internal #'(require/typed-internal hidden (Any -> Boolean : type)))
                          (require/typed #:internal (maker-name real-maker) type lib

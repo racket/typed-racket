@@ -130,7 +130,9 @@
  mask:pair
  mask:mpair
  mask:vector
- mask:hash
+ mask:mutable-hash
+ mask:immutable-hash
+ mask:weak-hash
  mask:box
  mask:channel
  mask:thread-cell

@@ -72,8 +72,17 @@
    [(-mu x (Un (Un -Number -String) (-pair -Number x)))
     (-mu x (Un (Un -Number -Symbol) (-pair -Number x)))
     (-mu x (Un -Number (-pair -Number x)))]
+   [(-Immutable-HT -String -Symbol)
+    (-HT -String -Symbol)
+    (-Immutable-HT -String -Symbol)]
+   [(-Mutable-HT -String -Symbol)
+    (-HT -String -Symbol)
+    (-Mutable-HT -String -Symbol)]
+   [(-Weak-HT -String -Symbol)
+    (-HT -String -Symbol)
+    (-Weak-HT -String -Symbol)]
    [(make-Listof (-mu x (Un -String (-HT -String x))))
-    (make-Listof -HashtableTop)
+    (make-Listof -HashTableTop)
     (make-Listof (-HT -String (-mu x (Un -String (-HT -String x)))))]))
 
 (define-syntax (remo-tests stx)

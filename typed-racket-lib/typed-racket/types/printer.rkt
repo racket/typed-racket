@@ -529,7 +529,6 @@
     [(Async-ChannelTop:) 'Async-ChannelTop]
     [(ThreadCellTop:) 'ThreadCellTop]
     [(VectorTop:) 'VectorTop]
-    [(HashtableTop:) 'HashTableTop]
     [(MPairTop:) 'MPairTop]
     [(Prompt-TagTop:) 'Prompt-TagTop]
     [(Continuation-Mark-KeyTop:) 'Continuation-Mark-KeyTop]
@@ -594,7 +593,11 @@
      (if (equal? in out)
          `(Parameterof ,(t->s in))
          `(Parameterof ,(t->s in) ,(t->s out)))]
-    [(Hashtable: k v) `(HashTable ,(t->s k) ,(t->s v))]
+    [(Mutable-HashTable: k v) `(Mutable-HashTable ,(t->s k) ,(t->s v))]
+    [(Mutable-HashTableTop:) 'Mutable-HashTableTop]
+    [(Immutable-HashTable: k v) `(Immutable-HashTable ,(t->s k) ,(t->s v))]
+    [(Weak-HashTable: k v) `(Weak-HashTable ,(t->s k) ,(t->s v))]
+    [(Weak-HashTableTop:) 'Weak-HashTableTop]
     [(Continuation-Mark-Keyof: rhs)
      `(Continuation-Mark-Keyof ,(t->s rhs))]
     [(Prompt-Tagof: body handler)

@@ -389,11 +389,30 @@ corresponding to @racket[trest], where @racket[bound]
 }
 
 
-@defform[(HashTable k v)]{is the type of a @rtech{hash table} with key type
-   @racket[k] and value type @racket[v].
+@defform[(Immutable-HashTable k v)]{is the type of an immutable @rtech{hash table}
+   with key type @racket[k] and value type @racket[v].
 
 @ex[#hash((a . 1) (b . 2))]
 }
+@defform[(Mutable-HashTable k v)]{is the type of a mutable @rtech{hash table}
+   that holds keys strongly (see @r-reference-secref{weakbox})
+   with key type @racket[k] and value type @racket[v].
+
+@ex[(make-hash '((a . 1) (b . 2)))]
+}
+
+@defform[(Weak-HashTable k v)]{is the type of a mutable @rtech{hash table}
+   that holds keys weakly with key type @racket[k] and value type @racket[v].
+
+@ex[(make-weak-hash '((a . 1) (b . 2)))]
+}
+
+@defform[(HashTable k v)]{is the type of a mutable or immutable @rtech{hash table}
+   with key type @racket[k] and value type @racket[v].
+
+@ex[(make-hash '((a . 1) (b . 2)))]
+}
+
 @defidform[HashTableTop]{is the type of a @rtech{hash table} with unknown key
   and value types and is the supertype of all hash table types. Only read-only
   hash table operations (e.g.
@@ -402,6 +421,12 @@ corresponding to @racket[trest], where @racket[bound]
   @racket[hash?].
 @ex[(lambda: ([x : Any]) (if (hash? x) x (error "not a hash table!")))]
 }
+
+@defidform[Mutable-HashTableTop]{is the type of a mutable @rtech{hash table}
+  that holds keys strongly with unknown key and value types.}
+
+@defidform[Weak-HashTableTop]{is the type of a mutable @rtech{hash table}
+  that holds keys weakly with unknown key and value types.}
 
 @defform[(Setof t)]{is the type of a @rtech{hash set} of
 @racket[t]. This includes custom hash sets, but not mutable hash set

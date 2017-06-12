@@ -97,6 +97,10 @@
 (define (-AnyValues f) (make-AnyValues f))
 (define/decl ManyUniv (make-AnyValues -tt))
 
+(define/decl -HashTableTop (Un (make-Immutable-HashTable Univ Univ)
+                               -Mutable-HashTableTop
+                               -Weak-HashTableTop))
+
 ;; Function types
 (define/cond-contract (make-arr* dom rng
                                  #:rest [rest #f] #:drest [drest #f] #:kws [kws null]

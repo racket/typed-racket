@@ -649,17 +649,6 @@
    (match t2
      [(Future: elem2) (subtype* A elem1 elem2)]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: Hashtable (Hashtable: key1 val1))
-   (match t2
-     [(? HashtableTop?) A]
-     [(Hashtable: key2 val2) (subtype-seq A
-                                          (type≡? key1 key2)
-                                          (type≡? val1 val2))]
-     [(Sequence: (list key2 val2))
-      (subtype-seq A
-                   (subtype* key1 key2)
-                   (subtype* val1 val2))]
-     [_ (continue<: A t1 t2 obj)])]
   [(case: HeterogeneousVector (HeterogeneousVector: elems1))
    (match t2
      [(VectorTop:) A]
@@ -682,6 +671,20 @@
                  #:break (not A))
         (subtype* A elem1 seq-t))]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: Immutable-HashTable (Immutable-HashTable: key1 val1))
+   (match t2
+    [(Immutable-HashTable: key2 val2)
+     (subtype-seq A
+                  (subtype* key1 key2)
+                  (subtype* val1 val2))]
+    [(Sequence: (list key2 val2))
+     (subtype-seq A
+                  (subtype* key1 key2)
+                  (subtype* val1 val2))]
+    [(or (Mutable-HashTableTop:) (Mutable-HashTable: _ _)
+         (Weak-HashTableTop:) (Weak-HashTable: _ _))
+     #false]
+    [_ (continue<: A t1 t2 obj)])]
   [(case: Instance (Instance: inst-t1))
    (cond
      [(resolvable? inst-t1)
@@ -769,6 +772,20 @@
        (let ([t1 (unfold t1)])
          ;; check needed for if a name that hasn't been resolved yet
          (and (Type? t1) (subtype* A t1 t2)))))]
+  [(case: Mutable-HashTable (Mutable-HashTable: key1 val1))
+   (match t2
+    [(Mutable-HashTableTop:) A]
+    [(Mutable-HashTable: key2 val2)
+     (subtype-seq A
+                  (type≡? key1 key2)
+                  (type≡? val1 val2))]
+    [(Sequence: (list key2 val2))
+     (subtype-seq A
+                  (subtype* key1 key2)
+                  (subtype* val1 val2))]
+    [(or (Weak-HashTableTop:) (Weak-HashTable: _ _) (Immutable-HashTable: _ _))
+     #false]
+    [_ (continue<: A t1 t2 obj)])]
   [(case: Name _)
    (match* (t1 t2)
      ;; Avoid resolving things that refer to different structs.
@@ -1005,4 +1022,19 @@
      [(? Weak-BoxTop?) A]
      [(Weak-Box: elem2) (type≡? A elem1 elem2)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: Weak-HashTable (Weak-HashTable: key1 val1))
+   (match t2
+    [(Weak-HashTableTop:) A]
+    [(Weak-HashTable: key2 val2)
+     (subtype-seq A
+                  (type≡? key1 key2)
+                  (type≡? val1 val2))]
+    [(Sequence: (list key2 val2))
+     (subtype-seq A
+                  (subtype* key1 key2)
+                  (subtype* val1 val2))]
+    [(or (Mutable-HashTableTop:) (Mutable-HashTable: _ _)
+         (Immutable-HashTable: _ _))
+     #false]
+    [_ (continue<: A t1 t2 obj)])]
   [else: (continue<: A t1 t2 obj)])

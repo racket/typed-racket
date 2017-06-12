@@ -168,6 +168,7 @@
  [Log-Receiver (make-log-receiver (current-logger) 'info) choice-evt]
  [Logger (current-logger) (lambda (l) (log-level? l 'info))]
  [Module-Path "hello.rkt" module-path?]
+ [Mutable-HashTableTop (make-hash) (lambda (h) (hash-ref h 'a #f))]
  [Null '() length]
  [Output-Port (current-output-port) port?]
  [PRegexp #px"\\d\\d" (lambda (p) (regexp-match? p "013a"))]
@@ -192,6 +193,7 @@
  [UDP-Socket (udp-open-socket) udp-close]
  [VectorTop (vector 1 2 3) (lambda (x) (vector-ref x 0))]
  [Void (void) void?]
+ [Weak-HashTableTop (make-weak-hash) (lambda (h) (hash-ref h 'a #f))]
  [Will-Executor (make-will-executor) choice-evt]
 ))
 
@@ -247,7 +249,14 @@
   [Boxof (Boxof Integer) (box 3) (lambda (v) (add1 (unbox v)))]
   [Channelof (Channelof Integer) (make-channel) channel-try-get]
   [HashTable (HashTable Symbol String) (hash) (lambda (h) (hash-ref h 'a #f))]
+  [Immutable-HashTable (Immutable-HashTable Symbol String) (hash) (lambda (h) (hash-set h 'a "a"))]
   [Listof (Listof Integer) (list 1) (lambda (xs) (add1 (car xs)))]
+  [Mutable-HashTable (Mutable-HashTable Symbol String) (make-hash)
+   (lambda (h)
+     (hash-ref h 'a #f)
+     (with-handlers ([exn:fail:contract? void])
+       (hash-set! h 'a "a")
+       (error 'pr241 "mutable hashtable ~a incorrectly allowed to be set!" h)))]
   [Option (Option Integer) 1 add1]
   [Pair (Pair Integer Boolean) (cons 1 #t) (lambda (v) (add1 (car v)))]
   [Pairof (Pairof Integer Boolean) (cons 1 #f) (lambda (v) (add1 (car v)))]
@@ -255,6 +264,12 @@
   [Sequenceof (Sequenceof Natural) '(1 2 3) sequence->list]
   [Setof (Setof Integer) (set) set-empty?]
   [Sexpof (Sexpof Integer) (syntax->datum #'(1 2 3)) (lambda (xs) (add1 (car xs)))]
+  [Weak-HashTable (Weak-HashTable Symbol String) (make-weak-hash)
+   (lambda (h)
+     (hash-ref h 'a #f)
+     (with-handlers ([exn:fail:contract? void])
+       (hash-set! h 'a "a")
+       (error 'pr241 "weak hashtable ~a incorrectly allowed to be set!" h)))]
   [Vectorof (Vectorof Integer) (vector 1) (lambda (v) (add1 (vector-ref v 0)))]
 ))
 

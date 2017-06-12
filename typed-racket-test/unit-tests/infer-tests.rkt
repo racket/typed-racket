@@ -111,7 +111,9 @@
    (pd-t (-thread-cell (-v a)) (b) (-thread-cell (-v a)) (-thread-cell (-v a)))
 
    (pd-t (-HT (-v a) (-v a)) (a) (-HT -Bottom -Bottom) (-HT Univ Univ))
-   (pd-t (-HT (-lst (-v a)) (-lst (-v a))) (a) (-HT -Bottom -Bottom) (-HT Univ Univ))
+   (pd-t (-HT (-lst (-v a)) (-lst (-v a))) (a)
+         (Un (-Immutable-HT (-lst -Bottom) (-lst -Bottom)) (-Mutable-HT -Bottom -Bottom) (-Weak-HT -Bottom -Bottom))
+         (Un (-Immutable-HT (-lst Univ) (-lst Univ)) (-Mutable-HT Univ Univ) (-Weak-HT Univ Univ)))
    (pd-t (-HT (-v a) (-v a)) (b) (-HT (-v a) (-v a)) (-HT (-v a) (-v a)))
 
    (pd-t (-Param (-v a) (-v b)) (a b) (-Param Univ -Bottom) (-Param -Bottom Univ))

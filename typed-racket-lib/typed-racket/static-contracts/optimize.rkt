@@ -48,6 +48,9 @@
     [(syntax/sc: (any/sc:)) syntax?/sc]
     [(promise/sc: (any/sc:)) promise?/sc]
     [(hash/sc: (any/sc:) (any/sc:)) hash?/sc]
+    [(mutable-hash/sc: (any/sc:) (any/sc:)) mutable-hash?/sc]
+    [(immutable-hash/sc: (any/sc:) (any/sc:)) immutable-hash?/sc]
+    [(weak-hash/sc: (any/sc:) (any/sc:)) weak-hash?/sc]
 
     ;; or/sc cases
     [(or/sc: scs ...)

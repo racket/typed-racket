@@ -14,6 +14,10 @@
   (secref tag #:doc '(lib "typed-racket/scribblings/ts-guide.scrbl")))
 (define (tr-reference-secref tag)
   (secref tag #:doc '(lib "typed-racket/scribblings/ts-reference.scrbl")))
+(define (r-guide-secref tag)
+  (secref tag #:doc '(lib "scribblings/guide/guide.scrbl")))
+(define (r-reference-secref tag)
+  (secref tag #:doc '(lib "scribblings/reference/reference.scrbl")))
 
 (define ** (let ([* #f]) @racket[*]))
 

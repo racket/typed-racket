@@ -66,10 +66,9 @@
          ;; is an object type that doesn't mention private fields. Thus we use the
          ;; FieldPE path element as a marker to refine the result of the accessor
          ;; function.
-         [((Function: (list (arr: doms (Values: (list (Result: rng _ _))) _ _ _)))
+         [((Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng _ _))))))
            (FieldPE:))
-          (make-Function
-           (list (make-arr* doms (update rng rst))))]
+          (make-Fun (list (-Arrow doms (update rng rst))))]
          
          [((Union: _ ts) _)
           ;; Note: if there is a path element, then all Base types are

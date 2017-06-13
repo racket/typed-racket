@@ -128,10 +128,10 @@
   (pattern ((fun-name:constant-var) (~and fun (#%plain-lambda params body ...)))
     #:do [(define doms
             (match (type-of #'fun)
-              [(tc-result1: (Function: (list (arr: doms rngs
-                                                   (and rests #f)
-                                                   (and drests #f)
-                                                   (and kws '())))))
+              [(tc-result1: (Fun: (list (Arrow: doms
+                                                #f  ;; rest arg
+                                                '() ;; kw args
+                                                _))))
                doms]
               [_ #f]))]
     #:when doms

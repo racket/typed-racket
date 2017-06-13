@@ -163,7 +163,7 @@
       (check-equal?
         (values->tc-results (make-AnyValues (-is-type '(0 . 0) -String))
                             (list (make-Path null #'x)) (list Univ))
-        (tc-any-results (-is-type #'x -String)))
+        (-tc-any-results (-is-type #'x -String)))
 
 
       (check-equal?
@@ -193,29 +193,30 @@
                   (make-TypeProp (make-Path (list -car) #'x) -NonPosInt))))
     )
 
-    (test-suite "replace-names"
+    (test-suite "term substitution"
       (check-equal?
-        (replace-names (list #'x) (list (make-Path null '(0 . 0)))
-                       (ret Univ -tt-propset (make-Path null #'x)))
+        (abstract-obj (ret Univ -tt-propset (make-Path null #'x))
+                      (list #'x))
         (ret Univ -tt-propset (make-Path null '(0 . 0))))
       (check-equal?
-        (replace-names (list #'x) (list (make-Path null '(0 . 0)))
-                       (ret (-> Univ Univ : -tt-propset : (make-Path null #'x))))
+        (abstract-obj (ret (-> Univ Univ : -tt-propset : (make-Path null #'x)))
+                      (list #'x))
         (ret (-> Univ Univ : -tt-propset : (make-Path null '(1 . 0)))))
       (check-equal?
-        (replace-names (list #'x) (list (make-Path null '(0 . 0)))
-                       (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp #'x)))
-                            -tt-propset
-                            (make-Path null #'x)))
+       (abstract-obj (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp #'x)))
+                          -tt-propset
+                          (make-Path null #'x))
+                     (list #'x))
         (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp (make-Path null '(1 . 0)))))
              -tt-propset
              (make-Path null '(0 . 0))))
 
       (check-equal?
-       (replace-names (list #'x) (list -empty-obj)
-                      (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp #'x)))
-                           -tt-propset
-                           (make-Path null #'x)))
+       (erase-identifiers
+        (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp #'x)))
+             -tt-propset
+             (make-Path null #'x))
+        (list #'x))
        (ret -Int
             -tt-propset
             -empty-obj))

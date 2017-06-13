@@ -36,10 +36,11 @@
   (define (value-string ty)
     (match ty
       [(tc-result1: _) "1 value"]
-      [(tc-results: ts) (~a (length ts) " values")]
+      [(tc-results: tcrs #f) (~a (length tcrs) " values")]
       ;; TODO simplify this case
-      [(tc-results: ts _ _ dty _) (~a (length ts) " " (if (= (length ts) 1) "value" "values")
-                                      " and `" dty " ...'")]
+      [(tc-results: tcrs (RestDots: dty _))
+       (~a (length tcrs) " " (if (= (length tcrs) 1) "value" "values")
+           " and `" dty " ...'")]
       [(tc-any-results: _) "unknown number"]))
   (type-mismatch
     (value-string expected) (value-string actual)
@@ -73,6 +74,13 @@
   (define (prop-better? p1 p2)
     (or (not p2)
         (implies? p1 p2)))
+  (define (RestDots-better? rdots1 rdots2)
+    (match* (rdots1 rdots2)
+      [(rd rd) #t]
+      [((RestDots: dty1 dbound)
+        (RestDots: dty2 dbound))
+       (subtype dty1 dty2)]
+      [(_ _) #f]))
 
   (match* (tr1 expected)
     ;; This case has to be first so that bottom (exceptions, etc.) can be allowed in cases
@@ -84,15 +92,18 @@
     [((tc-any-results: p1) (tc-any-results: p2))
      (unless (prop-better? p1 p2)
        (type-mismatch p2 p1 "mismatch in proposition"))
-     (tc-any-results (fix-props p2 p1))]
+     (-tc-any-results (fix-props p2 p1))]
 
-    [((or (tc-results: _ (list (PropSet: ps+ ps-) ...) _)
-          (tc-results: _ (list (PropSet: ps+ ps-) ...) _ _ _))
+    [((tc-results: tcrs _)
       (tc-any-results: p2))
-     (define merged-prop (apply -and (map -or ps+ ps-)))
+     (define merged-prop
+       (apply -and
+              (map (match-lambda
+                     [(tc-result: _ (PropSet: p+ p-) _) (-or p+ p-)])
+                   tcrs)))
      (unless (prop-better? merged-prop p2)
        (type-mismatch p2 merged-prop "mismatch in proposition"))
-     (tc-any-results (fix-props p2 merged-prop))]
+     (-tc-any-results (fix-props p2 merged-prop))]
 
 
     [((tc-result1: t1 p1 o1) (tc-result1: t2 p2 o2))
@@ -113,64 +124,45 @@
      (ret t2 (fix-props p2 p1) (fix-object o2 o1))]
 
     ;; case where expected is like (Values a ... a) but got something else
-    [((tc-results: t1 p1 o1) (tc-results: t2 p2 o2 dty dbound))
+    [((tc-results: _ #f) (tc-results: _ (? RestDots?)))
      (value-mismatch expected tr1)
      (fix-results expected)]
 
     ;; case where you have (Values a ... a) but expected something else
-    [((tc-results: t1 p1 o1 dty dbound) (tc-results: t2 p2 o2))
+    [((tc-results: _ (? RestDots?)) (tc-results: _ #f))
      (value-mismatch expected tr1)
      (fix-results expected)]
 
-    [((tc-results: t1 p1 o1 dty1 dbound)
-      (tc-results: t2 (list (or #f (PropSet: (TrueProp:) (TrueProp:))) ...)
-                   (list (or #f (Empty:)) ...) dty2 dbound))
+    ;; case where both have no '...', or both have '...'
+    ;; NOTE: we ignore the propsets and objects... not sure
+    ;;       why---maybe there's an assumption that users
+    ;;       can't specify props/objects for multiple values?
+    ;;       seems like we should add some checks to this doesn't
+    ;;       turn into an error in the future that we can't fix w/o
+    ;;       breaking programs that relied on it being broken.
+    [((tc-results: tcrs1 db1)
+      (tc-results: tcrs2 db2))
      (cond
-       [(= (length t1) (length t2))
-        (unless (andmap subtype t1 t2 o1)
-          (expected-but-got (stringify t2) (stringify t1)))
-        (unless (subtype dty1 dty2)
-          (type-mismatch dty2 dty1 "mismatch in ... argument"))]
+       [(= (length tcrs1) (length tcrs2))
+        (unless (andmap (match-lambda**
+                         [((tc-result: t1 ps1 o1)
+                           (tc-result: t2 ps2 o2))
+                          (and (subtype t1 t2 o1)
+                               (prop-set-better? ps1 ps2)
+                               (object-better? o1 o2))])
+                        tcrs1
+                        tcrs2)
+          (expected-but-got (stringify (map tc-result-t tcrs1))
+                            (stringify (map tc-result-t tcrs2))))
+        (match* (db1 db2)
+          [((RestDots: dty1 dbound1)
+            (RestDots: dty2 dbound2))
+           #:when (not (and (eq? dbound1 dbound2)
+                            (subtype dty1 dty2)))
+           (type-mismatch dty2 dty1 "mismatch in ... argument")]
+          [(_ _) (void)])]
        [else
         (value-mismatch expected tr1)])
-     (fix-results expected)]
-
-    [((tc-results: t1 p1 o1 dty1 dbound) (tc-results: t2 p2 o2 dty2 dbound))
-     (cond
-       [(= (length t1) (length t2))
-        (unless (andmap subtype t1 t2 o1)
-          (expected-but-got (stringify t2) (stringify t1)))
-        (unless (subtype dty1 dty2)
-          (type-mismatch dty2 dty1 "mismatch in ... argument"))]
-       [else
-        (value-mismatch expected tr1)])
-     (fix-results expected)]
-
-    [((tc-results: t1 p1 o1)
-      (tc-results: t2 (list (or #f (PropSet: (TrueProp:) (TrueProp:))) ...)
-                   (list (or #f (Empty:)) ...)))
-     (unless (= (length t1) (length t2))
-       (value-mismatch expected tr1))
-     (unless (for/and ([t (in-list t1)]
-                       [s (in-list t2)]
-                       [o (in-list o1)])
-               (subtype t s o))
-       (expected-but-got (stringify t2) (stringify t1)))
-     (fix-results expected)]
-
-    [((tc-results: t1 fs os) (tc-results: t2 fs os))
-     (unless (= (length t1) (length t2))
-       (value-mismatch expected tr1))
-     (unless (for/and ([t (in-list t1)]
-                       [s (in-list t2)]
-                       [o (in-list os)])
-               (subtype t s o))
-       (expected-but-got (stringify t2) (stringify t1)))
-     (fix-results expected)]
-
-    [((tc-results: t1 p1 o1) (tc-results: t2 p2 o2))
-     #:when (not (= (length t1) (length t2)))
-     (value-mismatch expected tr1)
      (fix-results expected)]
 
     [((tc-any-results: _) (? tc-results?))
@@ -181,7 +173,6 @@
      (unless (subtype t1 t2)
        (expected-but-got t2 t1))
      expected]
-    [((tc-results: ts fs os dty dbound) (tc-results: ts* fs* os* dty* dbound*))
-     (int-err "dotted types with different bounds/propositions/objects in check-below nyi: ~a ~a" tr1 expected)]
+    
     [(a b) (int-err "unexpected input for check-below: ~a ~a" a b)]))
 

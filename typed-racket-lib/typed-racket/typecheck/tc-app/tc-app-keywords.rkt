@@ -42,7 +42,7 @@
     (match (tc-expr #'fn)
       [(tc-result1:
         (Poly: vars
-               (Function: (list (and ar (arr: dom rng (and rest #f) (and drest #f) kw-formals))))))
+               (Fun: (list (and ar (Arrow: dom #f kw-formals rng))))))
        (=> fail)
        (unless (set-empty? (fv/list kw-formals))
          (fail))
@@ -53,17 +53,17 @@
             (unless subst (fail))
             (tc-keywords #'form (list (subst-all subst ar))
                          (type->list (tc-expr/t #'kws)) #'kw-arg-list #'pos-args expected))])]
-      [(tc-result1: (Function: arities))
-       (tc-keywords #'(#%plain-app . form) arities (type->list (tc-expr/t #'kws))
+      [(tc-result1: (Fun: arrows))
+       (tc-keywords #'(#%plain-app . form) arrows (type->list (tc-expr/t #'kws))
                     #'kw-arg-list #'pos-args expected)]
-      [(tc-result1: (Poly: _ (Function: _)))
+      [(tc-result1: (Poly: _ (Fun: _)))
        (tc-error/expr "Inference for polymorphic keyword functions not supported")]
       [(tc-result1: t)
        (tc-error/expr "Cannot apply expression of type ~a, since it is not a function type" t)])))
 
 (define (tc-keywords/internal arity kws kw-args error?)
   (match arity
-    [(arr: dom rng rest #f ktys)
+    [(Arrow: dom (not (? RestDots?)) ktys rng)
      ;; assumes that everything is in sorted order
      (let loop ([actual-kws kws]
                 [actuals (stx-map tc-expr/t kw-args)]
@@ -101,24 +101,25 @@
                 [else ;; otherwise, ignore this formal param, and continue
                  (loop actual-kws actuals form-rest)])]))]))
 
-(define (tc-keywords form arities kws kw-args pos-args expected)
-  (match arities
-    [(list (and a (arr: dom rng rest #f ktys)))
+(define (tc-keywords form arrows kws kw-args pos-args expected)
+  (match arrows
+    [(list (and a (Arrow: dom (and rst (not (? RestDots?))) ktys rng)))
      (tc-keywords/internal a kws kw-args #t)
      (tc/funapp (car (syntax-e form)) kw-args
-                (->* dom rest rng)
+                (->* dom rst rng)
                 (stx-map tc-expr pos-args) expected)]
-    [(list (and a (arr: doms rngs rests (and drests #f) ktyss)) ...)
-     (let ([new-arities
-            (for/list ([a (in-list arities)]
-                       ;; find all the arities where the keywords match
+    [(list (and a (Arrow: doms (and rsts (not (? RestDots?))) _ rngs)) ...)
+     (let ([new-arrows
+            (for/list ([a (in-list arrows)]
+                       ;; find all the arrows where the keywords match
                        #:when (tc-keywords/internal a kws kw-args #f))
               (match a
-                [(arr: dom rng rest #f ktys) (make-arr* dom rng #:rest rest)]))])
-       (if (null? new-arities)
+                [(Arrow: dom (and rst (not (? RestDots?))) ktys rng)
+                 (make-Arrow dom rst '() rng)]))])
+       (if (null? new-arrows)
            (domain-mismatches
             (car (syntax-e form)) (cdr (syntax-e form))
-            (make-Function arities) doms rests drests rngs
+            (make-Fun arrows) doms rsts rngs
             (stx-map tc-expr pos-args)
             #f #f #:expected expected
             #:msg-thunk
@@ -126,7 +127,7 @@
               (string-append "No function domains matched in function application:\n"
                              dom)))
            (tc/funapp (car (syntax-e form)) kw-args
-                      (make-Function new-arities)
+                      (make-Fun new-arrows)
                       (stx-map tc-expr pos-args) expected)))]))
 
 (define (type->list t)

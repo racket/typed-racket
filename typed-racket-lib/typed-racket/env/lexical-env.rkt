@@ -39,6 +39,7 @@
 (define (add-props-to-current-lexical! ps)
   (lexical-env (env-replace-props (lexical-env) (append ps (env-props (lexical-env))))))
 
+
 ;; run code in an extended env
 (define-syntax (with-extended-lexical-env stx)
   (syntax-parse stx
@@ -48,15 +49,19 @@
                     #:defaults ([objs #'#f]))]
         . body)
      (syntax/loc stx
-       (let ([idents ids]
+       (let ([cur-env (lexical-env)]
+             [idents ids]
              [types tys])
-         (let ([ps (apply append
-                          (for*/list ([(id ty) (in-parallel (in-list idents) (in-list types))]
-                                      [props (in-value (extract-props (-id-path id) ty))]
-                                      #:unless (null? props))
-                            props))])
-           (with-lexical-env (env-replace-props (env-extend/bindings (lexical-env) ids tys objs)
-                                                (append ps (env-props (lexical-env))))
+         (let ([ps (apply
+                    append
+                    (for*/list ([(id ty) (in-parallel (in-list idents) (in-list types))]
+                                [props (in-value (extract-props (-id-path id) ty))]
+                                #:unless (null? props))
+                      props))])
+           (with-lexical-env
+               (env-replace-props
+                (env-extend/bindings cur-env ids tys objs)
+                (append ps (env-props cur-env)))
              . body))))]))
 
 ;; find the type of identifier i, looking first in the lexical env, then in the top-level env

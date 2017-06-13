@@ -11,8 +11,7 @@
  (for-template (only-in racket/private/kw kw-expander-proc kw-expander-impl)
                racket/base racket/file racket/port racket/path racket/list)
  (env init-envs)
- (rename-in (types abbrev numeric-tower)
-            [make-arr* make-arr])
+ (types abbrev numeric-tower)
  (for-syntax racket/base syntax/parse
              (only-in racket/syntax syntax-local-eval)))
 (provide make-template-identifier)

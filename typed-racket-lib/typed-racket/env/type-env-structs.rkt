@@ -2,6 +2,7 @@
 
 (require racket/match
          syntax/id-table
+         racket/sequence
          (except-in "../utils/utils.rkt" env)
          (contract-req)
          ;; dict ops only used for convenient printing
@@ -68,10 +69,22 @@
 ;; simplifications like env+ in tc-envops.rkt)
 (define-syntax (with-naively-extended-lexical-env stx)
   (syntax-parse stx
-    [(_ [#:props ps:expr]
+    [(_ [(~optional (~seq #:identifiers ids-expr:expr
+                          #:types ts-expr:expr)
+                    #:defaults ([ids-expr #'(list)]
+                                [ts-expr #'(list)]))
+         (~optional (~seq #:props ps:expr)
+                    #:defaults ([ps #'(list)]))]
         . body)
      (syntax/loc stx
-       (with-lexical-env (env-replace-props (lexical-env) (append ps (env-props (lexical-env)))) . body))]))
+       (let ([cur-env (lexical-env)]
+             [ids ids-expr]
+             [ts ts-expr])
+         (with-lexical-env
+             (env-replace-props
+              (env-extend/bindings cur-env ids ts #f)
+              (append ps (env-props cur-env)))
+           . body)))]))
 
 
 (define (env-replace-props e props)

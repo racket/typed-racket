@@ -125,7 +125,7 @@
      (Val-able: (? simple-datum? v2)))
     (equal? v1 v2)]
    [((Val-able: (? simple-datum?))
-     (or (? Struct?) (? StructTop?) (? Function?)))
+     (or (? Struct?) (? StructTop?) (? Fun?)))
     #:no-order
     #f]
    [((Val-able: (not (? hash?)))

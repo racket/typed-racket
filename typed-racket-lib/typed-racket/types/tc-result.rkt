@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep core-rep type-rep prop-rep values-rep)
+         (rep rep-utils core-rep type-rep prop-rep
+              values-rep free-variance)
          (utils tc-utils)
          (types base-abbrev)
          racket/match
@@ -9,13 +10,41 @@
 
 ;; this structure represents the result of typechecking an expression
 ;; fields are #f only when the direct result of parsing or annotations
-(define-struct/cond-contract tc-result
-  ([t Type?] [pset (c:or/c PropSet? #f)] [o (c:or/c OptObject? #f)])
-  #:transparent)
-(define-struct/cond-contract tc-results
-  ([ts (c:listof tc-result?)] [drest (c:or/c (c:cons/c Type? symbol?) #f)])
-  #:transparent)
-(define-struct/cond-contract tc-any-results ([f (c:or/c Prop? #f)]) #:transparent)
+(def-rep tc-result ([t Type?]
+                    [pset (c:or/c PropSet? #f)]
+                    [o (c:or/c OptObject? #f)])
+  #:no-provide
+  [#:frees (f)
+   (combine-frees (list (f t)
+                        (if pset (f pset) empty-free-vars)
+                        (if o (f o) empty-free-vars)))]
+  [#:fmap (f)
+   (make-tc-result (f t)
+                   (and pset (f pset))
+                   (and o (f o)))]
+  [#:for-each (f)
+   (f t)
+   (when pset (f pset))
+   (when o (f o))])
+
+(def-rep tc-results ([tcrs (c:listof tc-result?)]
+                     [drst (c:or/c #f RestDots?)])
+  #:no-provide
+  [#:frees (f)
+   (combine-frees (cons (if drst (f drst) empty-free-vars)
+                        (map f tcrs)))]
+  [#:fmap (f)
+   (make-tc-results (map f tcrs)
+                    (and drst (f drst)))]
+  [#:for-each (f)
+   (for-each f tcrs)
+   (when drst (f drst))])
+
+(def-rep tc-any-results ([p (c:or/c Prop? #f)])
+  #:no-provide
+  [#:frees (f) (if p (f p) empty-free-vars)]
+  [#:fmap (f) (make-tc-any-results (and p (f p)))]
+  [#:for-each (f) (when p (f p))])
 
 (define (tc-results/c v)
   (or (tc-results? v)
@@ -23,81 +52,48 @@
 
 (define (tc-results1/c v)
   (and (tc-results? v)
-       (= (length (tc-results-ts v)) 1)))
+       (= (length (tc-results-tcrs v)) 1)))
 
 ;; Contract to check that values are tc-results/c and do not contain #f propset or obj
 ;; Used to contract the return values of typechecking functions.
 (define (full-tc-results/c r)
   (match r
     [(tc-any-results: p) (and p #t)]
-    [(tc-results: _ ps os)
-     (and (andmap (λ (x) x) ps)
+    [(tc-results: (list (tc-result: _ pss os) ...) _)
+     (and (andmap (λ (x) x) pss)
           (andmap (λ (x) x) os)
           #t)]
-    [(tc-results: _ ps os _ _)
-     (and (andmap (λ (x) x) ps)
-          (andmap (λ (x) x) os)
-          #t)]
-    [else #f]))
+    [_ #f]))
 
 
-(define-match-expander tc-result:
+(define-match-expander tc-result:*
   (syntax-rules ()
    [(_ tp fp op) (tc-result tp fp op)]
    [(_ tp) (tc-result tp _ _)]))
 
-;; expand-tc-results: (Listof tc-result) -> (Values (Listof Type) (Listof PropSet) (Listof Object))
-(define (expand-tc-results results)
-  (values (map tc-result-t results) (map tc-result-pset results) (map tc-result-o results)))
-
-(define-match-expander tc-results:
-  (syntax-rules ()
-   [(_ tp)
-    (tc-results (app expand-tc-results tp _ _) #f)]
-   [(_ tp fp op)
-    (tc-results (app expand-tc-results tp fp op) #f)]
-   [(_ tp fp op dty dbound)
-    (tc-results (app expand-tc-results tp fp op) (cons dty dbound))]))
-
-(define-match-expander tc-any-results:
-  (syntax-rules ()
-   [(_ f)
-    (tc-any-results f)]))
-
 
 (define-match-expander tc-result1:
   (syntax-rules ()
-   [(_ tp) (tc-results: (list tp))]
-   [(_ tp fp op) (tc-results: (list tp) (list fp) (list op))]))
+   [(_ t) (tc-results: (list (tc-result: t _ _)) #f)]
+   [(_ t ps o) (tc-results: (list (tc-result: t ps o)) #f)]))
 
 (define (tc-results-ts* tc)
   (match tc
-    [(tc-results: t) t]))
+    [(tc-results: (list (tc-result: ts _ _) ...) _) ts]))
 
 (define-match-expander Result1:
   (syntax-rules ()
    [(_ tp) (Results: (list tp))]
    [(_ tp fp op) (Results: (list tp) (list fp) (list op))]))
 
-;; expand-Results: (Listof Rresult) -> (Values (Listof Type) (Listof PropSet) (Listof Object))
-(define (expand-Results results)
-  (values (map Result-t results) (map Result-ps results) (map Result-o results)))
-
-
-(define-match-expander Results:
-  (syntax-rules ()
-   [(_ tp) (Values: (app expand-Results tp _ _))]
-   [(_ tp fp op) (Values: (app expand-Results tp fp op))]
-   [(_ tp fp op dty dbound) (ValuesDots: (app expand-Results tp fp op) dty dbound)]))
-
 ;; make-tc-result*: Type? PropSet/c Object? -> tc-result?
 ;; Smart constructor for a tc-result.
 (define (-tc-result type [prop -tt-propset] [object -empty-obj])
   (cond
     [(or (equal? type -Bottom) (equal? prop -ff-propset))
-     (tc-result -Bottom -ff-propset object)]
+     (make-tc-result -Bottom -ff-propset object)]
     [else
-     (tc-result type prop object)]))
+     (make-tc-result type prop object)]))
 
 
 ;; convenience function for returning the result of typechecking an expression
@@ -130,7 +126,7 @@
                  (if (and (list? t) (list? pset) (list? o))
                      (map -tc-result t pset o)
                      (list (-tc-result t pset o)))
-                 (cons dty dbound))]))
+                 (make-RestDots dty dbound))]))
 
 
 ;; fix-props:
@@ -150,19 +146,28 @@
 ;; Turns #f Prop or Obj into the Empty/Trivial
 (define (fix-results r)
   (match r
-    [(tc-any-results: f) (tc-any-results (fix-props f -tt))]
-    [(tc-results: ts ps os)
-     (ret ts (map fix-props ps) (map fix-object os))]
-    [(tc-results: ts ps os dty dbound)
-     (ret ts (map fix-props ps) (map fix-object os) dty dbound)]))
+    [(tc-any-results: p) (make-tc-any-results (fix-props p -tt))]
+    [(tc-results: ts drst)
+     (make-tc-results
+      (map (match-lambda
+             [(tc-result: t ps o)
+              (make-tc-result t (fix-props ps) (fix-object o))])
+           ts)
+      drst)]))
 
 (define (fix-results/bottom r)
   (match r
-    [(tc-any-results: f) (tc-any-results (fix-props f -ff))]
-    [(tc-results: ts ps os)
-     (ret ts (for/list ([p ps]) (fix-props p -ff-propset)) (map fix-object os))]
-    [(tc-results: ts ps os dty dbound)
-     (ret ts (for/list ([p ps]) (fix-props p -ff-propset)) (map fix-object os) dty dbound)]))
+    [(tc-any-results: p) (make-tc-any-results (fix-props p -ff))]
+    [(tc-results: (list (tc-result: ts ps os) ...) #f)
+     (ret ts
+          (for/list ([p (in-list ps)]) (fix-props p -ff-propset))
+          (map fix-object os))]
+    [(tc-results: (list (tc-result: ts ps os) ...) (RestDots: dty dbound))
+     (ret ts
+          (for/list ([p (in-list ps)]) (fix-props p -ff-propset))
+          (map fix-object os)
+          dty
+          dbound)]))
 
 (provide/cond-contract
  [ret
@@ -179,15 +184,20 @@
 
 (define tc-result-equal? equal?)
 
-(provide tc-result: tc-results: tc-any-results: tc-result1: Result1: Results:
-         tc-results)
+(provide tc-any-results: tc-result1: Result1: tc-results:
+         (rename-out [tc-result:* tc-result:]))
 (provide/cond-contract
- [rename -tc-result tc-result
-   (c:case->
-     (Type? . c:-> . tc-result?)
-     (Type? PropSet? OptObject? . c:-> . tc-result?))]
- [tc-any-results ((c:or/c Prop? #f) . c:-> . tc-any-results?)]
+ [-tc-result
+  (c:case->
+   (Type? . c:-> . tc-result?)
+   (Type? PropSet? OptObject? . c:-> . tc-result?))]
  [tc-result-t (tc-result? . c:-> . Type?)]
+ [rename make-tc-results -tc-results
+         (c:-> (c:listof tc-result?)
+               (c:or/c #f RestDots?)
+               tc-results?)]
+ [rename make-tc-any-results -tc-any-results
+         (c:-> (c:or/c #f Prop?) tc-any-results?)]
  [rename tc-results-ts* tc-results-ts (tc-results? . c:-> . (c:listof Type?))]
  [tc-result-equal? (tc-result? tc-result? . c:-> . boolean?)]
  [tc-result? (c:any/c . c:-> . boolean?)]

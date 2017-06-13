@@ -8,7 +8,7 @@
          (types resolve base-abbrev)
          (for-syntax racket/base syntax/parse))
 
-(provide Listof: List: MListof: AnyPoly: AnyPoly-names: Function/arrs:
+(provide Listof: List: MListof: AnyPoly: AnyPoly-names:
          SimpleListof: SimpleMListof:
          PredicateProp:
          Val-able:
@@ -75,7 +75,7 @@
       [(Mu-unsafe:
         (Union: (== -Null)
                 (list (pair-matcher elem-t (B: 0)))))
-       (define elem-t* (instantiate-raw-type t elem-t))
+       (define elem-t* (instantiate-type elem-t t))
        (cond
          [simple? (and (equal? elem-t elem-t*) elem-t)]
          [else elem-t*])]
@@ -161,11 +161,6 @@
       [(_ vars dotted-vars body)
        #'(app unpoly-names vars dotted-vars body)])))
 
-(define-match-expander Function/arrs:
-  (lambda (stx)
-    (syntax-parse stx
-      [(_ doms rngs rests drests kws (~optional (~seq #:arrs arrs) #:defaults ([arrs #'_])))
-       #'(Function: (and arrs (list (arr: doms rngs rests drests kws) (... ...))))])))
 
 ;; A match expander for matching the prop on a predicate. This assumes a standard
 ;; predicate type of the shape (-> Any Any : SomeType)
@@ -173,4 +168,7 @@
   (λ (stx)
     (syntax-parse stx
       [(_ ps)
-       #'(Function: (list (arr: (list _) (Values: (list (Result: _ ps _))) _ _ _)))])))
+       #'(Fun: (list (Arrow: (list _)
+                             _
+                             _
+                             (Values: (list (Result: _ ps _))))))])))

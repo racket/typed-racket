@@ -36,22 +36,23 @@
   ;; Returns the changed arr or #f if there is no arr above it
   (define (arr-change arr)
     (match arr
-      [(arr: dom rng rest drest kws)
+      [(Arrow: dom rest kws rng)
        (cond
          [(apply V-in? V (get-propsets rng))
           #f]
-         [(and drest (memq (cdr drest) V))
-          (make-arr (map contra dom)
-                    (co rng)
-                    (contra (car drest))
-                    #f
-                    (map contra kws))]
+         [(and (RestDots? rest)
+               (memq (RestDots-nm rest) V))
+          (make-Arrow
+           (map contra dom)
+           (contra (RestDots-ty rest))
+           (map contra kws)
+           (co rng))]
          [else
-          (make-arr (map contra dom)
-                    (co rng)
-                    (and rest (contra rest))
-                    (and drest (cons (contra (car drest)) (cdr drest)))
-                    (map contra kws))])]))
+          (make-Arrow
+           (map contra dom)
+           (and rest (contra rest))
+           (map contra kws)
+           (co rng))])]))
   (match cur
     [(app Rep-variances variances) #:when variances 
      (define mk (Rep-constructor cur))
@@ -72,8 +73,7 @@
     [(F: name) (if (memq name V)
                    (if change Univ -Bottom)
                    cur)]
-    [(Function: arrs)
-     (make-Function (filter-map arr-change arrs))]
+    [(Fun: arrs) (make-Fun (filter-map arr-change arrs))]
     [(HeterogeneousVector: elems)
      (make-HeterogeneousVector (map (λ (t) (if (V-in? V t)
                                                (if change Univ -Bottom)

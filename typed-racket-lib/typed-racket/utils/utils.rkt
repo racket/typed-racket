@@ -35,7 +35,11 @@ at least theoretically.
  gen-pretty-id
  local-tr-identifier?
  mark-id-as-normalized
- normalized-id?)
+ normalized-id?
+ assoc-ref
+ assoc-set
+ assoc-remove
+ in-assoc)
 
 (define optimize? (make-parameter #t))
 (define with-linear-integer-arithmetic? (make-parameter #f))
@@ -354,18 +358,18 @@ at least theoretically.
        #'[(val)
           (:do-in
            ;; ([(outer-id ...) outer-expr] ...)
-           ([(list) list-exp]
-            [(rest) rest-exp])
+           ([(l) list-exp]
+            [(r) rest-exp])
            ;; outer-check
            #t
            ;; ([loop-id loop-expr] ...)
-           ([pos list])
+           ([pos l])
            ;; pos-guard
            #t
            ;; ([(inner-id ...) inner-expr] ...)
            ([(val pos) (if (pair? pos)
                            (values (car pos) (cdr pos))
-                           (values rest '()))])
+                           (values r '()))])
            ;; pre-guard
            #t
            ;; post-guard
@@ -406,3 +410,65 @@ at least theoretically.
          (car xs)
          (list-ref/default (cdr xs) (sub1 idx) default))]
     [else default]))
+
+(define assoc-ref
+  (let ([no-arg (gensym)])
+    (λ (d key [default no-arg])
+      (cond
+        [(assoc key d) => cdr]
+        [(eq? default no-arg)
+         (raise-mismatch-error 'assoc-ref
+                               (format "no value for key: ~e in: " key)
+                               d)]
+        [(procedure? default) (default)]
+        [else default]))))
+
+(define (assoc-set d key val)
+  (let loop ([xd d])
+    (cond
+      [(null? xd) (list (cons key val))]
+      [else
+       (let ([a (car xd)])
+         (if (equal? (car a) key)
+             (cons (cons key val) (cdr xd))
+             (cons a (loop (cdr xd)))))])))
+
+(define (assoc-remove d key)
+  (let loop ([xd d])
+    (cond
+      [(null? xd) null]
+      [else
+       (let ([a (car xd)])
+         (if (equal? (car a) key)
+             (cdr xd)
+             (cons a (loop (cdr xd)))))])))
+
+(define (in-assoc-proc l)
+  (in-parallel (map car l) (map cdr l)))
+
+(define-sequence-syntax in-assoc
+  (λ () #'in-list/rest-proc)
+  (λ (stx)
+    (syntax-case stx ()
+      [[(key val) (_ assoc-exp)]
+       #'[(val)
+          (:do-in
+           ;; ([(outer-id ...) outer-expr] ...)
+           ([(l) assoc-exp])
+           ;; outer-check
+           #t
+           ;; ([loop-id loop-expr] ...)
+           ([pos l])
+           ;; pos-guard
+           #t
+           ;; ([(inner-id ...) inner-expr] ...)
+           ([(key val pos) (if (pair? pos)
+                               (values (caar pos) (cdar pos) (cdr pos))
+                               (values #f #f #f))])
+           ;; pre-guard
+           pos
+           ;; post-guard
+           #t
+           ;; (loop-arg ...)
+           (pos))]]
+      [blah (raise-syntax-error 'in-assoc "invalid usage" #'blah)])))

@@ -90,7 +90,8 @@
       ;; FIXME - this sucks and should die
       [t:type-refinement
        (match (lookup-id-type/lexical #'t.predicate)
-              [(and t (Function: (list (arr: (list dom) (Values: (list (Result: rng _ _))) #f #f '()))))
+              [(and t (Fun: (list (Arrow: (list dom) #f '()
+                                          (Values: (list (Result: rng _ _)))))))
                (let ([new-t (make-pred-ty (list dom)
                                           rng
                                           (make-Refinement dom #'t.predicate))])
@@ -236,7 +237,7 @@
 ;; typecheck the expressions of a module-top-level form
 ;; no side-effects
 ;; syntax? -> (or/c 'no-type tc-results/c)
-(define (tc-toplevel/pass2 form [expected (tc-any-results -tt)])
+(define (tc-toplevel/pass2 form [expected (-tc-any-results -tt)])
   
   (do-time (format "pass2 ~a line ~a"
                    (if #t
@@ -358,15 +359,15 @@
   ;; Register signatures in the signature environment
   ;; but defer type parsing to allow mutually recursive refernces
   ;; between signatures and type aliases
-  (for ([sig-form signature-defs])
+  (for ([sig-form (in-list signature-defs)])
     (parse-and-register-signature! sig-form))
 
   (define-values (type-alias-names type-alias-map)
     (get-type-alias-info type-aliases))
 
   ;; Add the struct names to the type table, but not with a type
-  (let ((names (map name-of-struct struct-defs))
-        (type-vars (map type-vars-of-struct struct-defs)))
+  (let ([names (map name-of-struct struct-defs)]
+        [type-vars (map type-vars-of-struct struct-defs)])
     (for ([name (in-list names)]
           [tvars (in-list type-vars)])
       (register-resolved-type-alias

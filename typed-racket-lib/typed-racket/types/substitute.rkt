@@ -44,40 +44,14 @@
   (let sub ([target target])
     (match target
       [(F: name) (hash-ref subst name target)]
-      [(arr: dom rng rest drest kws)
-       (cond
-         [(and (pair? drest)
-               (ormap (λ (name) (and (equal? name (cdr drest))
-                                     (not (bound-tvar? name))
-                                     name))
-                      names))
-          =>
-          (λ (name)
-            (int-err "substitute used on ... variable ~a in type ~a" name target))]
-         [else
-          (make-arr (map sub dom)
-                    (sub rng)
-                    (and rest (sub rest))
-                    (and drest (cons (sub (car drest)) (cdr drest)))
-                    (map sub kws))])]
-      [(ValuesDots: types dty dbound)
-       (cond
-         [(for/or ([name (in-list names)])
-            (and (equal? dbound name)
-                 (not (bound-tvar? name))))
-          =>
-          (λ (name)
-            (int-err "substitute used on ... variable ~a in type ~a" name target))]
-         [else (make-ValuesDots (map sub types) (sub dty) dbound)])]
-      [(ListDots: dty dbound)
-       (cond
-         [(for/or ([name (in-list names)])
-            (and (equal? dbound name)
-                 (not (bound-tvar? name))))
-          =>
-          (λ (name)
-            (int-err "substitute used on ... variable ~a in type ~a" name target))]
-         [else (make-ListDots (sub dty) dbound)])]
+      [(or (RestDots: _     dbound)
+           (ListDots: _     dbound)
+           (ValuesDots: _ _ dbound))
+       #:when (and (memq dbound names)
+                   (not (bound-tvar? dbound)))
+       (int-err "substitute used on ... variable ~a in type ~a"
+                dbound
+                target)]
       [_ (Rep-fmap target sub)])))
 
 
@@ -117,26 +91,18 @@
                  (for/list ([img (in-list images)])
                    (-result (substitute img name expanded))))))])]
          [else (make-ValuesDots (map sub types) (sub dty) dbound)])]
-      [(arr: dom rng rest drest kws)
-       (cond
-         [(and (pair? drest)
-               (eq? name (cdr drest)))
-          (make-arr (append
-                     (map sub dom)
-                     ;; We need to recur first, just to expand out any dotted usages of this.
-                     (let ([expanded (sub (car drest))])
-                       (map (λ (img) (substitute img name expanded))
-                            images)))
-                    (sub rng)
-                    rimage
-                    #f
-                    (map sub kws))]
-         [else
-          (make-arr (map sub dom)
-                    (sub rng)
-                    (and rest (sub rest))
-                    (and drest (cons (sub (car drest)) (cdr drest)))
-                    (map sub kws))])]
+      [(Arrow: dom (RestDots: dty dbound) kws rng)
+       #:when (eq? name dbound)
+       (make-Arrow
+        (append
+         (map sub dom)
+         ;; We need to recur first, just to expand out any dotted usages of this.
+         (let ([expanded (sub dty)])
+           (map (λ (img) (substitute img name expanded))
+                images)))
+        rimage
+        (map sub kws)
+        (sub rng))]
       [_ (Rep-fmap target sub)])))
 
 ;; implements curly brace substitution from the formalism, with the addition
@@ -145,38 +111,27 @@
 (define (substitute-dotted pre-image image image-bound name target)
   (let sub ([target target])
     (match target
+      [(F: name*) #:when (eq? name* name) image]
       [(ValuesDots: types dty dbound)
-       (let ([extra-types (cond
-                            [(eq? name dbound) pre-image]
-                            [else null])])
-         (make-ValuesDots (append (map sub types) (map -result extra-types))
-                          (sub dty)
-                          (cond
-                            [(eq? name dbound) image-bound]
-                            [else dbound])))]
+       #:when (eq? name dbound)
+       (make-ValuesDots (append (map sub types)
+                                (map -result pre-image))
+                        (sub dty)
+                        image-bound)]
       [(ListDots: dty dbound)
        (-Tuple*
         (if (eq? name dbound) pre-image null)
         (make-ListDots (sub dty)
                        (if (eq? name dbound) image-bound dbound)))]
-      [(F: name*)
-       (cond [(eq? name* name) image]
-             [else target])]
-      [(arr: dom rng rest drest kws)
-       (let ([extra-types (cond
-                            [(and drest (eq? name (cdr drest)))
-                             pre-image]
-                            [else null])])
-         (make-arr (append (map sub dom) extra-types)
-                   (sub rng)
-                   (and rest (sub rest))
-                   (and drest
-                        (cons (substitute image (cdr drest) (sub (car drest)))
-                              (cond
-                                [(eq? name (cdr drest))
-                                 image-bound]
-                                [else (cdr drest)])))
-                   (map sub kws)))]
+      [(Arrow: dom (RestDots: dty dbound) kws rng)
+       #:when (eq? name dbound)
+       (make-Arrow
+        (append (map sub dom) pre-image)
+        (make-RestDots
+         (substitute image dbound (sub dty))
+         image-bound)
+        (map sub kws)
+        (sub rng))]
       [_ (Rep-fmap target sub)])))
 
 ;; substitute many variables

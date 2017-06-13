@@ -552,7 +552,7 @@
         [tc-e/t #(2 3 #t) (make-HeterogeneousVector (list -Integer -Integer -Boolean))]
         [tc-e (vector 2 "3" #t) (make-HeterogeneousVector (list -Integer -String -Boolean))]
         [tc-e (vector) (make-HeterogeneousVector (list))]
-        [tc-e (vector) #:ret (tc-any-results -tt) #:expected (tc-any-results #f)]
+        [tc-e (vector) #:ret (-tc-any-results -tt) #:expected (-tc-any-results #f)]
         [tc-err (vector)
                 #:ret (tc-ret -Integer)
            #:expected (tc-ret -Integer)]
@@ -1163,11 +1163,11 @@
               (-lst* -One -String -Char)]
         ;; instantiating non-dotted terms
         [tc-e/t (inst (plambda: (a) ([x : a]) x) Integer)
-                (make-Function
-                 (list (make-arr* (list -Integer) -Integer
-                                  #:props (-PS (-not-type (cons 0 0) (-val #f))
-                                               (-is-type (cons 0 0) (-val #f)))
-                                  #:object (make-Path null (cons 0 0)))))]
+                (make-Fun
+                 (list (-Arrow (list -Integer) -Integer
+                               #:props (-PS (-not-type (cons 0 0) (-val #f))
+                                            (-is-type (cons 0 0) (-val #f)))
+                               #:object (make-Path null (cons 0 0)))))]
         [tc-e/t (inst (plambda: (a) [x : a *] (apply list x)) Integer)
                 ((list) -Integer . ->* . (-lst -Integer) : -true-propset)]
 

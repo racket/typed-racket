@@ -22,7 +22,7 @@
          (for-syntax racket/base syntax/parse))
 
 (provide (all-defined-out)
-         (except-out (all-from-out "base-abbrev.rkt" "match-expanders.rkt") make-arr))
+         (all-from-out "base-abbrev.rkt" "match-expanders.rkt"))
 
 ;; Convenient constructors
 (define -App make-App)
@@ -151,10 +151,10 @@
   (make-Struct name parent flds proc poly pred))
 
 ;; Function type constructors
-(define/decl top-func (make-Function (list)))
+(define/decl top-func (make-Fun (list)))
 
 (define (asym-pred dom rng prop)
-  (make-Function (list (make-arr* (list dom) rng #:props prop))))
+  (make-Fun (list (-Arrow (list dom) rng #:props prop))))
 
 (define/cond-contract make-pred-ty
   (c:case-> (c:-> Type? Type?)
@@ -173,8 +173,9 @@
 
 (define (opt-fn args opt-args result #:rest [rest #f] #:kws [kws null])
   (apply cl->* (for/list ([i (in-range (add1 (length opt-args)))])
-                 (make-Function (list (make-arr* (append args (take opt-args i)) result
-                                                 #:rest rest #:kws kws))))))
+                 (make-Fun (list (-Arrow (append args (take opt-args i))
+                                         result
+                                         #:rest rest #:kws kws))))))
 
 (define-syntax-rule (->opt args ... [opt ...] res)
   (opt-fn (list args ...) (list opt ...) res))
@@ -247,4 +248,4 @@
     [(_ x:id t p)
      (syntax/loc stx
        (let ([x (genid (syntax->datum #'x))])
-         (-refine t (abstract-names p (list x)))))]))
+         (-refine t (abstract-obj p (list x)))))]))

@@ -153,7 +153,7 @@
                           [did-I-suggest-:print-type-already? " ..."]
                           [else (set! did-I-suggest-:print-type-already? #t)
                                 :print-type-message]))]
-           [(tc-results: t)
+           [(tc-results: (list (tc-result: t) ...) #f)
             (define tcs (map cleanup-type t))
             (define tgs (map generalize tcs))
             (define tgs-val (make-Values (map -result tgs)))

@@ -1000,8 +1000,8 @@
 (define-type Keymap:Aug-Keymap<%>
   (Class #:implements Keymap%
          [get-chained-keymaps (-> (Listof (Instance Keymap%)))]
-         [get-map-function-table (-> (HashTable String String))]
-         [get-map-function-table/ht ((HashTable String String) -> (HashTable String String))]))
+         [get-map-function-table (-> (Mutable-HashTable Symbol String))]
+         [get-map-function-table/ht ((HashTable Symbol String) -> (Mutable-HashTable Symbol String))]))
 
 (define-type Keymap:Aug-Keymap-Mixin
   (All (r #:row)

@@ -7,6 +7,10 @@
       #t
       (error (format "Check (~a ~a ~a) failed" f a b))))
 
+(: sort-by-first-key (-> (Listof (Listof (Pairof Symbol Any))) (Listof (Listof (Pairof Symbol Any)))))
+(define (sort-by-first-key kv*)
+  ((inst sort (Listof (Pairof Symbol Any)) Symbol) kv* symbol<? #:key caar))
+
 ;; Each test is there twice, once with the type annotation before the for
 ;; clauses, and once after.
 
@@ -409,6 +413,52 @@
 (check equal?
        (for/hasheq: ([k (list 2 3 4)]) : (HashTable Integer String) (values k "val"))
        #hasheq((2 . "val") (3 . "val") (4 . "val")))
+(check equal?
+       (for/hasheq: : (Immutable-HashTable Integer String) ([k (list 2 3 4)]) (values k "val"))
+       #hasheq((2 . "val") (3 . "val") (4 . "val")))
+
+(check equal?
+       (let ([ht #hash((a . 1) (b . 2))])
+         (for/list : (Listof (Listof (Pairof Symbol Integer)))
+                   ([(k1 v1) (in-hash ht)]
+                    [k2 (in-hash-keys ht)]
+                    [v2 (in-hash-values ht)]
+                    [k3+v3 (in-hash-pairs ht)])
+           (list (cons k1 v1) (cons k2 v2) k3+v3)))
+       '(((a . 1) (a . 1) (a . 1)) ((b . 2) (b . 2) (b . 2))))
+
+(check equal?
+       (let ([ht #hash((a . 1) (b . 2))])
+         (sort-by-first-key
+           (for/list : (Listof (Listof (Pairof Symbol Integer)))
+                     ([(k1 v1) (in-hash ht)]
+                      [k2 (in-hash-keys ht)]
+                      [v2 (in-hash-values ht)]
+                      [k3+v3 (in-hash-pairs ht)])
+             (list (cons k1 v1) (cons k2 v2) k3+v3))))
+       '(((a . 1) (a . 1) (a . 1)) ((b . 2) (b . 2) (b . 2))))
+
+(check equal?
+       (let ([ht  (make-hash '((a . 1) (b . 2)))])
+         (sort-by-first-key
+           (for/list : (Listof (Listof (Pairof Symbol Integer)))
+                     ([(k1 v1) (in-mutable-hash ht)]
+                      [k2 (in-mutable-hash-keys ht)]
+                      [v2 (in-mutable-hash-values ht)]
+                      [k3+v3 (in-mutable-hash-pairs ht)])
+             (list (cons k1 v1) (cons k2 v2) k3+v3))))
+       '(((a . 1) (a . 1) (a . 1)) ((b . 2) (b . 2) (b . 2))))
+
+(check equal?
+       (let ([ht : (Weak-HashTable Symbol Integer) (make-weak-hash '((a . 1) (b . 2)))])
+         (sort-by-first-key
+           (for/list : (Listof (Listof (Pairof Symbol Integer)))
+                     ([(k1 v1) (in-weak-hash ht)]
+                      [k2 (in-weak-hash-keys ht)]
+                      [v2 (in-weak-hash-values ht)]
+                      [k3+v3 (in-weak-hash-pairs ht)])
+             (list (cons k1 v1) (cons k2 v2) k3+v3))))
+       '(((a . 1) (a . 1) (a . 1)) ((b . 2) (b . 2) (b . 2))))
 
 (check equal?
        (for/vector: ([i : Natural (in-range 3)]) 5)

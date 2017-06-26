@@ -178,6 +178,7 @@
       typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
       typed-racket/utils/opaque-object
       typed-racket/utils/evt-contract
+      typed-racket/utils/hash-contract
       typed-racket/utils/sealing-contract
       typed-racket/utils/promise-not-name-contract
       typed-racket/utils/simple-result-arrow
@@ -380,6 +381,20 @@
            (linear-exp/sc const
                           (for/hash ([(obj coeff) (in-terms terms)])
                             (values (obj->sc obj) coeff)))]))
+      (define (hash-types->sc hts)
+        (if (or (null? hts) (null? (cdr hts)))
+          #false ;; too few types, don't merge
+          (let-values ([(key-scs val-scs)
+                        (for/lists (ks vs)
+                                   ([ht (in-list hts)])
+                          (match ht
+                           [(or (Immutable-HashTable: k v)
+                                (Mutable-HashTable: k v)
+                                (Weak-HashTable: k v))
+                            (values (t->sc k) (t->sc v))]
+                           [_
+                            (raise-arguments-error 'hash-types->sc "expected hash/kv?" "given" ht "element of" hts)]))])
+            (hash/sc (apply or/sc key-scs) (apply or/sc val-scs)))))
       (define (only-untyped sc)
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
@@ -450,8 +465,12 @@
             (apply or/sc (append other-scs (map t->sc (nbits->base-types nbits)))))]
        [(? Union? t)
         (match (normalize-type t)
-          [(Union: (? Bottom?) elems) (apply or/sc (map t->sc elems))]
-          [(Union: base elems) (apply or/sc (t->sc base) (map t->sc elems))]
+          [(Union-all: elems)
+           (define-values [hash-elems other-elems] (partition hash/kv? elems))
+           (define maybe-hash/sc (hash-types->sc hash-elems))
+           (if maybe-hash/sc
+             (apply or/sc maybe-hash/sc (map t->sc other-elems))
+             (apply or/sc (map t->sc elems)))]
           [t (t->sc t)])]
        [(Intersection: ts raw-prop)
         (define-values (impersonators chaperones others)
@@ -526,7 +545,6 @@
        [(BoxTop:) (only-untyped box?/sc)]
        [(ChannelTop:) (only-untyped channel?/sc)]
        [(Async-ChannelTop:) (only-untyped async-channel?/sc)]
-       [(HashtableTop:) (only-untyped hash?/sc)]
        [(MPairTop:) (only-untyped mpair?/sc)]
        [(ThreadCellTop:) (only-untyped thread-cell?/sc)]
        [(Prompt-TagTop:) (only-untyped prompt-tag?/sc)]
@@ -690,10 +708,18 @@
        [(Syntax: (? Base:Symbol?)) identifier?/sc]
        [(Syntax: t)
         (syntax/sc (t->sc t))]
-       [(Param: in out) 
+       [(Param: in out)
         (parameter/sc (t->sc in) (t->sc out))]
-       [(Hashtable: k v)
-        (hash/sc (t->sc k) (t->sc v))]
+       [(Mutable-HashTable: k v)
+        (mutable-hash/sc (t->sc k) (t->sc v))]
+       [(Mutable-HashTableTop:)
+        (only-untyped mutable-hash?/sc)]
+       [(Immutable-HashTable: k v)
+        (immutable-hash/sc (t->sc k) (t->sc v))]
+       [(Weak-HashTable: k v)
+        (weak-hash/sc (t->sc k) (t->sc v))]
+       [(Weak-HashTableTop:)
+        (only-untyped weak-hash?/sc)]
        [(Channel: t)
         (channel/sc (t->sc t))]
        [(Evt: t)
@@ -919,6 +945,18 @@
                  #f #f '()))
      (t:subtype -Boolean t)]
     [_ #f]))
+
+;; hash/kv? : Type -> Boolean
+;; True if given type is a HashTable with known key and value types
+;;  aka a "non-Top" HashTable type
+(define (hash/kv? ty)
+  (match ty
+   [(or (Immutable-HashTable: k v)
+        (Mutable-HashTable: k v)
+        (Weak-HashTable: k v))
+    #true]
+   [_
+    #false]))
 
 (module predicates racket/base
   (require racket/extflonum (only-in racket/contract/base >=/c <=/c))

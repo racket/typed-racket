@@ -314,16 +314,25 @@
   [#:mask mask:set])
 
 ;;------------
-;; Hashtable
+;; HashTable
 ;;------------
 
-(def-type HashtableTop ()
-  [#:mask mask:hash]
-  [#:singleton -HashtableTop])
+(def-structural Immutable-HashTable ([key #:covariant] [value #:covariant])
+  [#:mask mask:immutable-hash])
 
-;; TODO separate mutable/immutable Hashtables
-(def-structural Hashtable ([key #:invariant] [value #:invariant])
-  [#:mask mask:hash])
+(def-type Mutable-HashTableTop ()
+  [#:mask mask:mutable-hash]
+  [#:singleton -Mutable-HashTableTop])
+
+(def-structural Mutable-HashTable ([key #:invariant] [value #:invariant])
+  [#:mask mask:mutable-hash])
+
+(def-type Weak-HashTableTop ()
+  [#:mask mask:weak-hash]
+  [#:singleton -Weak-HashTableTop])
+
+(def-structural Weak-HashTable ([key #:invariant] [value #:invariant])
+  [#:mask mask:weak-hash])
 
 
 ;;------

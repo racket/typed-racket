@@ -134,18 +134,20 @@
                                       (-vec-len-of (-id-path v))))
          vec-ty)]
     [(~var i (3d hash?))
-     (match (and expected (resolve (intersect expected -HashtableTop)))
-       [(Hashtable: k v)
-        (let* ([h (syntax-e #'i)]
-               [ks (hash-map h (lambda (x y) (tc-literal x k)))]
-               [vs (hash-map h (lambda (x y) (tc-literal y v)))])
-          (make-Hashtable
-            (check-below (apply Un ks) k)
-            (check-below (apply Un vs) v)))]
-       [_ (let* ([h (syntax-e #'i)]
-                 [ks (hash-map h (lambda (x y) (tc-literal x)))]
-                 [vs (hash-map h (lambda (x y) (tc-literal y)))])
-            (make-Hashtable (generalize (apply Un ks)) (generalize (apply Un vs))))])]
+     (let ([h (syntax-e #'i)])
+       (match (and expected (resolve (intersect expected (-Immutable-HT Univ Univ))))
+        [(Immutable-HashTable: k v)
+         (let* ([kts (hash-map h (lambda (x y) (tc-literal x k)))]
+                [vts (hash-map h (lambda (x y) (tc-literal y v)))]
+                [kt (apply Un kts)]
+                [vt (apply Un vts)])
+           (-Immutable-HT (check-below kt k) (check-below vt v)))]
+        [_
+         (let* ([kts (hash-map h (lambda (x y) (tc-literal x)))]
+                [vts (hash-map h (lambda (x y) (tc-literal y)))]
+                [kt (generalize (apply Un kts))]
+                [vt (generalize (apply Un vts))])
+           (-Immutable-HT kt vt))]))]
     [(~var i (3d prefab-struct-key))
      (tc-prefab (syntax-e #'i) expected)]
     [_ Univ]))

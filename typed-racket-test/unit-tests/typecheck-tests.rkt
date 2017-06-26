@@ -1050,10 +1050,10 @@
         [tc-e/t #'#&2 (-Syntax (-box (-Syntax -PosByte)))]
         [tc-e/t (ann #'#&2 (Syntaxof (Boxof (Syntaxof (U 2 'foo)))))
                 (-Syntax (-box (-Syntax (t:Un (-val 2) (-val 'foo)))))]
-        [tc-e/t #'#hash([1 . 1] [2 . 2]) (-Syntax (make-Hashtable -Int (-Syntax -PosByte)))]
+        [tc-e/t #'#hash([1 . 1] [2 . 2]) (-Syntax (-Immutable-HT -Int (-Syntax -PosByte)))]
         [tc-e/t (ann #'#hash([1 . 1] [2 . 2]) (Syntaxof (HashTable (U 1 2 'foo)
                                                                    (Syntaxof (U 1 2 'bar)))))
-                (-Syntax (make-Hashtable (t:Un (-val 1) (-val 2) (-val 'foo))
+                (-Syntax (make-HashTable (t:Un (-val 1) (-val 2) (-val 'foo))
                                          (-Syntax (t:Un (-val 1) (-val 2) (-val 'bar)))))]
         ;; syntax->list
         [tc-e (syntax->list #'(2 3 4)) (-lst (-Syntax -PosByte))]
@@ -1328,6 +1328,10 @@
               (-HT -Number -Number)]
         [tc-e #{(make-immutable-hash) :: (HashTable String Symbol)}
               (-HT -String -Symbol)]
+        [tc-e #{(make-hash) :: (Mutable-HashTable Number Number)}
+              (-Mutable-HT -Number -Number)]
+        [tc-e #{(make-immutable-hash) :: (Immutable-HashTable String Symbol)}
+              (-Immutable-HT -String -Symbol)]
         [tc-e (hash-has-key? (make-hash '((1 . 2))) 1) -Boolean]
 
         [tc-err (let: ([fact : (Number -> Number)
@@ -1539,7 +1543,7 @@
 
         (tc-e (boolean? #t) #:ret (tc-ret -Boolean -true-propset))
         (tc-e (boolean? 6) #:ret (tc-ret -Boolean -false-propset))
-        (tc-e (immutable? (cons 3 4)) -Boolean)
+        (tc-e (immutable? (cons 3 4)) #:ret (tc-ret -Boolean -false-propset))
 
         (tc-e (boolean=? #t false) -Boolean)
         (tc-e (symbol=? 'foo 'foo) -Boolean)
@@ -1712,7 +1716,7 @@
         (tc-e (syntax-position #'here) (-opt -PosInt))
         (tc-e (syntax-span #'here) (-opt -Nat))
         (tc-e (syntax-local-identifier-as-binding #'x) (-Syntax -Symbol))
-        (tc-e (syntax-debug-info #'x) -HashtableTop)
+        (tc-e (syntax-debug-info #'x) -HashTableTop)
         (tc-e (internal-definition-context-introduce (syntax-local-make-definition-context) #'x)
               (-Syntax (-val 'x)))
 
@@ -2433,8 +2437,8 @@
        [tc-e (assoc 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
        [tc-e (set-remove (set 1 2 3) 'a) (-set -PosByte)]
        ;; don't return HashTableTop
-       [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-HT -Symbol -Integer)]
-       [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-HT -Symbol -Integer)]
+       [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-Immutable-HT -Symbol -Integer)]
+       [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-Immutable-HT -Symbol -Integer)]
        ;; these should actually work
        [tc-e (vector-memq 3 #(a b c)) (t:Un (-val #f) -Index)]
        [tc-e (vector-memv 3 #(a b c)) (t:Un (-val #f) -Index)]
@@ -3997,16 +4001,17 @@
    (tc-l #"foo" -Bytes)
    [tc-l () -Null]
    [tc-l (3 . 4) (-pair -PosByte -PosByte)]
-   [tc-l #hash() (make-Hashtable Univ Univ)]
-   [tc-l #hash((1 . 2) (3 . 4)) (make-Hashtable -Integer -Integer)]
-   [tc-l #hasheq((a . q) (b . w)) (make-Hashtable -Symbol -Symbol)]
+   [tc-l #hash() (-Immutable-HT Univ Univ)]
+   [tc-l #hash() (-Immutable-HT Univ Univ)]
+   [tc-l #hash((1 . 2) (3 . 4)) (-Immutable-HT -Integer -Integer)]
+   [tc-l #hasheq((a . q) (b . w)) (-Immutable-HT -Symbol -Symbol)]
    [tc-l #hash{[:a . :b]}
-         (let ([rec-type (-mu X (make-Hashtable (t:Un -Symbol X) (t:Un -Symbol X)))])
-           (make-Hashtable (t:Un -Symbol rec-type) (t:Un -Symbol rec-type)))
-         #:expected (-mu X (make-Hashtable (t:Un -Symbol X) (t:Un -Symbol X)))]
+         (let ([rec-type (-mu X (-Immutable-HT (t:Un -Symbol X) (t:Un -Symbol X)))])
+           (-Immutable-HT (t:Un -Symbol rec-type) (t:Un -Symbol rec-type)))
+         #:expected (-mu X (-Immutable-HT (t:Un -Symbol X) (t:Un -Symbol X)))]
    [tc-l #hash{[:a . :b]}
-         (make-Hashtable (-val ':a) (-val ':b))
-         #:expected (t:Un (-val #f) (make-Hashtable (-val ':a) (-val ':b)))]
+         (-Immutable-HT (-val ':a) (-val ':b))
+         #:expected (t:Un (-val #f) (-Immutable-HT (-val ':a) (-val ':b)))]
    [tc-l #(:a :b)
          (-vec (t:Un (-val ':a) (-val ':b) (-mu X (-vec (t:Un (-val ':a) (-val ':b) X)))))
          #:expected (-mu X (-vec (t:Un (-val ':a) (-val ':b) X)))]

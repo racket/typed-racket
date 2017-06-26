@@ -154,8 +154,12 @@
      `(-Param ,(type->sexp ty))]
     [(Param: in out)
      `(make-Param ,(type->sexp in) ,(type->sexp out))]
-    [(Hashtable: key val)
-     `(make-Hashtable ,(type->sexp key) ,(type->sexp val))]
+    [(Mutable-HashTable: key val)
+     `(make-Mutable-HashTable ,(type->sexp key) ,(type->sexp val))]
+    [(Immutable-HashTable: key val)
+     `(make-Immutable-HashTable ,(type->sexp key) ,(type->sexp val))]
+    [(Weak-HashTable: key val)
+     `(make-Weak-HashTable ,(type->sexp key) ,(type->sexp val))]
     [(Function: (list (arr: dom (Values: (list (Result: t
                                                         (PropSet: (TrueProp:)
                                                                   (TrueProp:))

@@ -133,15 +133,22 @@
       #:neg (vector/sc set?/sc))
 
     ;; HashTables
-    (check-optimize (hash/sc any/sc any/sc)
-      #:pos any/sc
-      #:neg hash?/sc)
-    (check-optimize (hash/sc none/sc any/sc)
-      #:pos (hash/sc none/sc any/sc)
-      #:neg (hash/sc none/sc any/sc))
-    (check-optimize (hash/sc any/sc none/sc)
-      #:pos (hash/sc any/sc none/sc)
-      #:neg (hash/sc any/sc none/sc))
+    (let ()
+      (define-syntax-rule (make-?hash/sc-check ctc flat-ctc)
+        (begin
+          (check-optimize (ctc any/sc any/sc)
+            #:pos any/sc
+            #:neg flat-ctc)
+          (check-optimize (ctc none/sc any/sc)
+            #:pos (ctc none/sc any/sc)
+            #:neg (ctc none/sc any/sc))
+          (check-optimize (ctc any/sc none/sc)
+            #:pos (ctc any/sc none/sc)
+            #:neg (ctc any/sc none/sc))))
+      (make-?hash/sc-check hash/sc hash?/sc)
+      (make-?hash/sc-check immutable-hash/sc immutable-hash?/sc)
+      (make-?hash/sc-check mutable-hash/sc mutable-hash?/sc)
+      (make-?hash/sc-check weak-hash/sc weak-hash?/sc))
 
     ;; And
     (check-optimize (and/sc set?/sc)

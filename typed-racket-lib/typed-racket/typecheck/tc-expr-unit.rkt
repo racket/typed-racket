@@ -409,21 +409,46 @@
        [(Box: t) (-box (check-below (find-stx-type x t) t))]
        [_ (-box (generalize (find-stx-type x)))])]
     [(? hash? h)
-     (match (and expected (resolve (intersect expected -HashtableTop)))
-       [(Hashtable: kt vt)
-        (define kts (hash-map h (lambda (x y) (find-stx-type x kt))))
-        (define vts (hash-map h (lambda (x y) (find-stx-type y vt))))
-        (make-Hashtable
-         (check-below (apply Un kts) kt)
-         (check-below (apply Un vts) vt))]
-       [_ (make-Hashtable (generalize (apply Un (map find-stx-type (hash-keys h))))
-                          (generalize (apply Un (map find-stx-type (hash-values h)))))])]
+     (cond
+      [(immutable? h)
+       (match (and expected (resolve (intersect expected (-Immutable-HT Univ Univ))))
+        [(Immutable-HashTable: k v)
+         (value->HT/find-stx-type h -Immutable-HT k v)]
+        [_
+         (value->HT/find-stx-type h -Immutable-HT)])]
+      [(hash-weak? h)
+       (match (and expected (resolve (intersect expected (-Weak-HT Univ Univ))))
+        [(Weak-HashTable: k v)
+         (value->HT/find-stx-type h -Weak-HT k v)]
+        [_
+         (value->HT/find-stx-type h -Weak-HT)])]
+      [else
+       (match (and expected (resolve (intersect expected (-Mutable-HT Univ Univ))))
+        [(Mutable-HashTable: k v)
+         (value->HT/find-stx-type h -Mutable-HT k v)]
+        [_
+         (value->HT/find-stx-type h -HT)])])]
     [(? prefab-struct-key)
      ;; FIXME is there a type for prefab structs?
      Univ]
     [_ Univ]))
 
-
+;; value->HT/find-stx-type : hash? (-> type? type? type?) -> type?
+;;                         : hash? (-> type? type? type?) type? type? -> type?
+;; Build a HashTable type from a value, type constructor, and (optionally)
+;;  upper bounds on the key and value types.
+(define value->HT/find-stx-type
+  (case-lambda
+   [(h tycon expected-kt expected-vt)
+    (let* ([kts (hash-map h (lambda (x y) (find-stx-type x expected-kt)))]
+           [vts (hash-map h (lambda (x y) (find-stx-type y expected-vt)))]
+           [kt (apply Un kts)]
+           [vt (apply Un vts)])
+      (tycon (check-below kt expected-kt) (check-below vt expected-vt)))]
+   [(h tycon)
+    (let ([kt (generalize (apply Un (map find-stx-type (hash-keys h))))]
+          [vt (generalize (apply Un (map find-stx-type (hash-values h))))])
+      (tycon kt vt))]))
 
 ;; adds linear info for the following operations:
 ;; + * < <= = >= >

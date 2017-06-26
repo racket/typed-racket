@@ -181,7 +181,12 @@
     [make-Async-Channel () #:top -Async-ChannelTop]
     [make-ThreadCell () #:top -ThreadCellTop]
     [make-Weak-Box () #:top -Weak-BoxTop]
-    [make-Hashtable () () #:top -HashtableTop]
+    [make-Immutable-HashTable () () #:top -HashTableTop]
+    [make-Mutable-HashTable () () #:top -HashTableTop]
+    [make-Mutable-HashTable () () #:top -Mutable-HashTableTop]
+    [make-Weak-HashTable () () #:top -HashTableTop]
+    [make-Weak-HashTable () () #:top -Weak-HashTableTop]
+    [make-HashTable () () #:top -HashTableTop]
     [make-Prompt-Tagof () () #:top -Prompt-TagTop]
     [make-Continuation-Mark-Keyof () #:top -Continuation-Mark-KeyTop])
    (subtyping-tests

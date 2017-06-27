@@ -22,4 +22,4 @@
 
 (define pkg-authors '(samth stamourv))
 
-(define version "1.7")
+(define version "1.8")

@@ -384,17 +384,22 @@
       (define (hash-types->sc hts)
         (if (or (null? hts) (null? (cdr hts)))
           #false ;; too few types, don't merge
-          (let-values ([(key-scs val-scs)
-                        (for/lists (ks vs)
-                                   ([ht (in-list hts)])
-                          (match ht
-                           [(or (Immutable-HashTable: k v)
-                                (Mutable-HashTable: k v)
-                                (Weak-HashTable: k v))
-                            (values (t->sc k) (t->sc v))]
-                           [_
-                            (raise-arguments-error 'hash-types->sc "expected hash/kv?" "given" ht "element of" hts)]))])
-            (hash/sc (apply or/sc key-scs) (apply or/sc val-scs)))))
+          (let-values ([(kts vts)
+                        (let loop ([kts '()]
+                                   [vts '()]
+                                   [hts hts])
+                          (if (null? hts)
+                            (values kts vts)
+                            (match (car hts)
+                             [(or (Immutable-HashTable: k v)
+                                  (Mutable-HashTable: k v)
+                                  (Weak-HashTable: k v))
+                              (loop (if (member k kts) kts (cons k kts))
+                                    (if (member v vts) vts (cons v vts))
+                                    (cdr hts))]
+                             [ht
+                              (raise-arguments-error 'hash-types->sc "expected hash/kv?" "given" ht "element of" hts)])))])
+            (hash/sc (apply or/sc (map t->sc kts)) (apply or/sc (map t->sc vts))))))
       (define (only-untyped sc)
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)

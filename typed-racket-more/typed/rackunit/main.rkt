@@ -66,8 +66,6 @@
 
 (require/typed rackunit/log
   [test-log! (Any -> Any)])
-(require/typed rackunit/private/check
-  [check-around (All (A) ((-> A) -> A))])
 
 ; 3.2.1
 (require-typed-struct check-info
@@ -107,9 +105,7 @@
                            (λ ([e : exn:fail])
                              (test-log! #f)
                              (raise e))])
-          (parameterize
-              ([current-check-handler raise]
-               [current-check-around  check-around])
+          (parameterize ([current-check-handler raise])
             (void)
             expr ...)))))]
     [_

@@ -3,7 +3,9 @@ sudo: false
 language: c
 
 env:
-- PATH=~/racket/bin:$PATH
+- TESTS=unit PLT_TR_CONTRACTS=1 PATH=~/racket/bin:$PATH
+- TESTS=int  PATH=~/racket/bin:$PATH
+- TESTS=math  PATH=~/racket/bin:$PATH
 
 before_install:
 - "export DISPLAY=:99.0"
@@ -20,16 +22,13 @@ install:
 - raco setup typed typed-racket typed-racket-test typed-scheme
 
 script:
-- racket -l typed-racket-test -- --unit
-- racket -l typed-racket-test -- --int
-- racket -l typed-racket-test -- --opt
-- racket -l typed-racket-test -- --missed-opt
-- raco setup -j 1 math
-- racket -l typed-racket-test -- --math
-- racket -l typed-racket-test/test-docs-complete
-- echo ';; please rebuild me' >> typed-racket-lib/typed-racket/utils/utils.rkt
-- PLT_TR_CONTRACTS=1 raco setup -D typed-racket && raco setup -D typed && raco setup -D typed-racket-test
-- racket -l typed-racket-test -- --unit
+- if [ $TESTS = "unit" ]; then racket -l typed-racket-test -- --unit; fi
+- if [ $TESTS = "int"  ]; then racket -l typed-racket-test -- --int; fi
+- if [ $TESTS = "int"  ]; then racket -l typed-racket-test -- --opt; fi
+- if [ $TESTS = "int"  ]; then racket -l typed-racket-test -- --missed-opt; fi
+- if [ $TESTS = "int"  ]; then racket -l typed-racket-test/test-docs-complete; fi
+- if [ $TESTS = "math" ]; then raco setup -j 1 math; fi
+- if [ $TESTS = "math" ]; then racket -l typed-racket-test -- --math; fi
 - echo "done"
 
 after_script:

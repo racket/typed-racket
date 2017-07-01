@@ -40,7 +40,7 @@
          (-refine (apply -unsafe-intersect (map (λ (t) (sub t obj)) ts))
                   raw-prop)]
         [(? Mu?) (sub (unfold t) obj)]
-        [(Poly: vs b) (make-Poly vs (sub b) obj)]
+        [(Poly: vs b) (make-Poly vs (sub b))]
         [_ t])))
   (cond
     [(subtype t result obj) t]

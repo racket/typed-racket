@@ -118,7 +118,7 @@
     (-poly (a) (make-Listof a))]
    [(Un -Symbol -Number) (-poly (a) -Number) -Symbol]
    [(-pair -Number (-v a)) (-pair Univ Univ) (Un)]
-   ))
+   [(-poly (a) (Un -False (-> (-v a) (-v a)))) -False (-poly (a) (-> (-v a) (-v a)))]))
 
 (define tests
   (test-suite "Subtract Intersect"

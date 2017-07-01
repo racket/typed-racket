@@ -40,7 +40,7 @@
 ;; of domains that would *satisfy* the expected type, e.g. for the :query-type
 ;; forms.
 ;; TODO separating pruning and collapsing into separate functions may be nicer
-(define (possible-domains doms rests drests rngs expected [permissive? #t])
+(define (possible-domains doms rests rngs expected [permissive? #t])
 
   ;; is fun-ty subsumed by a function type in others?
   (define (is-subsumed-in? fun-ty others)
@@ -60,7 +60,7 @@
         (eq? expected-ty #t) ; expected is tc-anyresults, anything is fine
         (and expected-ty ; not some unknown expected tc-result
              (match fun-ty
-               [(Function: (list (arr: _ rng _ _ _)))
+               [(Fun: (list (Arrow: _ _ _ rng)))
                 (let ([rng (match rng
                              [(Values: (list (Result: t _ _)))
                               t]
@@ -69,19 +69,20 @@
                              [_ #f])])
                   (and rng (subtype rng expected-ty)))]))))
 
-  (define orig (map list doms rngs rests drests))
+  (define orig (map list doms rngs rests))
 
   (define cases
-    (map (compose make-Function list make-arr)
+    (map (compose make-Fun list make-Arrow)
          doms
+         rests
+         (make-list (length doms) null)
          (map (match-lambda ; strip props
-               [(AnyValues: f) (-AnyValues -tt)]
-               [(Values: (list (Result: t _ _) ...))
-                (-values t)]
-               [(ValuesDots: (list (Result: t _ _) ...) _ _)
-                (-values t)])
-              rngs)
-         rests drests (make-list (length doms) null)))
+                [(AnyValues: f) (-AnyValues -tt)]
+                [(Values: (list (Result: t _ _) ...))
+                 (-values t)]
+                [(ValuesDots: (list (Result: t _ _) ...) _ _)
+                 (-values t)])
+              rngs)))
 
   ;; iterate in lock step over the function types we analyze and the parts
   ;; that we will need to print the error message, to make sure we throw
@@ -112,10 +113,11 @@
   ;; function types with a return type of any then test for subtyping
   (define fun-tys-ret-any
     (map (match-lambda
-          [(Function: (list (arr: dom _ rest drest _)))
-           (make-Function (list (make-arr dom
-                                          (-values (list Univ))
-                                          rest drest null)))])
+          [(Fun: (list (Arrow: dom rest _ _)))
+           (make-Fun (list (make-Arrow dom
+                                       rest
+                                       null
+                                       (-values (list Univ)))))])
          candidates))
 
   ;; Heuristic: often, the last case in the definition (first at this
@@ -142,17 +144,17 @@
 
          (call-with-values
            (λ ()
-             (for/lists (_1 _2 _3 _4) ([xs (in-list (reverse parts-res))])
-               (values (car xs) (cadr xs) (caddr xs) (cadddr xs))))
+             (for/lists (_1 _2 _3) ([xs (in-list (reverse parts-res))])
+               (values (car xs) (cadr xs) (caddr xs))))
            list)]))
 
 ;; Wrapper over possible-domains that works on types.
 (define (cleanup-type t [expected #f] [permissive? #t])
   (match t
     ;; function type, prune if possible.
-    [(Function/arrs: doms rngs rests drests kws)
-     (match-let ([(list pdoms rngs rests drests)
-                  (possible-domains doms rests drests rngs
+    [(Fun: (list (Arrow: doms rests _ rngs) ...))
+     (match-let ([(list pdoms rngs rests)
+                  (possible-domains doms rests rngs
                                     (and expected (ret expected))
                                     permissive?)])
        (if (= (length pdoms) (length doms))
@@ -161,7 +163,10 @@
            ;;  the original, which may confuse `:print-type''s pruning detection)
            t
            ;; pruning helped, return pruned type
-           (make-Function (map make-arr
-                               pdoms rngs rests drests (make-list (length pdoms) null)))))]
+           (make-Fun (map make-Arrow
+                          pdoms
+                          rests
+                          (make-list (length pdoms) null)
+                          rngs))))]
     ;; not a function type. keep as is.
     [_ t]))

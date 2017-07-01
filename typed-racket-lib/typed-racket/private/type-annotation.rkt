@@ -73,36 +73,49 @@
 ;; tc-expr : a function like `tc-expr' from tc-expr-unit
 ;; tc-expr/check : a function like `tc-expr/check' from tc-expr-unit
 (define/cond-contract (get-type/infer stxs expr tc-expr tc-expr/check)
-  ((listof identifier?) syntax? (syntax? . -> . tc-results/c) (syntax? tc-results/c . -> . tc-results/c)
-   . -> . (listof tc-result?))
+  ((listof identifier?)
+   syntax?
+   (syntax? . -> . tc-results/c)
+   (syntax? tc-results/c . -> . tc-results/c)
+   . -> .
+   (listof tc-result?))
   (match stxs
     [(list stx ...)
-     (let ([anns (for/list ([s (in-list stxs)]) (type-annotation s #:infer #t))])
+     (let ([anns (for/list ([s (in-list stxs)])
+                   (type-annotation s #:infer #t))])
        (if (for/and ([a (in-list anns)]) a)
            (match (tc-expr/check expr (ret anns))
-             [(tc-results: tys fs os)
-              (map tc-result tys fs os)])
-           (let ([res (tc-expr expr)])
-             (match res
-               [(tc-any-results: _)
-                (tc-error/expr
-                 #:return (map (lambda _ (tc-result (Un))) stxs)
-                 "Expression should produce ~a values, but produces an unknown number of values"
-                 (length stxs))]
-               [(tc-results: (list (== -Bottom)) _ _)
-                (for/list ([_ (in-range (length stxs))])
-                  (tc-result -Bottom))]
-               [(tc-results: tys fs os)
-                (if (not (= (length stxs) (length tys)))
-                    (tc-error/expr #:return (map (lambda _ (tc-result (Un))) stxs)
-                                   "Expression should produce ~a values, but produces ~a values of types ~a"
-                                   (length stxs) (length tys) (stringify tys))
-                    (for/list ([stx (in-list stxs)] [ty (in-list tys)]
-                               [a (in-list anns)] [f (in-list fs)] [o (in-list os)])
-                      (cond [a (check-type stx ty a) (tc-result a f o)]
-                            ;; mutated variables get generalized, so that we don't infer too small a type
-                            [(is-var-mutated? stx) (tc-result (generalize ty) f o)]
-                            [else (tc-result ty f o)])))]))))]))
+             [(tc-results: tcrs _) tcrs])
+           (match (tc-expr expr)
+             [(tc-any-results: _)
+              (tc-error/expr
+               #:return (map (λ _ (-tc-result -Bottom)) stxs)
+               "Expression should produce ~a values, but produces an unknown number of values"
+               (length stxs))]
+             [(tc-result1: (== -Bottom))
+              (for/list ([_ (in-range (length stxs))])
+                (-tc-result -Bottom))]
+             [(tc-results: tcrs _)
+              (cond
+                [(not (= (length stxs) (length tcrs)))
+                 (tc-error/expr #:return (map (λ _ (-tc-result -Bottom)) stxs)
+                                "Expression should produce ~a values, but produces ~a values of types ~a"
+                                (length stxs)
+                                (length tcrs)
+                                (stringify (map tc-result-t tcrs)))]
+                [else
+                 (for/list ([stx (in-list stxs)]
+                            [tcr (in-list tcrs)]
+                            [a   (in-list anns)])
+                   (match tcr
+                     [(tc-result: ty ps o)
+                      (cond [a (check-type stx ty a)
+                               (-tc-result a ps o)]
+                            ;; mutated variables get generalized, so that we don't
+                            ;; infer too small a type
+                            [(is-var-mutated? stx)
+                             (-tc-result (generalize ty) ps o)]
+                            [else (-tc-result ty ps o)])]))])])))]))
 
 ;; check that e-type is compatible with ty in context of stx
 ;; otherwise, error

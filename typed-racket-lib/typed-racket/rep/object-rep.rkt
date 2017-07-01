@@ -29,6 +29,8 @@
          LExp-terms
          LExp:
          genobj
+         make-id-seq
+         id-seq-next
          make-obj-seq
          obj-seq-next
          scale-obj
@@ -66,9 +68,10 @@
   [#:frees (f)  (combine-frees (map f elems))]
   [#:fmap (f) (make-Path (map f elems) name)]
   [#:for-each (f) (for-each f elems)]
-  [#:custom-constructor
-   (cond
-     [(identifier? name)
+  [#:custom-constructor/contract
+   (-> (listof PathElem?) (or/c name-ref/c OptObject?) OptObject?)
+   (match name
+     [(? identifier?)
       ;; we don't want objects for visibly mutated or top level variables
       (if (or (is-var-mutated? name)
               (and (not (identifier-binding name))
@@ -78,19 +81,57 @@
             (intern-double-ref!
              Path-intern-table
              name elems #:construct (make-Path elems name))))]
-     [else (intern-double-ref!
-            Path-intern-table
-            name elems #:construct (make-Path elems name))])])
+     [(? pair?)
+      (intern-double-ref!
+       Path-intern-table
+       name elems #:construct (make-Path elems name))]
+     [(Path: elems* name*)
+      (let ([elems* (append elems elems*)])
+        (intern-double-ref!
+         Path-intern-table
+         name* elems* #:construct (make-Path elems* name*)))]
+     [(? LExp? l) (if (null? elems) l -empty-obj)]
+     [(Empty:) -empty-obj])])
 
 (define Path-intern-table (make-weak-hash))
 
 (define (-id-path name) (make-Path null name))
+
+;; creates an "id sequence" -- use 'id-seq-next'
+;; to iterate through the sequence.
+;; For an example use case, see subtype.rkt,
+;; which uses a seq to reuse fresh ids for subtype
+;; checking for dependent arrows
+(define (make-id-seq)
+  (for/fold ([seq (cons (genid) (box #f))])
+            ([_ (in-range 9)])
+    (cons (genid) seq)))
+
+;; id-seq-next
+;;
+;; returns 2 values
+;; val 1 - the next id
+;; val 2 - the rest of the sequence
+(define (id-seq-next s)
+  (match s
+    [(cons val vals)
+     (values val vals)]
+    [(box (cons val vals))
+     (values val vals)]
+    [(box #f)
+     (define more (make-id-seq))
+     (if (box-cas! s #f more)
+         (id-seq-next more)
+         (id-seq-next s))]))
+
+
 
 ;; generates a fresh id object
 ;; NOTE: use this wisely -- calling this function
 ;; all the time will consume memory leading to GC
 ;; time that may add up during typechecking
 (define (genobj) (-id-path (genid)))
+
 
 ;; creates an "object sequence" -- use 'obj-seq-next'
 ;; to iterate through the sequence.
@@ -161,11 +202,11 @@
 
 ;; make-LExp* (provided as make-LExp)
 ;;
-; IF the lexp (exp) contains only 1 variable,
+;; IF the lexp (exp) contains only 1 variable,
 ;;   and that variables its coefficient is 1,
-;    and the constant is 0
-; THEN that lone variable is returned
-; ELSE it returns the LExp
+;;    and the constant is 0
+;; THEN that lone variable is returned
+;; ELSE it returns the LExp
 ;; NOTE 1: We do this so there is a 'canonical form'
 ;; for linear expressions which are actually just
 ;; the underlying object, e.g. insteaf of

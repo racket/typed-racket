@@ -27,14 +27,11 @@
 
 (define (check-result result)
   (match result
-    [(tc-results: ts fs os)
-     (for-each check-prop fs)
-     (for-each check-object os) ]
-    [(tc-results: ts fs os dty bound)
-     (for-each check-prop fs)
+    [(tc-results: (list (tc-result: _ ps os) ...) _)
+     (for-each check-prop ps)
      (for-each check-object os)]
-    [(tc-any-results: f)
-     (check-prop f)]
+    [(tc-any-results: p)
+     (check-prop p)]
     [(? Type?)
      (void)]))
 
@@ -121,23 +118,23 @@
       (ret (list -Symbol) (list -tt-propset) (list -empty-obj))
       (ret (list Univ) (list -true-propset) (list (make-Path empty #'x))))
 
-    (test-below (ret -Bottom) (tc-any-results #f) #:result (tc-any-results -ff))
-    (test-below (ret Univ) (tc-any-results -tt) #:result (tc-any-results -tt))
-    (test-below (tc-any-results -ff) (tc-any-results #f) #:result (tc-any-results -ff))
+    (test-below (ret -Bottom) (-tc-any-results #f) #:result (-tc-any-results -ff))
+    (test-below (ret Univ) (-tc-any-results -tt) #:result (-tc-any-results -tt))
+    (test-below (-tc-any-results -ff) (-tc-any-results #f) #:result (-tc-any-results -ff))
     (test-below
       (ret (list -Symbol -String) (list -true-propset -ff-propset))
-      (tc-any-results #f)
-      #:result (tc-any-results -ff))
-    (test-below (ret -Symbol -ff-propset) (tc-any-results #f) #:result (tc-any-results -ff))
+      (-tc-any-results #f)
+      #:result (-tc-any-results -ff))
+    (test-below (ret -Symbol -ff-propset) (-tc-any-results #f) #:result (-tc-any-results -ff))
 
-    (test-below (ret -Symbol -true-propset -empty-obj) (tc-any-results #f)
-      #:result (tc-any-results -tt))
-    (test-below (ret (list -Symbol -String)) (tc-any-results #f)
-      #:result (tc-any-results -tt))
+    (test-below (ret -Symbol -true-propset -empty-obj) (-tc-any-results #f)
+      #:result (-tc-any-results -tt))
+    (test-below (ret (list -Symbol -String)) (-tc-any-results #f)
+      #:result (-tc-any-results -tt))
     (test-below
       (ret (list -Symbol -String) (list -true-propset -false-propset) (list -empty-obj -empty-obj))
-      (tc-any-results #f)
-      #:result (tc-any-results -tt))
+      (-tc-any-results #f)
+      #:result (-tc-any-results -tt))
 
 
     (test-below #:fail
@@ -146,7 +143,7 @@
       #:result (ret (list -Symbol -Symbol) (list -tt-propset -tt-propset) (list -empty-obj -empty-obj)))
 
     (test-below #:fail
-      (tc-any-results -tt)
+      (-tc-any-results -tt)
       (ret -Symbol))
 
 
@@ -164,7 +161,7 @@
       #:result (ret -Symbol -tt-propset -empty-obj Univ 'B))
 
     (test-below #:fail
-      (tc-any-results -tt)
+      (-tc-any-results -tt)
       (ret -Symbol #f -empty-obj Univ 'B)
       #:result (ret (list -Symbol) (list -tt-propset) (list -empty-obj) Univ 'B))
 
@@ -173,8 +170,8 @@
       (ret (list -Symbol -Symbol) (list -tt-propset -tt-propset)  (list -empty-obj -empty-obj) Univ 'B))
 
     (test-below (ret -Symbol -true-propset -empty-obj Univ 'B)
-                (tc-any-results #f)
-                #:result (tc-any-results -tt))
+                (-tc-any-results #f)
+                #:result (-tc-any-results -tt))
 
     (test-below
       (ret -Symbol)

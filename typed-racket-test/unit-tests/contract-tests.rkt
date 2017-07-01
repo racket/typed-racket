@@ -136,9 +136,9 @@
    (t (-set Univ)) 
    (t (make-pred-ty -Symbol))
    (t (->key -Symbol #:key -Boolean #t Univ))
-   (t (make-Function
-       (list (make-arr* (list Univ) -Boolean #:kws (list (make-Keyword '#:key Univ #t))
-                        #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol))))))
+   (t (make-Fun
+       (list (-Arrow (list Univ) -Boolean #:kws (list (make-Keyword '#:key Univ #t))
+                     #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol))))))
    (t (-struct #'struct-name1 #f (list (make-fld -Symbol #'acc #f))))
    ;; Adapted from PR 13815
    (t (-poly (a) (-> a a)))
@@ -184,20 +184,20 @@
 
    ;; Github Issue #50
    (t (cl->* (-> -String -Bottom) (-> -String -Symbol -Bottom)))
-   (t (make-Function
-       (list (make-arr* (list -String) -Boolean
-                        #:kws (list (make-Keyword '#:key Univ #t))
-                        #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))
-             (make-arr* (list -String Univ) -Boolean
-                        #:kws (list (make-Keyword '#:key Univ #t))
-                        #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol))))))
+   (t (make-Fun
+       (list (-Arrow (list -String) -Boolean
+                     #:kws (list (make-Keyword '#:key Univ #t))
+                     #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))
+             (-Arrow (list -String Univ) -Boolean
+                     #:kws (list (make-Keyword '#:key Univ #t))
+                     #:props (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol))))))
    (t/fail (cl->* (-> -String ManyUniv) (-> -String Univ ManyUniv))
            "unknown return values")
 
    (t/fail
-    (make-Function
-     (list (make-arr* (list) -Boolean #:kws (list (make-Keyword '#:key Univ #f)))
-           (make-arr* (list Univ) -Boolean #:kws (list (make-Keyword '#:key2 Univ #f)))))
+    (make-Fun
+     (list (-Arrow (list) -Boolean #:kws (list (make-Keyword '#:key Univ #f)))
+           (-Arrow (list Univ) -Boolean #:kws (list (make-Keyword '#:key2 Univ #f)))))
     "case function type with optional keyword arguments")
    (t/fail (-> (make-pred-ty -Symbol)-Symbol)
            "function type with props or objects")
@@ -215,10 +215,10 @@
            "required a chaperone contract but generated an impersonator contract")
 
    (t/fail
-    (make-Function
+    (make-Fun
      (list
-      (make-arr* (list) -Boolean #:kws (list (make-Keyword '#:key Univ #t)))
-      (make-arr* (list Univ Univ) -Boolean #:kws (list (make-Keyword '#:key2 Univ #t)))))
+      (-Arrow (list) -Boolean #:kws (list (make-Keyword '#:key Univ #t)))
+      (-Arrow (list Univ Univ) -Boolean #:kws (list (make-Keyword '#:key2 Univ #t)))))
     "case function type with optional keyword arguments")
    (t/fail (-vec (-struct #'struct-name3 #f (list (make-fld (-seq -Symbol) #'acc #f)) #f #t))
            "required a chaperone contract but generated an impersonator contract")

@@ -95,7 +95,8 @@
          #,(pretty-format-rep
             (match type
               [(tc-result1: t f o) t]
-              [(tc-results: t) (-values t)]
+              [(tc-results: (list (tc-result: ts) ...) _)
+               (-values ts)]
               [(tc-any-results: f) (-AnyValues f)]))))
     "must be applied to exactly one argument")
 
@@ -110,20 +111,20 @@
        #`(display
           #,(pretty-format-rep
              (match type
-               [(tc-result1: (and t (Function: _)) f o) t]))))
+               [(tc-result1: (and t (? Fun?)) f o) t]))))
      "must be applied to at least one argument" )
 
   ;; given a function and a desired return type, fill in the blanks
   (define-repl-op :query-type/result-impl (_ op desired-type) #'op
     (λ (type)
       (match type
-        [(tc-result1: (and t (Function: _)) f o)
+        [(tc-result1: (and t (? Fun?)) f o)
          (let ([cleaned (cleanup-type t (parse-type #'desired-type) #f)])
            #`(display
               #,(match cleaned
-                  [(Function: '())
+                  [(Fun: '())
                    "Desired return type not in the given function's range.\n"]
-                  [(Function: arrs)
+                  [(Fun: _)
                    (pretty-format-rep cleaned)])))]
         [_ (error (format "~a: not a function" (syntax->datum #'op)))]))
     "must be applied to exactly two arguments"))

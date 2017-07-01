@@ -3,11 +3,10 @@
 ;; This module provides functions for parsing types written by the user
 
 (require (rename-in "../utils/utils.rkt" [infer infer-in])
-         (except-in (rep core-rep type-rep object-rep rep-utils) make-arr)
-         (rename-in (types abbrev utils prop-ops resolve
-                           classes prefab signatures
-                           subtype path-type numeric-tower)
-                    [make-arr* make-arr])
+         (rep core-rep type-rep object-rep rep-utils)
+         (types abbrev utils prop-ops resolve
+                classes prefab signatures
+                subtype path-type numeric-tower)
          (only-in (infer-in infer) intersect)
          (utils tc-utils stxclass-util literal-syntax-class)
          syntax/stx (prefix-in c: (contract-req))
@@ -518,7 +517,7 @@
        (parse-object-type stx)]
       [(:Refinement^ p?:id)
        (match (lookup-id-type/lexical #'p?)
-         [(and t (Function: (list (arr: (list dom) _ #f #f '()))))
+         [(and t (Fun: (list (Arrow: (list dom) #f '() _))))
           (make-Refinement dom #'p?)]
          [t (parse-error "expected a predicate for argument to Refinement"
                          "given" t)])]
@@ -613,11 +612,11 @@
       [(:pred^ t)
        (make-pred-ty (parse-type #'t))]
       [(:case->^ tys ...)
-       (make-Function
+       (make-Fun
         (for/list ([ty (in-syntax #'(tys ...))])
           (let ([t (parse-type ty)])
             (match t
-              [(Function: (list arr)) arr]
+              [(Fun: (list arr)) arr]
               [_ (parse-error
                   #:stx ty
                   "expected a function type for component of case-> type"
@@ -688,10 +687,8 @@
        (with-arity (length doms)
          (let ([doms (for/list ([d (in-list doms)])
                        (parse-type d))])
-           (make-Function
-            (list (make-arr
-                   doms
-                   (parse-type (syntax/loc stx (rest-dom ...))))))))]
+           (make-Fun
+            (list (-Arrow doms (parse-type (syntax/loc stx (rest-dom ...))))))))]
       [(~or (:->^ dom rng :colon^ latent:simple-latent-prop)
             (dom :->^ rng :colon^ latent:simple-latent-prop))
        ;; use parse-type instead of parse-values-type because we need to add the props from the pred-ty
@@ -701,8 +698,8 @@
       [(~or (:->^ dom:non-keyword-ty ... kws:keyword-tys ... rest:non-keyword-ty ddd:star rng)
             (dom:non-keyword-ty ... kws:keyword-tys ... rest:non-keyword-ty ddd:star :->^ rng))
        (with-arity (length (syntax->list #'(dom ...)))
-         (make-Function
-          (list (make-arr
+         (make-Fun
+          (list (-Arrow
                  (parse-types #'(dom ...))
                  (parse-values-type #'rng)
                  #:rest (parse-type #'rest)
@@ -716,7 +713,7 @@
               #:stx #'bound
               "used a type variable not bound with ... as a bound on a ..."
               "variable" bnd))
-           (make-Function
+           (make-Fun
             (list
              (make-arr-dots (parse-types #'(dom ...))
                             (parse-values-type #'rng)
@@ -727,7 +724,7 @@
             (dom:non-keyword-ty ... rest:non-keyword-ty _:ddd :->^ rng))
        (with-arity (length (syntax->list #'(dom ...)))
          (let ([var (infer-index stx)])
-           (make-Function
+           (make-Fun
             (list
              (make-arr-dots (parse-types #'(dom ...))
                             (parse-values-type #'rng)
@@ -744,11 +741,10 @@
        (with-arity (length doms)
          (let ([doms (for/list ([d (in-list doms)])
                        (parse-type d))])
-           (make-Function
-            (list (make-arr
-                   doms
-                   (parse-values-type #'rng)
-                   #:kws (map force (attribute kws.Keyword)))))))]
+           (make-Fun
+            (list (-Arrow doms
+                          (parse-values-type #'rng)
+                          #:kws (map force (attribute kws.Keyword)))))))]
       ;; This case needs to be at the end because it uses cut points to give good error messages.
       [(~or (:->^ ~! dom:non-keyword-ty ... rng:expr
                   :colon^ (~var latent (full-latent (syntax->list #'(dom ...)))))
@@ -1112,7 +1108,7 @@
   ;;       module since it's duplicated elsewhere
   (define (function-type? type)
     (match (resolve type)
-      [(? Function?) #t]
+      [(? Fun?) #t]
       [(Poly: _ body) (function-type? body)]
       [(PolyDots: _ body) (function-type? body)]
       [(PolyRow: _ _ body) (function-type? body)]
@@ -1143,7 +1139,7 @@
      (ret (parse-types #'(t ...))
           empties
           empties)]
-    [:AnyValues^ (tc-any-results #f)]
+    [:AnyValues^ (-tc-any-results #f)]
     [t (ret (parse-type #'t) #f #f)]))
 
 (define parse-type/id (parse/id parse-type))

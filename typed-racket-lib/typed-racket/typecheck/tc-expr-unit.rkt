@@ -216,7 +216,7 @@
       [(begin0 e . es)
        (begin0
          (tc-expr/check #'e expected)
-         (tc-body/check #'es (tc-any-results -tt)))]
+         (tc-body/check #'es (-tc-any-results -tt)))]
       ;; if
       [(if tst thn els) (tc/if-twoarm #'tst #'thn #'els expected)]
       ;; lambda
@@ -247,14 +247,12 @@
       [(~and (let-values ([(f) fun]) . body) kw:kw-lambda^)
        #:when expected
        (match expected
-         [(tc-result1: (and f (or (Function: _)
-                                  (Poly: _ (Function: _)))))
+         [(tc-result1: (and f (or (? Fun?) (Poly-unsafe: _ (? Fun?)))))
           (define actual-kws (attribute kw.value))
           (check-kw-arity actual-kws f)
           (tc-expr/check/type #'fun (kw-convert f actual-kws #:split #t))
           (ret f -true-propset)]
-         [(or (tc-results: _) (tc-any-results: _))
-          (tc-expr/check form #f)])]
+         [_ (tc-expr/check form #f)])]
       ;; opt function def
       [(~and (let-values ([(f) fun]) . body) opt:opt-lambda^)
        #:when expected
@@ -349,7 +347,7 @@
 ;; Body must be a non empty sequence of expressions to typecheck.
 ;; The final one will be checked against expected.
 (define (tc-body/check body expected)
-  (define any-res (tc-any-results #f))
+  (define any-res (-tc-any-results #f))
   (define exps (syntax->list body))
   (let loop ([exps exps])
     (match exps
@@ -359,10 +357,11 @@
        (define props
          (match results
            [(tc-any-results: p) (list p)]
-           [(tc-results: _ (list (PropSet: p+ p-) ...) _)
-            (map -or p+ p-)]
-           [(tc-results: _ (list (PropSet: p+ p-) ...) _ _ _)
-            (map -or p+ p-)]))
+           [(tc-results: tcrs _)
+            (map (match-lambda
+                   [(tc-result: _ (PropSet: p+ p-) _)
+                    (-or p+ p-)])
+                 tcrs)]))
        (with-lexical-env+props
          props
          #:expected any-res

@@ -267,7 +267,7 @@
 ;; Convert an arr (see type-rep.rkt) to its printable form
 (define (arr->sexp arr)
   (match arr
-    [(arr: dom rng rest drest kws)
+    [(Arrow: dom rest kws rng)
      (append
       (list '->)
       (map type->sexp dom)
@@ -281,8 +281,11 @@
            (if req?
                (format "~a ~a" k (type->sexp t))
                (format "[~a ~a]" k (type->sexp t)))]))
-      (if rest  `(,(type->sexp rest) *)                       null)
-      (if drest `(,(type->sexp (car drest)) ... ,(cdr drest)) null)
+      (match rest
+        [(? Type?) `(,(type->sexp rest) *)]
+        [(RestDots: dty dbound)
+         `(,(type->sexp dty) ... ,dbound)]
+        [_ null])
       (match rng
         [(AnyValues: (? TrueProp?)) '(AnyValues)]
         [(AnyValues: p) `(AnyValues : ,(prop->sexp p))]
@@ -334,8 +337,8 @@
   ;; see type-contract.rkt, which does something similar and this code
   ;; was stolen from/inspired by/etc.
   (match* ((first arrs) (last arrs))
-    [((arr: first-dom rng rst _ kws)
-      (arr: last-dom _ _ _ _))
+    [((Arrow: first-dom rst kws rng)
+      (Arrow: last-dom _ _ _))
      (define-values (mand-kws opt-kws) (partition-kws kws))
      (define opt-doms (drop last-dom (length first-dom)))
      `(->*
@@ -383,8 +386,8 @@
 ;; Convert a case-> type to an s-expression
 (define (case-lambda->sexp type)
   (match type
-    [(Function: arities)
-     (match arities
+    [(Fun: arrows)
+     (match arrows
        [(list) '(case->)]
        [(list a) (arr->sexp a)]
        [(and arrs (list a b ...))
@@ -549,11 +552,11 @@
      `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
         ,(map t->s t)
         ,@(if proc (list (t->s proc)) null))]
-    [(Function: arities)
+    [(? Fun?)
      (parameterize ([current-print-type-fuel
                      (sub1 (current-print-type-fuel))])
        (case-lambda->sexp type))]
-    [(arr: _ _ _ _ _) `(arr ,(arr->sexp type))]
+    [(? Arrow?) `(Arrow ,(arr->sexp type))]
     [(Vector: e) `(Vectorof ,(t->s e))]
     [(HeterogeneousVector: e) `(Vector ,@(map t->s e))]
     [(Box: e) `(Boxof ,(t->s e))]

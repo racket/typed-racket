@@ -102,20 +102,23 @@
                                -Weak-HashTableTop))
 
 ;; Function types
-(define/cond-contract (make-arr* dom rng
-                                 #:rest [rest #f] #:drest [drest #f] #:kws [kws null]
-                                 #:props [props -tt-propset] #:object [obj -empty-obj])
+(define/cond-contract (-Arrow dom rng
+                              #:rest [rst #f]
+                              #:kws [kws null]
+                              #:props [props -tt-propset]
+                              #:object [obj -empty-obj])
   (c:->* ((c:listof Type?) (c:or/c SomeValues? Type?))
-         (#:rest (c:or/c #f Type?)
-          #:drest (c:or/c #f (c:cons/c Type? symbol?))
+         (#:rest (c:or/c #f Type? RestDots?)
           #:kws (c:listof Keyword?)
           #:props PropSet?
           #:object OptObject?)
-         arr?)
-  (make-arr dom (if (Type? rng)
-                    (make-Values (list (-result rng props obj)))
-                    rng)
-            rest drest (sort #:key Keyword-kw kws keyword<?)))
+         Arrow?)
+  (make-Arrow dom
+              rst
+              (sort kws Keyword<?)
+              (if (Type? rng)
+                  (make-Values (list (-result rng props obj)))
+                  rng)))
 
 (define-syntax (->* stx)
   (define-syntax-class c
@@ -123,22 +126,22 @@
   (syntax-parse stx
     [(_ dom rng)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng))))]
+       (make-Fun (list (-Arrow dom rng))))]
     [(_ dom rst rng)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:rest rst))))]
+       (make-Fun (list (-Arrow dom rng #:rest rst))))]
     [(_ dom rng :c props)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:props props))))]
+       (make-Fun (list (-Arrow dom rng #:props props))))]
     [(_ dom rng _:c props _:c object)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:props props #:object object))))]
+       (make-Fun (list (-Arrow dom rng #:props props #:object object))))]
     [(_ dom rst rng _:c props)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:rest rst #:props props))))]
+       (make-Fun (list (-Arrow dom rng #:rest rst #:props props))))]
     [(_ dom rst rng _:c props : object)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:rest rst #:props props #:object object))))]))
+       (make-Fun (list (-Arrow dom rng #:rest rst #:props props #:object object))))]))
 
 (define-syntax (-> stx)
   (define-syntax-class c
@@ -159,30 +162,34 @@
     [(_ dom rng) (syntax/loc stx (->* dom rng))]
     [(_ dom (dty dbound) rng)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:drest (cons dty 'dbound)))))]
+       (make-Fun
+        (list (-Arrow dom rng #:rest (make-RestDots dty 'dbound)))))]
     [(_ dom rng (~datum :) props)
      (syntax/loc stx
        (->* dom rng (~datum :) props))]
     [(_ dom (dty dbound) rng (~datum :) props)
      (syntax/loc stx
-       (make-Function (list (make-arr* dom rng #:drest (cons dty 'dbound) #:props props))))]))
+       (make-Fun
+        (list (-Arrow dom rng
+                      #:rest (make-RestDots dty 'dbound)
+                      #:props props))))]))
 
 (define (simple-> doms rng)
   (->* doms rng))
 
 (define (->acc dom rng path #:var [var (cons 0 0)])
   (define obj (-acc-path path (-id-path var)))
-  (make-Function
-   (list (make-arr* dom rng
-                    #:props (-PS (-not-type obj (-val #f))
-                                 (-is-type obj (-val #f)))
-                    #:object obj))))
+  (make-Fun
+   (list (-Arrow dom rng
+                 #:props (-PS (-not-type obj (-val #f))
+                              (-is-type obj (-val #f)))
+                 #:object obj))))
 
 (define (cl->* . args)
   (define (funty-arities f)
     (match f
-      [(Function: as) as]))
-  (make-Function (apply append (map funty-arities args))))
+      [(Fun: as) as]))
+  (make-Fun (apply append (map funty-arities args))))
 
 (define-syntax (cl-> stx)
   (syntax-parse stx
@@ -194,13 +201,12 @@
   (syntax-parse stx
     [(_ ty:expr ... (~seq k:keyword kty:expr opt:boolean) ... rng)
      (syntax/loc stx
-       (make-Function
+       (make-Fun
         (list
-         (make-arr* (list ty ...)
-                    rng
-                    #:kws (sort #:key (match-lambda [(Keyword: kw _ _) kw])
-                                (list (make-Keyword 'k kty opt) ...)
-                                keyword<?)))))]))
+         (-Arrow (list ty ...)
+                 rng
+                 #:kws (sort (list (make-Keyword 'k kty opt) ...)
+                             Keyword<?)))))]))
 
 (define-syntax (->optkey stx)
   (syntax-parse stx
@@ -209,16 +215,15 @@
        (with-syntax ([((extra ...) ...)
                       (for/list ([i (in-range (add1 (length l)))])
                         (take l i))]
-                     [(rsts ...) (for/list ([i (in-range (add1 (length l)))]) #'rst)])
+                     [(rst ...) (for/list ([i (in-range (add1 (length l)))]) #'rst)])
          (syntax/loc stx
-           (make-Function
+           (make-Fun
             (list
-             (make-arr* (list ty ... extra ...)
-                        rng
-                        #:rest rsts
-                        #:kws (sort #:key (match-lambda [(Keyword: kw _ _) kw])
-                                    (list (make-Keyword 'k kty opt) ...)
-                                    keyword<?))
+             (-Arrow (list ty ... extra ...)
+                     rng
+                     #:rest rst
+                     #:kws (sort (list (make-Keyword 'k kty opt) ...)
+                                 Keyword<?))
              ...)))))]
     [(_ ty:expr ... [oty:expr ...] (~seq k:keyword kty:expr opt:boolean) ... rng)
      (let ([l (syntax->list #'(oty ...))])
@@ -226,18 +231,16 @@
                       (for/list ([i (in-range (add1 (length l)))])
                         (take l i))])
          (syntax/loc stx
-           (make-Function
+           (make-Fun
             (list
-             (make-arr* (list ty ... extra ...)
+             (-Arrow (list ty ... extra ...)
                         rng
-                        #:rest #f
-                        #:kws (sort #:key (match-lambda [(Keyword: kw _ _) kw])
-                                    (list (make-Keyword 'k kty opt) ...)
-                                    keyword<?))
+                        #:kws (sort (list (make-Keyword 'k kty opt) ...)
+                                    Keyword<?))
              ...)))))]))
 
 (define (make-arr-dots dom rng dty dbound)
-  (make-arr* dom rng #:drest (cons dty dbound)))
+  (-Arrow dom rng #:rest (make-RestDots dty dbound)))
 
 ;; Convenient syntax for polymorphic types
 (define-syntax -poly

@@ -45,8 +45,9 @@
   (define (failure)
     (match f-ty
       [(tc-result1:
-         (and t (AnyPoly-names: _ _ (Function: (list (arr: doms rngs rests drests (list (Keyword: _ _ #f) ...)) ..1)))))
-       (domain-mismatches f args t doms rests drests rngs arg-tres full-tail-ty #f
+         (and t (AnyPoly-names: _ _
+                                (Fun: (list (Arrow: doms  rests (list (Keyword: _ _ #f) ...) rngs) ..1)))))
+       (domain-mismatches f args t doms rests rngs arg-tres full-tail-ty #f
                           #:msg-thunk (lambda (dom)
                                         (string-append
                                          "Bad arguments to function in `apply':\n"
@@ -54,31 +55,36 @@
 
   (match f-ty
     ;; apply of a simple function or polymorphic function
-    [(tc-result1: (AnyPoly: vars dotted-vars (Function: (list (arr: doms rngs rests drests (list (Keyword: _ _ #f) ...)) ..1))))
+    [(tc-result1:
+      (AnyPoly: vars dotted-vars (Fun: (list arrows ..1))))
+     #:when (not (for*/or ([a (in-list arrows)]
+                           [kws (in-value (Arrow-kws a))])
+                   (ormap Keyword-required? kws)))
      (or
-       (for/or ([domain (in-list doms)]
-                [range (in-list rngs)]
-                [rest (in-list rests)]
-                [drest (in-list drests)])
-         ;; Takes a possible substitution and comuptes the substituted range type if it is not #f
-         (define (finish substitution)
-           (and substitution (do-ret (subst-all substitution range))))
+      (for/or ([arrow (in-list arrows)])
+        (match arrow
+          [(Arrow: domain rst _ rng)
+           ;; Takes a possible substitution and comuptes
+           ;; the substituted range type if it is not #f
+           (define (finish substitution)
+             (and substitution (do-ret (subst-all substitution rng))))
 
-         (finish
-           (infer vars dotted-vars
-                  (list (-Tuple* arg-tys full-tail-ty))
-                  (list (-Tuple* domain
-                                 (cond
-                                   ;; the actual work, when we have a * function
-                                   [rest (make-Listof rest)]
-                                   ;; ... function
-                                   [drest (make-ListDots (car drest) (cdr drest))]
-                                   ;; the function has no rest argument,
-                                   ;; but provides all the necessary fixed arguments
-                                   [else -Null])))
-                  range)))
+           (finish
+            (infer vars dotted-vars
+                   (list (-Tuple* arg-tys full-tail-ty))
+                   (list (-Tuple* domain
+                                  (match rst
+                                    ;; the actual work, when we have a * function
+                                    [(? Type?) (make-Listof rst)]
+                                    ;; ... function
+                                    [(RestDots: dty dbound)
+                                     (make-ListDots dty dbound)]
+                                    ;; the function has no rest argument,
+                                    ;; but provides all the necessary fixed arguments
+                                    [_ -Null])))
+                   rng))]))
        (failure))]
-    [(tc-result1: (AnyPoly: _ _ (Function: '())))
+    [(tc-result1: (AnyPoly: _ _ (Fun: '())))
      (tc-error/expr "Function has no cases")]
     [(tc-result1: f-ty)
      (tc-error/expr "Type of argument to apply is not a function type: \n~a" f-ty)]))

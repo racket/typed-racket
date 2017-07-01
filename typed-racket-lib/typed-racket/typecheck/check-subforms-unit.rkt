@@ -44,14 +44,24 @@
   ;; The result of applying the function to a single argument of the type of its first argument.
   ;; Is used when checking forms like with-handlers, for example.
   (define (get-range-result stx t prop-type)
-    (let loop ((t t))
+    (let loop ([t t])
       (match t
-        [(Function: (list _ ... (arr: (list arg1) _ _ #f (list (Keyword: _ _ #f) ...)) _ ...))
+        [(Fun: (list _ ...
+                     (Arrow: (list arg1)
+                             (not (? RestDots?))
+                             (list (Keyword: _ _ #f) ...)
+                             _ )
+                     _ ...))
          #:when (subtype prop-type arg1)
          (tc/funapp #'here #'(here) t (list (ret arg1)) #f)]
-        [(Function: (list _ ... (arr: '() _ (? values rest) #f (list (Keyword: _ _ #f) ...)) _ ...))
-         #:when (subtype prop-type rest)
-         (tc/funapp #'here #'(here) t (list (ret rest)) #f)]
+        [(Fun: (list _ ...
+                     (Arrow: (list)
+                             (? Type? rst)
+                             (list (Keyword: _ _ #f) ...)
+                             _ )
+                     _ ...))
+         #:when (subtype prop-type rst)
+         (tc/funapp #'here #'(here) t (list (ret rst)) #f)]
         [(? resolvable? t)
          (loop (resolve t))]
         [(or (Poly: ns _) (PolyDots: (list ns ... _) _))

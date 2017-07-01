@@ -105,8 +105,8 @@
               ;; of the + function)
               (printer-thunk type-names
                 (pretty-format-rep (cleanup-type type))))]
-        [(or (tc-results: types)
-             (tc-results: types _ _ _ _)) ; FIXME, account for dty/dbound
+        [(tc-results: (list (tc-result: types _ _)...) _)
+         ;; FIXME, account for dty/dbound
          (printer-thunk type-names
            (apply string-append
                   (for/list ([(type index) (in-indexed (in-list types))])

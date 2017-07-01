@@ -14,16 +14,17 @@
 
 (provide/cond-contract
   [tc/funapp1
-    ((syntax? stx-list? arr? (listof tc-results/c) (or/c #f tc-results/c))
+    ((syntax? stx-list? Arrow? (listof tc-results/c) (or/c #f tc-results/c))
      (#:check boolean?)
      . ->* . full-tc-results/c)])
 (define (tc/funapp1 f-stx args-stx ftype0 argtys expected #:check [check? #t])
   ;; update tooltip-table with inferred function type
-  (add-typeof-expr f-stx (ret (make-Function (list ftype0))))
+  (add-typeof-expr f-stx (ret (make-Fun (list ftype0))))
   (match* (ftype0 argtys)
     ;; we check that all kw args are optional
-    [((arr: dom rng rest #f (and kws (list (Keyword: _ _ #f) ...)))
-      (list (tc-result1: t-a phi-a o-a) ...))
+    [((Arrow: dom rest (and kws (list (Keyword: _ _ #f) ...)) rng)
+      (list (tc-result1: t-a _ o-a) ...))
+     #:when (not (RestDots? rest))
      
      (when check?
        (cond [(and (not rest) (not (= (length dom) (length t-a))))
@@ -42,65 +43,62 @@
              [a (in-syntax args-stx)]
              [arg-t (in-list t-a)])
          (parameterize ([current-orig-stx a]) (check-below arg-t dom-t))))
-     (let* ([dom-count (length dom)])
-       ;; Currently do nothing with rest args and keyword args as there are no support for them in
-       ;; objects yet.
+     (let ([dom-count (length dom)])
+       ;; Currently do nothing with rest args and keyword args
+       ;; as there are no support for them in objects yet.
        (let-values
-           ([(o-a t-a) (for/lists (os ts)
-                         ([_ (in-range dom-count)]
-                          [oa (in-list/rest o-a -empty-obj)]
-                          [ta (in-list/rest t-a Univ)])
-                         (values oa ta))])
-           (values->tc-results rng o-a t-a)))]
+           ([(o-a t-a) (if (= dom-count (length t-a))
+                           (values o-a t-a)
+                           (for/lists (os ts)
+                             ([_ (in-range dom-count)]
+                              [oa (in-list/rest o-a -empty-obj)]
+                              [ta (in-list/rest t-a Univ)])
+                             (values oa ta)))])
+         (values->tc-results rng o-a t-a)))]
     ;; this case should only match if the function type has mandatory keywords
     ;; but no keywords were provided in the application
-    [((arr: _ _ _ _
-            ;; at least one mandatory keyword
-            (app (λ (kws)
-                   (for/or ([keyword (in-list kws)])
-                     (match keyword
-                       [(Keyword: kw _ #t) kw]
-                       [_ #f])))
-                 (? values req-kw))) _)
+    [((Arrow: _ _ kws _) _)
+     #:when (ormap Keyword-required? kws)
      (when check?
        (tc-error/fields "could not apply function"
                         #:more "a required keyword was not supplied"
-                        "missing keyword" req-kw))]
-    [((arr: _ _ _ drest '()) _)
+                        "missing keyword"
+                        (car (filter Keyword-required? kws))))]
+    [((Arrow: _ (? RestDots? drest) '() _) _)
      (int-err "funapp with drest args ~a ~a NYI" drest argtys)]
-    [((arr: _ _ _ _ kws) _)
+    [((Arrow: _ _ kws _) _)
      (int-err "funapp with keyword args ~a NYI" kws)]))
 
 
 (define (make-printable t)
   (match t
     [(tc-result1: t) (cleanup-type t)]
-    [(or (tc-results: ts)
-         (tc-results: ts _ _ _ _))
-     (-values (map cleanup-type ts))]
-    [(tc-any-results: f) (-AnyValues -tt)]
+    [(tc-results: tcrs _)
+     (-values (for/list ([tcr (in-list tcrs)])
+                (cleanup-type (tc-result-t tcr))))]
+    [(tc-any-results: _) (-AnyValues -tt)]
     [_ t]))
 
-(define (stringify-domain dom rst drst [rng #f])
+(define (stringify-domain dom rst [rng #f])
   (let ([doms-string (if (null? dom) "" (string-append (stringify (map make-printable dom)) " "))]
         [rng-string (if rng (format " -> ~a" rng) "")])
-    (cond [drst
-           (format "~a~a ... ~a~a" doms-string (car drst) (cdr drst) rng-string)]
-          [rst
-           (format "~a~a *~a" doms-string rst rng-string)]
-          [else (string-append (stringify (map make-printable dom)) rng-string)])))
+    (match rst
+      [(RestDots: dty dbound)
+       (format "~a~a ... ~a~a" doms-string dty dbound rng-string)]
+      [rst
+       (format "~a~a *~a" doms-string rst rng-string)]
+      [else (string-append (stringify (map make-printable dom)) rng-string)])))
 
 ;; Generates error messages when operand types don't match operator domains.
 (provide/cond-contract
   [domain-mismatches
-   ((syntax? syntax? Type? (listof (listof Type?)) (listof (or/c #f Type?))
-     (listof (or/c #f (cons/c Type? (or/c natural-number/c symbol?))))
+   ((syntax? syntax? Type? (listof (listof Type?)) (listof (or/c #f Type? RestDots?))
      (listof SomeValues?) (listof tc-results?) (or/c #f Type?) any/c)
     (#:expected (or/c #f tc-results/c)
      #:return tc-results?
      #:msg-thunk (-> string? string?))
     . ->* . tc-results/c)])
-(define (domain-mismatches f-stx args-stx ty doms rests drests rngs arg-tys tail-ty tail-bound
+(define (domain-mismatches f-stx args-stx ty doms rests rngs arg-tys tail-ty tail-bound
                            #:expected [expected #f] #:return [return (ret -Bottom)]
                            #:msg-thunk [msg-thunk (lambda (dom) dom)])
   (define arguments-str
@@ -114,7 +112,10 @@
       #:more (format "~a has type Procedure which cannot be applied"
                      (name->function-str (and (identifier? f-stx) f-stx)))
       #:return return)]
-    [(and (= 1 (length doms)) (not (car rests)) (not (car drests)) (not tail-ty) (not tail-bound))
+    [(and (= 1 (length doms))
+          (not (car rests))
+          (not tail-ty)
+          (not tail-bound))
      (tc-error/expr
       #:return return
       (msg-thunk
@@ -140,7 +141,7 @@
       (msg-thunk
        (string-append
         "Domain: "
-        (stringify-domain (car doms) (car rests) (car drests))
+        (stringify-domain (car doms) (car rests))
         "\nArguments: "
         arguments-str
         "\n"
@@ -153,13 +154,13 @@
      (define nl+spc (if expected "\n       " "\n         "))
      ;; we restrict the domains shown in the error messages to those that
      ;; are useful
-     (match-let ([(list pdoms prngs prests pdrests) (possible-domains doms rests drests rngs expected)])
+     (match-let ([(list pdoms prngs prests) (possible-domains doms rests rngs expected)])
        ;; if we somehow eliminate all the cases (bogus expected type) fall back to showing the
        ;; extra cases
-       (let-values ([(pdoms rngs rests drests)
+       (let-values ([(pdoms rngs rests)
                      (if (null? pdoms)
-                         (values doms rngs rests drests)
-                         (values pdoms prngs prests pdrests))])
+                         (values doms rngs rests)
+                         (values pdoms prngs prests))])
          ;; only use `tc/funapp1` if `tail-ty` was *not* provided
          ;; since it either won't error correctly or produces a poor error
          (cond [(and (not tail-ty)
@@ -174,8 +175,10 @@
                 ;; if we narrowed down the possible cases to a single one, have
                 ;; tc/funapp1 generate a better error message
                 (tc/funapp1 f-stx args-stx
-                            (make-arr (car pdoms) (car rngs)
-                                      (car rests) (car drests) null)
+                            (make-Arrow (car pdoms)
+                                        (car rests)
+                                        null
+                                        (car rngs))
                             arg-tys expected)
                 return]
                [else
@@ -184,8 +187,8 @@
                   (string-append
                    label
                    (stringify (if expected
-                                  (map stringify-domain pdoms rests drests rngs)
-                                  (map stringify-domain pdoms rests drests))
+                                  (map stringify-domain pdoms rests rngs)
+                                  (map stringify-domain pdoms rests))
                               nl+spc)
                    "\nArguments: "
                    arguments-str
@@ -207,13 +210,25 @@
   (match t
     [(or (Poly-names:
           msg-vars
-          (Function/arrs: msg-doms msg-rngs msg-rests msg-drests (list (Keyword: _ _ #f) ...)))
+          (Fun: (list (Arrow: msg-doms
+                              msg-rests
+                              (list (Keyword: _ _ #f) ...)
+                              msg-rngs)
+                      ...)))
          (PolyDots-names:
           msg-vars
-          (Function/arrs: msg-doms msg-rngs msg-rests msg-drests (list (Keyword: _ _ #f) ...)))
+          (Fun: (list (Arrow: msg-doms
+                              msg-rests
+                              (list (Keyword: _ _ #f) ...)
+                              msg-rngs)
+                      ...)))
          (PolyRow-names:
           msg-vars _
-          (Function/arrs: msg-doms msg-rngs msg-rests msg-drests (list (Keyword: _ _ #f) ...))))
+          (Fun: (list (Arrow: msg-doms
+                              msg-rests
+                              (list (Keyword: _ _ #f) ...)
+                              msg-rngs)
+                      ...))))
      (let ([fcn-string (name->function-str name)])
        (if (and (andmap null? msg-doms)
                 (null? argtypes))
@@ -221,7 +236,7 @@
                            "Could not infer types for applying polymorphic "
                            fcn-string
                            "\n"))
-           (domain-mismatches f-stx args-stx t msg-doms msg-rests msg-drests
+           (domain-mismatches f-stx args-stx t msg-doms msg-rests
                               msg-rngs argtypes #f #f #:expected expected
                               #:msg-thunk (lambda (dom)
                                             (string-append
@@ -231,9 +246,16 @@
                                                                (list->seteq msg-vars)))
                                                  (string-append "Type Variables: " (stringify msg-vars) "\n")
                                                  ""))))))]
-    [(or (Poly-names: msg-vars (Function/arrs: msg-doms msg-rngs msg-rests msg-drests kws))
-         (PolyDots-names: msg-vars (Function/arrs: msg-doms msg-rngs msg-rests msg-drests kws))
-         (PolyRow-names: msg-vars _ (Function/arrs: msg-doms msg-rngs msg-rests msg-drests kws)))
+    [(or (Poly-names:
+          msg-vars
+          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs) ...)))
+         (PolyDots-names:
+          msg-vars
+          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs) ...)))
+         (PolyRow-names:
+          msg-vars
+          _
+          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs) ...))))
      (let ([fcn-string (if name
                            (format "function with keywords ~a" (syntax->datum name))
                            "function with keywords")])
@@ -243,7 +265,7 @@
                            "Could not infer types for applying polymorphic "
                            fcn-string
                            "\n"))
-           (domain-mismatches f-stx args-stx t msg-doms msg-rests msg-drests
+           (domain-mismatches f-stx args-stx t msg-doms msg-rests
                               msg-rngs argtypes #f #f #:expected expected
                               #:msg-thunk (lambda (dom)
                                             (string-append

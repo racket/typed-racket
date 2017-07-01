@@ -18,7 +18,7 @@
   [atomic-complement? (c:-> Prop? Prop? boolean?)]
   [atomic-contradiction? (c:-> Prop? Prop? boolean?)]
   [contradiction? (c:-> Prop? Prop? boolean?)]
-  [add-unconditional-prop-all-args (c:-> Function? Type? Function?)]
+  [add-unconditional-prop-all-args (c:-> Fun? Type? Fun?)]
   [add-unconditional-prop (c:-> tc-results/c Prop? tc-results/c)]
   [erase-props (c:-> tc-results/c tc-results/c)]
   [reduce-propset/type (c:-> PropSet? Type? PropSet?)]
@@ -42,27 +42,27 @@
 ;; return type in the proposition (i.e. if it
 ;; can't be False, then the else prop should be -ff)
 (define (reduce-tc-results/subsumption res)
-  (define (update-ps t ps obj)
-    (cond
-      [(Bottom? t) (tc-result t -ff-propset -empty-obj)]
-      [else
-       (define p+ (if ps (PropSet-thn ps) -tt))
-       (define p- (if ps (PropSet-els ps) -tt))
-       (define o (if obj obj -empty-obj))
+  (define (update-ps tcr)
+    (match tcr
+      [(tc-result: t ps obj)
        (cond
-         [(or (equal? -False t)
-              (FalseProp? p+))
-          (tc-result (intersect t -False) (-PS -ff p-) o)]
-         [(not (overlap? t -False))
-          (tc-result t (-PS p+ -ff) o)]
-         [(FalseProp? p-) (tc-result (subtract t -False) (-PS p+ -ff) o)]
-         [else (tc-result t (-PS p+ p-) o)])]))
+         [(Bottom? t) (-tc-result t -ff-propset -empty-obj)]
+         [else
+          (define p+ (if ps (PropSet-thn ps) -tt))
+          (define p- (if ps (PropSet-els ps) -tt))
+          (define o (if obj obj -empty-obj))
+          (cond
+            [(or (equal? -False t)
+                 (FalseProp? p+))
+             (-tc-result (intersect t -False) (-PS -ff p-) o)]
+            [(not (overlap? t -False))
+             (-tc-result t (-PS p+ -ff) o)]
+            [(FalseProp? p-) (-tc-result (subtract t -False) (-PS p+ -ff) o)]
+            [else (-tc-result t (-PS p+ p-) o)])])]))
   (match res
     [(tc-any-results: _) res]
-    [(tc-results: ts pss os)
-     (tc-results (map update-ps ts pss os) #f)]
-    [(tc-results: ts pss os dt db)
-     (tc-results (map update-ps ts pss os) (cons dt db))]))
+    [(tc-results: tcrs db)
+     (-tc-results (map update-ps tcrs) db)]))
 
 
 ;; atomic-contradiction?: Prop? Prop? -> boolean?
@@ -395,53 +395,40 @@
 ;; Ands the given proposition to the props in the tc-results.
 ;; Useful to express properties of the form: if this expressions returns at all, we learn this
 (define/match (add-unconditional-prop results prop)
-  [((tc-any-results: p) prop) (tc-any-results (-and prop p))]
-  [((tc-results: ts (list (PropSet: ps+ ps-) ...) os) prop)
-   (ret ts
-        (for/list ([p+ (in-list ps+)]
-                   [p- (in-list ps-)])
-          (-PS (-and prop p+) (-and prop p-)))
-        os)]
-  [((tc-results: ts (list (PropSet: ps+ ps-) ...) os dty dbound) prop)
-   (ret ts
-        (for/list ([p+ (in-list ps+)] [p- (in-list ps-)])
-          (-PS (-and prop p+) (-and prop p-)))
-        os
-        dty
-        dbound)])
+  [((tc-any-results: p) prop) (-tc-any-results (-and prop p))]
+  [((tc-results: tcrs db) prop)
+   (-tc-results
+    (map (match-lambda
+           [(tc-result: t (PropSet: p+ p-) o)
+            (-tc-result t (-PS (-and prop p+) (-and prop p-)) o)])
+         tcrs)
+    db)])
 
 
 ;; ands the given type prop to both sides of the given arr for each argument
 ;; useful to express properties of the form: if this function returns at all,
 ;; we learn this about its arguments (like fx primitives, or car/cdr, etc.)
 (define/match (add-unconditional-prop-all-args arr type)
-  [((Function: (list (arr: dom rng rest drest kws))) type)
+  [((Fun: (list (Arrow: dom rest kws rng))) type)
    (match rng
-     [(Values: (list (Result: tp (PropSet: -true-prop -false-prop) op)))
+     [(Values: (list (Result: tp (PropSet: p+ p-) op)))
       (let ([new-props (apply -and (build-list (length dom)
                                                (lambda (i)
                                                  (-is-type i type))))])
-        (make-Function
-         (list (make-arr
-                dom
-                (make-Values
-                 (list (-result tp
-                                (-PS (-and -true-prop new-props)
-                                     (-and -false-prop new-props))
-                                op)))
-                rest drest kws))))])])
+        (make-Fun
+         (list (make-Arrow dom rest kws
+                           (make-Values
+                            (list (-result tp
+                                           (-PS (-and p+ new-props)
+                                                (-and p- new-props))
+                                           op)))))))])])
 
 ;; tc-results/c -> tc-results/c
 (define/match (erase-props tc)
-  [((tc-any-results: _)) (tc-any-results #f)]
-  [((tc-results: ts _ _))
-   (define empties (make-list (length ts) #f))
-   (ret ts
-        empties
-        empties)]
-  [((tc-results: ts _ _ dty dbound))
-   (define empties (make-list (length ts) #f))
-   (ret ts
-        empties
-        empties
-        dty dbound)])
+  [((tc-any-results: _)) (-tc-any-results #f)]
+  [((tc-results: tcrs dbound))
+   (-tc-results
+    (map (match-lambda
+           [(tc-result: t) (-tc-result t #f #f)])
+         tcrs)
+    dbound)])

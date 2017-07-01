@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
          racket/match racket/list
-         (except-in (types abbrev utils prop-ops tc-result)
+         (except-in (types abbrev utils prop-ops)
                     -> ->* one-of/c)
          (rep type-rep prop-rep object-rep values-rep rep-utils)
          (typecheck tc-subst)
@@ -18,24 +18,28 @@
 (define/cond-contract (abstract-results results arg-names #:rest-id [rest-id #f])
   ((tc-results/c (listof identifier?)) (#:rest-id (or/c #f identifier?))
    . ->* . SomeValues?)
-  (define positional-arg-objects
-    (for/list ([n (in-range (length arg-names))])
-      (make-Path null (cons 0 n))))
-  (define-values (names objects)
-    (if rest-id
-        (values (cons rest-id arg-names)
-                (cons -empty-obj positional-arg-objects))
-        (values arg-names positional-arg-objects)))
-  (tc-results->values (replace-names names objects results)))
+  (define abstracted (abstract-obj results arg-names))
+  (tc-results->values
+   (if rest-id
+       (erase-identifiers abstracted (list rest-id))
+       abstracted)))
 
 (define (tc-results->values tc)
   (match (fix-results tc)
     [(tc-any-results: f)
      (-AnyValues f)]
-    [(tc-results: ts fs os)
-     (make-Values (map -result ts fs os))]
-    [(tc-results: ts fs os dty dbound)
-     (make-ValuesDots (map -result ts fs os) dty dbound)]))
+    [(tc-results: tcrs #f)
+     (make-Values
+      (map (match-lambda
+             [(tc-result: t ps o) (-result t ps o)])
+           tcrs))]
+    [(tc-results: tcrs (RestDots: dty dbound))
+     (make-ValuesDots
+      (map (match-lambda
+             [(tc-result: t ps o) (-result t ps o)])
+           tcrs)
+      dty
+      dbound)]))
 
 (define (flatten-props ps)
   (let loop ([ps ps])
@@ -59,16 +63,16 @@
           [(cons p rst)
            (match p
              [(TrueProp:) (partition! rst)]
-             [(TypeProp: obj (Refine: t p))
+             [(TypeProp: obj (Refine: t raw-p))
               (partition! (list (-is-type obj t)
-                                (instantiate-rep/obj p obj t)))
+                                (instantiate-obj raw-p obj)))
               (partition! rst)]
              [(? TypeProp? p)
               (set! atoms (cons p atoms))
               (partition! rst)]
-             [(NotTypeProp: obj (Refine: t p))
+             [(NotTypeProp: obj (Refine: t raw-p))
               (partition! (list (-or (-not-type obj t)
-                                     (negate-prop (instantiate-rep/obj p obj t)))))
+                                     (negate-prop (instantiate-obj raw-p obj)))))
               (when atoms (partition! rst))]
              [(? NotTypeProp? p)
               (set! atoms (cons p atoms))
@@ -128,48 +132,48 @@
 
 (define (unconditional-prop res)
   (match res
-    [(tc-any-results: pset) pset]
-    [(tc-results (list (tc-result: _ (PropSet: p+ p-) _) ...) _)
-     (apply -and (map -or p+ p-))]))
+    [(tc-any-results: p) p]
+    [(tc-results: tcrs _)
+     (apply
+      -and
+      (map (match-lambda
+             [(tc-result: _ (PropSet: p+ p-) _)
+              (-or p+ p-)])
+           tcrs))]))
 
 (define (merge-tc-results results)
   (define/match (merge-tc-result r1 r2)
     [((tc-result: t1 (PropSet: p1+ p1-) o1)
       (tc-result: t2 (PropSet: p2+ p2-) o2))
-     (tc-result
-       (Un t1 t2)
-       (-PS (-or p1+ p2+) (-or p1- p2-))
-       (if (equal? o1 o2) o1 -empty-obj))])
+     (-tc-result
+      (Un t1 t2)
+      (-PS (-or p1+ p2+) (-or p1- p2-))
+      (if (equal? o1 o2) o1 -empty-obj))])
 
   (define/match (same-dty? r1 r2)
     [(#f #f) #t]
-    [((cons t1 dbound) (cons t2 dbound)) #t]
+    [((RestDots: t1 dbound) (RestDots: t2 dbound)) #t]
     [(_ _) #f])
   (define/match (merge-dty r1 r2)
     [(#f #f) #f]
-    [((cons t1 dbound) (cons t2 dbound))
-     (cons (Un t1 t2) dbound)])
-
-  (define/match (number-of-values res)
-    [((tc-results rs #f))
-     (length rs)]
-    [((tc-results rs (cons _ dbound)))
-     (format "~a and ... ~a" (length rs) dbound)])
+    [((RestDots: t1 dbound) (RestDots: t2 dbound))
+     (make-RestDots (Un t1 t2) dbound)])
 
 
   (define/match (merge-two-results res1 res2)
     [((tc-result1: (== -Bottom)) res2) res2]
     [(res1 (tc-result1: (== -Bottom))) res1]
     [((tc-any-results: f1) res2)
-     (tc-any-results (-or f1 (unconditional-prop res2)))]
+     (-tc-any-results (-or f1 (unconditional-prop res2)))]
     [(res1 (tc-any-results: f2))
-     (tc-any-results (-or (unconditional-prop res1) f2))]
-    [((tc-results results1 dty1) (tc-results results2 dty2))
+     (-tc-any-results (-or (unconditional-prop res1) f2))]
+    [((tc-results: results1 dty1)
+      (tc-results: results2 dty2))
      ;; if we have the same number of values in both cases
      (cond
        [(and (= (length results1) (length results2))
              (same-dty? dty1 dty2))
-        (tc-results (map merge-tc-result results1 results2)
+        (-tc-results (map merge-tc-result results1 results2)
                     (merge-dty dty1 dty2))]
        ;; otherwise, error
        [else

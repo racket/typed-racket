@@ -91,7 +91,6 @@
       (hash-id name)
       (rec name)))
 
-
 ;; This table maps a type to an identifier bound to the type.
 ;; This allows us to avoid reconstructing the type when using
 ;; it from its marshaled representation.
@@ -379,7 +378,7 @@
                 (or (not (attribute frees-spec))
                     (not (attribute for-each-spec))
                     (not (attribute fold-spec))))
-       (raise-syntax-error 'def-rep "non-base reps require #:frees, #:for-each, and #:fold"
+       (raise-syntax-error 'def-rep "non-base reps require #:frees, #:for-each, and #:fmap"
                            #'var))
 
      ;; - - - - - - - - - - - - - - -

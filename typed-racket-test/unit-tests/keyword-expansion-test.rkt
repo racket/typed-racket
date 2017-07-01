@@ -16,7 +16,7 @@
 
 (define (extract-arrs t)
   (match t
-    [(Function: arrs) (apply set arrs)]
+    [(Fun: arrs) (apply set arrs)]
     [t t]))
 
 (define-syntax-rule (t-opt ((req-arg ...) (opt-arg ...)) expected)

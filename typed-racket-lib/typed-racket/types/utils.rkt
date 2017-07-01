@@ -74,33 +74,32 @@
 ;; has-optional-args? : (Listof arr) -> Boolean
 ;; Check if the given arrs meet the necessary conditions to be printed
 ;; with a ->* constructor or for generating a ->* contract
-(define (has-optional-args? arrs)
- (and (> (length arrs) 1)
-      ;; No polydots
-      (for/and ([arr (in-list arrs)])
-        (match arr [(arr: _ _ _ drest _) (not drest)]))
-      ;; Keyword args, range and rest specs all the same.
-      (let* ([xs (map (match-lambda [(arr: _ rng rest-spec _ kws)
-                                (list rng rest-spec kws)])
-                      arrs)]
-             [first-x (first xs)])
-        (for/and ([x (in-list (rest xs))])
-          (equal? x first-x)))
-      ;; Positionals are monotonically increasing by at most one.
-      (let-values ([(_ ok?)
-                    (for/fold ([positionals (arr-dom (first arrs))]
-                               [ok-so-far?  #t])
-                              ([arr (in-list (rest arrs))])
-                      (match arr
-                        [(arr: dom _ _ _ _)
-                         (define ldom         (length dom))
-                         (define lpositionals (length positionals))
-                         (values dom
-                                 (and ok-so-far?
-                                      (or (= ldom lpositionals)
-                                          (= ldom (add1 lpositionals)))
-                                      (equal? positionals (take dom lpositionals))))]))])
-        ok?)))
+(define (has-optional-args? arrows)
+  (and (> (length arrows) 1)
+       ;; No polydots
+       (not (ormap (λ (a) (RestDots? (Arrow-rst a))) arrows))
+       ;; Keyword args, range and rest specs all the same.
+       (match-let ([(cons (Arrow: _ rst1 kws1 rng1) as) arrows])
+         (for/and ([a (in-list as)])
+           (match a
+             [(Arrow: _ rst2 kws2 rng2)
+              (and (equal? rst1 rst2)
+                   (equal? kws1 kws2)
+                   (equal? rng1 rng2))])))
+       ;; Positionals are monotonically increasing by at most one.
+       (let-values ([(_ ok?)
+                     (for/fold ([positionals (Arrow-dom (first arrows))]
+                                [ok?  #t])
+                               ([arr (in-list (rest arrows))]
+                                #:break (not ok?))
+                       (define dom (Arrow-dom arr))
+                       (define ldom (length dom))
+                       (define lpositionals (length positionals))
+                       (values dom
+                               (and (or (= ldom lpositionals)
+                                        (= ldom (add1 lpositionals)))
+                                    (equal? positionals (take dom lpositionals)))))])
+         ok?)))
 
 (provide/cond-contract
  [instantiate-poly ((or/c Poly? PolyDots? PolyRow?) (listof Rep?)
@@ -111,6 +110,6 @@
  [fi (Rep? . -> . (listof symbol?))]
  [fv/list ((listof Rep?) . -> . (set/c symbol?))]
  [current-poly-struct (parameter/c (or/c #f poly?))]
- [has-optional-args? (-> (listof arr?) any)]
+ [has-optional-args? (-> (listof Arrow?) any)]
  )
 

@@ -56,7 +56,7 @@
                 (tc/funapp #'f #'(arg0 arg ...) f-type (cons (ret t0) (map ret t))
                            expected-elem-type))
          [(tc-result1: t) (ret (make-ListDots t bound0))]
-         [(tc-results: ts)
+         [(tc-results: (list (tc-result: ts)) _)
           (tc-error/expr "Expected one value, but got ~a" (-values ts))])]
       ;; otherwise, if it's not a ListDots, defer to the regular function typechecking
       ;; TODO fix double typechecking

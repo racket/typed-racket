@@ -47,25 +47,30 @@
 
 
 ;; TODO: handle drest, and props/objects
-(define (arr-matches? arr args)
+(define (arrow-matches? arr args)
   (match arr
-    [(arr: domain
-           (Values: (list (Result: v
-                                   (PropSet: (TrueProp:) (TrueProp:))
-                                   (Empty:)) ...))
-           rest #f (list (Keyword: _ _ #f) ...))
+    [(Arrow: domain
+             (and rst (not (? RestDots?)))
+             (list (Keyword: _ _ #f) ...)
+             (Values: (list (Result: v
+                                     (PropSet: (TrueProp:) (TrueProp:))
+                                     (Empty:))
+                            ...)))
      (cond
-       [(< (length domain) (length args)) rest]
+       [(< (length domain) (length args)) rst]
        [(= (length domain) (length args)) #t]
        [else #f])]
     [_ #f]))
 
 (define (has-props? arr)
   (match arr
-    [(arr: _ (Values: (list (Result: v
+    [(Arrow: _
+             _
+             (list (Keyword: _ _ #f) ...)
+             (Values: (list (Result: v
                                      (PropSet: (TrueProp:) (TrueProp:))
-                                     (Empty:)) ...))
-           _ _ (list (Keyword: _ _ #f) ...)) #f]
+                                     (Empty:)) ...)))
+     #f]
     [else #t]))
 
 
@@ -75,31 +80,31 @@
      (let* ([f-ty (tc-expr/t #'f)]
             [args* (syntax->list #'args)])
        (define (matching-arities arrs)
-         (for/list ([arr (in-list arrs)] #:when (arr-matches? arr args*)) arr))
+         (for/list ([arr (in-list arrs)] #:when (arrow-matches? arr args*)) arr))
        (define (has-drest/props? arrs)
          (for/or ([arr (in-list arrs)])
-           (or (has-props? arr) (arr-drest arr))))
+           (or (has-props? arr)
+               (RestDots? (Arrow-rst arr)))))
 
        (define arg-tys
          (match f-ty
-           [(Function: (? has-drest/props?))
+           [(Fun: (? has-drest/props?))
             (map single-value args*)]
-           [(Function:
-              (app matching-arities
-                (list (arr: doms _ rests _ _) ..1)))
+           [(Fun: (app matching-arities
+                       (list (Arrow: doms rsts _ _) ..1)))
             ;; if for a particular argument, all of the domain types
-            ;; agree for each arr type in the case->, then we use
-            ;; that type to check against
+            ;; agree for each arrow type in the case->, then we use
+            ;; that type to check the argument expression against
             (for/list ([arg-stx (in-list args*)]
                        [arg-idx (in-naturals)])
               (define dom-ty (list-ref/default (car doms)
                                                arg-idx
-                                               (car rests)))
+                                               (car rsts)))
               (cond
                 [(for/and ([dom (in-list doms)]
-                           [rest (in-list rests)])
+                           [rst (in-list rsts)])
                    (equal? dom-ty
-                           (list-ref/default dom arg-idx rest)))
+                           (list-ref/default dom arg-idx rst)))
                  (tc-expr/check arg-stx (ret dom-ty))]
                 [else (single-value arg-stx)]))]
            [_ (map single-value args*)]))

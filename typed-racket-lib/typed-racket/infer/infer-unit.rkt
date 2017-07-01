@@ -367,18 +367,20 @@
         (extend-tvars (list dbound)
           (cgen/seq (context-add context #:bounds (list dbound)) (seq ss (uniform-end s-dty)) t-seq))])]))
 
-(define/cond-contract (cgen/arr context s-arr t-arr)
-  (context? arr? arr? . -> . (or/c #f cset?))
+(define/cond-contract (cgen/arrow context s-arr t-arr)
+  (context? Arrow? Arrow? . -> . (or/c #f cset?))
   (match* (s-arr t-arr)
-    [((arr: ss s s-rest s-drest s-kws) (arr: ts t t-rest t-drest t-kws))
-     (define (rest->end rest drest)
-       (cond
-         [rest (uniform-end rest)]
-         [drest (dotted-end (car drest) (cdr drest))]
-         [else (null-end)]))
+    [((Arrow: ss s-rest s-kws s)
+      (Arrow: ts t-rest t-kws t))
+     (define (rest->end rest)
+       (match rest
+         [(? Type?) (uniform-end rest)]
+         [(RestDots: ty dbound)
+          (dotted-end ty dbound)]
+         [_ (null-end)]))
 
-     (define s-seq (seq ss (rest->end s-rest s-drest)))
-     (define t-seq (seq ts (rest->end t-rest t-drest)))
+     (define s-seq (seq ss (rest->end s-rest)))
+     (define t-seq (seq ts (rest->end t-rest)))
      (and (null? s-kws)
           (null? t-kws)
           (% cset-meet
@@ -545,7 +547,7 @@
            (and cs
                 (implies-in-env? (lexical-env)
                                  (-is-type obj S)
-                                 (instantiate-rep/obj raw-prop obj S))
+                                 (instantiate-obj raw-prop obj))
                 (cset-meet* (cons empty cs))))]
         
         ;; constrain *each* element of es to be below T, and then combine the constraints
@@ -768,14 +770,14 @@
         ;; parameters are just like one-arg functions
         [((Param: in1 out1) (Param: in2 out2))
          (% cset-meet (cg in2 in1) (cg out1 out2))]
-        [((Function: (list s-arr ...))
-          (Function: (list t-arr ...)))
+        [((Fun: s-arr)
+          (Fun: t-arr))
          (% cset-meet*
             (for/list/fail
              ([t-arr (in-list t-arr)])
              ;; for each element of t-arr, we need to get at least one element of s-arr that works
              (let ([results (for*/list ([s-arr (in-list s-arr)]
-                                        [v (in-value (cgen/arr context s-arr t-arr))]
+                                        [v (in-value (cgen/arrow context s-arr t-arr))]
                                         #:when v)
                               v)])
                ;; ensure that something produces a constraint set

@@ -1116,9 +1116,7 @@
        ;; so that it has the right environment. An earlier approach did
        ;; check this only in the synthesis stage, but caused some regressions.
        (define temp-names (syntax->list #'(names ...)))
-       (define init-types
-         (match (tc-expr #'val-expr)
-           [(tc-results: xs ) xs]))
+       (define init-types (tc-results-ts (tc-expr #'val-expr)))
        (unless (= (length temp-names) (length init-types))
          (tc-error/expr "wrong number of values: expected ~a but got ~a"
                         (length temp-names) (length init-types)))
@@ -1136,8 +1134,7 @@
 (define (setter->type id)
   (define f-type (lookup-id-type/lexical id))
   (match f-type
-    [(Function: (list (arr: (list _ type) _ _ _ _)))
-     type]
+    [(Fun: (list (Arrow: (list _ t) _ _ _))) t]
     [#f (int-err "setter->type ~a" (syntax-e id))]))
 
 ;; check-init-arg : Id Type Syntax -> Void
@@ -1152,8 +1149,7 @@
            (define type
              (tc-expr/check/t init-val (ret (->* null init-type))))
            (match type
-             [(Function: (list (arr: _ (Values: (list (Result: result _ _)))
-                                     _ _ _)))
+             [(Fun: (list (Arrow: _ _ _ (Values: (list (Result: result _ _))))))
               (check-below result init-type)]
              [_ (int-err "unexpected init value ~a"
                          (syntax->datum init-val))])]
@@ -1204,7 +1200,7 @@
        (define init-types
          ;; this gets re-checked later, so don't throw any errors yet
          (match (tc-expr/check? #'initial-values #f)
-           [(tc-results: xs ) xs]
+           [(? tc-results? tcrs) (tc-results-ts tcrs)]
            ;; We have to return something here so use the most conservative type
            [#f (make-list (length field-names) Univ)]))
        (for ([name (in-list field-names)]
@@ -1586,12 +1582,13 @@
 ;; Fix up a method's arity from a regular function type
 (define (function->method type self-type)
   (match type
-    [(Function: (list arrs ...))
-     (define fixed-arrs
-       (for/list ([arr arrs])
-         (match-define (arr: doms rng rest drest kws) arr)
-         (make-arr (cons self-type doms) rng rest drest kws)))
-     (make-Function fixed-arrs)]
+    [(Fun: arrows)
+     (define fixed-arrows
+       (map (match-lambda
+              [(Arrow: dom rst kws rng)
+               (make-Arrow (cons self-type dom) rst kws rng)])
+            arrows))
+     (make-Fun fixed-arrows)]
     [(Poly-names: ns body)
      (make-Poly ns (function->method body self-type))]
     [(PolyDots-names: ns body)
@@ -1604,12 +1601,13 @@
 ;; Turn a "real" method type back into a function type
 (define (method->function type)
   (match type
-    [(Function: (list arrs ...))
-     (define fixed-arrs
-       (for/list ([arr arrs])
-         (match-define (arr: doms rng rest drest kws) arr)
-         (make-arr (cdr doms) rng rest drest kws)))
-     (make-Function fixed-arrs)]
+    [(Fun: arrows)
+     (define fixed-arrows
+       (map (match-lambda
+              [(Arrow: (cons _ dom) rst kws rng)
+               (make-Arrow dom rst kws rng)])
+            arrows))
+     (make-Fun fixed-arrows)]
     [(Poly-names: ns body)
      (make-Poly ns (method->function body))]
     [(PolyDots-names: ns body)

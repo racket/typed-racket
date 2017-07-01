@@ -735,7 +735,10 @@
                                        check-exports-thunk))
          (define invoke-type
            (match res
-             [(tc-results: tps) (-values tps)]))
+             [(tc-results: tcrs _)
+              (make-Values
+               (for/list ([tcr (in-list tcrs)])
+                 (-result (tc-result-t tcr))))]))
          (-unit import-signatures
                 export-signatures
                 init-depend-signatures

@@ -3970,6 +3970,51 @@
        [tc-e (let ([a (inst cons Integer Integer)])
                (cons #f #f))
              (-pair -False -False)]
+       ;; TR github issue 573
+       ;; make sure immutable hash tables generalize to just hash
+       [tc-e (let ()
+               (define h1 (hash))
+
+               (: hfun (-> (HashTable Any Any) (HashTable Any Any)))
+               (define (hfun h) h)
+
+               (define h2
+                 (for/fold : (HashTable Any Any)
+                   ([h h1])
+                   ([_ (in-range 3)])
+                   (hfun h)))
+               (void))
+             -Void]
+       ;; TR github issue 573
+       ;; make sure mutable hash tables generalize to just hash
+       [tc-e (let ()
+               (define h1 (make-hash '()))
+
+               (: hfun (-> (HashTable Any Any) (HashTable Any Any)))
+               (define (hfun h) h)
+
+               (define h2
+                 (for/fold : (HashTable Any Any)
+                   ([h h1])
+                   ([_ (in-range 3)])
+                   (hfun h)))
+               (void))
+             -Void]
+       ;; TR github issue 573
+       ;; make sure weak hash tables generalize to just hash
+       [tc-e (let ()
+               (define h1 (make-weak-hash '()))
+
+               (: hfun (-> (HashTable Any Any) (HashTable Any Any)))
+               (define (hfun h) h)
+
+               (define h2
+                 (for/fold : (HashTable Any Any)
+                   ([h h1])
+                   ([_ (in-range 3)])
+                   (hfun h)))
+               (void))
+             -Void]
        )
 
   (test-suite

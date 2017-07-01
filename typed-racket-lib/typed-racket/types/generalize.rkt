@@ -31,6 +31,9 @@
         [(? (lambda (t) (subtype t -Char))) -Char]
         [(? (lambda (t) (subtype t -ExtFlonum))) -ExtFlonum]
         [(Listof: _) t*]
+        [(Immutable-HashTable: k v) (-HT k v)]
+        [(Mutable-HashTable: k v) (-HT k v)]
+        [(Weak-HashTable: k v) (-HT k v)]
         [(Pair: t1 (== -Null)) (-lst t1)]
         [(MPair: t1 (== -Null)) (-mlst t1)]
         [(or (Pair: t1 t2) (MPair: t1 t2))

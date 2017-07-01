@@ -58,7 +58,11 @@
      number))
   (match tc-res
     [(tc-results: (list (tc-result: t ps o)) #f)
-     (ret (inst-type t inst) ps o)]
+     ;; we erase 'o' -- if they bothered to put an instantiation,
+     ;; odds are this is not something where 'o' matters, and leaving
+     ;; 'o' can cause complications (see TR gh issue 561) -- maybe there's
+     ;; a better way? this seems totally fine for now
+     (ret (inst-type t inst) ps -empty-obj)]
     [_ (error-case (if (and (tc-results? tc-res)
                             (null? (tc-results-ts tc-res)))
                        0

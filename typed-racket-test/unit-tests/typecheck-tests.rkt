@@ -1188,7 +1188,7 @@
                                  ((-lst y) y)
                                  . ->... . (-lst z)))
                                : -true-propset
-                               : (-id-path #'map)))]
+                               : -empty-obj))]
 
         ;; error tests
         [tc-err (+ 3 #f)]
@@ -3966,6 +3966,10 @@
        ;; * Check that when passed as a #:∀ type, the inferred type is Char
        [tc-e #\b -Char]
        [tc-e (ann #\b Char) -Char]
+       ;; TR github issue 561
+       [tc-e (let ([a (inst cons Integer Integer)])
+               (cons #f #f))
+             (-pair -False -False)]
        )
 
   (test-suite

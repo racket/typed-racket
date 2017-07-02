@@ -1350,7 +1350,7 @@
       ;; increment the level of the substituted object
       [(Arrow: dom rst kws rng)
        (make-Arrow (map rec dom)
-                   (and rst (rec/inc rst))
+                   (and rst (rec rst))
                    (map rec kws)
                    (rec/inc rng))]
       ;; Refinement types e.g. {x ∈ τ | ψ(x)}

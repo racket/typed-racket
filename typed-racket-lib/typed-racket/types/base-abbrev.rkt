@@ -126,6 +126,16 @@
                                -Mutable-HashTableTop
                                -Weak-HashTableTop))
 
+(define/decl -VectorTop (Un (make-Immutable-Vector Univ)
+                            -Mutable-VectorTop))
+
+(define-match-expander VectorTop:
+  (lambda (stx)
+    (syntax-parse stx
+     [(_)
+      #'(or (Immutable-Vector: (Univ:))
+            (? Mutable-VectorTop?))])))
+
 ;; Function types
 (define/cond-contract (-Arrow dom rng
                               #:rest [rst #f]

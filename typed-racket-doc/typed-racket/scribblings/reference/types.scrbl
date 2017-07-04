@@ -334,7 +334,7 @@ The following base types are parametric in their type arguments.
 ]
 
 
-@defform[(Listof t)]{Homogenous @rtech{lists} of @racket[t]}
+@defform[(Listof t)]{Homogeneous @rtech{lists} of @racket[t]}
 @defform[(List t ...)]{is the type of the list with one element, in order,
   for each type provided to the @racket[List] type constructor.}
 @defform/none[(#,(racket List) t ... trest #,(racket ...) bound)]{is the type of a list with
@@ -350,7 +350,7 @@ corresponding to @racket[trest], where @racket[bound]
 (map symbol->string (list 'a 'b 'c))
 ]
 
-@defform[(MListof t)]{Homogenous @rtech{mutable lists} of @racket[t].}
+@defform[(MListof t)]{Homogeneous @rtech{mutable lists} of @racket[t].}
 @defform[(MPairof t u)]{@rtech{Mutable pairs} of @racket[t] and @racket[u].}
 
 @defidform[MPairTop]{is the type of a @rtech{mutable pair} with unknown
@@ -372,12 +372,31 @@ corresponding to @racket[trest], where @racket[bound]
 @ex[(lambda: ([x : Any]) (if (box? x) x (error "not a box!")))]
 }
 
-@defform[(Vectorof t)]{Homogenous @rtech{vectors} of @racket[t]}
-@defform[(Vector t ...)]{is the type of the vector with one element, in order,
-  for each type provided to the @racket[Vector] type constructor.
+@defform[(Vectorof t)]{Homogeneous @rtech{vectors} of @racket[t]
+ (mutable or immutable).}
+@defform[(Immutable-Vectorof t)]{
+ Homogeneous immutable @rtech{vectors} of @racket[t].
+ @history[#:added "1.9"]}
+@defform[(Mutable-Vectorof t)]{
+ Homogeneous mutable @rtech{vectors} of @racket[t].
+ @history[#:added "1.9"]}
 
-  @ex[(vector 1 2 3)
-  #(a b c)]}
+@defform[(Vector t ...)]{is the type of a mutable or immutable vector with one
+  element, in order, for each type provided to the @racket[Vector] type constructor.
+
+  @ex[(ann (vector 1 'A) (Vector Fixnum 'A))]}
+
+@defform[(Immutable-Vector t ...)]{similar to @racket[(Vector t ...)], but
+ for immutable vectors.
+
+ @ex[(vector-immutable 1 2 3)]
+ @history[#:added "1.9"]}
+
+@defform[(Mutable-Vector t ...)]{similar to @racket[(Vector t ...)], but
+ for mutable vectors.
+
+ @ex[(vector 1 2 3)]
+ @history[#:added "1.9"]}
 
 @defidform[FlVector]{An @rtech{flvector}.
   @ex[(flvector 1.0 2.0 3.0)]}
@@ -396,31 +415,40 @@ corresponding to @racket[trest], where @racket[bound]
   via the combination of occurrence typing and @racket[vector?].
 @ex[(lambda: ([x : Any]) (if (vector? x) x (error "not a vector!")))]
 }
+@defidform[Mutable-VectorTop]{is the type of a mutable @rtech{vector}
+ with unknown length and element types.}
 
-
-@defform[(Immutable-HashTable k v)]{is the type of an immutable @rtech{hash table}
-   with key type @racket[k] and value type @racket[v].
-
-@ex[#hash((a . 1) (b . 2))]
-}
-@defform[(Mutable-HashTable k v)]{is the type of a mutable @rtech{hash table}
-   that holds keys strongly (see @r-reference-secref{weakbox})
-   with key type @racket[k] and value type @racket[v].
-
-@ex[(make-hash '((a . 1) (b . 2)))]
-}
-
-@defform[(Weak-HashTable k v)]{is the type of a mutable @rtech{hash table}
-   that holds keys weakly with key type @racket[k] and value type @racket[v].
-
-@ex[(make-weak-hash '((a . 1) (b . 2)))]
-}
 
 @defform[(HashTable k v)]{is the type of a mutable or immutable @rtech{hash table}
    with key type @racket[k] and value type @racket[v].
 
 @ex[(make-hash '((a . 1) (b . 2)))]
 }
+
+@defform[(Immutable-HashTable k v)]{
+ The type of an immutable @rtech{hash table}
+ with key type @racket[k] and value type @racket[v].
+
+ @ex[#hash((a . 1) (b . 2))]
+ @history[#:added "1.8"]}
+
+@defform[(Mutable-HashTable k v)]{
+ The type of a mutable @rtech{hash table}
+ that holds keys strongly (see @r-reference-secref{weakbox})
+ with key type @racket[k] and value type @racket[v].
+
+ @ex[(make-hash '((a . 1) (b . 2)))]
+ @history[#:added "1.8"]
+}
+
+@defform[(Weak-HashTable k v)]{
+ The type of a mutable @rtech{hash table}
+ that holds keys weakly with key type @racket[k] and value type @racket[v].
+
+ @ex[(make-weak-hash '((a . 1) (b . 2)))]
+ @history[#:added "1.8"]
+}
+
 
 @defidform[HashTableTop]{is the type of a @rtech{hash table} with unknown key
   and value types and is the supertype of all hash table types. Only read-only

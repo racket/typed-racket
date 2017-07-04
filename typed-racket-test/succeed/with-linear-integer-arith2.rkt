@@ -15,6 +15,7 @@
 (ann (vector 0 1 2 3 4 5 6 7) (V8 Any))
 (ann (vector 0 1 2 3 4 5 6 7) (V8 Byte))
 (ann '#(0 1 2 3 4 5 6 7) (V8 Any))
+(ann '#(0 1 2 3 4 5 6 7) (Refine (y : (Immutable-Vector Byte Byte Byte Byte Byte Byte Byte Byte)) (= (vector-length y) 8)))
 (ann '#(0 1 2 3 4 5 6 7) (V8 Byte))
  
 ;;(v8ref (vector 0 1 2 3 4 5 6) 4) ;; should fail

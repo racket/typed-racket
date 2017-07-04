@@ -133,6 +133,8 @@
 (define-literal-syntax-class #:for-label All)
 (define-literal-syntax-class #:for-label Opaque)
 (define-literal-syntax-class #:for-label Parameter)
+(define-literal-syntax-class #:for-label Immutable-Vector)
+(define-literal-syntax-class #:for-label Mutable-Vector)
 (define-literal-syntax-class #:for-label Vector)
 (define-literal-syntax-class #:for-label Struct)
 (define-literal-syntax-class #:for-label Struct-Type)
@@ -691,6 +693,10 @@
        (parse-list-type stx)]
       [(:List*^ ts ... t)
        (-Tuple* (parse-types #'(ts ...)) (parse-type #'t))]
+      [(:Immutable-Vector^ ts ...)
+       (make-Immutable-HeterogeneousVector (parse-types #'(ts ...)))]
+      [(:Mutable-Vector^ ts ...)
+       (make-Mutable-HeterogeneousVector (parse-types #'(ts ...)))]
       [(:Vector^ ts ...)
        (make-HeterogeneousVector (parse-types #'(ts ...)))]
       [(:cons^ fst rst)

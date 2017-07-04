@@ -34,6 +34,9 @@
                      Type Prop Object PathElem SomeValues)
          Type?
          Mu-maybe-name:
+         Vector: Vector?
+         make-HeterogeneousVector
+         HeterogeneousVector: HeterogeneousVector?
          Poly-names: Poly-fresh:
          PolyDots-names:
          PolyRow-names: PolyRow-fresh:
@@ -227,12 +230,38 @@
 ;; Vectors
 ;;----------
 
-(def-type VectorTop () [#:mask mask:vector]
-  [#:singleton -VectorTop])
+(def-structural Immutable-Vector ([elem #:covariant])
+  [#:mask mask:immutable-vector])
 
-;; elem is a Type
-(def-structural Vector ([elem #:invariant])
-  [#:mask mask:vector])
+(def-type Mutable-VectorTop ()
+  [#:mask mask:mutable-vector]
+  [#:singleton -Mutable-VectorTop])
+
+(def-structural Mutable-Vector ([elem #:invariant])
+  [#:mask mask:mutable-vector])
+
+(define-match-expander Vector:
+  (lambda (stx)
+    (syntax-parse stx
+     [(_ elem-pat)
+      #'(or (Immutable-Vector: elem-pat)
+            (Mutable-Vector: elem-pat)
+            ;; The `Union-all` cases are matching an unordered list, basically:
+            ;;  `(list-no-order (IV: elem-pat) (MV: other-elem-pat))
+            ;;   #:when (equal? elem-pat other-elem-pat)`
+            ;; but using an `or` instead of an equality constraint. See also:
+            ;;  <https://github.com/racket/racket/issues/1304>
+            (Union-all: (list (Immutable-Vector: elem-pat)
+                              (Mutable-Vector: elem-pat)))
+            (Union-all: (list (Mutable-Vector: elem-pat)
+                              (Immutable-Vector: elem-pat))))])))
+
+(define Vector?
+  (let ([im-vec? (lambda (x) (or (Immutable-Vector? x) (Mutable-Vector? x)))])
+    (lambda (x)
+      (or (im-vec? x)
+          (let ([elems (Union-all-list? x)])
+            (and elems (andmap im-vec? elems)))))))
 
 ;;------
 ;; Box
@@ -420,13 +449,42 @@
   [#:for-each (f) (f dty)])
 
 
-
 ;; elems are all Types
-(def-type HeterogeneousVector ([elems (listof Type?)])
-  [#:frees (f) (make-invariant (combine-frees (map f elems)))]
-  [#:fmap (f) (make-HeterogeneousVector (map f elems))]
+(def-type Immutable-HeterogeneousVector ([elems (listof Type?)])
+  [#:frees (f) (combine-frees (map f elems))]
+  [#:fmap (f) (make-Immutable-HeterogeneousVector (map f elems))]
   [#:for-each (f) (for-each f elems)]
-  [#:mask mask:vector])
+  [#:mask mask:immutable-vector])
+
+(def-type Mutable-HeterogeneousVector ([elems (listof Type?)])
+  [#:frees (f) (make-invariant (combine-frees (map f elems)))]
+  [#:fmap (f) (make-Mutable-HeterogeneousVector (map f elems))]
+  [#:for-each (f) (for-each f elems)]
+  [#:mask mask:mutable-vector])
+
+(define (make-HeterogeneousVector ts)
+  (Un (make-Immutable-HeterogeneousVector ts)
+      (make-Mutable-HeterogeneousVector ts)))
+
+(define-match-expander HeterogeneousVector:
+  (lambda (stx)
+    (syntax-parse stx
+     [(_ elem-pats)
+      #'(or (Immutable-HeterogeneousVector: elem-pats)
+            (Mutable-HeterogeneousVector: elem-pats)
+            ;; See comment above about `list-no-order`
+            (Union-all: (list (Immutable-HeterogeneousVector: elem-pats)
+                              (Mutable-HeterogeneousVector: elem-pats)))
+            (Union-all: (list (Mutable-HeterogeneousVector: elem-pats)
+                              (Immutable-HeterogeneousVector: elem-pats))))])))
+(define HeterogeneousVector?
+  (let ([im-hvec? (lambda (x) (or (Immutable-HeterogeneousVector? x)
+                                  (Mutable-HeterogeneousVector? x)))])
+    (lambda (x)
+      (or (im-hvec? x)
+          (let ([elems (Union-all-list? x)])
+            (and elems (andmap im-hvec? elems)))))))
+
 
 
 ;;************************************************************

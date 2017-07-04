@@ -111,25 +111,23 @@
         (-pair
          (tc-literal #'i a-ty)
          (tc-literal #'r d-ty))]
-       [t 
+       [t
         (-pair (tc-literal #'i) (tc-literal #'r))])]
     [(~var i (3d vector?))
      (define vec-val (syntax-e #'i))
+     (define expected-ty*
+       (match (and expected (resolve (intersect expected (-ivec Univ))))
+         [(Immutable-HeterogeneousVector: t*)
+          (in-sequences (in-list t*) (in-cycle (in-value #false)))]
+         [(Immutable-Vector: t)
+          (in-cycle (in-value t))]
+         [_
+          (in-cycle (in-value #false))]))
      (define vec-ty
-       (match (and expected (resolve (intersect expected -VectorTop)))
-         [(Is-a: (Vector: t))
-          (make-Vector
-           (check-below
-            (apply Un (for/list ([l (in-vector vec-val)])
-                        (tc-literal l t)))
-            t))]
-         [(Is-a: (HeterogeneousVector: ts))
-          (make-HeterogeneousVector
-           (for/list ([l (in-vector (syntax-e #'i))]
-                      [t (in-list/rest ts #f)])
-             (cond-check-below (tc-literal l t) t)))]
-         [_ (make-HeterogeneousVector (for/list ([l (in-vector (syntax-e #'i))])
-                                        (generalize (tc-literal l #f))))]))
+       (make-Immutable-HeterogeneousVector
+         (for/list ([l (in-vector vec-val)]
+                    [t expected-ty*])
+           (tc-literal l t))))
      (if (with-refinements?)
          (-refine/fresh v vec-ty (-eq (-lexp (vector-length vec-val))
                                       (-vec-len-of (-id-path v))))
@@ -161,7 +159,6 @@
        (-Immutable-HT kt vt))]
     [_ (Un -Mutable-HashTableTop
            -Weak-HashTableTop)]))
-
 
 ;; Typecheck a prefab struct literal (or result of syntax-e)
 ;; `check-field` allows prefabs in syntax to be checked by passing

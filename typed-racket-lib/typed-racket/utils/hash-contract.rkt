@@ -14,10 +14,13 @@
   (and/c hash? (hash/c/check-key k v)))
 
 (define (mutable-hash/c k v)
-  (and/c hash? (not/c hash-weak?) (hash/c/check-key k v #:immutable #f)))
+  (and/c hash? hash-mutable? (hash/c/check-key k v #:immutable #f)))
+
+(define (hash-mutable? h)
+  (not (or (immutable? h) (hash-weak? h))))
 
 (define (immutable-hash/c k v)
-  (and/c hash? (hash/c/check-key k v #:immutable #t)))
+  (and/c hash? immutable? (hash/c/check-key k v #:immutable #t)))
 
 (define (weak-hash/c k v)
   (and/c hash? hash-weak? (hash/c/check-key k v #:immutable #f)))

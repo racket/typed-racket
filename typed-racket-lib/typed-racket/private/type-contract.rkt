@@ -181,6 +181,7 @@
       typed-racket/utils/opaque-object
       typed-racket/utils/evt-contract
       typed-racket/utils/hash-contract
+      typed-racket/utils/vector-contract
       typed-racket/utils/sealing-contract
       typed-racket/utils/promise-not-name-contract
       typed-racket/utils/simple-result-arrow
@@ -382,19 +383,6 @@
            (linear-exp/sc const
                           (for/hash ([(obj coeff) (in-terms terms)])
                             (values (obj->sc obj) coeff)))]))
-      (define (hash-types->sc hts)
-        (if (or (null? hts) (null? (cdr hts)))
-          #false ;; too few types, don't merge
-          (let-values ([(kts vts)
-                        (for/lists (_1 _2) ([ht (in-list hts)])
-                          (match ht
-                           [(or (Immutable-HashTable: k v)
-                                (Mutable-HashTable: k v)
-                                (Weak-HashTable: k v))
-                            (values k v)]
-                           [_
-                            (raise-arguments-error 'hash-types->sc "expected hash/kv?" "given" ht "element of" hts)]))])
-            (hash/sc (t->sc (apply Un kts)) (t->sc (apply Un vts))))))
       (define (only-untyped sc)
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
@@ -473,11 +461,7 @@
            ;; - and `Any` makes a chaperone contract
            hash?/sc]
           [(Union-all-flat: elems)
-           (define-values [hash-elems other-elems] (partition hash/kv? elems))
-           (define maybe-hash/sc (hash-types->sc hash-elems))
-           (if maybe-hash/sc
-             (apply or/sc maybe-hash/sc (map t->sc other-elems))
-             (apply or/sc (map t->sc elems)))]
+           (apply or/sc (merge-overlapping-scs (map t->sc elems)))]
           [t (t->sc t)])]
        [(Intersection: ts raw-prop)
         (define-values (impersonators chaperones others)
@@ -532,8 +516,16 @@
         (or/sc (flat/sc #'exact-nonnegative-integer?)
                (sequence/sc (t->sc t)))]
        [(Sequence: ts) (apply sequence/sc (map t->sc ts))]
-       [(Vector: t) (vectorof/sc (t->sc/both t))]
-       [(HeterogeneousVector: ts) (apply vector/sc (map t->sc/both ts))]
+       [(Immutable-HeterogeneousVector: ts)
+        (apply immutable-vector/sc (map t->sc ts))]
+       [(Immutable-Vector: t)
+        (immutable-vectorof/sc (t->sc t))]
+       [(Mutable-HeterogeneousVector: ts)
+        (apply mutable-vector/sc (map t->sc/both ts))]
+       [(Mutable-Vector: t)
+        (mutable-vectorof/sc (t->sc/both t))]
+       [(Mutable-VectorTop:)
+        (only-untyped mutable-vector?/sc)]
        [(Box: t) (box/sc (t->sc/both t))]
        [(Pair: t1 t2)
         (cons/sc (t->sc t1) (t->sc t2))]
@@ -554,7 +546,6 @@
                    (λ () (error 'type->static-contract
                                 "Recursive value lookup failed. ~a ~a" recursive-values v)))
          typed-side)]
-       [(VectorTop:) (only-untyped vector?/sc)]
        [(BoxTop:) (only-untyped box?/sc)]
        [(ChannelTop:) (only-untyped channel?/sc)]
        [(Async-ChannelTop:) (only-untyped async-channel?/sc)]
@@ -986,17 +977,116 @@
      (t:subtype -Boolean t)]
     [_ #f]))
 
-;; hash/kv? : Type -> Boolean
-;; True if given type is a HashTable with known key and value types
-;;  aka a "non-Top" HashTable type
-(define (hash/kv? ty)
-  (match ty
-   [(or (Immutable-HashTable: k v)
-        (Mutable-HashTable: k v)
-        (Weak-HashTable: k v))
-    #true]
-   [_
-    #false]))
+;; merge-overlapping-scs : (listof sc?) -> (listof sc?)
+;; Given a list of static-contracts,
+;;  return a list that is "safe" use in an or/c.
+;;
+;; Two contracts `ctc0` and `ctc1` are unsafe if:
+;; - there is a value `v` such that
+;; - `ctc0` accepts `v` or `ctc1` accepts `v`
+;; - and `(or/c ctc0 ctc1)` does not accept `v`
+;;
+;; Example:
+;; ```
+;;   (define ctc
+;;     (parametric->/c [A]
+;;       (let ([ctc0 (vectorof A #:immutable #false)]
+;;             [ctc1 (vectorof A #:immutable #true)])
+;;         (-> (or/c ctc0 ctc1) any))))
+;;   (define/contract (f x) ctc (void))
+;;   (f (vector 1)) ;; error: none of the branches of the or/c matched
+;; ```
+;;
+;; 2017-12-02: If `or/c` is changed to remove contracts that do not match
+;;  the given value (and the example above starts working)  this function might
+;;  not be necessary. For some discussion see:
+;;    `https://github.com/racket/typed-racket/issues/655`
+(define (merge-overlapping-scs scs)
+  (merge-hash/sc*
+    (merge-vector/sc*
+      (merge-vectorof/sc* scs))))
+
+;; make-merge-overlapping-function : (-> F (-> (listof sc?) (listof sc?)))
+;;  where F = (-> sc? (U #f (cons/c sc? (-> any/c boolean?))))
+;;
+;; Helper function for `merge-overlapping-scs`.
+;; The idea for `merge-overlapping-scs` is, given a list of static contracts:
+;;   1. Find a contract `sc` that might overlap with others
+;;   2. Find all contracts that overlap with `sc`
+;;   3. If there are any, replace all with one "overapproximate" contract
+;;
+;; The idea for this helper is to do the "find all" and "replace all"
+;;  given a function that says how to match & what to replace with.
+(define (make-merge-overlapping-function f)
+  (λ (scs)
+    (let loop ([scs scs])
+      (match scs
+       ['()
+        '()]
+       [(cons fst rst)
+        (define maybe-replacement+similar? (f fst))
+        (if maybe-replacement+similar?
+          (let ()
+            (define replacement-sc (car maybe-replacement+similar?))
+            (define similar? (cdr maybe-replacement+similar?))
+            (define-values [similar-scs other-scs] (partition similar? rst))
+            (define new-fst (if (null? similar-scs) fst replacement-sc))
+            (cons new-fst (loop other-scs)))
+          (cons (car scs) (loop (cdr scs))))]))))
+
+(define merge-hash/sc*
+  (make-merge-overlapping-function
+    (λ (this-sc)
+      (match this-sc
+       [(or (hash/sc: this-K this-V)
+            (mutable-hash/sc: this-K this-V)
+            (immutable-hash/sc: this-K this-V)
+            (weak-hash/sc: this-K this-V))
+        (cons (hash/sc this-K this-V)
+              (λ (that-sc)
+                (match that-sc
+                 [(or (hash/sc: that-K that-V)
+                      (mutable-hash/sc: that-K that-V)
+                      (immutable-hash/sc: that-K that-V)
+                      (weak-hash/sc: that-K that-V))
+                  (and (equal? this-K that-K)
+                       (equal? this-V that-V))]
+                 [_ #false])))]
+       [_ #false]))))
+
+(define merge-vector/sc*
+  (make-merge-overlapping-function
+    (λ (this-sc)
+      (match this-sc
+       [(or (immutable-vector/sc: this-TS)
+            (mutable-vector/sc: this-TS)
+            (vector/sc: this-TS))
+        (cons (vector/sc this-TS)
+              (λ (that-sc)
+                (match that-sc
+                 [(or (immutable-vector/sc: that-TS)
+                      (mutable-vector/sc: that-TS)
+                      (vector/sc: that-TS))
+                  (equal? this-TS that-TS)]
+                 [_ #false])))]
+       [_ #false]))))
+
+(define merge-vectorof/sc*
+  (make-merge-overlapping-function
+    (λ (this-sc)
+      (match this-sc
+       [(or (immutable-vectorof/sc: this-T)
+            (mutable-vectorof/sc: this-T)
+            (vectorof/sc: this-T))
+        (cons (vectorof/sc this-T)
+              (λ (that-sc)
+                (match that-sc
+                 [(or (immutable-vectorof/sc: that-T)
+                      (mutable-vectorof/sc: that-T)
+                      (vectorof/sc: that-T))
+                  (equal? this-T that-T)]
+                 [_ #false])))]
+       [_ #false]))))
 
 (module predicates racket/base
   (require racket/extflonum (only-in racket/contract/base >=/c <=/c))

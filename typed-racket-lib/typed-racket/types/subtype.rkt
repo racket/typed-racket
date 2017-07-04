@@ -825,28 +825,6 @@
    (match t2
      [(Future: elem2) (subtype* A elem1 elem2)]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: HeterogeneousVector (HeterogeneousVector: elems1))
-   (match t2
-     [(VectorTop:) A]
-     [(HeterogeneousVector: elems2)
-      (cond [(= (length elems1)
-                (length elems2))
-             (for/fold ([A A])
-                       ([elem1 (in-list elems1)]
-                        [elem2 (in-list elems2)]
-                        #:break (not A))
-               (type≡? A elem1 elem2))]
-            [else #f])]
-     [(Vector: elem2)
-      (for/fold ([A A])
-                ([elem1 (in-list elems1)] #:break (not A))
-        (type≡? A elem1 elem2))]
-     [(Sequence: (list seq-t))
-      (for/fold ([A A])
-                ([elem1 (in-list elems1)]
-                 #:break (not A))
-        (subtype* A elem1 seq-t))]
-     [_ (continue<: A t1 t2 obj)])]
   [(case: Immutable-HashTable (Immutable-HashTable: key1 val1))
    (match t2
     [(Immutable-HashTable: key2 val2)
@@ -861,6 +839,39 @@
          (Weak-HashTableTop:) (Weak-HashTable: _ _))
      #false]
     [_ (continue<: A t1 t2 obj)])]
+  [(case: Immutable-HeterogeneousVector (Immutable-HeterogeneousVector: elems1))
+   (match t2
+     [(Immutable-HeterogeneousVector: elems2)
+      (and (= (length elems1)
+              (length elems2))
+           (for/fold ([A A])
+                     ([elem1 (in-list elems1)]
+                      [elem2 (in-list elems2)]
+                      #:break (not A))
+             (subtype* A elem1 elem2)))]
+     [(Immutable-Vector: elem2)
+      (for/fold ([A A])
+                ([elem1 (in-list elems1)] #:break (not A))
+        (subtype* A elem1 elem2))]
+     [(or (? Mutable-VectorTop?)
+          (? Mutable-Vector?))
+      #false]
+     [(Sequence: (list seq-t))
+      (for/fold ([A A])
+                ([elem1 (in-list elems1)]
+                 #:break (not A))
+        (subtype* A elem1 seq-t))]
+     [_ (continue<: A t1 t2 obj)])]
+  [(case: Immutable-Vector (Immutable-Vector: elem1))
+   (match t2
+     [(Immutable-Vector: elem2)
+      (subtype* A elem1 elem2)]
+     [(or (? Mutable-VectorTop?)
+          (? Mutable-Vector?))
+      #false]
+     [(Sequence: (list seq-t))
+      (subtype* A elem1 seq-t)]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Instance (Instance: inst-t1))
    (cond
      [(resolvable? inst-t1)
@@ -963,6 +974,41 @@
     [(or (Weak-HashTableTop:) (Weak-HashTable: _ _) (Immutable-HashTable: _ _))
      #false]
     [_ (continue<: A t1 t2 obj)])]
+  [(case: Mutable-HeterogeneousVector (Mutable-HeterogeneousVector: elems1))
+   (match t2
+     [(Immutable-Vector: elem2)
+      #false]
+     [(Mutable-HeterogeneousVector: elems2)
+      (and (= (length elems1)
+              (length elems2))
+           (for/fold ([A A])
+                     ([elem1 (in-list elems1)]
+                      [elem2 (in-list elems2)]
+                      #:break (not A))
+             (type≡? A elem1 elem2)))]
+     [(Mutable-VectorTop:)
+      A]
+     [(Mutable-Vector: elem2)
+      (for/fold ([A A])
+                ([elem1 (in-list elems1)] #:break (not A))
+        (type≡? A elem1 elem2))]
+     [(Sequence: (list seq-t))
+      (for/fold ([A A])
+                ([elem1 (in-list elems1)]
+                 #:break (not A))
+        (subtype* A elem1 seq-t))]
+     [_ (continue<: A t1 t2 obj)])]
+  [(case: Mutable-Vector (Mutable-Vector: elem1))
+   (match t2
+     [(Mutable-VectorTop:)
+      A]
+     [(Mutable-Vector: elem2)
+      (type≡? A elem1 elem2)]
+     [(Sequence: (list seq-t))
+      (subtype* A elem1 seq-t)]
+     [(Immutable-Vector: elem2)
+      #false]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Name _)
    (match* (t1 t2)
      ;; Avoid resolving things that refer to different structs.
@@ -1201,12 +1247,6 @@
                                           (-is-type obj t1)
                                           (instantiate-obj p* obj)))))
       A]
-     [_ (continue<: A t1 t2 obj)])]
-  [(case: Vector (Vector: elem1))
-   (match t2
-     [(? VectorTop?) A]
-     [(Vector: elem2) (type≡? A elem1 elem2)]
-     [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Weak-Box (Weak-Box: elem1))
    (match t2

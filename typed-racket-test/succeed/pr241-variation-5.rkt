@@ -169,6 +169,7 @@
  [Logger (current-logger) (lambda (l) (log-level? l 'info))]
  [Module-Path "hello.rkt" module-path?]
  [Mutable-HashTableTop (make-hash) (lambda (h) (hash-ref h 'a #f))]
+ [Mutable-VectorTop (vector 1 2 3) (lambda (x) (vector-ref x 0))]
  [Null '() length]
  [Output-Port (current-output-port) port?]
  [PRegexp #px"\\d\\d" (lambda (p) (regexp-match? p "013a"))]
@@ -250,6 +251,8 @@
   [Channelof (Channelof Integer) (make-channel) channel-try-get]
   [HashTable (HashTable Symbol String) (hash) (lambda (h) (hash-ref h 'a #f))]
   [Immutable-HashTable (Immutable-HashTable Symbol String) (hash) (lambda (h) (hash-set h 'a "a"))]
+  [Immutable-Vector (Immutable-Vector Integer) (vector-immutable 1) (lambda (v) (vector-ref v 0))]
+  [Immutable-Vectorof (Immutable-Vectorof Integer) (vector-immutable 1) (lambda (v) (vector-ref v 0))]
   [Listof (Listof Integer) (list 1) (lambda (xs) (add1 (car xs)))]
   [Mutable-HashTable (Mutable-HashTable Symbol String) (make-hash)
    (lambda (h)
@@ -257,6 +260,18 @@
      (with-handlers ([exn:fail:contract? void])
        (hash-set! h 'a "a")
        (error 'pr241 "mutable hashtable ~a incorrectly allowed to be set!" h)))]
+  [Mutable-Vector (Mutable-Vector Integer) (vector 1)
+   (lambda (v)
+     (vector-ref v 0)
+     (with-handlers ([exn:fail:contract? void])
+       (vector-set! v 0 1)
+       (error 'pr241 "mutable vector ~a incorrectly allowed to be set!" v)))]
+  [Mutable-Vectorof (Mutable-Vectorof Integer) (vector 1)
+   (lambda (v)
+     (vector-ref v 0)
+     (with-handlers ([exn:fail:contract? void])
+       (vector-set! v 0 1)
+       (error 'pr241 "mutable vectorof ~a incorrectly allowed to be set!" v)))]
   [Option (Option Integer) 1 add1]
   [Pair (Pair Integer Boolean) (cons 1 #t) (lambda (v) (add1 (car v)))]
   [Pairof (Pairof Integer Boolean) (cons 1 #f) (lambda (v) (add1 (car v)))]
@@ -270,6 +285,7 @@
      (with-handlers ([exn:fail:contract? void])
        (hash-set! h 'a "a")
        (error 'pr241 "weak hashtable ~a incorrectly allowed to be set!" h)))]
+  [Vector (Vector Integer) (vector 1) (lambda (v) (vector-ref v 0))]
   [Vectorof (Vectorof Integer) (vector 1) (lambda (v) (add1 (vector-ref v 0)))]
 ))
 

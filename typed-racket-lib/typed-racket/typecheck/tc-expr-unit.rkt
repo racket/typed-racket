@@ -422,22 +422,44 @@
      (match (and expected-type (resolve (intersect expected-type (-pair Univ Univ))))
        [(Pair: car-t cdr-t) (-pair (find-stx-type car car-t) (find-stx-type cdr cdr-t))]
        [_ (-pair (find-stx-type car) (find-stx-type cdr))])]
-    [(vector xs ...)
-     (match (and expected-type (resolve (intersect expected-type -VectorTop)))
-       [(Vector: t)
-        (make-Vector
-         (check-below
-          (apply Un
-                 (for/list ([x (in-list xs)])
-                   (find-stx-type x t)))
-          t))]
-       [(HeterogeneousVector: ts)
-        (make-HeterogeneousVector
-         (for/list ([x (in-list xs)]
-                    [t (in-list/rest ts #f)])
-           (cond-check-below (find-stx-type x t) t)))]
-       [_ (make-HeterogeneousVector (for/list ([x (in-list xs)])
-                                      (generalize (find-stx-type x #f))))])]
+    [(and (vector xs ...) v)
+     (cond
+      [(immutable? v)
+       (match (and expected-type (resolve (intersect expected-type (-ivec Univ))))
+        [(Immutable-Vector: t)
+         (make-Immutable-Vector
+          (check-below
+           (apply Un
+                  (for/list ([x (in-list xs)])
+                    (find-stx-type x t)))
+           t))]
+        [(Immutable-HeterogeneousVector: ts)
+         (make-Immutable-HeterogeneousVector
+          (for/list ([x (in-list xs)]
+                     [t (in-list/rest ts #f)])
+            (cond-check-below (find-stx-type x t) t)))]
+        [_
+         (make-Immutable-HeterogeneousVector
+          (for/list ([x (in-list xs)])
+            (generalize (find-stx-type x #f))))])]
+      [else
+       (match (and expected-type (resolve (intersect expected-type -Mutable-VectorTop)))
+        [(Mutable-Vector: t)
+         (make-Mutable-Vector
+          (check-below
+           (apply Un
+                  (for/list ([x (in-list xs)])
+                    (find-stx-type x t)))
+           t))]
+        [(Mutable-HeterogeneousVector: ts)
+         (make-Mutable-HeterogeneousVector
+          (for/list ([x (in-list xs)]
+                     [t (in-list/rest ts #f)])
+            (cond-check-below (find-stx-type x t) t)))]
+        [_
+         (make-Mutable-HeterogeneousVector
+          (for/list ([x (in-list xs)])
+            (generalize (find-stx-type x #f))))])])]
     [(box x)
      (match (and expected-type (resolve (intersect expected-type -BoxTop)))
        [(Box: t) (-box (check-below (find-stx-type x t) t))]

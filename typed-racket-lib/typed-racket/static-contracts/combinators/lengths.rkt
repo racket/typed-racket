@@ -14,12 +14,20 @@
 
 (provide/cond-contract
  [rename list-length/sc* list-length/sc (natural-number/c . -> . static-contract?)]
+ [immutable-vector-length/sc (natural-number/c . -> . static-contract?)]
+ [mutable-vector-length/sc (natural-number/c . -> . static-contract?)]
  [vector-length/sc (natural-number/c . -> . static-contract?)]
  [empty-list/sc static-contract?]
  [empty-vector/sc static-contract?])
 
 (define-terminal-sc list-length/sc (n) #:flat
    #`(λ (l) (and (list? l) (= #,n (length l)))))
+
+(define-terminal-sc immutable-vector-length/sc (n) #:flat
+   #`(λ (l) (and (vector? l) (immutable? l) (= #,n (vector-length l)))))
+
+(define-terminal-sc mutable-vector-length/sc (n) #:flat
+   #`(λ (l) (and (vector? l) (not (immutable? l)) (= #,n (vector-length l)))))
 
 (define-terminal-sc vector-length/sc (n) #:flat
    #`(λ (l) (and (vector? l) (= #,n (vector-length l)))))

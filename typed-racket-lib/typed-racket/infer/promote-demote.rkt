@@ -53,6 +53,11 @@
            (and rst (contra rst))
            (map contra kws)
            (co rng))])]))
+  (define (change-elems ts)
+    (for/list ([t (in-list ts)])
+      (if (V-in? V t)
+        (if change Univ -Bottom)
+        t)))
   (match cur
     [(app Rep-variances variances) #:when variances 
      (define mk (Rep-constructor cur))
@@ -74,9 +79,8 @@
                    (if change Univ -Bottom)
                    cur)]
     [(Fun: arrs) (make-Fun (filter-map arr-change arrs))]
-    [(HeterogeneousVector: elems)
-     (make-HeterogeneousVector (map (λ (t) (if (V-in? V t)
-                                               (if change Univ -Bottom)
-                                               t))
-                                    elems))]
+    [(Immutable-HeterogeneousVector: elems)
+     (make-Immutable-HeterogeneousVector (change-elems elems))]
+    [(Mutable-HeterogeneousVector: elems)
+     (make-Mutable-HeterogeneousVector (change-elems elems))]
     [_ (Rep-fmap cur co)]))

@@ -179,7 +179,7 @@
 (define-match-expander HashTableTop:
   (lambda (stx)
     (syntax-parse stx
-     [(_) #'(Union-all: (list-no-order (Immutable-HashTable: Univ Univ)
-                                       Mutable-HashTableTop:
-                                       Weak-HashTableTop:))])))
+     [(_) #'(Union-all: (list-no-order (Immutable-HashTable: (Univ:) (Univ:))
+                                       (Mutable-HashTableTop:)
+                                       (Weak-HashTableTop:)))])))
 

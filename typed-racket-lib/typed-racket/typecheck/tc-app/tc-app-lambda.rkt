@@ -88,7 +88,8 @@
      #:when (free-identifier=? #'val #'e3)
      (let ([ts (for/list ([ac (in-syntax #'(actuals ...))]
                           [f (in-syntax #'(acc ...))])
-                 (let ([type (type-annotation f #:infer #t)])
+                 (let ([type (or (type-annotation f #:infer #t)
+                                 (find-annotation #'inner-body f))])
                    (if type
                        (tc-expr/check/t ac (ret type))
                        (generalize (tc-expr/t ac)))))]

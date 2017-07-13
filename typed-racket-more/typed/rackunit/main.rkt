@@ -134,7 +134,7 @@
 (require/opaque-type TestCase test-case? rackunit)
 (provide TestCase test-case?)
 
-(define-type Seed (U #f (Object)))
+(define-type Seed Any)
 
 (define-type test-suite-handler-down
   (rackunit-test-suite (Option String) (Thunk Any) (Thunk Any) Seed -> Seed))

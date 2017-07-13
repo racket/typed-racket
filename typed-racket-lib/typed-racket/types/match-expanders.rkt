@@ -9,6 +9,7 @@
          (for-syntax racket/base syntax/parse))
 
 (provide Listof: List: MListof: AnyPoly: AnyPoly-names:
+         HashTableTop:
          SimpleListof: SimpleMListof:
          PredicateProp:
          Val-able:
@@ -172,3 +173,11 @@
                              _
                              _
                              (Values: (list (Result: _ ps _))))))])))
+
+(define-match-expander HashTableTop:
+  (lambda (stx)
+    (syntax-parse stx
+     [(_) #'(Union-all: (list-no-order (Immutable-HashTable: Univ Univ)
+                                       Mutable-HashTableTop:
+                                       Weak-HashTableTop:))])))
+

@@ -464,6 +464,13 @@
             (apply or/sc (append other-scs (map t->sc (nbits->base-types nbits)))))]
        [(? Union? t)
         (match (normalize-type t)
+          [(HashTableTop:)
+           ;; NOTE: this is a special case to make `HashTableTop` produce a flat contract.
+           ;; Without this case:
+           ;; - `HashTableTop` would make a chaperone contract
+           ;; - because `HashTableTop` is a union containing `(Immutable-HashTable Any Any)`
+           ;; - and `Any` makes a chaperone contract
+           hash?/sc]
           [(Union-all: elems)
            (define-values [hash-elems other-elems] (partition hash/kv? elems))
            (define maybe-hash/sc (hash-types->sc hash-elems))

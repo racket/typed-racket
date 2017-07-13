@@ -4015,6 +4015,12 @@
                    (hfun h)))
                (void))
              -Void]
+       ;; check that in-naturals works
+       [tc-e (for/list : (Listof Integer) ([i (in-naturals)]) i) (-lst -Int)]
+       [tc-e (for/list : (Listof Natural) ([s '(foo bar)]
+                                           [i : Natural (in-naturals)])
+               i)
+             (-lst -Nat)]
        )
 
   (test-suite

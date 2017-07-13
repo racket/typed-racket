@@ -130,5 +130,7 @@
        (match (single-value #'arg)
          [(tc-result1: (List: ts))
           (ret (-Tuple (reverse ts)))]
+         [(tc-result1: (and r (Listof: t)))
+          (ret r)]
          [arg-ty
           (tc/funapp #'fun #'(arg) (tc-expr/t #'fun) (list arg-ty) expected)])])))

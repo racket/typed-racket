@@ -74,7 +74,7 @@
       [(Intersection: ts raw-prop)
        (-refine (make-Intersection (map subst ts))
                 (subst/lvl raw-prop (add1 lvl)))]
-      [(Path: flds (cons (== lvl) (app lookup (list o _))))
+      [(Path: flds (cons (== lvl) (app lookup (cons o _))))
        (make-Path (map subst flds) o)]
       ;; restrict with the type for results and props
       [(TypeProp: (Path: flds (cons (== lvl) (app lookup (? pair? entry))))

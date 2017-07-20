@@ -1,7 +1,7 @@
 #lang racket/base
 
 (provide cast-table-ref
-         cast-table-set!)
+         cast-table-add!)
 
 (require syntax/id-table)
 
@@ -16,10 +16,12 @@
 
 (define cast-table (make-free-id-table))
 
-;; cast-table-set! : Id Type-Stx -> Void
-(define (cast-table-set! id type-stx)
-  (free-id-table-set! cast-table id type-stx))
+;; cast-table-add! : Id Type-Stx -> Void
+(define (cast-table-add! id type-stx)
+  (free-id-table-update! cast-table id
+    (λ (lst) (cons type-stx lst))
+    (λ () '())))
 
-;; cast-table-ref : Id -> (U False Type-Stx)
+;; cast-table-ref : Id -> (U False (Listof Type-Stx))
 (define (cast-table-ref id)
   (free-id-table-ref cast-table id #f))

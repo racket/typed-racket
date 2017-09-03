@@ -18,6 +18,8 @@
                "racket-index"
                "sandbox-lib"))
 
+(define implies '("rackunit-typed"))
+
 (define pkg-desc "Types for various libraries")
 
 (define pkg-authors '(samth stamourv))

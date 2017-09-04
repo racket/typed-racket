@@ -10,6 +10,7 @@
                "draw-lib"
                "rackunit-lib"
                "rackunit-gui"
+               "rackunit-typed"
                "snip-lib"
                "typed-racket-lib"
                "gui-lib"

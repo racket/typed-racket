@@ -9,5 +9,3 @@
 (define pkg-authors '(samth stamourv eli))
 
 (define version "1.1")
-
-(define scribblings '(("scribblings/source-syntax.scrbl" () (tool-library))))

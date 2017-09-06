@@ -10,6 +10,7 @@
                "draw-lib"
                "rackunit-lib"
                "rackunit-gui"
+               "rackunit-typed"
                "snip-lib"
                "typed-racket-lib"
                "gui-lib"
@@ -17,6 +18,8 @@
                "images-lib"
                "racket-index"
                "sandbox-lib"))
+
+(define implies '("rackunit-typed"))
 
 (define pkg-desc "Types for various libraries")
 

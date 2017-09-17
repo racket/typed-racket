@@ -113,7 +113,6 @@
       #:neg (vectorof/sc none/sc))
 
     ;; Heterogeneous Vectors
-    ;; TODO fix ability to test equality here
     (check-optimize (vector/sc any/sc)
       #:pos any/sc
       #:neg (vector-length/sc 1))
@@ -179,6 +178,14 @@
     (check-optimize (or/sc none/sc none/sc)
       #:pos any/sc
       #:neg none/sc)
+    (check-optimize (or/sc set?/sc (list/sc set?/sc) (list/sc set?/sc set?/sc))
+      ;; if all contracts are flat, optimize trusted positive
+      #:pos any/sc
+      #:neg (or/sc set?/sc (list/sc set?/sc) (list/sc set?/sc set?/sc)))
+    (check-optimize (or/sc set?/sc (list/sc (flat/sc #'symbol?)) (box/sc (flat/sc #'symbol?)))
+      ;; don't optimize if any contracts are non-flat --- but do optimize under guarded constructors
+      #:pos (or/sc set?/sc (list-length/sc 1) (box/sc (flat/sc #'symbol?)))
+      #:neg (or/sc set?/sc (list/sc (flat/sc #'symbol?)) (box/sc (flat/sc #'symbol?))))
 
     ;; None
     (check-optimize none/sc
@@ -343,6 +350,33 @@
                 (arr/sc empty #f (list set?/sc))
                 (arr/sc (list any/sc) #f (list (listof/sc set?/sc))))))
 
+    ;; more Or case
+    (check-optimize
+      ;; (or (or ....)), both "or"s contain non-flat contracts --- don't optimize
+      (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc))
+      #:pos (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc))
+      #:neg (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc)))
+    (check-optimize
+      ;; (or (or ...)), only the inner "or" contains a non-flat contract --- don't optimize
+      (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)))
+      #:pos (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)))
+      #:neg (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc))))
+    (check-optimize
+      ;; (or (or ...)), only the outer "or" contains a non-flat contract --- still don't optimize
+      (or/sc (box/sc cons?/sc) (or/sc cons?/sc set?/sc))
+      #:pos (or/sc (box/sc cons?/sc) (or/sc cons?/sc set?/sc))
+      #:neg (or/sc (box/sc cons?/sc) (or/sc cons?/sc set?/sc)))
+    (check-optimize
+      ;; (or (and/sc ...)) where the "or" has a non-flat "and" is all flat --- don't optimize
+      ;; this is just to make sure `and/sc` isn't treated specially
+      (or/sc (box/sc cons?/sc) (and/sc cons?/sc list?/sc))
+      #:pos (or/sc (box/sc cons?/sc) (and/sc cons?/sc list?/sc))
+      #:neg (or/sc (box/sc cons?/sc) (and/sc cons?/sc list?/sc)))
+    (check-optimize
+      ;; (or (and ...)) where both contain flat contracts --- could optimize, but would need to recognize the and/c is flat
+      (or/sc set?/sc (and/sc cons?/sc list?/sc))
+      #:pos (or/sc set?/sc (and/sc cons?/sc list?/sc))
+      #:neg (or/sc set?/sc (and/sc cons?/sc list?/sc)))
     ))
 
 (define tests

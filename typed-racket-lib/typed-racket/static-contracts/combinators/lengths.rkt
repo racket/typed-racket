@@ -27,8 +27,7 @@
 (define (list-length/sc* n)
   (if (zero? n)
       empty-list/sc
-      empty-vector/sc))
-
+      (list-length/sc n)))
 
 (define empty-list/sc (flat/sc #'null?))
 (define empty-vector/sc (vector-length/sc 0))

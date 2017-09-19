@@ -85,8 +85,6 @@
       #:neg empty-list/sc)
 
     ;; Heterogeneous Lists
-    ;; TODO fix ability to test equality here
-    #;
     (check-optimize (list/sc any/sc)
       #:pos any/sc
       #:neg (list-length/sc 1))
@@ -116,15 +114,12 @@
 
     ;; Heterogeneous Vectors
     ;; TODO fix ability to test equality here
-    #;
     (check-optimize (vector/sc any/sc)
       #:pos any/sc
       #:neg (vector-length/sc 1))
     (check-optimize (vector/sc none/sc)
       #:pos (vector/sc none/sc)
       #:neg (vector/sc none/sc))
-    ;; TODO fix ability to test equality here
-    #;
     (check-optimize (vector/sc)
       #:pos any/sc
       #:neg empty-vector/sc)

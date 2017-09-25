@@ -23,14 +23,14 @@
                (~or (~and #:optimize    (~bind [opt? #'#t])); kept for backward compatibility
                     (~and #:no-optimize (~bind [opt? #'#f]))))
               (~optional
-               (~and #:with-linear-integer-arithmetic linear-reasoning?)))
+               (~and #:with-refinements refinement-reasoning?)))
          ...
          forms ...)
      (let ([pmb-form (syntax/loc stx (#%plain-module-begin forms ...))])
        (parameterize ([optimize? (or (and (not (attribute opt?)) (optimize?))
                                      (and (attribute opt?) (syntax-e (attribute opt?))))]
-                      [with-linear-integer-arithmetic? (or (attribute linear-reasoning?)
-                                                           (with-linear-integer-arithmetic?))])
+                      [with-refinements? (or (attribute refinement-reasoning?)
+                                             (with-refinements?))])
          (tc-module/full stx pmb-form
           (λ (new-mod pre-before-code pre-after-code)
             (with-syntax*

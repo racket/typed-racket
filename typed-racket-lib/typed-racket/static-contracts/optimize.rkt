@@ -228,7 +228,7 @@
     ((recur 'positive) sc 'covariant))
 
   ;; Do full passes until we reach a fix point, and then remove all unneccessary recursive parts
-  (let loop ((sc sc))
+  (let loop ([sc sc])
     (define new-sc (full-pass sc))
     (if (equal? sc new-sc)
         (remove-unused-recursive-contracts new-sc)

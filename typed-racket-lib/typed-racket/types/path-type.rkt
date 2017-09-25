@@ -57,7 +57,7 @@
       ;; vector length
       [(vec-t (list (VecLenPE:)))
        #:when (subtype vec-t -VectorTop)
-       -Int]
+       -Index]
 
       [((Intersection: ts _) _)
        (apply -unsafe-intersect (for*/list ([t (in-list ts)]

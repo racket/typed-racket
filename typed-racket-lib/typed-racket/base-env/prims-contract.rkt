@@ -57,7 +57,7 @@
 ;; unsafe operations go in this submodule
 (module* unsafe #f
   ;; turned into a macro on the requiring side
-  (provide -unsafe-require/typed))
+  (provide unsafe-require/typed))
 
 ;; used for private unsafe functionality in require macros
 ;; *do not export*
@@ -116,7 +116,7 @@
   #:literals (:)
   (pattern [field:id : type]))
 
-(define-values (require/typed-legacy require/typed -unsafe-require/typed)
+(define-values (require/typed-legacy require/typed unsafe-require/typed)
  (let ()
   (define-syntax-class opt-rename
     #:attributes (nm orig-nm spec)
@@ -254,6 +254,7 @@
      #'(begin (require/typed lib clause)
               (provide t pred)
               (require/typed/provide lib other-clause ...))]))
+
 
 
 (define require-typed-struct/provide

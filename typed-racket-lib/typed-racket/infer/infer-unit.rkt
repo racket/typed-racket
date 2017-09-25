@@ -534,15 +534,22 @@
 
         ;; find *an* element of elems which can be made a subtype of T
         [((Intersection: ts raw-prop) T)
-         (cset-join
-          (for*/list ([t (in-list ts)]
-                      [v (in-value (cg t T obj))]
-                      #:when v)
-            v))]
+         (let-values ([(obj new-props)
+                       (cond
+                         [(TrueProp? raw-prop) (values obj '())]
+                         [(Object? obj) (values obj (list (instantiate-obj raw-prop obj)))]
+                         [else (define new-obj (-id-path (genid)))
+                               (values new-obj (list (instantiate-obj raw-prop new-obj)))])])
+           (with-naively-extended-lexical-env [#:props new-props]
+             (cset-join
+              (for*/list ([t (in-list ts)]
+                          [v (in-value (cg t T obj))]
+                          #:when v)
+                v))))]
         
         ;; constrain S to be below *each* element of elems, and then combine the constraints
         [(S (Intersection: ts raw-prop))
-         (define cs (for/list/fail ([ts (in-list ts)]) (cg S ts obj)))
+         (define cs (for/list/fail ([t (in-list ts)]) (cg S t obj)))
          (let ([obj (if (Object? obj) obj (-id-path (genid)))])
            (and cs
                 (implies-in-env? (lexical-env)

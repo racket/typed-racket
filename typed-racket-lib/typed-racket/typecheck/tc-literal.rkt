@@ -20,7 +20,7 @@
   (λ (x) (and (f x) ...)))
 
 (define (maybe-add-linear-integer-info int t)
-  (if (with-linear-integer-arithmetic?)
+  (if (with-refinements?)
       (-refine/fresh x t (-eq (-lexp x) (-lexp int)))
       t))
 
@@ -129,7 +129,7 @@
              (cond-check-below (tc-literal l t) t)))]
          [_ (make-HeterogeneousVector (for/list ([l (in-vector (syntax-e #'i))])
                                         (generalize (tc-literal l #f))))]))
-     (if (with-linear-integer-arithmetic?)
+     (if (with-refinements?)
          (-refine/fresh v vec-ty (-eq (-lexp (vector-length vec-val))
                                       (-vec-len-of (-id-path v))))
          vec-ty)]

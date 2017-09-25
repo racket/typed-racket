@@ -60,16 +60,22 @@
      tooltip-table
      (list (syntax-position e) (syntax-span e))
      (λ (old)
-       (match-define (tooltip seen results) old)
-       (if (member e seen)
-           ;; the car should be the latest stx for the location
-           (if (equal? e (car seen))
-               ;; combine types seen at the latest
-               (tooltip seen (merge-tc-results (list t results)))
-               old)
-           (tooltip (cons e seen) t)))
-     (tooltip (list e) t)))
-  (hash-update! type-table e (λ (res) (merge-tc-results (list t res))) t))
+       (match old
+         [#f (tooltip (list e) t)]
+         [(tooltip seen results)
+          (if (member e seen)
+              ;; the car should be the latest stx for the location
+              (if (equal? e (car seen))
+                  ;; combine types seen at the latest
+                  (tooltip seen (merge-tc-results (list t results) #t))
+                  old)
+              (tooltip (cons e seen) t))]))
+     #f))
+  (hash-update! type-table e
+                (λ (prev) (cond
+                            [prev (merge-tc-results (list t prev) #t)]
+                            [else t]))
+                #f))
 
 (define (type-of e)
   (hash-ref type-table e

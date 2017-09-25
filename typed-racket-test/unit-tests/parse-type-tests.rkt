@@ -447,6 +447,9 @@
    [(Refine [x : Integer] (<= (+ 1 x) 42))
     (-refine/fresh x -Int (-leq (-lexp 1 x)
                                 (-lexp 42)))]
+   [(Refine [x : Integer] (<= (- 1 x) 42))
+    (-refine/fresh x -Int (-leq (-lexp 1 (-lexp (list -1 x)))
+                                (-lexp 42)))]
    [(Refine [x : Integer] (<= (+ 1 (* 3 x)) 42))
     (-refine/fresh x -Int (-leq (-lexp 1 (list 3 x))
                                 (-lexp 42)))]
@@ -477,6 +480,10 @@
    [(Refine [x : Integer] (> x 42))
     (-refine/fresh x -Int (-leq (-lexp 43)
                                 (-lexp x)))]
+   ;; id shadowing
+   [(Refine [x : Any] (: x (Refine [x : Integer] (<= x 42))))
+    (-refine/fresh x -Int (-leq (-lexp x)
+                                (-lexp 42)))]
    ;; refinements w/ equality
    [(Refine [x : Integer] (= x 42))
     (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 42))
@@ -545,6 +552,262 @@
    [FAIL (Refine [q : Any] (<= 42 (* 2 q)))]
    [FAIL (Refine [q : Any] (<= (+ 1 (* 2 q)) 42))]
    [FAIL (Refine [q : Any] (<= 42 (+ 1 (* 2 q))))]
+   ;; id shadowing & bad linear expression
+   [FAIL (Refine [x : Integer] (: x (Refine [x : Any] (<= 42 x))))]
+
+   ;; dependent function syntax tests!
+   ;; - - - - - - - - - - - - - - - - - - - -
+
+   ;; no deps, no dep type!
+   [(-> ([v : (Vectorof Any)])
+        Any)
+    (t:-> (-vec Univ) Univ)]
+   [(-> ([v : (Vectorof Any)]
+         [i : Integer])
+        Any)
+    (t:-> (-vec Univ) -Int Univ)]
+
+   ;; if only dep range, still a DFun (if the type is dep)
+   [(-> ([x : Integer]
+         [y : Integer])
+        (Refine [res : Integer] (<= res (+ x y))))
+    (make-DepFun
+     (list -Int -Int)
+     -tt
+     (-values
+      (-refine/fresh res -Int
+                     (-leq (-lexp (-id-path (cons 0 0)))
+                           (-lexp (-id-path (cons 1 0))
+                                  (-id-path (cons 1 1)))))))]
+   ;; simple dep latent props/object (no dep type, no DFun)
+   [(-> ([x : Any])
+        Boolean
+        #:+ (: x Integer))
+    (t:-> Univ -Boolean : (-PS (-is-type (cons 0 0) -Int) -tt))]
+   [(-> ([x : Any])
+        Boolean
+        #:- (! x Integer))
+    (t:-> Univ -Boolean : (-PS -tt (-not-type (cons 0 0) -Int)))]
+   [(-> ([x : Any])
+        Boolean
+        #:+ (: x Integer)
+        #:- (! x Integer))
+    (t:-> Univ -Boolean : (-PS (-is-type (cons 0 0) -Int)
+                               (-not-type (cons 0 0) -Int)))]
+   [(-> ([x : Any]
+         [y : Any])
+        Boolean
+        #:+ (: x Integer)
+        #:- (: y Integer)
+        #:object x)
+    (t:-> Univ Univ -Boolean
+          : (-PS (-is-type (cons 0 0) -Int)
+                 (-is-type (cons 0 1) -Int))
+          : (-id-path (cons 0 0)))]
+   ;; simple dependencies
+   [(-> ([v : (Vectorof Any)]
+         [i : (v) (Refine [n : Integer] (<= n (vector-length v)))])
+        Any)
+    (make-DepFun (list (-vec Univ)
+                       (-refine/fresh n -Int
+                                      (-leq (-lexp (-id-path n))
+                                            (-lexp (-vec-len-of (-id-path (cons 1 0)))))))
+                 -tt
+                 (-values Univ))]
+   [(-> ([v : (Vectorof Any)]
+         [i : (v) (Refine [n : Integer] (<= n (vector-length v)))])
+        Any)
+    (dep-> ([x : (-vec Univ)]
+            [y : (-refine/fresh n -Int
+                                (-leq (-lexp (-id-path n))
+                                      (-lexp (-vec-len-of (-id-path x)))))])
+           Univ)]
+   [(-> ([i : (v) (Refine [n : Integer] (<= n (vector-length v)))]
+         [v : (Vectorof Any)])
+        Any)
+    (make-DepFun (list (-refine/fresh n -Int
+                                      (-leq (-lexp (-id-path n))
+                                            (-lexp (-vec-len-of (-id-path (cons 1 1))))))
+                       (-vec Univ))
+                 -tt
+                 (-values Univ))]
+   [(-> ([x : Integer]
+         [y : (z) (Refine [n : Integer] (<= n z))]
+         [z : (x) (Refine [n : Integer] (<= n x))])
+        Any)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                    (-leq (-lexp n)
+                                          (-lexp z)))]
+            [z : (-refine/fresh n -Int
+                                    (-leq (-lexp n)
+                                          (-lexp x)))])
+           Univ)]
+   [(-> ([x : Integer]
+         [y : (z) (Refine [n : Integer] (<= n z))]
+         [z : (x) (Refine [n : Integer] (<= n x))])
+        Any)
+    (make-DepFun
+     (list -Int
+           (-refine/fresh n -Int
+                          (-leq (-lexp n)
+                                (-lexp (-id-path (cons 1 2)))))
+           (-refine/fresh n -Int
+                          (-leq (-lexp n)
+                                (-lexp (-id-path (cons 1 0))))))
+     -tt
+     (-values Univ))]
+   [(-> ([w : (y) (Refine [n : Integer] (<= n y))]
+         [x : Integer]
+         [y : (z x) (Refine [n : Integer] (<= n (+ x z)))]
+         [z : (x) (Refine [n : Integer] (<= n x))])
+        (Refine [n : Integer] (<= n (+ w x y z))))
+    (make-DepFun
+     (list (-refine/fresh n -Int (-leq (-lexp n) (-lexp (-id-path (cons 1 2)))))
+           -Int
+           (-refine/fresh n -Int (-leq (-lexp n)
+                                       (-lexp (-id-path (cons 1 1))
+                                              (-id-path (cons 1 3)))))
+           (-refine/fresh n -Int (-leq (-lexp n)
+                                       (-lexp (-id-path (cons 1 1))))))
+     -tt
+     (-values
+      (-refine/fresh n -Int (-leq (-lexp n)
+                                  (-lexp (-id-path (cons 1 0))
+                                         (-id-path (cons 1 1))
+                                         (-id-path (cons 1 2))
+                                         (-id-path (cons 1 3)))))))]
+   [(-> ([w : (y) (Refine [n : Integer] (<= n y))]
+         [x : Integer]
+         [y : (z x) (Refine [n : Integer] (<= n (+ x z)))]
+         [z : (x) (Refine [n : Integer] (<= n x))])
+        (Refine [n : Integer] (<= n (+ w x y z))))
+    (dep-> ([w : (-refine/fresh n -Int (-leq (-lexp n) (-lexp y)))]
+            [x : -Int]
+            [y : (-refine/fresh n -Int (-leq (-lexp n)
+                                             (-lexp x z)))]
+            [z : (-refine/fresh n -Int (-leq (-lexp n)
+                                             (-lexp x)))])
+           (-refine/fresh n -Int (-leq (-lexp n)
+                                       (-lexp w x y z))))]
+   ;; #:pre condition
+   [(-> ([w : Integer]
+         [x : Integer]
+         [y : Integer]
+         [z : Integer])
+        #:pre (w x y z)
+        (and (<= w y)
+             (<= y (+ x z))
+             (<= z x))
+        (Refine [n : Integer] (<= n (+ w x y z))))
+    (dep-> ([w : -Int]
+            [x : -Int]
+            [y : -Int]
+            [z : -Int])
+           #:pre (-and (-leq (-lexp w) (-lexp y))
+                       (-leq (-lexp y) (-lexp x z))
+                       (-leq (-lexp z) (-lexp x)))
+           (-refine/fresh n -Int (-leq (-lexp n)
+                                       (-lexp w x y z))))]
+
+   ;; shadowing
+   [(-> ([x : Integer]
+         [y : (x) (Refine [n : Integer] (<= n x))]
+         [z : (x y) (Refine [y : Integer] (<= y x))])
+        Any)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-leq (-lexp n)
+                                      (-lexp x)))]
+            [z : (-refine/fresh n -Int
+                                (-leq (-lexp n)
+                                      (-lexp x)))])
+           Univ)]
+   ;; shadowing (and thus not really dependent in this case)
+   [(-> ([x : Any]
+         [z : (x) (Refine [x : Integer] (<= x 42))])
+        Any)
+    (t:->
+     Univ
+     (-refine/fresh n -Int
+                    (-leq (-lexp n)
+                          (-lexp 42)))
+     Univ)]
+   ;; shadowing
+   [(-> ([x : Any]
+         [y : Any])
+        (Refine [x : Integer] (<= x 42)))
+    (t:-> Univ Univ (-refine/fresh res -Int (-leq (-lexp res) (-lexp 42))))]
+
+
+
+   ;; duplicate ids
+   [FAIL (-> ([x : Integer]
+              [x : Integer])
+             Integer)]
+   ;; duplicate dependencies
+   [FAIL (-> ([x : (y y) Integer]
+              [y : Integer])
+             Integer)]
+   [FAIL (-> ([x : Integer]
+              [y : Integer])
+             #:pre (x x y)
+             (<= x y)
+             Integer)]
+   ;; listing self in dependency list
+   [FAIL (-> ([x : (x y) Integer]
+              [y : Integer])
+             Integer)]
+   ;; missing colon
+   [FAIL (-> ([x : Integer]
+              [y Integer])
+             Integer)]
+   ;; unbound ids
+   [FAIL (-> ([x : (Refine [n : Integer] (= n this-is-an-unbound-identifier))]
+              [y : Integer])
+             Integer)]
+   [FAIL (-> ([x : (this-is-an-unbound-identifier)
+                 (Refine [n : Integer] (= n this-is-an-unbound-identifier))]
+              [y : Integer])
+             Integer)]
+   [FAIL (-> ([x : (Refine [n : Integer] (= n fun-arg))]
+              [fun-arg : Integer])
+             Integer)]
+   [FAIL (-> ([x : (z) (Refine [n : Integer] (= n fun-arg))]
+              [fun-arg : Integer]
+              [z : Integer])
+             Integer)]
+   [FAIL (-> ([x : Integer]
+              [y : Integer])
+             #:pre (x y)
+             (and (<= x y)
+                  (<= x this-is-an-unbound-identifier))
+             Integer)]
+   [FAIL (-> ([x : Integer]
+              [y : Integer])
+             #:pre (x y this-is-an-unbound-identifier)
+             (and (<= x y)
+                  (<= x this-is-an-unbound-identifier))
+             Integer)]
+   [FAIL (-> ([x : Integer]
+              [y : Integer])
+             (Refine [n : Integer] (= n this-is-an-unbound-identifier)))]
+   ;; cyclic dependencies
+   [FAIL (-> ([x : (y) (Refine [n : Integer] (= n y))]
+              [y : (x) (Refine [n : Integer] (= n x))])
+             Integer)]
+   [FAIL (-> ([x : (y) (Refine [n : Integer] (= n y))]
+              [y : (z) (Refine [n : Integer] (= n z))]
+              [y : (x) (Refine [n : Integer] (= n x))])
+             Integer)]
+   ;; shadowing w/ bad types
+   [FAIL (-> ([x : Integer]
+              [z : (x) (Refine [x : Univ] (<= x 42))])
+             Any)]
+   [FAIL (-> ([x : Integer]
+              [y : Integer])
+             (Refine [x : Univ] (<= x 42)))]
+
    ))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

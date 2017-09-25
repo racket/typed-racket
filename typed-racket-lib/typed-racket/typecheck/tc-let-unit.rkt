@@ -14,7 +14,6 @@
          (typecheck signatures tc-metafunctions tc-subst internal-forms tc-envops)
          (utils tarjan)
          racket/match (contract-req)
-         racket/list
          syntax/parse syntax/stx
          syntax/id-table
          ;; For internal type forms
@@ -76,13 +75,18 @@
                              [(PropSet: p+ p-) (values p+ p-)]
                              ;; it's unclear if this 2nd clause is necessary any more.
                              [_ (values -tt -tt)]))
-    (define prop (cond ;; if n can't be #f, we can assume p+
-                   [(not (overlap? type -False)) p+]
-                   [mutated? -tt]
-                   [else ;; otherwise we know ((o ∉ #f) ∧ p+) ∨ ((o ∈ #f) ∧ p-)
-                    (let ([obj (if (Object? obj) obj name)])
-                      (-or (-and (-not-type obj -False) p+)
-                           (-and (-is-type obj -False) p-)))]))
+    (define-values (type* extracted-props)
+      (cond
+        [(Object? aliased-obj) (extract-props aliased-obj type)]
+        [else (extract-props (-id-path name) type)]))
+    (define truthy-prop (cond ;; if n can't be #f, we can assume p+
+                          [(not (overlap? type* -False)) p+]
+                          [mutated? -tt]
+                          [else ;; otherwise we know ((o ∉ #f) ∧ p+) ∨ ((o ∈ #f) ∧ p-)
+                           (let ([obj (if (Object? obj) obj name)])
+                             (-or (-and (-not-type obj -False) p+)
+                                  (-and (-is-type obj -False) p-)))]))
+    (define prop (apply -and truthy-prop extracted-props))
     (values name type aliased-obj prop)))
 
 ;; check-let-body

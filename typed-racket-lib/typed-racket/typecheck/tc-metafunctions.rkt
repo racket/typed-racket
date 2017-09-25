@@ -12,13 +12,14 @@
 (provide abstract-results
          combine-props
          merge-tc-results
-         tc-results->values)
+         tc-results->values
+         erase-existentials)
 
 ;; Objects representing the rest argument are currently not supported
 (define/cond-contract (abstract-results results arg-names #:rest-id [rest-id #f])
   ((tc-results/c (listof identifier?)) (#:rest-id (or/c #f identifier?))
    . ->* . SomeValues?)
-  (define abstracted (abstract-obj results arg-names))
+  (define abstracted (abstract-obj results arg-names #t))
   (tc-results->values
    (if rest-id
        (erase-identifiers abstracted (list rest-id))
@@ -87,7 +88,9 @@
              [(FalseProp:) (set! atoms #f)
                            (set! leqs #f)
                            (set! ds #f)])]))
-      (values atoms leqs ds)))
+      (values (and atoms (remove-duplicates atoms))
+              (and leqs (remove-duplicates leqs))
+              (and ds (remove-duplicates ds)))))
   (cond
     [(not atoms) (values #f #f)]
     [else
@@ -141,14 +144,15 @@
               (-or p+ p-)])
            tcrs))]))
 
-(define (merge-tc-results results)
+(define (merge-tc-results results [ignore-propositions? #f])
   (define/match (merge-tc-result r1 r2)
-    [((tc-result: t1 (PropSet: p1+ p1-) o1)
+    [((tc-result: t1 (and ps1 (PropSet: p1+ p1-)) o1)
       (tc-result: t2 (PropSet: p2+ p2-) o2))
-     (-tc-result
-      (Un t1 t2)
-      (-PS (-or p1+ p2+) (-or p1- p2-))
-      (if (equal? o1 o2) o1 -empty-obj))])
+     (-tc-result (Un t1 t2)
+                 (if ignore-propositions?
+                     ps1
+                     (-PS (-or p1+ p2+) (-or p1- p2-)))
+                 (if (equal? o1 o2) o1 -empty-obj))])
 
   (define/match (same-dty? r1 r2)
     [(#f #f) #t]
@@ -184,3 +188,12 @@
 
   (for/fold ([res (ret -Bottom)]) ([res2 (in-list results)])
     (merge-two-results res res2)))
+
+
+(define (erase-existentials rep)
+  (match rep
+    [(Path: _ name)
+     #:when (and (identifier? name)
+                 (existential-id? name))
+     -empty-obj]
+    [else (Rep-fmap rep erase-existentials)]))

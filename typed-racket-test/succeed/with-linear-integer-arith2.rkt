@@ -1,7 +1,6 @@
-#lang typed/racket
-#:with-linear-integer-arithmetic
+#lang typed/racket #:with-refinements
 
-
+ 
 (define-type (V8 A) (Refine [v : (Vectorof A)] (= 8 (vector-length v))))
 (define-type Nat<8 (Refine [i : Natural] (< i 8)))
 (: v8ref (-> (V8 Any) Nat<8 Any))
@@ -85,21 +84,7 @@
 (assert= (+ one two) three)
 (assert= (+ one two) three)
 (assert= (- (+ one two) one) two)
-(assert= (* 2 2 (+ one two)) 12)
-(assert= (add1 one) two)
-(assert= (sub1 one) 0)
-
-;; would be nice if this worked... I think it doesn't currently
-;; because the (min...) expression has a specific type, but
-;; no object, and so we learn (<= empty-obj two) =(
-;; solutions:
-;; 1 - existential results a la the paper
-;; 2 - check for contradictions before erasing
-;;     the empty object? (this is sort of what
-;;     we do anyway right now but we dont' do it
-;;     enough to see this contradiction? maybe this is
-;;     a subtyping limitation...)
-;(assert<= (min one two three) two)  
+(assert= (* 4 (+ one two)) 12)
 
 
 

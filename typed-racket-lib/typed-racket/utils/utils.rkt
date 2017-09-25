@@ -15,8 +15,8 @@ at least theoretically.
 (provide
  ;; optimization
  optimize?
- ;; parameter to toggle linear integer reasoning
- with-linear-integer-arithmetic?
+ ;; parameter to toggle refinement reasoning
+ with-refinements?
  ;; timing
  start-timing do-time
  ;; provide macros
@@ -33,6 +33,8 @@ at least theoretically.
  bind
  genid
  gen-pretty-id
+ gen-existential-id
+ existential-id?
  local-tr-identifier?
  mark-id-as-normalized
  normalized-id?
@@ -42,7 +44,7 @@ at least theoretically.
  in-assoc)
 
 (define optimize? (make-parameter #t))
-(define with-linear-integer-arithmetic? (make-parameter #f))
+(define with-refinements? (make-parameter #f))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
 
 (define-syntax do-contract-req
@@ -297,48 +299,6 @@ at least theoretically.
   (in-parallel (in-value (car p)) (in-value (cdr p))))
 
 
-(module local-ids racket
-  (provide local-tr-identifier?
-           genid
-           gen-pretty-id
-           mark-id-as-normalized
-           normalized-id?)
-  ;; we use this syntax location to recognized gensymed identifiers
-  (define-for-syntax loc #'x)
-  (define dummy-id (datum->syntax #'loc (gensym 'x)))
-  ;; tools for marking identifiers as normalized and recognizing normalized
-  ;; identifiers (we normalize ids so free-identifier=? ids are represented
-  ;; with the same syntax object and are thus equal?)
-  (define-values (mark-id-as-normalized
-                  normalized-id?)
-    (let ([normalized-identifier-sym (gensym 'normal-id)])
-      (values (λ (id) (syntax-property id normalized-identifier-sym #t))
-              (λ (id) (syntax-property id normalized-identifier-sym)))))
-  ;; generates fresh identifiers for use while typechecking
-  (define (genid [sym (gensym 'local)])
-    (mark-id-as-normalized (datum->syntax #'loc sym)))
-  (define letters '("x" "y" "z" "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k"
-                        "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v"  "w"))
-  ;; this is just a silly helper function that gives us a letter from
-  ;; the latin alphabet in a cyclic manner
-  (define next-letter
-    (let ([i 0])
-      (λ ()
-        (define letter (string->uninterned-symbol (list-ref letters i)))
-        (set! i (modulo (add1 i) (length letters)))
-        letter)))
-  ;; generates a fresh identifier w/ a "pretty" printable representation
-  (define (gen-pretty-id [sym (next-letter)])
-    (mark-id-as-normalized (datum->syntax #'loc sym)))
-  ;; allows us to recognize and distinguish gensym'd identifiers
-  ;; from ones that came from the program we're typechecking
-  (define (local-tr-identifier? id)
-    (and (identifier? id)
-         (eq? (syntax-source-module dummy-id)
-              (syntax-source-module id)))))
-
-(require 'local-ids)
-
 
 ;; in-list/rest
 ;; (in-list/rest l v)
@@ -472,3 +432,55 @@ at least theoretically.
            ;; (loop-arg ...)
            (pos))]]
       [blah (raise-syntax-error 'in-assoc "invalid usage" #'blah)])))
+
+
+(module local-ids racket
+  (provide local-tr-identifier?
+           genid
+           gen-pretty-id
+           gen-existential-id
+           mark-id-as-normalized
+           normalized-id?
+           existential-id?)
+  ;; we use this syntax location to recognized gensymed identifiers
+  (define-for-syntax loc #'x)
+  (define dummy-id (datum->syntax #'loc (gensym 'x)))
+  ;; tools for marking identifiers as normalized and recognizing normalized
+  ;; identifiers (we normalize ids so free-identifier=? ids are represented
+  ;; with the same syntax object and are thus equal?)
+  (define-values (mark-id-as-normalized
+                  normalized-id?)
+    (let ([normalized-identifier-sym (gensym 'normal-id)])
+      (values (λ (id) (syntax-property id normalized-identifier-sym #t))
+              (λ (id) (syntax-property id normalized-identifier-sym)))))
+  (define-values (mark-id-as-existential
+                  existential-id?)
+    (let ([existential-identifier-sym (gensym 'existential-id)])
+      (values (λ (id) (syntax-property id existential-identifier-sym #t))
+              (λ (id) (syntax-property id existential-identifier-sym)))))
+  ;; generates fresh identifiers for use while typechecking
+  (define (genid [sym (gensym 'local)])
+    (mark-id-as-normalized (datum->syntax #'loc sym)))
+  (define letters (vector-immutable "x" "y" "z" "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k"
+                                    "l" "m" "n" "o" "p" "q" "r" "s" "t" "u" "v"  "w"))
+  ;; this is just a silly helper function that gives us a letter from
+  ;; the latin alphabet in a cyclic manner
+  (define next-letter
+    (let ([i 0])
+      (λ ()
+        (define letter (string->uninterned-symbol (vector-ref letters i)))
+        (set! i (modulo (add1 i) (vector-length letters)))
+        letter)))
+  ;; generates a fresh identifier w/ a "pretty" printable representation
+  (define (gen-pretty-id [sym (next-letter)])
+    (mark-id-as-normalized (datum->syntax #'loc sym)))
+  (define (gen-existential-id [sym (next-letter)])
+    (mark-id-as-existential (genid sym)))
+  ;; allows us to recognize and distinguish gensym'd identifiers
+  ;; from ones that came from the program we're typechecking
+  (define (local-tr-identifier? id)
+    (and (identifier? id)
+         (eq? (syntax-source-module dummy-id)
+              (syntax-source-module id)))))
+
+(require 'local-ids)

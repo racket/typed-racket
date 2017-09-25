@@ -9,7 +9,8 @@
          racket/set
          (path-up "rep/type-rep.rkt" "rep/prop-rep.rkt" "rep/object-rep.rkt"
                   "rep/core-rep.rkt" "rep/values-rep.rkt" "rep/fme-utils.rkt"
-                  "rep/rep-utils.rkt" "types/subtype.rkt" "types/overlap.rkt"
+                  "rep/rep-utils.rkt" "rep/free-ids.rkt"
+                  "types/subtype.rkt" "types/overlap.rkt"
                   "types/match-expanders.rkt"
                   "types/kw-types.rkt"
                   "types/utils.rkt" "types/abbrev.rkt"
@@ -196,6 +197,12 @@
      (cond
        [(terms-empty? terms) c]
        [else
+        (define (positive-term? t)
+          (match t
+            [(? number? n) (exact-positive-integer? n)]
+            [(list '* (? number? n) var) (exact-positive-integer? n)]
+            [(or (? symbol?) (? list?)) ;; obj w/ coeff 1
+             #t]))
         (define term-list
           (let ([terms (for/list ([(obj coeff) (in-terms terms)])
                          (if (= 1 coeff)
@@ -204,7 +211,33 @@
             (if (zero? c) terms (cons c terms))))
         (cond
           [(null? (cdr term-list)) (car term-list)]
-          [else (cons '+ term-list)])])]
+          [else
+           (define-values (pos-terms neg-terms) (partition positive-term? term-list))
+           (define (flip-sign term)
+             (match term
+               [(? number? n) (* -1 n)]
+               [(list '* (? number? n) obj)
+                (if (= -1 n)
+                    obj
+                    `(* ,(* -1 n) ,obj))]
+               [(or (? symbol? obj) (? list? obj)) ;; obj w/ coeff 1
+                (list '* -1 obj)]))
+           (cond
+             [(null? neg-terms) (cons '+ pos-terms)]
+             ;; if we have zero or one positive term t1,
+             ;; and the rest (-t2 -t3 etc) are negative,
+             ;; turn it into (- t1 t2 t3 ...) (where t1 may be omitted)
+             [(<= (length pos-terms) 1)
+              (append '(-)
+                      pos-terms
+                      (map flip-sign neg-terms))]
+             ;; otherwise we have some negative terms (-t1 -t2 ...)
+             ;; and two or more positive terms (t3 t4 ...),
+             ;; convert it into (- (+ t3 t4 ...) t1 t2 ...)
+             [else
+              (append '(-)
+                      (cons '+ pos-terms)
+                      (map flip-sign neg-terms))])])])]
     [else `(Unknown Object: ,(struct->vector object))]))
 
 ;; cover-union : Type LSet<Type> -> Listof<Symbol> Listof<Type>
@@ -658,6 +691,25 @@
     ;[(fld: t a m) `(fld ,(type->sexp t))]
     [(Distinction: name sym ty) ; from define-new-subtype
      name]
+    [(DepFun/pretty-ids: ids dom pre rng)
+     (define (arg-id? id) (member id ids free-identifier=?))
+     (define pre-deps (map name-ref->sexp
+                           (filter arg-id? (free-ids pre))))
+     `(-> ,(for/list ([id (in-list ids)]
+                      [d (in-list dom)])
+             (define deps (map name-ref->sexp
+                               (filter arg-id? (free-ids d))))
+             `(,(syntax-e id)
+               :
+               ,@(if (null? deps)
+                     '()
+                     (list deps))
+               ,(t->s d)))
+          ,@(cond
+              [(TrueProp? pre) '()]
+              [(null? pre-deps) `(#:pre ,(prop->sexp pre))]
+              [else `(#:pre ,pre-deps ,(prop->sexp pre))])
+          ,(values->sexp rng))]
     [else `(Unknown Type: ,(struct->vector type))]))
 
 

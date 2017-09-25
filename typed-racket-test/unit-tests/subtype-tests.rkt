@@ -704,8 +704,209 @@
    [ENV/FAIL
     (list (-leq (-lexp z) (-lexp y)))
     (-refine/fresh x -Int (-leq (-lexp x) (-lexp y)))
-    (-refine/fresh x -Int (-leq (-lexp x) (-lexp z)))]))
+    (-refine/fresh x -Int (-leq (-lexp x) (-lexp z)))]
 
+   ;; Refinements + integer heirarchy
+   [(-refine/fresh x -Nat (-leq (-lexp x) (-lexp 32)))
+    -Byte]
+   [(-refine/fresh x -Int (-leq (-lexp 1) (-lexp x)))
+    -Nat]
+   [(-refine/fresh x -Int (-and (-leq (-lexp 0) (-lexp x))
+                                (-leq (-lexp x) (-lexp 32))))
+    -Byte]
+   [(-refine/fresh x -Int (-eq (-lexp x) (-lexp 32)))
+    -Byte]
+   [FAIL (-refine/fresh x -Int (-eq (-lexp x) (-lexp 256))) -Byte]
+   [FAIL (-refine/fresh x -Int (-leq (-lexp x) (-lexp -1))) -Nat]
+
+   ))
+
+
+(define dependent-function-tests
+  (subtyping-tests
+   "Dependent Function Subtyping"
+   [(make-DepFun
+     (list -Int -Int)
+     -tt
+     (-values
+      (-refine/fresh res -Int
+                     (-eq (-lexp (-id-path (cons 0 0)))
+                          (-lexp (-id-path (cons 1 0))
+                                 (-id-path (cons 1 1)))))))
+    (-> -Int -Int -Int)]
+   [(make-DepFun
+     (list -Int -Int)
+     -tt
+     (-values
+      (-refine/fresh res -Int
+                     (-eq (-lexp (-id-path (cons 0 0)))
+                          (-lexp (-id-path (cons 1 0))
+                                 (-id-path (cons 1 1)))))))
+    (make-DepFun
+     (list -Int -Int)
+     -tt
+     (-values
+      (-refine/fresh res -Int
+                     (-eq (-lexp (-id-path (cons 0 0)))
+                          (-lexp (-id-path (cons 1 0))
+                                 (-id-path (cons 1 1)))))))]
+   [FAIL
+    (-> -Int -Int -Int)
+    (make-DepFun
+     (list -Int -Int)
+     -tt
+     (-values
+      (-refine/fresh res -Int
+                     (-eq (-lexp (-id-path (cons 0 0)))
+                          (-lexp (-id-path (cons 1 0))
+                                 (-id-path (cons 1 1)))))))]
+   [(-> -Int -Int -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)]
+   [FAIL
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)
+    (-> -Int -Int -Int)]
+   [(-> -Int -Int -Int)
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-eq (-lexp (-id-path y))
+                      (-lexp (-id-path x)))
+           -Int)]
+   [FAIL
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-eq (-lexp (-id-path y))
+                      (-lexp (-id-path x)))
+           -Int)
+    (-> -Int -Int -Int)]
+   [(-> -Int -Int -Int)
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-leq (-lexp (-id-path x))
+                       (-lexp (-id-path y)))
+           -Int)]
+   [(dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-leq (-lexp (-id-path x))
+                       (-lexp (-id-path y)))
+           -Int)
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-lt (-lexp (-id-path x))
+                      (-lexp (-id-path y)))
+           -Int)]
+   [FAIL
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-lt (-lexp (-id-path x))
+                      (-lexp (-id-path y)))
+           -Int)
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-leq (-lexp (-id-path x))
+                       (-lexp (-id-path y)))
+           -Int)]
+   [(dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-leq (-lexp (-id-path x))
+                                      (-lexp (-id-path n))))])
+           -Int)
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-lt (-lexp (-id-path x))
+                      (-lexp (-id-path y)))
+           -Int)]
+   [(dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-leq (-lexp (-id-path x))
+                       (-lexp (-id-path y)))
+           -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-lt (-lexp (-id-path x))
+                                     (-lexp (-id-path n))))])
+           -Int)]
+   [FAIL
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-lt (-lexp (-id-path x))
+                      (-lexp (-id-path y)))
+           -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-leq (-lexp (-id-path x))
+                                      (-lexp (-id-path n))))])
+           -Int)]
+   [FAIL
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-lt (-lexp (-id-path x))
+                                     (-lexp (-id-path n))))])
+           -Int)
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-leq (-lexp (-id-path x))
+                       (-lexp (-id-path y)))
+           -Int)]
+   [(dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-leq (-lexp (-id-path n))
+                                      (-lexp (-id-path x))))])
+           -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)]
+   [FAIL
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-leq (-lexp (-id-path n))
+                                      (-lexp (-id-path x))))])
+           -Int)]
+   [(dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-eq (-lexp (-id-path x))
+                      (-lexp (-id-path y)))
+           (-refine/fresh res -Int
+                          (-eq (-lexp (-id-path res))
+                               (-lexp (-id-path x)
+                                      (-id-path x)))))
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           (-refine/fresh res -Int
+                          (-eq (-lexp (-id-path res))
+                               (-lexp (-id-path x)
+                                      (-id-path y)))))]
+   [FAIL
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-leq (-lexp (-id-path n))
+                                      (-lexp (-id-path x))))])
+           (-refine/fresh res -Int
+                          (-leq (-lexp (-id-path res))
+                                (-lexp (-id-path x)))))
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-leq (-lexp (-id-path n))
+                                      (-lexp (-id-path x))))])
+           (-refine/fresh res -Int
+                          (-eq (-lexp (-id-path res))
+                               (-lexp (-id-path x)))))]))
 
 (define tests
   (test-suite
@@ -719,4 +920,5 @@
    oo-tests
    values-tests
    other-tests
-   refinement-tests))
+   refinement-tests
+   dependent-function-tests))

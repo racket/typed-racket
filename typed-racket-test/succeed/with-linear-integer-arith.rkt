@@ -1,4 +1,4 @@
-#lang typed/racket #:with-linear-integer-arithmetic
+#lang typed/racket #:with-refinements
 
 
 (provide add-to-one)

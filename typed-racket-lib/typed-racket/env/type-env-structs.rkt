@@ -2,13 +2,13 @@
 
 (require racket/match
          syntax/id-table
-         racket/sequence
          (except-in "../utils/utils.rkt" env)
          (contract-req)
          ;; dict ops only used for convenient printing
          ;; (e.g. performance is irrelevant)
          (only-in racket/dict dict->list dict-map)
          (rep core-rep object-rep)
+         (types numeric-tower)
          (for-syntax racket/base syntax/parse))
 
 (require-for-cond-contract (rep type-rep prop-rep))
@@ -79,12 +79,19 @@
      (syntax/loc stx
        (let ([cur-env (lexical-env)]
              [ids ids-expr]
-             [ts ts-expr])
-         (with-lexical-env
-             (env-replace-props
-              (env-extend/bindings cur-env ids ts #f)
-              (append ps (env-props cur-env)))
-           . body)))]))
+             [initial-ts ts-expr])
+         (let-values ([(ts pss)
+                       (for/lists (_1 _2)
+                         ([id (in-list ids)]
+                          [t (in-list initial-ts)])
+                         (extract-props (-id-path id) t))])
+           (with-lexical-env
+               (env-replace-props
+                (env-extend/bindings cur-env ids ts #f)
+                (append (apply append pss)
+                        ps
+                        (env-props cur-env)))
+             . body))))]))
 
 
 (define (env-replace-props e props)

@@ -598,8 +598,129 @@
             (λ (c) (c 120))
             (λ (_) 50)
             #:typed))
-
    (t/fail (-refine/fresh p (-pair Univ Univ) (-is-type (-car-of  (-id-path p)) (-vec Univ)))
            "proposition contract generation not supported for non-flat types")
    (t/fail (-refine/fresh p (-pair Univ Univ) (-not-type (-car-of  (-id-path p)) (-vec Univ)))
-           "proposition contract generation not supported for non-flat types")))
+           "proposition contract generation not supported for non-flat types")
+   
+   ;; dependent functions // typed
+   
+   ;; identity on Integers
+   (t-int (dep-> ([x : -Int])
+                 (-refine/fresh n -Int (-eq (-lexp n) (-lexp x))))
+          (λ (c) (c (random 100)))
+          (λ (x) x)
+          #:typed)
+   ;; Int plus
+   (t-int (dep-> ([x : -Int]
+                  [y : -Int])
+                 (-refine/fresh n -Int (-eq (-lexp n)
+                                            (-lexp x y))))
+          (λ (c) (c (random -100 100) (random -100 100)))
+          (λ (x y) (+ x y))
+          #:typed)
+   ;; Nat Plus
+   (t-int (dep-> ([x : -Nat]
+                  [y : -Nat])
+                 (-refine/fresh n -Nat (-eq (-lexp n)
+                                            (-lexp x y))))
+          (λ (c) (c (random 100) (random 100)))
+          (λ (x y) (+ x y))
+          #:typed)
+   ;; tautilogical <=
+   (t-int (dep-> ([x : -Nat]
+                  [y : (-refine/fresh n -Nat (-leq (-lexp x)
+                                                   (-lexp n)))])
+                 -True)
+          (λ (c) (c 0 0))
+          (λ (x y) (<= x y))
+          #:typed)
+   (t-int (dep-> ([x : -Nat]
+                  [y : (-refine/fresh n -Nat (-leq (-lexp x)
+                                                   (-lexp n)))])
+                 -True)
+          (λ (c) (c 0 1))
+          (λ (x y) (<= x y))
+          #:typed)
+   ;; safe vector-ref
+   (t-int (-poly (a) (dep-> ([v : (-vec a)]
+                             [n : (-refine/fresh n -Nat (-leq (-lexp n)
+                                                              (-lexp (-vec-len-of (-id-path v)))))])
+                            a))
+          (λ (c) (c (vector 1 2) 0))
+          (λ (v n) (vector-ref v n))
+          #:typed)
+   (t-int/fail (dep-> ([x : -Nat]
+                       [y : (-refine/fresh n -Nat (-leq (-lexp x)
+                                                        (-lexp n)))])
+                      -True)
+               (λ (c) (c 1 0))
+               (λ (x y) #t)
+               #:typed
+               #:msg #rx"expected:.*(and/c Natural.*).*given:.*0")
+   (t-int/fail (-poly (a) (dep-> ([v : (-vec a)]
+                                  [n : (-refine/fresh n -Nat (-leq (-lexp n)
+                                                                   (-lexp (-vec-len-of (-id-path v)))))])
+                                 a))
+               (λ (c) (c (vector 1 2) -1))
+               (λ (v n) (vector-ref v n))
+               #:typed
+               #:msg #rx"expected:.*(and/c Natural.*).*given:.*-1")
+
+   ;; dependent functions // untyped
+   
+   ;; identity on Integers
+   (t-int (dep-> ([x : -Int])
+                 (-refine/fresh n -Int (-eq (-lexp n) (-lexp x))))
+          (λ (c) (c (random 100)))
+          (λ (x) x)
+          #:untyped)
+   ;; Int plus
+   (t-int (dep-> ([x : -Int]
+                  [y : -Int])
+                 (-refine/fresh n -Int (-eq (-lexp n)
+                                            (-lexp x y))))
+          (λ (c) (c (random -100 100) (random -100 100)))
+          (λ (x y) (+ x y))
+          #:untyped)
+   ;; Nat Plus
+   (t-int (dep-> ([x : -Nat]
+                  [y : -Nat])
+                 (-refine/fresh n -Nat (-eq (-lexp n)
+                                            (-lexp x y))))
+          (λ (c) (c (random 100) (random 100)))
+          (λ (x y) (+ x y))
+          #:untyped)
+   ;; tautilogical <=
+   (t-int (dep-> ([x : -Nat]
+                  [y : (-refine/fresh n -Nat (-leq (-lexp x)
+                                                   (-lexp n)))])
+                 -True)
+          (λ (c) (c 0 0))
+          (λ (x y) (<= x y))
+          #:untyped)
+   (t-int (dep-> ([x : -Nat]
+                  [y : (-refine/fresh n -Nat (-leq (-lexp x)
+                                                   (-lexp n)))])
+                 -True)
+          (λ (c) (c 0 1))
+          (λ (x y) (<= x y))
+          #:untyped)
+   ;; safe vector-ref
+   (t-int (-poly (a) (dep-> ([v : (-vec a)]
+                             [n : (-refine/fresh n -Nat (-leq (-lexp n)
+                                                              (-lexp (-vec-len-of (-id-path v)))))])
+                            -True))
+          (λ (c) (c (vector 1 2) 0))
+          (λ (v n) #t)
+          #:untyped)
+   (t-int/fail (dep-> ([x : -Nat]
+                       [y : (-refine/fresh n -Nat (-leq (-lexp x)
+                                                        (-lexp n)))])
+                      -True)
+               (λ (c) (c 0 1))
+               (λ (x y) #f)
+               #:untyped
+               #:msg #rx"promised:.*#t.*produced:.*#f")
+   
+   ))

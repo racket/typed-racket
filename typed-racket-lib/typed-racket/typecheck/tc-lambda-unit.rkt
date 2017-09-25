@@ -269,9 +269,10 @@
                         body))])]))
 
 
-;; positional: natural? - the number of positional arguments
-;; rest: boolean? - if there is a positional argument
+;; positional: (listof identifier?)
+;; rest: id or #f
 ;; syntax: syntax? - the improper syntax list of identifiers
+;; (i.e. (append positional (or id '())) but syntax)
 (struct formals (positional rest syntax) #:transparent)
 
 (define (make-formals stx)
@@ -406,12 +407,47 @@
                        (tc/lambda-clause/check
                         f* b* dom (values->tc-results rng (formals->objects f*)) rst)]))])))))
 
-(define (tc/mono-lambda/type formals bodies expected)
-  (make-Fun
-    (tc/mono-lambda
-      (for/list ([f (in-syntax formals)] [b (in-syntax bodies)])
-         (list (make-formals f) b))
-      expected)))
+(define (tc/dep-lambda formalss-stx bodies-stx dep-fun-ty)
+  (parameterize ([with-refinements? #t])
+    (match-define (DepFun: raw-dom raw-pre raw-rng) dep-fun-ty)
+    (define formalss (stx-map make-formals formalss-stx))
+    (define bodies (syntax->list bodies-stx))
+    (match* (formalss bodies)
+      [((list fs) (list body))
+       (cond
+         [(not (= (length (formals-positional fs))
+                  (length raw-dom)))
+          (tc-error/expr #:return dep-fun-ty
+                         (format "Expected ~a positional arguments, given ~a."
+                                 (length raw-dom)
+                                 (length (formals-positional fs))))]
+         [(formals-rest fs)
+          (tc-error/expr #:return dep-fun-ty
+                         "Dependent functions do not currently support rest arguments.")]
+         [else
+          (define arg-names (formals-positional fs))
+          (define dom (for/list ([d (in-list raw-dom)])
+                        (instantiate-obj d arg-names)))
+          (define pre (instantiate-obj raw-pre arg-names))
+          (with-naively-extended-lexical-env
+              [#:identifiers arg-names
+               #:types dom
+               #:props (list pre)]
+            (tc-body/check body (values->tc-results raw-rng (map -id-path arg-names))))
+          dep-fun-ty])]
+      [(fs bs)
+       (tc-error/expr #:return dep-fun-ty
+                      "Dependent functions must have a single arity.")])))
+
+(define (tc/mono-lambda/type formalss bodies expected)
+  (match expected
+    [(tc-result1:(? DepFun? dep-fun-ty))
+     (tc/dep-lambda formalss bodies dep-fun-ty)]
+    [_ (make-Fun
+        (tc/mono-lambda
+         (for/list ([f (in-syntax formalss)] [b (in-syntax bodies)])
+           (list (make-formals f) b))
+         expected))]))
 
 (define (plambda-prop stx)
   (define d (plambda-property stx))

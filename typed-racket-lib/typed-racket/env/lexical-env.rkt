@@ -35,7 +35,7 @@
                                      (or/c Type? #f))]
  [lookup-alias/lexical ((identifier?) (env?) . ->* . (or/c Path? Empty?))])
 
-
+;; used at the top level
 (define (add-props-to-current-lexical! ps)
   (lexical-env (env-replace-props (lexical-env) (append ps (env-props (lexical-env))))))
 
@@ -45,22 +45,23 @@
   (syntax-parse stx
     [(_ [#:identifiers ids:expr
          #:types tys:expr
-         (~optional (~seq #:aliased-objects objs:expr)
-                    #:defaults ([objs #'#f]))]
+         (~optional (~seq #:aliased-objects aliased-objects:expr)
+                    #:defaults ([aliased-objects #'#f]))]
         . body)
      (syntax/loc stx
        (let ([cur-env (lexical-env)]
              [idents ids]
-             [types tys])
-         (let ([ps (apply
-                    append
-                    (for*/list ([(id ty) (in-parallel (in-list idents) (in-list types))]
-                                [props (in-value (extract-props (-id-path id) ty))]
-                                #:unless (null? props))
-                      props))])
+             [types tys]
+             [objs aliased-objects])
+         (let*-values ([(ts pss)
+                        (for/lists (_1 _2) ([id (in-list idents)]
+                                            [ty (in-list types)]
+                                            [obj (in-list/rest (or objs '()) #f)])
+                          (extract-props (or obj (-id-path id)) ty))]
+                       [(ps) (apply append pss)])
            (with-lexical-env
                (env-replace-props
-                (env-extend/bindings cur-env ids tys objs)
+                (env-extend/bindings cur-env ids ts objs)
                 (append ps (env-props cur-env)))
              . body))))]))
 
@@ -98,16 +99,21 @@
 
 (define (lookup-obj-type/lexical obj [env (lexical-env)] #:fail [fail #f])
   (match obj
-    [(Path: pes (? identifier? x))
-     (or (path-type pes (lookup-id-type/lexical x env #:fail fail))
-         Univ)]
-    [(Path: '() _)
-     (env-lookup-obj env obj (λ (_) Univ))]
-    [(Path: pes nm)
-     (define nm-ty (env-lookup-obj env (-id-path nm) (λ (_) Univ)))
-     (or (path-type pes nm-ty)
-         Univ)]
-    [_ (env-lookup-obj env obj (λ (obj) (if (LExp? obj) -Int Univ)))]))
+    [(Path: pes x)
+     #:when (not (ormap uninterpreted-PE? pes))
+     (cond
+       [(identifier? x)
+        (or (path-type pes (lookup-id-type/lexical x env #:fail fail))
+            Univ)]
+       [else
+        (define nm-ty (env-lookup-obj env (-id-path x) (λ (_) Univ)))
+        (or (path-type pes nm-ty)
+            Univ)])]
+    [_
+     (env-lookup-obj env obj (λ (obj) (match obj
+                                        [(Path: (cons (? VecLenPE?) _) _) -Index]
+                                        [(? LExp?) -Int]
+                                        [_ (and fail (fail obj))])))]))
 
 ;; looks up the representative object for an id (i.e. itself or an alias if one exists)
 (define (lookup-alias/lexical i [env (lexical-env)])

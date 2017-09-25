@@ -21,6 +21,12 @@
  [values->tc-results (->* (SomeValues? (listof OptObject?))
                           ((listof Type?))
                           full-tc-results/c)]
+ [values->tc-results/explicit-subst
+  (-> SomeValues?
+      (listof (cons/c exact-nonnegative-integer?
+                      (cons/c OptObject?
+                              Type?)))
+      full-tc-results/c)]
  [erase-identifiers (-> tc-results/c
                         (listof identifier?)
                         tc-results/c)])
@@ -33,16 +39,19 @@
 ;;       De Bruijn indices) as those indices will NOT be updated if they
 ;;        are substituted under binders.
 (define (values->tc-results v objs [types '()])
+  (values->tc-results/explicit-subst
+   v
+   (for/list ([o (in-list objs)]
+              [t (in-list/rest types Univ)]
+              [idx (in-naturals)])
+     (list* idx o t))))
+
+(define (values->tc-results/explicit-subst v subst)
   (define res->tc-res
     (match-lambda
       [(Result: t ps o) (-tc-result t ps o)]))
   
-  (define mapping (for/list ([o (in-list objs)]
-                             [t (in-list/rest types Univ)]
-                             [idx (in-naturals)])
-                    (list* idx o t)))
-  
-  (match (instantiate-obj+simplify v mapping)
+  (match (instantiate-obj+simplify v subst)
     [(AnyValues: p)
      (-tc-any-results p)]
     [(Values: rs)
@@ -71,6 +80,11 @@
                    (and rst (subst rst))
                    (map subst kws)
                    (subst/lvl rng (add1 lvl)))]
+      [(DepFun: dom pre rng)
+       (make-DepFun (for/list ([d (in-list dom)])
+                      (subst/lvl d (add1 lvl)))
+                    (subst/lvl pre (add1 lvl))
+                    (subst/lvl rng (add1 lvl)))]
       [(Intersection: ts raw-prop)
        (-refine (make-Intersection (map subst ts))
                 (subst/lvl raw-prop (add1 lvl)))]

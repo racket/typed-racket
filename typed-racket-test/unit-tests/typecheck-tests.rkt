@@ -46,7 +46,7 @@
     (rename-in (types prop-ops tc-result printer subtype) [ret raw-ret])
     syntax/parse
     (for-template (only-in typed-racket/typed-racket do-standard-inits))
-    (typecheck typechecker check-below)
+    (typecheck typechecker check-below tc-metafunctions)
     (utils mutated-vars tc-utils)
     (env lexical-env mvar-env))
   (provide
@@ -71,9 +71,9 @@
         (tc-expr/check expr expected)
         (tc-expr expr)))
 
-
-  (define (check-tc-results result golden #:name name)
-    (unless (tc-result-equal/test? golden result)
+  (define (check-tc-results raw-result golden #:name name)
+    (define result (erase-existentials raw-result))
+    (unless (tc-results-compat/test? result golden)
       (define base-message (format "~a did not return the expected value." name))
 
       (define extra-message
@@ -405,7 +405,8 @@
         (tc-e (fx- (ann 1000 Fixnum) 1) -Fixnum)
         (tc-e (fx- (ann 1000 Nonnegative-Fixnum) 1) -Fixnum)
         (tc-e (fx- (ann 1000 Positive-Fixnum) 1) -NonNegFixnum)
-        (tc-e (fx- (ann 1000 Exact-Positive-Integer) 1) -NonNegFixnum)
+        (tc-e (fx- (ann 1000 Exact-Positive-Integer) 1)
+              #:ret (ret -NonNegFixnum #f #f))
 
 
         (tc-e (*) -One)
@@ -477,7 +478,8 @@
         (tc-e (sinh (ann 0 Nonpositive-Integer)) -NonPosReal)
         (tc-e (angle -1) (t:Un -InexactReal -Zero))
         (tc-e (angle 2.3) -Zero)
-        (tc-e/t (magnitude 3/4) -PosRat)
+        (tc-e (magnitude 3/4)
+              #:ret (ret -PosRat #f #f))
         (tc-e (magnitude 3+2i) -NonNegReal)
         (tc-e (min (ann 3 Fixnum) (ann 3 Fixnum)) -Fixnum)
         (tc-e (min (ann -2 Negative-Fixnum) (ann 3 Fixnum)) -NegFixnum)
@@ -705,7 +707,8 @@
                     14))
               -PosByte]
 
-        [tc-e (car (append (list 1 2) (list 3 4))) -PosByte]
+        [tc-e (car (append (list 1 2) (list 3 4)))
+              #:ret (ret -PosByte #f #f)]
         [tc-e (append '(1) '(2 3)) (-pair -PosByte (-lst -PosByte))]
 
         [tc-e
@@ -852,7 +855,8 @@
                       'foo))
                 (t:Un (-val 'foo) (-pair Univ (-lst Univ)))]
 
-        [tc-e (cadr (cadr (list 1 (list 1 2 3) 3))) -PosByte]
+        [tc-e (cadr (cadr (list 1 (list 1 2 3) 3)))
+              #:ret (ret -PosByte #f #f)]
 
 
 
@@ -873,7 +877,7 @@
         [tc-e (let: ([x : Any 3])
                     (set! x '(1 2 3))
                     (if (number? x) x 2))
-              Univ]
+              #:ret (ret Univ #f #f)]
 
         ;; or tests - doesn't do anything good yet
 
@@ -1210,7 +1214,7 @@
                        (if (number? x)
                            (begin (f) (add1 x))
                            12))
-          #:ret (tc-ret -PosByte -true-propset)]
+          #:ret (ret -PosByte #f #f)]
 
         [tc-err (ann 3 (Rec a a))]
         [tc-err (ann 3 (Rec a (U a 3)))]
@@ -1803,9 +1807,9 @@
               #:ret (tc-ret -Boolean -true-propset))
 
         (tc-e (car (process "hello"))
-              -Input-Port)
+              #:ret (ret -Input-Port #f #f))
         (tc-e (car (process* "hello"))
-              -Input-Port)
+              #:ret (ret -Input-Port #f #f))
 
         #;
         (tc-e (let ()
@@ -2118,7 +2122,7 @@
                 (t:-> -Boolean (-val #t))]
 
         [tc-e (sequence? (ann 'foo Any))
-              -Boolean]
+              #:ret (ret -Boolean #f #f)]
         [tc-err (stop-before (inst empty-sequence Symbol) zero?)]
         [tc-e (stop-before (inst empty-sequence Integer) zero?)
               (-seq -Int)]
@@ -2766,9 +2770,9 @@
        ;; get right in the expected result type and polymorphic types are
        ;; harder to test for equality.
        [tc-e ((inst (tr:lambda #:forall (A) (x [y : A]) y) String) 'a "foo")
-             #:ret (tc-ret -String -true-propset)]
+             #:ret (ret -String #f #f)]
        [tc-e ((inst (tr:lambda #:∀ (A) (x [y : A]) y) String) 'a "foo")
-             #:ret (tc-ret -String -true-propset)]
+             #:ret (ret -String #f #f)]
        [tc-e ((inst (tr:lambda #:forall (A ...) (x . [rst : A ... A]) rst) String) 'a "foo")
              (-lst* -String)]
        #| FIXME: does not work yet, TR thinks the type variable is unbound
@@ -2802,9 +2806,9 @@
        [tc-e (let ([y 'y] [x : String "foo"]) (string-append x "bar"))
              -String]
        [tc-e (let #:forall (A) ([x : A "foo"]) x)
-             #:ret (tc-ret -String -true-propset)]
+             #:ret (ret -String #f #f)]
        [tc-e (let #:forall (A) ([y 'y] [x : A "foo"]) x)
-             #:ret (tc-ret -String -true-propset)]
+             #:ret (ret -String #f #f)]
        [tc-e/t (let* ([x "foo"]) x) -String]
        [tc-e (let* ([x : String "foo"]) (string-append x "bar"))
              -String]
@@ -2841,9 +2845,9 @@
                (string-append x y))
              -String]
        [tc-e (let loop ([x "x"]) x)
-             #:ret (tc-ret -String -true-propset)]
+             #:ret (ret -String #f #f)]
        [tc-e (let loop ([x : String "x"]) x)
-             #:ret (tc-ret -String -true-propset)]
+             #:ret (ret -String #f #f)]
        [tc-e (let/cc k "foo") -String]
        [tc-e (let/ec k "foo") -String]
        [tc-e (let/cc k : String (k "foo")) -String]
@@ -3183,7 +3187,7 @@
        [tc-err
          (let ([f (lambda (x y) y)])
            (f 1 2 3))
-         #:ret (tc-ret -PosByte)]
+         #:ret (ret -PosByte #f #f)]
 
        [tc-err
          (case-lambda
@@ -3788,9 +3792,12 @@
          (lambda: ([x : Byte]) (if (< 0 x) x 1))
          (t:-> -Byte -PosByte : (-PS (-is-type (cons 0 0) -Byte) -ff))]
 
-       [tc-e/t ((inst values Any) "a") -String]
-       [tc-e ((inst second Any Any Any) (list "a" "b")) -String]
-       [tc-e/t (abs 4) -PosByte]
+       [tc-e ((inst values Any) "a")
+               #:ret (ret -String #f #f)]
+       [tc-e ((inst second Any Any Any) (list "a" "b"))
+             #:ret (ret -String #f #f)]
+       [tc-e (abs 4)
+             #:ret (ret -PosByte #f #f)]
        [tc-e (abs -0.0) -FlonumZero]
 
        ;; PR 125: Tests for flonum predicate typechecking
@@ -4021,6 +4028,182 @@
                                            [i : Natural (in-naturals)])
                i)
              (-lst -Nat)]
+       ;; dependent function type basics
+       [tc-e (let ()
+               (: safe-ref (-> ([v : (Vectorof Any)]
+                                [i : Natural])
+                               #:pre (i v) (< i (vector-length v))
+                               Any))
+               (define (safe-ref a b)
+                 (vector-ref a b))
+               (void))
+             -Void]
+       [tc-e (let ()
+               (: sum-ref (-> ([v : (Vectorof Number)]
+                               [i : Natural]
+                               [j : Natural])
+                                 #:pre (i j v) (and (< i (vector-length v))
+                                                    (< i j (vector-length v)))
+                              Any))
+               (define (sum-ref v a b)
+                 (+ (vector-ref v a)
+                    (vector-ref v b)))
+               (void))
+             -Void]
+       ;; ensure currently unsupported functions error for DFun types
+       [tc-err (let ()
+                 (: safe-ref (-> ([v : (Vectorof Any)]
+                                  [i : Natural])
+                                 #:pre (i v) (< i (vector-length v))
+                                 Any))
+                 (define (safe-ref a) 42)
+                 (error "unsupported"))
+               #:msg #rx"Expected 2.*given 1"]
+       [tc-err (let ()
+                 (: safe-ref (-> ([v : (Vectorof Any)]
+                                  [i : Natural])
+                                 #:pre (i v) (< i (vector-length v))
+                                 Any))
+                 (define (safe-ref a b c) 42)
+                 (error "unsupported"))
+               #:msg #rx"Expected 2.*given 3"]
+       [tc-err (let ()
+                 (: safe-ref (-> ([v : (Vectorof Any)]
+                                  [i : Natural])
+                                 #:pre (i v) (< i (vector-length v))
+                                 Any))
+                 (define (safe-ref a b [c 42]) 42)
+                 (error "unsupported"))
+               #:msg #rx"single arity"]
+       [tc-err (let ()
+                 (: safe-ref (-> ([v : (Vectorof Any)]
+                                  [i : Natural])
+                                 #:pre (i v) (< i (vector-length v))
+                                 Any))
+                 (define (safe-ref a b . c) 42)
+                 (error "unsupported"))
+               #:msg #rx"not currently support rest arguments"]
+       [tc-err (let ()
+                 (: safe-ref (-> ([v : (Vectorof Any)]
+                                  [i : Natural])
+                                 #:pre (i v) (< i (vector-length v))
+                                 Any))
+                 (define safe-ref
+                   (case-lambda
+                     [() 42]
+                     [(a b) 42]
+                     [(a b c) 42]))
+                 (error "unsupported"))
+               #:msg #rx"single arity"]
+       ;; polymorphic dependent function
+       [tc-e (let ()
+               (: safe-ref (All (A) (-> ([v : (Vectorof A)]
+                                         [i : Natural])
+                                        #:pre (i v) (< i (vector-length v))
+                                        A)))
+               (define (safe-ref xs n)
+                 (vector-ref xs n))
+               (void))
+             -Void]
+       [tc-err (let ()
+                 (: safe-ref (All (A) (-> ([v : (Vectorof A)]
+                                           [i : Natural])
+                                          #:pre (i v) (< i (vector-length v))
+                                          A)))
+                 (define (safe-ref xs n)
+                   (void))
+                 (error "unsupported"))
+               #:msg #rx"expected: A.*given: Void"]
+       ;; simple dependent function application
+       [tc-e (let ()
+               (: x Byte)
+               (define x 42)
+               (: == (-> ([x : Integer]
+                          [y : Integer])
+                         #:pre (x y) (= x y)
+                         Any))
+               (define (== a b) 'yay)
+               (== x x)
+               (void))
+             -Void]
+       [tc-e (let ()
+               (: safe-ref (-> ([v : (Vectorof Any)]
+                                [i : Natural])
+                               #:pre (i v) (< i (vector-length v))
+                               Any))
+               (define (safe-ref xs n) (error 'foo))
+               (: three-vals (-> (Refine [v : (Vectorof Any)] (= 3 (vector-length v)))))
+               (define (three-vals) (error 'bar))
+               (safe-ref (three-vals) (ann 2 (Refine [n : Natural] (= n 2))))
+               (void))
+             #:ret (ret -Void #f #f)]
+       ;; simple dep fun app w/ args of incorrect type
+       [tc-err (let ()
+                 (: x Byte)
+                 (define x 42)
+                 (: y Byte)
+                 (define y 43)
+                 (: == (-> ([x : Integer]
+                            [y : Integer])
+                           #:pre (x y) (= x y)
+                           Any))
+                 (define (== a b) 'yay)
+                 (== x y)
+                 (void))
+               #:ret (ret -Void #f #f)
+               #:msg #rx"unable to prove precondition"]
+       [tc-err (let ()
+                 (: safe-ref (-> ([v : (Vectorof Any)]
+                                  [i : Natural])
+                                 #:pre (i v) (< i (vector-length v))
+                                 Any))
+                 (define (safe-ref xs n) (error 'foo))
+                 (: three-vals (-> (Refine [v : (Vectorof Any)] (= 3 (vector-length v)))))
+                 (define (three-vals) (error 'bar))
+                 (safe-ref (three-vals) (ann 3 (Refine [n : Natural] (= n 3))))
+                 (void))
+               #:ret (ret -Void #f #f)
+               #:msg #rx"unable to prove precondition"]
+       ;; polymorphic dependent function application
+       [tc-e (let ()
+               (: safe-ref (All (A) (-> ([v : (Vectorof A)]
+                                         [i : Natural])
+                                        #:pre (i v) (< i (vector-length v))
+                                        A)))
+               (define (safe-ref xs n) (error 'foo))
+               (: three-syms (-> (Refine [v : (Vectorof Symbol)] (= 3 (vector-length v)))))
+               (define (three-syms) (error 'bar))
+               (safe-ref (three-syms) (ann 2 (Refine [n : Natural] (= n 2)))))
+             #:ret (ret -Symbol #f #f)]
+       [tc-err (let ()
+                 (: safe-ref (All (A) (-> ([v : (Vectorof A)]
+                                           [i : Natural])
+                                          #:pre (i v) (< i (vector-length v))
+                                          A)))
+                 (define (safe-ref xs n) (error 'foo))
+                 (: three-syms (-> (Refine [v : (Vectorof Symbol)] (= 3 (vector-length v)))))
+                 (define (three-syms) (error 'bar))
+                 (safe-ref (three-syms) (ann 3 (Refine [n : Natural] (= n 3)))))
+               #:ret (ret -Symbol #f #f)
+               #:msg #rx"unable to prove precondition"]
+       [tc-e (let ()
+               (: foo (-> VectorTop Byte))
+               (define (foo vec)
+                 (define len (vector-length vec))
+                 (cond
+                   [(< len 42) len]
+                   [else 42]))
+               (void))
+             -Void]
+       [tc-e (let ()
+               (: foo (-> (Pairof VectorTop Any) Byte))
+               (define (foo vec/any)
+                 (define len (vector-length (car vec/any)))
+                 (cond
+                   [(< len 42) len]
+                   [else 42]))
+               (void))
+             -Void]
        )
 
   (test-suite

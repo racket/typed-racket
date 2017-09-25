@@ -21,6 +21,7 @@
 
 (lazy-require
  ("../infer/infer.rkt" (infer))
+ ("prop-ops.rkt" (-and))
  ("../typecheck/tc-subst.rkt" (instantiate-obj+simplify))
  ("../typecheck/tc-envops.rkt" (env+ implies-in-env?)))
 
@@ -200,11 +201,11 @@
 ;; simple co/contra-variance for ->
 (define (arrow-subtype* A arr1 arr2)
   (match* (arr1 arr2)
-    [((Arrow: dom1 rst1 kws1 rng1)
-      (Arrow: dom2 rst2 kws2 rng2))
+    [((Arrow: dom1 rst1 kws1 raw-rng1)
+      (Arrow: dom2 rst2 kws2 raw-rng2))
      (define A* (subtype-seq A
                              (rest-arg-subtype* rst1 rst2)
-                             (subtypes*/varargs dom2 dom1 rst1)
+                             (subtypes*/varargs dom2 dom1 rst1 #f)
                              (kw-subtypes* kws1 kws2)))
      (cond
        [(not A*) #f]
@@ -217,9 +218,45 @@
                        [t (in-list/rest dom2 (or rst2 Univ))])
               (list* idx id t)))
           (subval* A*
-                   (instantiate-obj+simplify rng1 mapping)
-                   (instantiate-obj rng2 ids)))])]))
+                   (instantiate-obj+simplify raw-rng1 mapping)
+                   (instantiate-obj raw-rng2 ids)))])]))
 
+
+;; is an Arrow a subtype of a DepFun?
+;; more or less the following:
+;;        ⊢ T3 <: T1
+;; x : T3 ⊢ T2 <: T4
+;; -----------------------
+;; ⊢ (T1 → T2) <: (x:T3)→T4
+(define (arrow-subtype-dfun* A arrow dfun)
+  (match* (arrow dfun)
+    [((Arrow:  dom1     rst1 kws1 raw-rng1)
+      (DepFun: raw-dom2 raw-pre2  raw-rng2))
+     (define arity (max (length dom1) (length raw-dom2)))
+     (with-fresh-ids arity ids
+       (define dom2 (for/list ([d (in-list raw-dom2)])
+                      (instantiate-obj d ids)))
+       (define pre2 (instantiate-obj raw-pre2 ids))
+       (define A* (subtype-seq A
+                               (rest-arg-subtype* rst1 #f)
+                               (subtypes*/varargs dom2 dom1 rst1 (map -id-path ids))
+                               (kw-subtypes* kws1 '())))
+       (cond
+         [(not A*) #f]
+         [else
+          (define-values (mapping t2s)
+            (for/lists (_1 _2)
+              ([idx (in-range arity)]
+               [id (in-list ids)]
+               [t (in-list/rest dom2 Univ)])
+              (values (list* idx id t) t)))
+          (with-naively-extended-lexical-env
+              [#:identifiers ids
+               #:types t2s
+               #:props (list pre2)]
+            (subval* A*
+                     (instantiate-obj+simplify raw-rng1 mapping)
+                     (instantiate-obj raw-rng2 ids)))]))]))
 
 ;;************************************************************
 ;; Prop 'Subtyping'
@@ -242,22 +279,44 @@
     [(_ _) #f]))
 
 (define (subtypes/varargs args dom rst)
-  (and (subtypes*/varargs null args dom rst) #t))
+  (and (subtypes*/varargs null args dom rst #f) #t))
 
-(define (subtypes*/varargs A argtys dom rst)
-  (let loop-varargs ([dom dom] [argtys argtys] [A A])
+; subtypes*/varargs : list?
+;                     (listof Type)
+;                     (listof Type)
+;                     (or/c #f Type)
+;                     (or/c #f (listof Object))
+; ->
+; list? or #f
+(define (subtypes*/varargs A argtys dom rst argobjs)
+  (let loop-varargs ([dom dom]
+                     [argtys argtys]
+                     [argobjs argobjs]
+                     [A A])
     (cond
       [(not A) #f]
       [(and (null? dom) (null? argtys)) A]
       [(null? argtys) #f]
       [(and (null? dom) rst)
        (cond
-         [(subtype* A (car argtys) rst)
-          => (λ (A) (loop-varargs dom (cdr argtys) A))]
+         [(subtype* A
+                    (car argtys)
+                    rst
+                    (and argobjs (car argobjs)))
+          => (λ (A) (loop-varargs dom
+                                  (cdr argtys)
+                                  (and argobjs (cdr argobjs))
+                                  A))]
          [else #f])]
       [(null? dom) #f]
-      [(subtype* A (car argtys) (car dom))
-       => (λ (A) (loop-varargs (cdr dom) (cdr argtys) A))]
+      [(subtype* A
+                 (car argtys)
+                 (car dom)
+                 (and argobjs (car argobjs)))
+       => (λ (A) (loop-varargs (cdr dom)
+                               (cdr argtys)
+                               (and argobjs (cdr argobjs))
+                               A))]
       [else #f])))
 
 
@@ -363,9 +422,18 @@
     (parameterize ([temp-objs seq])
       . body)))
 
-;; the algorithm for recursive types transcribed directly from TAPL, pg 305
-;; List[(cons Number Number)] type type -> List[(cons Number Number)] or #f
-;; is s a subtype of t, taking into account previously seen pairs A
+
+;; the algorithm for subtyping for recursive types,
+;; initially transcribed directly from TAPL, pg 305
+;; and since then heavily added to
+;;
+;; List[(cons Number Number)] Type Type (Object or #f)
+;; -> List[(cons Number Number)] or #f
+;; 
+;; is t1 a subtype of t2, taking into account previously seen pairs A,
+;; and given that we are inquiring about Object 'obj' (relevant when
+;; the types include refinements which may be proven by propositions
+;; in the current lexical environment)
 ;;
 ;; <><NOTE><> the seen list (A) should be updated for the following
 ;; types as they are encountered:
@@ -383,8 +451,8 @@
     [else
      ;; first we check on a few t2 cases
      ;; that need to come early during checking
-     (match t2
-       [(Intersection: t2s raw-prop)
+     (match* (obj t2)
+       [(_ (Intersection: t2s raw-prop))
         (let ([A (for/fold ([A A])
                            ([t2 (in-list t2s)]
                             #:break (not A))
@@ -397,14 +465,55 @@
                                       (-is-type obj t1)
                                       prop)))
                A))]
-       [(? resolvable?)
+       [(_ (? resolvable?))
         (let ([A (remember t1 t2 A)])
           (with-updated-seen A
             (let ([t2 (resolve-once t2)])
               ;; check needed for if a name that hasn't been resolved yet
               (and (Type? t2) (subtype* A t1 t2 obj)))))]
-       [_ ;; otherwise we case on t1
+       [((? Object? obj) (app int-type->provable-range
+                              (cons lower-bound upper-bound)))
+        #:when (and (with-refinements?)
+                    (subtype* A t1 -Int obj)
+                    (provable-int-subtype? A t1 lower-bound upper-bound obj))
+        A]
+       [(_ _) ;; otherwise we case on t1
         (subtype-cases A t1 t2 obj)])]))
+
+
+
+;; if obj ∈ t1, can we prove 'lower-bound <= obj' and 'obj <= upper-bound'? 
+(define (provable-int-subtype? A t1 lower-bound upper-bound obj)
+  (define lower-ineq
+    (cond
+      [lower-bound (-leq (-lexp lower-bound)
+                         (-lexp obj))]
+      [else -tt]))
+  (define upper-ineq
+    (cond
+      [upper-bound (-leq (-lexp obj)
+                         (-lexp upper-bound))]
+      [else -tt]))
+  (cond
+    ;; at least one inequality was a contradiction, fail!
+    [(or (FalseProp? lower-ineq) (FalseProp? upper-ineq)) #f]
+    ;; both inequalities were trivially true, succeed!
+    [(and (TrueProp? lower-ineq) (TrueProp? upper-ineq)) A]
+    [else
+     ;; otherwise we have at least one inequality that must
+     ;; be provable for subtyping to hold
+     (define-values (t1* extracted-props) (extract-props obj t1))
+     (define assumptions (apply -and (cons (-is-type obj t1*) extracted-props)))
+
+     (define goal
+       (match* (lower-ineq upper-ineq)
+         [((? TrueProp?) p) p]
+         [(p (? TrueProp?)) p]
+         [(_ _) (make-AndProp (list lower-ineq upper-ineq))]))
+     (implies-in-env? (lexical-env)
+                      assumptions
+                      goal)]))
+
 
 (define (continue<: A t1 t2 obj)
   (match* (t1 t2)
@@ -482,9 +591,10 @@
    (cons portable-fixnum? -NonNegFixnum)
    (cons values -Nat)))
 
+
 (define-rep-switch (subtype-cases A (#:switch t1) t2 obj)
   ;; NOTE: keep these in alphabetical order
-  ;; or ease of finding cases
+  ;; for ease of finding cases
   [(case: App _)
    (let ([A (remember t1 t2 A)])
      (with-updated-seen A
@@ -609,6 +719,70 @@
       ;; compared against evt-t here
       (subtype* A t1 evt-t)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: DepFun (DepFun: raw-dom1 raw-pre1 raw-rng1))
+   (match t2
+     [(DepFun: raw-dom2 raw-pre2 raw-rng2)
+      (cond
+        [(not (= (length raw-dom1)
+                 (length raw-dom2)))
+         #f]
+        [else
+         (with-fresh-ids (length raw-dom1) ids
+           (define dom1 (for/list ([d (in-list raw-dom1)])
+                          (instantiate-obj d ids)))
+           (define pre1 (instantiate-obj raw-pre1 ids))
+           (define rng1 (instantiate-obj raw-rng1 ids))
+           (define dom2 (for/list ([d (in-list raw-dom2)])
+                          (instantiate-obj d ids)))
+           (define pre2 (instantiate-obj raw-pre2 ids))
+           (define rng2 (instantiate-obj raw-rng2 ids))
+           (with-naively-extended-lexical-env
+               [#:identifiers ids
+                #:types dom2
+                #:props (list pre2)]
+             (define A*
+               (subtype-seq A
+                            (subtypes*/varargs dom2 dom1 #f (map -id-path ids))
+                            (subval* rng1 rng2)))
+
+             (and (implies-in-env? (lexical-env) pre2 pre1)
+                  A*)))])]
+     [(Fun: arrows2)
+      (define arity (for/fold ([arity (length raw-dom1)])
+                              ([a2 (in-list arrows2)])
+                      (max arity (length (Arrow-dom a2)))))
+      (with-fresh-ids arity ids
+        (define dom1 (for/list ([d (in-list raw-dom1)])
+                       (instantiate-obj d ids)))
+        (define pre1 (instantiate-obj raw-pre1 ids))
+        (for/fold ([A A])
+                  ([a2 (in-list arrows2)]
+                   #:break (not A))
+          (match a2
+            [(Arrow: dom2 rst2 kws2 raw-rng2)
+             (define A* (subtype-seq A
+                                     (subtypes*/varargs dom2 dom1 #f #f)
+                                     (kw-subtypes* '() kws2)))
+             (cond
+               [(not A*) #f]
+               [else
+                (define arity (max (length dom1) (length dom2)))
+                (define-values (mapping t2s)
+                  (for/lists (_1 _2)
+                    ([idx (in-range arity)]
+                     [id (in-list ids)]
+                     [t (in-list/rest dom2 (or rst2 Univ))])
+                    (values (list* idx id t) t)))
+                (with-naively-extended-lexical-env
+                    [#:identifiers ids
+                     #:types t2s]
+                  (define A-res
+                    (subval* A*
+                             (instantiate-obj+simplify raw-rng1 mapping)
+                             (instantiate-obj raw-rng2 ids)))
+                  (and (implies-in-env? (lexical-env) -tt pre1)
+                       A-res))])])))]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Distinction (Distinction: nm1 id1 t1*))
    (match t2
      [(app resolve (Distinction: nm2 id2 t2*))
@@ -632,9 +806,12 @@
      [_ (continue<: A t1 t2 obj)])]
   [(case: Fun (Fun: arrows1))
    (match* (t2 arrows1)
+     ;; special case when t1 can be collapsed into simpler arrow
      [((Fun: (list arrow2)) (app collapsable-arrows? (? Arrow? arrow1)))
-      ;; special case when lhs can be collapsed into simpler arrow
       (arrow-subtype* A arrow1 arrow2)]
+     ;; special case when t1 can be collapsed into simpler arrow
+     [((? DepFun? dfun) (app collapsable-arrows? (? Arrow? arrow1)))
+      (arrow-subtype-dfun* A arrow1 dfun)]
      [((Fun: arrows2) _)
       (cond
         [(null? arrows1) #f]
@@ -643,6 +820,9 @@
                          #:break (not A))
                 (for/or ([a1 (in-list arrows1)])
                   (arrow-subtype* A a1 a2)))])]
+     [((? DepFun? dfun) _)
+      (for/or ([a1 (in-list arrows1)])
+        (arrow-subtype-dfun* A a1 dfun))]
      [(_ _) (continue<: A t1 t2 obj)])]
   [(case: Future (Future: elem1))
    (match t2
@@ -717,20 +897,21 @@
   [(case: Intersection (Intersection: t1s _))
    (match t1
      [(Refine: t1* raw-prop)
-      (cond
-        [(Object? obj)
-         (define prop (instantiate-obj raw-prop obj))
-         (define env (env+ (lexical-env) (list prop)))
-         (cond
-           [(not env) A]
-           [else (with-lexical-env env
-                   (subtype* A t1* t2 obj))])]
-        [else
-         (with-fresh-obj obj
+      (parameterize ([with-refinements? #t])
+        (cond
+          [(Object? obj)
            (define prop (instantiate-obj raw-prop obj))
-           ;; since this is a fresh object, we will do a simpler environment extension
-           (with-naively-extended-lexical-env [#:props (list prop)]
-             (subtype* A t1* t2 obj)))])]
+           (define env (env+ (lexical-env) (list prop)))
+           (cond
+             [(not env) A]
+             [else (with-lexical-env env
+                     (subtype* A t1* t2 obj))])]
+          [else
+           (with-fresh-obj obj
+             (define prop (instantiate-obj raw-prop obj))
+             ;; since this is a fresh object, we will do a simpler environment extension
+             (with-naively-extended-lexical-env [#:props (list prop)]
+               (subtype* A t1* t2 obj)))]))]
      [_
       (cond
         [(for/or ([t1 (in-list t1s)])

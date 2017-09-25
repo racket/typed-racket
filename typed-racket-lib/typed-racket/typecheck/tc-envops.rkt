@@ -17,6 +17,7 @@
          (typecheck tc-metafunctions tc-subst))
 
 (provide with-lexical-env+props
+         with-lexical-env+props-simple
          implies-in-env?
          env+)
 
@@ -26,7 +27,7 @@
 ;; Returns #f if anything becomes (U)
 (define (env+ env ps)
   (cond
-    [(null? ps) env]
+    [(or (null? ps) (andmap TrueProp? ps)) env]
     [else
      (define-values (props atoms) (combine-props ps (env-props env)))
      (cond
@@ -37,29 +38,48 @@
                    [Γ (env-replace-props env props)])
           (match ps
             [(cons p ps)
+             ;; update-obj-pos-type : (listof Prop?) env? Object? Type? -> env or #f
+             ;; sometimes we need to update the object's type directly -- this helper
+             ;; does that and continues looping
+             (define (update-obj-pos-type new Γ obj pt)
+               (let ([t (lookup-obj-type/lexical obj Γ #:fail (λ (_) Univ))])
+                 (define new-t (intersect t pt obj))
+                 (cond
+                   [(Bottom? new-t) #f]
+                   [(equal? t new-t) (loop ps negs new Γ)]
+                   [else
+                    ;; it's a new type! check if there are any logical propositions that can
+                    ;; be extracted from new-t
+                    (define-values (new-t* new-props) (extract-props obj new-t))
+                    (loop ps negs (append new-props new) (env-set-obj-type Γ obj new-t*))])))
              (match p
-               [(TypeProp: (Path: pes (? identifier? x)) pt)
+               [(TypeProp: (and obj (Path: pes (? identifier? x))) pt)
                 (let ([t (lookup-id-type/lexical x Γ #:fail (λ (_) Univ))])
                   (define new-t (update t pt #t pes))
                   (cond
                     [(Bottom? new-t) #f]
-                    [(equal? t new-t) (loop ps negs new Γ)]
+                    [(equal? t new-t)
+                     (cond
+                       [(ormap uninterpreted-PE? pes)
+                        (update-obj-pos-type new Γ obj pt)]
+                       [else (loop ps negs new Γ)])]
                     [else
                      ;; it's a new type! check if there are any logical propositions that can
                      ;; be extracted from new-t
-                     (define new-props (extract-props (-id-path x) new-t))
-                     (loop ps negs (append new-props new) (env-set-id-type Γ x new-t))]))]
+                     (define-values (new-t* new-props) (extract-props (-id-path x) new-t))
+                     (cond
+                       ;; if the path contains an uninterpreted path element,
+                       ;; we need to update the object's type in addition to
+                       ;; the identifier's type
+                       [(ormap uninterpreted-PE? pes)
+                        (update-obj-pos-type (append new-props new)
+                                             (env-set-id-type Γ x new-t*)
+                                             obj
+                                             pt)]
+                       [else
+                        (loop ps negs (append new-props new) (env-set-id-type Γ x new-t*))])]))]
                [(TypeProp: obj pt)
-                (let ([t (lookup-obj-type/lexical obj Γ #:fail (λ (_) Univ))])
-                  (define new-t (intersect t pt obj))
-                  (cond
-                    [(Bottom? new-t) #f]
-                    [(equal? t new-t) (loop ps negs new Γ)]
-                    [else
-                     ;; it's a new type! check if there are any logical propositions that can
-                     ;; be extracted from new-t
-                     (define new-props (extract-props obj new-t))
-                     (loop ps negs (append new-props new) (env-set-obj-type Γ obj new-t))]))]
+                (update-obj-pos-type new Γ obj pt)]
                ;; process negative info _after_ positive info so we don't miss anything!
                ;; (overly simple example: if we started with x ∈ Any, updating it's type in Γ
                ;; with x ∉ String and then x ∈ String just produces a Γ with x ∈ String,
@@ -71,28 +91,49 @@
                           [new new]
                           [Γ Γ])
                  (match negs
-                   [(cons (NotTypeProp: (Path: pes (? identifier? x)) pt) negs)
-                    (let ([t (lookup-id-type/lexical x Γ #:fail (λ (_) Univ))])
-                      (define new-t (update t pt #f pes))
-                      (cond
-                        [(Bottom? new-t) #f]
-                        [(equal? t new-t) (loop negs new Γ)]
-                        [else
-                         ;; it's a new type! check if there are any logical propositions that can
-                         ;; be extracted from new-t
-                         (define new-props (extract-props (-id-path x) new-t))
-                         (loop negs (append new-props new) (env-set-id-type Γ x new-t))]))]
-                   [(cons (NotTypeProp: obj pt) rst)
-                    (let ([t (lookup-obj-type/lexical obj Γ #:fail (λ (_) Univ))])
-                      (define new-t (subtract t pt))
-                      (cond
-                        [(Bottom? new-t) #f]
-                        [(equal? t new-t) (loop rst new Γ)]
-                        [else
-                         ;; it's a new type! check if there are any logical propositions that can
-                         ;; be extracted from new-t
-                         (define new-props (extract-props obj new-t))
-                         (loop rst (append new-props new) (env-set-obj-type Γ obj new-t))]))]
+                   [(cons p negs)
+                    ;; update-obj-neg-type : (listof Prop?) env? Object? Type? -> env or #f
+                    ;; sometimes we need to update the object's type directly -- this helper
+                    ;; does that and continues looping
+                    (define (update-obj-neg-type new Γ obj pt)
+                      (let ([t (lookup-obj-type/lexical obj Γ #:fail (λ (_) Univ))])
+                        (define new-t (subtract t pt))
+                        (cond
+                          [(Bottom? new-t) #f]
+                          [(equal? t new-t) (loop negs new Γ)]
+                          [else
+                           ;; it's a new type! check if there are any logical propositions that can
+                           ;; be extracted from new-t
+                           (define-values (new-t* new-props) (extract-props obj new-t))
+                           (loop negs (append new-props new) (env-set-obj-type Γ obj new-t*))])))
+                    (match p
+                      [(NotTypeProp: (and obj (Path: pes (? identifier? x))) pt)
+                       (let ([t (lookup-id-type/lexical x Γ #:fail (λ (_) Univ))])
+                         (define new-t (update t pt #f pes))
+                         (cond
+                           [(Bottom? new-t) #f]
+                           [(equal? t new-t)
+                            (cond
+                              [(ormap uninterpreted-PE? pes)
+                               (update-obj-neg-type new Γ obj pt)]
+                              [else (loop negs new Γ)])]
+                           [else
+                            ;; it's a new type! check if there are any logical propositions that can
+                            ;; be extracted from new-t
+                            (define-values (new-t* new-props) (extract-props (-id-path x) new-t))
+                            (cond
+                              ;; if the path contains an uninterpreted path element,
+                              ;; we need to update the object's type in addition to
+                              ;; the identifier's type
+                              [(ormap uninterpreted-PE? pes)
+                               (update-obj-neg-type (append new-props new)
+                                                    (env-set-id-type Γ x new-t*)
+                                                    obj
+                                                    pt)]
+                              [else
+                               (loop negs (append new-props new) (env-set-id-type Γ x new-t*))])]))]
+                      [(NotTypeProp: obj pt)
+                       (update-obj-neg-type new Γ obj pt)])]
                    [_
                     (cond
                       ;; there was a contradiction, return #f
@@ -147,3 +188,16 @@
             ;; unreachable, bail out
             u.form
             (ret -Bottom)])))]))
+
+(define-syntax (with-lexical-env+props-simple stx)
+  (syntax-parse stx
+    [(_ ps:expr #:absurd absurd:expr . b)
+     (syntax/loc stx
+       (let ([old-props (env-props (lexical-env))]
+             [new-env (env+ (lexical-env) ps)])
+         (cond
+           [new-env
+            (with-lexical-env
+                new-env
+              (let () . b))]
+           [else absurd])))]))

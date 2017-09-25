@@ -9,6 +9,16 @@
 
 (provide prop:combinator-name gen:sc)
 
+(provide static-contract-may-contain-free-ids?)
+
+
+;; if static-contract structures knew their set of free term ids
+;; we wouldn't need this (we just wouldn't cache open terms)...
+;; but they don't right now, so we use this flag to turn off caching
+;; when we're going into terms which contain dependencies somewhere
+;; inside.
+(define static-contract-may-contain-free-ids? (make-parameter #f))
+
 (define-for-cond-contract variance/c (or/c 'covariant 'contravariant 'invariant))
 
 (define (recursive-sc-write-proc v port mode)

@@ -12,6 +12,7 @@
          "core-rep.rkt"
          "free-variance.rkt"
          (env mvar-env)
+         (for-syntax racket/base)
          (contract-req))
 
 (provide -id-path
@@ -34,6 +35,7 @@
          make-obj-seq
          obj-seq-next
          scale-obj
+         uninterpreted-PE?
          (rename-out [make-LExp* make-LExp]
                      [make-LExp raw-make-LExp])
          (all-from-out "fme-utils.rkt"))
@@ -43,12 +45,16 @@
 (def-path-elem SyntaxPE () [#:singleton -syntax-e])
 (def-path-elem ForcePE () [#:singleton -force])
 (def-path-elem FieldPE () [#:singleton -field])
-(def-path-elem VecLenPE () [#:singleton -vec-len])
 (def-path-elem StructPE ([t Type?] [idx natural-number/c])
   [#:frees (f) (f t)]
   [#:fmap (f) (make-StructPE (f t) idx)]
   [#:for-each (f) (f t)])
 
+(def-path-elem VecLenPE () [#:singleton -vec-len])
+
+; path elements which do not correspond to a field
+; within some type (currently just vector length PEs)
+(define-syntax uninterpreted-PE? (make-rename-transformer #'VecLenPE?))
 
 (define/match (-path-elem-of pe o)
   [(pe (Path: pes x)) (make-Path (cons pe pes) x)]
@@ -64,7 +70,10 @@
       o
       (-path-elem-of (make-StructPE t idx) o)))
 
-(def-object Path ([elems (listof PathElem?)] [name name-ref/c])
+
+;; e.g. (car (cdr x)) == (make-Path (list -car -cdr) x)
+(def-object Path ([elems (listof PathElem?)]
+                  [name name-ref/c])
   [#:frees (f)  (combine-frees (map f elems))]
   [#:fmap (f) (make-Path (map f elems) name)]
   [#:for-each (f) (for-each f elems)]
@@ -172,21 +181,25 @@
    ;;    original coefficient of p and added to the LExp
    ;; + for p's where (f p) = some Path, we just swap p and (f p) basically
    (define-values (new-const new-terms)
-     (for*/fold ([c const]
-                 [ts (make-terms)])
-                ([orig-x (in-terms-vars terms)]
-                 #:break (not c)
-                 [x (in-value (f orig-x))])
-       (match x
+     (for*/fold ([new-const const]
+                 [new-terms (make-terms)])
+                ([orig-var (in-terms-vars terms)]
+                 #:break (not new-const)
+                 [new-var (in-value (f orig-var))])
+       (match new-var
          ;; empty, this linear expression is kaputt
          [(Empty:) (values #f #f)]
-         [(? Path? x) (values c (terms-set ts x (terms-ref terms orig-x)))]
+         [(? Path? new-var)
+          (values new-const (terms-set new-terms
+                                       new-var
+                                       (+ (terms-ref new-terms new-var)
+                                          (terms-ref terms orig-var))))]
          ;; a linear expression -- scale it by
          ;; the old path's coeff and add it
-         [(LExp: new-const new-terms)
-          (define old-coeff (terms-ref terms orig-x))
-          (values (+ c (* old-coeff new-const))
-                  (terms-add ts (terms-scale new-terms old-coeff)))])))
+         [(LExp: var-const var-terms)
+          (define old-coeff (terms-ref terms orig-var))
+          (values (+ new-const (* old-coeff var-const))
+                  (terms-add new-terms (terms-scale var-terms old-coeff)))])))
    (if new-const
        (make-LExp* new-const new-terms)
        ;; if const is #f then some term(s) became Empty

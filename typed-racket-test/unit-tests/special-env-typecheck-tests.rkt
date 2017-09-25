@@ -19,7 +19,8 @@
          (for-syntax syntax/kerncase syntax/parse racket/syntax
                      (types abbrev numeric-tower utils)
                      (utils mutated-vars) (env mvar-env)
-                     (utils tc-utils) (typecheck typechecker check-below))
+                     (utils tc-utils)
+                     (typecheck typechecker check-below tc-metafunctions))
          typed-racket/base-env/prims
          typed-racket/base-env/base-types
          (for-syntax typed-racket/standard-inits))
@@ -42,7 +43,7 @@
               (phase1-phase0-eval
                (let ([ex (local-expand #'a 'expression null)])
                  (find-mutated-vars ex mvar-env)
-                 (let ([res1 (tc-expr ex)]
+                 (let ([res1 (erase-existentials (tc-expr ex))]
                        [res2 b])
                    (let ([equiv? (and (check-below res1 res2)
                                       (check-below res2 res1))])

@@ -36,10 +36,13 @@
 ;; the initial lexical environment that is used
 ;; for typechecking the rest of the program
 (define (add-extracted-props-to-lexical-env obj t)
-  (when (Object? obj)
-    (define props (extract-props obj t))
-    (unless (null? props)
-      (add-props-to-current-lexical! props))))
+  (cond
+    [(Object? obj)
+     (define-values (t* props) (extract-props obj t))
+     (unless (null? props)
+       (add-props-to-current-lexical! props))
+     t*]
+    [else t]))
 
 (define (parse-typed-struct form)
   (parameterize ([current-orig-stx form])
@@ -101,9 +104,9 @@
 
       ;; require/typed
       [r:typed-require
-       (let ([t (parse-type #'r.type)])
+       (let ([t (add-extracted-props-to-lexical-env (-id-path #'r.name)
+                                                    (parse-type #'r.type))])
          (register-type #'r.name t)
-         (add-extracted-props-to-lexical-env (-id-path #'r.name) t)
          (list (make-def-binding #'r.name t)))]
 
       [r:typed-require/struct
@@ -129,8 +132,9 @@
 
       ;; top-level type annotation
       [t:type-declaration
-       (register-type/undefined #'t.id (parse-type #'t.type))
-       (add-extracted-props-to-lexical-env (-id-path #'r.name) (parse-type #'t.type))
+       (register-type/undefined #'t.id (add-extracted-props-to-lexical-env
+                                        (-id-path #'r.name)
+                                        (parse-type #'t.type)))
        (register-scoped-tvars #'t.id (parse-literal-alls #'t.type))
        (list)]
 
@@ -158,8 +162,7 @@
           (let ([ts (map (λ (x) (get-type x #:infer #f)) vars)])
             (for ([var (in-list vars)]
                   [t (in-list ts)])
-              (register-type-if-undefined var t)
-              (add-extracted-props-to-lexical-env (-id-path var) t))
+              (register-type-if-undefined var (add-extracted-props-to-lexical-env (-id-path var) t)))
             (map make-def-binding vars ts))]
          ;; if this already had an annotation, we just construct the binding reps
          [(v:typed-id^ ...)
@@ -170,8 +173,7 @@
             (finish-register-type var top-level?))
           (for/list ([var (in-syntax #'(v ...))]
                      [t (in-list (attribute v.type))])
-            (add-extracted-props-to-lexical-env (-id-path var) t)
-            (make-def-binding var t))]
+            (make-def-binding var (add-extracted-props-to-lexical-env (-id-path var) t)))]
          ;; defer to pass1.5
          [_ (list)])]
 
@@ -222,11 +224,12 @@
          [_
           (match (get-type/infer vars #'expr tc-expr tc-expr/check)
             [(list (tc-result: ts) ...)
-             (for/list ([i (in-list vars)] [t (in-list ts)])
-               (register-type i t)
-               (add-extracted-props-to-lexical-env (-id-path i) t)
-               (free-id-table-set! unann-defs i #t)
-               (make-def-binding i t))])])]
+             (for/list ([i (in-list vars)]
+                        [t (in-list ts)])
+               (let ([t (add-extracted-props-to-lexical-env (-id-path i) t)])
+                 (register-type i t)
+                 (free-id-table-set! unann-defs i #t)
+                 (make-def-binding i t)))])])]
 
       ;; for the top-level, as for pass1
       [(begin . rest)

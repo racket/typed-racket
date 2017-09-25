@@ -1,4 +1,4 @@
-#lang typed/racket #:with-linear-integer-arithmetic
+#lang typed/racket #:with-refinements
 
 
 (define n-1    : (Refine [x : Integer] (= x -1)) -1)

@@ -204,6 +204,10 @@
               ,@(if rest `(#:rest ,rest) '())
               ,@(if (null? kws) '() `(#:kws (list ,@kws))))]
     [(Fun: arrs) `(make-Fun (list ,@(map type->sexp arrs)))]
+    [(DepFun: dom pre rng)
+     `(make-DepFun (list ,@(map type->sexp dom))
+                   ,(prop->sexp pre)
+                   ,(type->sexp rng))]
     [(Keyword: kw ty required?)
      `(make-Keyword (quote ,kw) ,(type->sexp ty) ,required?)]
     [(Values: rs)
@@ -229,10 +233,13 @@
     [(Union: base elems) `(Un . ,(append (if (Bottom? base) '() (list (type->sexp base)))
                                          (map type->sexp elems)))]
     [(Intersection: elems raw-prop)
+     (define type-w/o-prop (if (= 1 (length elems))
+                               (type->sexp (first elems))
+                               `(make-Intersection (list ,@(map type->sexp elems)))))
      (if (not (TrueProp? raw-prop))
-         `(-refine (make-Intersection (list ,@(map type->sexp elems)))
+         `(-refine ,type-w/o-prop
                    ,(prop->sexp raw-prop))
-         `(make-Intersection (list ,@(map type->sexp elems))))]
+         type-w/o-prop)]
     [(Name: stx 0 #t)
      `(-struct-name (quote-syntax ,stx))]
     [(Name: stx args struct?)
@@ -368,7 +375,8 @@
                  ,(if (identifier? i)
                       `(quote-syntax ,i)
                       `(cons ,(car i) ,(cdr i))))]
-    [(LExp: const terms) `(-lexp ,@(for/list ([(o c) (in-terms terms)])
+    [(LExp: const terms) `(-lexp ,const
+                                 ,@(for/list ([(o c) (in-terms terms)])
                                      `(list ,c ,(object->sexp o))))]))
 
 ;; Path-Element -> SExp

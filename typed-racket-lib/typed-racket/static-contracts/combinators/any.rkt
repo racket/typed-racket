@@ -15,7 +15,8 @@
 (provide/cond-contract
  [any/sc static-contract?])
 
-(provide any/sc:)
+(provide any/sc:
+         (rename-out [any-combinator? any/sc?]))
 
 
 ;;Printing

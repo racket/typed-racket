@@ -130,7 +130,7 @@
                                          key-exp1:expr
                                          key-exp2:expr
                                          #:construct val-exp:expr)
-  (intern-single-ref! (hash-ref! table key-exp1 make-weak-hash)
+  (intern-single-ref! (hash-ref! table key-exp1 make-hash)
                       key-exp2
                       #:construct val-exp))
 

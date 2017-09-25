@@ -3,10 +3,13 @@
 (require "../../utils/utils.rkt"
          "signatures.rkt"
          "utils.rkt"
+         (utils tc-utils)
          syntax/parse racket/match 
          syntax/parse/experimental/reflect
          "../signatures.rkt" "../tc-funapp.rkt"
-         (types utils)
+         (types abbrev utils prop-ops)
+         (env lexical-env)
+         (typecheck tc-subst tc-envops check-below)
          (rep type-rep prop-rep object-rep values-rep))
 
 (import tc-expr^ tc-app-keywords^
@@ -77,24 +80,32 @@
 (define (tc/app-regular form expected)
   (syntax-case form ()
     [(f . args)
-     (let* ([f-ty (tc-expr/t #'f)]
-            [args* (syntax->list #'args)])
+     (let ([f-ty (tc-expr/t #'f)]
+           [args* (syntax->list #'args)])
        (define (matching-arities arrs)
          (for/list ([arr (in-list arrs)] #:when (arrow-matches? arr args*)) arr))
        (define (has-drest/props? arrs)
          (for/or ([arr (in-list arrs)])
            (or (has-props? arr)
                (RestDots? (Arrow-rst arr)))))
-
-       (define arg-tys
-         (match f-ty
-           [(Fun: (? has-drest/props?))
-            (map single-value args*)]
-           [(Fun: (app matching-arities
-                       (list (Arrow: doms rsts _ _) ..1)))
-            ;; if for a particular argument, all of the domain types
-            ;; agree for each arrow type in the case->, then we use
-            ;; that type to check the argument expression against
+       (match f-ty
+         [(Fun: (? has-drest/props?))
+          (define arg-types
+            (cond
+              [(with-refinements?)
+               (map tc-dep-fun-arg args*)]
+              [else (map single-value args*)]))
+          (tc/funapp #'f #'args f-ty arg-types expected)]
+         [(or (? DepFun?)
+              (Poly-unsafe: _ (? DepFun?)))
+          (parameterize ([with-refinements? #t])
+            (tc/funapp #'f #'args f-ty (map tc-dep-fun-arg args*) expected))]
+         [(Fun: (app matching-arities
+                     (list (Arrow: doms rsts _ _) ..1)))
+          ;; if for a particular argument, all of the domain types
+          ;; agree for each arrow type in the case->, then we use
+          ;; that type to check the argument expression against
+          (define arg-types
             (for/list ([arg-stx (in-list args*)]
                        [arg-idx (in-naturals)])
               (define dom-ty (list-ref/default (car doms)
@@ -105,7 +116,8 @@
                            [rst (in-list rsts)])
                    (equal? dom-ty
                            (list-ref/default dom arg-idx rst)))
-                 (tc-expr/check arg-stx (ret dom-ty))]
-                [else (single-value arg-stx)]))]
-           [_ (map single-value args*)]))
-       (tc/funapp #'f #'args f-ty arg-tys expected))]))
+                 (single-value arg-stx (ret dom-ty))]
+                [else (single-value arg-stx)])))
+          (tc/funapp #'f #'args f-ty arg-types expected)]
+         [_ (tc/funapp #'f #'args f-ty (map single-value args*) expected)]))]))
+

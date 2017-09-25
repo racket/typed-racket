@@ -12,9 +12,11 @@
          Base?
          Base-name
          Base-predicate
+         Base:
          Base-bits:
          Base-predicate:
-         Base-name/contract:)
+         Base-name/contract:
+         Base-bits)
 
 ;;-----------------
 ;; Base Type

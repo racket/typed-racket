@@ -182,21 +182,22 @@
     (check-prints-as? -UnitTop "UnitTop")
     (check-prints-as? (-refine/fresh x -Int (-leq (-lexp x) (-lexp 42)))
                       (λ (str) (match (read (open-input-string str))
-                                 [`(Refine [,x : Integer] (<= ,x 42)) #t]
+                                 [`(Refine [,(? symbol? x) : Integer]
+                                           (<= ,(? symbol? x) 42)) #t]
                                  [_ #f])))
     (check-prints-as? (-refine/fresh x (-pair -Int -Int) (-leq (-lexp (-car-of (-id-path x)))
-                                                         (-lexp (-cdr-of (-id-path x)))))
+                                                               (-lexp (-cdr-of (-id-path x)))))
                       (λ (str) (match (read (open-input-string str))
                                  [`(Refine [,x : (Pairof Integer Integer)] (<= (car ,x) (cdr ,x))) #t]
                                  [_ #f])))
     (check-prints-as? (-refine/fresh x (-vec Univ) (-leq (-lexp (-vec-len-of (-id-path x)))
-                                                   (-lexp 42)))
+                                                         (-lexp 42)))
                       (λ (str) (match (read (open-input-string str))
                                  [`(Refine [,x : (Vectorof Any)] (<= (vector-length ,x) 42)) #t]
                                  [_ #f])))
     (check-prints-as? (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 42))
-                                            (-leq (-lexp 42) (-lexp x))
-                                            (-leq (-lexp 1 x) (-lexp #'y))))
+                                                  (-leq (-lexp 42) (-lexp x))
+                                                  (-leq (-lexp 1 x) (-lexp #'y))))
                       (λ (str) (match (read (open-input-string str))
                                  [`(Refine [,x : Integer] (and (= ,x 42) (< ,x y))) #t]
                                  [`(Refine [,x : Integer] (and (= 42 ,x) (< ,x y))) #t]
@@ -204,10 +205,34 @@
                                  [`(Refine [,x : Integer] (and (< ,x y) (= ,x 42))) #t]
                                  [_ #f])))
     (check-prints-as? (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 42))
-                                            (-leq (-lexp 42) (-lexp x))))
+                                                  (-leq (-lexp 42) (-lexp x))))
                       (λ (str) (match (read (open-input-string str))
                                  [`(Refine [,x : Integer] (= ,x 42)) #t]
                                  [`(Refine [,x : Integer] (= 42 ,x)) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x -Int (-eq (-lexp x) (-lexp (list 1 #'y) 42)))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (= ,x (+ y 42))) #t]
+                                 [`(Refine [,x : Integer] (= ,x (+ 42 y))) #t]
+                                 [`(Refine [,x : Integer] (= (+ y 42) ,x)) #t]
+                                 [`(Refine [,x : Integer] (= (+ 42 y) ,x)) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x -Int (-eq (-lexp x) (-lexp (list 1 #'y) 42)))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (= ,x (+ y 42))) #t]
+                                 [`(Refine [,x : Integer] (= (+ y 42) ,x)) #t]
+                                 [`(Refine [,x : Integer] (= ,x (+ 42 y))) #t]
+                                 [`(Refine [,x : Integer] (= (+ 42 y) ,x)) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x -Int (-eq (-lexp x) (-lexp (list -1 #'y) 42)))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (= ,x (- 42 y))) #t]
+                                 [`(Refine [,x : Integer] (= (- 42 y) ,x)) #t]
+                                 [_ #f])))
+    (check-prints-as? (-refine/fresh x -Int (-eq (-lexp x) (-lexp (list 1 #'y) -42)))
+                      (λ (str) (match (read (open-input-string str))
+                                 [`(Refine [,x : Integer] (= ,x (- y 42))) #t]
+                                 [`(Refine [,x : Integer] (= (- y 42) ,x)) #t]
                                  [_ #f])))
     (check-prints-as? (-refine/fresh x -Int (-is-type #'y -Int))
                       (λ (str) (match (read (open-input-string str))
@@ -218,12 +243,35 @@
                                  [`(Refine [,x : Integer] (! y Integer)) #t]
                                  [_ #f])))
     (check-prints-as? (-refine/fresh x -Int (-or (-is-type #'y -Int)
-                                           (-is-type #'z -String)))
+                                                 (-is-type #'z -String)))
                       (λ (str) (match (read (open-input-string str))
                                  [`(Refine [,x : Integer] (or (: y Integer) (: z String))) #t]
                                  [`(Refine [,x : Integer] (or (: z String) (: y Integer))) #t]
                                  [_ #f])))
-    (check-prints-as? (-unsafe-intersect (-val 2) (-v A)) "(∩ 2 A)"))
+    (check-prints-as? (-unsafe-intersect (-val 2) (-v A)) "(∩ 2 A)")
+    (check-prints-as?
+     (dep-> ((x : -Int) (y : -Int))
+            #:pre (-lt (-lexp (-id-path x)) (-lexp (-id-path y)))
+            -Int)
+     (λ (str)
+       (match (read (open-input-string str))
+         [`(-> ((,(? symbol? p) : Integer)
+                (,(? symbol? q) : Integer))
+               #:pre (,q ,p) (< ,p ,q)
+               Integer)
+          #t]
+         [_ #f])))
+    (check-prints-as?
+     (dep-> ((x : -Int)
+             (y : (-refine/fresh n -Int (-leq (-lexp (-id-path x)) (-lexp (-id-path n))))))
+            -Int)
+     (λ (str)
+       (match (read (open-input-string str))
+         [`(-> ((,(? symbol? r) : Integer)
+                (,(? symbol? s) : (,r) (Refine (,t : Integer) (<= ,r ,t))))
+               Integer)
+          #t]
+         [_ #f]))))
 
    (test-suite
     "Pretty printing tests"

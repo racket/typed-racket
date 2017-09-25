@@ -848,7 +848,9 @@
 [vector->list (-poly (a) (cl->* (-> (-vec a) (-lst a))
                                 (-> -VectorTop (-lst Univ))))]
 [list->vector (-poly (a) (-> (-lst a) (-vec a)))]
-[vector-length (-VectorTop . -> . -Index)]
+[vector-length (->acc (list -VectorTop)
+                      -Index
+                      (list -vec-len))]
 [vector (-poly (a) (->* (list) a (-vec a)))]
 [vector-immutable (-poly (a) (->* (list) a (-vec a)))]
 [vector->immutable-vector (-poly (a) (-> (-vec a) (-vec a)))]

@@ -20,12 +20,15 @@
   "constraints.rkt"
   "equations.rkt")
 
+(provide static-contract-may-contain-free-ids?)
+
 (provide/cond-contract
  [instantiate
      (parametric->/c (a) ((static-contract? (-> #:reason (or/c #f string?) a))
                           (contract-kind? #:cache hash?)
                           . ->* . (or/c a (list/c (listof syntax?) syntax?))))]
  [should-inline-contract? (-> syntax? boolean?)])
+
 
 ;; Providing these so that tests can work directly with them.
 (module* internals #f
@@ -146,6 +149,7 @@
           ;; becuase it depends on the scope it's in
           [(ormap (λ (n) (name-free-in? n sc)) (bound-names))
            (make-contract sc)]
+          [(static-contract-may-contain-free-ids?) (make-contract sc)]
           [else
            (define ctc (make-contract sc))
            (cond [(and ;; when a contract benefits from inlining

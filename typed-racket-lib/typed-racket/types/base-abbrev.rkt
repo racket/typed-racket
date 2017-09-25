@@ -11,7 +11,7 @@
          "../rep/object-rep.rkt"
          "../rep/base-types.rkt"
          "../rep/numeric-base-types.rkt"
-         (rep values-rep rep-utils)
+         (rep values-rep rep-utils free-ids)
          (env mvar-env)
          racket/match racket/list (prefix-in c: (contract-req))
          (for-syntax racket/base syntax/parse racket/list)
@@ -76,6 +76,26 @@
     [else
      (make-Result t pset o)]))
 
+(define -values
+  (case-lambda
+    [(t ps o)
+     (match t
+       [(? Type?)
+        (make-Values (list (-result t ps o)))]
+       [(? list?) (make-Values (map -result t ps o))])]
+    [(t) (match t
+           [(? Type?)
+            (make-Values (list (-result t)))]
+           [(? Result?) (make-Values (list t))]
+           [(? list? l)
+            (cond
+              [(or (null? l) (ormap Type? l))
+               (make-Values (for/list ([type (in-list l)]) (-result type)))]
+              [(ormap Result? l)
+               (make-Values l)]
+              [else (error '-values "invalid arg for -values: ~a" l)])])]))
+
+
 ;; Propositions
 (define/decl -tt-propset (make-PropSet -tt -tt))
 (define/decl -ff-propset (make-PropSet -ff -ff))
@@ -116,9 +136,9 @@
   (make-Arrow dom
               rst
               (sort kws Keyword<?)
-              (if (Type? rng)
-                  (make-Values (list (-result rng props obj)))
-                  rng)))
+              (match rng
+                [(? SomeValues?) rng]
+                [_ (-values rng props obj)])))
 
 (define-syntax (->* stx)
   (define-syntax-class c
@@ -241,6 +261,56 @@
 
 (define (make-arr-dots dom rng dty dbound)
   (-Arrow dom rng #:rest (make-RestDots dty dbound)))
+
+
+(define-syntax (dep-> stx)
+  (syntax-parse stx
+    [(_ ([x:id (~datum :) dom:expr] ...)
+        (~optional (~seq #:pre pre)
+                   #:defaults ([pre #'-tt]))
+        rng:expr
+        (~optional (~or (~seq (~datum :) props:expr)
+                        (~seq (~datum :) props:expr
+                              (~datum :) object:expr))
+                   #:defaults ([props #'-tt-propset]
+                               [object #'-empty-obj])))
+     (with-syntax ([(d ...) (generate-temporaries #'(dom ...))]
+                   [(d* ...) (generate-temporaries #'(dom ...))])
+       (syntax/loc stx
+         (let ([x (genid)] ...)
+           (let ([ids (list x ...)]
+                 [d dom] ...
+                 [p pre]
+                 [r rng]
+                 [ps props]
+                 [o object])
+             (let ([d* (abstract-obj d ids)] ...
+                   [p* (abstract-obj p ids)]
+                   [r* (abstract-obj r ids)]
+                   [ps* (abstract-obj ps ids)]
+                   [o* (abstract-obj o ids)])
+               (cond
+                 [(and (equal? d d*) ... (equal? r r*) (TrueProp? p*))
+                  ;; non-dependent (as in DFun) case!
+                  (-Arrow (list d* ...)
+                          (make-Values (list (-result r* ps* o*))))]
+                 ;; one of the domains or the range was dependent!
+                 [else
+                  (define (arg? id)
+                    (member id ids free-identifier=?))
+                  (define dom-deps (for/list ([id (in-list ids)]
+                                              [ty (in-list (list d ...))])
+                                     (cons id (filter arg? (free-ids ty)))))
+                  (define cycle (cycle-in-arg-deps? dom-deps))
+                  (cond
+                    [cycle
+                     (error 'dep-> "cyclic dependency: ~a" cycle)]
+                    [else
+                     (make-DepFun
+                      (list d* ...)
+                      p*
+                      (-values r* ps* o*))])]))))))]))
+
 
 ;; Convenient syntax for polymorphic types
 (define-syntax -poly

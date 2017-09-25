@@ -52,7 +52,6 @@
     (match obj
       [(Empty:) (lookup-id-type/lexical id*)]
       [_ (lookup-obj-type/lexical obj)]))
- 
   (ret ty
        (if (overlap? ty (-val #f))
            (-PS (-not-type obj (-val #f)) (-is-type obj (-val #f)))
@@ -75,7 +74,7 @@
   (--> syntax? Type? tc-results/c)
   (tc-expr/check form (ret expected)))
 
-(define (tc-expr/check form expected)
+(define (tc-expr/check form expected [existential? #f])
   (parameterize ([current-orig-stx form])
     ;; the argument must be syntax
     (unless (syntax? form)
@@ -88,8 +87,18 @@
          (tc-expr/check/internal #'exp (parse-tc-results (attribute exp.value)))]
         [_ (reduce-tc-results/subsumption
             (tc-expr/check/internal form expected))]))
-    (add-typeof-expr form result)
-    (cond-check-below result expected)))
+    ;; if 'existential?' is true, then it means this expression should be
+    ;; given an existential identifier as an object if it has no object
+    (define adjusted-result
+      (cond
+        [existential?
+         (match result
+           [(tc-result1: t ps (not (? Object?)))
+            (ret t ps (-id-path (gen-existential-id)))]
+           [_ result])]
+        [else result]))
+    (add-typeof-expr form adjusted-result)
+    (cond-check-below adjusted-result expected)))
 
 ;; typecheck and return a truth value indicating a typecheck failure (#f)
 ;; or success (any non-#f value)
@@ -156,7 +165,7 @@
             ;; to be themselves
             (let ([v (syntax-e #'val)])
               (if (and (exact-integer? v)
-                       (with-linear-integer-arithmetic?))
+                       (with-refinements?))
                   (-lexp v)
                   -empty-obj)))]
       ;; syntax
@@ -203,7 +212,7 @@
       [(#%plain-app . _)
        (define result (tc/app form expected))
        (cond
-         [(with-linear-integer-arithmetic?)
+         [(with-refinements?)
           (add-applicable-linear-info form result)]
          [else result])]
       ;; #%expression
@@ -342,6 +351,14 @@
           #:stx form
           "expected single value, got multiple (or zero) values")]))
 
+(define (tc-dep-fun-arg form [expected #f])
+  (define t (tc-expr/check form expected #t))
+  (match t
+    [(tc-result1: _ _ _) t]
+    [_ (tc-error/expr
+        #:stx form
+        "expected single value, got multiple (or zero) values")]))
+
 
 ;; tc-body/check: syntax? tc-results? -> tc-results?
 ;; Body must be a non empty sequence of expressions to typecheck.
@@ -449,16 +466,15 @@
           [vt (generalize (apply Un (map find-stx-type (hash-values h))))])
       (tycon kt vt))]))
 
+
 ;; adds linear info for the following operations:
-;; + * < <= = >= >
-;; when the arguments are integers w/ objects
-;; a lot of the content in this function should eventually
-;; just be moved to the actual types of the respective
-;; racket identifiers, but in an effort to move progress forward
-;; and not break programs currently typechecking, this more
-;; explicit, hard-coded helper will do (i.e. some of these functions
-;; currently have extremely large types in TR -- modifying their
-;; type is not always trivial)
+;; + - * < <= = >= >
+;; when the arguments are integers w/ objects.
+;; These are the 'axiomatized' arithmetic operators.
+;; NOTE: We should keep these axiomatizations so that they
+;; only add info that we could later reasonably encode in a
+;; standard function type for TR, so we're not bound to always
+;; doing this.
 (define (add-applicable-linear-info form result)
   ;; class to recognize expressions that typecheck at a subtype of -Int
   ;; and whose object is non-empty
@@ -498,104 +514,64 @@
             o)]
       [_ result]))
 
-  ;; takes a list of arguments to a comparison function
-  ;; and returns the list of atomic facts that would hold
-  ;; if returned #t
-  (define (comparison-props comp obj1 obj2 obj-rest)
-    (define-values (props _)
-      (for/fold ([atoms (list (comp obj1 obj2))]
-                 [prev-obj obj2])
-                ([obj (in-list obj-rest)])
-        (values (cons (-lt prev-obj obj) atoms)
-                obj)))
-    props)
   ;; inspect the function appplication to see if it is a linear
   ;; integer compatible form we want to enrich with info when
-  ;; #:with-linear-integer-arithmetic is specified by the user
+  ;; #:with-logical-refinements is specified by the user
   (match result
     [(tc-result1: ret-t ps _)
      (syntax-parse form
        ;; *
-       [(#%plain-app (~literal *) (~var e1 (t/obj -Int)) (~var es (t/obj -Int)) ...)
-        (define product-obj (apply -obj* (obj e1) (obj es)))
+       [(#%plain-app (~literal *) (~var e1 (t/obj -Int)) (~var e2 (t/obj -Int)))
+        (define product-obj (-obj* (obj e1) (obj e2)))
         (cond
           [(Object? product-obj)
            (ret (-refine/fresh x ret-t (-eq (-lexp x) product-obj))
                 ps
                 product-obj)]
           [else result])]
-       ;; +
-       [(#%plain-app (~literal +) (~var e (t/obj -Int)) (~var es (t/obj -Int)) ...)
-        (define l (apply -lexp (obj e) (obj es)))
+       ;; +/- (2 args)
+       [(#%plain-app (~and op (~or (~literal +) (~literal -)))
+                     (~var e1 (t/obj -Int))
+                     (~var e2 (t/obj -Int)))
+        (define (sign o) (if (eq? '+ (syntax->datum #'op))
+                             o
+                             (scale-obj -1 o)))
+        (define l (-lexp (obj e1) (sign (obj e2))))
         (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
              ps
              l)]
-       ;; -
-       [(#%plain-app (~literal -) (~var e (t/obj -Int)) (~var es (t/obj -Int)) ...)
-        (define l (apply -lexp
-                         (obj e)
-                         (for/list ([o (in-list (obj es))])
-                           (scale-obj -1 o))))
+       ;; +/- (3 args)
+       [(#%plain-app (~and op (~or (~literal +) (~literal -)))
+                     (~var e1 (t/obj -Int))
+                     (~var e2 (t/obj -Int))
+                     (~var e3 (t/obj -Int)))
+        (define (sign o) (if (eq? '+ (syntax->datum #'op))
+                             o
+                             (scale-obj -1 o)))
+        (define l (-lexp (obj e1) (sign (obj e2)) (sign (obj e3))))
         (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
              ps
              l)]
-       ;; add1
-       [(#%plain-app (~literal add1) (~var e (t/obj -Int)))
-        (define l (-lexp 1 (obj e)))
-        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
-             ps
-             l)]
-       ;; sub1
-       [(#%plain-app (~literal sub1) (~var e (t/obj -Int)))
-        (define l (-lexp -1 (obj e)))
-        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
-             ps
-             l)]
-       ;; modulo
-       [(#%plain-app (~literal modulo) (~var e1 (t/obj -Int)) (~var e2 (t/obj -Nat)))
-        (ret (-refine/fresh x ret-t (-lt (-lexp x) (obj e2)))
-             ps
-             -empty-obj)]
-       ;; max
-       [(#%plain-app (~literal max) (~var e1 (t/obj -Int)) (~var es (t/obj -Int)) ...)
-        (ret (-refine/fresh x ret-t
-                            (apply -and (let ([l (-lexp x)])
-                                          (for/list ([o (in-list (cons (obj e1) (obj es)))])
-                                            (-geq l o)))))
-             ps
-             -empty-obj)]
-       ;; min
-       [(#%plain-app (~literal min) (~var e1 (t/obj -Int)) (~var es (t/obj -Int)) ...)
-        (ret (-refine/fresh x ret-t
-                            (apply -and (let ([l (-lexp x)])
-                                          (for/list ([o (in-list (cons (obj e1) (obj es)))])
-                                            (-leq l o)))))
-             ps
-             -empty-obj)]
-       ;; random
-       [(#%plain-app (~literal random) (~var e1 (t/obj -Int)))
-        (ret (-refine/fresh x ret-t (-lt (-lexp x) (obj e1)))
-             ps
-             -empty-obj)]
-       [(#%plain-app (~literal random) (~var e1 (t/obj -Int)) (~var e2 (t/obj -Int)))
-        (ret (-refine/fresh x ret-t (-and (-leq (obj e1) (-lexp x))
-                                          (-lt (-lexp x) (obj e2))))
-             ps
-             -empty-obj)]
-       ;; vector-length
-       [(#%plain-app (~literal vector-length) (~var e1 (t/obj -VectorTop)))
-        (define l (-vec-len-of (obj e1)))
-        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
-             ps
-             l)]
+       ;; integer comparisons, 2 args
+       [(#%plain-app comp:int-comparison
+                     (~var e1 (t/obj -Int))
+                     (~var e2 (t/obj -Int)))
+        (define p ((attribute comp.constructor)
+                   (obj e1)
+                   (obj e2)))
+        (add-p/not-p result p)]
+       ;; integer comparisons, 3 args
        [(#%plain-app comp:int-comparison
                      (~var e1 (t/obj -Int))
                      (~var e2 (t/obj -Int))
-                     (~var es (t/obj -Int)) ...)
-        (define p (apply -and (comparison-props (attribute comp.constructor)
-                                                (obj e1)
-                                                (obj e2)
-                                                (obj es))))
+                     (~var e3 (t/obj -Int)))
+        (define p (-and ((attribute comp.constructor)
+                         (obj e1)
+                         (obj e2))
+                        ((attribute comp.constructor)
+                         (obj e2)
+                         (obj e3))))
         (add-p/not-p result p)]
        [_ result])]
     [_ result]))
+

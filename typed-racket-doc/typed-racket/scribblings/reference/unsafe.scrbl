@@ -73,4 +73,10 @@ behavior and may even crash Typed Racket.
   @history[#:added "1.3"]
 }
 
+@defform[(unsafe-require/typed/provide m rt-clause ...)]{
+  Like @racket[require/typed/provide] except that this form is unsafe and will not generate
+  contracts that correspond to the specified types to check that the values
+  actually match their types.
+}
+
 @close-eval[eval]

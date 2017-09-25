@@ -1,9 +1,5 @@
 #lang racket/base
 
-;; Static contracts that are terminal and have no sub parts.
-;; Unlike contracts defined with define-terminal-contract, equality of these contracts is based solely
-;; on identity. Thus they are most useful for contracts which have no meaningful structure.
-;; Ex: (flat/sc #'number?)
 
 (require
   "../../utils/utils.rkt"
@@ -14,6 +10,8 @@
   racket/generic
   (for-template racket/base racket/contract/base)
   (contract-req))
+
+(provide-for-cond-contract proposition-contract?)
 
 (struct proposition-contract static-contract () #:transparent)
 

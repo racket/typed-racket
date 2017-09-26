@@ -620,7 +620,8 @@
     ;; values like characters (when `display`ed)
     ;; (comes after Intersection since Val-able will match
     ;;  when an element of an intersection is a val)
-    [(Val-able: v) (format "~v" v)]
+    [(Val-able: v) (cond [(void? v) 'Void]
+                         [else (format "~v" v)])]
     [(? Base?) (Base-name type)]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]

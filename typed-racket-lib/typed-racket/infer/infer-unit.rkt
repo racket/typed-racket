@@ -381,11 +381,15 @@
 
      (define s-seq (seq ss (rest->end s-rest)))
      (define t-seq (seq ts (rest->end t-rest)))
-     (and (null? s-kws)
-          (null? t-kws)
-          (% cset-meet
-           (cgen context s t)
-           (cgen/seq context t-seq s-seq)))]))
+     (and
+      ;; if all keywords are optional, then we can just treat
+      ;; them like they aren't there (or if there are none)
+      (for/and ([s-kw (in-list s-kws)])
+        (not (Keyword-required? s-kw)))
+      (null? t-kws)
+      (% cset-meet
+         (cgen context s t)
+         (cgen/seq context t-seq s-seq)))]))
 
 (define/cond-contract (cgen/flds context flds-s flds-t)
   (context? (listof fld?) (listof fld?)  . -> . (or/c #f cset?))

@@ -4204,6 +4204,11 @@
                    [else 42]))
                (void))
              -Void]
+       [tc-e (map string-trim (ann '("a" "b") (Listof String)))
+             (-lst -String)]
+       [tc-err (let ()
+                 (define (f #:x x y) 1)
+                 (map f (list 1 2 3)))]
        )
 
   (test-suite

@@ -49,28 +49,37 @@
 
 
 ;; FIXME - Do something with paths in the case that a structure/vector is not mutable
-(define (tc/hetero-ref i-e es-t vec-t name)
+(define (tc/hetero-ref i-e es-t vec-t name op)
   (define i-val (tc/index i-e))
   (define i-bound (length es-t))
   (cond
     [(valid-index? i-val i-bound)
-     (ret (list-ref es-t i-val))]
+     (define return-ty (list-ref es-t i-val))
+     (add-typeof-expr op (ret (-> vec-t -Fixnum return-ty)))
+     (ret return-ty)]
     [(not i-val)
-     (ret (apply Un es-t))]
+     (define return-ty (apply Un es-t))
+     (add-typeof-expr op (ret (-> vec-t -Fixnum return-ty)))
+     (ret return-ty)]
     [else
      (index-error i-val i-bound i-e vec-t name)]))
 
-(define (tc/hetero-set! i-e es-t val-e vec-t name)
+(define (tc/hetero-set! i-e es-t val-e vec-t name op)
   (define i-val (tc/index i-e))
   (define i-bound (length es-t))
-  (cond 
+  (cond
     [(valid-index? i-val i-bound)
-     (tc-expr/check val-e (ret (list-ref es-t i-val)))
+     (define val-t (list-ref es-t i-val))
+     (tc-expr/check val-e (ret val-t))
+     (add-typeof-expr op (ret (-> vec-t -Fixnum val-t -Void)))
      (ret -Void)]
     [(not i-val)
-     (define val-t (single-value val-e))
+     (define val-res (single-value val-e))
      (for ((es-type (in-list es-t)))
-       (check-below val-t (ret es-type)))
+       (check-below val-res (ret es-type)))
+     (define val-t
+       (match val-res [(tc-result1: t) t]))
+     (add-typeof-expr op (ret (-> vec-t -Fixnum val-t -Void)))
      (ret -Void)]
     [else
      (single-value val-e)
@@ -78,47 +87,53 @@
 
 (define-tc/app-syntax-class (tc/app-hetero expected)
   #:literal-sets (hetero-literals)
-  (pattern (~and form ((~or unsafe-struct-ref unsafe-struct*-ref) struct:expr index:expr))
+  (pattern (~and form ((~and op (~or unsafe-struct-ref unsafe-struct*-ref)) struct:expr index:expr))
     (match (single-value #'struct)
       [(tc-result1: (and struct-t (app resolve (Struct: _ _ (list (fld: flds _ _) ...) _ _ _))))
-       (tc/hetero-ref #'index flds struct-t "struct")]
+       (tc/hetero-ref #'index flds struct-t "struct" #'op)]
       [(tc-result1: (and struct-t (app resolve (Prefab: _ (list flds ...)))))
-       (tc/hetero-ref #'index flds struct-t "prefab struct")]
+       (tc/hetero-ref #'index flds struct-t "prefab struct" #'op)]
       [s-ty (tc/app-regular #'form expected)]))
   ;; vector-ref on het vectors
-  (pattern (~and form ((~or vector-ref unsafe-vector-ref unsafe-vector*-ref) vec:expr index:expr))
+  (pattern (~and form ((~and op (~or vector-ref unsafe-vector-ref unsafe-vector*-ref)) vec:expr index:expr))
     (match (single-value #'vec)
       [(tc-result1: (and vec-t (app resolve (Is-a: (HeterogeneousVector: es)))))
-       (tc/hetero-ref #'index es vec-t "vector")]
+       (tc/hetero-ref #'index es vec-t "vector" #'op)]
       [v-ty (tc/app-regular #'form expected)]))
-  ;; unsafe struct-set! 
-  (pattern (~and form ((~or unsafe-struct-set! unsafe-struct*-set!) s:expr index:expr val:expr))
+  ;; unsafe struct-set!
+  (pattern (~and form ((~and op (~or unsafe-struct-set! unsafe-struct*-set!)) s:expr index:expr val:expr))
     (match (single-value #'s)
       [(tc-result1: (and struct-t (app resolve (Struct: _ _ (list (fld: flds _ _) ...) _ _ _))))
-       (tc/hetero-set! #'index flds #'val struct-t "struct")]
+       (tc/hetero-set! #'index flds #'val struct-t "struct" #'op)]
       [s-ty (tc/app-regular #'form expected)]))
   ;; vector-set! on het vectors
-  (pattern (~and form ((~or vector-set! unsafe-vector-set! unsafe-vector*-set!) v:expr index:expr val:expr))
+  (pattern (~and form ((~and op (~or vector-set! unsafe-vector-set! unsafe-vector*-set!)) v:expr index:expr val:expr))
     (match (single-value #'v)
       [(tc-result1: (and vec-t (app resolve (Is-a: (HeterogeneousVector: es)))))
-       (tc/hetero-set! #'index es #'val vec-t "vector")]
+       (tc/hetero-set! #'index es #'val vec-t "vector" #'op)]
       [v-ty (tc/app-regular #'form expected)]))
-  (pattern (~and form ((~or vector-immutable vector) args:expr ...))
+  (pattern (~and form ((~and op (~or vector-immutable vector)) args:expr ...))
     (match expected
       [(tc-result1: (app resolve (Is-a: (Vector: t))))
-       (ret (make-HeterogeneousVector 
-              (for/list ([e (in-syntax #'(args ...))])
-                (tc-expr/check e (ret t))
-                t)))]
+       (define arg-tys
+         (for/list ([e (in-syntax #'(args ...))])
+           (tc-expr/check e (ret t))
+           t))
+       (define return-ty
+         (make-HeterogeneousVector arg-tys))
+       (add-typeof-expr #'op (ret (->* arg-tys return-ty)))
+       (ret return-ty)]
       [(tc-result1: (app resolve (Is-a: (HeterogeneousVector: ts))))
        (cond
          [(= (length ts) (syntax-length #'(args ...)))
-          (ret
-            (make-HeterogeneousVector
-              (for/list ([e (in-syntax #'(args ...))]
-                         [t (in-list ts)])
-                (tc-expr/check/t e (ret t))))
-            -true-propset)]
+          (define arg-tys
+            (for/list ([e (in-syntax #'(args ...))]
+                       [t (in-list ts)])
+              (tc-expr/check/t e (ret t))))
+          (define return-ty
+            (make-HeterogeneousVector arg-tys))
+          (add-typeof-expr #'op (ret (->* arg-tys return-ty)))
+          (ret return-ty -true-propset)]
          [else
           (tc-error/expr
             "expected vector with ~a elements, but got ~a"
@@ -136,7 +151,11 @@
          [_ (continue)])]
       ;; since vectors are mutable, if there is no expected type, we want to generalize the element type
       [(or #f (tc-any-results: _) (tc-result1: _))
-       (ret (make-HeterogeneousVector
-              (for/list ((e (in-syntax #'(args ...))))
-                (generalize (tc-expr/t e)))))]
+       (define arg-tys
+         (for/list ((e (in-syntax #'(args ...))))
+           (generalize (tc-expr/t e))))
+       (define return-ty
+         (make-HeterogeneousVector arg-tys))
+       (add-typeof-expr #'op (ret (->* arg-tys return-ty)))
+       (ret return-ty)]
       [_ (ret Err)])))

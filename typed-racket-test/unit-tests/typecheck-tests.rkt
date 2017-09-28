@@ -42,14 +42,17 @@
     "test-utils.rkt"
     typed-racket/utils/utils
     racket/base racket/match
+    syntax/id-table
     (rep core-rep)
     (rename-in (types prop-ops tc-result printer subtype) [ret raw-ret])
+    (only-in (types type-table) type-of)
     syntax/parse
     (for-template (only-in typed-racket/typed-racket do-standard-inits))
     (typecheck typechecker check-below tc-metafunctions)
     (utils mutated-vars tc-utils)
     (env lexical-env mvar-env))
   (provide
+    test-type-table
     test-literal test-literal/fail
     test test/proc test/fail)
 
@@ -122,6 +125,38 @@
     (define golden (golden-fun expanded-expr))
     (check-tc-results result golden #:name "tc-expr"))
 
+  ;; test-type-table : syntax? (listof (cons/c identifier? tc-results?)) -> void?
+  ;; Typecheck the given expression
+  ;;  and assert that the type-table has an entry for every identifier
+  ;;  in the given association list.
+  ;;
+  ;; Example: `(test-type-table expr (list (cons f t)))` will
+  ;; 1. type-check `expr`
+  ;; 2. search `expr` for occurrences of `f`
+  ;; 3. check that the type-table entry for `f` matches `t`
+  (define (test-type-table expr assoc)
+    (define expanded-expr
+      (let ([expr+ (tr-expand expr)])
+        (begin (tc expr+ #f) expr+)))
+    (define expected-results
+      (make-free-id-table assoc))
+    (let loop ([x expanded-expr]) ;; loop : any/c -> void?
+      (cond
+       [(and (identifier? x)
+             (free-id-table-ref expected-results x #f))
+        => (λ (expected)
+             (define actual (type-of x))
+             (define test-name (format "(type-of ~a)" (syntax-e x)))
+             (check-tc-results actual expected #:name test-name))]
+       [(syntax? x)
+        (loop (syntax-e x))]
+       [(list? x)
+        (map loop x)]
+       [(pair? x)
+        (loop (car x))
+        (loop (cdr x))]
+       [else
+        (void)])))
 
   ;; test/fail syntax? tc-results? (or/c string? regexp?) (option/c tc-results?)
   ;;           [(listof (list id type))] -> void?
@@ -277,6 +312,15 @@
      (quasisyntax/loc stx
        (test-phase1 #,(syntax/loc #'lit (LITERAL/FAIL lit))
          (test-literal/fail (quote-syntax lit) msg.v ex.v)))]))
+
+(define-syntax (tc/type-table stx)
+  (syntax-parse stx
+    [(_ e:expr ([k v] ...))
+     (quasisyntax/loc stx
+       (test-phase1 e
+         (test-type-table
+           (quote-syntax e)
+           (list (cons (quote-syntax k) (ret v)) ...))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4489,5 +4533,100 @@
    [tc-l #s(foo "a")
          (-prefab 'foo (-opt -String))
          #:expected (-prefab 'foo (-opt -String))]
+   )
+
+   (test-suite
+    "type-table tests"
+    ;; tc-app-apply
+    (tc/type-table (apply values '(0))
+     ([values (t:-> (-val 0) (-val 0))]))
+    (tc/type-table (apply + '(0))
+     ([values (t:-> (-val 0) (-val 0))]))
+
+    ;; tc-app-hetero
+    (tc/type-table (void ;; vector-ref on heterogeneous vectors
+                     (vector-ref (ann '#(A B) (Vector 'A 'B)) 0)
+                     (unsafe-vector-ref (ann (vector 'A 'B) (Vector 'A 'B)) 0)
+                     (unsafe-vector*-ref (ann (vector 'A 'B) (Vector 'A 'B)) 1))
+     ([vector-ref (t:-> (-vec* (-val 'A) (-val 'B)) -Fixnum (-val 'A))]
+      [unsafe-vector-ref (t:-> (-vec* (-val 'A) (-val 'B)) -Fixnum (-val 'A))]
+      [unsafe-vector*-ref (t:-> (-vec* (-val 'A) (-val 'B)) -Fixnum (-val 'B))]))
+    (tc/type-table (void ;; vector-set! on heterogeneous vectors
+                     (vector-set! (ann (vector 'A 'B) (Vector Symbol 'B)) 0 'X)
+                     (unsafe-vector-set! (ann (vector 'C 'D) (Vector Symbol 'D)) 0 'X)
+                     (unsafe-vector*-set! (ann (vector 'E 'F) (Vector 'E Symbol)) 1 'X))
+     ([vector-set! (t:-> (-vec* -Symbol (-val 'B)) -Fixnum -Symbol -Void)]
+      [unsafe-vector-set! (t:-> (-vec* -Symbol (-val 'D)) -Fixnum -Symbol -Void)]
+      [unsafe-vector*-set! (t:-> (-vec* (-val 'E) -Symbol) -Fixnum -Symbol -Void)]))
+    (tc/type-table (vector-set! (ann (vector 'a 'b) (Vector Symbol Symbol)) (+ -1 2) 'c)
+     ;; test when the index for vector-set! isn't know
+     ([vector-set! (t:-> (-vec* -Symbol -Symbol) -Fixnum (-val 'c) -Void)]))
+    (tc/type-table (void ;; vector constructor, returning heterogeneous vector
+                     (ann (vector 'A 'B) (Vectorof Symbol))
+                     (ann (vector-immutable 'A 'B) (Vectorof Symbol)))
+     ([vector (t:-> -Symbol -Symbol (-vec* -Symbol -Symbol))]
+      [vector-immutable (t:-> -Symbol -Symbol (-vec* -Symbol -Symbol))]))
+    (tc/type-table (void ;; vector constructor, returning heterogeneous vector
+                     (ann (vector 'A 'B) (Vector 'A 'B))
+                     (ann (vector-immutable 'A 'B) (Vector 'A 'B)))
+     ([vector (t:-> (-val 'A) (-val 'B) (-vec* (-val 'A) (-val 'B)))]
+      [vector-immutable (t:-> (-val 'A) (-val 'B) (-vec* (-val 'A) (-val 'B)))]))
+    (tc/type-table (void ;; vector constructor, no expected type
+                     (vector 'A 'B)
+                     (vector-immutable 'A 'B))
+     ([vector (t:-> -Symbol -Symbol (-vec* -Symbol -Symbol))]
+      [vector-immutable (t:-> -Symbol -Symbol (-vec* -Symbol -Symbol))]))
+
+    ;; tc-app-list
+    ;;; list
+    (tc/type-table (ann (list 'A 'B) (List Symbol Symbol))
+     ([list (t:-> -Symbol -Symbol (-lst* -Symbol -Symbol))]))
+    (tc/type-table (ann (list 'A) Any)
+     ([list (t:-> Univ (-lst* Univ))]))
+    (tc/type-table (list 'A 'B)
+     ([list (t:-> (-val 'A) (-val 'B) (-lst* (-val 'A) (-val 'B)))]))
+    ;;; list*
+    (tc/type-table (list* #true #false)
+     ([list* (t:-> (-val #true) (-val #false) (-pair (-val #true) (-val #false)))]))
+    (tc/type-table (list* "A" "B" (list "C"))
+     ([list* (t:-> -String -String (-lst* -String) (-lst* -String -String -String))]))
+    ;;; reverse
+    (tc/type-table (ann (reverse '("A" "B")) (Listof String))
+     ([reverse (t:-> (-lst -String) (-lst -String))]))
+    (tc/type-table (ann (reverse '(A B)) (List 'B 'A))
+     ([reverse (t:-> (-lst* (-val 'A) (-val 'B)) (-lst* (-val 'B) (-val 'A)))]))
+    (tc/type-table (reverse (ann '(A B) (List 'A 'B)))
+     ([reverse (t:-> (-lst* (-val 'A) (-val 'B)) (-lst* (-val 'B) (-val 'A)))]))
+    (tc/type-table (reverse (ann '("A" "B") (Listof String)))
+     ([reverse (t:-> (-lst -String) (-lst -String))]))
+
+    ;; tc-app-special
+    (tc/type-table (false? #true)
+     ([false? (t:-> Univ -Boolean)]))
+    (tc/type-table (false? #false)
+     ([false? (t:-> Univ -Boolean)]))
+    (tc/type-table (not #true)
+     ([not (t:-> Univ -Boolean)]))
+    (tc/type-table (not #false)
+     ([not (t:-> Univ -Boolean)]))
+
+    ;; tc-app-values
+    (tc/type-table (values 0)
+     ([values (t:-> (-val 0) (-values (list (-val 0))))]))
+    ;; TODO tests fail because propsets are somehow different (2017-12-06)
+    ;(tc/type-table (values 0 0)
+    ; ([values (t:-> (-val 0) (-val 0) (-values (list (-val 0 ) (-val 0))))]))
+    ;(tc/type-table (call-with-values (λ () 'A) symbol->string)
+    ; ([call-with-values (->* (list (t:-> (-val 'A)) (t:-> -Symbol -String)) -String)]))
+    ;(tc/type-table (call-with-values (λ () "hello") (λ: ((x : String)) "world"))
+    ; ([call-with-values (t:-> (t:-> -String) (t:-> -String -String) -String)]))
+    ;(tc/type-table (call-with-values (λ () (values 0 0)) (λ: ((x : Zero) (y : Zero)) 0))
+    ; ([call-with-values (t:-> (t:-> (-values (list (-val 0) (-val 0))))
+    ;                          (t:-> (-val 0) (-val 0) (-val 0))
+    ;                          (-val 0))]))
+    ;(tc/type-table (call-with-values (λ () (values "a" "b")) (λ: ((x : String) (y : String)) (string-append x y)))
+    ; ([call-with-values (t:-> (t:-> (-values (list -String -String)))
+    ;                          (t:-> -String -String -String)
+    ;                          -String)]))
    )
   ))

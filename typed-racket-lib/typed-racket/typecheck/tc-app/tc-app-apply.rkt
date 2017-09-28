@@ -5,7 +5,7 @@
          "utils.rkt"
          syntax/parse racket/match
          (typecheck signatures)
-         (types abbrev utils)
+         (types abbrev type-table utils)
          (rep type-rep)
 
          (for-label
@@ -26,7 +26,9 @@
     (match (single-value #'e)
       [(tc-result1: (ListDots: dty dbound))
        (ret null null null dty dbound)]
-      [(tc-result1: (List: ts)) (ret ts)]
+      [(tc-result1: (List: ts))
+       (add-typeof-expr #'f (ret (->* ts (-values ts))))
+       (ret ts)]
       [_ (tc/apply #'f #'(e))]))
   (pattern ((~or apply k:apply) f . args)
     (tc/apply #'f #'args)))

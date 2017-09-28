@@ -3,7 +3,7 @@
 (require (rename-in "../utils/utils.rkt" [infer r:infer])
          racket/match racket/list
          (typecheck signatures tc-app-helper)
-         (types utils abbrev substitute)
+         (types utils abbrev substitute type-table)
          (utils tc-utils)
          (rep type-rep core-rep values-rep)
          (r:infer infer))
@@ -67,8 +67,9 @@
            ;; Takes a possible substitution and comuptes
            ;; the substituted range type if it is not #f
            (define (finish substitution)
-             (and substitution (do-ret (subst-all substitution rng))))
-
+             (begin0
+               (and substitution (do-ret (subst-all substitution rng)))
+               (add-typeof-expr f (ret (make-Fun (list arrow))))))
            (finish
             (infer vars dotted-vars
                    (list (-Tuple* arg-tys full-tail-ty))

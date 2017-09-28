@@ -1,6 +1,7 @@
 #lang racket/unit
 
 (require "../../utils/utils.rkt"
+         racket/list
          syntax/parse syntax/stx racket/match racket/sequence
          "signatures.rkt"
          "utils.rkt"
@@ -8,6 +9,7 @@
                 generalize match-expanders)
          (typecheck signatures check-below)
          (rep type-rep type-mask rep-utils)
+         (only-in (infer infer) restrict)
          (for-label racket/unsafe/ops racket/base))
 
 (import tc-expr^ tc-app^ tc-literal^)
@@ -76,6 +78,9 @@
      (single-value val-e)
      (index-error i-val i-bound i-e vec-t name)]))
 
+(define (has-immutable-hash-mask? t)
+  (eq? mask:immutable-hash (mask t)))
+
 (define-tc/app-syntax-class (tc/app-hetero expected)
   #:literal-sets (hetero-literals)
   (pattern (~and form ((~or unsafe-struct-ref unsafe-struct*-ref) struct:expr index:expr))
@@ -139,4 +144,50 @@
        (ret (make-HeterogeneousVector
               (for/list ((e (in-syntax #'(args ...))))
                 (generalize (tc-expr/t e)))))]
-      [_ (ret Err)])))
+      [_ (ret Err)]))
+  (pattern (~and form ((~and op-name (~or hash hasheq hasheqv)) args:expr ...))
+    #:do [(define-values [ks vs]
+            (let loop ([args (syntax->list #'(args ...))])
+              (cond
+               [(null? args)
+                (values '() '())]
+               [(null? (cdr args))
+                (raise-user-error (syntax-e #'op-name) "expected even number of arguments")]
+               [else
+                (define k (car args))
+                (define v (cadr args))
+                (define-values [ks vs] (loop (cddr args)))
+                (values (cons k ks) (cons v vs))])))]
+    (match (and expected (resolve (restrict expected (-Immutable-HT Univ Univ))))
+      [(tc-result1: (Immutable-HashTable: kt vt))
+       (for ([k (in-list ks)]
+             [v (in-list vs)])
+         (tc-expr/check k (ret kt))
+         (tc-expr/check v (ret vt)))
+       (define arg-t
+         (for/fold ([acc '()])
+                   ([_k (in-list ks)])
+           (cons kt (cons vt acc))))
+       (define return-t (-Immutable-HT kt vt))
+       (add-typeof-expr #'op-name (ret (->* arg-t return-t)))
+       (ret return-t)]
+      [(tc-result1: (app resolve (Union: _ ts)))
+       #:when (= 1 (count has-immutable-hash-mask? ts))
+       (define t0 (findf has-immutable-hash-mask? ts))
+       (tc/app #`(#%plain-app . form) (ret t0))]
+      [_
+       (define kt
+         (apply Un
+           (for/list ([k (in-list ks)])
+             (tc-expr/t k))))
+       (define vt
+         (apply Un
+           (for/list ([v (in-list vs)])
+             (tc-expr/t v))))
+       (define arg-t
+         (for/fold ([acc '()])
+                   ([_k (in-list ks)])
+           (cons kt (cons vt acc))))
+       (define return-t (-Immutable-HT kt vt))
+       (add-typeof-expr #'op-name (ret (->* arg-t return-t)))
+       (ret return-t)])))

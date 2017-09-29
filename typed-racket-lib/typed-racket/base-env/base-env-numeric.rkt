@@ -1902,6 +1902,15 @@
 [nan? (make-pred-ty (list -Real) B -InexactRealNan)]
 
 [infinite? (make-pred-ty (list -Real) B (Un -PosInfinity -NegInfinity))]
+[positive-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -PosInt -PosFlonum -PosSingleFlonum))
+                                          (-not-type 0 -PosInt)))]
+[negative-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -NegInt -NegFlonum -NegSingleFlonum))
+                                          (-not-type 0 -NegInt)))]
+[nonpositive-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -NonPosInt -NonPosFlonum -NonPosSingleFlonum))
+                                             (-not-type 0 -NonPosInt)))]
+[nonnegative-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -Nat -NonNegFlonum -NonNegSingleFlonum))
+                                             (-not-type 0 -Nat)))]
+[natural? (make-pred-ty -Nat)]
 
 ;; racket/fixnum
 [fx+ (fx+-type)]

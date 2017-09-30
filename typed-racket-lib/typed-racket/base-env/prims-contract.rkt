@@ -287,8 +287,10 @@
    ;; that `(cast-table-ref id)` can get that type here.
    (λ ()
      (define type-stx
-       (or (cast-table-ref id)
-           #f))
+       (let ([types (cast-table-ref id)])
+         (if types
+             #`(U #,@types)
+             #f)))
      `#s(contract-def ,type-stx ,flat? ,maker? typed))))
 
 
@@ -353,7 +355,7 @@
                                      (make-contract-def-rhs/from-typed existing-ty-id #f #f)))
             (define (store-existing-type existing-type)
               (check-no-free-vars existing-type #'v)
-              (cast-table-set! existing-ty-id (datum->syntax #f existing-type #'v)))
+              (cast-table-add! existing-ty-id (datum->syntax #f existing-type #'v)))
             (define (check-valid-type _)
               (define type (parse-type #'ty))
               (check-no-free-vars type #'ty))

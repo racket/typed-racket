@@ -228,6 +228,8 @@
    (t-sc (-lst Univ) (listof/sc any-wrap/sc))
    (t-sc (Un (-lst Univ) -Number) (or/sc number/sc (listof/sc any-wrap/sc)))
 
+   (t-int Any-Syntax syntax? #'#'A #:typed) ;; GitHub issue #616
+
    ;; Github pull request #226
    (let ([ctc (-> Univ -Boolean)])
      ;; Ordinary functions should have a contract

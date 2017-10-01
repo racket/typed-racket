@@ -78,15 +78,43 @@
     [(tc-any-results: _) (-AnyValues -tt)]
     [_ t]))
 
-(define (stringify-domain dom rst [rng #f])
-  (let ([doms-string (if (null? dom) "" (string-append (stringify (map make-printable dom)) " "))]
-        [rng-string (if rng (format " -> ~a" rng) "")])
+;; creates a "pretty-printed" version of the domain
+;; (and optionally also followed by "-> rng")
+;; of a function, so we can easily print things like:
+;; Domain was          Number Number *
+;; but arguments were  String
+(define/cond-contract (stringify-domain dom rst [rng #f])
+  (->* ((listof (or/c Type? tc-results/c))
+        (or/c #f Type? RestDots?))
+       ((or/c Type? SomeValues? tc-results/c))
+       string?)
+  (let ([doms-string (if (null? dom) "" (stringify (map make-printable dom)))]
+        [rng-string (if rng (format " -> ~a" (make-printable rng)) "")])
     (match rst
       [(RestDots: dty dbound)
-       (format "~a~a ... ~a~a" doms-string dty dbound rng-string)]
+       (format "~a ~a ... ~a~a" doms-string dty dbound rng-string)]
       [rst
-       (format "~a~a *~a" doms-string rst rng-string)]
-      [else (string-append (stringify (map make-printable dom)) rng-string)])))
+       (format "~a~a~a"
+               doms-string
+               (if rst (format "~a *" rst) "")
+               rng-string)])))
+
+;; creates a "pretty-printed" version of the arguments
+;; to a function, so we can easily print things like:
+;; Domain was          Number Number *
+;; but arguments were  String
+(define/cond-contract (stringify-args dom rst)
+  (-> (listof (or/c Type? tc-results/c))
+      (or/c #f Type? RestDots?)
+      string?)
+  (let ([doms-string (if (null? dom)
+                         ""
+                         (stringify (map make-printable dom)))])
+    (match rst
+      [#f doms-string]
+      [(RestDots: dty dbound)
+       (format "~a ~a ... ~a~a" doms-string dty dbound)]
+      [rst (format "~a ~a" doms-string rst)])))
 
 ;; Generates error messages when operand types don't match operator domains.
 (provide/cond-contract
@@ -106,9 +134,7 @@
                            ;; can report those in the error message
                            #:arg-names [arg-names '()])
   (define arguments-str
-    (stringify-domain arg-tys
-                      (if (not tail-bound) tail-ty #f)
-                      (if tail-bound (cons tail-ty tail-bound) #f)))
+    (stringify-args arg-tys tail-ty))
   (cond
     [(null? doms)
      (tc-error/expr/fields

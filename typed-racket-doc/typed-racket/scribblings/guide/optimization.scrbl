@@ -73,8 +73,8 @@ operations, the result is not necessarily a @racket[Float]. For
 instance, the result of @racket[(* 2.0 0)] is @racket[0] which is not
 a @racket[Float]. This can result in missed optimizations. To prevent
 this, when mixing floating-point numbers and exact reals, coerce exact
-reals to floating-point numbers using @racket[exact->inexact]. This is
-not necessary when using @racket[+] or @racket[-]. When mixing
+reals to floating-point numbers using @racket[real->double-flonum].
+This is not necessary when using @racket[+] or @racket[-]. When mixing
 floating-point numbers of different precisions, results use the
 highest precision possible.
 

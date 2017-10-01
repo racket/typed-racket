@@ -790,7 +790,10 @@
 
 (define-type Subwindow<%>
   (Class #:implements Subarea<%>
-         #:implements Window<%>))
+         #:implements Window<%>
+         [reparent (-> (U (Instance Frame%) (Instance Dialog%)
+                          (Instance Panel%) (Instance Pane%))
+                       Void)]))
 
 (define-type Canvas<%>
   (Class #:implements Subwindow<%>

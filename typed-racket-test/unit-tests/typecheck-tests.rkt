@@ -4209,6 +4209,121 @@
        [tc-err (let ()
                  (define (f #:x x y) 1)
                  (map f (list 1 2 3)))]
+       ;; fixing optional args + rest args, see
+       ;; TR github issue #614
+       [tc-err
+        (let ()
+          ((tr:λ ([y : String "default"] . rest)
+             y)
+           42)
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"No function domains matched"]
+       [tc-err
+        (let ()
+          ((tr:λ ([x : Number] [y : String "default"] . rest)
+             y)
+           0 1)
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"No function domains matched"]
+       [tc-e
+        (let ()
+          (ann
+           (case-lambda [(str num . nums)
+                         (+ num (string-length str))]
+                        [(str . nums)
+                         (string-length str)]
+                        [l (length (ann l Null))])
+           (->* () (String) #:rest Number Number))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (ann
+           (case-lambda [(x str num . nums)
+                         (+ x num (string-length str))]
+                        [(x str . nums)
+                         (+ x (string-length str))]
+                        [l (length (ann l (Listof Number)))])
+           (->* (Number) (String) #:rest Number Number))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (ann
+           (case-lambda [(x str num . nums)
+                         (+ x num (string-length str))]
+                        [l (let ([fst (car l)])
+                             (cond
+                               [(number? fst) fst]
+                               [else (string-length fst)]))])
+           (->* (Number) (String) #:rest Number Number))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (ann
+           (case-lambda [(str)
+                         (string-length str)]
+                        [(str sym)
+                         (+ (string-length (symbol->string sym))
+                            (string-length str))]
+                        [(str sym . nums)
+                         (+ (string-length (symbol->string sym))
+                            (string-length str))]
+
+                        [l (length (ann l (Listof (U String Number))))])
+           (->* () (String Symbol) #:rest Number Number))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (ann
+           (case-lambda [(x str)
+                         (+ x (string-length str))]
+                        [(x str sym)
+                         (+ x
+                            (string-length (symbol->string sym))
+                            (string-length str))]
+                        [(x str sym . nums)
+                         (+ x
+                            (string-length (symbol->string sym))
+                            (string-length str))]
+
+                        [l (length (ann l (Listof (U String Number))))])
+           (->* (Number) (String Symbol) #:rest Number Number))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (ann
+           (case-lambda [(str . nums) 42]
+                        [l (let ([fst (car l)])
+                             (cond
+                               [(number? fst) fst]
+                               ;; this should pass since we know
+                               ;; l is null here -- i.e. it's dead code
+                               [else (ann fst Number)]))])
+           (->* () (String) #:rest Number Number))
+          (void))
+        -Void]
+       [tc-err
+        (let ()
+          (ann
+           (case-lambda [(x str num . nums) 42]
+                        [l (let ([snd (cadr l)])
+                             (cond
+                               [(number? snd) snd]
+                               ;; this else should fail to typecheck
+                               ;; it should not be dead code... since
+                               ;; snd is a String (if it exists... but
+                               ;; the type for cadr lets us try)
+                               [else (ann snd Number)]))])
+           (->* (Number) (String) #:rest Number Number))
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"given: String"]
        )
 
   (test-suite

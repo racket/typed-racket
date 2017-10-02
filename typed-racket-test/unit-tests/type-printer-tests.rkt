@@ -132,11 +132,18 @@
     (check-prints-as? (-AnyValues (-is-type '(0 . 0) -String))
                       "(AnyValues : (: (0 0) String))")
 
+    (check-prints-as?
+     (make-Fun (list (-Arrow (list Univ) #:rest Univ -String)
+                     (-Arrow (list Univ -String) #:rest Univ -String)))
+     ;; NOT (->* (Any) (String) #:rest Any String)
+     "(case-> (-> Any Any * String) (-> Any String Any * String))")
     (check-prints-as? (->opt Univ [] -Void) "(-> Any Void)")
     (check-prints-as? (->opt [-String] -Void) "(->* () (String) Void)")
     (check-prints-as? (->opt Univ [-String] -Void) "(->* (Any) (String) Void)")
     (check-prints-as? (->opt Univ -Symbol [-String] -Void)
                       "(->* (Any Symbol) (String) Void)")
+    (check-prints-as? (->optkey Univ [-String] #:rest -Symbol -Void)
+                      "(->* (Any) (String) #:rest Symbol Void)")
     (check-prints-as? (->optkey Univ [-String] #:x -String #f -Void)
                       "(->* (Any) (String #:x String) Void)")
     (check-prints-as? (->optkey Univ [-String] #:x -String #t -Void)

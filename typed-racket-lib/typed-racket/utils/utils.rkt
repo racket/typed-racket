@@ -384,14 +384,14 @@ at least theoretically.
         [else default]))))
 
 (define (assoc-set d key val)
-  (let loop ([xd d])
+  (let loop ([entries d])
     (cond
-      [(null? xd) (list (cons key val))]
+      [(null? entries) (list (cons key val))]
       [else
-       (let ([a (car xd)])
-         (if (equal? (car a) key)
-             (cons (cons key val) (cdr xd))
-             (cons a (loop (cdr xd)))))])))
+       (let ([entry (car entries)])
+         (if (equal? (car entry) key)
+             (cons (cons key val) (cdr entries))
+             (cons entry (loop (cdr entries)))))])))
 
 (define (assoc-remove d key)
   (let loop ([xd d])

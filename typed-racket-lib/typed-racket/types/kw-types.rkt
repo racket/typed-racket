@@ -9,54 +9,58 @@
          racket/format racket/string
          syntax/parse)
 
-;; convert : [Listof Keyword] [Listof Type] [Listof Type] [Option Type]
-;;           [Option Type] [Option (Pair Type symbol)] boolean -> Type
-(define (convert kw-ts plain-ts opt-ts rng rst split?)
-  (when (RestDots? rst) (int-err "RestDots passed to kw-convert"))
+
+(define (convert keywords ; (listof Keyword?)
+                 mandatory-arg-types ; (listof Type?)
+                 optional-arg-types ; (listof Type?)
+                 rng ; SomeValues?
+                 maybe-rst ; (or/c #f Type? RestDots?)
+                 split?) ; boolean?
+  (when (RestDots? maybe-rst) (int-err "RestDots passed to kw-convert"))
   ;; the kw function protocol passes rest args as an explicit list
-  (define rst-type (if rst (list (-lst rst)) empty))
+  (define rst-type (if maybe-rst (list (-lst maybe-rst)) empty))
 
   ;; the kw protocol puts the arguments in keyword-sorted order in the
   ;; function header, so we need to sort the types to match
   (define sorted-kws
-    (sort kw-ts (λ (kw1 kw2) (keyword<? (Keyword-kw kw1)
-                                       (Keyword-kw kw2)))))
+    (sort keywords (λ (kw1 kw2) (keyword<? (Keyword-kw kw1)
+                                           (Keyword-kw kw2)))))
 
   (make-Fun
-    (cond
-      [(not split?)
-       (define ts 
-         (flatten
-          (list
-           (for/list ([k (in-list sorted-kws)])
-             (match k
-               [(Keyword: _ t #t) t]
-               [(Keyword: _ t #f) (list (-opt t) -Boolean)]))
-           plain-ts
-           (for/list ([t (in-list opt-ts)]) (-opt t))
-           (for/list ([t (in-list opt-ts)]) -Boolean)
-           rst-type)))
-       (list (-Arrow ts rng #:rest rst))]
-      [else
-       ;; The keyword argument types including boolean flags for
-       ;; optional keyword arguments
-       (define kw-args
-         (for/fold ([pos '()])
-                   ([k (in-list (reverse sorted-kws))])
-           (match k
-             ;; mandatory keyword arguments have no extra args
-             [(Keyword: _ t #t) (cons t pos)]
-             ;; we can safely assume 't' and not (-opt t) here
-             ;; because if the keyword is not provided, the value
-             ;; will only appear in dead code (i.e. where the kw-flag arg is #f)
-             ;; within the body of the function
-             [(Keyword: _ t #f) (list* t -Boolean pos)])))
+   (cond
+     [(not split?)
+      (define ts
+        (flatten
+         (list
+          (for/list ([k (in-list sorted-kws)])
+            (match k
+              [(Keyword: _ t #t) t]
+              [(Keyword: _ t #f) (list (-opt t) -Boolean)]))
+          mandatory-arg-types
+          (for/list ([t (in-list optional-arg-types)]) (-opt t))
+          (for/list ([t (in-list optional-arg-types)]) -Boolean)
+          rst-type)))
+      (list (-Arrow ts rng))]
+     [else
+      ;; The keyword argument types including boolean flags for
+      ;; optional keyword arguments
+      (define kw-args
+        (for/fold ([pos '()])
+                  ([k (in-list (reverse sorted-kws))])
+          (match k
+            ;; mandatory keyword arguments have no extra args
+            [(Keyword: _ t #t) (cons t pos)]
+            ;; we can safely assume 't' and not (-opt t) here
+            ;; because if the keyword is not provided, the value
+            ;; will only appear in dead code (i.e. where the kw-flag arg is #f)
+            ;; within the body of the function
+            [(Keyword: _ t #f) (list* t -Boolean pos)])))
 
-       ;; Add boolean arguments for the optional type flaggs.
-       (define opt-flags (make-list (length opt-ts) -Boolean))
+      ;; Add boolean arguments for the optional type flaggs.
+      (define opt-flags (make-list (length optional-arg-types) -Boolean))
 
-       (list (-Arrow (append kw-args plain-ts opt-ts opt-flags rst-type)
-                     rng))])))
+      (list (-Arrow (append kw-args mandatory-arg-types optional-arg-types opt-flags rst-type)
+                    rng))])))
 
 ;; This is used to fix the props of keyword types.
 ;; TODO: This should also explore deeper into the actual types and remove props in there as well.
@@ -78,31 +82,6 @@
                       dty
                       dbound)]))
 
-
-(define (prefix-of a b)
-  (match* (a b)
-    [((Arrow: args1 rst kws rng)
-      (Arrow: args2 rst kws rng))
-     (and (< (length args1) (length args2))
-          (for/and ([t1 (in-list args1)]
-                    [t2 (in-list args2)])
-            (equal? t1 t2)))]
-    [(_ _) #f]))
-
-(define (arg-diff a1 a2)
-  (drop (Arrow-dom a2)
-        (length (Arrow-dom a1))))
-
-(define (find-prefixes l)
-  (define l* (sort l (λ (a1 a2) (< (length (Arrow-dom a1))
-                                   (length (Arrow-dom a2))))))
-  (for/fold ([d '()]) ([e (in-list l*)])
-    (define prefix (for/or ([(p _) (in-assoc d)])
-                     (and (prefix-of p e) p)))
-    (if prefix
-        (assoc-set d prefix (arg-diff prefix e))
-        (assoc-set d e null))))
-
 ;; handle-extra-or-missing-kws : (Listof Keyword) LambdaKeywords
 ;;                               -> (Listof Keyword)
 ;; Remove keywords in the given list that aren't in the actual lambda
@@ -122,22 +101,67 @@
           (for/list ([kw (in-list (set-subtract actual-opts expected-kws))])
             (make-Keyword kw -Bottom #f))))
 
+;; is arrow's max arity one less than arrow*'s min arity,
+;; and arrow cannot have infinite max arity,
+;; and both arrows have equivalent keyword specs
+(define (domain-is-prefix? arrow arrow* min-arity)
+  (and (not (Arrow-rst arrow))
+       (equal? (Arrow-kws arrow) (Arrow-kws arrow*))
+       (= (Arrow-max-arity arrow) (sub1 min-arity))
+       (for/and ([d (in-list (Arrow-dom arrow))]
+                 [d* (in-list (Arrow-dom arrow*))])
+         (equal? d d*))))
+
+;; calculate-mandatory-args
+;;   : (listof Arrow?) -> (assoc-listof Arrow? exact-nonnegative-integer?)
+;; We don't explicitly record optional vs mandatory args on arrows.
+;; This function looks for Arrows which, in a case->, are equivalent
+;; to having optional arguments and returns a dictionary mapping
+;; arrows to their mandatory arg count (from which we can derive their
+;; optional arg count)
+;; e.g. (calculate-mandatory-args (list (-> String Any) (-> String String Any)))
+;;   ==> (list (cons (-> String String Any) 1))
+;; meaning instead of remembering both arrows, we can just remember
+;; (-> String String Any) and the fact that only the first positional argument
+;; is mandatory (i.e. the second is optional)
+(define (calculate-mandatory-args orig-arrows)
+  ;; sorted order is important, our loops below rely on this order
+  (define arity-sorted-arrows
+    (sort orig-arrows
+          (λ (a1 a2) (>= (Arrow-max-arity a1)
+                         (Arrow-max-arity a2)))))
+  (for/fold ([mand-arg-table '()])
+            ([arrow (in-list arity-sorted-arrows)])
+    (cond
+      [(for/or ([(arrow* min-arity) (in-assoc mand-arg-table)])
+         ;; is arrow like arrow* but arrow's max arity is 1 less
+         ;; than arrow*'s currently known min arity?
+         (and (domain-is-prefix? arrow arrow* min-arity)
+              (assoc-set mand-arg-table arrow* (sub1 min-arity))))]
+      [else
+       (assoc-set mand-arg-table arrow (Arrow-min-arity arrow))])))
+
 ;; inner-kw-convert : (Listof arr) (Option LambdaKeywords) Boolean -> Type
 ;; Helper function that converts each arr to a Function type and then
 ;; merges them into a single Function type.
 (define (inner-kw-convert arrs actual-kws split?)
-  (define table (find-prefixes arrs))
+  (define mand-arg-table (calculate-mandatory-args arrs))
   (define fns
     ;; use for/list and remove duplicates afterwards instead of
     ;; set and set->list to retain determinism
     (remove-duplicates
-     (for/list ([(k v) (in-assoc table)])
-       (match k
-         [(Arrow: mand rst kws rng)
+     (for/list ([(arrow mand-arg-count) (in-assoc mand-arg-table)])
+       (match arrow
+         [(Arrow: dom rst kws rng)
           (define kws* (if actual-kws
                            (handle-extra-or-missing-kws kws actual-kws)
                            kws))
-          (convert kws* mand v rng rst split?)]))))
+          (convert kws*
+                   (take dom mand-arg-count)
+                   (drop dom mand-arg-count)
+                   rng
+                   rst
+                   split?)]))))
   (apply cl->* fns))
 
 ;; kw-convert : Type (Option LambdaKeywords) [Boolean] -> Type
@@ -216,12 +240,13 @@
             (define rest-type
               (and rest? (last opt-and-rest-args)))
             (define opt-types (take opt-and-rest-args opt-non-kw-argc))
+            (define opt-types-count (length opt-types))
             (make-Fun
-             (for/list ([to-take (in-range (add1 (length opt-types)))])
+             (for/list ([to-take (in-range (add1 opt-types-count))])
                (-Arrow (append mand-args (take opt-types to-take))
                        (erase-props/Values rng)
                        #:kws actual-kws
-                       #:rest rest-type)))]
+                       #:rest (if (= to-take opt-types-count) rest-type #f))))]
            [else (int-err "unsupported arrs in keyword function type")])]
     [_ (int-err "unsupported keyword function type")]))
 
@@ -356,11 +381,13 @@
             (define rest-type
               (and rest? (last opt-and-rest-args)))
             (define opt-types (take opt-and-rest-args opt-argc))
+            (define opt-types-len (length opt-types))
             (make-Fun
-             (for/list ([to-take (in-range (add1 (length opt-types)))])
-               (-Arrow (append mand-args (take opt-types to-take))
+             (for/list ([how-many-opt-args (in-range (add1 opt-types-len))])
+               (-Arrow (append mand-args (take opt-types how-many-opt-args))
                        rng
-                       #:rest rest-type)))]
+                       #:rest (and (= how-many-opt-args opt-types-len)
+                                   rest-type))))]
            [else (int-err "unsupported arrs in keyword function type")])]
     [_ (int-err "unsupported keyword function type")]))
 

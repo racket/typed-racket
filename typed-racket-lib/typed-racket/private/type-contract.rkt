@@ -782,21 +782,24 @@
      (define (partition-kws kws) (partition (match-lambda [(Keyword: _ _ mand?) mand?]) kws))
      (define (process-dom dom*)  (if method? (cons any/sc dom*) dom*))
      (cond
-      ;; To generate a single `->*', everything must be the same for all arrs, except for positional
-      ;; arguments which can increase by at most one each time.
-      ;; Note: optional arguments can only increase by 1 each time, to avoid problems with
-      ;;  functions that take, e.g., either 2 or 6 arguments. These functions shouldn't match,
-      ;;  since this code would generate contracts that accept any number of arguments between
-      ;;  2 and 6, which is wrong.
-      ;; TODO sufficient condition, but may not be necessary
-      [(has-optional-args? arrows)
-       (define first-arrow (first arrows))
+       ;; To generate a single `->*':
+       ;; - keywords and range must be the same for all arrows
+       ;; - only the last arrow may have a rest argument
+       ;; - positional argument count increases by one at each step
+       ;; Note: optional arguments can only increase by 1 each time, to avoid problems with
+       ;;  functions that take, e.g., either 2 or 6 arguments. These functions shouldn't match,
+       ;;  since this code would generate contracts that accept any number of arguments between
+       ;;  2 and 6, which is wrong.
+       ;; TODO sufficient condition, but may not be necessary
+       [(has-optional-args? arrows)
+        (define first-arrow (first arrows))
        (define last-arrow (last arrows))
        (define (convert-arrow)
-         (match-define (Arrow: first-dom rst kws
+         (match-define (Arrow: first-dom _ kws
                                (Values: (list (Result: rngs _ _) ...)))
            first-arrow)
-         ;; all but dom is the same for all arrs
+         (define rst (Arrow-rst last-arrow))
+         ;; kws and rng same for all arrs
          (define last-dom (Arrow-dom last-arrow))
          (define mand-args (map t->sc/neg first-dom))
          (define opt-args (map t->sc/neg (drop last-dom (length first-dom))))

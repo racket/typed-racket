@@ -218,7 +218,24 @@
 
 
    ;; ->* types
-   [(->* (String Symbol) Void) (t:-> -String -Symbol -Void)]
+   [(->* (String Symbol) Void)
+    (make-Fun (list (-Arrow (list -String -Symbol) -Void)))]
+   [(->* () (String) #:rest Symbol Void)
+    (make-Fun (list (-Arrow (list) -Void)
+                    (-Arrow (list -String)
+                            #:rest -Symbol
+                            -Void)))]
+   [(->* (Number) (String) #:rest Symbol Void)
+    (make-Fun (list (-Arrow (list -Number) -Void)
+                    (-Arrow (list -Number -String)
+                            #:rest -Symbol
+                            -Void)))]
+   [(->* (Number) (String Void) #:rest Symbol Any)
+    (make-Fun (list (-Arrow (list -Number) Univ)
+                    (-Arrow (list -Number -String) Univ)
+                    (-Arrow (list -Number -String -Void)
+                            #:rest -Symbol
+                            Univ)))]
    [(->* (String Symbol) (String) Void)
     (->opt -String -Symbol [-String] -Void)]
    [(->* (String Symbol) (String Symbol) Void)

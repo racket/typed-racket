@@ -235,7 +235,9 @@
        (with-syntax ([((extra ...) ...)
                       (for/list ([i (in-range (add1 (length l)))])
                         (take l i))]
-                     [(rst ...) (for/list ([i (in-range (add1 (length l)))]) #'rst)])
+                     ;; only the LAST arrow gets a #:rest arg
+                     [(rst ...) (for/list ([i (in-range (add1 (length l)))])
+                                  (if (< i (length l)) #'#f #'rst))])
          (syntax/loc stx
            (make-Fun
             (list

@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
          racket/list syntax/parse syntax/stx
-         racket/match syntax/id-table racket/set
+         racket/match syntax/private/id-table racket/set
          racket/sequence
          (contract-req)
          (rep type-rep object-rep rep-utils)
@@ -55,39 +55,41 @@
 ;; tc-lambda-body: Typechecks the body with the given args and names and returns the resulting arr?.
 ;; arg-names: The identifiers of the positional args
 ;; arg-types: The types of the positional args
-;; raw-rest: Either #f for no rest argument or (list rest-id rest-type) where rest-id is the
-;;           identifier of the rest arg, and rest-type is the type.
+;; rest-arg+type: Either #f for no rest argument or (cons rest-id rest-type)
+;;                where rest-id is the identifier of the rest arg,
+;;                and (ListOf rest-type) is the type that identifier would
+;;                have in the function body
 ;; expected: The expected type of the body forms.
 ;; body: The body of the lambda to typecheck.
 (define/cond-contract
-  (tc-lambda-body arg-names arg-types #:rest [raw-rest #f] #:expected [expected #f] body)
+  (tc-lambda-body arg-names arg-types #:rest-arg+type [rest-arg+type #f] #:expected [expected #f] body)
   (->* ((listof identifier?) (listof Type?) syntax?)
-       (#:rest (or/c #f (list/c identifier? (or/c Type? RestDots?)))
+       (#:rest-arg+type (or/c #f (cons/c identifier? (or/c Type? RestDots?)))
         #:expected (or/c #f tc-results/c))
        Arrow?)
-  (define-values (rest-id rst)
-    (if raw-rest
-        (values (first raw-rest) (second raw-rest))
-        (values #f #f)))
 
-  (define rest-types
-    (match rst
-      [(? Type?) (list (-lst rst))]
-      [(RestDots: dty dbound)
-       (list (make-ListDots dty dbound))]
-      [#f (list)]))
-  (define rest-names
-    (if rest-id (list rest-id) null))
+  (define-values (rst-id rst-type names types)
+    (match rest-arg+type
+      [(cons id rst)
+       (values id rst
+               (cons id arg-names)
+               (cons (match rst
+                       [(? Bottom?) -Null]
+                       [(? Type?) (-lst rst)]
+                       [(RestDots: dty dbound)
+                        (make-ListDots dty dbound)])
+                     arg-types))]
+      [_ (values #f #f arg-names arg-types)]))
 
   (-Arrow
    arg-types
    (abstract-results
     (with-extended-lexical-env
-        [#:identifiers (append rest-names arg-names)
-         #:types (append rest-types arg-types)]
+        [#:identifiers names
+         #:types types]
       (tc-body/check body expected))
-    arg-names #:rest-id rest-id)
-   #:rest rst))
+    arg-names #:rest-id rst-id)
+   #:rest rst-type))
 
 ;; check-clause: Checks that a lambda clause has arguments and body matching the expected type
 ;; arg-list: The identifiers of the positional args in the lambda form
@@ -138,15 +140,15 @@
            (cond
              [(type-annotation rest-id) (get-type rest-id #:default Univ)]
              [(Type? rst) rst]
+             [(not rst) -Bottom]
              [else Univ]))
          (define extra-types
            (if (<= arg-len tys-len)
                (drop arg-tys arg-len)
                null))
          (apply Un base-rest-type extra-types)]))
-
     (tc-lambda-body arg-list arg-types
-                    #:rest (and rest-type (list rest-id rest-type))
+                    #:rest-arg+type (and rest-type (cons rest-id rest-type))
                     #:expected ret-ty
                     body)))
 
@@ -265,7 +267,7 @@
       [else
        (list
         (tc-lambda-body arg-list (map (lambda (v) (or v Univ)) arg-types)
-                        #:rest (and rest-type (list rest-id rest-type))
+                        #:rest-arg+type (and rest-type (cons rest-id rest-type))
                         body))])]))
 
 
@@ -364,11 +366,12 @@
       [_ #f]))
 
 
-  ;; For each clause we figure out which arrs it needs to typecheck as, and also which clauses are
-  ;; dead code.
+  ;; For each clause we figure out which arrs it needs to typecheck as,
+  ;; and also which clauses are dead code.
   (define-values (used-formals+bodies+arrs arities-seen)
-    (for/fold ((formals+bodies+arrs* empty) (arities-seen initial-arities-seen))
-              ((formal+body formals+bodies))
+    (for/fold ([formals+bodies+arrs* empty]
+               [arities-seen initial-arities-seen])
+              ([formal+body (in-list formals+bodies)])
       (match formal+body
         [(list formal body)
          (define arity (formals->arity formal))
@@ -385,27 +388,29 @@
              formals+bodies+arrs*)
            (arities-seen-add arities-seen arity))])))
 
-  (if (and
-        (andmap (λ (f-b-arr) (empty? (third f-b-arr))) used-formals+bodies+arrs)
-        ;; If the empty function is expected, then don't error out
-        (match expected-type
-          [(Fun: (list)) #f]
-          [_ #t]))
-      ;; TODO improve error message.
-      (tc-error/expr #:return (list (-Arrow null -Bottom #:rest Univ))
-                     "Expected a function of type ~a, but got a function with the wrong arity"
-                     expected-type)
-      (apply append
-             (for/list ([fb* (in-list used-formals+bodies+arrs)])
-               (match-define (list f* b* t*) fb*)
-               (cond
-                 [(not t*) (tc/lambda-clause f* b*)]
-                 [else
-                  (for/list ([arrow (in-list t*)])
-                    (match arrow
-                      [(Arrow: dom rst '() rng)
-                       (tc/lambda-clause/check
-                        f* b* dom (values->tc-results rng (formals->objects f*)) rst)]))])))))
+  (cond
+    [(and (andmap (λ (f-b-arr) (empty? (third f-b-arr)))
+                  used-formals+bodies+arrs)
+          ;; If the empty function is expected, then don't error out
+          (match expected-type
+            [(Fun: (list)) #f]
+            [_ #t]))
+     ;; TODO improve error message.
+     (tc-error/expr #:return (list (-Arrow null -Bottom #:rest Univ))
+                    "Expected a function of type ~a, but got a function with the wrong arity"
+                    expected-type)]
+    [else
+     (apply append
+            (for/list ([fb* (in-list used-formals+bodies+arrs)])
+              (match-define (list f* b* t*) fb*)
+              (cond
+                [(not t*) (tc/lambda-clause f* b*)]
+                [else
+                 (for/list ([arrow (in-list t*)])
+                   (match arrow
+                     [(Arrow: dom rst '() rng)
+                      (tc/lambda-clause/check
+                       f* b* dom (values->tc-results rng (formals->objects f*)) rst)]))])))]))
 
 (define (tc/dep-lambda formalss-stx bodies-stx dep-fun-ty)
   (parameterize ([with-refinements? #t])

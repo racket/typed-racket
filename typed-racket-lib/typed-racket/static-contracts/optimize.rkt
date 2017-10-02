@@ -109,7 +109,7 @@
     [else sc]))
 
 
-;; Reduce a static contract assuming that we trusted the current positive side
+;; Reduce a static contract assuming that we trusted the current side
 (define (trusted-side-reduce sc)
   (match sc
     [(->/sc: mand-args opt-args mand-kw-args opt-kw-args rest-arg (list (any/sc:) ...))
@@ -119,6 +119,11 @@
     [(none/sc:) any/sc]
     [(or/sc: (? flat-terminal-kind?) ...) any/sc]
     [(? flat-terminal-kind?) any/sc]
+    [(syntax/sc: (? recursive-sc?))
+     ;;bg; _temporary_ case to allow contracts from the `Syntax` type.
+     ;;    This is temporary until TR has types for immutable-vector
+     ;;    and box-immutable & changes the definition of the `Syntax` type.
+     any/sc]
     [else sc]))
 
 (define (flat-terminal-kind? sc)

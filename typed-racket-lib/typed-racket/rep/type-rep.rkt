@@ -549,6 +549,14 @@
    (for-each f kws)
    (f rng)])
 
+(define/provide (Arrow-min-arity a)
+  (length (Arrow-dom a)))
+
+(define/provide (Arrow-max-arity a)
+  (if (Type? (Arrow-rst a))
+      +inf.0
+      (length (Arrow-dom a))))
+
 ;; a standard function
 ;; + all functions are case-> under the hood (i.e. see 'arrows')
 ;; + each Arrow in 'arrows' may have a dependent range

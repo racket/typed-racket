@@ -370,8 +370,8 @@
   ;; see type-contract.rkt, which does something similar and this code
   ;; was stolen from/inspired by/etc.
   (match* ((first arrs) (last arrs))
-    [((Arrow: first-dom rst kws rng)
-      (Arrow: last-dom _ _ _))
+    [((Arrow: first-dom _ kws rng)
+      (Arrow: last-dom rst _ _))
      (define-values (mand-kws opt-kws) (partition-kws kws))
      (define opt-doms (drop last-dom (length first-dom)))
      `(->*

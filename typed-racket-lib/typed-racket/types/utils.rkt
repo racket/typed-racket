@@ -75,31 +75,38 @@
 ;; Check if the given arrs meet the necessary conditions to be printed
 ;; with a ->* constructor or for generating a ->* contract
 (define (has-optional-args? arrows)
-  (and (> (length arrows) 1)
-       ;; No polydots
-       (not (ormap (λ (a) (RestDots? (Arrow-rst a))) arrows))
-       ;; Keyword args, range and rest specs all the same.
-       (match-let ([(cons (Arrow: _ rst1 kws1 rng1) as) arrows])
-         (for/and ([a (in-list as)])
-           (match a
-             [(Arrow: _ rst2 kws2 rng2)
-              (and (equal? rst1 rst2)
-                   (equal? kws1 kws2)
-                   (equal? rng1 rng2))])))
-       ;; Positionals are monotonically increasing by at most one.
-       (let-values ([(_ ok?)
-                     (for/fold ([positionals (Arrow-dom (first arrows))]
-                                [ok?  #t])
-                               ([arr (in-list (rest arrows))]
-                                #:break (not ok?))
-                       (define dom (Arrow-dom arr))
-                       (define ldom (length dom))
-                       (define lpositionals (length positionals))
-                       (values dom
-                               (and (or (= ldom lpositionals)
-                                        (= ldom (add1 lpositionals)))
-                                    (equal? positionals (take dom lpositionals)))))])
-         ok?)))
+  (and (pair? arrows)
+       (pair? (cdr arrows)) ;; i.e. (> (length arrows) 1)
+       (match arrows
+         [(cons (Arrow: dom #f kws rng) as)
+          (let loop ([dom dom]
+                     [to-check (cdr arrows)])
+            (match to-check
+              [(cons (Arrow: next-dom next-rst next-kws next-rng)
+                     remaining)
+               (cond
+                 ;; a #:rest must be the LAST clause,
+                 ;; can't be a rest dots
+                 [(and next-rst (or (not (null? remaining))
+                                    (RestDots? next-rst)))
+                  #f]
+                 ;; keywords and range must be the same
+                 [(not (and (equal? kws next-kws)
+                            (equal? rng next-rng)))
+                  #f]
+                 [else
+                  ;; next arrow should have one more domain type
+                  ;; and their domains should be pointwise equal
+                  ;; for all other positional args
+                  (define dom-len (length dom))
+                  (define next-dom-len (length next-dom))
+                  (and (= next-dom-len (add1 dom-len))
+                       (for/and ([d (in-list dom)]
+                                 [next-d (in-list next-dom)])
+                         (equal? d next-d))
+                       (loop next-dom remaining))])]
+              [_ #t]))]
+         [_ #f])))
 
 (provide/cond-contract
  [instantiate-poly ((or/c Poly? PolyDots? PolyRow?) (listof Rep?)

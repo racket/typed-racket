@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
          racket/list syntax/parse syntax/stx
-         racket/match syntax/private/id-table racket/set
+         racket/match syntax/private/id-table
          racket/sequence
          (contract-req)
          (rep type-rep object-rep rep-utils)
@@ -41,6 +41,26 @@
            #:attr mapping (make-immutable-free-id-table)
            #:attr flag-mapping (make-immutable-free-id-table)))
 
+;; positional: (listof identifier?)
+;; rest: id or #f
+;; syntax: syntax? - the improper syntax list of identifiers
+;; (i.e. (append positional (or id '())) but syntax)
+(struct formals (positional rest syntax) #:transparent)
+
+(define (make-formals stx)
+  (let loop ([s stx] [acc null])
+    (cond
+      [(pair? s) (loop (cdr s) (cons (car s) acc))]
+      [(null? s) (formals (reverse acc) #f stx)]
+      [(pair? (syntax-e s)) (loop (stx-cdr s) (cons (stx-car s) acc))]
+      [(null? (syntax-e s)) (formals (reverse acc) #f stx)]
+      [else (formals (reverse acc) s stx)])))
+
+;; Currently no support for objects representing the rest argument
+(define (formals->objects f)
+  (for/list ([i (in-list (formals-positional f))])
+    (make-Path null i)))
+
 (define (expected-str tys-len rst arg-len rest-id)
   (format "Expected function with ~a argument~a~a, but got function with ~a argument~a~a"
           tys-len
@@ -52,7 +72,8 @@
           (if (= arg-len 1) "" "s")
           (if rest-id " and a rest arg" "")))
 
-;; tc-lambda-body: Typechecks the body with the given args and names and returns the resulting arr?.
+;; tc-lambda-body: Typechecks the body with the given args and names
+;;                 and returns the resulting Arrow?.
 ;; arg-names: The identifiers of the positional args
 ;; arg-types: The types of the positional args
 ;; rest-arg+type: Either #f for no rest argument or (cons rest-id rest-type)
@@ -154,14 +175,15 @@
 
 ;; typecheck a single lambda, with argument list and body
 ;; drest-ty and drest-bound are both false or not false
-;; tc/lambda-clause/check: formals syntax listof[Type?] tc-result
-;;                         option[Type?] option[(cons Type? symbol)] -> arr?
-(define (tc/lambda-clause/check formals body arg-tys ret-ty rst)
-  (check-clause (formals-positional formals) (formals-rest formals) body arg-tys rst ret-ty))
+(define/cond-contract (tc/lambda-clause/check f body arg-tys ret-ty rst)
+  (-> formals? syntax? (listof Type?) (or/c tc-results/c #f) (or/c #f Type? RestDots?)
+      Arrow?)
+  (check-clause (formals-positional f) (formals-rest f) body arg-tys rst ret-ty))
 
 ;; typecheck a single opt-lambda clause with argument list and body
-;; tc/opt-lambda-clause: listof[identifier] syntax -> listof[arr?]
-(define (tc/opt-lambda-clause arg-list body aux-table flag-table)
+(define/cond-contract (tc/opt-lambda-clause arg-list body aux-table flag-table)
+  (-> (listof identifier?) syntax? free-id-table? free-id-table?
+      (listof Arrow?))
   ;; arg-types: Listof[Type?]
   (define arg-types
     (for/list ([a (in-list arg-list)])
@@ -191,27 +213,27 @@
   (for/list ([arg-types (in-list new-arg-types)])
     (tc-lambda-body arg-list arg-types body)))
 
-;; restrict-to-arity : arr? nat -> (or/c #f arr?)
+;; restrict-to-arity : Arrow? nat -> (or/c #f Arrow?)
 ;; either produces a new arrow which is a subtype of arr with arity n,
 ;; or #f is that is not possible
-(define (restrict-to-arity arr n)
-  (match arr
+(define (restrict-Arrow-to-arity arrow n)
+  (match arrow
     ;; currently does not handle rest arguments
     [(Arrow: args #f '() _)
      #:when (= n (length args))
-     arr]
+     arrow]
     [_ #f]))
 
-;; formals syntax -> listof[arr?]
-(define (tc/lambda-clause formals body)
+(define/cond-contract (tc/lambda-clause f body)
+  (-> formals? syntax? (listof Arrow?))
   (define-values (aux-table flag-table)
     (syntax-parse body
       [(b:rebuild-let*) (values (attribute b.mapping) (attribute b.flag-mapping))]
       [_ (values (make-immutable-free-id-table)
                  (make-immutable-free-id-table))]))
 
-  (define arg-list (formals-positional formals))
-  (define rest-id (formals-rest formals))
+  (define arg-list (formals-positional f))
+  (define rest-id (formals-rest f))
 
   (define eta-expanded?
     (syntax-parse body
@@ -251,11 +273,14 @@
             ;; but we can't return anything but a (listof arr?) here 
             ;; FIXME: misses optimization opportunities in this code
             (match (tc-expr eta-expanded?)
-              [(tc-result1: (Fun: arrs))
-               (define possibles (for*/list ([arr (in-list arrs)]
-                                             [restricted (in-value (restrict-to-arity arr (length arg-list)))]
-                                             #:when restricted)
-                                   restricted))
+              [(tc-result1: (Fun: arrows))
+               (define possibles
+                 (for*/list ([arrow (in-list arrows)]
+                             [restricted (in-value (restrict-Arrow-to-arity
+                                                    arrow
+                                                    (length arg-list)))]
+                             #:when restricted)
+                   restricted))
                (if (null? possibles)
                    #f
                    possibles)]
@@ -271,67 +296,160 @@
                         body))])]))
 
 
-;; positional: (listof identifier?)
-;; rest: id or #f
-;; syntax: syntax? - the improper syntax list of identifiers
-;; (i.e. (append positional (or id '())) but syntax)
-(struct formals (positional rest syntax) #:transparent)
 
-(define (make-formals stx)
-  (let loop ([s stx] [acc null])
-    (cond
-      [(pair? s) (loop (cdr s) (cons (car s) acc))]
-      [(null? s) (formals (reverse acc) #f stx)]
-      [(pair? (syntax-e s)) (loop (stx-cdr s) (cons (stx-car s) acc))]
-      [(null? (syntax-e s)) (formals (reverse acc) #f stx)]
-      [else (formals (reverse acc) s stx)])))
-
-;; Currently no support for objects representing the rest argument
-(define (formals->objects formals)
-  (for/list ([i (in-list (formals-positional formals))])
-    (make-Path null i)))
-
-
-;; An arity is a list (List Natural Boolean), with the number of positional
-;; arguments and whether there is a rest argument.
+;; case-arities
+;;     a description of the supported arities for a case-lambda
+;;     we have seen thus far while checking a case-lambda (recall
+;;     that, for Function types and type checking purposes, all
+;;     functions are case-lambdas)
+;; fixed-arities : (listof natural?)
+;;     supported unique options so far for fixed argument counts
+;;     (NOTE: once we encounter a rest arg, we remove arity counts
+;;            that the rest encompasses -- see example below of
+;;            checking a case-lambda)
+;; rest-pos : (or/c natural? +inf.0)
+;;     at what point would an argument be in a rest argument
 ;;
-;; An arities-seen is a list (List (Listof Natural) (U Natural Infinity)),
-;; with the list of positional only arities seen and the least number of
-;; positional arguments on an arity with a rest argument seen.
-(define (formals->arity formals)
-  (list
-    (length (formals-positional formals))
-    (and (formals-rest formals) #t)))
+;; We construct these specs _while_ we are parsing and checking
+;; case-lambdas to help us know if a clause is dead code,
+;; which Arrow types we should type check a particular case-lambda
+;; clause at, etc
+;;
+;; e.g. after each step of looking at the below case-lambda,
+;; we would have the following case-arity-spec (i.e. after
+;; using `add-to-arities` to update the case-arities):
+;; (case-lambda
+;;  [(x) ...]          ; ==> (case-arities '(1)     +inf.0)
+;;  [(x y) ...]        ; ==> (case-arities '(1 2)   +inf.0)
+;;  [(x y z) ...]      ; ==> (case-arities '(1 2 3) +inf.0)
+;;  [(x y . rst) ...]  ; ==> (case-arities '(1 2)   2)
+;;  [l ...])           ; ==> (case-arities '()      0)
+(struct case-arities (fixed-arities rest-pos) #:transparent)
 
-(define initial-arities-seen (list empty +inf.0))
+;; initially, we have seen no fixed arities and it is impossible for
+;; an argument to be in a rest argument from a previous clause
+(define initial-case-arities (case-arities '() +inf.0))
 
-;; arities-seen-add : arities-seen? arity? -> arities-seen?
-;; Adds the arity to the arities encoded in the arity-seen.
-(define (arities-seen-add arities-seen arity)
-  (match-define (list positionals min-rest) arities-seen)
-  (match-define (list new-positional new-rest) arity)
-  (define new-min-rest
-    (if new-rest
-        (min new-positional min-rest)
-        min-rest))
-  (list
-    (filter (λ (n) (< n new-min-rest)) (cons new-positional positionals))
-    new-min-rest))
-
-
-;; arities-seen-seen-before? : arities-seen? arity? -> boolean?
-;; Determines if the arity would have been covered by an existing arity in the arity-seen
-(define (arities-seen-seen-before? arities-seen arity)
-  (match-define (list positionals min-rest) arities-seen)
-  (match-define (list new-positional new-rest) arity)
-  (or (>= new-positional min-rest)
-      (and (member new-positional positionals) (not new-rest))))
+;; Adds the arity described by formals 'f' to the arities
+;; described by 'arities'. See above example near `case-arities`
+;; definition.
+(define/cond-contract (add-to-arities arities f)
+  (-> case-arities? formals? case-arities?)
+  (match* (arities f)
+    [((case-arities fixed-arities rest-pos)
+      (formals positional rst _))
+     (define arity (length positional))
+     (define new-rest-pos
+       (if rst (min rest-pos arity) rest-pos))
+     (define new-fixed-arities
+       (for/list ([i (in-list (cons arity fixed-arities))]
+                  #:when (< i new-rest-pos))
+         i))
+     (case-arities new-fixed-arities new-rest-pos)]))
 
 
-;; tc/mono-lambda : (listof (list formals syntax?)) (or/c #f tc-results) -> (listof arr?)
+;; Determines if the given formals would be
+;; covered by a supported arity in arities
+(define/cond-contract (in-arities? arities f-or-arrow)
+  (-> case-arities? (or/c formals? Arrow?) boolean?)
+  (match* (arities f-or-arrow)
+    [((case-arities fixed-arities rest-pos)
+      (or (formals (app length arity) rst _)
+          (Arrow:  (app length arity) rst _ _)))
+     (or (>= arity rest-pos)
+         (and (not rst) (memv arity fixed-arities) #t))]))
+
+
+
+;; Returns a list of Arrows where the list contains all the valid Arrows
+;; that could apply to a clause with formals 'f', given we have already
+;; seen case-arities 'seen'.
+(define/cond-contract (arrows-matching-seen+formals arrows seen f)
+  (-> (listof Arrow?) case-arities? formals? (listof Arrow?))
+  (match-define (formals formals-positionals formals-rest? _) f)
+  (define pos-count (length formals-positionals))
+  (for*/list ([arrow (in-list arrows)]
+              [dom (in-value (Arrow-dom arrow))]
+              [rst (in-value (Arrow-rst arrow))]
+              #:unless (in-arities? seen arrow)
+              #:when (cond
+                       [formals-rest?
+                        (or (Type? rst) (>= (length dom) pos-count))]
+                       [rst (<= (length dom) pos-count)]
+                       [else (= (length dom) pos-count)]))
+    arrow))
+
+
+
+
+;; formals+bodies  : formals and bodies to check
+;; expected-arrows : expected arrow types for the overall case-lambda
+;; orig-arrows     : an association list recording if any formals and bodies
+;;                   have _already_ been checked at a certain Arrow type
+(define/cond-contract
+  (check-mono-lambda/expected formals+bodies expected-arrows orig-arrows)
+  (-> (listof (cons/c formals? syntax?))
+      (listof Arrow?)
+      (listof (cons/c (cons/c formals? syntax?)
+                      (listof Arrow?)))
+      (listof Arrow?))
+
+  ;; arities we have seen so far while checking case-lambda clauses
+  (define seen initial-case-arities)
+  ;; For each clause we figure out which arrows it needs to type check at,
+  ;; and also which clauses are dead code.
+  (define to-check-list
+    (for*/list ([f+b (in-list formals+bodies)]
+                [clause-formals (in-value (car f+b))]
+                [clause-body (in-value (cdr f+b))])
+      (define matching-arrows
+        (arrows-matching-seen+formals expected-arrows
+                                      seen
+                                      clause-formals))
+      (when (or (in-arities? seen clause-formals)
+                (null? matching-arrows))
+        (warn-unreachable clause-body)
+        (add-dead-lambda-branch (formals-syntax clause-formals)))
+      (set! seen (add-to-arities seen clause-formals))
+      (cons f+b matching-arrows)))
+
+  (cond
+    [(and (andmap (λ (f+b+arrows) (null? (cdr f+b+arrows)))
+                  to-check-list)
+          ;; If the empty function is expected, then don't error out
+          (not (null? expected-arrows)))
+     ;; TODO improve error message.
+     (tc-error/expr #:return (list (-Arrow null -Bottom #:rest Univ))
+                    "Expected a function of type ~a, but got a function with the wrong arity"
+                    (make-Fun expected-arrows))]
+    [else
+     (apply
+      append
+      (for*/list ([(f+b arrows) (in-assoc to-check-list)]
+                  [clause-formals (in-value (car f+b))]
+                  [clause-body (in-value (cdr f+b))]
+                  [orig-arrows (in-value (cond
+                                           [(assoc f+b orig-arrows) => cdr]
+                                           [else '()]))]
+                  [arrow (in-list arrows)])
+        (match arrow
+          ;; if this clause has an orig-arrow, we already checked it once and that
+          ;; was it's arrow type -- we don't want to check it again at the same arrow
+          [_ #:when (member arrow orig-arrows) orig-arrows]
+          [(Arrow: dom rst '() rng)
+           (define expected
+             (values->tc-results rng (formals->objects clause-formals)))
+           (list
+            (tc/lambda-clause/check
+             clause-formals clause-body dom expected rst))])))]))
+
+
 ;; typecheck a sequence of case-lambda clauses
-(define (tc/mono-lambda formals+bodies expected)
-  (define expected-type
+(define/cond-contract (tc/mono-lambda formals+bodies expected)
+  (-> (listof (cons/c formals? syntax?))
+      (or/c #f tc-results/c)
+      (listof Arrow?))
+  (define expected-arrows
     (match expected
       [(tc-result1: t)
        (define resolved (resolve t))
@@ -339,78 +457,61 @@
          [(Fun: arrows)
           #:when (for/and ([arr (in-list arrows)])
                    (null? (Arrow-kws arr)))
-          resolved]
+          arrows]
          [_ #f])]
       [_ #f]))
-
-  ;; find-matching-arrs: (list/c natural? boolean?) arities-seen? -> (or #f Listof[arr?])
-  ;; Returns a list when we know the expected type, and the list contains all the valid arrs that the
-  ;; clause needs to type as.
-  ;; Returns false if there is not enough information in the expected type to propogate down to the
-  ;; clause
-  (define (find-matching-arrs formal-arity arities-seen)
-    (match-define (list formal-positionals formal-rest) formal-arity)
-    (match expected-type
-      [(Fun: arrows)
-       #:when (for/and ([arr (in-list arrows)])
-                (null? (Arrow-kws arr)))
-       (for*/list ([a (in-list arrows)]
-                   [dom (in-value (Arrow-dom a))]
-                   [rst (in-value (Arrow-rst a))]
-                   #:unless (arities-seen-seen-before? arities-seen (list (length dom) rst))
-                   #:when (cond
-                            [formal-rest
-                             (or (Type? rst) (>= (length dom) formal-positionals))]
-                            [else ((if rst <= =) (length dom) formal-positionals)]))
-         a)]
-      [_ #f]))
-
-
-  ;; For each clause we figure out which arrs it needs to typecheck as,
-  ;; and also which clauses are dead code.
-  (define-values (used-formals+bodies+arrs arities-seen)
-    (for/fold ([formals+bodies+arrs* empty]
-               [arities-seen initial-arities-seen])
-              ([formal+body (in-list formals+bodies)])
-      (match formal+body
-        [(list formal body)
-         (define arity (formals->arity formal))
-         (define matching-arrs (find-matching-arrs arity arities-seen))
-         (values
-           (cons
-             (cond
-               [(or (arities-seen-seen-before? arities-seen arity)
-                    (null? matching-arrs))
-                (warn-unreachable body)
-                (add-dead-lambda-branch (formals-syntax formal))
-                (list formal body null)]
-               [else (list formal body matching-arrs)])
-             formals+bodies+arrs*)
-           (arities-seen-add arities-seen arity))])))
-
   (cond
-    [(and (andmap (λ (f-b-arr) (empty? (third f-b-arr)))
-                  used-formals+bodies+arrs)
-          ;; If the empty function is expected, then don't error out
-          (match expected-type
-            [(Fun: (list)) #f]
-            [_ #t]))
-     ;; TODO improve error message.
-     (tc-error/expr #:return (list (-Arrow null -Bottom #:rest Univ))
-                    "Expected a function of type ~a, but got a function with the wrong arity"
-                    expected-type)]
+    [expected-arrows
+     ;; if we have expected Arrows, proceed with checking against them
+     (check-mono-lambda/expected formals+bodies expected-arrows '())]
     [else
-     (apply append
-            (for/list ([fb* (in-list used-formals+bodies+arrs)])
-              (match-define (list f* b* t*) fb*)
-              (cond
-                [(not t*) (tc/lambda-clause f* b*)]
-                [else
-                 (for/list ([arrow (in-list t*)])
-                   (match arrow
-                     [(Arrow: dom rst '() rng)
-                      (tc/lambda-clause/check
-                       f* b* dom (values->tc-results rng (formals->objects f*)) rst)]))])))]))
+     ;; if we don't have expected Arrows, we may need to re-check some
+     ;; of the bodies against Arrow types derived while checking the
+     ;; bodies for soundness sake, so first we will check their bodies
+     ;; with no expected type and then use check-mono-lambda/expected
+     ;; to perform any re-checking that is needed
+
+     ;; arities we have seen so far while checking case-lambda clauses
+     (define seen initial-case-arities)
+     ;; clauses that are unreachable because of the formals and ordering
+     ;; of the case-lambda clauses
+     (define unreachable-clauses '())
+     ;; now we typecheck the bodies, recording their arrows (resulting-arrows)
+     ;; and the mapping of which formals+body produced which Arrow (already-checked),
+     ;; all while updating which arities we have seen and which, if any, case-lambda
+     ;; clauses are in fact unreachable
+     (define-values (resulting-arrowss already-checked)
+       (for*/lists (_1 _2)
+         ([f+b (in-list formals+bodies)]
+          [f (in-value (car f+b))]
+          [b (in-value (cdr f+b))]
+          #:unless  (let ([unreachable? (in-arities? seen f)])
+                      (when unreachable?
+                        (warn-unreachable b)
+                        (add-dead-lambda-branch (formals-syntax f))
+                        (set! unreachable-clauses
+                              (cons f+b unreachable-clauses)))
+                      unreachable?))
+         (set! seen (add-to-arities seen f))
+         (define resulting-arrow (tc/lambda-clause f b))
+         (values resulting-arrow
+                 (cons f+b resulting-arrow))))
+
+     (define resulting-arrows (apply append resulting-arrowss))
+
+     ;; if there was more than one live case-lambda clause, we may need
+     ;; to recheck some clauses against some of the arrows generated
+     ;; during checking for soundness sake
+     (cond
+       [(> (- (length formals+bodies)
+              (length unreachable-clauses))
+           1)
+        (check-mono-lambda/expected (remove* unreachable-clauses
+                                             formals+bodies)
+                                    resulting-arrows
+                                    already-checked)]
+       [else
+        resulting-arrows])]))
 
 (define (tc/dep-lambda formalss-stx bodies-stx dep-fun-ty)
   (parameterize ([with-refinements? #t])
@@ -450,8 +551,9 @@
      (tc/dep-lambda formalss bodies dep-fun-ty)]
     [_ (make-Fun
         (tc/mono-lambda
-         (for/list ([f (in-syntax formalss)] [b (in-syntax bodies)])
-           (list (make-formals f) b))
+         (for/list ([f (in-syntax formalss)]
+                    [b (in-syntax bodies)])
+           (cons (make-formals f) b))
          expected))]))
 
 (define (plambda-prop stx)
@@ -459,13 +561,13 @@
   (and d (car (flatten d))))
 
 (define (has-poly-annotation? form)
-  (or (plambda-prop form) (cons? (lookup-scoped-tvar-layer form))))
+  (or (plambda-prop form) (pair? (lookup-scoped-tvar-layer form))))
 
 (define (remove-poly-layer tvarss)
-  (filter cons? (map rest tvarss)))
+  (filter pair? (map rest tvarss)))
 
 (define (get-poly-layer tvarss)
-  (map first tvarss))
+  (map car tvarss))
 
 (define (get-poly-tvarss form)
   (let ([plambda-tvars
@@ -506,7 +608,7 @@
   ;; and make both annotated and declared type variables point to the
   ;; same actual type variables (the fresh names)
   (define (extend-and-loop form ns formals bodies expected)
-    (let loop ((tvarss tvarss))
+    (let loop ([tvarss tvarss])
       (match tvarss
         [(list) (maybe-loop form formals bodies expected)]
         [(cons (list (list tvars ...) dotted) rest-tvarss)
@@ -522,8 +624,8 @@
     [(tc-result1: (app resolve (and t (Poly-fresh: ns fresh-ns expected*))))
      ;; make sure the declared and annotated type variable arities match up
      ;; with the expected type variable arity
-     (for ((tvars (in-list tvarss)))
-       (when (and (cons? tvars) (list? (first tvars)))
+     (for ([tvars (in-list tvarss)])
+       (when (and (pair? tvars) (list? (car tvars)))
          (tc-error
           "Expected a polymorphic function without ..., but given function/annotation had ..."))
        (unless (= (length tvars) (length fresh-ns))
@@ -540,11 +642,11 @@
             (tc-error "Expected ~a non-dotted type variables, but given ~a"
                       (length ns) (length vars)))]
          [else
-           (tc-error "Expected a polymorphic function with ..., but function/annotation had no ...")]))
+          (tc-error "Expected a polymorphic function with ..., but function/annotation had no ...")]))
      (make-PolyDots (append ns (list dvar)) (extend-and-loop form ns formals bodies (ret expected*)))]
     [(tc-result1: (app resolve (and t (PolyRow-fresh: ns fresh-ns constraints expected*))))
      (for ((tvars (in-list tvarss)))
-       (when (and (cons? tvars) (list? (first tvars)))
+       (when (and (pair? tvars) (list? (car tvars)))
          (tc-error
           "Expected a polymorphic function without ..., but given function/annotation had ..."))
        (unless (= (length tvars) 1)
@@ -558,28 +660,30 @@
                        formals bodies (ret expected*)))]
     [_
      (define lengths
-       (for/set ((tvars (in-list tvarss)))
-         (match tvars
-           [(list (list vars ...) dotted)
-            (length vars)]
-           [(list vars ...)
-            (length vars)])))
+       (remove-duplicates
+        (for/list ([tvars (in-list tvarss)])
+          (match tvars
+            [(list (list vars ...) dotted)
+             (length vars)]
+            [(list vars ...)
+             (length vars)]))))
      (define dots
-       (for/set ((tvars (in-list tvarss)))
-         (match tvars
-           [(list (list vars ...) dotted) #t]
-           [(list vars ...) #f])))
-     (unless (= 1 (set-count lengths))
-      (tc-error "Expected annotations to have the same number of type variables, but given ~a"
-                (set->list lengths)))
-     (unless (= 1 (set-count dots))
-      (tc-error "Expected annotations to all have ... or none to have ..., but given both"))
-     (define dotted (and (set-first dots) (second (first tvarss))))
-     (define ns (build-list (set-first lengths) (lambda (_) (gensym))))
+       (remove-duplicates
+        (for/list ([tvars (in-list tvarss)])
+          (match tvars
+            [(list (list vars ...) dotted) #t]
+            [(list vars ...) #f]))))
+     (unless (= 1 (length lengths))
+       (tc-error "Expected annotations to have the same number of type variables, but given ~a"
+                 lengths))
+     (unless (= 1 (length dots))
+       (tc-error "Expected annotations to all have ... or none to have ..., but given both"))
+     (define dotted (and (car dots) (second (car tvarss))))
+     (define ns (build-list (car lengths) (lambda (_) (gensym))))
      (define results (extend-and-loop form ns formals bodies expected))
      (if dotted
          (make-PolyDots (append ns (list dotted)) results)
-         (make-Poly #:original-names (first tvarss) ns results))]))
+         (make-Poly #:original-names (car tvarss) ns results))]))
 
 ;; typecheck a sequence of case-lambda clauses, which is possibly polymorphic
 ;; tc/lambda : syntax syntax-list syntax-list (or/c tc-results #f) -> tc-results

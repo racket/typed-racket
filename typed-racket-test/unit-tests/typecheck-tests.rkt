@@ -4324,6 +4324,40 @@
           (void))
         #:ret (ret -Void #f #f)
         #:msg #rx"given: String"]
+       [tc-err
+        (let ()
+          (ann ((tr:case-lambda (([x : Number] . [y : Number *]) x)
+                                (([x : String] [y : String] . [z : String *]) 0)
+                                ([y : Number *] 0))
+                42)
+               Zero)  ;; ==> actually returns 42
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"type mismatch"]
+       [tc-err
+        (let ()
+          (ann ((plambda: (a ...) ([z : String] . [w : Number *])
+                  (apply (case-lambda: (([x : Number] . [y : Number ... a]) x)
+                                       (([x : String] [y : String] . [z : String *]) 0)
+                                       ([y : Number *] 0))
+                         w))
+                "Hello" 42)
+               Zero) ;; ==> actually returns 42
+          (void))
+         #:ret (ret -Void #f #f)
+        #:msg #rx"type mismatch"]
+       [tc-err
+        (let ()
+          (ann ((tr:case-lambda
+                 #:∀ (A)
+                 [([a : A])
+                  (ann a A)]
+                 [[rest : A *]
+                  (ann rest (Listof A))]) 1)
+               (Listof One))  ;; ==> actually returns 1
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"type mismatch"]
        )
 
   (test-suite

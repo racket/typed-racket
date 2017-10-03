@@ -1,5 +1,5 @@
 #;
-(exn-pred 2)
+(exn-pred 3)
 #lang typed-scheme
 
 (plambda: (a ...) ([z : String] . [w : Number *])
@@ -7,7 +7,7 @@
                  w))
 
 (plambda: (a ...) ([z : String] . [w : Number *])
-          (apply (case-lambda: (([x : Number] . [y : Number ... a]) 0)
+          (apply (case-lambda: (([x : Number] . [y : Number ... a]) x)
                                (([x : String] [y : String] . [z : String *]) 0)
                                ([y : String *] 0))
                  w))

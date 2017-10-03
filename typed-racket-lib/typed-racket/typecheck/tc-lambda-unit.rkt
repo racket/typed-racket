@@ -303,12 +303,15 @@
 ;;     that, for Function types and type checking purposes, all
 ;;     functions are case-lambdas)
 ;; fixed-arities : (listof natural?)
-;;     supported unique options so far for fixed argument counts
-;;     (NOTE: once we encounter a rest arg, we remove arity counts
-;;            that the rest encompasses -- see example below of
+;;     supported unique options so far for fixed argument counts,
+;;     where for each element n, n < rest-pos, and the list should
+;;     not contain duplicates
+;;     (NOTE: once we encounter a rest arg at position rest-pos, we
+;;            _remove_ arity counts that the rest encompasses (i.e.
+;;            when n >= rest-pos) -- see example below of
 ;;            checking a case-lambda)
 ;; rest-pos : (or/c natural? +inf.0)
-;;     at what point would an argument be in a rest argument
+;;     at what position would an argument be in the rest argument
 ;;
 ;; We construct these specs _while_ we are parsing and checking
 ;; case-lambdas to help us know if a clause is dead code,
@@ -342,9 +345,11 @@
      (define new-rest-pos
        (if rst (min rest-pos arity) rest-pos))
      (define new-fixed-arities
-       (for/list ([i (in-list (cons arity fixed-arities))]
-                  #:when (< i new-rest-pos))
-         i))
+       (cond
+         [(eqv? +inf.0 new-rest-pos) (cons arity fixed-arities)]
+         [else (for/list ([i (in-list (cons arity fixed-arities))]
+                          #:when (< i new-rest-pos))
+                 i)]))
      (case-arities new-fixed-arities new-rest-pos)]))
 
 
@@ -362,8 +367,8 @@
 
 
 ;; Returns a list of Arrows where the list contains all the valid Arrows
-;; that could apply to a clause with formals 'f', given we have already
-;; seen case-arities 'seen'.
+;; from 'arrows' that could apply to a clause with formals 'f', given we
+;; have already seen case-arities 'seen'.
 (define/cond-contract (arrows-matching-seen+formals arrows seen f)
   (-> (listof Arrow?) case-arities? formals? (listof Arrow?))
   (match-define (formals formals-positionals formals-rest? _) f)
@@ -381,6 +386,33 @@
 
 
 
+;; For each clause (i.e. each elem in formals+bodies) we figure out which
+;; of the expected arrows it needs to type check at and which clauses
+;; are dead code.
+;;
+;; Returns the association list mapping clauses to the arrows they need
+;; to type check at.
+(define/cond-contract (create-to-check-list formals+bodies expected-arrows)
+  (-> (listof (cons/c formals? syntax?))
+      (listof Arrow?)
+      (listof (cons/c (cons/c formals? syntax?)
+                      (listof Arrow?))))
+  ;; arities we have seen so far while checking case-lambda clauses
+  (define seen initial-case-arities)
+  (for*/list ([f+b (in-list formals+bodies)]
+              [clause-formals (in-value (car f+b))]
+              [clause-body (in-value (cdr f+b))])
+    (define matching-arrows
+      (arrows-matching-seen+formals expected-arrows
+                                    seen
+                                    clause-formals))
+    (when (or (in-arities? seen clause-formals)
+              (null? matching-arrows))
+      (warn-unreachable clause-body)
+      (add-dead-lambda-branch (formals-syntax clause-formals)))
+    (set! seen (add-to-arities seen clause-formals))
+    (cons f+b matching-arrows)))
+
 
 ;; formals+bodies  : formals and bodies to check
 ;; expected-arrows : expected arrow types for the overall case-lambda
@@ -394,24 +426,8 @@
                       (listof Arrow?)))
       (listof Arrow?))
 
-  ;; arities we have seen so far while checking case-lambda clauses
-  (define seen initial-case-arities)
-  ;; For each clause we figure out which arrows it needs to type check at,
-  ;; and also which clauses are dead code.
-  (define to-check-list
-    (for*/list ([f+b (in-list formals+bodies)]
-                [clause-formals (in-value (car f+b))]
-                [clause-body (in-value (cdr f+b))])
-      (define matching-arrows
-        (arrows-matching-seen+formals expected-arrows
-                                      seen
-                                      clause-formals))
-      (when (or (in-arities? seen clause-formals)
-                (null? matching-arrows))
-        (warn-unreachable clause-body)
-        (add-dead-lambda-branch (formals-syntax clause-formals)))
-      (set! seen (add-to-arities seen clause-formals))
-      (cons f+b matching-arrows)))
+
+  (define to-check-list (create-to-check-list formals+bodies expected-arrows))
 
   (cond
     [(and (andmap (λ (f+b+arrows) (null? (cdr f+b+arrows)))
@@ -423,25 +439,23 @@
                     "Expected a function of type ~a, but got a function with the wrong arity"
                     (make-Fun expected-arrows))]
     [else
-     (apply
-      append
-      (for*/list ([(f+b arrows) (in-assoc to-check-list)]
-                  [clause-formals (in-value (car f+b))]
-                  [clause-body (in-value (cdr f+b))]
-                  [orig-arrows (in-value (cond
-                                           [(assoc f+b orig-arrows) => cdr]
-                                           [else '()]))]
-                  [arrow (in-list arrows)])
-        (match arrow
-          ;; if this clause has an orig-arrow, we already checked it once and that
-          ;; was it's arrow type -- we don't want to check it again at the same arrow
-          [_ #:when (member arrow orig-arrows) orig-arrows]
-          [(Arrow: dom rst '() rng)
-           (define expected
-             (values->tc-results rng (formals->objects clause-formals)))
-           (list
-            (tc/lambda-clause/check
-             clause-formals clause-body dom expected rst))])))]))
+     (for*/list ([(f+b arrows-to-check-against) (in-assoc to-check-list)]
+                 [clause-formals (in-value (car f+b))]
+                 [clause-body (in-value (cdr f+b))]
+                 [orig-arrows (in-value (assoc-ref orig-arrows f+b '()))]
+                 [arrow (in-list arrows-to-check-against)])
+       ;; NOTE!!! checking clauses against all applicable arrows is sound, but
+       ;; less complete than actually intersecting all of the arrow types and
+       ;; then checking clauses against the result
+       (match arrow
+         ;; if this clause has an orig-arrow, we already checked it once and that
+         ;; was it's arrow type -- we don't want to check it again at the same arrow
+         [_ #:when (member arrow orig-arrows) arrow]
+         [(Arrow: dom rst '() rng)
+          (define expected
+            (values->tc-results rng (formals->objects clause-formals)))
+          (tc/lambda-clause/check
+           clause-formals clause-body dom expected rst)]))]))
 
 
 ;; typecheck a sequence of case-lambda clauses
@@ -501,7 +515,21 @@
 
      ;; if there was more than one live case-lambda clause, we may need
      ;; to recheck some clauses against some of the arrows generated
-     ;; during checking for soundness sake
+     ;; during checking for soundness sake,
+     ;; e.g.
+     ;; if we naively check (case-lambda
+     ;;                       [([x : Num] . [rst : Num *]) x]
+     ;;                       [[rst : Num *] 0]
+     ;; we get (case-> (-> Num Num * Num)
+     ;;                (-> Num * Zero))
+     ;; which is unsound (i.e. we can upcast an intersection to either
+     ;; type, namely in this case to (-> Num * Zero), and then call 
+     ;; it as the identity function on any number, which does not
+     ;; always produce the constant 0). In other words, our `case->`
+     ;; is really an UNORDERED intersection that we just don't work
+     ;; super hard to check function application with, it is not
+     ;; truly an ordered intersection, and thus if some function `f`
+     ;; has type `A ∧ B` it must be checked at both `A` and `B`.
      (cond
        [(> (- (length formals+bodies)
               (length unreachable-clauses))

@@ -1,5 +1,5 @@
 #;
-(exn-pred 2)
+(exn-pred 3)
 #lang typed-scheme
 
 (plambda: (a ...) ([z : String] . [w : Number *])

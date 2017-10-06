@@ -70,6 +70,12 @@
     (t/sc (-mu sexp (Un -Null -Symbol (-pair sexp sexp) (-vec sexp) (-box sexp))))
     (t/sc (-mu a (-> a a)))
     (t/sc (-seq -Symbol))
+    ;; HashTables with non-flat keys and values (Issue 625)
+    ;;   https://github.com/racket/typed-racket/issues/625
+    (t/sc (-Mutable-HT (-vec -Symbol) (-vec -Symbol)))
+    (t/sc (-Immutable-HT (-vec -Symbol) (-vec -Symbol)))
+    (t/sc (-Weak-HT (-vec -Symbol) (-vec -Symbol)))
+    (t/sc (-HT (-vec -Symbol) (-vec -Symbol)))
     ;; These tests for unit static contracts are insufficient, but
     ;; in order to test Unit types the signature environment must be
     ;; set up correctly. More complex cases of compilation to unit/c

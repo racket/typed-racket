@@ -69,7 +69,7 @@
     (check-syntax (arr/sc null #f (list list?/sc))
       '(-> any))
     (check-syntax (hash/sc list?/sc list?/sc)
-      '(hash/c list? list?))
+      '(typed-racket-hash/c list? list?))
 
     ))
 

@@ -23,6 +23,9 @@
   (and/c hash? hash-weak? (hash/c/check-key k v #:immutable #f)))
 
 (define (hash/c/check-key k v #:immutable [immutable 'dont-care])
-  ;; TODO if (flat-contract? k), then make a contract that produces a "good"
-  ;;      error message given a hashtable that is not a `hash-equal?`
-  (hash/c k v #:immutable immutable))
+  (if (flat-contract? k)
+    (hash/c k v #:immutable immutable)
+    (and/c (flat-named-contract
+            "hash-equal? (because the key contract is not a flat contract)"
+            hash-equal?)
+           (hash/c k v #:immutable immutable))))

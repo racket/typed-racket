@@ -724,5 +724,83 @@
                (λ (x y) #f)
                #:untyped
                #:msg #rx"promised:.*#t.*produced:.*#f")
-   
+
+   ;; #:rest-star args
+   (t (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean))
+   (t (->* (list -Zero) (make-Rest (list -Zero -Zero)) -Zero))
+   (t (->* (list) (make-Rest (list -Boolean -String -Boolean -String -Boolean -String)) -Zero))
+   (t (->optkey [-Zero] #:rest Univ -Boolean))
+   (t-int (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+          (λ (c) (c 0))
+          (case-lambda
+            [(zero) #t]
+            [(zero . rst) #f])
+          #:untyped)
+   (t-int (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+          (λ (c) (c 0))
+          (case-lambda
+            [(zero) #t]
+            [(zero . rst) #f])
+          #:typed)
+   (t-int (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+          (λ (c) (c 0 0 'zero))
+          (case-lambda
+            [(zero) #t]
+            [(zero . rst) #f])
+          #:untyped)
+   (t-int (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+          (λ (c) (c 0 0 'zero 0 'zero))
+          (case-lambda
+            [(zero) #t]
+            [(zero . rst) #f])
+          #:untyped)
+   (t-int (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+          (λ (c) (c 0 0 'zero 0 'zero))
+          (case-lambda
+            [(zero) #t]
+            [(zero . rst) #f])
+          #:typed)
+   ;; shouldn't error since we should trust the typed side, right?
+   ;(t-int/fail (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+   ;       (λ (c) (c 'zero 'zero))
+   ;       (case-lambda
+   ;         [(zero) #t]
+   ;         [(zero . rst) #f])
+   ;       #:untyped
+   ;       #:msg #rx"given: '(zero)")
+   (t-int/fail (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+               (λ (c) (c 0))
+               (case-lambda
+                 [(zero) 'true]
+                 [(zero . rst) 'false])
+               #:untyped
+               #:msg #rx"produced: 'true")
+   (t-int/fail (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+               (λ (c) (c 0))
+               (case-lambda
+                 [(zero) 'true]
+                 [(zero . rst) 'false])
+               #:untyped
+               #:msg #rx"produced: 'true")
+   (t-int/fail (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+          (λ (c) (c 0 'zero))
+          (case-lambda
+            [(zero) #t]
+            [(zero . rst) #f])
+          #:typed
+          #:msg #rx"contract violation")
+   (t-int/fail (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+          (λ (c) (c 0 0 0))
+          (case-lambda
+            [(zero) #t]
+            [(zero . rst) #f])
+          #:typed
+          #:msg #rx"contract violation")
+   (t-int/fail (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+          (λ (c) (c 0 0 'zero 0))
+          (case-lambda
+            [(zero) #t]
+            [(zero . rst) #f])
+          #:typed
+          #:msg #rx"contract violation")
    ))

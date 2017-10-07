@@ -46,7 +46,7 @@
     (match f-ty
       [(tc-result1:
          (and t (AnyPoly-names: _ _
-                                (Fun: (list (Arrow: doms  rests (list (Keyword: _ _ #f) ...) rngs) ..1)))))
+                                (Fun: (list (Arrow: doms rests (list (Keyword: _ _ #f) ...) rngs) ..1)))))
        (domain-mismatches f args t doms rests rngs arg-tres full-tail-ty #f
                           #:msg-thunk (lambda (dom)
                                         (string-append
@@ -64,7 +64,7 @@
       (for/or ([arrow (in-list arrows)])
         (match arrow
           [(Arrow: domain rst _ rng)
-           ;; Takes a possible substitution and comuptes
+           ;; Takes a possible substitution and computes
            ;; the substituted range type if it is not #f
            (define (finish substitution)
              (begin0
@@ -73,16 +73,7 @@
            (finish
             (infer vars dotted-vars
                    (list (-Tuple* arg-tys full-tail-ty))
-                   (list (-Tuple* domain
-                                  (match rst
-                                    ;; the actual work, when we have a * function
-                                    [(? Type?) (make-Listof rst)]
-                                    ;; ... function
-                                    [(RestDots: dty dbound)
-                                     (make-ListDots dty dbound)]
-                                    ;; the function has no rest argument,
-                                    ;; but provides all the necessary fixed arguments
-                                    [_ -Null])))
+                   (list (-Tuple* domain (Rest->Type rst)))
                    rng))]))
        (failure))]
     [(tc-result1: (AnyPoly: _ _ (Fun: '())))

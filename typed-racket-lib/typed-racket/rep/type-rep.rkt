@@ -32,7 +32,7 @@
                                    "base-union.rkt")
                      Type Prop Object PathElem SomeValues)
          Type?
-         Mu-name:
+         Mu-maybe-name:
          Poly-names: Poly-fresh:
          PolyDots-names:
          PolyRow-names: PolyRow-fresh:
@@ -58,7 +58,6 @@
          -refine
          Refine:
          Refine-obj:
-         Refine-name:
          save-term-var-names!
          instantiate-type
          abstract-type
@@ -66,7 +65,6 @@
          abstract-obj
          substitute-names
          DepFun/ids:
-         DepFun/pretty-ids:
          (rename-out [Union:* Union:]
                      [Intersection:* Intersection:]
                      [make-Intersection* make-Intersection]
@@ -78,6 +76,7 @@
                      [PolyDots:* PolyDots:]
                      [PolyRow:* PolyRow:]
                      [Mu* make-Mu]
+                     [make-Mu unsafe-make-Mu]
                      [Poly* make-Poly]
                      [PolyDots* make-PolyDots]
                      [PolyRow* make-PolyRow]
@@ -508,6 +507,19 @@
       (= (length kws) 1)
       (equal? kws (sort kws Keyword<?))))
 
+;; a Rest argument description
+;; tys: the cycle describing the rest args
+;; e.g.
+;; tys = (list Number) means all provided rest args
+;;        must all be a Number (see `+')
+;; tys = (list A B) means the rest arguments must be
+;;       of even cardinality, and must be an A followed
+;;       by a B repeated (e.g. A B A B A B)
+;; etc
+(def-rep Rest ([tys (cons/c Type? (listof Type?))])
+  [#:frees (f) (combine-frees (map f tys))]
+  [#:fmap (f) (make-Rest (map f tys))]
+  [#:for-each (f) (for-each f tys)])
 
 (def-rep RestDots ([ty Type?]
                    [nm (or/c natural-number/c symbol?)])
@@ -525,7 +537,7 @@
 
 
 (def-rep Arrow ([dom (listof Type?)]
-                [rst (or/c #f Type? RestDots?)]
+                [rst (or/c #f Rest? RestDots?)]
                 [kws (and/c (listof Keyword?) keyword-sorted/c)]
                 [rng SomeValues?])
   [#:frees (f)
@@ -557,6 +569,48 @@
       +inf.0
       (length (Arrow-dom a))))
 
+(define/provide Arrow-includes-arity?
+  (case-lambda
+    [(arrow arity) (Arrow-includes-arity? (Arrow-dom arrow)
+                                          (Arrow-rst arrow)
+                                          arity)]
+    [(dom rst raw-arity)
+     (define dom-len (length dom))
+     (define arity (if (number? raw-arity)
+                       raw-arity
+                       (length raw-arity)))
+     (cond
+       [(< arity dom-len) #f]
+       [(= arity dom-len) #t]
+       [else
+        (match rst
+          [(Rest: (app length rst-len))
+           (define extra-args (- arity dom-len))
+           (zero? (remainder extra-args rst-len))]
+          [_ #f])])]))
+
+(define/provide (Arrow-domain-at-arity a arity)
+  (define dom-len (length (Arrow-dom a)))
+  (cond
+    [(> dom-len arity)
+     (error 'Arrow-domain-at-arity
+            "invalid arity! ~a @ ~a" a arity)]
+    [(= arity dom-len) (Arrow-dom a)]
+    [(Arrow-rst a)
+     => (match-lambda
+          [(Rest: rst-ts)
+           (define extra-args (- arity dom-len))
+           (define-values (reps extra)
+             (quotient/remainder extra-args (length rst-ts)))
+           (unless (zero? extra)
+             (error 'Arrow-domain-at-arity
+                    "invalid arity! ~a @ ~a" a arity))
+           (append (Arrow-dom a) (repeat-list rst-ts reps))]
+          [_ #f])]
+    [else
+     (error 'Arrow-domain-at-arity
+            "invalid arity! ~a @ ~a" a arity)]))
+
 ;; a standard function
 ;; + all functions are case-> under the hood (i.e. see 'arrows')
 ;; + each Arrow in 'arrows' may have a dependent range
@@ -580,14 +634,14 @@
   [#:for-each (f) (for-each f dom) (f pre) (f rng)])
 
 
-(define-for-syntax (DepFun-id-matcher id-fun)
+(define-match-expander DepFun/ids:
   (λ (stx)
     (syntax-case stx ()
       [(_ ids dom pre rng)
        (quasisyntax/loc stx
          (app (match-lambda
                 [(DepFun: raw-dom raw-pre raw-rng)
-                 (define fresh-ids (for/list ([_ (in-list raw-dom)]) (#,id-fun)))
+                 (define fresh-ids (for/list ([_ (in-list raw-dom)]) (genid)))
                  (define (instantiate rep) (instantiate-obj rep fresh-ids))
                  (list fresh-ids
                        (map instantiate raw-dom)
@@ -596,11 +650,6 @@
                 [_ #f])
               (list ids dom pre rng)))])))
 
-(define-match-expander DepFun/ids:
-  (DepFun-id-matcher #'genid))
-
-(define-match-expander DepFun/pretty-ids:
-  (DepFun-id-matcher #'gen-pretty-id))
 
 ;;************************************************************
 ;; Structs
@@ -976,20 +1025,9 @@
                             (cons x (Intersection-prop* (-id-path x) i)))
                           (cons x prop))))])))
 
-(define-match-expander Refine-name:
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ x t prop)
-       (syntax/loc stx
-         (and (Intersection _ (not (TrueProp:)) _)
-              (app Intersection-w/o-prop t)
-              (app (λ (i)
-                     (match-define (list x) (hash-ref term-var-name-table i (list (gen-pretty-id))))
-                     (cons x (Intersection-prop* (-id-path x) i)))
-                   (cons x prop))))])))
-
 (define (save-term-var-names! t xs)
-  (hash-set! term-var-name-table t (map (λ (id) (gen-pretty-id (syntax->datum id))) xs)))
+  (hash-set! term-var-name-table t
+             (map (λ (id) (symbol->fresh-pretty-normal-id (syntax->datum id))) xs)))
 
 (define-match-expander Refine-obj:
   (λ (stx) (syntax-case stx ()
@@ -1527,13 +1565,15 @@
                                (list sym (Mu-body* sym t))))
                  (list np bp)))])))
 
-(define-match-expander Mu-name:
+(define-match-expander Mu-maybe-name:
   (lambda (stx)
     (syntax-case stx ()
       [(_ np bp)
        #'(? Mu?
-            (app (lambda (t) (let ([sym (hash-ref type-var-name-table t (lambda _ (gensym)))])
-                               (list sym (Mu-body* sym t))))
+            (app (lambda (t) (let ([sym (hash-ref type-var-name-table t #f)])
+                               (if sym
+                                   (list sym (Mu-body* sym t))
+                                   (list #f #f))))
                  (list np bp)))])))
 
 ;; These match expanders correspond to opening up a type in

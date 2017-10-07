@@ -12,7 +12,6 @@
           (apply (lambda: ([x : Number] . [y : Number *]) x)
                  1 w))
 
-
 ; the next lambda fails currently because we are incomplete in our
 ; checking of case-lambdas. Specifically, since it is unannotated
 ; we check each clause and get an arrow type:

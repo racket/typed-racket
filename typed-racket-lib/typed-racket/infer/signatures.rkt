@@ -50,7 +50,7 @@
                                    ;; domain
                                    (listof Type?)
                                    ;; rest
-                                   (or/c #f Type?)
+                                   (or/c #f Type? Rest?)
                                    ;; range
                                    (or/c #f Values/c ValuesDots?))
                                   ;; [optional] expected type

@@ -409,14 +409,14 @@
 ;; useful to express properties of the form: if this function returns at all,
 ;; we learn this about its arguments (like fx primitives, or car/cdr, etc.)
 (define/match (add-unconditional-prop-all-args arr type)
-  [((Fun: (list (Arrow: dom rest kws rng))) type)
+  [((Fun: (list (Arrow: dom rst kws rng))) type)
    (match rng
      [(Values: (list (Result: tp (PropSet: p+ p-) op)))
       (let ([new-props (apply -and (build-list (length dom)
                                                (lambda (i)
                                                  (-is-type i type))))])
         (make-Fun
-         (list (make-Arrow dom rest kws
+         (list (make-Arrow dom rst kws
                            (make-Values
                             (list (-result tp
                                            (-PS (-and p+ new-props)

@@ -42,6 +42,7 @@
 (define -evt make-Evt)
 (define -weak-box make-Weak-Box)
 (define -inst make-Instance)
+(define (simple-inst n) (make-Instance (make-Name n 0 #f)))
 (define (-prefab key . types)
   (make-Prefab (normalize-prefab-key key (length types)) types))
 (define (-prefab-top key field-count)
@@ -140,6 +141,15 @@
 (define/decl -NonPosExtFlonum (Un -NegExtFlonum -ExtFlonumZero))
 (define/decl -ExtFlonum (Un -NegExtFlonumNoNan -ExtFlonumNegZero -ExtFlonumPosZero -PosExtFlonumNoNan -ExtFlonumNan))
 
+;; these decls are for popular types, putting them here means other modules
+;; don't have to define them
+(define/decl ->Void (-> -Void))
+(define/decl ->Bool (-> -Boolean))
+(define/decl ->String (-> -String))
+(define/decl ->Any (-> Univ))
+(define/decl ->Integer (-> -Int))
+(define/decl Any->Void (-> Univ -Void))
+
 ;; Type alias names
 (define (-struct-name name)
   (make-Name name 0 #t))
@@ -177,7 +187,18 @@
                                          #:kws kws))))))
 
 (define-syntax-rule (->opt args ... [opt ...] res)
-  (opt-fn (list args ...) (list opt ...) res))
+  (opt-fn* (list args ...) (list opt ...) res))
+
+;; these two definitions allow shorter expansion of types by avoid the keyword expansion
+(define (simple-opt-fn args opt-args result)
+  (opt-fn args opt-args result))
+
+(define-syntax opt-fn*
+  (syntax-rules ()
+    [(_ args opt-args result)
+     (simple-opt-fn args opt-args result)]
+    [(_ . args)
+     (opt-fn . args)]))
 
 ;; from define-new-subtype
 (define (-Distinction name sym ty)

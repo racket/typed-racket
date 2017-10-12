@@ -62,6 +62,7 @@
  (define -Continuation-Mark-Set (-opq #'continuation-mark-set?))
  (define -Struct Univ) ; FIXME
  (define -Text:Range (-opq #'text:range?))
+ 
 
  ; Frequently reused instances
  (define -Color%-Instance (make-Instance -Color%))
@@ -87,6 +88,9 @@
  (define -Area<%>-Instance (make-Instance -Area<%>))
  (define -Window<%>-Instance (make-Instance -Window<%>))
  (define -DC<%>-Instance (make-Instance -DC<%>)))
+
+(begin-for-syntax (module* #%contract-defs-names #f (#%plain-module-begin)))
+(module* #%contract-defs #f (#%plain-module-begin))
 
 (type-environment
  [application:current-app-name (-Param -String)]

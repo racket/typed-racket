@@ -43,3 +43,8 @@
       ;;
       ;;       Also, this type works better with inference.
       (-> (make-Prompt-Tagof Univ (-> Univ ManyUniv)))))))
+
+(begin-for-syntax
+  (module* #%contract-defs-names #f (#%plain-module-begin)))
+(module* #%contract-defs #f (#%plain-module-begin))
+

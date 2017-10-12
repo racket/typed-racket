@@ -17,6 +17,10 @@
          Style-Delta%
          Style-List%)
 
+(begin-for-syntax
+  (module* #%contract-defs-names #f (#%plain-module-begin)))
+(module* #%contract-defs #f (#%plain-module-begin))
+
 (type-environment
  [snip% (parse-type #'Snip%)]
  [snip-admin% (parse-type #'Snip-Admin%)]

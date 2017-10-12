@@ -7,7 +7,7 @@
  syntax/parse
  (rep type-rep prop-rep object-rep fme-utils)
  (utils tc-utils prefab identifier)
- (env type-name-env row-constraint-env)
+ (env type-name-env row-constraint-env env-req)
  (rep core-rep rep-utils free-ids type-mask values-rep
       base-types numeric-base-types)
  (types resolve utils printer match-expanders union subtype)
@@ -27,9 +27,10 @@
 
 (provide
   (c:contract-out
-    [type->static-contract
-      (c:parametric->/c (a) ((Type? (c:-> #:reason (c:or/c #f string?) a))
-                             (#:typed-side boolean?) . c:->* . (c:or/c a static-contract?)))]))
+   [type->contract c:any/c]
+   [type->static-contract
+    (c:parametric->/c (a) ((Type? (c:-> #:reason (c:or/c #f string?) a))
+                           (#:typed-side boolean?) . c:->* . (c:or/c a static-contract?)))]))
 
 (provide change-contract-fixups
          change-provide-fixups
@@ -163,7 +164,8 @@
   (and (identifier? ctc-stx)
        (let ([match? (assoc ctc-stx (hash-values cache) free-identifier=?)])
          (and match?
-              (should-inline-contract? (cdr match?))
+              (or (should-inline-contract? (cdr match?))
+                  (function-contract? (cdr match?)))
               (cdr match?)))))
 
 ;; The below requires are needed since they provide identifiers that
@@ -172,6 +174,7 @@
 ;; TODO: It would be better to have individual contracts specify which
 ;; modules should be required, but for now this is just all of them.
 (define extra-requires
+<<<<<<< HEAD
   #'(require
       (submod typed-racket/private/type-contract predicates)
       typed-racket/utils/utils
@@ -186,6 +189,27 @@
       typed-racket/utils/simple-result-arrow
       racket/sequence
       racket/contract/parametric))
+=======
+  #`(require
+     ;; some built-in types that aren't available in `racket/base`
+     (submod typed-racket/private/type-contract predicates)
+     ;; a table of contracts that are defined in other modules so they aren't
+     ;; repeated
+     (submod typed-racket/static-contracts/instantiate predefined-contracts)
+     ;; utility functions
+     typed-racket/utils/utils
+     (for-syntax typed-racket/utils/utils)
+     racket/sequence
+     ;; contract combinators
+     typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
+     typed-racket/utils/opaque-object
+     typed-racket/utils/evt-contract
+     typed-racket/utils/hash-contract
+     typed-racket/utils/sealing-contract
+     typed-racket/utils/promise-not-name-contract
+     typed-racket/utils/simple-result-arrow
+     racket/contract/parametric))
+>>>>>>> Predefine some contracts for the gui system where the types are defined.
 
 ;; Should the above requires be included in the output?
 ;;   This box is only used for contracts generated for `require/typed`
@@ -314,7 +338,7 @@
 ;; Macro to simplify (and avoid reindentation) of the match below
 ;;
 ;; The sc-cache hashtable is used to memoize static contracts. The keys are
-;; a pair of the Type-seq number for a type and 'untyped or 'typed
+;; a pair of the type and 'untyped or 'typed
 (define-syntax (cached-match stx)
   (syntax-case stx ()
     [(_ sc-cache type-expr typed-side-expr match-clause ...)
@@ -399,8 +423,13 @@
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
             sc))
+      ;(eprintf "predef: ~s ~s ~s\n" predef-contracts type typed-side)
       (cached-match
        sc-cache type typed-side
+       [(app (lambda (t) (hash-ref predef-contracts (cons t typed-side) #f))
+             (? values con-id))
+        ;(eprintf "found a match ~s ~s\n" con-id type)
+        (impersonator/sc (syntax-local-introduce con-id))]
        ;; Applications of implicit recursive type aliases
        ;;
        ;; We special case this rather than just resorting to standard
@@ -605,6 +634,7 @@
        ;; wrong thing for object types since it errors too eagerly.
        [(Instance: (? Name? t))
         #:when (Class? (resolve-once t))
+        ;(printf "predef: ~s ~s ~s\n" predef-contracts t typed-side)
         (cond [(lookup-name-sc type typed-side)]
               [else
                (define rv recursive-values)
@@ -1007,6 +1037,9 @@
   (define extflzero? (lambda (x) (extfl= x 0.0t0)))
   (define extflnonnegative? (lambda (x) (extfl>= x 0.0t0)))
   (define extflnonpositive? (lambda (x) (extfl<= x 0.0t0))))
+
+(require (submod "../static-contracts/instantiate.rkt" predefined-contracts))
+;(hash-set! predef-contracts (cons Univ 'typed) (cons #'any/c 'flat))
 
 (module numeric-contracts racket/base
   (require

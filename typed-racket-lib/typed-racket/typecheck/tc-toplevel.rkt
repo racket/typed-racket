@@ -479,6 +479,7 @@
       (define/with-syntax (new-defs ...) defs)
       (define/with-syntax (new-export-defs ...) export-defs)
       (define/with-syntax (new-provs ...) provs)
+      (do-contract-requires)
       (values
        #`(begin
            ;; This syntax-time submodule records all the types for all
@@ -498,6 +499,7 @@
                          typed-racket/env/global-env typed-racket/env/type-alias-env
                          typed-racket/types/struct-table typed-racket/types/abbrev
                          (rename-in racket/private/sort [sort raw-sort]))
+                #,@(get-requires)
                 #,@(make-env-init-codes)
                 #,@(for/list ([a (in-list aliases)])
                      (match-define (list from to) a)
@@ -554,8 +556,21 @@
            (module* #%contract-defs #f
              (#%plain-module-begin
               (#%declare #:empty-namespace) ;; avoid binding info from here
+              #,@(get-contract-requires)
+
               #,extra-requires
-              new-defs ...)))
+              new-defs ...))
+           (begin-for-syntax
+             (module* #%contract-defs-names #f
+               (#%plain-module-begin
+                (#%declare #:empty-namespace) ;; avoid binding info from here
+
+                ;; we need to know what types we have names for so
+                ;; that we can serialize them when we generate
+                ;; predefined contract mappings
+                (require (submod ".." #%type-decl))
+
+                ))))
        #`(begin
            ;; Now we create definitions that are actually provided
            ;; from the module itself. There are two levels of

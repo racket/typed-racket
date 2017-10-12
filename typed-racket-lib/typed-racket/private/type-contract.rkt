@@ -399,8 +399,17 @@
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
             sc))
+      (printf "predef: ~s ~s ~s\n" predef-contracts type typed-side)
       (cached-match
        sc-cache type typed-side
+       [(app (lambda (t) 
+               (hash-ref predef-contracts (cons t typed-side) #f))
+             (cons stx kind))
+        (printf "found a predefined-contract ~v\n" stx)
+        (case kind 
+          [(flat) (flat/sc stx)]
+          [(chaperone) (chaperone/sc stx)]
+          [(impersonator) (impersonator/sc stx)])]
        ;; Applications of implicit recursive type aliases
        ;;
        ;; We special case this rather than just resorting to standard
@@ -995,6 +1004,15 @@
   (define extflzero? (lambda (x) (extfl= x 0.0t0)))
   (define extflnonnegative? (lambda (x) (extfl>= x 0.0t0)))
   (define extflnonpositive? (lambda (x) (extfl<= x 0.0t0))))
+
+(module predefined-contracts racket/base
+  ;; this table maps (cons Type? typed-side?) -> (cons identifier? kind?)
+  ;; where the identifier can be used instead of generating a contract for the type
+  (define predef-contracts (make-hash))
+  (provide predef-contracts))
+
+(require (submod "." predefined-contracts))
+(hash-set! predef-contracts (cons Univ 'typed) (cons #'any/c 'flat))
 
 (module numeric-contracts racket/base
   (require

@@ -165,9 +165,9 @@
       ;; arity-0 functions end up being flat contracts when they're
       ;; from the typed side and the result is flat
       (if range-args
-          (merge-restricts* 'flat (map f range-args))
+          (merge-restricts* 'chaperone (map f range-args))
           (merge-restricts* 'flat null))
-      (merge-restricts* 'chaperone (map f args))))
+      (merge-restricts* 'chaperone (map f (append (or range-args '()) args)))))
 
 (define (function-sc-equal? a b recur)
   (match-define (function-combinator a-args a-indices a-mand-kws a-opt-kws a-typed-side?) a)

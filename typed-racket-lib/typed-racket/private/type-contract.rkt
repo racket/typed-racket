@@ -17,7 +17,7 @@
  racket/format
  syntax/flatten-begin
  (only-in (types abbrev) -Bottom -Boolean)
- (static-contracts instantiate optimize structures combinators constraints)
+ (static-contracts instantiate structures combinators constraints)
  (only-in (submod typed-racket/static-contracts/instantiate internals) compute-constraints)
  ;; TODO make this from contract-req
  (prefix-in c: racket/contract)
@@ -287,15 +287,14 @@
                         #:sc-cache [sc-cache (make-hash)])
   (let/ec escape
     (define (fail #:reason [reason #f]) (escape (init-fail #:reason reason)))
-    (instantiate
-     (optimize
-      (type->static-contract ty #:typed-side typed-side fail
-                             #:cache sc-cache)
-      #:trusted-positive typed-side
-      #:trusted-negative (not typed-side))
+    (instantiate/optimize
+     (type->static-contract ty #:typed-side typed-side fail
+                            #:cache sc-cache)
      fail
      kind
-     #:cache cache)))
+     #:cache cache
+     #:trusted-positive typed-side
+     #:trusted-negative (not typed-side))))
 
 (define any-wrap/sc (chaperone/sc #'any-wrap/c))
 

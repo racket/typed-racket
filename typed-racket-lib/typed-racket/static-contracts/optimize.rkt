@@ -17,7 +17,7 @@
 
 
 (provide/cond-contract
- [optimize ((static-contract?) (#:trusted-positive boolean? #:trusted-negative boolean?)
+ [optimize ((static-contract?) (#:trusted-positive boolean? #:trusted-negative boolean? #:recursive-kinds (or/c #f hash?))
                                . ->* . static-contract?)])
 
 ;; Reduce a static contract to a smaller simpler one that protects in the same way
@@ -110,24 +110,21 @@
 
 
 ;; Reduce a static contract assuming that we trusted the current side
-(define (trusted-side-reduce sc)
+(define ((make-trusted-side-reduce flat-sc?) sc)
   (match sc
     [(->/sc: mand-args opt-args mand-kw-args opt-kw-args rest-arg (list (any/sc:) ...))
      (function/sc #t mand-args opt-args mand-kw-args opt-kw-args rest-arg #f)]
     [(arr/sc: args rest (list (any/sc:) ...))
      (arr/sc args rest #f)]
     [(none/sc:) any/sc]
-    [(or/sc: (? flat-terminal-kind?) ...) any/sc]
-    [(? flat-terminal-kind?) any/sc]
+    [(or/sc: (? flat-sc?) ...) any/sc]
+    [(? flat-sc?) any/sc]
     [(syntax/sc: (? recursive-sc?))
      ;;bg; _temporary_ case to allow contracts from the `Syntax` type.
      ;;    This is temporary until TR has types for immutable-vector
      ;;    and box-immutable & changes the definition of the `Syntax` type.
      any/sc]
     [else sc]))
-
-(define (flat-terminal-kind? sc)
-  (eq? 'flat (sc-terminal-kind sc)))
 
 ;; The side of a static contract describes the source of the values that
 ;;  the contract needs to check.
@@ -176,12 +173,13 @@
 ;; update-side : sc? weak-side? -> weak-side?
 ;; Change the current side to something safe & strong-as-possible
 ;;  for optimizing the sub-contracts of the given `sc`.
-(define (update-side sc side)
+(define ((make-update-side flat-sc?) sc side)
   (match sc
    [(or/sc: scs ...)
-    #:when (not (andmap flat-terminal-kind? scs))
+    #:when (not (andmap flat-sc? scs))
     (weaken-side side)]
-   [(? guarded-sc?)
+   [_
+    #:when (guarded-sc? sc)
     (strengthen-side side)]
    [_
     ;; Keep same side by default.
@@ -194,8 +192,7 @@
 ;;  type constructor. E.g. list/sc is "real" and or/sc is not.
 (define (guarded-sc? sc)
   (match sc
-   [(or (? flat-terminal-kind?)
-        (->/sc: _ _ _ _ _ _)
+   [(or (->/sc: _ _ _ _ _ _)
         (arr/sc: _ _ _)
         (async-channel/sc: _)
         (box/sc: _)
@@ -292,9 +289,28 @@
         (sc-map sc trim)]))
   (trim sc 'covariant))
 
+(define (make-sc->kind recursive-kinds)
+  (if recursive-kinds
+    (λ (sc)
+      (let loop ([sc sc])
+        (match sc
+         [(recursive-sc _ _ body)
+          (loop body)]
+         [(or (recursive-sc-use id)
+              (name/sc: id))
+          (hash-ref recursive-kinds id #f)]
+         [_
+          (sc-terminal-kind sc)])))
+    sc-terminal-kind))
 
 ;; If we trust a specific side then we drop all contracts protecting that side.
-(define (optimize sc #:trusted-positive [trusted-positive #f] #:trusted-negative [trusted-negative #f])
+(define (optimize sc #:trusted-positive [trusted-positive #f] #:trusted-negative [trusted-negative #f] #:recursive-kinds [recursive-kinds #f])
+  (define flat-sc?
+    (let ([sc->kind (make-sc->kind recursive-kinds)])
+      (λ (sc) (eq? 'flat (sc->kind sc)))))
+  (define trusted-side-reduce (make-trusted-side-reduce flat-sc?))
+  (define update-side (make-update-side flat-sc?))
+
   ;; single-step: reduce and trusted-side-reduce if appropriate
   (define (single-step sc maybe-weak-side)
     (define trusted

@@ -498,6 +498,7 @@
                          typed-racket/env/global-env typed-racket/env/type-alias-env
                          typed-racket/types/struct-table typed-racket/types/abbrev
                          (rename-in racket/private/sort [sort raw-sort]))
+                #,@(get-requires)
                 #,@(make-env-init-codes)
                 #,@(for/list ([a (in-list aliases)])
                      (match-define (list from to) a)
@@ -554,6 +555,7 @@
            (module* #%contract-defs #f
              (#%plain-module-begin
               (#%declare #:empty-namespace) ;; avoid binding info from here
+              #,@(get-contract-requires)
               #,extra-requires
               new-defs ...)))
        #`(begin

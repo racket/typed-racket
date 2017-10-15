@@ -84,7 +84,7 @@
                  [(and (not (identifier? *res))
                        (popular? ty))
                   (define id (gensym))
-                  (enqueue! type-definitions #`(define #,id #,*res))
+                  (enqueue! type-definitions #`(define/decl #,id #,*res))
                   id]
                  [else *res]))
         (hash-set! type-cache ty res)

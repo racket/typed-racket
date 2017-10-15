@@ -7,7 +7,7 @@
  syntax/parse
  (rep type-rep prop-rep object-rep fme-utils)
  (utils tc-utils)
- (env type-name-env row-constraint-env)
+ (env type-name-env row-constraint-env env-req)
  (rep core-rep rep-utils free-ids type-mask values-rep
       base-types numeric-base-types)
  (types resolve utils printer match-expanders union)
@@ -163,7 +163,8 @@
   (and (identifier? ctc-stx)
        (let ([match? (assoc ctc-stx (hash-values cache) free-identifier=?)])
          (and match?
-              (should-inline-contract? (cdr match?))
+              (or (should-inline-contract? (cdr match?))
+                  (function-contract? (cdr match?)))
               (cdr match?)))))
 
 ;; The below requires are needed since they provide identifiers that
@@ -172,8 +173,9 @@
 ;; TODO: It would be better to have individual contracts specify which
 ;; modules should be required, but for now this is just all of them.
 (define extra-requires
-  #'(require
+  #`(require
       (submod typed-racket/private/type-contract predicates)
+      (submod typed-racket/static-contracts/instantiate predefined-contracts)
       typed-racket/utils/utils
       (for-syntax typed-racket/utils/utils)
       typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
@@ -314,7 +316,7 @@
 ;; Macro to simplify (and avoid reindentation) of the match below
 ;;
 ;; The sc-cache hashtable is used to memoize static contracts. The keys are
-;; a pair of the Type-seq number for a type and 'untyped or 'typed
+;; a pair of the type and 'untyped or 'typed
 (define-syntax (cached-match stx)
   (syntax-case stx ()
     [(_ sc-cache type-expr typed-side-expr match-clause ...)
@@ -399,17 +401,9 @@
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
             sc))
-      (printf "predef: ~s ~s ~s\n" predef-contracts type typed-side)
+      ;(printf "predef: ~s ~s ~s\n" predef-contracts type typed-side)
       (cached-match
        sc-cache type typed-side
-       [(app (lambda (t) 
-               (hash-ref predef-contracts (cons t typed-side) #f))
-             (cons stx kind))
-        (printf "found a predefined-contract ~v\n" stx)
-        (case kind 
-          [(flat) (flat/sc stx)]
-          [(chaperone) (chaperone/sc stx)]
-          [(impersonator) (impersonator/sc stx)])]
        ;; Applications of implicit recursive type aliases
        ;;
        ;; We special case this rather than just resorting to standard
@@ -1005,14 +999,8 @@
   (define extflnonnegative? (lambda (x) (extfl>= x 0.0t0)))
   (define extflnonpositive? (lambda (x) (extfl<= x 0.0t0))))
 
-(module predefined-contracts racket/base
-  ;; this table maps (cons Type? typed-side?) -> (cons identifier? kind?)
-  ;; where the identifier can be used instead of generating a contract for the type
-  (define predef-contracts (make-hash))
-  (provide predef-contracts))
-
-(require (submod "." predefined-contracts))
-(hash-set! predef-contracts (cons Univ 'typed) (cons #'any/c 'flat))
+(require (submod "../static-contracts/instantiate.rkt" predefined-contracts))
+;(hash-set! predef-contracts (cons Univ 'typed) (cons #'any/c 'flat))
 
 (module numeric-contracts racket/base
   (require

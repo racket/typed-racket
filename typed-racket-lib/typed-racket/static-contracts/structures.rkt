@@ -106,8 +106,13 @@
   ;; Returns the kind of contract that this represents
   ;; Returns #f if it is not a terminal contract
   [sc-terminal-kind sc]
+  ;; sc-type: static-contract? -> (or/c #f Type?)
+  ;; What type was this static contract generated from
+  ;; Produces #f if it wasn't directly from a type, or if not known
+  [sc-type sc]
   #:fallbacks
-  [(define (sc-terminal-kind v) #f)])
+  [(define (sc-terminal-kind v) #f)
+   (define (sc-type v) #f)])
 
 ;; Super struct of static contracts
 (struct static-contract ()
@@ -171,4 +176,5 @@
  [sc->constraints
   (static-contract? (static-contract? . -> . contract-restrict?) . -> . contract-restrict?)]
  [sc-terminal-kind (static-contract? . -> . (or/c #f contract-kind?))]
+ [sc-type (static-contract? . -> . any/c)]
  [sc? predicate/c])

@@ -82,6 +82,65 @@
   (define -Font-Hinting (parse-type #'Font-Hinting))
   (define -LoadFileKind (parse-type #'LoadFileKind)))
 
+(begin-for-syntax
+  (require  typed-racket/private/type-contract
+            racket/base racket/match
+            racket/syntax
+            (for-template typed-racket/base-env/base-types-extra)
+            typed-racket/private/parse-type)
+  (define cache (make-hash))
+  (define sc-cache (make-hash))
+  (define sets-stx null)
+  (define defs-stx null)
+  (define (generate-contracts ty-name kind [side 'typed])
+    (define typ (parse-type ty-name))
+    (match-define (list defs ctc)
+       (type->contract
+        typ
+        #:typed-side side
+        #:kind kind
+        #:cache (make-hash)
+        #:sc-cache (make-hash)
+        (lambda _ (error 'fail))))
+    (define n (datum->syntax #'here (gensym 'n)))
+    (set! defs-stx (append defs-stx defs 
+                           (list 
+                            #`(provide #,n)
+                            #`(define #,n #,ctc))))
+    (set! sets-stx (cons #`(hash-set! predef-contracts
+                                      (cons (parse-type #'#,ty-name) '#,side) 
+                                      #'#,n)
+                         sets-stx)))
+  (generate-contracts #'(Instance Bitmap%) 'impersonator 'typed)
+  (generate-contracts #'(Instance Bitmap%) 'impersonator 'untyped)
+  (generate-contracts #'(Instance Bitmap%) 'impersonator 'both)
+  (generate-contracts #'(Instance Bitmap-DC%) 'impersonator)
+  (generate-contracts #'Color% 'impersonator)
+  (generate-contracts #'Font% 'impersonator)
+  (generate-contracts #'DC<%> 'impersonator)
+  (generate-contracts #'(-> Pen-Join-Style Pen-Join-Style) 'impersonator))
+  
+(define-syntax (m stx)
+  #`(begin
+      (module* #%contract-defs #f
+        #:no-add-mod
+        #,@defs-stx)
+      (begin-for-syntax
+        (module* #%contract-defs-names #f
+          (require #,(syntax-local-introduce 
+                      #'(submod typed-racket/static-contracts/instantiate
+                                predefined-contracts))
+                   typed-racket/private/parse-type
+                   typed-racket/base-env/base-types-extra
+                   #,(syntax-local-introduce #'(submod ".." #%contract-defs))
+                   #,(syntax-local-introduce #'(for-template (submod ".." #%contract-defs)))
+                   (for-template (submod ".." #%contract-defs)))
+          ;n3
+          #,@(map syntax-local-introduce sets-stx)))))
+
+(m)
+
+
 (type-environment
  [bitmap% (parse-type #'Bitmap%)]
  [bitmap-dc% (parse-type #'Bitmap-DC%)]

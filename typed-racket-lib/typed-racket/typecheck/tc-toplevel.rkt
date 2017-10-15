@@ -479,6 +479,7 @@
       (define/with-syntax (new-defs ...) defs)
       (define/with-syntax (new-export-defs ...) export-defs)
       (define/with-syntax (new-provs ...) provs)
+      (do-contract-requires)
       (values
        #`(begin
            ;; This syntax-time submodule records all the types for all

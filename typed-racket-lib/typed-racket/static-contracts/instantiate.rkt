@@ -213,7 +213,7 @@
                 extra-defs
                 (for/list ([sc (in-list (reverse sc-queue))])
                   (match-define (cons id ctc) (hash-ref cache sc))
-                  #`(define/contract-decl #,id #,ctc '#,sc)))
+                  #`(define #,id #,ctc)))
         ctc))
 
 (module predefined-contracts racket/base
@@ -221,7 +221,7 @@
   ;; where the identifier can be used instead of generating a contract for the type
   (define predef-contracts (make-hash))
   (define-syntax-rule (define/contract-decl i ctc sc)
-    (begin #;(hash-set! predef-contracts sc #'i)
+    (begin (hash-set! predef-contracts sc #'i)
            (define i ctc)))
   (provide predef-contracts define/contract-decl))
 

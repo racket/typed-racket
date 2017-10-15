@@ -27,9 +27,10 @@
 
 (provide
   (c:contract-out
-    [type->static-contract
-      (c:parametric->/c (a) ((Type? (c:-> #:reason (c:or/c #f string?) a))
-                             (#:typed-side boolean?) . c:->* . (c:or/c a static-contract?)))]))
+   [type->contract c:any/c]
+   [type->static-contract
+    (c:parametric->/c (a) ((Type? (c:-> #:reason (c:or/c #f string?) a))
+                           (#:typed-side boolean?) . c:->* . (c:or/c a static-contract?)))]))
 
 (provide change-contract-fixups
          change-provide-fixups
@@ -174,19 +175,30 @@
 ;; modules should be required, but for now this is just all of them.
 (define extra-requires
   #`(require
-      (submod typed-racket/private/type-contract predicates)
-      (submod typed-racket/static-contracts/instantiate predefined-contracts)
-      typed-racket/utils/utils
-      (for-syntax typed-racket/utils/utils)
-      typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
-      typed-racket/utils/opaque-object
-      typed-racket/utils/evt-contract
-      typed-racket/utils/hash-contract
-      typed-racket/utils/sealing-contract
-      typed-racket/utils/promise-not-name-contract
-      typed-racket/utils/simple-result-arrow
-      racket/sequence
-      racket/contract/parametric))
+     ;; we need to know what types we have names for so that we can serialize them
+     ;; when we generate predefined contract mappings
+     ;; technically, those mappings could be in a different submodule that's only
+     ;; needed to find identifiers for existing contracts, but we're not doing
+     ;; that optimization yet
+     (submod ".." #%type-decl)
+     ;; some built-in types that aren't available in `racket/base`
+     (submod typed-racket/private/type-contract predicates)
+     ;; a table of contracts that are defined in other modules so they aren't
+     ;; repeated
+     (submod typed-racket/static-contracts/instantiate predefined-contracts)
+     ;; utility functions
+     typed-racket/utils/utils
+     (for-syntax typed-racket/utils/utils)
+     racket/sequence
+     ;; contract combinators
+     typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
+     typed-racket/utils/opaque-object
+     typed-racket/utils/evt-contract
+     typed-racket/utils/hash-contract
+     typed-racket/utils/sealing-contract
+     typed-racket/utils/promise-not-name-contract
+     typed-racket/utils/simple-result-arrow
+     racket/contract/parametric))
 
 ;; Should the above requires be included in the output?
 ;;   This box is only used for contracts generated for `require/typed`
@@ -401,9 +413,13 @@
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
             sc))
-      ;(printf "predef: ~s ~s ~s\n" predef-contracts type typed-side)
+      ;(eprintf "predef: ~s ~s ~s\n" predef-contracts type typed-side)
       (cached-match
        sc-cache type typed-side
+       [(app (lambda (t) (hash-ref predef-contracts (cons t typed-side) #f))
+             (? values con-id))
+        (eprintf "found a match ~s ~s\n" con-id type)
+        (impersonator/sc (syntax-local-introduce con-id))]
        ;; Applications of implicit recursive type aliases
        ;;
        ;; We special case this rather than just resorting to standard
@@ -603,6 +619,7 @@
        ;; wrong thing for object types since it errors too eagerly.
        [(Instance: (? Name? t))
         #:when (Class? (resolve-once t))
+        (printf "predef: ~s ~s ~s\n" predef-contracts t typed-side)
         (cond [(lookup-name-sc type typed-side)]
               [else
                (define rv recursive-values)

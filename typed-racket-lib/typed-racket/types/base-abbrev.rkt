@@ -197,6 +197,12 @@
 (define (simple-> doms rng)
   (->* doms rng))
 
+(define (simple-arrow doms rng)
+  (-Arrow doms rng))
+
+(define (simple->values doms rng)
+  (->* doms (make-Values (map -result rng))))
+
 (define (->acc dom rng path #:var [var (cons 0 0)])
   (define obj (-acc-path path (-id-path var)))
   (make-Fun
@@ -332,5 +338,9 @@
   (syntax-rules ()
     [(_ (var) consts ty)
      (let ([var (-v var)])
-       (make-PolyRow (list 'var) consts ty))]))
+       (make-PolyRow-simple (list 'var) consts ty))]))
+
+;; simplifies expansion
+(define (make-PolyRow-simple v c t)
+  (make-PolyRow v c t))
 

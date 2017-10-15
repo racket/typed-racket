@@ -280,7 +280,10 @@ don't depend on any other portion of the system
           (current-continuation-marks))))
 
 ;; are we currently expanding in a typed module (or top-level form)?
-(define typed-context? (box #f))
+(module typed-context '#%kernel
+  (#%provide typed-context?)
+  (define-values (typed-context?) (box #f)))
+(require (submod "." typed-context))
 
 ;; environment constructor
 (define-syntax (make-env stx)

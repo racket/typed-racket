@@ -129,14 +129,23 @@
             #:with method-names #'(list (quote name))
             #:with method-ctcs #'(list ctc))))
 
+(define-syntax static-append
+  (syntax-rules (list quote null)
+    [(_ (list (quote e) ...) ...) (quote (e ... ...))]
+    [(_ (list e ...) ...) (list e ... ...)]
+    [(_ (list) . rest) (static-append . rest)]
+    [(_ null . rest) (static-append . rest)]
+    [(_) '()]
+    [(_ . e) (append . e)]))
+
 (define-syntax (object/c-opaque stx)
   (syntax-parse stx
    [(_ ?clause:object/c-clause ...)
     (syntax/loc stx
-      (let ([names  (append ?clause.method-names ...)]
-            [ctcs   (append ?clause.method-ctcs ...)]
-            [fnames (append ?clause.field-names ...)]
-            [fctcs  (append ?clause.field-ctcs ...)])
+      (let ([names  (static-append ?clause.method-names ...)]
+            [ctcs   (static-append ?clause.method-ctcs ...)]
+            [fnames (static-append ?clause.field-names ...)]
+            [fctcs  (static-append ?clause.field-ctcs ...)])
         (base-object/c-opaque
          (dynamic-object/c names ctcs fnames fctcs)
          names ctcs fnames fctcs)))]))

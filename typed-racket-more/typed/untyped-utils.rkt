@@ -1,19 +1,26 @@
 #lang racket/base
 
+
+(module stxtime racket/base
+  (require (submod typed-racket/utils/tc-utils typed-context))
+  (define (syntax-local-typed-context?) (unbox typed-context?))
+  (provide syntax-local-typed-context?))
+
 (require (for-syntax racket/base
                      syntax/parse
                      syntax/stx
                      racket/syntax
                      typed-racket/utils/tc-utils
                      typed-racket/typecheck/renamer)
-         typed-racket/utils/tc-utils)
+         (submod "." stxtime)
+         (for-syntax (submod "." stxtime)))
 
 (provide syntax-local-typed-context?
+         (for-syntax syntax-local-typed-context?)
          define-typed/untyped-identifier
          require/untyped-contract)
 
-(define (syntax-local-typed-context?)
-  (unbox typed-context?))
+
 
 (define-syntax (define-typed/untyped-identifier stx)
   (syntax-parse stx

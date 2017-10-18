@@ -24,71 +24,13 @@
  (define -Color% (parse-type #'Color%))
  (define -Color%-Obj (make-Instance -Color%)))
 
-(begin-for-syntax
-  (require  typed-racket/private/type-contract
-            racket/base racket/match
-            racket/syntax
-            (for-template typed-racket/base-env/base-types-extra)
-            typed-racket/private/parse-type
-            typed-racket/env/env-req)
-  ;; generate a good symbol name for this contract
-  ;; Syntax -> Symbol
-  (define (->name stx)
-    (syntax-case stx (Instance)
-      [(Instance i) (format-symbol "~a-instance/c" #'i)]
-      [i (identifier? #'i) (syntax-e #'i)]
-      [_ 'gui_base/c])))
-  
-(define-syntax (m stx)
-  (do-requires)
-  (do-contract-requires)
-  (define cache (make-hash))
-  (define sc-cache (make-hash))
-  (define sets-stx null)
-  (define defs-stx null)
-  (define (generate-contracts ty-name kind [side 'typed])
-    (define typ (parse-type ty-name))
-    (define name (->name ty-name))
-    (match-define (list defs ctc)
-       (type->contract
-        typ
-        #:typed-side side
-        #:kind kind
-        #:cache (make-hash)
-        #:sc-cache (make-hash)
-        (lambda _ (error 'fail))))
-    (define n (datum->syntax #'here (syntax-e (generate-temporary name))))
-    (set! defs-stx (append defs-stx defs 
-                           (list 
-                            #`(provide #,n)
-                            #`(define #,n #,ctc))))
-    (set! sets-stx (cons #`(hash-set! predef-contracts
-                                      (cons (parse-type #'#,ty-name) '#,side) 
-                                      #'#,n)
-                         sets-stx)))
+(require "../generate-predef-con.rkt")
 
-  (generate-contracts #'(Instance Frame%) 'impersonator 'typed)
-  (generate-contracts #'(Instance Frame%) 'impersonator 'untyped)
-  (generate-contracts #'(Instance Frame%) 'impersonator 'both)
-  (generate-contracts #'(Instance Pane%) 'impersonator 'typed)
-  (generate-contracts #'(Instance Dialog%) 'impersonator 'typed)
+(generate-contract-submods 
+ [(Instance Frame%) impersonator (typed untyped both)]
+ [(Instance Pane%) impersonator (typed untyped both)]
+ [(Instance Dialog%) impersonator (typed untyped both)])
 
-  #`(begin
-      (module* #%contract-defs #f
-        (#%plain-module-begin 
-         #,@(get-contract-requires)
-         #,@defs-stx))
-      (begin-for-syntax
-        (module* #%contract-defs-names #f
-          (require #,(syntax-local-introduce 
-                      #'(submod typed-racket/static-contracts/instantiate
-                                predefined-contracts))
-                   typed-racket/private/parse-type
-                   typed-racket/base-env/base-types-extra
-                   #,(syntax-local-introduce #'(for-template (submod ".." #%contract-defs))))
-          #,@(map syntax-local-introduce sets-stx)))))
-
-(m)
 
 (type-environment
  [button% (parse-type #'Button%)]

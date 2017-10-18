@@ -1,4 +1,4 @@
-#lang s-exp typed-racket/base-env/extra-env-lang
+#lang s-exp typed-racket/base-env/extra-env-lang #:contract-defs
 
 ;; A typed wrapper for the framework library
 
@@ -89,8 +89,10 @@
  (define -Window<%>-Instance (make-Instance -Window<%>))
  (define -DC<%>-Instance (make-Instance -DC<%>)))
 
-(begin-for-syntax (module* #%contract-defs-names #f (#%plain-module-begin)))
-(module* #%contract-defs #f (#%plain-module-begin))
+(require "../generate-predef-con.rkt")
+
+(generate-contract-submods 
+ [(Instance Canvas:Basic%) impersonator (typed untyped both)])
 
 (type-environment
  [application:current-app-name (-Param -String)]

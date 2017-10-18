@@ -78,8 +78,19 @@
 
 (define-syntax (-#%module-begin stx)
   (syntax-parse stx
+    [(mb #:contract-defs e ...)
+     #'(#%plain-module-begin
+        (require (for-syntax typed-racket/env/env-req))
+        e ...
+        ;; need to register this module
+        (begin-for-syntax (add-mod! (variable-reference->module-path-index
+                                     (#%variable-reference)))))]
     [(mb e ...)
      #'(#%plain-module-begin
+        ;; auto-generate these modules unless they are explicitly provided
+        ;; use #%plain-module-begin to avoid adding add-mod! calls in them
+        (begin-for-syntax (module* #%contract-defs-names #f (#%plain-module-begin)))
+        (module* #%contract-defs #f (#%plain-module-begin))
         (require (for-syntax typed-racket/env/env-req))
         e ...
         ;; need to register this module

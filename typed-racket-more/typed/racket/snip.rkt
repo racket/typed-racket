@@ -1,4 +1,4 @@
-#lang s-exp typed-racket/base-env/extra-env-lang
+#lang s-exp typed-racket/base-env/extra-env-lang #:contract-defs
 
 ;; This module provides a base type environment including
 ;; racket/snip bindings
@@ -17,9 +17,10 @@
          Style-Delta%
          Style-List%)
 
-(begin-for-syntax
-  (module* #%contract-defs-names #f (#%plain-module-begin)))
-(module* #%contract-defs #f (#%plain-module-begin))
+(require "generate-predef-con.rkt")
+
+(generate-contract-submods 
+ [(Instance Snip%) impersonator (typed untyped both)])
 
 (type-environment
  [snip% (parse-type #'Snip%)]

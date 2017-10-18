@@ -1,4 +1,4 @@
-#lang s-exp typed-racket/base-env/extra-env-lang
+#lang s-exp typed-racket/base-env/extra-env-lang #:contract-defs
 
 ;; This module provides a base type environment including
 ;; most GUI library bindings

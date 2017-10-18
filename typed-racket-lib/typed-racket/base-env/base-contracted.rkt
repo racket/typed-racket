@@ -44,6 +44,7 @@
       ;;       Also, this type works better with inference.
       (-> (make-Prompt-Tagof Univ (-> Univ ManyUniv)))))))
 
+;; we also have to manually add these submodules which extra-env-lang.rkt would do for us
 (begin-for-syntax
   (module* #%contract-defs-names #f (#%plain-module-begin)))
 (module* #%contract-defs #f (#%plain-module-begin))

@@ -89,7 +89,8 @@
  (define -Window<%>-Instance (make-Instance -Window<%>))
  (define -DC<%>-Instance (make-Instance -DC<%>)))
 
-(require "../generate-predef-con.rkt")
+(require "racket/generate-predef-con.rkt"
+         typed-racket/base-env/base-types-extra)
 
 (generate-contract-submods 
  [(Instance Canvas:Basic%) impersonator (typed untyped both)])

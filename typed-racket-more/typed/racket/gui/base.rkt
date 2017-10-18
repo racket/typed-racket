@@ -24,7 +24,8 @@
  (define -Color% (parse-type #'Color%))
  (define -Color%-Obj (make-Instance -Color%)))
 
-(require "../generate-predef-con.rkt")
+(require "../generate-predef-con.rkt"
+         typed-racket/base-env/base-types-extra)
 
 (generate-contract-submods 
  [(Instance Frame%) impersonator (typed untyped both)]

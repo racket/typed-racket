@@ -17,7 +17,8 @@
          Style-Delta%
          Style-List%)
 
-(require "generate-predef-con.rkt")
+(require "generate-predef-con.rkt"
+         typed-racket/base-env/base-types-extra)
 
 (generate-contract-submods 
  [(Instance Snip%) impersonator (typed untyped both)])

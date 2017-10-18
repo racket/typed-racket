@@ -1,19 +1,19 @@
 #lang racket/base
-
-(begin-for-syntax
-  (require  typed-racket/private/type-contract
-            racket/base racket/match
-            racket/syntax
-            (for-template typed-racket/base-env/base-types-extra)
-            typed-racket/private/parse-type
-            typed-racket/env/env-req)
-  ;; generate a good symbol name for this contract
-  ;; Syntax -> Symbol
-  (define (->name stx)
-    (syntax-case stx (Instance)
-      [(Instance i) (format-symbol "~a-instance/c" #'i)]
-      [i (identifier? #'i) (syntax-e #'i)]
-      [_ 'gui_base/c])))
+(require (for-syntax
+          typed-racket/private/type-contract
+          racket/base racket/match
+          racket/syntax
+          typed-racket/private/parse-type
+          typed-racket/base-env/base-types-extra
+          typed-racket/env/env-req)
+         typed-racket/base-env/base-types-extra)
+;; generate a good symbol name for this contract
+;; Syntax -> Symbol
+(define-for-syntax (->name stx)
+  (syntax-case stx (Instance)
+    [(Instance i) (format-symbol "~a-instance/c" #'i)]
+    [i (identifier? #'i) (syntax-e #'i)]
+    [_ 'gui_base/c]))
 
 
 (provide generate-contract-submods)

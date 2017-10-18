@@ -82,7 +82,8 @@
   (define -Font-Hinting (parse-type #'Font-Hinting))
   (define -LoadFileKind (parse-type #'LoadFileKind)))
 
-(require "generate-predef-con.rkt")
+(require "generate-predef-con.rkt"
+         typed-racket/base-env/base-types-extra)
 
 (generate-contract-submods 
  [(Instance Bitmap%) impersonator (typed untyped both)]

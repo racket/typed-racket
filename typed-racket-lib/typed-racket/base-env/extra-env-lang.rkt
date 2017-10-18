@@ -78,11 +78,6 @@
 
 (define-syntax (-#%module-begin stx)
   (syntax-parse stx
-    [(mb e0 e ...)
-     #:when (eq? '#:no-add-mod (syntax-e #'e0))
-     #'(#%plain-module-begin
-        (require (for-syntax typed-racket/env/env-req))
-        e ...)]
     [(mb e ...)
      #'(#%plain-module-begin
         (require (for-syntax typed-racket/env/env-req))

@@ -132,9 +132,9 @@
 
   #`(begin
       (module* #%contract-defs #f
-        #:no-add-mod
-        #,@(get-contract-requires)
-        #,@defs-stx)
+        (#%plain-module-begin
+         #,@(get-contract-requires)
+         #,@defs-stx))
       (begin-for-syntax
         (module* #%contract-defs-names #f
           (require #,(syntax-local-introduce 
@@ -142,10 +142,7 @@
                                 predefined-contracts))
                    typed-racket/private/parse-type
                    typed-racket/base-env/base-types-extra
-                   #,(syntax-local-introduce #'(submod ".." #%contract-defs))
-                   #,(syntax-local-introduce #'(for-template (submod ".." #%contract-defs)))
-                   (for-template (submod ".." #%contract-defs)))
-          ;n3
+                   #,(syntax-local-introduce #'(for-template (submod ".." #%contract-defs))))
           #,@(map syntax-local-introduce sets-stx)))))
 
 (m)

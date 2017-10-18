@@ -75,9 +75,9 @@
 
   #`(begin
       (module* #%contract-defs #f
-        #:no-add-mod
-        #,@(get-contract-requires)
-        #,@defs-stx)
+        (#%plain-module-begin 
+         #,@(get-contract-requires)
+         #,@defs-stx))
       (begin-for-syntax
         (module* #%contract-defs-names #f
           (require #,(syntax-local-introduce 

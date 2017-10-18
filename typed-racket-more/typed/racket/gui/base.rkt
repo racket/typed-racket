@@ -30,7 +30,14 @@
             racket/syntax
             (for-template typed-racket/base-env/base-types-extra)
             typed-racket/private/parse-type
-            typed-racket/env/env-req))
+            typed-racket/env/env-req)
+  ;; generate a good symbol name for this contract
+  ;; Syntax -> Symbol
+  (define (->name stx)
+    (syntax-case stx (Instance)
+      [(Instance i) (format-symbol "~a-instance/c" #'i)]
+      [i (identifier? #'i) (syntax-e #'i)]
+      [_ 'gui_base/c])))
   
 (define-syntax (m stx)
   (do-requires)
@@ -41,6 +48,7 @@
   (define defs-stx null)
   (define (generate-contracts ty-name kind [side 'typed])
     (define typ (parse-type ty-name))
+    (define name (->name ty-name))
     (match-define (list defs ctc)
        (type->contract
         typ
@@ -49,7 +57,7 @@
         #:cache (make-hash)
         #:sc-cache (make-hash)
         (lambda _ (error 'fail))))
-    (define n (datum->syntax #'here (syntax-e (generate-temporary 'n))))
+    (define n (datum->syntax #'here (syntax-e (generate-temporary name))))
     (set! defs-stx (append defs-stx defs 
                            (list 
                             #`(provide #,n)

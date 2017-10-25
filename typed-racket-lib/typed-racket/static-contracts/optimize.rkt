@@ -119,7 +119,7 @@
     [(none/sc:) any/sc]
     [(or/sc: (? flat-terminal-kind?) ...) any/sc]
     [(? flat-terminal-kind?) any/sc]
-    [(syntax/sc: (? recursive-sc?))
+    #;[(syntax/sc: (? recursive-sc?))
      ;;bg; _temporary_ case to allow contracts from the `Syntax` type.
      ;;    This is temporary until TR has types for immutable-vector
      ;;    and box-immutable & changes the definition of the `Syntax` type.
@@ -178,6 +178,7 @@
 ;;  for optimizing the sub-contracts of the given `sc`.
 (define (update-side sc side)
   (match sc
+   #;
    [(or/sc: scs ...)
     #:when (not (andmap flat-terminal-kind? scs))
     (weaken-side side)]

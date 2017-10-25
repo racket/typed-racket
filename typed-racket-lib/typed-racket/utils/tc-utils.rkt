@@ -247,7 +247,7 @@ don't depend on any other portion of the system
     ;; vars and such don't confuse the user.
     (cond
      [(or (not (orig-module-stx))
-          (for/and ([s (in-list ostxs)])
+          (for/and ([s (in-list ostxs)] #:when s)
             (eq? (syntax-source s) (syntax-source (orig-module-stx)))))
       (raise-typecheck-error (apply format msg rest) stxs)]
      [else (raise-typecheck-error

@@ -1,22 +1,30 @@
 #lang typed/racket/base #:with-refinements
 
-(require "safe-vector-base.rkt"
+(require typed/racket/unsafe
          racket/unsafe/ops)
 
-(provide vec-ref vec-set!)
+(unsafe-require/typed 
+ typed/racket/base
+ [make-vector
+  (All (A) (-> ([size : Natural]
+                [val : A])
+               (Refine [v : (Vectorof A)]
+                       (= size (vector-length v)))))])
 
-(: vec-ref (-> ([v : VectorTop]
-                [n : Natural])
-               #:pre (v n) (< n (vector-length v))
-               Any))
-(define vec-ref unsafe-vector-ref)
+(provide (all-defined-out))
 
-(: vec-set! (All (A) (-> ([v : (Vectorof A)]
-                          [n : Natural]
-                          [a : A])
-                         #:pre (v n) (< n (vector-length v))
-                         Void)))
-(define vec-set! unsafe-vector-set!)
+(: safe-vector-ref (All (A) (-> ([v : (Vectorof A)]
+                                 [n : Natural])
+                                #:pre (v n) (< n (vector-length v))
+                                A)))
+(define safe-vector-ref unsafe-vector-ref)
+
+(: safe-vector-set! (All (A) (-> ([v : (Vectorof A)]
+                                  [n : Natural]
+                                  [a : A])
+                                 #:pre (v n) (< n (vector-length v))
+                                 Void)))
+(define safe-vector-set! unsafe-vector-set!)
 
 (: build-vector
    (All (A) (-> ([n : Natural]
@@ -30,7 +38,7 @@
      (define vec (make-vector n init-val))
      (let loop! ([i : Natural 1])
        (when (< i n)
-         (unsafe-vector-set! vec i (proc i))
+         (safe-vector-set! vec i (proc i))
          (loop! (add1 i))))
      vec]
     [else (vector)]))
@@ -47,7 +55,7 @@
   (build-vector (vector-length vec)
                 (λ ([i : (Refine [i : Natural]
                                  (< i (vector-length vec)))])
-                  (proc (unsafe-vector-ref vec i)))))
+                  (proc (safe-vector-ref vec i)))))
 
 (: vector-map!
    (All (A) (-> ([proc : (-> A A)]
@@ -57,8 +65,8 @@
   (define len (vector-length vec))
   (let loop! ([i : Natural 0])
     (when (< i len)
-      (define a (unsafe-vector-ref vec i))
-      (unsafe-vector-set! vec i (proc a))
+      (define a (safe-vector-ref vec i))
+      (safe-vector-set! vec i (proc a))
       (loop! (+ 1 i)))))
 
 
@@ -77,11 +85,11 @@
   (cond
     [(= 0 len) (vector)]
     [else
-     (define res (make-vector len (unsafe-vector-ref vec start)))
+     (define res (make-vector len (safe-vector-ref vec start)))
      (let loop! ([i : Natural 0])
        (when (< i len)
-         (define a (unsafe-vector-ref vec (+ start i)))
-         (unsafe-vector-set! res i a)
+         (define a (safe-vector-ref vec (+ start i)))
+         (safe-vector-set! res i a)
          (loop! (+ 1 i))))
      res]))
 
@@ -102,8 +110,8 @@
   (define count (- src-end src-start))
   (let loop! ([i : Natural 0])
     (when (< i count)
-      (define a (unsafe-vector-ref src (+ src-start i)))
-      (unsafe-vector-set! dest (+ dest-start i) a)
+      (define a (safe-vector-ref src (+ src-start i)))
+      (safe-vector-set! dest (+ dest-start i) a)
       (loop! (+ 1 i)))))
 
 
@@ -123,19 +131,19 @@
     [else
      (define len2 (vector-length v2))
      (define res (make-vector (+ len1 len2)
-                              (unsafe-vector-ref v1 0)))
+                              (safe-vector-ref v1 0)))
 
      (let loop! ([i : Natural 1])
        (when (< i len1)
-         (unsafe-vector-set! res
-                             i
-                             (unsafe-vector-ref v1 i))
+         (safe-vector-set! res
+                           i
+                           (safe-vector-ref v1 i))
          (loop! (add1 i))))
      (let loop! ([i : Natural len1])
        (when (< i len2)
-         (unsafe-vector-set! res
-                             (+ len1 i)
-                             (unsafe-vector-ref v2 i))
+         (safe-vector-set! res
+                           (+ len1 i)
+                           (safe-vector-ref v2 i))
          (loop! (add1 i))))
      res]))
 
@@ -214,6 +222,3 @@
   (define len (vector-length vec))
   (values (vector-copy vec 0 (- len pos))
           (vector-copy vec (- len pos) len)))
-
-
- 

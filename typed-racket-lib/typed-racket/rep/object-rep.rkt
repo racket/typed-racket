@@ -100,7 +100,7 @@
          Path-intern-table
          name* elems* #:construct (make-Path elems* name*)))]
      [(? LExp? l) (if (null? elems) l -empty-obj)]
-     [(Empty:) -empty-obj])])
+     [_ -empty-obj])])
 
 (define Path-intern-table (make-weak-hash))
 

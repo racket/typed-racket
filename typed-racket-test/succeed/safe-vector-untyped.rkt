@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require (prefix-in safe- "safe-vector.rkt"))
+(require "safe-vector.rkt")
 
 (define len 50)
  
@@ -11,7 +11,7 @@
   (collect-garbage)
   (time (for*/sum ([_ (in-range 10000)]
                    [i (in-range len)])
-          (safe-vec-ref vec i))))
+          (safe-vector-ref vec i))))
 
 (define (run-safe-set!-test)
   (define vec (make-vector len 0))
@@ -20,7 +20,7 @@
   (collect-garbage)
   (time (for* ([_ (in-range 10000)]
                [i (in-range len)])
-          (safe-vec-set! vec i 0))))
+          (safe-vector-set! vec i 0))))
 
 
 

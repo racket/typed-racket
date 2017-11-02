@@ -3,14 +3,6 @@
 (require typed/racket/unsafe
          racket/unsafe/ops)
 
-(unsafe-require/typed 
- typed/racket/base
- [make-vector
-  (All (A) (-> ([size : Natural]
-                [val : A])
-               (Refine [v : (Vectorof A)]
-                       (= size (vector-length v)))))])
-
 (provide (all-defined-out))
 
 (: safe-vector-ref (All (A) (-> ([v : (Vectorof A)]

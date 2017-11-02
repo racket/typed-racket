@@ -22,7 +22,8 @@
          ;; Needed for current implementation of typechecking letrec-syntax+values
          (for-template (only-in racket/base list letrec-values
                                 + - * < <= = >= > add1 sub1 modulo
-                                min max vector-length random)
+                                min max vector-length random
+                                make-vector)
                        ;; see tc-app-contracts.rkt
                        racket/contract/private/provide)
 
@@ -468,7 +469,7 @@
 
 
 ;; adds linear info for the following operations:
-;; + - * < <= = >= >
+;; + - * < <= = >= > make-vector
 ;; when the arguments are integers w/ objects.
 ;; These are the 'axiomatized' arithmetic operators.
 ;; NOTE: We should keep these axiomatizations so that they
@@ -518,7 +519,7 @@
   ;; integer compatible form we want to enrich with info when
   ;; #:with-logical-refinements is specified by the user
   (match result
-    [(tc-result1: ret-t ps _)
+    [(tc-result1: ret-t ps orig-obj)
      (syntax-parse form
        ;; *
        [(#%plain-app (~literal *) (~var e1 (t/obj -Int)) (~var e2 (t/obj -Int)))
@@ -572,6 +573,15 @@
                          (obj e2)
                          (obj e3))))
         (add-p/not-p result p)]
+       ;; make-vector include length in result
+       [(#%plain-app (~literal make-vector)
+                     (~var size (t/obj -Int))
+                     . _)
+        #:when (Object? (obj size))
+        (ret (-refine/fresh v ret-t (-eq (-lexp (-vec-len-of (-id-path v)))
+                                         (obj size)))
+             ps
+             orig-obj)]
        [_ result])]
     [_ result]))
 

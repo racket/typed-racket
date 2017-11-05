@@ -111,15 +111,15 @@
   ;; recursive type aliases should be initialized.
   (define-values (type-alias-dependency-map type-alias-class-map)
     (for/lists (_1 _2)
-      ([entry (in-list type-alias-map)])
-      (match-define (cons name alias-info) entry)
+      ([(name alias-info) (in-assoc type-alias-map)])
       (define links-box (box null))
       (define class-box (box null))
-      (define type
-        (parameterize ([current-type-alias-name name]
-                       [current-referenced-aliases links-box]
-                       [current-referenced-class-parents class-box])
-          (parse-type (car alias-info))))
+      ;; parse types for effect
+      (parameterize ([current-type-alias-name name]
+                     [current-referenced-aliases links-box]
+                     [current-referenced-class-parents class-box]
+                     [check-type-invariants-while-parsing? #f])
+        (parse-type (car alias-info)))
       (define pre-dependencies
         (remove-duplicates (unbox links-box) free-identifier=?))
       (define (filter-by-type-alias-names names)

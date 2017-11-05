@@ -45,7 +45,8 @@
 (provide star ddd/bound
          current-referenced-aliases
          current-referenced-class-parents
-         current-type-alias-name)
+         current-type-alias-name
+         check-type-invariants-while-parsing?)
 
 ;; current-term-names : Parameter<(Listof Id)>
 ;; names currently "bound" by a type we are parsing
@@ -95,6 +96,14 @@
 (define-syntax-rule (with-arity arity e ...)
   (parameterize ([current-arities (cons arity (current-arities))])
     e ...))
+
+
+;; code in type-alias-helper.rkt calls `parse-type` for effect to build up
+;; info about how types depend on eachother -- during this parsing, we can't
+;; check certain invariant successfully (i.e. when a user writes `(car p)`
+;; `p` is <: (Pair Any Any), etc), so we use this flag to disable/enable
+;; invariant checking while parsing
+(define check-type-invariants-while-parsing? (make-parameter #t))
 
 (define-literal-syntax-class #:for-label car)
 (define-literal-syntax-class #:for-label cdr)
@@ -379,7 +388,8 @@
   (pattern o:symbolic-object
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-unless (subtype obj-ty -Int)
+           #:fail-when (and (check-type-invariants-while-parsing?)
+                            (not (subtype obj-ty -Int)))
            (format "terms in linear constraints must be integers, got ~a for ~a"
                    obj-ty obj)
            #:attr val (attribute o.val)))
@@ -398,7 +408,8 @@
   (pattern (:*^ ~! n:exact-integer o:symbolic-object-w/o-lexp)
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-unless (subtype obj-ty -Int)
+           #:fail-when (and (check-type-invariants-while-parsing?)
+                            (not (subtype obj-ty -Int)))
            (format "terms in linear constraints must be integers, got ~a for ~a"
                    obj-ty obj)
            #:attr val (-lexp (list (syntax->datum #'n) (attribute o.val))))
@@ -424,21 +435,24 @@
   (pattern (:car^ ~! o:symbolic-object-w/o-lexp)
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-unless (subtype obj-ty (-pair Univ Univ))
+           #:fail-when (and (check-type-invariants-while-parsing?)
+                            (not (subtype obj-ty (-pair Univ Univ))))
            (format "car expects a pair, but got ~a for ~a"
                    obj-ty obj)
            #:attr val (-car-of (attribute o.val)))
   (pattern (:cdr^ ~! o:symbolic-object-w/o-lexp)
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-unless (subtype obj-ty (-pair Univ Univ))
+           #:fail-when (and (check-type-invariants-while-parsing?)
+                            (not (subtype obj-ty (-pair Univ Univ))))
            (format "cdr expects a pair, but got ~a for ~a"
                    obj-ty obj)
            #:attr val (-cdr-of (attribute o.val)))
   (pattern (:vector-length^ ~! o:symbolic-object-w/o-lexp)
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-unless (subtype obj-ty -VectorTop)
+           #:fail-when (and (check-type-invariants-while-parsing?)
+                            (not (subtype obj-ty -VectorTop)))
            (format "vector-length expects a vector, but got ~a for ~a"
                    obj-ty obj)
            #:attr val (-vec-len-of (attribute o.val))))
@@ -461,7 +475,8 @@
   (pattern (:*^ ~! coeff:exact-integer o:symbolic-object-w/o-lexp)
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-unless (subtype obj-ty -Int)
+           #:fail-when (and (check-type-invariants-while-parsing?)
+                            (not (subtype obj-ty -Int)))
            (format "terms in linear expressions must be integers, got ~a for ~a"
                    obj-ty obj)
            #:attr val (-lexp (list (syntax->datum #'coeff) (attribute o.val))))
@@ -470,7 +485,8 @@
   (pattern o:symbolic-object-w/o-lexp
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-unless (subtype obj-ty -Int)
+           #:fail-when (and (check-type-invariants-while-parsing?)
+                            (not (subtype obj-ty -Int)))
            (format "terms in linear expressions must be integers, got ~a for ~a"
                    obj-ty obj)
            #:attr val (attribute o.val))

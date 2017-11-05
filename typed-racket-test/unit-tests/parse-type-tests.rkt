@@ -497,6 +497,10 @@
    [(Refine [x : Integer] (> x 42))
     (-refine/fresh x -Int (-leq (-lexp 43)
                                 (-lexp x)))]
+   [(Refine [n : Integer] (<= (- (+ n n) (* 1 (+ n)))
+                              (+ 2 (- 80 (* 2 (+ 9 9 (+) (-) 2))))))
+    (-refine/fresh x -Int (-leq (-lexp x)
+                                (-lexp 42)))]
    ;; id shadowing
    [(Refine [x : Any] (: x (Refine [x : Integer] (<= x 42))))
     (-refine/fresh x -Int (-leq (-lexp x)

@@ -401,20 +401,14 @@
 (define-syntax-class symbolic-object
   #:description "symbolic object"
   #:attributes (val)
-  (pattern (:+^ . body)
-           #:attr val (parse-linear-expression-body #'body #t))
-  (pattern (:-^ . body)
-           #:attr val (parse-linear-expression-body #'body #f))
-  (pattern (:*^ ~! n:exact-integer o:symbolic-object-w/o-lexp)
-           #:do [(define obj (attribute o.val))
-                 (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-when (and (check-type-invariants-while-parsing?)
-                            (not (subtype obj-ty -Int)))
-           (format "terms in linear constraints must be integers, got ~a for ~a"
-                   obj-ty obj)
-           #:attr val (-lexp (list (syntax->datum #'n) (attribute o.val))))
   (pattern n:exact-integer
            #:attr val (-lexp (syntax->datum #'n)))
+  (pattern (:+^ ls:linear-expression ...)
+           #:attr val (combine-linear-expressions (attribute ls.val) #t))
+  (pattern (:-^ ls:linear-expression ...)
+           #:attr val (combine-linear-expressions (attribute ls.val) #f))
+  (pattern (:*^ ~! n:exact-integer o:linear-expression)
+           #:attr val (-lexp (list (syntax->datum #'n) (attribute o.val))))
   (pattern o:symbolic-object-w/o-lexp
            #:attr val (attribute o.val))
   )
@@ -457,31 +451,17 @@
                    obj-ty obj)
            #:attr val (-vec-len-of (attribute o.val))))
 
-(define (parse-linear-expression-body body plus?)
-  (syntax-parse body
-    [(t:linear-expression-term ts:linear-expression-term ...)
-     (cond
-       [plus?
-        (apply -lexp (attribute t.val) (attribute ts.val))]
-       [else
-        (apply -lexp
-               (attribute t.val)
-               (for/list ([term (in-list (attribute ts.val))])
-                 (scale-obj -1 term)))])]))
-
-(define-syntax-class linear-expression-term
-  #:description "symbolic object"
+(define-syntax-class linear-expression
+  #:description "linear expression"
   #:attributes (val)
-  (pattern (:*^ ~! coeff:exact-integer o:symbolic-object-w/o-lexp)
-           #:do [(define obj (attribute o.val))
-                 (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-when (and (check-type-invariants-while-parsing?)
-                            (not (subtype obj-ty -Int)))
-           (format "terms in linear expressions must be integers, got ~a for ~a"
-                   obj-ty obj)
-           #:attr val (-lexp (list (syntax->datum #'coeff) (attribute o.val))))
   (pattern n:exact-integer
            #:attr val (-lexp (syntax-e (attribute n))))
+  (pattern (:+^ ls:linear-expression ...)
+           #:attr val (combine-linear-expressions (attribute ls.val) #t))
+  (pattern (:-^ ls:linear-expression ...)
+           #:attr val (combine-linear-expressions (attribute ls.val) #f))
+  (pattern (:*^ ~! coeff:exact-integer l:linear-expression)
+           #:attr val (-lexp (list (syntax->datum #'coeff) (attribute l.val))))
   (pattern o:symbolic-object-w/o-lexp
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
@@ -491,6 +471,20 @@
                    obj-ty obj)
            #:attr val (attribute o.val))
   )
+
+;; [Listof Object?] boolean? -> Object?
+;; create (+ linear-exps ...) or (- linear-exps ...)
+(define (combine-linear-expressions linear-exps plus?)
+  (cond
+    [(null? linear-exps) (-lexp 0)]
+    [plus?
+     (apply -lexp linear-exps)]
+    [else
+     (apply -lexp
+            (car linear-exps)
+            (for/list ([term (in-list (cdr linear-exps))])
+              (scale-obj -1 term)))]))
+
 
 ;; old + deprecated
 (define-syntax-class (legacy-prop doms)

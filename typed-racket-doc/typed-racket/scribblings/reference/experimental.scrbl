@@ -72,11 +72,10 @@ on the values of terms.
            (linear-comp symbolic-object symbolic-object)]
           [linear-comp < <= = >= >]
           [symbolic-object exact-integer
-           linear-term
-           (+ linear-term linear-term ...)
-           (- linear-term linear-term ...)]
-          [linear-term symbolic-path
-           (* exact-integer symbolic-path)]
+           symbolic-path
+           (+ symbolic-object ...)
+           (- symbolic-object ...)
+           (* exact-integer symbolic-object)]
           [symbolic-path id
            (path-elem symbolic-path)]
           [path-elem car

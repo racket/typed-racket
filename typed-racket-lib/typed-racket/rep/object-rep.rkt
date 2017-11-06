@@ -242,6 +242,12 @@
 ;; *****************************************************************************
 ;; Operations for Linear Expressions
 
+;; adds two sets of terms -- used in a few cases
+;; for -lexp below
+(define-syntax-rule (add-terms ts ts*)
+  (for/fold ([ts ts])
+            ([(p coeff) (in-terms ts*)])
+    (terms-set ts p (+ coeff (terms-ref ts p)))))
 
 ;; constructor for LExps
 (define/cond-contract (-lexp . raw-terms)
@@ -249,32 +255,33 @@
                                   name-ref/c
                                   Path?
                                   LExp?
-                                  (list/c exact-integer? (or/c name-ref/c Path?))))
+                                  (list/c exact-integer? (or/c name-ref/c Path? LExp?))))
        (or/c LExp? Path?))
-  (define-values (const terms)
-    (for/fold ([c 0] [ts (make-terms)])
-              ([term (in-list raw-terms)])
-      (match term
-        [(list (? exact-integer? coeff) (? Path? p))
-         (values c (terms-set ts p (+ coeff (terms-ref ts p))))]
-        [(list (? exact-integer? coeff) (? name-ref/c nm))
-         (let ([p (-id-path nm)])
-           (if (Empty? nm)
-               (values c ts)
-               (values c (terms-set ts p (+ coeff (terms-ref ts p))))))]
-        [(? exact-integer? new-const)
-         (values (+ new-const c) ts)]
-        [(LExp: c* ts*)
-         (values (+ c c*)
-                 (for/fold ([ts ts])
-                           ([(p coeff) (in-terms ts*)])
-                   (terms-set ts p (+ coeff (terms-ref ts p)))))]
-        [(? Object? p)
-         (values c (terms-set ts p (add1 (terms-ref ts p))))]
-        [(? name-ref/c var)
-         (define p (-id-path var))
-         (values c (terms-set ts p (add1 (terms-ref ts p))))])))
-  (make-LExp* const terms))
+  (for/fold ([c 0]
+             [ts (make-terms)]
+             #:result (make-LExp* c ts))
+            ([term (in-list raw-terms)])
+    (match term
+      [(list (? exact-integer? coeff) (? Path? p))
+       (values c (terms-set ts p (+ coeff (terms-ref ts p))))]
+      [(list (? exact-integer? coeff) (? name-ref/c nm))
+       (let ([p (-id-path nm)])
+         (if (Empty? nm)
+             (values c ts)
+             (values c (terms-set ts p (+ coeff (terms-ref ts p))))))]
+      [(? exact-integer? new-const)
+       (values (+ new-const c) ts)]
+      [(LExp: c* ts*)
+       (values (+ c c*) (add-terms ts ts*))]
+      [(list (? exact-integer? l-coeff) (? LExp? l))
+       (match (scale-obj l-coeff l)
+         [(LExp: c* ts*)
+          (values (+ c c*) (add-terms ts ts*))])]
+      [(? Object? p)
+       (values c (terms-set ts p (add1 (terms-ref ts p))))]
+      [(? name-ref/c var)
+       (define p (-id-path var))
+       (values c (terms-set ts p (add1 (terms-ref ts p))))])))
 
 
 ;; LExp-add1

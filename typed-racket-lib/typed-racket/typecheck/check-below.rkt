@@ -107,21 +107,29 @@
 
 
     [((tc-result1: t1 p1 o1) (tc-result1: t2 p2 o2))
+     (define (perform-check!)
+       (cond
+         [(not (subtype t1 t2 o1))
+          (expected-but-got t2 t1)]
+         [(and (not (prop-set-better? p1 p2))
+               (object-better? o1 o2))
+          (type-mismatch p2 p1 "mismatch in proposition")]
+         [(and (prop-set-better? p1 p2)
+               (not (object-better? o1 o2)))
+          (type-mismatch (print-object o2) (print-object o1) "mismatch in object")]
+         [(and (not (prop-set-better? p1 p2))
+               (not (object-better? o1 o2)))
+          (type-mismatch (format "`~a' and `~a'" p2 (print-object o2))
+                         (format "`~a' and `~a'" p1 (print-object o1))
+                         "mismatch in proposition and object")])
+       (ret t2 (fix-props p2 p1) (fix-object o2 o1)))
      (cond
-       [(not (subtype t1 t2 o1))
-        (expected-but-got t2 t1)]
-       [(and (not (prop-set-better? p1 p2))
-             (object-better? o1 o2))
-        (type-mismatch p2 p1 "mismatch in proposition")]
-       [(and (prop-set-better? p1 p2)
-             (not (object-better? o1 o2)))
-        (type-mismatch (print-object o2) (print-object o1) "mismatch in object")]
-       [(and (not (prop-set-better? p1 p2))
-             (not (object-better? o1 o2)))
-        (type-mismatch (format "`~a' and `~a'" p2 (print-object o2))
-                       (format "`~a' and `~a'" p1 (print-object o1))
-                       "mismatch in proposition and object")])
-     (ret t2 (fix-props p2 p1) (fix-object o2 o1))]
+       [(with-refinements?)
+        (with-naively-extended-lexical-env
+            [#:props (list (-is-type o1 t1)
+                           (-or (PropSet-thn p1) (PropSet-els p1)))]
+          (perform-check!))]
+       [else (perform-check!)])]
 
     ;; case where expected is like (Values a ... a) but got something else
     [((tc-results: _ #f) (tc-results: _ (? RestDots?)))
@@ -134,12 +142,6 @@
      (fix-results expected)]
 
     ;; case where both have no '...', or both have '...'
-    ;; NOTE: we ignore the propsets and objects... not sure
-    ;;       why---maybe there's an assumption that users
-    ;;       can't specify props/objects for multiple values?
-    ;;       seems like we should add some checks to this doesn't
-    ;;       turn into an error in the future that we can't fix w/o
-    ;;       breaking programs that relied on it being broken.
     [((tc-results: tcrs1 db1)
       (tc-results: tcrs2 db2))
      (cond

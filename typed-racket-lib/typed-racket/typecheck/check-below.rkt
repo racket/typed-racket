@@ -10,9 +10,11 @@
          (typecheck error-message tc-envops))
 
 (provide/cond-contract
- [check-below (-->i ([s (-or/c Type? full-tc-results/c)]
-                     [t (s) (if (Type? s) Type? tc-results/c)])
-                    [_ (s) (if (Type? s) Type? full-tc-results/c)])]
+ [check-below (-->i ([s (t) (if (Type? t)
+                                (-or/c full-tc-results/c Type?)
+                                full-tc-results/c)]
+                     [t (-or/c Type? tc-results/c)])
+                    [_ (t) (if (Type? t) Type? full-tc-results/c)])]
  [cond-check-below (-->i ([s (-or/c Type? full-tc-results/c)]
                           [t (s) (-or/c #f (if (Type? s) Type? tc-results/c))])
                          [_ (s) (-or/c #f (if (Type? s) Type? full-tc-results/c))])])
@@ -49,7 +51,6 @@
 
 ;; check-below : (/\ (Results Type -> Result)
 ;;                   (Results Results -> Result)
-;;                   (Type Results -> Type)
 ;;                   (Type Type -> Type))
 (define (check-below tr1 expected)
   (define (prop-set-better? p1 p2)
@@ -83,6 +84,18 @@
       [(_ _) #f]))
 
   (match* (tr1 expected)
+
+    [((tc-result1: t1 p1 o1) (? Type? t2))
+     (cond
+       [(with-refinements?)
+        (with-naively-extended-lexical-env
+            [#:props (list (-is-type o1 t1)
+                           (-or (PropSet-thn p1) (PropSet-els p1)))]
+          (unless (subtype t1 t2 o1)
+            (expected-but-got t2 t1)))]
+       [else (unless (subtype t1 t2 o1)
+               (expected-but-got t2 t1))])
+     t2]
     ;; This case has to be first so that bottom (exceptions, etc.) can be allowed in cases
     ;; where multiple values are expected.
     ;; We can ignore the props and objects in the actual value because they would never be about a value
@@ -104,7 +117,6 @@
      (unless (prop-better? merged-prop p2)
        (type-mismatch p2 merged-prop "mismatch in proposition"))
      (-tc-any-results (fix-props p2 merged-prop))]
-
 
     [((tc-result1: t1 p1 o1) (tc-result1: t2 p2 o2))
      (define (perform-check!)

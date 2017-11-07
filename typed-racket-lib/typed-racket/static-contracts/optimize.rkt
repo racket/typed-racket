@@ -175,6 +175,7 @@
 ;;  for optimizing the sub-contracts of the given `sc`.
 (define ((make-update-side flat-sc?) sc side)
   (match sc
+   #;
    [(or/sc: scs ...)
     #:when (not (andmap flat-sc? scs))
     (weaken-side side)]

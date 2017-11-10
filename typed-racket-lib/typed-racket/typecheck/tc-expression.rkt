@@ -77,11 +77,12 @@
      (tc-error/expr #:return -Bottom "Cannot instantiate non-polymorphic type ~a"
                     (cleanup-type ty))]
     [(and (Poly? ty)
-          (not (= (syntax-length inst) (Poly-n ty))))
+          (> (syntax-length inst) (Poly-n ty)))
      (tc-error/expr #:return -Bottom
-                    "Wrong number of type arguments to polymorphic type ~a:\nexpected: ~a\ngot: ~a"
+                    "Too many type arguments to polymorphic type ~a:\nexpected ~a or fewer\ngot: ~a"
                     (cleanup-type ty) (Poly-n ty) (syntax-length inst))]
-    [(and (PolyDots? ty) (not (>= (syntax-length inst) (sub1 (PolyDots-n ty)))))
+    [(and (PolyDots? ty)
+          (not (>= (syntax-length inst) (sub1 (PolyDots-n ty)))))
      ;; we can provide 0 arguments for the ... var
      (tc-error/expr #:return -Bottom
                     "Wrong number of type arguments to polymorphic type ~a:\nexpected at least: ~a\ngot: ~a"

@@ -1439,6 +1439,22 @@
         [tc-e (remf symbol? '(a b c)) (-lst (one-of/c 'a 'b 'c))]
         [tc-e (remf* symbol? '(a b c)) (-lst (one-of/c 'a 'b 'c))]
         [tc-e (check-duplicates '("a" "a" "b")) (-opt -String)]
+        [tc-e (check-duplicates '("a" "a" "b") string=?) (-opt -String)]
+        ;[tc-e ((inst check-duplicates String Number)
+        ;       '("a" "aa" "aaa")
+        ;       #:key string-length)
+        ;      (-opt -String)]
+        [tc-e ((inst check-duplicates String Any 'nope)
+               '("a" "a" "b")
+               string=?
+               #:default (λ () 'nope))
+              (Un (-val 'nope) -String)]
+        [tc-e ((inst check-duplicates String Number 'nope)
+               '("Hello" "world")
+               =
+               #:key string-length
+               #:default (λ () 'nope))
+              (Un -String (-val 'nope))]
 
         ;;Path tests
         (tc-e (path-string? "foo") -Boolean)

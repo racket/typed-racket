@@ -3323,10 +3323,22 @@
    (->key (-lst a) (-> b b -Boolean) #:key (-> a b) #f #:cache-keys? -Boolean #f (-lst a)))))
 (check-duplicates
  (-poly
-  (a b)
+  (a b c)
   (cl->*
-   (->optkey (-lst a) ((-> a a Univ)) #:key (-> a a) #f (-opt a))
-   (->optkey (-lst a) ((-> b b Univ)) #:key (-> a b) #f (-opt a)))))
+   (->optkey (-lst a) ((-> a a Univ))
+             #:key (-> a a) #f
+             (-opt a))
+   (->optkey (-lst a) ((-> b b Univ))
+             #:key (-> a b) #f
+             (-opt a))
+   (->optkey (-lst a) ((-> a a Univ))
+             #:key (-> a a) #f
+             #:default (-> c) #f
+             (Un a c))
+   (->optkey (-lst a) ((-> b b Univ))
+             #:key (-> a b) #f
+             #:default (-> c) #f
+             (Un a c)))))
 (remove-duplicates
  (-poly
   (a b)

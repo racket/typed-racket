@@ -17,10 +17,12 @@
 (define (instantiate-poly t types)
   (match t
     [(Poly: ns body)
-     (unless (= (length types) (length ns))
+     (unless (<= (length types) (length ns))
        (int-err "instantiate-poly: wrong number of types: expected ~a, got ~a"
                 (length ns) (length types)))
-     (subst-all (make-simple-substitution ns types) body)]
+     ;; use Any as the default type for any omitted types
+     (subst-all (make-simple-substitution ns (list-extend ns types Univ))
+                body)]
     [(PolyDots: (list fixed ... dotted) body)
      (unless (>= (length types) (length fixed))
        (int-err

@@ -246,7 +246,11 @@ at least theoretically.
 ;; Listof[A] Listof[B] B -> Listof[B]
 ;; pads out t to be as long as s
 (define (list-extend s t extra)
-  (append t (build-list (max 0 (- (length s) (length t))) (lambda _ extra))))
+  (define s-len (length s))
+  (define t-len (length t))
+  (cond
+    [(<= s-len t-len) t]
+    [else (append t (build-list (- s-len t-len) (λ _ extra)))]))
 
 ;; does l1 end with l2?
 ;; e.g. (list 1 2 3) ends with (list 2 3)

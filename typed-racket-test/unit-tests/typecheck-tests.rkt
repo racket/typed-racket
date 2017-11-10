@@ -437,12 +437,6 @@
                x
                -3.0))
            -Flonum)
-        (tc-e/t ;; Github issue #115
-          (let ([x : ExtFlonum 5.0t1])
-            (if (extfl>= x (ann -4.0t1 Nonpositive-ExtFlonum))
-              x
-              -3.0t1))
-          -ExtFlonum)
         (tc-e ;; Github issue #114
           (fx- 0 5)
           -NegFixnum)
@@ -470,9 +464,7 @@
         (tc-e (flexpt 0.5 0.3) -NonNegFlonum)
         (tc-e (flexpt 0.00000000001 100000000000.0) -NonNegFlonum)
         (tc-e (flexpt -2.0 -0.5) -Flonum) ; NaN
-        (tc-e (extflexpt 0.5t0 0.3t0) -NonNegExtFlonum)
-        (tc-e (extflexpt 0.00000000001t0 100000000000.0t0) -NonNegExtFlonum)
-        (tc-e (extflexpt -2.0t0 -0.5t0) -ExtFlonum) ; NaN
+
         (tc-e (let-values ([(x y) (integer-sqrt/remainder 0)]) (+ x y)) -Zero)
         (tc-e (tanh (ann 0 Nonnegative-Integer)) -NonNegReal)
         (tc-e (sinh (ann 0 Nonpositive-Integer)) -NonPosReal)
@@ -515,10 +507,6 @@
         (tc-e (real->single-flonum -1e-300) -NonPosSingleFlonum)
         (tc-e (real->single-flonum 3) -PosSingleFlonum)
         (tc-e (real->single-flonum -3) -NegSingleFlonum)
-        (tc-e (extfl->inexact 1t-500) -NonNegFlonum)
-        (tc-e (extfl->inexact -1t-500) -NonPosFlonum)
-        (tc-e (real->extfl #e1e-8192) -NonNegExtFlonum)
-        (tc-e (real->extfl #e-1e-8192) -NonPosExtFlonum)
         (tc-err (let: ([z : 10000000000000 10000000000000]) z)) ; unsafe
         (tc-err (let: ([z : -4611686018427387904 -4611686018427387904]) z)) ; unsafe
         (tc-e/t (let: ([z : -4611686018427387905 -4611686018427387905]) z)
@@ -2560,10 +2548,8 @@
                (define f1 (sequence-ref s1 0))
                (define s2 (in-fxvector (fxvector 1 2 3)))
                (define f2 (sequence-ref s2 2))
-               (define s3 (in-extflvector (extflvector 1.0t0 2.0t0 3.0t0)))
-               (define f3 (sequence-ref s3 1))
                (list f1 f2 f3))
-             (-lst* -Flonum -Fixnum -ExtFlonum)]
+             (-lst* -Flonum -Fixnum)]
 
        ;; The typechecker should be able to handle the expansion of
        ;; for/flvector, for*/flvector, for/extflvector, and for*/extflvector
@@ -2577,16 +2563,6 @@
                          [b (list 1 1 2 3 5)])
            (real->double-flonum (+ a b)))
          -FlVector]
-       [tc-e
-         (for/extflvector ([a (list 0 1 1 2 3)]
-                           [b (list 1 1 2 3 5)])
-           (real->extfl (+ a b)))
-         -ExtFlVector]
-       [tc-e
-         (for*/extflvector ([a (list 0 1 1 2 3)]
-                            [b (list 1 1 2 3 5)])
-           (real->extfl (+ a b)))
-         -ExtFlVector]
 
        ;; for/hash, for*/hash - PR 14306
        [tc-e (for/hash: : (HashTable Symbol String)
@@ -4359,6 +4335,52 @@
         #:ret (ret -Void #f #f)
         #:msg #rx"type mismatch"]
        )
+      
+      (if (extflonum-available?)
+          
+          (test-suite
+           "extflonum tests"
+           (tc-e/t ;; Github issue #115
+            (let ([x : ExtFlonum 5.0t1])
+              (if (extfl>= x (ann -4.0t1 Nonpositive-ExtFlonum))
+                  x
+                  -3.0t1))
+            -ExtFlonum)
+           [tc-e (let ()
+                   (define s3 (in-extflvector (extflvector 1.0t0 2.0t0 3.0t0)))
+                   (define f3 (sequence-ref s3 1))
+                   (list f1 f2 f3))
+                 (-lst* -Flonum -Fixnum -ExtFlonum)]
+   
+           [tc-e
+            (for/extflvector ([a (list 0 1 1 2 3)]
+                              [b (list 1 1 2 3 5)])
+              (real->extfl (+ a b)))
+            -ExtFlVector]
+           [tc-e
+            (for*/extflvector ([a (list 0 1 1 2 3)]
+                               [b (list 1 1 2 3 5)])
+              (real->extfl (+ a b)))
+            -ExtFlVector]
+   
+           (tc-e (extflexpt 0.5t0 0.3t0) -NonNegExtFlonum)
+           (tc-e (extflexpt 0.00000000001t0 100000000000.0t0) -NonNegExtFlonum)
+           (tc-e (extflexpt -2.0t0 -0.5t0) -ExtFlonum) ; NaN
+   
+           (tc-e (extfl->inexact 1t-500) -NonNegFlonum)
+           (tc-e (extfl->inexact -1t-500) -NonPosFlonum)
+           (tc-e (real->extfl #e1e-8192) -NonNegExtFlonum)
+           (tc-e (real->extfl #e-1e-8192) -NonPosExtFlonum)
+           (tc-l 0.0t0 -ExtFlonumPosZero)
+           (tc-l -0.0t0 -ExtFlonumNegZero)
+           (tc-l 5#t0 -PosExtFlonum)
+           (tc-l 5.0t0 -PosExtFlonum)
+           (tc-l 5.1t0 -PosExtFlonum)
+           (tc-l -5#t0 -NegExtFlonum)
+           (tc-l -5.0t0 -NegExtFlonum)
+           (tc-l -5.1t0 -NegExtFlonum))
+          
+          (test-suite "extflonum tests"))
 
   (test-suite
    "tc-literal tests"
@@ -4373,14 +4395,6 @@
    (tc-l -5# -NegFlonum)
    (tc-l -5.0 -NegFlonum)
    (tc-l -5.1 -NegFlonum)
-   (tc-l 0.0t0 -ExtFlonumPosZero)
-   (tc-l -0.0t0 -ExtFlonumNegZero)
-   (tc-l 5#t0 -PosExtFlonum)
-   (tc-l 5.0t0 -PosExtFlonum)
-   (tc-l 5.1t0 -PosExtFlonum)
-   (tc-l -5#t0 -NegExtFlonum)
-   (tc-l -5.0t0 -NegExtFlonum)
-   (tc-l -5.1t0 -NegExtFlonum)
    (tc-l 1+1i -ExactNumber)
    (tc-l 1+1.0i -FloatComplex)
    (tc-l 1.0+1i -FloatComplex)

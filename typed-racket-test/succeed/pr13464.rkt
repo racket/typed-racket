@@ -22,12 +22,6 @@
   (: pos-real     Positive-Real)
   (: non-neg-real Nonnegative-Real)
   (: non-pos-real Nonpositive-Real)
-  
-  (: neg-extflonum     Negative-ExtFlonum)
-  (: pos-extflonum     Positive-ExtFlonum)
-  (: non-neg-extflonum Nonnegative-ExtFlonum)
-  (: non-pos-extflonum Nonpositive-ExtFlonum)
-
 
   (define neg-flonum     +nan.0)
   (define pos-flonum     +nan.0)
@@ -48,12 +42,6 @@
   (define pos-real     +nan.0)
   (define non-neg-real +nan.0)
   (define non-pos-real +nan.0)
-
-  (define neg-extflonum     +nan.t)
-  (define pos-extflonum     +nan.t)
-  (define non-neg-extflonum +nan.t)
-  (define non-pos-extflonum +nan.t)
-
   
   ;; extra tests for zeroes
   (: non-neg-flonum+0 Nonnegative-Flonum)
@@ -76,11 +64,6 @@
   (: non-neg-real-0 Nonnegative-Real)
   (: non-pos-real-0 Nonpositive-Real)
 
-  (: non-neg-extflonum+0 Nonnegative-ExtFlonum)
-  (: non-pos-extflonum+0 Nonpositive-ExtFlonum)
-  (: non-neg-extflonum-0 Nonnegative-ExtFlonum)
-  (: non-pos-extflonum-0 Nonpositive-ExtFlonum)
-
   (define non-neg-flonum+0 0.0)
   (define non-pos-flonum+0 0.0)
   (define non-neg-flonum-0 -0.0)
@@ -101,10 +84,6 @@
   (define non-neg-real-0 -0.0)
   (define non-pos-real-0 -0.0)
 
-  (define non-neg-extflonum+0 0.0t0)
-  (define non-pos-extflonum+0 0.0t0)
-  (define non-neg-extflonum-0 -0.0t0)
-  (define non-pos-extflonum-0 -0.0t0)
   )
 
 
@@ -126,10 +105,6 @@ neg-real
 pos-real
 non-neg-real
 non-pos-real
-neg-extflonum
-pos-extflonum
-non-neg-extflonum
-non-pos-extflonum
 
 non-neg-flonum+0
 non-pos-flonum+0
@@ -151,7 +126,41 @@ non-pos-real+0
 non-neg-real-0
 non-pos-real-0
 
-non-neg-extflonum+0
-non-pos-extflonum+0
-non-neg-extflonum-0
-non-pos-extflonum-0
+
+(module ext-defs typed/racket
+  (provide (all-defined-out))
+
+  (: neg-extflonum     Negative-ExtFlonum)
+  (: pos-extflonum     Positive-ExtFlonum)
+  (: non-neg-extflonum Nonnegative-ExtFlonum)
+  (: non-pos-extflonum Nonpositive-ExtFlonum)
+
+  (define neg-extflonum     +nan.t)
+  (define pos-extflonum     +nan.t)
+  (define non-neg-extflonum +nan.t)
+  (define non-pos-extflonum +nan.t)
+
+  (: non-neg-extflonum+0 Nonnegative-ExtFlonum)
+  (: non-pos-extflonum+0 Nonpositive-ExtFlonum)
+  (: non-neg-extflonum-0 Nonnegative-ExtFlonum)
+  (: non-pos-extflonum-0 Nonpositive-ExtFlonum)
+
+  (define non-neg-extflonum+0 0.0t0)
+  (define non-pos-extflonum+0 0.0t0)
+  (define non-neg-extflonum-0 -0.0t0)
+  (define non-pos-extflonum-0 -0.0t0))
+
+(module ext-use racket
+  (require (submod ".." ext-defs))
+  neg-extflonum
+  pos-extflonum
+  non-neg-extflonum
+  non-pos-extflonum
+
+  non-neg-extflonum+0
+  non-pos-extflonum+0
+  non-neg-extflonum-0
+  non-pos-extflonum-0)
+
+(when (extflonum-available?)
+  (dynamic-require '(submod typed-racket-test/succeed/pr13464 ext-use) #f))

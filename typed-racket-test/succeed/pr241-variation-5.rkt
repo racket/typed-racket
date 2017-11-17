@@ -24,7 +24,7 @@
 ;;  If #f, a test will assert that (contract VALUE any-wrap/c) fails.
 ;; These USE functions should exercise specific functionality
 ;;  and not be dummy functions like (lambda (x) x).
-(define-for-syntax known-base-types '(
+(define-for-syntax known-base-types `(
  ;; --- TODO missing value for these types
  ;[Read-Table (or (current-readtable) (error 'noo)) #f]
  ;[Internal-Definition-Context (syntax-local-make-definition-context) #f]
@@ -61,9 +61,13 @@
     sp)
   choice-evt]
  [Single-Flonum-Complex 1f0+1f0i add1]
+ ,@(if (extflonum-available?)
+       '(
  [ExtFlonum-Zero 0.0t0 extflround]
  [ExtFlonum-Negative-Zero -0.0t0 extflround]
  [ExtFlonum-Positive-Zero +0.0t0 extflround]
+ )
+       '())
  [Complex 0 add1]
  [Number 0 add1]
  [Inexact-Complex (let ([n (exact->inexact 1/3+1/3i)]) (if (not (real? n)) n (error 'pr241 "Failed to make Inexact-Complex"))) zero?]
@@ -135,13 +139,16 @@
  [Positive-Byte 1 add1]
  [Zero 0 add1]
  [One  1 add1]
+ ,@(if (extflonum-available?)
+       '(
  [ExtFlonum pi.t extflround]
  [Nonpositive-ExtFlonum (->extfl -1) extflround]
  [Negative-ExtFlonum (->extfl -1) extflround]
  [Nonnegative-ExtFlonum (->extfl 1) extflround]
  [Positive-ExtFlonum (->extfl 1) extflround]
  [ExtFlonum-Nan +nan.t (lambda (n) (extfl= n n))]
-
+)
+       '())
  [Any 'a boolean?]
  [Boolean #f not]
  [BoxTop (box 5) boolean?]
@@ -154,7 +161,7 @@
  [Datum 'A (lambda (x) (datum->syntax #f x))]
  [Environment-Variables (current-environment-variables) environment-variables-names]
  [EOF eof eof-object?]
- [ExtFlVector (extflvector pi.t) extflvector-length]
+ ,@(if (extflonum-available?) '([ExtFlVector (extflvector pi.t) extflvector-length]) '())
  [FSemaphore (make-fsemaphore 0) fsemaphore-post]
  [False #f not]
  [FlVector (flvector 1.14 2.14 3.14) flvector-length]

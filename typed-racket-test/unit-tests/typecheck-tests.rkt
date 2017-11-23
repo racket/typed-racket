@@ -290,13 +290,13 @@
   (except-in racket/class class)
   racket/file
   racket/fixnum
+  typed/racket/match
   typed/racket/flonum
   typed/racket/extflonum
   racket/function
   racket/future
   racket/list
   racket/math
-  racket/match
   racket/path
   racket/place
   racket/port
@@ -4374,6 +4374,14 @@
           (void))
         #:ret (ret -Void #f #f)
         #:msg #rx"type mismatch"]
+       [tc-e ;; github.com/racket/typed-racket/issues/653
+        (let ()
+          (: close? (->* ((Vector Integer Integer) (Vector Integer Integer)) (Integer) Boolean))
+          (define/match (close? r1 r2 [err 1])
+            [((vector a b) (vector c d) e)
+                (and (= a (+ c e)) (= b (+ d e)))])
+          (close? (vector 1 2) (vector 1 2)))
+        -Boolean]
        )
 
   (test-suite

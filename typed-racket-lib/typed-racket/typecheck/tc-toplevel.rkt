@@ -86,8 +86,10 @@
        (list)]
 
       ;; define-new-subtype
-      [form:new-subtype-def
-       (handle-define-new-subtype/pass1 #'form)]
+      [form:unsafe-type-declaration
+       ;; (unsafe-:-internal id type)
+       (register-type #'form.id (parse-type #'form.type))
+       (list)]
 
       ;; declare-refinement
       ;; FIXME - this sucks and should die
@@ -616,14 +618,4 @@
   (tc-toplevel/pass1.5 form)
   (begin0 (tc-toplevel/pass2 form #f)
           (report-all-errors)))
-
-;; handle-define-new-subtype/pass1 : Syntax -> Empty
-(define (handle-define-new-subtype/pass1 form)
-  (syntax-parse form
-    [form:new-subtype-def
-     ;; (define-new-subtype-internal name (constructor rep-type) #:gen-id gen-id)
-     (define ty (parse-type (attribute form.name)))
-     (define rep-ty (parse-type (attribute form.rep-type)))
-     (register-type (attribute form.constructor) (-> rep-ty ty))
-     (list)]))
 

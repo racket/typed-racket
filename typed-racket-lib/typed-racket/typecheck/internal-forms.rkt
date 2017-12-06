@@ -21,7 +21,6 @@
   internal
 
   type-alias
-  new-subtype-def
   type-refinement
   typed-struct
   typed-struct/exec
@@ -29,12 +28,12 @@
   typed-require/struct
   predicate-assertion
   type-declaration
+  unsafe-type-declaration
   typed-define-signature
   typed-define-values/invoke-unit
   typecheck-failure
 
   type-alias?
-  new-subtype-def?
   typed-struct?
   typed-struct/exec?
   typed-define-signature?
@@ -63,6 +62,7 @@
                   assert-predicate-internal
                   declare-refinement-internal
                   :-internal
+                  unsafe-:-internal
                   typecheck-fail-internal
                   define-signature-internal
                   define-values/invoke-unit-internal))
@@ -144,8 +144,6 @@
 (define-internal-classes
   [type-alias
     (define-type-alias-internal name type args)]
-  [new-subtype-def
-    (define-new-subtype-internal name (constructor rep-type) #:gen-id gen-id)]
   [type-refinement
     (declare-refinement-internal predicate)]
   [typed-struct
@@ -160,6 +158,8 @@
     (assert-predicate-internal type predicate)]
   [type-declaration
     (:-internal id:identifier type)]
+  [unsafe-type-declaration
+    (unsafe-:-internal id:identifier type)]
   ;; the check field indicates whether this signature is being 
   ;; required from an untyped context in which case the super
   ;; value is ignored and information about parent signatures

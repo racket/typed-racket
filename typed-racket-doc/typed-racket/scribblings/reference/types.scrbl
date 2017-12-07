@@ -360,7 +360,17 @@ corresponding to @racket[trest], where @racket[bound]
 @ex[(lambda: ([x : Any]) (if (mpair? x) x (error "not an mpair!")))]
 }
 
-@defform[(Boxof t)]{A @rtech{box} of @racket[t]}
+@defform*[[(Boxof t)
+           (Boxof write-t read-t)]]{
+  The first form is a @rtech{box} of @racket[t].
+
+  The second form is a @rtech{box} that supports write operations like
+  @racket[set-box!] taking @racket[write-t], and read operations like
+  @racket[unbox] returning @racket[read-t]. For this type to make sense,
+  @racket[write-t] should be a subtype of @racket[read-t]. This form can
+  be used to restrict writing to the box, or to safely express uncertainty
+  about the values other code could put in the box.
+}
 
 @ex[(box "hello world")]
 
@@ -369,7 +379,7 @@ corresponding to @racket[trest], where @racket[bound]
   such as @racket[unbox]. A @racket[(Boxof/Read t)] is a subtype of
   @racket[(Boxof t)], and a @racket[(Boxof/Read a)] is a subtype of
   @racket[(Boxof/Read b)] if @racket[a] is a subtype of @racket[b]. It
-  is equivalent to @racket[(Boxof/Write-Read Nothing t)].}
+  is equivalent to @racket[(Boxof Nothing t)].}
 
 @ex[(box-immutable "hello world")
     (code:comment "though this does not necessarily imply immutability:")
@@ -384,20 +394,7 @@ corresponding to @racket[trest], where @racket[bound]
   A @rtech{box} that could contain anything, but can only take
   @racket[t] for write operations such as @racket[set-box!].
   A @racket[(Boxof/Write t)] is a supertype of @racket[(Boxof t)], and
-  it is equivalent to @racket[(Boxof/Write-Read t Any)].}
-
-@defform[(Boxof/Write-Read write-t read-t)]{
-  A @rtech{box} that supports write operations like @racket[set-box!]
-  taking @racket[write-t], and read operations like @racket[unbox]
-  returning @racket[read-t]. For this type to make sense,
-  @racket[write-t] should be a subtype of @racket[read-t].
-
-  The type @racket[(Boxof t)] is equivalent to
-  @racket[(Boxof/Write-Read t t)], the type
-  @racket[(Boxof/Read t)] is equivalent to
-  @racket[(Boxof/Write-Read Nothing t)], and the type
-  @racket[(Boxof/Write t)] is equivalent to
-  @racket[(Boxof/Write-Read t Any)].}
+  it is equivalent to @racket[(Boxof t Any)].}
 
 @defidform[BoxTop]{is the type of a @rtech{box} with an unknown element
   type and is the supertype of all box types. Only read-only box operations

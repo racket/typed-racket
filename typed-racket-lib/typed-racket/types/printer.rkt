@@ -655,7 +655,7 @@
     [(Box: e e) `(Boxof ,(t->s e))]
     [(Box: (Bottom:) e) `(Boxof/Read ,(t->s e))]
     [(Box: e (Univ:)) `(Boxof/Write ,(t->s e))]
-    [(Box: e1 e2) `(Boxof/Write-Read ,(t->s e1) ,(t->s e2))]
+    [(Box: e1 e2) `(Boxof ,(t->s e1) ,(t->s e2))]
     [(Weak-Box: e) `(Weak-Boxof ,(t->s e))]
     [(Future: e) `(Futureof ,(t->s e))]
     [(Channel: e) `(Channelof ,(t->s e))]

@@ -132,6 +132,7 @@
 (define-literal-syntax-class #:for-label Union)
 (define-literal-syntax-class #:for-label All)
 (define-literal-syntax-class #:for-label Opaque)
+(define-literal-syntax-class #:for-label Boxof)
 (define-literal-syntax-class #:for-label Parameter)
 (define-literal-syntax-class #:for-label Vector)
 (define-literal-syntax-class #:for-label Struct)
@@ -764,6 +765,15 @@
        (make-Opaque #'p?)]
       [(:Distinction^ name:id unique-id:id rep-ty:expr)
        (-Distinction (syntax-e #'name) (syntax-e #'unique-id) (parse-type #'rep-ty))]
+      [(:Boxof^ t)
+       (-box (parse-type #'t))]
+      [(:Boxof^ w r)
+       (-box (parse-type #'w) (parse-type #'r))]
+      [((~and b :Boxof^) args ...)
+       (parse-error
+        #:stx stx
+        (~a (syntax-e #'b) " expects one or two type arguments, given "
+            (sub1 (length (syntax->list #'(args ...))))))]
       [(:Parameter^ t)
        (let ([ty (parse-type #'t)])
          (-Param ty ty))]

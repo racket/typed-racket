@@ -375,7 +375,7 @@ corresponding to @racket[trest], where @racket[bound]
     (code:comment "though this does not necessarily imply immutability:")
     (define b : (Boxof Integer) (box 3))
     (define b-read-only : (Boxof/Read Integer) b)
-    (set-box! b-read-only 5)
+    (eval:error (set-box! b-read-only 5))
     (unbox b-read-only)
     (set-box! b 5)
     (unbox b-read-only)]

@@ -176,7 +176,6 @@
    (invariant-tests
     [make-MPair () () #:top -MPairTop]
     [make-Vector () #:top -VectorTop]
-    [make-Box () #:top -BoxTop]
     [make-Channel () #:top -ChannelTop]
     [make-Async-Channel () #:top -Async-ChannelTop]
     [make-ThreadCell () #:top -ThreadCellTop]
@@ -189,6 +188,40 @@
     [make-HashTable () () #:top -HashTableTop]
     [make-Prompt-Tagof () () #:top -Prompt-TagTop]
     [make-Continuation-Mark-Keyof () #:top -Continuation-Mark-KeyTop])
+   (subtyping-tests
+    "Box"
+    [(-box A) -BoxTop]
+    [(-box A B) -BoxTop]
+    [FAIL -BoxTop (-box A B)]
+    [FAIL -BoxTop (-box Univ Univ)]
+    [FAIL -BoxTop (-box -Bottom Univ)]
+    [(-box A) (-box A)]
+    [FAIL (-box A) (-box AorB)]
+    [FAIL (-box AorB) (-box A)]
+    [(-box A B)       (-box A B)]
+    [(-box A B)       (-box A AorB)]
+    [(-box A A)       (-box A AorB)]
+    [(-box A -Bottom) (-box A B)]
+    [(-box A B)       (-box A Univ)]
+    [FAIL (-box A B)    (-box A -Bottom)]
+    [FAIL (-box A AorB) (-box A B)]
+    [FAIL (-box A Univ) (-box A B)]
+    [(-box AorB) (-box A AorB)]
+    [(-box AorB) (-box B AorB)]
+    [(-box AorB) (-box -Bottom AorB)]
+    [(-box Univ) (-box AorB Univ)]
+    [FAIL (-box A AorB) (-box AorB)]
+    [FAIL (-box B AorB) (-box AorB)]
+    [FAIL (-box -Bottom A) (-box A)]
+    [FAIL (-box A B) (-box AorB B)]
+    [FAIL (-box B B) (-box AorB B)]
+    [FAIL (-box A B) (-box Univ B)]
+    [(-box A) (-Boxof/Read A)]
+    [(-box A) (-Boxof/Write A)]
+    [FAIL (-Boxof/Read A) (-box A)]
+    [FAIL (-Boxof/Write A) (-box A)]
+    [FAIL (-Boxof/Read AorB) (-Boxof/Read A)]
+    [FAIL (-Boxof/Write A) (-Boxof/Write AorB)])
    (subtyping-tests
     "Param"
     [(make-Param A B) (make-Param A B)]

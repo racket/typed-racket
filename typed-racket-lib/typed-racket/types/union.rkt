@@ -42,7 +42,7 @@
             (cond [(subtype a-w b-w) a-w]
                   [(subtype b-w a-w) b-w]
                   [else -Bottom]))
-          (cons (make-Box w (Un a-r b-r)) bs)])]
+          (cons (make-Box w (union a-r b-r)) bs)])]
       [else (cons t (filter-not (λ (ts-elem) (subtype ts-elem t)) ts))])))
 
 ;; Recursively reduce unions so that they do not contain

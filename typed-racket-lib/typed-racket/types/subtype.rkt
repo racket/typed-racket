@@ -651,8 +651,9 @@
    (match t2
      [(? BoxTop?) A]
      [(Box: elem2-w elem2-r)
-      (and (subtype* A elem2-w elem1-w)
-           (subtype* A elem1-r elem2-r))]
+      (subtype-seq A
+                   (subtype* elem2-w elem1-w)
+                   (subtype* elem1-r elem2-r))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Channel (Channel: elem1))
    (match t2

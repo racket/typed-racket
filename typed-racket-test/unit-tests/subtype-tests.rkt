@@ -221,7 +221,10 @@
     [FAIL (-Boxof/Read A) (-box A)]
     [FAIL (-Boxof/Write A) (-box A)]
     [FAIL (-Boxof/Read AorB) (-Boxof/Read A)]
-    [FAIL (-Boxof/Write A) (-Boxof/Write AorB)])
+    [FAIL (-Boxof/Write A) (-Boxof/Write AorB)]
+    ;; tests that go along with box typecheck-tests
+    [(Un (-box -String) (-box -Symbol)) (-box -Bottom (Un -String -Symbol))]
+    [(Un (-box -Nat) (-box -Int)) (-box -Nat -Int)])
    (subtyping-tests
     "Param"
     [(make-Param A B) (make-Param A B)]

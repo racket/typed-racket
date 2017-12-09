@@ -1436,11 +1436,15 @@
                 (if (box? x) (unbox x) (+ 1)))
               Univ]
         [tc-e (if (zero? (random 2)) (box "hello") (box 'hello))
-              (-box -Bottom (t:Un -String -Symbol))]
+              (t:Un (-box -String) (-box -Symbol))
+              ;; which should be a subtype of
+              #; (-box -Bottom (t:Un -String -Symbol))]
         [tc-e (unbox (if (zero? (random 2)) (box "hello") (box 'hello)))
               (t:Un -String -Symbol)]
         [tc-e (if (zero? (random 2)) ((inst box Natural) 3) ((inst box Integer) -5))
-              (-box -Nat -Int)]
+              (t:Un (-box -Nat) (-box -Int))
+              ;; which should be a subtype of
+              #; (-box -Nat -Int)]
         [tc-e (unbox (if (zero? (random 2)) ((inst box Natural) 3) ((inst box Integer) -5)))
               -Int]
         [tc-e (set-box!

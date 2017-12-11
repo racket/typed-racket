@@ -900,7 +900,7 @@
 
 ;; Section 4.12 (Boxes)
 [box (-poly (a) (a . -> . (-box a)))]
-[box-immutable (-poly (a) (a . -> . (-Boxof/Read a)))]
+[box-immutable (-poly (a) (a . -> . (-box a)))]
 [unbox (-poly (a) (cl->*
                    ((-Boxof/Read a) . -> . a)
                    (-BoxTop . -> . Univ)))]

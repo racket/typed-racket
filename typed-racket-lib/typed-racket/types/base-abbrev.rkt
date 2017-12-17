@@ -199,6 +199,7 @@
                       #:rest (make-RestDots dty 'dbound)
                       #:props props))))]))
 
+;; some simple function type constructors to shrink type serialization
 (define (simple-> doms rng)
   (->* doms rng))
 

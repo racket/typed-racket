@@ -2,6 +2,8 @@
 
 ;; Contract generation for Typed Racket
 
+
+
 (require
  "../utils/utils.rkt"
  syntax/parse
@@ -423,12 +425,10 @@
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
             sc))
-      ;(eprintf "predef: ~s ~s ~s\n" predef-contracts type typed-side)
       (cached-match
        sc-cache type typed-side
        [(app (lambda (t) (hash-ref predef-contracts (cons t typed-side) #f))
              (? values con-id))
-        ;(eprintf "found a match ~s ~s\n" con-id type)
         (impersonator/sc (syntax-local-introduce con-id))]
        ;; Applications of implicit recursive type aliases
        ;;
@@ -634,7 +634,6 @@
        ;; wrong thing for object types since it errors too eagerly.
        [(Instance: (? Name? t))
         #:when (Class? (resolve-once t))
-        ;(printf "predef: ~s ~s ~s\n" predef-contracts t typed-side)
         (cond [(lookup-name-sc type typed-side)]
               [else
                (define rv recursive-values)
@@ -1039,7 +1038,6 @@
   (define extflnonpositive? (lambda (x) (extfl<= x 0.0t0))))
 
 (require (submod "../static-contracts/instantiate.rkt" predefined-contracts))
-;(hash-set! predef-contracts (cons Univ 'typed) (cons #'any/c 'flat))
 
 (module numeric-contracts racket/base
   (require

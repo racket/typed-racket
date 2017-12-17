@@ -479,6 +479,7 @@
       (define/with-syntax (new-defs ...) defs)
       (define/with-syntax (new-export-defs ...) export-defs)
       (define/with-syntax (new-provs ...) provs)
+      ;; initialize the contract name tables before we do contract generation
       (do-contract-requires)
       (values
        #`(begin

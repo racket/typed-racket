@@ -262,10 +262,10 @@
 
 (define (function-contract? stx)
   (syntax-case stx ()
-    [(arr . _)
-     (and (identifier? #'arr)
-          (or (free-identifier=? #'arr #'->)
-              (free-identifier=? #'arr #'->*)))
+    [(arrow . _)
+     (and (identifier? #'arrow)
+          (or (free-identifier=? #'arrow #'->)
+              (free-identifier=? #'arrow #'->*)))
      #t]
     [_ #f]))
 

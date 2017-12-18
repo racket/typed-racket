@@ -37,6 +37,7 @@
 (provide change-contract-fixups
          change-provide-fixups
          any-wrap/sc
+         from-typed?
          extra-requires
          include-extra-requires?)
 

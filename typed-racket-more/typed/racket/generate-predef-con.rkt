@@ -31,7 +31,7 @@
     (match-define (list defs ctc)
        (type->contract
         typ
-        #:typed-side side
+        #:typed-side (from-typed? side)
         #:kind kind
         #:cache (make-hash)
         #:sc-cache (make-hash)

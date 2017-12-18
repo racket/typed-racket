@@ -24,6 +24,8 @@
 ;; rewrite a spec that works in a module M to one that works in a submodule of M
 (define (adjust p)
   (match p
+    [`(submod "." ,r0 ,rest ...)
+     `(submod ".." ,r0 . ,rest)]
     [`(submod ,(and up (or "." "..")) ,rest ...)
      `(submod ".." ,up . ,rest)]
     [_ p]))

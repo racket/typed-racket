@@ -4,6 +4,7 @@
          (rep type-rep rep-utils)
          (prefix-in c: (contract-req))
          (types subtype base-abbrev resolve current-seen)
+         (only-in (infer infer) intersect)
          racket/match
          racket/list)
 
@@ -36,13 +37,7 @@
       [(and (Box? t) (ormap Box? ts))
        (match* (t ts)
          [((Box: a-w a-r) (list-no-order (Box: b-w b-r) bs ...))
-          (define w
-            ;; should this use some sort of intersection, or would that
-            ;; complicate things too much?
-            (cond [(subtype a-w b-w) a-w]
-                  [(subtype b-w a-w) b-w]
-                  [else -Bottom]))
-          (cons (make-Box w (union a-r b-r)) bs)])]
+          (cons (make-Box (intersect a-w b-w) (union a-r b-r)) bs)])]
       [else (cons t (filter-not (λ (ts-elem) (subtype ts-elem t)) ts))])))
 
 ;; Recursively reduce unions so that they do not contain

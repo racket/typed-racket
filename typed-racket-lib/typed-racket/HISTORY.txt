@@ -1,3 +1,6 @@
+6.12
+- Fixes for contract generation (merged before 6.11 but not released).
+- Change `inst` to handle missing arguments (uses `Any`).
 6.11
 - Syntax for refinment types and dependent function types.
 - Improvements to case-lambda inference and rest arg handling.

@@ -37,7 +37,7 @@
              (;; pmb = #%plain-module-begin
               [(pmb . body2) new-mod]
               ;; perform the provide transformation from [Culpepper 07]
-              [transformed-body (begin0 (remove-provides #'body2) (do-time "Removed provides"))]
+              [transformed-body (begin0 (remove-provides #'body2) (check-unsafe-reprovides #'body2) (do-time "Removed provides"))]
               ;; add the real definitions of contracts on requires
               [transformed-body
                (begin0 (change-contract-fixups (syntax->list #'transformed-body))

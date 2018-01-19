@@ -12,7 +12,7 @@
          (for-syntax racket/base)
          (for-template racket/base))
 
-(provide remove-provides provide? generate-prov)
+(provide remove-provides provide? generate-prov check-unsafe-reprovides)
 
 ;; Returns #t for safe provides. Returns #f for non-provide forms
 ;; and unsafe provides for which contracts will not be generated.
@@ -27,6 +27,26 @@
   (for/list ([e (in-syntax forms)]
              #:unless (provide? e))
     e))
+
+(define (check-unsafe-reprovides forms)
+  (for ([form (in-syntax forms)])
+    (syntax-parse form
+     #:literal-sets (kernel-literals)
+     [(~and (#%provide . rest) _:unsafe-provide^)
+      (define empty-mpi (module-path-index-join #f #f))
+      (let loop ([stx #'rest])
+        (cond
+         [(identifier? stx)
+          (define b (identifier-binding stx))
+          (when (and (list? b) (not (equal? empty-mpi (car b))))
+            (fprintf (current-error-port) "unsafe-provide: cannot remove contract on imported identifier '~a'\n" (syntax-e stx)))
+          (void)]
+         [(list? (syntax-e stx))
+          (map loop (syntax-e stx))]
+         [else
+          (void)]))]
+     [_
+      (void)])))
 
 (define (freshen-id id)
   ((make-syntax-introducer) id))

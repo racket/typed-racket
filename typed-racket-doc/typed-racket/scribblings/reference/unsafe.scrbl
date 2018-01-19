@@ -39,6 +39,10 @@ behavior and may even crash Typed Racket.
   This form declares exports from a module with the same syntax as
   the @racket[provide] form.
 
+  @margin-note{@racket[unsafe-provide] only prevents contract generation for
+   identifiers defined in the same module as the unsafe provide.
+   See docs for @racket[unsafe-reprovide].}
+
   Unlike @racket[provide], this form is unsafe and Typed Racket will not generate
   any contracts that correspond to the specified types. This means that uses of the
   exports in other modules may circumvent the type system's invariants.
@@ -77,6 +81,42 @@ behavior and may even crash Typed Racket.
   Like @racket[require/typed/provide] except that this form is unsafe and will not generate
   contracts that correspond to the specified types to check that the values
   actually match their types.
+}
+
+@defform[(unsafe-reprovide id ...)]{
+  The current implementation of @racket[unsafe-provide] can only prevent contract
+   generation for identifiers defined in the same module as the @racket[unsafe-provide] statement.
+  If a typed module imports another typed module's provides and tries to re-provide them unsafely,
+   the re-provided identifiers will still be protected with contracts.
+
+  @examples[#:eval (make-base-eval)
+    (module t typed/racket/base
+      (require math/array typed/racket/unsafe)
+      (unsafe-provide array-ref))
+
+    (require 't racket/contract)
+    (has-contract? array-ref)
+  ]
+
+  One way to work around this limitation is to re-define the typed identifiers
+   before re-providing them.
+  The @racket[unsafe-reprovide] form is a shorthand for re-defining and unsafely
+   providing a sequence of identifiers.
+  Replacing the above @racket[unsafe-provide] with an @racket[unsafe-reprovide]
+   is semantically equivalent to the following:
+
+  @examples[#:eval (make-base-eval)
+    (module t typed/racket/base
+      (require math/array typed/racket/unsafe)
+      (define array-ref1 array-ref)
+      (unsafe-provide (rename-out [array-ref1 array-ref])))
+
+    (require 't racket/contract)
+    (has-contract? array-ref)
+  ]
+
+  @; BG TODO
+  @history[#:added "1.6"]
 }
 
 @close-eval[eval]

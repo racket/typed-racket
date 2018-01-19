@@ -3,6 +3,7 @@
 ;; This module provides unsafe operations for Typed Racket
 
 (provide (protect-out unsafe-provide
+                      unsafe-reprovide
                       unsafe-require/typed
                       unsafe-require/typed/provide))
 
@@ -46,3 +47,17 @@
      #'(begin (unsafe-require/typed lib clause)
               (provide t pred)
               (unsafe-require/typed/provide lib other-clause ...))]))
+
+(define-syntax (unsafe-reprovide stx)
+  (syntax-case stx ()
+   [(_ nm* ...)
+    (with-syntax ([(nm+* ...)
+                   (for/list ((nm (in-list (syntax-e #'(nm* ...)))))
+                     (unless (identifier? nm)
+                       (raise-syntax-error 'unsafe-reprovide "expected identifier" stx nm))
+                     (gensym (syntax-e nm)))])
+      (syntax/loc stx
+        (begin
+          (define nm+* nm*)
+          ...
+          (unsafe-provide (rename-out [nm+* nm*] ...)))))]))

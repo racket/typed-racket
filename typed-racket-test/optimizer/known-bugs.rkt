@@ -30,11 +30,12 @@
      #`(test-case #,(format "~a" (syntax->datum #'exp))
          (define r-value (racket-eval #'exp))
          (define tr-value (tr-eval #'exp))
-         (with-check-info (['r-value r-value]
-                           ['tr-value tr-value]
-                           ['location (build-source-location-list (quote-syntax exp))])
-           (when (equal? r-value tr-value)
-             (fail-check "Known bug no longer exists."))))]))
+         (with-check-info* (list (make-check-info 'r-value r-value)
+                                 (make-check-info 'tr-value tr-value)
+                                 (make-check-location (build-source-location-list (quote-syntax exp))))
+           (λ ()
+             (when (equal? r-value tr-value)
+               (fail-check "Known bug no longer exists.")))))]))
 
 (define-syntax good-opt
   (syntax-parser

@@ -267,14 +267,15 @@
     ([_ name:expr body:expr ...]
      (quasisyntax/loc stx
        (test-case (format "~a ~a" (quote-line-number name) 'name)
-         (with-check-info (['location (build-source-location-list (quote-srcloc #,stx))])
-           (with-handlers ([cross-phase-failure?
-                            (λ (tf)
-                              (with-check-info*
-                                (cross-phase-failure-check-infos tf)
-                                (lambda ()
-                                  (fail-check (cross-phase-failure-message tf)))))])
-             (phase1-eval body ...))))))))
+         (with-check-info* (list (make-check-location (build-source-location-list (quote-srcloc #,stx))))
+           (λ ()
+             (with-handlers ([cross-phase-failure?
+                              (λ (tf)
+                                (with-check-info*
+                                  (cross-phase-failure-check-infos tf)
+                                  (lambda ()
+                                    (fail-check (cross-phase-failure-message tf)))))])
+               (phase1-eval body ...)))))))))
 
 
 ;;Constructs the syntax that calls eval and returns the answer to the user

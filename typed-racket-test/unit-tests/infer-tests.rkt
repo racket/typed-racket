@@ -145,20 +145,21 @@
     ([_ S:expr T:expr :vars :indices R:result :pass]
      (quasisyntax/loc stx
        (test-case (format "~a ~a~a" S T (if pass "" " should fail"))
-         (with-check-info (['location (build-source-location-list (quote-srcloc #,stx))])
-           (define substitution (infer vars indices S T R.v))
-           (define result (and substitution R.v (subst-all substitution R.v)))
-           (cond
-             [pass
-               (unless substitution
-                 (fail-check "Could not infer a substitution"))
-               (when result
-                 (with-check-info (['actual result] ['expected R.exp])
-                   (unless (equal? result R.exp)
-                     (fail-check "Did not infer the expected result."))))]
-             [fail
-               (when substitution
-                 (fail-check "Inferred an unexpected substitution."))])))))))
+         (with-check-info* (list (make-check-location (build-source-location-list (quote-srcloc #,stx))))
+           (λ ()
+             (define substitution (infer vars indices S T R.v))
+             (define result (and substitution R.v (subst-all substitution R.v)))
+             (cond
+               [pass
+                 (unless substitution
+                   (fail-check "Could not infer a substitution"))
+                 (when result
+                   (with-check-info (['actual result] ['expected R.exp])
+                     (unless (equal? result R.exp)
+                       (fail-check "Did not infer the expected result."))))]
+               [fail
+                 (when substitution
+                   (fail-check "Inferred an unexpected substitution."))]))))))))
 
 
 (define-syntax-rule (i2-t t1 t2 (a b) ...)

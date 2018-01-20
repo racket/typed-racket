@@ -41,33 +41,35 @@
     [(_ t1:expr t2:expr (~optional (~seq #:result expected-result:expr)
                                      #:defaults [(expected-result #'t2)]))
      #`(test-case (~a 't1 " <: " 't2)
-         (with-check-info (['location (build-source-location-list (quote-srcloc #,stx))]
-                           ['expected expected-result])
-           (define result (check-below t1 t2))
-           (with-check-info (['actual result])
-             (check-result result)
-             (unless (equal? expected-result result)
-               (fail-check "Check below did not return expected result.")))))]
+         (with-check-info* (list (make-check-location (build-source-location-list (quote-srcloc #,stx)))
+                                 (make-check-expected expected-result))
+           (λ ()
+             (define result (check-below t1 t2))
+             (with-check-info (['actual result])
+               (check-result result)
+               (unless (equal? expected-result result)
+                 (fail-check "Check below did not return expected result."))))))]
     [(_ #:fail (~optional message:expr #:defaults [(message #'#rx"type mismatch")])
         t1:expr t2:expr
         (~optional (~seq #:result expected-result:expr)
                      #:defaults [(expected-result #'t2)]))
      #`(test-case (~a 't1 " !<: " 't2)
-         (with-check-info (['location (build-source-location-list (quote-srcloc #,stx))]
-                           ['expected expected-result])
-           (define result
-             (parameterize ([delay-errors? #t])
-               (check-below t1 t2)))
-           (with-check-info (['actual result])
-             (define exn
-               (let/ec exit
-                 (with-handlers [(exn:fail? exit)]
-                   (report-all-errors)
-                   (fail-check "Check below did not fail."))))
-             (check-result result)
-             (unless (equal? expected-result result)
-               (fail-check "Check below did not return expected result."))
-             (check-regexp-match message (exn-message exn)))))]))
+         (with-check-info* (list (make-check-location (build-source-location-list (quote-srcloc #,stx)))
+                                 (make-check-expected expected-result))
+           (λ ()
+             (define result
+               (parameterize ([delay-errors? #t])
+                 (check-below t1 t2)))
+             (with-check-info (['actual result])
+               (define exn
+                 (let/ec exit
+                   (with-handlers [(exn:fail? exit)]
+                     (report-all-errors)
+                     (fail-check "Check below did not fail."))))
+               (check-result result)
+               (unless (equal? expected-result result)
+                 (fail-check "Check below did not return expected result."))
+               (check-regexp-match message (exn-message exn))))))]))
 
 
 (define tests

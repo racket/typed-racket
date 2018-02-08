@@ -84,9 +84,18 @@ all floating-point numbers. This is the most general type for which comparisons
 Exact-Number
 Float-Complex
 Single-Flonum-Complex
-Inexact-Complex)]
+Inexact-Complex
+Imaginary
+Exact-Complex
+Exact-Imaginary
+Inexact-Imaginary)]
 These types correspond to Racket's complex numbers.
 
+@history[#:changed "1.7"]{@elem{Added @racket[Imaginary],
+ @racket[Inexact-Complex],
+ @racket[Exact-Complex],
+ @racket[Exact-Imaginary],
+ @racket[Inexact-Imaginary].}}
 
 The above types can be subdivided into more precise types if you want to
 enforce tighter constraints. Typed Racket provides types for the positive,

@@ -50,6 +50,7 @@
    [((or (B: _) (F: _)) _) #:no-order #t]
    [((Opaque: _) _) #:no-order #t]
    [((Name/simple: n) (Name/simple: n*)) #:when (free-identifier=? n n*) #t]
+   [((Distinction: _ _ t1) t2) #:no-order (overlap? t1 t2)]
    [(t1 (or (? Name? t2)
             (? App? t2)))
     #:no-order

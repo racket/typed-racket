@@ -82,7 +82,7 @@
         (define-hierarchy exn:fail:contract:divide-by-zero (#:kernel-maker k:exn:fail:contract:divide-by-zero) ())
         (define-hierarchy exn:fail:contract:non-fixnum-result (#:kernel-maker k:exn:fail:contract:non-fixnum-result) ())
         (define-hierarchy exn:fail:contract:continuation (#:kernel-maker k:exn:fail:contract:continuation) ())
-        (define-hierarchy exn:fail:contract:variable (#:kernel-maker k:exn:fail:contract:variable) ()))
+        (define-hierarchy exn:fail:contract:variable (#:kernel-maker k:exn:fail:contract:variable) ([id : -Symbol])))
 
       (define-hierarchy exn:fail:syntax (#:kernel-maker k:exn:fail:syntax) ([exprs : (-lst Any-Syntax)])
         (define-hierarchy exn:fail:syntax:unbound (#:kernel-maker k:exn:fail:syntax:unbound) ())

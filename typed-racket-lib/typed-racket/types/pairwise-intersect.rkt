@@ -13,7 +13,7 @@
 
 (provide pairwise-intersect)
 
-(define (pairwise-intersect/arr s t)
+(define (pairwise-intersect/arrow s t)
   (match* (s t)
     [((Arrow: s-dom s-rest s-kws s-rng)
       (Arrow: t-dom t-rest t-kws t-rng))
@@ -84,7 +84,7 @@
     [(u (Univ:)) u]
     [((Fun: arr1s) (Fun: arr2s))
      #:when (= (length arr1s) (length arr2s))
-     (make-Fun (map pairwise-intersect/arr arr1s arr2s))]
+     (make-Fun (map pairwise-intersect/arrow arr1s arr2s))]
     [((Result: ss pset-s o1) (Result: ts pset-t o2))
      (make-Result (pairwise-intersect ss ts)
                   (pairwise-intersect/prop-set pset-s pset-t)

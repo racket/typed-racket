@@ -77,6 +77,7 @@ currently supported in Typed Racket.
               @defthing[natural-number/c (FlatCon Any Natural)]
               @defproc[(string-len/c [len Real])
                        (FlatCon Any String)]
+              @defthing[false/c (Con Any False)]
               @defthing[printable/c (FlatCon Any Any)]
               @defproc[(listof [c (Con a b)])
                        (Con (Listof a) (Listof b))]

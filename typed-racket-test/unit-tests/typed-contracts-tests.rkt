@@ -44,7 +44,7 @@
     [tc-e (integer-in 17 71) (-FlatCon Univ -PosInt)]
     [tc-e (string-len/c 3) (-FlatCon Univ -String)]
     [tc-e natural-number/c (-FlatCon Univ -Nat)]
-    [tc-e false/c (-FlatCon Univ -False)]
+    [tc-e false/c (-Con Univ -False)]
     [tc-e printable/c (-FlatCon Univ Univ)]
     [tc-e (listof (>/c 5)) (-Con (-lst Univ) (-lst -Real))]
     [tc-e (listof string?) (-Con (-lst Univ) (-lst -String))]

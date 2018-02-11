@@ -21,11 +21,10 @@
          ;; syntax objects for surface-level types (e.g. Real instead of -Real)
          (base-env base-types base-types-extra)
          (prefix-in untyped: racket/contract/base))
-(provide (except-out (all-defined-out)
-                     define-contract)
-         ;; TODO: since we don't support all of the p/c-item forms (exists,
-         ;; struct, etc.), we really should provide our own versions of these
-         ;; two forms that give good "x is unsupported" messages
+(provide ;; TODO:  we don't support all of the p/c-item forms
+         ;; (exists, struct, etc.), we really should provide our own
+         ;; versions of provide/contract and contract-out that give
+         ;; good "x is unsupported" messages
          (rename-out [untyped:provide/contract provide/contract]
                      [untyped:contract-out contract-out]
                      [untyped:contract contract]))
@@ -37,6 +36,7 @@
   (syntax-parse stx
     [(_  :def ...)
      #'(begin
+         (provide ctc ...)
          (define-syntax ctc
            (make-variable-like-transformer
             #`(#,(ignore-some-expr-property #'#%expression #'ty)
@@ -62,9 +62,7 @@
            (-> Integer Integer (FlatCon Any Integer)))]
   [natural-number/c (FlatCon Any Natural)]
   [string-len/c (-> Real (FlatCon Any String))]
-  ;; Because we can use FlatCon in function position and because false/c = #f,
-  ;; giving it the type below is not sound
-  ;; [false/c (FlatCon Any False)]
+  [false/c (Con Any False)]
   [printable/c (FlatCon Any Any)]
   ;; one-of/c
   ;; vectorof

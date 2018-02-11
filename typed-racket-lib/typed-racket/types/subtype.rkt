@@ -706,8 +706,8 @@
    (match t2
      [(Con: t2-pre t2-post)
       (subtype-seq A
-                   (subtype* A t2-pre t1-pre obj)
-                   (subtype* A t1-post t2-post obj))]
+                   (subtype* t2-pre t1-pre)
+                   (subtype* t1-post t2-post))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Continuation-Mark-Keyof (Continuation-Mark-Keyof: val1))
    (match t2
@@ -813,12 +813,12 @@
    (match t2
      [(FlatCon: t2-pre t2-post)
       (subtype-seq A
-                   (subtype* A t2-pre t1-pre)
-                   (subtype* A t1-post t2-post))]
+                   (subtype* t2-pre t1-pre)
+                   (subtype* t1-post t2-post))]
      [(Con: t2-pre t2-post)
       (subtype-seq A
-                   (subtype* A t2-pre t1-pre)
-                   (subtype* A t1-post t2-post))]
+                   (subtype* t2-pre t1-pre)
+                   (subtype* t1-post t2-post))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Fun (Fun: arrows1))
    (match* (t2 arrows1)
@@ -842,12 +842,11 @@
      [((or (FlatCon: t2-pre t2-post)
            (Con: t2-pre t2-post))
        _)
-      ;; XXX hacks
       (match t1
         [(ConFn*: t1-pre t1-post)
          (subtype-seq A
-                      (subtype* A t2-pre t1-pre)
-                      (subtype* A t1-post t2-post))])]
+                      (subtype* t2-pre t1-pre)
+                      (subtype* t1-post t2-post))])]
      [(_ _) (continue<: A t1 t2 obj)])]
   [(case: Future (Future: elem1))
    (match t2

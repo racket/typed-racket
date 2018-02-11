@@ -6,7 +6,7 @@
                   define-values/invoke-unit/infer link
                   only))
 
-(provide-signature-elements intersect^ infer^ (only constraints^ meet join))
+(provide-signature-elements intersect^ infer^)
 
 (define-values/invoke-unit/infer
   (link infer@ constraints@ dmap@ intersect@))

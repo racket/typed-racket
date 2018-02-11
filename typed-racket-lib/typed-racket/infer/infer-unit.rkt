@@ -617,20 +617,20 @@
         [((Distinction: _ _ S) T)
          (cg S T obj)]
 
-        [((Con: S-pre S-post) (Con: T-pre T-post))
+        [((Contract: S-pre S-post) (Contract: T-pre T-post))
          (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
-        [((FlatCon: S-pre S-post) (FlatCon: T-pre T-post))
+        [((FlatContract: S-pre S-post) (FlatContract: T-pre T-post))
          (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
-        [((FlatCon: S-pre S-post) (Con: T-pre T-post))
+        [((FlatContract: S-pre S-post) (Contract: T-pre T-post))
          (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
         [((and (PredicateProp: (PropSet: (TypeProp: _ S-post) _))
                (Fun: (list (Arrow: (list S-pre) _ _ _))))
           ;; Apparently I can't just have the FlatCon case -- is the inference
           ;; not aware of the subtyping relation?
-          (Con*: T-pre T-post))
+          (Contract*: T-pre T-post))
          (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
         [((Fun: (list (Arrow: (list S-pre) _ _ _)))
-          (Con*: T-pre T-post))
+          (Contract*: T-pre T-post))
          (% cset-meet (cg T-pre S-pre) (cg S-pre T-post))]
 
         ;; two structs with the same name

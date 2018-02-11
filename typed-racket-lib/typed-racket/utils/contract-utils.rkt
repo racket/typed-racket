@@ -42,18 +42,18 @@
 
 (struct rest-info (id deps ctc) #:transparent)
 
-(define (Con*-in-ty ctc) (match ctc [(Con*: in out) in]))
-(define (Con*-out-ty ctc) (match ctc [(Con*: in out) out]))
-(define-match-expander Con*:
+(define (Con*-in-ty ctc) (match ctc [(Contract*: in out) in]))
+(define (Con*-out-ty ctc) (match ctc [(Contract*: in out) out]))
+(define-match-expander Contract*:
   (lambda (stx)
     (syntax-case stx ()
       [(_ in out)
        #'(or
-          (? FlatCon? (app FlatCon-in-ty in) (app FlatCon-out-ty out))
-          (? Con? (app Con-in-ty in) (app Con-out-ty out)))])))
+          (? FlatContract? (app FlatContract-in-ty in) (app FlatContract-out-ty out))
+          (? Contract? (app Contract-in-ty in) (app Contract-out-ty out)))])))
 
 ;; A ConFnInfo is a (List Type? Type?) representing the in/out type components
-;; of a function that could be coerced to a FlatCon
+;; of a function that could be coerced to a FlatContract
 
 ;; con-fn-in : Type? -> Type?
 ;; Assumes ty has non-#f confn-type-components

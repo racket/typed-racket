@@ -11,5 +11,5 @@
 
 ;; annotate so that the error message is about f-ctc being undefined and not
 ;; about a missing type for the identifier
-(: f-ctc (Con (-> Integer Any) (-> Any Integer)))
+(: f-ctc (Contract (-> Integer Any) (-> Any Integer)))
 (define f-ctc (->/c exact-integer? exact-integer?))

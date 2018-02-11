@@ -21,7 +21,12 @@
          ;; syntax objects for surface-level types (e.g. Real instead of -Real)
          (base-env base-types base-types-extra)
          (prefix-in untyped: racket/contract/base))
-(provide ;; TODO:  we don't support all of the p/c-item forms
+(provide and/c
+         or/c
+         list/c
+         ->/c
+         ->i
+         ;; TODO:  we don't support all of the p/c-item forms
          ;; (exists, struct, etc.), we really should provide our own
          ;; versions of provide/contract and contract-out that give
          ;; good "x is unsupported" messages
@@ -43,27 +48,27 @@
                untyped-ctc))) ...)]))
 
 (define-contract
-  [flat-named-contract (All (a b) (-> Any (FlatCon a b) (FlatCon a b)))]
-  [any/c (FlatCon Any Any)]
-  [none/c (FlatCon Any Any)]
-  [not/c (All (a b) (-> (FlatCon a b) (FlatCon a a)))]
-  [=/c (case-> (-> Natural (FlatCon Any Natural))
-               (-> Integer (FlatCon Any Integer))
-               (-> Real (FlatCon Any Real)))]
-  [</c (-> Real (FlatCon Any Real))]
-  [>/c (-> Real (FlatCon Any Real))]
-  [<=/c (-> Real (FlatCon Any Real))]
-  [>=/c (-> Real (FlatCon Any Real))]
-  [between/c (-> Real Real (FlatCon Any Real))]
-  [real-in (-> Real Real (FlatCon Any Real))]
+  [flat-named-contract (All (a b) (-> Any (FlatContract a b) (FlatContract a b)))]
+  [any/c (FlatContract Any Any)]
+  [none/c (FlatContract Any Any)]
+  [not/c (All (a b) (-> (FlatContract a b) (FlatContract a a)))]
+  [=/c (case-> (-> Natural (FlatContract Any Natural))
+               (-> Integer (FlatContract Any Integer))
+               (-> Real (FlatContract Any Real)))]
+  [</c (-> Real (FlatContract Any Real))]
+  [>/c (-> Real (FlatContract Any Real))]
+  [<=/c (-> Real (FlatContract Any Real))]
+  [>=/c (-> Real (FlatContract Any Real))]
+  [between/c (-> Real Real (FlatContract Any Real))]
+  [real-in (-> Real Real (FlatContract Any Real))]
   [integer-in
-   (case-> (-> Positive-Integer Integer (FlatCon Any Positive-Integer))
-           (-> Natural Integer (FlatCon Any Natural))
-           (-> Integer Integer (FlatCon Any Integer)))]
-  [natural-number/c (FlatCon Any Natural)]
-  [string-len/c (-> Real (FlatCon Any String))]
-  [false/c (Con Any False)]
-  [printable/c (FlatCon Any Any)]
+   (case-> (-> Positive-Integer Integer (FlatContract Any Positive-Integer))
+           (-> Natural Integer (FlatContract Any Natural))
+           (-> Integer Integer (FlatContract Any Integer)))]
+  [natural-number/c (FlatContract Any Natural)]
+  [string-len/c (-> Real (FlatContract Any String))]
+  [false/c (Contract Any False)]
+  [printable/c (FlatContract Any Any)]
   ;; one-of/c
   ;; vectorof
   ;; vector-immutableof (tricky, TR doesn't have immutable vectors)
@@ -71,20 +76,20 @@
   ;; vector-immutable/c
   ;; box/c
   ;; box-immutable/c
-  [listof (All (a b) (-> (Con a b) (Con (Listof a) (Listof b))))]
+  [listof (All (a b) (-> (Contract a b) (Contract (Listof a) (Listof b))))]
   [non-empty-listof
-   (All (a b) (-> (Con a b) (Con (Listof a) (Pairof b (Listof b)))))]
+   (All (a b) (-> (Contract a b) (Contract (Listof a) (Pairof b (Listof b)))))]
   [list*of
-   (All (a b) (-> (Con a b) (Con (Rec x (Pairof a (U a x)))
+   (All (a b) (-> (Contract a b) (Contract (Rec x (Pairof a (U a x)))
                                  (Rec x (Pairof b (U b x))))))]
-  [cons/c (All (a b c d) (-> (Con a b) (Con c d) (Con Any (Pairof b d))))]
+  [cons/c (All (a b c d) (-> (Contract a b) (Contract c d) (Contract Any (Pairof b d))))]
   ;; cons/dc
-  [syntax/c (All (a b) (-> (FlatCon a b) (FlatCon (Syntaxof a) (Syntaxof b))))]
+  [syntax/c (All (a b) (-> (FlatContract a b) (FlatContract (Syntaxof a) (Syntaxof b))))]
   ;; struct/c
   ;; struct/dc
   [parameter/c
-   (All (a b c d) (case-> (-> (Con a b) (Con (Parameter b) (Parameter b)))
-                          (-> (Con a b) (Con c d) (Con (Parameter b d)
+   (All (a b c d) (case-> (-> (Contract a b) (Contract (Parameter b) (Parameter b)))
+                          (-> (Contract a b) (Contract c d) (Contract (Parameter b d)
                                                        (Parameter b d)))))]
   ;; procedure-arity-includes/c
   ;; hash/c
@@ -99,7 +104,7 @@
   ;; promise/c
   ;; flat-contract
   ;; flat-contract-predicate
-  [symbols (-> Symbol Symbol * (Con Any Symbol))])
+  [symbols (-> Symbol Symbol * (Contract Any Symbol))])
 
 (define-syntax (and/c stx)
   (syntax-parse stx
@@ -125,9 +130,9 @@
 
 ;; list/c needs its own type rule because giving it a function type outright
 ;; wouldn't allow us to give e.g. (list/c exact-integer? positive?) a type like
-;; (Con (List Any Real) (List Integer Positive-Real)). The form is polyvariadic
+;; (Contract (List Any Real) (List Integer Positive-Real)). The form is polyvariadic
 ;; but polydots is currently too weak, it won't let us give list/c a type like
-;; (All ((a b) ...) (-> (Con a b) ... (Con (List a ...) (List b ...)))).
+;; (All ((a b) ...) (-> (Contract a b) ... (Contract (List a ...) (List b ...)))).
 (define-syntax (list/c stx)
   (syntax-parse stx
     #:literals (list/c)

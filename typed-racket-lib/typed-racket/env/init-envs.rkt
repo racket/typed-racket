@@ -336,10 +336,10 @@
      `(make-Distinction (quote ,nm)
                         (quote ,id)
                         ,(type->sexp ty))]
-    [(FlatCon: t1 t2)
-     `(make-FlatCon ,(type->sexp t1) ,(type->sexp t2))]
-    [(Con: t1 t2)
-     `(make-Con ,(type->sexp t1) ,(type->sexp t2))]
+    [(FlatContract: t1 t2)
+     `(make-FlatContract ,(type->sexp t1) ,(type->sexp t2))]
+    [(Contract: t1 t2)
+     `(make-Contract ,(type->sexp t1) ,(type->sexp t2))]
     [(Value: v) `(make-Value (quote ,v))]
     ;; Most Top types are in the predefined table, the ones here
     ;; are not

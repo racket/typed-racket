@@ -702,18 +702,18 @@
                (and (not init-rest) (not init-rest*)
                     A)))]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: Con (Con: t1-pre t1-post))
-   (match t2
-     [(Con: t2-pre t2-post)
-      (subtype-seq A
-                   (subtype* t2-pre t1-pre)
-                   (subtype* t1-post t2-post))]
-     [_ (continue<: A t1 t2 obj)])]
   [(case: Continuation-Mark-Keyof (Continuation-Mark-Keyof: val1))
    (match t2
      [(? Continuation-Mark-KeyTop?) A]
      [(Continuation-Mark-Keyof: val2)
       (type≡? A val1 val2)]
+     [_ (continue<: A t1 t2 obj)])]
+  [(case: Contract (Contract: t1-pre t1-post))
+   (match t2
+     [(Contract: t2-pre t2-post)
+      (subtype-seq A
+                   (subtype* t2-pre t1-pre)
+                   (subtype* t1-post t2-post))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: CustodianBox (CustodianBox: elem1))
    (match t2
@@ -809,13 +809,13 @@
      ;; tvars are equal if they are the same variable
      [(F: var2) (eq? var1 var2)]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: FlatCon (FlatCon: t1-pre t1-post))
+  [(case: FlatContract (FlatContract: t1-pre t1-post))
    (match t2
-     [(FlatCon: t2-pre t2-post)
+     [(FlatContract: t2-pre t2-post)
       (subtype-seq A
                    (subtype* t2-pre t1-pre)
                    (subtype* t1-post t2-post))]
-     [(Con: t2-pre t2-post)
+     [(Contract: t2-pre t2-post)
       (subtype-seq A
                    (subtype* t2-pre t1-pre)
                    (subtype* t1-post t2-post))]
@@ -839,8 +839,8 @@
      [((? DepFun? dfun) _)
       (for/or ([a1 (in-list arrows1)])
         (arrow-subtype-dfun* A a1 dfun))]
-     [((or (FlatCon: t2-pre t2-post)
-           (Con: t2-pre t2-post))
+     [((or (FlatContract: t2-pre t2-post)
+           (Contract: t2-pre t2-post))
        _)
       (match t1
         [(ConFn*: t1-pre t1-post)

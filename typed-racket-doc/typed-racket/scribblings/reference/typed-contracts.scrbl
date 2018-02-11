@@ -21,7 +21,7 @@ currently supported in Typed Racket.
 @section{Types}
 
 @defform[#:kind "type"
-         (Con [in type] [out type])]{
+         (Contract [in type] [out type])]{
   A contract can only be attached to values that satisfy its @racket[in] type,
   just like how a function can only be applied to arguments that satisfy its
   domain type. Attaching a contract with output type @racket[out] to a value
@@ -32,14 +32,14 @@ currently supported in Typed Racket.
   to the precision order, which is like the subtype order. It differs in that it
   lacks contravariance in negative positions such as function domains.
 
-  @racket[Con] is the most general type for contracts.
+  @racket[Contract] is the most general type for contracts.
 }
 
 @defform[#:kind "type"
-         (FlatCon [in type] [out type])]{
-  This type is like @racket[Con] but corresponds to @tech{flat contracts}. All
-  @racket[FlatCon] contracts have a corresponding @racket[Con] type. For
-  example, a @racket[(FlatCon Real Real)] is also a @racket[(Con Real Real)].
+         (FlatContract [in type] [out type])]{
+  This type is like @racket[Contract] but corresponds to @tech{flat contracts}. All
+  @racket[FlatCon] contracts have a corresponding @racket[Contract] type. For
+  example, a @racket[(FlatContract Real Real)] is also a @racket[(Contract Real Real)].
 
   A contract with @racket[FlatCon] type can be used as a function having domain
   type @racket[in].
@@ -47,57 +47,57 @@ currently supported in Typed Racket.
   Ordinary Racket @tech[#:key "contracts"]{values coercible to a contract}, such
   as integers, do not have this type. Coercing such values of type @racket[T] to
   a contract, as Racket's contract attachment forms automatically do, produces a
-  value of type @racket[(FlatCon Any T)].
+  value of type @racket[(FlatContract Any T)].
 }
 
 @section{Data-structure Contracts}
 
 @deftogether[(@defproc[(flat-named-contract [name Any]
-                                            [c (FlatCon a b)])
-                       (FlatCon a b)]
-              @defthing[any/c (FlatCon Any Any)]
-              @defthing[none/c (FlatCon Any Any)]
-              @defproc[(not/c [c (FlatCon a b)])
-                       (FlatCon a b)]
-              @defproc*[([(=/c [n Natural]) (FlatCon Any Natural)]
-                         [(=/c [z Integer]) (FlatCon Any Integer)]
-                         [(=/c [r Real]) (FlatCon Any Real)])]
-              @defproc[(</c [r Real]) (FlatCon Any Real)]
-              @defproc[(>/c [r Real]) (FlatCon Any Real)]
-              @defproc[(<=/c [r Real]) (FlatCon Any Real)]
-              @defproc[(>=/c [r Real]) (FlatCon Any Real)]
-              @defproc[(between/c [lo Real] [hi Real]) (FlatCon Any Real)]
-              @defproc[(real-in [lo Real] [hi Real]) (FlatCon Any Real)]
+                                            [c (FlatContract a b)])
+                       (FlatContract a b)]
+              @defthing[any/c (FlatContract Any Any)]
+              @defthing[none/c (FlatContract Any Any)]
+              @defproc[(not/c [c (FlatContract a b)])
+                       (FlatContract a b)]
+              @defproc*[([(=/c [n Natural]) (FlatContract Any Natural)]
+                         [(=/c [z Integer]) (FlatContract Any Integer)]
+                         [(=/c [r Real]) (FlatContract Any Real)])]
+              @defproc[(</c [r Real]) (FlatContract Any Real)]
+              @defproc[(>/c [r Real]) (FlatContract Any Real)]
+              @defproc[(<=/c [r Real]) (FlatContract Any Real)]
+              @defproc[(>=/c [r Real]) (FlatContract Any Real)]
+              @defproc[(between/c [lo Real] [hi Real]) (FlatContract Any Real)]
+              @defproc[(real-in [lo Real] [hi Real]) (FlatContract Any Real)]
               @defproc*[([(integer-in [lo Positive-Integer] [hi Integer])
-                          (FlatCon Any Positive-Integer)]
+                          (FlatContract Any Positive-Integer)]
                          [(integer-in [lo Natural] [hi Integer])
-                          (FlatCon Any Natural)]
+                          (FlatContract Any Natural)]
                          [(integer-in [lo Integer] [hi Integer])
-                          (FlatCon Any Integer)])]
-              @defthing[natural-number/c (FlatCon Any Natural)]
+                          (FlatContract Any Integer)])]
+              @defthing[natural-number/c (FlatContract Any Natural)]
               @defproc[(string-len/c [len Real])
-                       (FlatCon Any String)]
-              @defthing[false/c (Con Any False)]
-              @defthing[printable/c (FlatCon Any Any)]
-              @defproc[(listof [c (Con a b)])
-                       (Con (Listof a) (Listof b))]
-              @defproc[(non-empty-listof [c (Con a b)])
-                       (Con (Listof a) (Pairof b (Listof b)))]
-              @defproc[(list*of [c (Con a b)])
-                       (Con (Rec x (Pairof a (U a x)))
+                       (FlatContract Any String)]
+              @defthing[false/c (Contract Any False)]
+              @defthing[printable/c (FlatContract Any Any)]
+              @defproc[(listof [c (Contract a b)])
+                       (Contract (Listof a) (Listof b))]
+              @defproc[(non-empty-listof [c (Contract a b)])
+                       (Contract (Listof a) (Pairof b (Listof b)))]
+              @defproc[(list*of [c (Contract a b)])
+                       (Contract (Rec x (Pairof a (U a x)))
                             (Rec x (Pairof b (U b x))))]
-              @defproc[(cons/c [car-c (Con a b)]
-                               [cdr-c (Con c d)])
-                       (Con Any (Pairof b d))]
-              @defproc[(syntax/c [c (FlatCon a b)])
-                       (FlatCon (Syntaxof a) (Syntaxof b))]
-              @defproc*[([(parameter/c [c (Con a b)])
-                          (Con (Parameter b) (Parameter b))]
-                         [(parameter/c [in-c (Con a b)]
-                                       [out-c (Con c d)])
-                          (Con (Parameter b d) (Parameter b d))])]
+              @defproc[(cons/c [car-c (Contract a b)]
+                               [cdr-c (Contract c d)])
+                       (Contract Any (Pairof b d))]
+              @defproc[(syntax/c [c (FlatContract a b)])
+                       (FlatContract (Syntaxof a) (Syntaxof b))]
+              @defproc*[([(parameter/c [c (Contract a b)])
+                          (Contract (Parameter b) (Parameter b))]
+                         [(parameter/c [in-c (Contract a b)]
+                                       [out-c (Contract c d)])
+                          (Contract (Parameter b d) (Parameter b d))])]
               @defproc[(symbols [sym Symbol] ...+)
-                       (Con Any Symbol)])]{
+                       (Contract Any Symbol)])]{
   These forms are typed versions of those found in Racket. They are otherwise
   the same.
 }
@@ -153,5 +153,5 @@ library is a work in progress.
   @item{Contract types do not have any contract compilation/runtime enforcement.}
   @item{Racket's built-in combinators for vectors, boxes, hashes are unsupported.}
   @item{Values that pass @racket[flat-contract?] are not necessarily members of
-        the @racket[FlatCon] type: members of that type can be used in function
+        the @racket[FlatContract] type: members of that type can be used in function
         position, but @racket[flat-contract?] returns true for non-predicates.}]

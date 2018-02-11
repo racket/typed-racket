@@ -74,8 +74,8 @@
       (define rng-ty (coerce-to-con (tc-expr/t rng)))
       (values (Con*-in-ty rng-ty) (Con*-out-ty rng-ty))))
 
-  (ret (-Con (->* out-doms (-values in-rngs))
-             (->* in-doms (-values out-rngs)))))
+  (ret (-Contract (->* out-doms (-values in-rngs))
+                  (->* in-doms (-values out-rngs)))))
 
 ;; trawl-for-doms/rng : syntax predicate predicate -> (listof syntax) Finds
 ;; syntax/subforms for which is-dom/rng? returns a non-#f value. Does not recur
@@ -245,13 +245,13 @@
                  (rest-info-id (get-rest-prop rest-ctc/#f))
                  (mk/lookup-fail-in "doms-checked-env")))
       [#f #f]
-      [(and t (Con*: (Listof: _) (Listof: _))) t]
+      [(and t (Contract*: (Listof: _) (Listof: _))) t]
       [non-list-ty
        (tc-error/fields
         "#:rest contract must be a list contract"
         #:delayed? #t
         "#:rest contract type" non-list-ty)
-       (-Con (make-Listof Univ) (make-Listof (Un)))]))
+       (-Contract (make-Listof Univ) (make-Listof (Un)))]))
 
   ;; Calculates the type of the pre/post-condition expression. Exactly like
   ;; check-subcontract, each pre/post-condition must have its dep's surface id's
@@ -354,7 +354,7 @@
                            ;; ditto above remark about rest-ctc-ty/#f
                            (list-contents-ty (Con*-in-ty rest-ctc-ty/#f)))
                #:kws (map (kw-in/out Con*-in-ty) sorted-kw-doms)))))
-  (ret (-Con (make-Fun in-arrs) (make-Fun out-arrs))))
+  (ret (-Contract (make-Fun in-arrs) (make-Fun out-arrs))))
 
 ;; topo-sort-ctcs : (Listof Stx) (Stx -> Id) (Stx -> Listof Id) -> Listof Stx
 ;; Returns a permutation of ctcs in topo-order, according to their dependencies
@@ -422,7 +422,7 @@
            (check-below out-ty (Con*-in-ty ty))
            (values in-ty (pairwise-intersect out-ty (Con*-out-ty ty)))))]
       [(list) (values Univ Univ)]))
-  (ret (-Con in-ty out-ty)))
+  (ret (-Contract in-ty out-ty)))
 
 (define (tc-or/c form)
   (define subforms (or (syntax->list form) (list)))
@@ -443,7 +443,7 @@
       (values
        (meet in-ty (Con*-in-ty con-ty))
        (join out-ty (Con*-out-ty con-ty)))))
-  (ret (-Con in-ty out-ty)))
+  (ret (-Contract in-ty out-ty)))
 
 (define (tc-list/c form)
   (define (is-list/c? stx) (equal? (tr:ctc-property stx) list/c-key))
@@ -463,26 +463,26 @@
       (values (Con*-in-ty con-ty) (Con*-out-ty con-ty))))
   (ret (match* (in-tys out-tys)
          [((list) (list))
-          (-Con Univ (-lst*))]
+          (-Contract Univ (-lst*))]
          [((list _ _ ...) (list _ _ ...))
-          (-Con (apply -lst* in-tys) (apply -lst* out-tys))])))
+          (-Contract (apply -lst* in-tys) (apply -lst* out-tys))])))
 
 
 (define (coerce-to-con ty)
   (define coercible-simple-value-types
     (Un -Null -Symbol -Boolean -Keyword -Char -Bytes -String -Number))
   [match ty
-    [(Con*: t _) ty]
+    [(Contract*: t _) ty]
     [(ConFn*: in-ty out-ty)
-     (-FlatCon in-ty out-ty)]
+     (-FlatContract in-ty out-ty)]
     [_
      #:when (subtype ty coercible-simple-value-types)
-     (-FlatCon Univ ty)]
+     (-FlatContract Univ ty)]
     ;; Because the type of these isn't the core type needed for the contract,
     ;; they need to be handled differently than coercible-simple-value-types
-    [(== -Regexp) (-FlatCon Univ -String)]
-    [(== -Byte-Regexp) (-FlatCon Univ -Bytes)]
+    [(== -Regexp) (-FlatContract Univ -String)]
+    [(== -Byte-Regexp) (-FlatContract Univ -Bytes)]
     [_ (tc-error/fields "could not coerce to a contract type"
                         #:delayed? #t
                         "type" ty)
-       (-Con Univ (Un))]])
+       (-Contract Univ (Un))]])

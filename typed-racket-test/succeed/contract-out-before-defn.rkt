@@ -7,5 +7,5 @@
 (define (f n)
   (+ 1 n))
 
-(: f-ctc (Con (-> Integer Any) (-> Any Integer)))
+(: f-ctc (Contract (-> Integer Any) (-> Any Integer)))
 (define f-ctc (->/c exact-integer? exact-integer?))

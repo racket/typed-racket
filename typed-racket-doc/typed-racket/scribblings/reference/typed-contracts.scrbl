@@ -14,11 +14,83 @@
 @defmodule[typed/racket/contract]
 
 Typed Racket supports contract programming using the
-@racketmodname[racket/contract] library. This section covers the
-contract-specific features of the type system as well as the functionality
-currently supported in Typed Racket.
+@racketmodname[racket/contract] library. For Racket programmers that
+want to migrate a module and its contracts to Typed Racket, the first
+section walks through that process. That example also serves to
+introduce some of the contract-specific features in the type system.
+
+The remaining sections give more detail about the type system and
+document support for Racket's contract library.
+
+@section{Introduction: Migrating a Racket module's contracts}
+
+The function @racket[g] in this Racket module is provided to clients
+with a contract
+@;contract adapted from the intro of Findler, Felleisen 2002
+@racketmod[racket
+           (provide
+            (contract-out
+             [g (-> (-> (and/c exact-integer? (>/c 9))
+                        (and/c exact-integer? (between/c 0 99)))
+                    (and/c exact-integer? (between/c 0 99)))]))
+           (define (g proc)
+             @#,(elem "..."))]
+
+Clients must call @racket[g] with a procedure, and when that procedure
+is called with an integer larger than 9 it must return an integer
+between 0 and 99. Given such a procedure, @racket[g] itself must
+return an integer between 0 and 99, too. If any of the requirements
+aren't upheld, an error is raised, identifying where and when the
+requirement was broken.
+
+Programmers can migrate their module and its contracts to Typed
+Racket. A typed version of the previous example might look like
+@racketmod[typed/racket
+           (provide
+            (contract-out
+             [g (->/c (->/c (and/c exact-integer? (>/c 9))
+                            (and/c exact-integer? (between/c 0 99)))
+                      (and/c exact-integer? (between/c 0 99)))]))
+           (: g (-> (-> Integer Integer) Integer))
+           (define (g proc)
+             @#,(elem "..."))]
+
+Typed Racket's type system makes some of these contracts redundant.
+All of the @racket[exact-integer?] contracts, for example, are implied
+by @racket[g]'s type. So let's replace the whole @racket[->/c]
+contract with the following simpler one
+@racketblock[(->/c (->/c (>/c 9) (between/c 0 99))
+                   (between/c 0 99))]
+
+Before digging into how the type system allows us to replace the first
+contract with the second one, let's briefly talk about contracts and
+their types.
+
+Because arbitrary (typed) functions can be used as part of a contract
+in Typed Racket, contract types ensure that that function's type
+requirements aren't violated. If the @racket[even?] function is used
+as a contract, for example, its contract type guarantees that it will
+only be applied to @racket[Integers]. If the contract system didn't
+have higher-order contracts, then something similar to function types
+would likely be sufficient to ensure that @racket[even?] wasn't
+misused. Higher-order contracts, though, need an extended type
+system that treats contract application different from function
+application.
+
+The type of the first contract is
+@ex[#:label #f
+    (->/c (->/c (and/c exact-integer? (>/c 9))
+                (and/c exact-integer? (between/c 0 99)))
+          (and/c exact-integer? (between/c 0 99)))]
+while the type of the second contract is
+@ex[#:label #f
+    (->/c (->/c (>/c 9) (between/c 0 99))
+          (between/c 0 99))]
 
 @section{Types}
+
+As shown in the introduction, adding types to Racket's higher-order
+contracts requires extending Typed Racket with new kinds of types.
 
 @defform[#:kind "type"
          (Contract [in type] [out type])]{
@@ -30,19 +102,21 @@ currently supported in Typed Racket.
 
   The result's type is a lower-bound of @racket[out] and @racket[t] with respect
   to the precision order, which is like the subtype order. It differs in that it
-  lacks contravariance in negative positions such as function domains.
+  lacks contravariance in negative positions such as function domains. As odd as
+  this may sound, it's OK for the same reason that Typed Racket can cast a
+  function from @racket[(-> Integer Integer)] to @racket[(-> Natural Natural)].
 
-  @racket[Contract] is the most general type for contracts.
+  @racket[Contract] is the most general type constructor for contracts.
 }
 
 @defform[#:kind "type"
          (FlatContract [in type] [out type])]{
   This type is like @racket[Contract] but corresponds to @tech{flat contracts}. All
-  @racket[FlatCon] contracts have a corresponding @racket[Contract] type. For
+  @racket[FlatContract] have a corresponding @racket[Contract] type. For
   example, a @racket[(FlatContract Real Real)] is also a @racket[(Contract Real Real)].
 
-  A contract with @racket[FlatCon] type can be used as a function having domain
-  type @racket[in].
+  A contract with @racket[FlatContract] type can be used as a function
+  having domain type @racket[in].
 
   Ordinary Racket @tech[#:key "contracts"]{values coercible to a contract}, such
   as integers, do not have this type. Coercing such values of type @racket[T] to

@@ -2347,6 +2347,7 @@
 [variable-reference->module-source (-> -Variable-Reference (Un Sym (-val #f) -Path))]
 [variable-reference->phase (-> -Variable-Reference -Nat)]
 [variable-reference-constant? (-> -Variable-Reference -Boolean)]
+[variable-reference-from-unsafe? (-> -Variable-Reference -Boolean)]
 
 ;; Section 14.2 (Evaluation and Compilation)
 [current-eval (-Param (-> Univ ManyUniv) (-> Univ ManyUniv))]

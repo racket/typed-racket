@@ -121,9 +121,6 @@
   ;; check-vector
   [(make-template-identifier 'check-vector 'racket/private/for)
    (-> Univ -Void)]
-  ;; check-in-hash
-  [(make-template-identifier 'check-in-hash 'racket/private/for)
-   (-> Univ -Void)]
   ;; in-range
   [(make-template-identifier 'in-range 'racket/private/for)
    (cl->* (-> -Byte (-seq -Byte))
@@ -214,6 +211,39 @@
    (-> Univ -Boolean)]
   [(make-template-identifier 'not-weak? 'racket/private/for)
    (-> -HashTableTop -Boolean)]
+  ;; check-in-hash and friends
+  [(make-template-identifier 'check-in-hash 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-hash-keys 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-hash-values 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-hash-pairs 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-mutable-hash 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-mutable-hash-keys 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-mutable-hash-values 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-mutable-hash-pairs 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-immutable-hash 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-immutable-hash-keys 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-immutable-hash-values 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-immutable-hash-pairs 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-weak-hash 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-weak-hash-keys 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-weak-hash-values 'racket/private/for)
+   (-> Univ -Void)]
+  [(make-template-identifier 'check-in-weak-hash-pairs 'racket/private/for)
+   (-> Univ -Void)]
   ;; in-port
   [(make-template-identifier 'in-port 'racket/private/for)
    (-poly (a)

@@ -248,7 +248,6 @@
      #:with free-idxs (fixed-rep-transform #'self #'f #'free-idxs* struct-fields #'body)))
   (define-syntax-class (constructor-spec constructor-name
                                          constructor-contract
-                                         internal-constructor-name
                                          raw-constructor-name
                                          raw-constructor-contract
                                          struct-fields)
@@ -257,7 +256,6 @@
              #:with def
              (with-syntax ([constructor-name constructor-name]
                            [constructor-contract constructor-contract]
-                           [internal-constructor-name internal-constructor-name]
                            [raw-constructor-name raw-constructor-name]
                            [raw-constructor-contract raw-constructor-contract]
                            [(struct-fields ...) struct-fields])
@@ -331,7 +329,6 @@
                         . (~var constr-def
                                 (constructor-spec #'var.constructor
                                                   #'(-> flds.contracts ... any)
-                                                  #'var.internal-constructor
                                                   #'var.raw-constructor
                                                   #'(-> flds.contracts ... any)
                                                   #'(flds.ids ...)))]
@@ -340,7 +337,6 @@
                         . (~var constr-def
                                 (constructor-spec #'var.constructor
                                                   #'custom-constructor-contract
-                                                  #'var.internal-constructor
                                                   #'var.raw-constructor
                                                   #'(-> flds.contracts ... any)
                                                   #'(flds.ids ...)))]))

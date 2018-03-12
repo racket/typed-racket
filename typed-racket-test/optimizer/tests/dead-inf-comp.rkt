@@ -24,9 +24,6 @@ TR opt: dead-inf-comp.rkt 107:4 (quote dead) -- dead else branch
 TR opt: dead-inf-comp.rkt 110:0 (for: ((i (in-range 5 +inf.0 2)) (j 3)) (displayln i)) -- dead else branch
 TR opt: dead-inf-comp.rkt 110:0 (for: ((i (in-range 5 +inf.0 2)) (j 3)) (displayln i)) -- dead else branch
 TR opt: dead-inf-comp.rkt 110:0 (for: ((i (in-range 5 +inf.0 2)) (j 3)) (displayln i)) -- dead else branch
-TR opt: dead-inf-comp.rkt 110:0 (for: ((i (in-range 5 +inf.0 2)) (j 3)) (displayln i)) -- dead else branch
-TR opt: dead-inf-comp.rkt 110:0 (for: ((i (in-range 5 +inf.0 2)) (j 3)) (displayln i)) -- dead else branch
-TR opt: dead-inf-comp.rkt 110:0 (for: ((i (in-range 5 +inf.0 2)) (j 3)) (displayln i)) -- dead else branch
 TR opt: dead-inf-comp.rkt 110:36 3 -- in-range
 TR opt: dead-inf-comp.rkt 11:4 (quote dead) -- dead then branch
 TR opt: dead-inf-comp.rkt 15:4 (quote dead) -- dead else branch

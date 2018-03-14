@@ -3427,6 +3427,7 @@
 (find-relative-path (->key -SomeSystemPathlike 
                            -SomeSystemPathlike 
                            #:more-than-root? Univ #f
+                           #:more-than-same? Univ #f
                            #:normalize-case? Univ #f
 			   -SomeSystemPath))
 (regexp-match*

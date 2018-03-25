@@ -146,9 +146,10 @@
 
 
 (define (resolve-app rator rands [stx #f])
-  (parameterize ([current-orig-stx (or stx (current-orig-stx))]
+  (define orig-stx (or stx (current-orig-stx)))
+  (parameterize ([current-orig-stx orig-stx]
                  [already-resolving? #t])
-    (resolve-app-check-error rator rands stx)
+    (resolve-app-check-error rator rands orig-stx)
     (match rator
       [(? Name?)
        (let ([r (resolve-name rator)])

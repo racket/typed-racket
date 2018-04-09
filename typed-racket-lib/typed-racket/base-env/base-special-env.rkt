@@ -296,6 +296,30 @@
   ;; same
   [(make-template-identifier 'with-syntax-fail 'racket/private/with-stx)
    (-> (-Syntax Univ) (Un))]
+  ;; more from with-syntax, a Guide is ...
+  [(make-template-identifier 't-append 'racket/private/template)
+   (-> (-lst (-Syntax Univ)) -Stxish -Stxish)]
+  ;; ... or a Guide is ...
+  [(make-template-identifier 't-resyntax 'racket/private/template)
+   (-> (Un (-val #f) (-Syntax Univ)) (-Syntax Univ) Univ (-Syntax Univ))]
+  ;; ... or a Guide is ...
+  [(make-template-identifier 't-relocate 'racket/private/template)
+   (-> (-Syntax Univ) (Un (-val #f) (-Syntax Univ)) (-Syntax Univ))]
+  ;; ... or a Guide is ...
+  [(make-template-identifier 't-orelse* 'racket/private/template)
+   (-> (-> -Stxish) (-> -Stxish) -Stxish)]
+  ;; ... or a Guide is ...
+  [(make-template-identifier 't-struct 'racket/private/template)
+   (-> Univ (-lst (-Syntax Univ)) (-Syntax Univ))]
+  ;; ... or a Guide is ...
+  [(make-template-identifier 'h-splice 'racket/private/template)
+   (-> Univ (Un (-val #f) (-Syntax Univ)) (Un (-val #f) (-Syntax Univ)) (-lst (-Syntax Univ)))]
+  ;; ... or a Guide is ...
+  [(make-template-identifier 't-subst 'racket/private/template)
+   (->* (list (Un (-val #f) (-Syntax Univ)) (-Syntax Univ) Univ) Univ (-Syntax Univ))]
+  ;; ... or a Guide is ...
+  [(make-template-identifier 'check-same-length 'racket/private/template)
+   (-> (Un (-val #f) (-Syntax Univ)) (Un (-val #f) (-Syntax Univ)) (-lst Univ) -Void)]
   ;; from the expansion of `make-temp-file`
   [(make-template-identifier 'make-temporary-file/proc 'racket/file)
    (->opt [-String (Un -Pathlike (-val 'directory) (-val #f)) (-opt -Pathlike)]

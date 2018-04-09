@@ -97,6 +97,7 @@
            (make-Listof (-Syntax e))
            (-pair (-Syntax e) (-Syntax e)))))
 (define/decl Any-Syntax (-Syntax In-Syntax))
+(define/decl -Stxish (-mu S (Un -Null (-Syntax Univ) (-pair (-Syntax Univ) S))))
 (define (-Sexpof t)
   (-mu sexp
        (Un -Null

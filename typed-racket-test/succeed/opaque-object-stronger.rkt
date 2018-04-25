@@ -1,5 +1,6 @@
 #lang racket
-(require typed-racket/utils/opaque-object)
+(require typed-racket/utils/opaque-object
+         (submod typed-racket/utils/opaque-object for-testing))
 
 ;; --------------------------------------------------------------------------------------------------
 ;; test helpers
@@ -183,4 +184,22 @@
       (field (x real?))
       (m1 (->m any/c any/c any/c))))
 
+)
+
+(let () ;; restrict-typed->/c and restrict-typed-field/c
+    (test-stronger?
+     (restrict-typed->/c 'foo)
+     (restrict-typed->/c 'foo))
+
+    (test-not-stronger?
+     (restrict-typed->/c 'foo)
+     (restrict-typed->/c 'bar))
+
+    (test-stronger?
+     (restrict-typed-field/c 'foo)
+     (restrict-typed-field/c 'foo))
+
+  (test-not-stronger?
+     (restrict-typed-field/c 'foo)
+     (restrict-typed-field/c 'bar))
 )

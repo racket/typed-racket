@@ -203,3 +203,22 @@
      (restrict-typed-field/c 'foo)
      (restrict-typed-field/c 'bar))
 )
+
+(let ()
+  (define ctc
+    (object/c-opaque
+     (mtd (->m any/c any/c))))
+  (define (make-obj)
+    (new
+     (class object%
+       (super-new)
+       (define/public (mtd x) x)
+       (define/public (guts) #f))))
+  (define c1
+    (value-contract
+     (contract ctc (make-obj) 'p 'n)))
+  (define c2
+    (value-contract
+     (contract ctc (make-obj) 'p 'n)))
+  (test-stronger? c1 c2)
+  (test-stronger? c2 c1))

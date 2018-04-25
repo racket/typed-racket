@@ -1,5 +1,6 @@
 #lang racket
-(require typed-racket/utils/opaque-object)
+(require typed-racket/utils/opaque-object
+         (submod typed-racket/utils/opaque-object for-testing))
 
 ;; --------------------------------------------------------------------------------------------------
 ;; test helpers
@@ -184,3 +185,40 @@
       (m1 (->m any/c any/c any/c))))
 
 )
+
+(let () ;; restrict-typed->/c and restrict-typed-field/c
+    (test-stronger?
+     (restrict-typed->/c 'foo)
+     (restrict-typed->/c 'foo))
+
+    (test-not-stronger?
+     (restrict-typed->/c 'foo)
+     (restrict-typed->/c 'bar))
+
+    (test-stronger?
+     (restrict-typed-field/c 'foo)
+     (restrict-typed-field/c 'foo))
+
+  (test-not-stronger?
+     (restrict-typed-field/c 'foo)
+     (restrict-typed-field/c 'bar))
+)
+
+(let ()
+  (define ctc
+    (object/c-opaque
+     (mtd (->m any/c any/c))))
+  (define (make-obj)
+    (new
+     (class object%
+       (super-new)
+       (define/public (mtd x) x)
+       (define/public (guts) #f))))
+  (define c1
+    (value-contract
+     (contract ctc (make-obj) 'p 'n)))
+  (define c2
+    (value-contract
+     (contract ctc (make-obj) 'p 'n)))
+  (test-stronger? c1 c2)
+  (test-stronger? c2 c1))

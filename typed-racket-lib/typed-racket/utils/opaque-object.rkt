@@ -39,6 +39,10 @@
 
 (provide object/c-opaque)
 
+(module+ for-testing
+  (provide restrict-typed->/c
+           restrict-typed-field/c))
+
 ;; projection for base-object/c-opaque
 (define ((object/c-opaque-late-neg-proj ctc) blame)
   (λ (obj neg-party)
@@ -172,7 +176,11 @@
         #:property prop:chaperone-contract
         (build-chaperone-contract-property
          #:name restrict-typed->-name
-         #:stronger equal?
+         #:stronger
+         (λ (this that)
+           (define this-name (restrict-typed->/c-name this))
+           (define that-name (restrict-typed->/c-name that))
+           (eq? this-name that-name))
          #:late-neg-projection restrict-typed->-late-neg-projection))
 
 (define (restrict-typed-field-late-neg-proj ctc)
@@ -198,5 +206,9 @@
         #:property prop:flat-contract
         (build-flat-contract-property
          #:name restrict-typed-field-name
-         #:stronger equal?
+         #:stronger
+         (λ (this that)
+           (define this-name (restrict-typed-field/c-name this))
+           (define that-name (restrict-typed-field/c-name that))
+           (eq? this-name that-name))
          #:late-neg-projection restrict-typed-field-late-neg-proj))

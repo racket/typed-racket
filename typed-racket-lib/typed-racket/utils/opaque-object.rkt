@@ -45,12 +45,14 @@
 
 ;; projection for base-object/c-opaque
 (define ((object/c-opaque-late-neg-proj ctc) blame)
+  (match-define (base-object/c-opaque
+                 base-ctc
+                 methods method-ctcs
+                 fields field-ctcs)
+    ctc)
+  (define guard/c (dynamic-object/c methods method-ctcs fields field-ctcs))
+  (define guard/c-proj ((contract-late-neg-projection guard/c) blame))
   (λ (obj neg-party)
-    (match-define (base-object/c-opaque
-                   base-ctc
-                   methods method-ctcs
-                   fields field-ctcs)
-                  ctc)
     (when (not (object? obj))
       (raise-blame-error blame #:missing-party neg-party obj "expected an object got ~a" obj))
     (define actual-fields (field-names obj))
@@ -60,19 +62,23 @@
       (remove* fields actual-fields))
     (define remaining-methods
       (remove* methods actual-methods))
-    (define guard/c
-      (dynamic-object/c (append methods remaining-methods)
-                        (append method-ctcs
-                                (for/list ([m remaining-methods])
-                                  (restrict-typed->/c m)))
-                        (append fields remaining-fields)
-                        (append field-ctcs
-                                (for/list ([m remaining-fields])
-                                  (restrict-typed-field/c m)))))
-    ;; FIXME: this is a bit sketchy because we have to construct
-    ;;        a contract that depends on the actual object that we got
-    ;;        since we don't know its methods beforehand
-    (((contract-late-neg-projection guard/c) blame) obj neg-party)))
+    (cond
+      [(and (null? remaining-methods) (null? remaining-fields))
+       (guard/c-proj obj neg-party)]
+      [else
+       (define restrict-guard/c
+         (dynamic-object/c remaining-methods
+                           (for/list ([m (in-list remaining-methods)])
+                             (restrict-typed->/c m))
+                           remaining-fields
+                           (for/list ([m (in-list remaining-fields)])
+                             (restrict-typed-field/c m))))
+       ;; FIXME: this is a bit sketchy because we have to construct
+       ;;        a contract that depends on the actual object that we got
+       ;;        since we don't know its methods beforehand
+       (((contract-late-neg-projection restrict-guard/c) blame)
+        (guard/c-proj obj neg-party)
+        neg-party)])))
 
 (define (object/c-opaque-name ctc)
   (build-object/c-type-name 'object/c-opaque

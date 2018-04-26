@@ -178,9 +178,9 @@
          #:name restrict-typed->-name
          #:stronger
          (λ (this that)
-           (define this-name (restrict-typed->/c-name this))
-           (define that-name (restrict-typed->/c-name that))
-           (eq? this-name that-name))
+           (and (restrict-typed->/c? that)
+                (eq? (restrict-typed->/c-name this)
+                     (restrict-typed->/c-name that))))
          #:late-neg-projection restrict-typed->-late-neg-projection))
 
 (define (restrict-typed-field-late-neg-proj ctc)
@@ -208,7 +208,7 @@
          #:name restrict-typed-field-name
          #:stronger
          (λ (this that)
-           (define this-name (restrict-typed-field/c-name this))
-           (define that-name (restrict-typed-field/c-name that))
-           (eq? this-name that-name))
+           (and (restrict-typed-field/c? that)
+                (eq? (restrict-typed-field/c-name this)
+                     (restrict-typed-field/c-name that))))
          #:late-neg-projection restrict-typed-field-late-neg-proj))

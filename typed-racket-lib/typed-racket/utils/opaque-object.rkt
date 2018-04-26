@@ -155,23 +155,17 @@
 ;; method is typed (assuming that the caller is untyped or the receiving
 ;; object went through untyped code)
 (define (((restrict-typed->-late-neg-projection ctc) blame) val neg-party)
-  (define blame+neg-party (cons blame neg-party))
-  (chaperone-procedure val
-                       (make-keyword-procedure
-                        (λ (_ kw-args . rst)
-                          (with-contract-continuation-mark
-                           blame+neg-party
-                           (when (typed-method? val)
+  (cond
+    [(typed-method? val)
+     (chaperone-procedure val
+                          (make-keyword-procedure
+                           (λ (_ kw-args . rst)
                              (raise-blame-error (blame-swap blame) val #:missing-party neg-party
                                                 "cannot call uncontracted typed method"))
-                           (apply values kw-args rst)))
-                        (λ args
-                          (with-contract-continuation-mark
-                           blame+neg-party
-                           (when (typed-method? val)
+                           (λ args
                              (raise-blame-error (blame-swap blame) val #:missing-party neg-party
-                                                "cannot call uncontracted typed method"))
-                           (apply values args))))))
+                                                "cannot call uncontracted typed method"))))]
+    [else val]))
 
 ;; Returns original method name
 (define (restrict-typed->-name ctc)

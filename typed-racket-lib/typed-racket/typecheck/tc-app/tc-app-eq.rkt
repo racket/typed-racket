@@ -3,7 +3,7 @@
 (require "../../utils/utils.rkt"
          "signatures.rkt"
          "utils.rkt"
-         syntax/parse syntax/stx racket/match
+         syntax/parse syntax/stx racket/match racket/unsafe/undefined
          (typecheck signatures tc-funapp)
          (types abbrev prop-ops utils match-expanders)
          (rep type-rep object-rep)
@@ -38,7 +38,7 @@
 ;; typecheck eq? applications
 ;; identifier expr expr -> tc-results
 (define (tc/eq comparator v1 v2)
-  (define (eq?-able e) (or (boolean? e) (keyword? e) (symbol? e) (eof-object? e)))
+  (define (eq?-able e) (or (boolean? e) (keyword? e) (symbol? e) (eof-object? e) (eq? e unsafe-undefined)))
   (define (eqv?-able e) (or (eq?-able e) (number? e) (char? e)))
   (define (equal?-able e) #t)
   (define (id=? a b)

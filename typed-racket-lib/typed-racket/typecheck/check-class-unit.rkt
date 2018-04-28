@@ -249,8 +249,9 @@
            #:with props-core
                   (let* ([prop-val (attribute opt.value)]
                          [mand (add1 (car prop-val))]
-                         [opt  (cadr prop-val)])
-                    (opt-lambda-property #'opt-core (list mand opt)))
+                         [opt  (cadr prop-val)]
+                         [opt-supplied? (caddr prop-val)])
+                    (opt-lambda-property #'opt-core (list mand opt opt-supplied?)))
            #:with plam-core
                   (cond [(plambda-property this-syntax)
                          => (λ (plam) (plambda-property #'props-core plam))]

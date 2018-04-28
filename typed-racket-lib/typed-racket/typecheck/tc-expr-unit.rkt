@@ -272,9 +272,9 @@
        (define conv-type
          (match expected
            [(tc-result1: fun-type)
-            (match-define (list required-pos optional-pos)
+            (match-define (list required-pos optional-pos optional-supplied?)
                           (attribute opt.value))
-            (opt-convert fun-type required-pos optional-pos)]
+            (opt-convert fun-type required-pos optional-pos optional-supplied?)]
            [_ #f]))
        (if conv-type
            (begin (tc-expr/check/type #'fun conv-type) expected)

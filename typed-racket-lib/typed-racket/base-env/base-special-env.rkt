@@ -290,12 +290,15 @@
   ;; check-in-port
   [(make-template-identifier 'check-in-port 'racket/private/for)
    (-> Univ Univ Univ)]
-  ;; from the expansion of `with-syntax'
+  ;; from the expansion of `with-syntax' or `quasisyntax'
   [(make-template-identifier 'apply-pattern-substitute 'racket/private/stxcase)
    (->* (list (-Syntax Univ) Univ) Univ (-Syntax Univ))]
   ;; same
   [(make-template-identifier 'with-syntax-fail 'racket/private/with-stx)
    (-> (-Syntax Univ) (Un))]
+  ; from `quasisyntax'
+  [(make-template-identifier 'check-splicing-list 'racket/private/qqstx)
+   (-> Univ (-Syntax Univ) (-Syntax Univ))]
   ;; more from with-syntax, a Guide is ...
   [(make-template-identifier 't-append 'racket/private/template)
    (-> (-lst (-Syntax Univ)) -Stxish -Stxish)]
@@ -313,7 +316,7 @@
    (-> Univ (-lst (-Syntax Univ)) (-Syntax Univ))]
   ;; ... or a Guide is ...
   [(make-template-identifier 'h-splice 'racket/private/template)
-   (-> Univ (Un (-val #f) (-Syntax Univ)) (Un (-val #f) (-Syntax Univ)) (-lst (-Syntax Univ)))]
+   (-> Univ (-pair -Symbol -Symbol) (Un (-val #f) (-Syntax Univ)) (-lst (-Syntax Univ)))]
   ;; ... or a Guide is ...
   [(make-template-identifier 't-subst 'racket/private/template)
    (->* (list (Un (-val #f) (-Syntax Univ)) (-Syntax Univ) Univ) Univ (-Syntax Univ))]

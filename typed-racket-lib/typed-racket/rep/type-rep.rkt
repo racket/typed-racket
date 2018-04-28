@@ -23,6 +23,7 @@
          syntax/id-table
          racket/contract
          racket/lazy-require
+         racket/unsafe/undefined
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -695,6 +696,7 @@
      [(? void?) -Void]
      [0 -Zero]
      [1 -One]
+     [(? (lambda (x) (eq? x unsafe-undefined))) -Unsafe-Undefined]
      [_ (make-Value val)])])
 
 

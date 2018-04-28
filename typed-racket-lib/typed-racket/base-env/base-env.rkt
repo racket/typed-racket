@@ -1208,6 +1208,8 @@
 [void (->* '() Univ -Void)]
 [void? (make-pred-ty -Void)]
 
+[unsafe-undefined -Unsafe-Undefined]
+
 ;; Section 5.2 (Structure Types)
 [make-struct-type
  (->opt -Symbol
@@ -3320,8 +3322,8 @@
  (-poly
   (a b)
   (cl->*
-   (->key (-lst a) (-> a a -Boolean) #:key (-> a a) #f #:cache-keys? -Boolean #f (-lst a))
-   (->key (-lst a) (-> b b -Boolean) #:key (-> a b) #f #:cache-keys? -Boolean #f (-lst a)))))
+   (->key (-lst a) (-> a a -Boolean) #:key (-opt (-> a a)) #f #:cache-keys? -Boolean #f (-lst a))
+   (->key (-lst a) (-> b b -Boolean) #:key (-opt (-> a b)) #f #:cache-keys? -Boolean #f (-lst a)))))
 (check-duplicates
  (-poly
   (a b c)
@@ -3344,8 +3346,8 @@
  (-poly
   (a b)
   (cl->*
-   (->optkey (-lst a) ((-> a a Univ)) #:key (-> a a) #f (-lst a))
-   (->optkey (-lst a) ((-> b b Univ)) #:key (-> a b) #f (-lst a)))))
+   (->optkey (-lst a) ((-> a a Univ)) #:key (-opt (-> a a)) #f (-lst a))
+   (->optkey (-lst a) ((-> b b Univ)) #:key (-opt (-> a b)) #f (-lst a)))))
 (open-input-file (->key -Pathlike
                         #:mode (one-of/c 'binary 'text) #f
                         #:for-module? Univ #f

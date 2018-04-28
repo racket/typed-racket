@@ -6,6 +6,7 @@
 (require "../utils/utils.rkt"
          (rep rep-utils base-type-rep type-mask core-rep)
          racket/undefined
+         racket/unsafe/undefined
          (types numeric-predicates)
          racket/extflonum
          ;; for base type contracts and predicates
@@ -14,6 +15,7 @@
            racket/base
            racket/contract/base
            racket/undefined
+           racket/unsafe/undefined
            racket/extflonum
            (only-in racket/pretty pretty-print-style-table?)
            (only-in racket/udp udp?)
@@ -192,6 +194,10 @@
    Undefined
    #'(λ (x) (eq? x undefined))
    (λ (x) (eq? x undefined))]
+  [-Unsafe-Undefined
+   Unsafe-Undefined
+   #'(λ (x) (eq? x unsafe-undefined))
+   (λ (x) (eq? x unsafe-undefined))]
   [-ExtFlVector ExtFlVector #'extflvector? extflvector?]
   ;; 80-bit floating-point numbers
   ;; +nan.t is included in all 80-bit floating-point types

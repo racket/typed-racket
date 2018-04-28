@@ -26,20 +26,16 @@
   #:literal-sets (kernel-literals)
   #:attributes (i cond)
   [pattern i:id #:attr cond #f]
-  [pattern (if cond:id i:id e:expr)])
+  [pattern (if cond:expr e:expr i:id)])
 
 (define-syntax-class rebuild-let*
   #:literal-sets (kernel-literals)
-  #:attributes (mapping flag-mapping)
+  #:attributes (mapping)
   (pattern (#%expression :rebuild-let*))
   (pattern (let-values ([(new-id) e:cl-rhs]) body:rebuild-let*)
-           #:attr mapping (free-id-table-set (attribute body.mapping) #'e.i #'new-id)
-           #:attr flag-mapping (if (attribute e.cond)
-                                   (free-id-table-set (attribute body.flag-mapping) #'e.i #'e.cond)
-                                   (attribute body.flag-mapping)))
+           #:attr mapping (free-id-table-set (attribute body.mapping) #'e.i #'new-id))
   (pattern body:expr
-           #:attr mapping (make-immutable-free-id-table)
-           #:attr flag-mapping (make-immutable-free-id-table)))
+           #:attr mapping (make-immutable-free-id-table)))
 
 ;; positional: (listof identifier?)
 ;; rest: id or #f
@@ -181,7 +177,7 @@
   (check-clause (formals-positional f) (formals-rest f) body arg-tys rst ret-ty))
 
 ;; typecheck a single opt-lambda clause with argument list and body
-(define/cond-contract (tc/opt-lambda-clause arg-list body aux-table flag-table)
+(define/cond-contract (tc/opt-lambda-clause arg-list body aux-table)
   (-> (listof identifier?) syntax? free-id-table? free-id-table?
       (listof Arrow?))
   ;; arg-types: Listof[Type?]
@@ -193,25 +189,7 @@
                                   (get-type id #:default Univ)
                                   Univ)))))
 
-  ;; new-arg-types: Listof[Listof[Type?]]
-  (define new-arg-types
-    (if (= 0 (free-id-table-count flag-table))
-        (list arg-types)
-        (apply append
-               (for/list ([(k v) (in-free-id-table flag-table)])
-                 (list
-                  (for/list ([i (in-list arg-list)]
-                             [t (in-list arg-types)])
-                    (cond [(free-identifier=? i k) t]
-                          [(free-identifier=? i v) (-val #t)]
-                          [else t]))
-                  (for/list ([i (in-list arg-list)]
-                             [t (in-list arg-types)])
-                    (cond [(free-identifier=? i k) (-val #f)]
-                          [(free-identifier=? i v) (-val #f)]
-                          [else t])))))))
-  (for/list ([arg-types (in-list new-arg-types)])
-    (tc-lambda-body arg-list arg-types body)))
+  (list (tc-lambda-body arg-list arg-types body)))
 
 ;; restrict-to-arity : Arrow? nat -> (or/c #f Arrow?)
 ;; either produces a new arrow which is a subtype of arr with arity n,
@@ -226,11 +204,10 @@
 
 (define/cond-contract (tc/lambda-clause f body)
   (-> formals? syntax? (listof Arrow?))
-  (define-values (aux-table flag-table)
+  (define aux-table
     (syntax-parse body
-      [(b:rebuild-let*) (values (attribute b.mapping) (attribute b.flag-mapping))]
-      [_ (values (make-immutable-free-id-table)
-                 (make-immutable-free-id-table))]))
+      [(b:rebuild-let*) (values (attribute b.mapping))]
+      [_ (make-immutable-free-id-table)]))
 
   (define arg-list (formals-positional f))
   (define rest-id (formals-rest f))
@@ -246,7 +223,7 @@
   
   (cond
     [(and (> (free-id-table-count aux-table) 0) (not rest-id))
-     (tc/opt-lambda-clause arg-list body aux-table flag-table)]
+     (tc/opt-lambda-clause arg-list body aux-table)]
     [else
      (define arg-types (get-types arg-list #:default (lambda () #f)))
      (define rest-type

@@ -21,15 +21,15 @@
 
 (define-syntax-rule (t-opt ((req-arg ...) (opt-arg ...)) expected)
   (let ()
+    (define (get-false v) #f)
     (test-equal? (format "~a" '(opt-convert (->opt req-arg ... (opt-arg ...) result) expected))
                  (extract-arrs
                    (opt-convert (->opt req-arg ... (opt-arg ...) result)
                                 (length (list 'req-arg ...))
-                                (length (list 'opt-arg ...))))
+                                (length (list 'opt-arg ...))
+                                (list (get-false 'opt-arg) ...)))
                  (extract-arrs expected))))
 
-
-(define flag -Boolean)
 (define true (-val #t))
 (define false (-val #f))
 (define result (-val 'result))
@@ -37,6 +37,7 @@
 (define two (-val 'two))
 (define three (-val 'three))
 (define four (-val 'four))
+(define (-or-undefined t) (Un -Unsafe-Undefined t))
 
 (define tests
   (test-suite "Tests for keyword expansion"
@@ -47,11 +48,11 @@
     [t (-> one two three four result)
        (-> one two three four result)]
     [t (->opt (one) result)
-       (-> (-opt one) flag result)]
+       (-> (-or-undefined one) result)]
     [t (->opt (one two) result)
-       (-> (-opt one) (-opt two) flag flag result)]
+       (-> (-or-undefined one) (-or-undefined two) result)]
     [t (->opt one (two three) result)
-       (-> one (-opt two) (-opt three) flag flag result)]
+       (-> one (-or-undefined two) (-or-undefined three) result)]
 
     [t-opt (() ()) (-> result)]
     [t-opt ((one) ())
@@ -59,17 +60,9 @@
     [t-opt ((one two three four) ())
        (-> one two three four result)]
     [t-opt (() (one))
-           (cl->*
-             (-> one true result)
-             (-> false false result))]
+           (-> (-or-undefined one) result)]
     [t-opt (() (one two))
-           (cl->*
-             (-> one two true true result)
-             (-> one false true false result)
-             (-> false false false false result))]
+           (-> (-or-undefined one) (-or-undefined two) result)]
     [t-opt ((one) (two three))
-           (cl->*
-             (-> one two three true true result)
-             (-> one two false true false  result)
-             (-> one false false false false result))]
+           (-> one (-or-undefined two) (-or-undefined three) result)]
     ))

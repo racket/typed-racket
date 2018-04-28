@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require syntax/parse/pre
+         racket/private/immediate-default
          "../private/parse-classes.rkt"
          "../private/syntax-properties.rkt"
          (for-label "colon.rkt"))
@@ -10,8 +11,8 @@
 ;; ----------------
 ;;
 ;; A LambdaKeywords is a
-;;   (lambda-kws (Listof Keyword) (Listof Keyword))
-(struct lambda-kws (mand opt))
+;;   (lambda-kws (Listof Keyword) (Listof Keyword) (Listof Keyword) (listof Boolean))
+(struct lambda-kws (mand opt opt-supplied pos-opt-supplied?))
 
 ;; interp.
 ;;   - the first list contains the mandatory keywords
@@ -257,22 +258,38 @@
            ;; put them in a struct for later use by tc-expr
            (let ([kws (append (attribute mand.kw)
                               (attribute opt.kw))]
-                 [opt?s (append (attribute mand.default)
-                                (attribute opt.default))])
-             (define-values (mand-kws opt-kws)
+                 [defaults (append (attribute mand.default)
+                                   (attribute opt.default))])
+             (define-values (mand-kws opt-kws opt-kws-supplied)
                (for/fold ([mand-kws '()]
-                          [opt-kws '()])
+                          [opt-kws '()]
+                          [opt-kws-supplied '()])
                          ([kw (in-list kws)]
-                          [opt? (in-list opt?s)]
+                          [default (in-list defaults)]
                           #:when kw)
-                 (if opt?
-                     (values mand-kws (cons (syntax-e kw) opt-kws))
-                     (values (cons (syntax-e kw) mand-kws) opt-kws))))
+                 (if default
+                     (values mand-kws
+                             (cons (syntax-e kw) opt-kws)
+                             (if (immediate-default? default)
+                                 (cons (syntax-e kw) opt-kws-supplied)
+                                 opt-kws-supplied))
+                     (values (cons (syntax-e kw) mand-kws)
+                             opt-kws
+                             opt-kws-supplied))))
+             (define pos-opt-supplied?s
+               (for/list ([kw (in-list kws)]
+                          [default (in-list defaults)]
+                          #:when default
+                          #:unless kw)
+                 (immediate-default? default)))
              (and (or (not (null? mand-kws))
                       (not (null? opt-kws)))
-                  (lambda-kws mand-kws opt-kws)))
+                  (lambda-kws mand-kws opt-kws opt-kws-supplied pos-opt-supplied?s)))
            #:attr opt-property
-           (list (length (attribute mand)) (length (attribute opt)))
+           (list (length (attribute mand))
+                 (length (attribute opt))
+                 (for/list ([default (in-list (attribute opt.default))])
+                   (and default (immediate-default? default))))
            #:attr erased
            (with-syntax ([((mand-form ...) ...) #'(mand.form ...)]
                          [((opt-form ...) ...) #'(opt.form ...)])

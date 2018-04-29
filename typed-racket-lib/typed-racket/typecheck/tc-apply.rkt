@@ -53,7 +53,7 @@
     (match f-ty
       [(tc-result1:
          (and t (AnyPoly-names: _ _
-                                (Fun: (list (Arrow: doms rests (list (Keyword: _ _ #f) ...) rngs) ..1)))))
+                                (Fun: (list (Arrow: doms rests (list (Keyword: _ _ #f) ...) rngs _) ..1)))))
        (domain-mismatches f args t doms rests rngs arg-tres full-tail-ty #f
                           #:msg-thunk (lambda (dom)
                                         (string-append
@@ -70,7 +70,7 @@
      (or
       (for/or ([arrow (in-list arrows)])
         (match arrow
-          [(Arrow: domain rst _ rng)
+          [(Arrow: domain rst _ rng _)
            ;; Takes a possible substitution and computes
            ;; the substituted range type if it is not #f
            (define (finish substitution)

@@ -42,11 +42,6 @@
   (and (below? actual expected*)
        (below? expected* actual)))
 
-(define-syntax (check-type-equal? stx)
-  (syntax-case stx ()
-    [(_ nm a b)
-     (syntax/loc stx (test-check nm type-equal? a b))]))
-
 (define-syntax gen-test-main
   (syntax-parser
     [(stx:id)

@@ -38,6 +38,7 @@
                        syntax/stx
                        "../rep/values-rep.rkt"
                        "../optimizer/optimizer.rkt"
+                       "../private/shallow-rewrite.rkt"
                        "../types/utils.rkt"
                        "../types/abbrev.rkt"
                        "../types/printer.rkt"
@@ -60,12 +61,24 @@
 
   (define-for-syntax (maybe-optimize body)
     ;; do we optimize?
-    (if (optimize?)
+    (if (and (optimize?)
+             (memq (current-type-enforcement-mode) (list deep shallow))
+             (not (getenv "PLT_TR_NO_OPTIMIZE")))
         (begin
           (do-time "Starting optimizer")
           (begin0 (stx-map optimize-top body)
             (do-time "Optimized")))
         body))
+
+  (define-for-syntax (maybe-shallow-rewrite body-stx ctc-cache)
+    (case (current-type-enforcement-mode)
+      [(shallow)
+       (do-time "Starting shallow rewrite")
+       (define-values [extra-def* body+] (shallow-rewrite-top body-stx ctc-cache))
+       (do-time "End shallow rewrite")
+       (values extra-def* body+)]
+      [else
+       (values '() body-stx)]))
 
   (define-for-syntax (trampoline-core stx report? kont)
     (syntax-parse stx
@@ -113,9 +126,13 @@
                ;; will change syntax object identity (via syntax-track-origin) which
                ;; doesn't work for looking up types in the optimizer.
                (define new-stx
-                 (apply append
-                        (for/list ([form (in-list forms)])
-                          (change-contract-fixups (maybe-optimize (list form))))))
+                 (let ((ctc-cache (make-hash)))
+                   (apply append
+                          (for/list ([form (in-list forms)])
+                            (define-values [extra-def* form+]
+                              (maybe-shallow-rewrite form ctc-cache))
+                            (append extra-def*
+                                    (change-contract-fixups (maybe-optimize (list form+))))))))
                (kont new-stx result)]))])]))
 
   ;; Trampoline that continues the typechecking process.

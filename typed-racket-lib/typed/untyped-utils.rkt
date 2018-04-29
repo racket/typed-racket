@@ -17,10 +17,13 @@
 
 (define-syntax (define-typed/untyped-identifier stx)
   (syntax-parse stx
-    [(_ name:id typed-name:id untyped-name:id)
+    [(_ name:id deep-name:id untyped-name:id (~optional shallow-name:id) (~optional optional-name:id))
      (syntax/loc stx
        (define-syntax name
-         (make-typed-renaming #'typed-name #'untyped-name)))]))
+         (make-typed-renaming #'deep-name #'untyped-name
+                              (~? #'shallow-name #'untyped-name)
+                              (~? #'optional-name #'untyped-name)
+                              )))]))
 
 (define-for-syntax (freshen ids)
   (stx-map (lambda (id) ((make-syntax-introducer) id)) ids))

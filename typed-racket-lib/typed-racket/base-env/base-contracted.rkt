@@ -42,4 +42,4 @@
       ;;       support this (it needs a #:rest argument)
       ;;
       ;;       Also, this type works better with inference.
-      (-> (-Prompt-Tagof Univ (-> Univ ManyUniv)))))))
+      (-> (-Prompt-Tagof Univ (-> Univ ManyUniv :T+ #true)) :T+ #true)))))

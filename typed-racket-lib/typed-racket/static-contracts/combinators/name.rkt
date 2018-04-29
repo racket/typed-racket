@@ -72,7 +72,8 @@
        (case typed-side
          [(both)    (car result)]
          [(typed)   (cadr result)]
-         [(untyped) (caddr result)])))
+         [(untyped) (caddr result)]
+         [else (raise-argument-error 'lookup-name-sc "side?" typed-side)])))
 
 (define (register-name-sc type typed-thunk untyped-thunk both-thunk)
   (define-values (typed-name untyped-name both-name)

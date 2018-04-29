@@ -65,7 +65,7 @@
         (eq? expected-ty #t) ; expected is tc-anyresults, anything is fine
         (and expected-ty ; not some unknown expected tc-result
              (match fun-ty
-               [(Fun: (list (Arrow: _ _ _ rng)))
+               [(Fun: (list (Arrow: _ _ _ rng _)))
                 (let ([rng (match rng
                              [(Values: (list (Result: t _ _)))
                               t]
@@ -85,7 +85,7 @@
                                                 [(Values: (list (Result: t _ _) ...))
                                                  (-values t)]
                                                 [(ValuesDots: (list (Result: t _ _) ...) _ _)
-                                                 (-values t)]))))))
+                                                 (-values t)]) #f)))))
 
   ;; iterate in lock step over the function types we analyze and the parts
   ;; that we will need to print the error message, to make sure we throw
@@ -116,11 +116,11 @@
   ;; function types with a return type of any then test for subtyping
   (define fun-tys-ret-any
     (map (match-lambda
-          [(Fun: (list (Arrow: dom rst _ _)))
+          [(Fun: (list (Arrow: dom rst _ _ _)))
            (make-Fun (list (make-Arrow dom
                                        rst
                                        null
-                                       (-values (list Univ)))))])
+                                       (-values (list Univ)) #f)))])
          candidates))
 
   ;; Heuristic: often, the last case in the definition (first at this
@@ -155,7 +155,7 @@
 (define (cleanup-type t [expected #f] [permissive? #t])
   (match t
     ;; function type, prune if possible.
-    [(Fun: (list (Arrow: doms rests _ rngs) ...))
+    [(Fun: (list (Arrow: doms rests _ rngs rngs-T+) ...))
      (match-let ([(list pdoms rngs rests)
                   (possible-domains doms rests rngs
                                     (and expected (ret expected))
@@ -168,7 +168,8 @@
            ;; pruning helped, return pruned type
            (make-Fun (for/list ([pdom (in-list pdoms)]
                                 [rst (in-list rests)]
-                                [rng (in-list rngs)])
-                       (make-Arrow pdom rst null rng)))))]
+                                [rng (in-list rngs)]
+                                [T+ (in-list rngs-T+)])
+                       (make-Arrow pdom rst null rng T+)))))]
     ;; not a function type. keep as is.
     [_ t]))

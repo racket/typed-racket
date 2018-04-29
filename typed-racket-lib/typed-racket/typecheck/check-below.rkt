@@ -10,6 +10,7 @@
          "../types/abbrev.rkt"
          "../types/tc-result.rkt"
          "../utils/tc-utils.rkt"
+         "../utils/shallow-utils.rkt"
          "../rep/type-rep.rkt"
          "../rep/object-rep.rkt"
          "../rep/prop-rep.rkt"
@@ -102,7 +103,7 @@
             (expected-but-got t2 t1)))]
        [else (unless (subtype t1 t2 o1)
                (expected-but-got t2 t1))])
-     t2]
+     (upgrade-trusted-rng t1 t2)]
     ;; This case has to be first so that bottom (exceptions, etc.) can be allowed in cases
     ;; where multiple values are expected.
     ;; We can ignore the props and objects in the actual value because they would never be about a value
@@ -141,7 +142,7 @@
           (type-mismatch (format "`~a' and `~a'" p2 (print-object o2))
                          (format "`~a' and `~a'" p1 (print-object o1))
                          "mismatch in proposition and object")])
-       (ret t2 (fix-props p2 p1) (fix-object o2 o1)))
+       (ret (upgrade-trusted-rng t1 t2) (fix-props p2 p1) (fix-object o2 o1)))
      (cond
        [(with-refinements?)
         (with-naively-extended-lexical-env
@@ -193,6 +194,13 @@
     [((? Type? t1) (? Type? t2))
      (unless (subtype t1 t2)
        (expected-but-got t2 t1))
-     expected]
+     (upgrade-trusted-rng t1 expected)]
 
     [(a b) (int-err "unexpected input for check-below: ~a ~a" a b)]))
+
+;; shallow: if the top-level arrow on t1 is reliable, then upgrade the top-level arrow in t2
+(define (upgrade-trusted-rng t1 t2)
+  (if (shallow-trusted-positive? t1)
+    (set-shallow-trusted-positive t2)
+    t2))
+

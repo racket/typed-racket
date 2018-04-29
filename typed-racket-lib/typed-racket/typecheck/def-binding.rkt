@@ -42,23 +42,45 @@
            identifier? identifier?
            (values syntax? syntax? identifier? (listof (list/c identifier? identifier?))))
      (match-define (def-binding internal-id ty) me)
+     (define te-mode (current-type-enforcement-mode))
      (with-syntax* ([id internal-id]
                     [untyped-id (freshen-id #'id)]
                     [local-untyped-id (freshen-id #'id)]
+                    [shallow-id (generate-temporary #'id)]
+                    [local-shallow-id (generate-temporary #'id)]
                     [export-id new-id])
        (define/with-syntax ctc (generate-temporary 'generated-contract))
+       (define/with-syntax shallow-ctc (generate-temporary 'generated-contract))
        ;; Create the definitions of the contract and the contracted export.
        (define/with-syntax definitions
          (contract-def/provide-property
           #'(define-values (ctc) #f)
-          (list ty #'untyped-id #'id pos-blame-id)))
+          (list ty #'untyped-id #'id pos-blame-id deep)))
        (values
         ;; For the submodule
-        #`(begin definitions (provide untyped-id))
+        (case te-mode
+          ((optional)
+           (with-syntax ((shallow-ctc-def (contract-def/provide-property
+                                              #'(define-values (shallow-ctc) #f)
+                                              (list ty #'shallow-id #'id pos-blame-id shallow))))
+             #`(begin definitions shallow-ctc-def (provide untyped-id shallow-id))))
+          (else
+           #`(begin definitions (provide untyped-id))))
         ;; For the main module
-        #`(begin (define-syntax local-untyped-id (#,mk-redirect-id (quote-syntax untyped-id)))
-                 (define-syntax export-id
-                   (make-typed-renaming #'id #'local-untyped-id)))
+        (case te-mode
+          ((shallow)
+           #`(begin (define-syntax local-untyped-id (#,mk-redirect-id (quote-syntax untyped-id)))
+                    (define-syntax export-id
+                      (make-typed-renaming #'local-untyped-id #'id #'id #'id))))
+          ((optional)
+           #`(begin (define-syntax local-untyped-id (#,mk-redirect-id (quote-syntax untyped-id)))
+                    (define-syntax local-shallow-id (#,mk-redirect-id (quote-syntax shallow-id)))
+                    (define-syntax export-id
+                      (make-typed-renaming #'local-untyped-id #'id #'local-shallow-id #'id))))
+          (else ; (deep #f)
+           #`(begin (define-syntax local-untyped-id (#,mk-redirect-id (quote-syntax untyped-id)))
+                    (define-syntax export-id
+                      (make-typed-renaming #'id #'local-untyped-id #'local-untyped-id #'local-untyped-id)))))
         new-id
         null)))])
 
@@ -69,21 +91,25 @@
            identifier? identifier?
            (values syntax? syntax? identifier? (listof (list/c identifier? identifier?))))
      (match-define (def-stx-binding internal-id) me)
-     (with-syntax* ([id internal-id]
-                    [export-id new-id]
-                    [untyped-id (freshen-id #'id)])
-       (values
-        #`(begin)
-        ;; There's no need to put this macro in the submodule since it
-        ;; has no dependencies.
-        #`(begin
-            (define-syntax (untyped-id stx)
-              (tc-error/stx stx "Macro ~a from typed module used in untyped code" 'untyped-id))
-            (define-syntax export-id
-              (make-typed-renaming #'id #'untyped-id)))
-        new-id
-        (list (list #'export-id #'id)))))])
-
+     (case (current-type-enforcement-mode)
+       [(deep #f)
+        (with-syntax* ([id internal-id]
+                       [export-id new-id]
+                       [untyped-id (freshen-id #'id)])
+          (values
+           #`(begin)
+           ;; There's no need to put this macro in the submodule since it
+           ;; has no dependencies.
+           #`(begin
+               (define-syntax (untyped-id stx)
+                 (tc-error/stx stx "Macro ~a from typed module used in untyped code" 'untyped-id))
+               (define-syntax export-id
+                 (make-typed-renaming #'id #'untyped-id #'untyped-id #'untyped-id)))
+           new-id
+           (list (list #'export-id #'id))))]
+       [else ;(shallow optional)
+        ;; export the syntax
+        (mk-ignored-quad internal-id)]))])
 
 (define-struct (def-struct-stx-binding def-stx-binding)
   (sname tname static-info constructor-name constructor-type extra-constr-name)

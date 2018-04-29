@@ -5,11 +5,12 @@
 
 (require "../../utils/utils.rkt"
          "../structures.rkt" "../constraints.rkt"
+         "simple.rkt"
          racket/list racket/match
          (contract-req)
          racket/syntax
          typed-racket/utils/opaque-object
-         (for-template racket/base racket/class
+         (for-template racket/base racket/class racket/contract
                        typed-racket/utils/opaque-object)
          (for-syntax racket/base syntax/parse))
 
@@ -17,6 +18,9 @@
 
 (define field-modifiers '(field init init-field inherit-field))
 (define method-modifiers '(method inherit super inner override augment augride))
+
+;; Bottom-out members
+(define (f-any _) #'any/c)
 
 (struct object-combinator combinator (opaque?)
   #:transparent
@@ -103,15 +107,12 @@
 (define ((member-spec->form f) v)
   (match v
     [(member-spec modifier id sc)
-     (with-syntax ([ctc-stx (and sc (f sc) empty)]
-                   [id-stx id])
-       (define id/ctc
-         (if sc #`(#,id #,(f sc)) id))
-       (match modifier
-         ['method id/ctc]
-         ['inner #`(inner #,id/ctc)]
-         ['init #`(init #,id/ctc)]
-         ['field #`(field #,id/ctc)]))]))
+     (with-syntax ([id/ctc (if sc #`(#,id #,(f sc)) id)])
+       (case modifier
+         [(method) #'id/ctc]
+         [(inner) #'(inner id/ctc)]
+         [(init) #'(init id/ctc)]
+         [(field) #'(field id/ctc)]))]))
 
 (define (spec->id/ctc f modifier vals)
   (for/lists (_1 _2)
@@ -120,13 +121,14 @@
     (values (member-spec-id spec)
             (f (member-spec-sc spec)))))
 
-(define (object/sc->contract v f) 
+(define (object/sc->contract v f)
   (match v
    [(object-combinator (member-seq vals) opaque?)
     #`(#,(if opaque?
              #'object/c-opaque
              #'object/c)
        #,@(map (member-spec->form f) vals))]))
+
 (define (class/sc->contract v f) 
   (match v
    [(class-combinator (member-seq vals) opaque absents)
@@ -159,13 +161,38 @@
                  (augment [pubment-name pubment-temp] ...)
                  (inherit [pubment-name pubment-temp] ...)
                  (absent #,@absents)))]))
+
 (define (instance/sc->contract v f)
   (match v
    [(instanceof-combinator (list class))
     #`(instanceof/c #,(f class))]))
 
+(define (make-class-shape/sc init* field* public* augment*)
+  (define-values [pubment* override*] (partition (lambda (nm) (memq nm augment*)) public*))
+  (with-syntax ((ctc-stx
+                  #`(class/c
+                      (init . #,init*)
+                      (field . #,field*)
+                      (inner . #,augment*)
+                      (override . #,override*)
+                      . #,pubment*)))
+    (flat/sc
+      #'(let ((check-cls-shape (contract-first-order ctc-stx)))
+          (λ (cls)
+            (and (class? cls) (check-cls-shape cls)))))))
+
+(define (make-object-shape/sc field-name* method-name*)
+  (with-syntax ((ctc-stx #`(object/c (field . #,field-name*) . #,method-name*)))
+    (flat/sc
+      #'(let ((check-obj-shape (contract-first-order ctc-stx)))
+          (λ (this)
+            (and (object? this) (check-obj-shape this)))))))
+
 (provide/cond-contract
  [struct member-spec ([modifier symbol?] [id symbol?] [sc static-contract?])]
  [object/sc (boolean? (listof object-member-spec?) . -> . static-contract?)]
  [class/sc (boolean? (listof member-spec?) (listof symbol?) . -> . static-contract?)]
- [instanceof/sc (static-contract? . -> . static-contract?)])
+ [instanceof/sc (static-contract? . -> . static-contract?)]
+ [make-class-shape/sc ((listof symbol?) (listof symbol?) (listof symbol?) (listof symbol?) . -> . static-contract?)]
+ [make-object-shape/sc ((listof symbol?) (listof symbol?) . -> . static-contract?)])
+

@@ -156,10 +156,19 @@ Because of limitations in the macro expander, @racket[require/untyped-contract]
 cannot currently be used in typed code.
 }
 
-@defform[(define-typed/untyped-identifier name typed-name untyped-name)]{
-Defines an identifier @racket[name] that expands to @racket[typed-name] in typed
-contexts and to @racket[untyped-name] in untyped contexts. Each subform must be
-an identifier.
+@deftogether[(
+  @defform[(define-typed/untyped-identifier name typed-name untyped-name)]
+  @defform[#:link-target? #f (define-typed/untyped-identifier name deep-name untyped-name shallow-name optional-name)]
+)]{
+Defines an identifier @racket[name] that expands to one of the following identifiers
+depending on context. When two identifiers are provided, @racket[name] expands
+to @racket[typed-name] in typed contexts and to @racket[untyped-name] in untyped contexts
+(more precisely, everywhere else). When four identifiers are provided,
+@racket[name] expands to @racket[deep-name] in Deep-typed contexts,
+to @racket[untyped-name] in untyped contexts,
+to @racket[shallow-name] in Shallow-typed contexts,
+and to @racket[optional-name] in Optionally-typed contexts.
+@Secref{behavior-of-types} explains these different contexts.
 
 Suppose we define and provide a Typed Racket function with this type:
 @racketblock[(: my-filter (All (a) (-> (-> Any Any : a) (Listof Any) (Listof a))))]

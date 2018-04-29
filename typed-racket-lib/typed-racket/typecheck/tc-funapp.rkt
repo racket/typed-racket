@@ -131,7 +131,7 @@
        (cond
          ;; find the first function where the argument types match
          [(ormap (match-lambda
-                   [(and a (Arrow: dom rst _ _))
+                   [(and a (Arrow: dom rst _ _ _))
                     (and (subtypes/varargs argtys dom rst) a)])
                  arrows)
           => (λ (a)
@@ -141,7 +141,7 @@
          [else
           ;; if nothing matched, error
           (match arrows
-            [(list (Arrow: doms rsts _ rngs) ...)
+            [(list (Arrow: doms rsts _ rngs _) ...)
              (domain-mismatches
               f-stx args-stx f-type doms rsts rngs args-res #f #f
               #:expected expected
@@ -158,7 +158,7 @@
                      (ormap Keyword-required? kws)))
        (for/first-valid-inference
            #:in-arrs [a (in-list arrows)]
-         #:arr-match (Arrow: dom rst _ rng)
+         #:arr-match (Arrow: dom rst _ rng _)
          #:function-syntax f-stx
          #:args-syntax args-stx
          #:infer-when
@@ -202,7 +202,7 @@
                      (RestDots? (Arrow-rst a))))
        (for/first-valid-inference
            #:in-arrs [a (in-list arrows)]
-           #:arr-match (Arrow: dom rst kws rng)
+           #:arr-match (Arrow: dom rst kws rng _)
            #:function-syntax f-stx
            #:args-syntax args-stx
            ;; only try inference if the argument lengths are appropriate

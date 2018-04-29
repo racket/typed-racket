@@ -233,8 +233,8 @@
 (define/cond-contract (arrow-subtype* A arr1 arr2)
   (-> list? Arrow? Arrow? (or/c #f list?))
   (match* (arr1 arr2)
-    [((Arrow: dom1 rst1 kws1 raw-rng1)
-      (Arrow: dom2 rst2 kws2 raw-rng2))
+    [((Arrow: dom1 rst1 kws1 raw-rng1 _)
+      (Arrow: dom2 rst2 kws2 raw-rng2 _))
      (define A* (subtype-seq A
                              (Arrow-domain-subtypes* dom1 rst1 dom2 rst2)
                              (kw-subtypes* kws1 kws2)))
@@ -261,7 +261,7 @@
 (define/cond-contract (arrow-subtype-dfun* A arrow dfun)
   (-> list? Arrow? DepFun? (or/c #f list?))
   (match* (arrow dfun)
-    [((Arrow: dom1 rst1 kws1 raw-rng1)
+    [((Arrow: dom1 rst1 kws1 raw-rng1 _)
       (DepFun: raw-dom2 raw-pre2  raw-rng2))
      #:when (Arrow-includes-arity? arrow (length raw-dom2))
      (define arity (length raw-dom2))
@@ -579,11 +579,11 @@
 (define/cond-contract (collapsable-arrows? arrows)
   (-> (listof Arrow?) (or/c Arrow? #f))
   (match arrows
-    [(cons (Arrow: (list dom1) #f '() rng) remaining)
+    [(cons (Arrow: (list dom1) #f '() rng _) remaining)
      (match remaining
-       [(list (Arrow: (list dom2) #f '() (== rng))
-              (Arrow: (list doms) #f '() (== rng)) ...)
-        (-Arrow (list (apply Un dom1 dom2 doms)) rng)]
+       [(list (Arrow: (list dom2) #f '() (== rng) rng-T+2)
+              (Arrow: (list doms) #f '() (== rng) rng-T+*) ...)
+        (-Arrow (list (apply Un dom1 dom2 doms)) rng #:T+ (andmap values (cons rng-T+2 rng-T+*)))]
        [_ #f])]
     [_ #f]))
 
@@ -794,7 +794,7 @@
                   ([a2 (in-list arrows2)]
                    #:break (not A))
           (match a2
-            [(Arrow: dom2 rst2 kws2 raw-rng2)
+            [(Arrow: dom2 rst2 kws2 raw-rng2 _)
              (define A* (subtype-seq A
                                      (subtypes* dom2 dom1)
                                      (kw-subtypes* '() kws2)))
@@ -1129,6 +1129,16 @@
       (subtype* A (subst-all subst b1) b2)]
      [_ #:when (infer ns (list n-dotted) (list b1) (list t2) Univ)
         A]
+     [_ (continue<: A t1 t2 obj)])]
+  [(case: PolyRow (PolyRow: vs1 b1 c1))
+   (match t2
+     [(PolyRow: vs2 b2 c2)
+      #:when (and (equal? (length vs1) (length vs2))
+                  (equal? c1 c2))
+      (define f* (map make-F vs1))
+      (subtype* A
+                (subst-all (make-simple-substitution vs1 f*) b1)
+                (subst-all (make-simple-substitution vs2 f*) b2))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Prefab (Prefab: k1 ss))
    (match t2

@@ -8,6 +8,8 @@
          "utils.rkt"
          syntax/parse
          "../signatures.rkt"
+         (only-in typed-racket/types/type-table add-typeof-expr)
+         (only-in typed-racket/types/tc-result ret)
          (for-template racket/base
                        ;; shift -1 because it's provided +1
                        racket/contract/private/provide))
@@ -27,8 +29,11 @@
 ;; put things in the base type environment if they have impersonator
 ;; contracts installed.
 (define (check-contract orig-value-id other-args expected)
+  (define ctc-id (contract-rename-id-property orig-value-id))
+  (define ctc-ty (tc-expr/t ctc-id))
+  (add-typeof-expr orig-value-id (ret ctc-ty))
   (tc-expr/check #`(#%plain-app
-                    #,(contract-rename-id-property orig-value-id)
+                    #,ctc-id
                     . #,other-args)
                  expected))
 

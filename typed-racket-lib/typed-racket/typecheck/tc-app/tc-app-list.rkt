@@ -37,14 +37,15 @@
 
 (define-tc/app-syntax-class (tc/app-list expected)
   #:literal-sets (list-literals)
-  (pattern (~and form (map f arg0 arg ...))
+  (pattern (~and form ((~and m map) f arg0 arg ...))
     (match* ((single-value #'arg0) (stx-map single-value #'(arg ...)))
       ;; if the argument is a ListDots
-      [((tc-result1: (ListDots: t0 bound0))
-        (list (tc-result1: (or (and (ListDots: t bound))
-                               ;; NOTE: safe to include these, `map' will error if any list is
-                               ;; not the same length as all the others
-                               (and (Listof: t) (bind bound #f ))))
+      [((tc-result1: (and arg0-ty (ListDots: t0 bound0)))
+        (list (tc-result1: (and arg-ty
+                                (or (and (ListDots: t bound))
+                                    ;; NOTE: safe to include these, `map' will error if any list is
+                                    ;; not the same length as all the others
+                                    (and (Listof: t) (bind bound #f )))))
               ...))
        (=> fail)
        (unless (for/and ([b (in-list bound)]) (or (not b) (eq? bound0 b))) (fail))
@@ -61,7 +62,11 @@
        (match (extend-tvars (list bound0)
                 (tc/funapp #'f #'(arg0 arg ...) f-type (cons (ret t0) (map ret t))
                            expected-elem-type))
-         [(tc-result1: t) (ret (make-ListDots t bound0))]
+         [(tc-result1: t)
+          (add-typeof-expr #'f (ret f-type))
+          (define return-type (make-ListDots t bound0))
+          (add-typeof-expr #'m (ret (->* (list* f-type arg0-ty arg-ty) return-type :T+ #t)))
+          (ret return-type)]
          [(tc-results: (list (tc-result: ts)) _)
           (tc-error/expr "Expected one value, but got ~a" (-values ts))])]
       ;; otherwise, if it's not a ListDots, defer to the regular function typechecking
@@ -96,7 +101,7 @@
               (for ([arg (in-list args-list)]
                     [t (in-list ts)])
                 (tc-expr/check arg (ret t)))
-              (add-typeof-expr #'op-name (ret (->* ts t)))
+              (add-typeof-expr #'op-name (ret (->* ts t :T+ #t)))
               (ret t)]
              [else
               (expected-but-got t (-Tuple (map tc-expr/t args-list)))
@@ -104,7 +109,7 @@
           [(Listof: t*)
            (for ([arg (in-list args-list)])
              (tc-expr/check arg (ret t*)))
-           (add-typeof-expr #'op-name (ret (->* '() t* t)))
+           (add-typeof-expr #'op-name (ret (->* '() t* t :T+ #t)))
            (ret t)]
           [_
            (define vs (map (λ (_) (gensym)) args-list))
@@ -122,7 +127,7 @@
                                                   (tc-expr/check/t? arg (ret (subst-all subst (make-F v))))))]
                              #:when (andmap values arg-tys))
                   (define return-ty (-Tuple arg-tys))
-                  (add-typeof-expr #'op-name (ret (->* arg-tys return-ty)))
+                  (add-typeof-expr #'op-name (ret (->* arg-tys return-ty :T+ #t)))
                   (ret return-ty)))
               (or result
                   ;; When arguments to the list function fail to typecheck, the
@@ -139,18 +144,18 @@
              [else
               (define arg-tys (map tc-expr/t args-list))
               (define return-ty (-Tuple arg-tys))
-              (add-typeof-expr #'op-name (ret (->* arg-tys return-ty)))
+              (add-typeof-expr #'op-name (ret (->* arg-tys return-ty :T+ #t)))
               (ret return-ty)])])]
        [_
         (define arg-tys (map tc-expr/t args-list))
         (define return-ty (-Tuple arg-tys))
-        (add-typeof-expr #'op-name (ret (->* arg-tys return-ty)))
+        (add-typeof-expr #'op-name (ret (->* arg-tys return-ty :T+ #t)))
         (ret return-ty)])))
   ;; special case for `list*'
   (pattern ((~and op-name list*) (~between args:expr 1 +inf.0) ...)
     (match-let* ([(and arg-tys (list tys ... last)) (stx-map tc-expr/t #'(args ...))])
       (define return-ty (foldr -pair last tys))
-      (add-typeof-expr #'op-name (ret (->* arg-tys return-ty)))
+      (add-typeof-expr #'op-name (ret (->* arg-tys return-ty :T+ #t)))
       (ret return-ty)))
   ;; special case for `reverse' to propagate expected type info
   (pattern ((~and fun (~or reverse k:reverse)) arg)
@@ -158,21 +163,21 @@
       [(tc-result1: (and return-ty (or (? App? (app resolve-once (Listof: _))) (Listof: _))))
        (begin0
          (tc-expr/check #'arg expected)
-         (add-typeof-expr #'fun (ret (-> return-ty return-ty))))]
+         (add-typeof-expr #'fun (ret (-> return-ty return-ty :T+ #t))))]
       [(tc-result1: (List: ts))
        (define arg-ty (-Tuple (reverse ts)))
        (define return-ty (-Tuple ts))
        (tc-expr/check #'arg (ret arg-ty))
-       (add-typeof-expr #'fun (ret (-> arg-ty return-ty)))
+       (add-typeof-expr #'fun (ret (-> arg-ty return-ty :T+ #t)))
        (ret return-ty)]
       [_
        (match (single-value #'arg)
          [(tc-result1: (and arg-ty (List: ts)))
           (define return-ty (-Tuple (reverse ts)))
-          (add-typeof-expr #'fun (ret (-> arg-ty return-ty)))
+          (add-typeof-expr #'fun (ret (-> arg-ty return-ty :T+ #t)))
           (ret return-ty)]
          [(tc-result1: (and r (Listof: t)))
-          (add-typeof-expr #'fun (ret (-> r r)))
+          (add-typeof-expr #'fun (ret (-> r r :T+ #t)))
           (ret r)]
          [arg-ty
           (tc/funapp #'fun #'(arg) (tc-expr/t #'fun) (list arg-ty) expected)])])))

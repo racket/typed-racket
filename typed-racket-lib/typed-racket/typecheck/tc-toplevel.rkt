@@ -82,7 +82,7 @@
   (syntax-parse form
     [t:typed-struct (attribute t.tvars)]))
 
-;; syntax? -> (listof def-binding?)
+;; syntax? -> (listof binding?)
 (define (tc-toplevel/pass1 form)
   (parameterize ([current-orig-stx form])
     (syntax-parse form
@@ -111,7 +111,7 @@
       [t:type-refinement
        (match (lookup-id-type/lexical #'t.predicate)
               [(and t (Fun: (list (Arrow: (list dom) #f '()
-                                          (Values: (list (Result: rng _ _)))))))
+                                          (Values: (list (Result: rng _ _))) _))))
                (let ([new-t (make-pred-ty (list dom)
                                           rng
                                           (make-Refinement dom #'t.predicate))])
@@ -389,7 +389,16 @@
        (let ([ts (attribute var.type)])
          (when (= 1 (length ts))
            (add-scoped-tvars #'expr (lookup-scoped-tvars (stx-car #'(var ...)))))
-         (tc-expr/check #'expr (ret ts)))
+         (define adjusted-ts (tc-expr/check #'expr (ret ts)))
+         #;(for ([var (in-list (syntax-e #'(var ...)))]
+               [tcr (in-list (match adjusted-ts [(tc-results: tcrs _) tcrs]))])
+           ;; 2022-01-17: consider updating types for shallow so it can infer
+           ;; when to skip result checks --- but beware, this code was a problem for
+           ;; examples in the ts-guide (occurrence.scrbl)
+           ;; 2022-01-24: consider runnning this code ONLY for shallow mode!
+           ;; 2022-01-24: consider an "upgrade" function anyway
+           (register-type var (tc-result-t tcr)))
+         (void))
        'no-type]
 
       ;; to handle the top-level, we have to recur into begins

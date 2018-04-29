@@ -202,33 +202,45 @@
 ;; Function type constructors
 (define/decl top-func (make-Fun (list)))
 
-(define (asym-pred dom rng prop)
-  (make-Fun (list (-Arrow (list dom) rng #:props prop))))
+(define (asym-pred dom rng prop [T+ #f])
+  (make-Fun (list (-Arrow (list dom) rng #:props prop #:T+ T+))))
 
 (define/cond-contract make-pred-ty
   (c:case-> (c:-> Type? Type?)
+            (c:-> Type? boolean? Type?)
             (c:-> (c:listof Type?) Type? Type? Type?)
-            (c:-> (c:listof Type?) Type? Type? Object? Type?))
+            (c:-> (c:listof Type?) Type? Type? boolean? Type?)
+            (c:-> (c:listof Type?) Type? Type? Object? boolean? Type?))
   (case-lambda
-    [(in out t o)
-     (->* in out : (-PS (-is-type o t) (-not-type o t)))]
+    [(in out t o T+)
+     (->* in out : (-PS (-is-type o t) (-not-type o t)) :T+ T+)]
+    [(in out t T+)
+     (make-pred-ty in out t (make-Path null (cons 0 0)) T+)]
     [(in out t)
-     (make-pred-ty in out t (make-Path null (cons 0 0)))]
+     (make-pred-ty in out t (make-Path null (cons 0 0)) #f)]
+    [(t T+)
+     (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)) T+)]
     [(t)
-     (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)))]))
+     (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)) #f)]))
 
 (define/decl -true-propset (-PS -tt -ff))
 (define/decl -false-propset (-PS -ff -tt))
 
-(define (opt-fn args opt-args result #:rest [rest #f] #:kws [kws null])
+(define (opt-fn args opt-args result #:rest [rest #f] #:kws [kws null] #:T+ [T+ #f])
   (apply cl->* (for/list ([i (in-range (add1 (length opt-args)))])
                  (make-Fun (list (-Arrow (append args (take opt-args i))
                                          result ;; only the LAST arrow gets the rest arg
                                          #:rest (and (= i (length opt-args)) rest)
-                                         #:kws kws))))))
+                                         #:kws kws
+                                         #:T+ T+))))))
 
-(define-syntax-rule (->opt args ... [opt ...] res)
-  (opt-fn (list args ...) (list opt ...) res))
+(define-syntax (->opt stx)
+  (syntax-parse stx
+    ((->opt args ... [opt ...] res T+:rng-T+)
+     (syntax/loc stx (opt-fn (list args ...) (list opt ...) res #:T+ T+.val)))
+    ((->opt args ... [opt ...] res)
+     #:with T+ #`#,(default-T+)
+     (syntax/loc stx (opt-fn (list args ...) (list opt ...) res #:T+ 'T+)))))
 
 ;; from define-new-subtype
 (define (-Distinction name sym ty)

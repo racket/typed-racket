@@ -1,4 +1,5 @@
 #lang s-exp "env-lang.rkt"
+#:default-T+ #true
 
 (begin
   (require
@@ -781,27 +782,27 @@
   (-> N B : (-PS (-is-type 0 (Un -RealZeroNoNan -InexactComplex -InexactImaginary))
                  (-not-type 0 -RealZeroNoNan)))]
 
-[number? (make-pred-ty N)]
+[number? (make-pred-ty N #t)]
 [integer? (asym-pred Univ B (-PS (-is-type 0 (Un -Int -Flonum -SingleFlonum)) ; inexact-integers exist...
-                                 (-not-type 0 -Int)))]
-[exact-integer? (make-pred-ty -Int)]
-[real? (make-pred-ty -Real)]
-[flonum? (make-pred-ty -Flonum)]
-[single-flonum? (make-pred-ty -SingleFlonum)]
-[double-flonum? (make-pred-ty -Flonum)]
-[inexact-real? (make-pred-ty -InexactReal)]
-[complex? (make-pred-ty N)]
+                                 (-not-type 0 -Int)) #t)]
+[exact-integer? (make-pred-ty -Int #t)]
+[real? (make-pred-ty -Real #t)]
+[flonum? (make-pred-ty -Flonum #t)]
+[single-flonum? (make-pred-ty -SingleFlonum #t)]
+[double-flonum? (make-pred-ty -Flonum #t)]
+[inexact-real? (make-pred-ty -InexactReal #t)]
+[complex? (make-pred-ty N #t)]
 ;; `rational?' includes all Reals, except infinities and NaN.
-[rational? (asym-pred Univ B (-PS (-is-type 0 -Real) (-not-type 0 -Rat)))]
-[exact? (make-pred-ty -ExactNumber)]
-[inexact? (make-pred-ty (Un -InexactReal -InexactImaginary -InexactComplex))]
-[fixnum? (make-pred-ty -Fixnum)]
-[fixnum-for-every-system? (asym-pred Univ B (-PS (-is-type 0 -Fixnum) -tt))]
-[index? (make-pred-ty -Index)]
+[rational? (asym-pred Univ B (-PS (-is-type 0 -Real) (-not-type 0 -Rat)) #t)]
+[exact? (make-pred-ty -ExactNumber #t)]
+[inexact? (make-pred-ty (Un -InexactReal -InexactImaginary -InexactComplex) #t)]
+[fixnum? (make-pred-ty -Fixnum #t)]
+[fixnum-for-every-system? (asym-pred Univ B (-PS (-is-type 0 -Fixnum) -tt) #t)]
+[index? (make-pred-ty -Index #t)]
 [positive? (-> -Real B : (-PS (-is-type 0 -PosRealNoNan) (-is-type 0 -NonPosReal)))]
 [negative? (-> -Real B : (-PS (-is-type 0 -NegRealNoNan) (-is-type 0 -NonNegReal)))]
-[exact-positive-integer? (make-pred-ty -Pos)]
-[exact-nonnegative-integer? (make-pred-ty -Nat)]
+[exact-positive-integer? (make-pred-ty -Pos #t)]
+[exact-nonnegative-integer? (make-pred-ty -Nat #t)]
 
 [odd? (-> -Int B : (-PS (-not-type 0 -Zero) (-not-type 0 -One)))]
 [even? (-> -Int B : (-PS (-not-type 0 -One) (-not-type 0 -Zero)))]
@@ -1900,18 +1901,18 @@
   (-> (Un -NonPosRat -NonPosFlonum -NonPosSingleFlonum -NonPosInexactReal -NonPosReal) -NonPosInt)
   (-> (Un -Rat -Flonum -SingleFlonum -InexactReal -Real) -Int))]
 
-[nan? (make-pred-ty (list -Real) B -InexactRealNan)]
+[nan? (make-pred-ty (list -Real) B -InexactRealNan #t)]
 
-[infinite? (make-pred-ty (list -Real) B (Un -PosInfinity -NegInfinity))]
+[infinite? (make-pred-ty (list -Real) B (Un -PosInfinity -NegInfinity) #t)]
 [positive-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -PosInt -PosFlonum -PosSingleFlonum))
-                                          (-not-type 0 -PosInt)))]
+                                          (-not-type 0 -PosInt)) #t)]
 [negative-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -NegInt -NegFlonum -NegSingleFlonum))
-                                          (-not-type 0 -NegInt)))]
+                                          (-not-type 0 -NegInt)) #t)]
 [nonpositive-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -NonPosInt -NonPosFlonum -NonPosSingleFlonum))
-                                             (-not-type 0 -NonPosInt)))]
+                                             (-not-type 0 -NonPosInt)) #t)]
 [nonnegative-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -Nat -NonNegFlonum -NonNegSingleFlonum))
-                                             (-not-type 0 -Nat)))]
-[natural? (make-pred-ty -Nat)]
+                                             (-not-type 0 -Nat)) #t)]
+[natural? (make-pred-ty -Nat #t)]
 
 ;; racket/fixnum
 [fx+ (fx+-type)]
@@ -2037,7 +2038,7 @@
 [unsafe-flrandom (flrandom-type)]
 
 ; racket/extflonum
-[extflonum? (make-pred-ty -ExtFlonum)]
+[extflonum? (make-pred-ty -ExtFlonum #t)]
 [extflonum-available? (-> B)]
 [pi.t -PosExtFlonum]
 

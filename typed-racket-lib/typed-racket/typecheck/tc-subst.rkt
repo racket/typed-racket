@@ -83,11 +83,12 @@
     (match rep
       ;; Functions
       ;; increment the level of the substituted object
-      [(Arrow: dom rst kws rng)
+      [(Arrow: dom rst kws rng rng-T+)
        (make-Arrow (map subst dom)
                    (and rst (subst rst))
                    (map subst kws)
-                   (subst/lvl rng (add1 lvl)))]
+                   (subst/lvl rng (add1 lvl))
+                   rng-T+)]
       [(DepFun: dom pre rng)
        (make-DepFun (for/list ([d (in-list dom)])
                       (subst/lvl d (add1 lvl)))

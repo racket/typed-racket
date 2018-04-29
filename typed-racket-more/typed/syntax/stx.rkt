@@ -33,6 +33,7 @@
              (-Stx-Pairof a lst)))))
 
 (type-environment
+ #:default-T+ #true
  [stx-null? (make-pred-ty -Stx-Null)]
  [stx-pair? (make-pred-ty (-Stx-Pairof Univ Univ))]
  [stx-list? (make-pred-ty (-Stx-Listof Univ))]
@@ -42,11 +43,11 @@
                          (Un (-val #f) (-lst (-Syntax Univ))))))]
  [stx-car (-poly (a b)
             (cl->*
-             (-> (-Stx-Pairof a b) a)
-             (-> (-Stx-Listof a) a)))]
+             (-> (-Stx-Pairof a b) a :T+ #f)
+             (-> (-Stx-Listof a) a :T+ #f)))]
  [stx-cdr (-poly (a b)
             (cl->*
-             (-> (-Stx-Pairof a b) b)
+             (-> (-Stx-Pairof a b) b :T+ #f)
              (-> (-lst a) (-lst a))
              (-> (-Stx-Listof a) (-Stx-Listof a))))]
  [stx-map (-polydots (c a b)

@@ -56,7 +56,7 @@
                      (Arrow: (list arg1)
                              (not (? RestDots?))
                              (list (Keyword: _ _ #f) ...)
-                             _ )
+                             _ _)
                      _ ...))
          #:when (subtype prop-type arg1)
          (tc/funapp #'here #'(here) t (list (ret arg1)) #f)]
@@ -64,7 +64,7 @@
                      (Arrow: (list)
                              (Rest: (list rst-t))
                              (list (Keyword: _ _ #f) ...)
-                             _ )
+                             _ _)
                      _ ...))
          #:when (subtype prop-type rst-t)
          (tc/funapp #'here #'(here) t (list (ret rst-t)) #f)]

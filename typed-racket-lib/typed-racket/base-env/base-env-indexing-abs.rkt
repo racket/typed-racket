@@ -2,6 +2,8 @@
 
 (require
  (for-template racket/base racket/list racket/unsafe/ops racket/flonum racket/extflonum racket/fixnum)
+ (for-syntax racket/base syntax/parse)
+ racket/stxparam
  "../utils/tc-utils.rkt"
  (rename-in "../types/abbrev.rkt"  [-Boolean B] [-Symbol Sym])
  (rename-in "../types/numeric-tower.rkt" [-Number N])
@@ -9,7 +11,12 @@
 
 (provide indexing)
 
-(define-syntax-rule (make-env* [i t] ...) (make-env [i (λ () t)] ...))
+(define-syntax (make-env* stx)
+  (syntax-parse stx
+   [(_ [id ty] ...)
+    #'(syntax-parameterize ([default-rng-shallow-safe? #true])
+        ;; shallow: don't check base-env functions unless specified
+        (make-env [id ty] ...))]))
 
 (define-syntax-rule (indexing index-type)
   (make-env*
@@ -57,7 +64,7 @@
 
 
 
-   [list-ref  (-poly (a) ((-lst a) index-type . -> . a))]
+   [list-ref  (-poly (a) ((-lst a) index-type . -> . a :T+ #f))]
    [list-tail (-poly (a) ((-lst a) index-type . -> . (-lst a)))]
 
 
@@ -216,11 +223,11 @@
    [split-at-right
     (-poly (a) ((-lst a) index-type . -> . (-values (list (-lst a) (-lst a)))))]
 
-   [vector-ref (-poly (a) (cl->* ((-vec a) index-type . -> . a)
+   [vector-ref (-poly (a) (cl->* ((-vec a) index-type . -> . a :T+ #f)
                                  (-VectorTop index-type . -> . Univ)))]
-   [unsafe-vector-ref (-poly (a) (cl->* ((-vec a) index-type . -> . a)
+   [unsafe-vector-ref (-poly (a) (cl->* ((-vec a) index-type . -> . a :T+ #f)
                                         (-VectorTop index-type . -> . Univ)))]
-   [unsafe-vector*-ref (-poly (a) (cl->* ((-vec a) index-type . -> . a)
+   [unsafe-vector*-ref (-poly (a) (cl->* ((-vec a) index-type . -> . a :T+ #f)
                                          (-VectorTop index-type . -> . Univ)))]
    [build-vector (-poly (a) (index-type (-Index . -> . a) . -> . (-mvec a)))]
    [vector-set! (-poly (a) (-> (-vec a) index-type a -Void))]
@@ -236,7 +243,7 @@
 
    ;; flvector ops
 
-   [flvector? (make-pred-ty -FlVector)]
+   [flvector? (make-pred-ty -FlVector #t)]
    [flvector (->* (list) -Flonum -FlVector)]
    [make-flvector (cl->* (-> index-type -FlVector)
                          (-> index-type -Flonum -FlVector))]
@@ -257,7 +264,7 @@
    [unsafe-flvector-set! (-> -FlVector index-type -Flonum -Void)]
 
    ;; Section 4.2.5.2 (ExtFlonum Vectors)
-   [extflvector? (make-pred-ty -ExtFlVector)]
+   [extflvector? (make-pred-ty -ExtFlVector #t)]
    [extflvector (->* (list) -ExtFlonum -ExtFlVector)]
    [make-extflvector (cl->* (-> index-type -ExtFlVector)
                             (-> index-type -ExtFlonum -ExtFlVector))]
@@ -278,7 +285,7 @@
    [unsafe-extflvector-set! (-> -ExtFlVector index-type -ExtFlonum -Void)]
 
    ;; Section 4.2.4.2 (Fixnum vectors)
-   [fxvector? (make-pred-ty -FxVector)]
+   [fxvector? (make-pred-ty -FxVector #t)]
    [fxvector (->* (list) -Fixnum -FxVector)]
    [make-fxvector (cl->* (-> index-type -FxVector)
                          (-> index-type -Fixnum -FxVector))]

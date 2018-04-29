@@ -16,7 +16,7 @@
          "float-complex.rkt"
          "unboxed-tables.rkt")
 
-(provide unboxed-let-opt-expr)
+(provide unboxed-let-opt-expr escapes?)
 
 ;; possibly replace bindings of complex numbers by bindings of their 2
 ;; components useful for intermediate results used more than once and for
@@ -138,11 +138,11 @@
   #:literal-sets (kernel-literals)
   (pattern ((fun-name:constant-var) (~and fun (#%plain-lambda params body ...)))
     #:do [(define doms
-            (match (type-of #'fun)
+            (match (maybe-type-of #'fun)
               [(tc-result1: (Fun: (list (Arrow: doms
                                                 #f  ;; rest arg
                                                 '() ;; kw args
-                                                _))))
+                                                _ _))))
                doms]
               [_ #f]))]
     #:when doms
@@ -250,8 +250,12 @@
       [(#%plain-app rator:expr rands:expr ...)
        (or (direct-child-of? v #'(rands ...)) ; used as an argument, escapes
            (ormap rec (syntax->list #'(rator rands ...))))]
+      [_:ignore-table^
+       #t]
       [e:kernel-expression
-       (look-at #'(e.sub-exprs ...))]))
+       (look-at #'(e.sub-exprs ...))]
+      [_
+       (raise-argument-error 'escapes? "kernel-expression" exp)]))
 
 
   ;; if the given var is the _only_ element of the body and we're in a

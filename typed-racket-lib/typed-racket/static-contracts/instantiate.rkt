@@ -26,11 +26,11 @@
 (provide/cond-contract
  [instantiate/optimize
      (parametric->/c (a) ((static-contract? (-> #:reason (or/c #f string?) a))
-                          (contract-kind? #:cache hash? #:trusted-positive boolean? #:trusted-negative boolean?)
+                          (contract-kind? #:cache (or/c #f hash?) #:trusted-positive boolean? #:trusted-negative boolean?)
                           . ->* . (or/c a (list/c (listof syntax?) syntax?))))]
  [instantiate
      (parametric->/c (a) ((static-contract? (-> #:reason (or/c #f string?) a))
-                          (contract-kind? #:cache hash? #:recursive-kinds (or/c hash? #f))
+                          (contract-kind? #:cache (or/c #f hash?) #:recursive-kinds (or/c hash? #f))
                           . ->* . (or/c a (list/c (listof syntax?) syntax?))))]
  [should-inline-contract? (-> syntax? boolean?)])
 

@@ -177,7 +177,7 @@
        #'(Fun: (list (Arrow: (list _)
                              _
                              _
-                             (Values: (list (Result: _ ps _))))))])))
+                             (Values: (list (Result: _ ps _))) _)))])))
 
 (define-match-expander HashTableTop:
   (lambda (stx)

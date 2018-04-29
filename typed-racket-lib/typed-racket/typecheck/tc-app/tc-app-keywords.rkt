@@ -52,7 +52,7 @@
                      #'kw-arg-list #'pos-args expected))
 
       (define (tc/app-poly-fun vars arrow fail)
-        (match-define (and ar (Arrow: dom rst kw-formals rng)) arrow)
+        (match-define (and ar (Arrow: dom rst kw-formals rng _)) arrow)
         ;; if the types of the keyword arguments have type variables or rst is
         ;; set, stop.
         (unless (or (set-empty? (fv/list kw-formals)) (not rst))
@@ -86,7 +86,7 @@
 
 (define (tc-keywords/internal arity kws kw-args error?)
   (match arity
-    [(Arrow: dom (not (? RestDots?)) ktys rng)
+    [(Arrow: dom (not (? RestDots?)) ktys rng _)
      ;; assumes that everything is in sorted order
      (let loop ([actual-kws kws]
                 [actuals (stx-map tc-expr/t kw-args)]
@@ -126,19 +126,19 @@
 
 (define (tc-keywords form arrows kws kw-args pos-args expected)
   (match arrows
-    [(list (and a (Arrow: dom (and rst (not (? RestDots?))) ktys rng)))
+    [(list (and a (Arrow: dom (and rst (not (? RestDots?))) ktys rng rng-T+)))
      (tc-keywords/internal a kws kw-args #t)
      (tc/funapp (car (syntax-e form)) kw-args
-                (->* dom rst rng)
+                (->* dom rst rng :T+ rng-T+)
                 (stx-map tc-expr pos-args) expected)]
-    [(list (and a (Arrow: doms (and rsts (not (? RestDots?))) _ rngs)) ...)
+    [(list (and a (Arrow: doms (and rsts (not (? RestDots?))) _ rngs rngs-T+)) ...)
      (let ([new-arrows
             (for/list ([a (in-list arrows)]
                        ;; find all the arrows where the keywords match
                        #:when (tc-keywords/internal a kws kw-args #f))
               (match a
-                [(Arrow: dom (and rst (not (? RestDots?))) ktys rng)
-                 (make-Arrow dom rst '() rng)]))])
+                [(Arrow: dom (and rst (not (? RestDots?))) ktys rng rng-T+)
+                 (make-Arrow dom rst '() rng rng-T+)]))])
        (if (null? new-arrows)
            (domain-mismatches
             (car (syntax-e form)) (cdr (syntax-e form))

@@ -18,6 +18,7 @@
                        racket/promise
                        "../../utils/evt-contract.rkt"
                        "../../utils/hash-contract.rkt"
+                       "../../utils/shallow-contract.rkt"
                        "../../utils/vector-contract.rkt"
                        "../../utils/promise-not-name-contract.rkt")
          racket/contract
@@ -153,6 +154,8 @@
 (combinator-structs
   ((or/sc . (#:covariant)) or/c #:flat)
   ((and/sc . (#:covariant)) and/c #:flat)
+  ((shallow-or/sc . (#:covariant)) shallow-or/c #:flat)
+  ((shallow-and/sc . (#:covariant)) shallow-and/c #:flat)
   ((list/sc . (#:covariant)) list/c #:flat)
   ((listof/sc (#:covariant)) listof #:flat)
   ((cons/sc (#:covariant) (#:covariant)) cons/c #:flat)

@@ -70,6 +70,19 @@
          (apply or/sc new-scs)
          sc)]
       [else sc])]
+    [(shallow-or/sc: scs ...)
+     (match scs
+      [(list) none/sc]
+      [(list sc) sc]
+      [(? (λ (l) (member any/sc l))) any/sc]
+      [(? (λ (l) (member none/sc l)))
+       (apply shallow-or/sc (remove* (list none/sc) scs))]
+      [(? (λ (l) (ormap (match-lambda [(shallow-or/sc: _ ...) #true] [_ #false]) l)))
+       (define new-scs (flatten-or/sc scs flat-sc?))
+       (if new-scs
+         (apply shallow-or/sc new-scs)
+         sc)]
+      [else sc])]
 
     ;; and/sc cases
     [(and/sc: scs ...)
@@ -79,6 +92,14 @@
       [(? (λ (l) (member none/sc l))) none/sc]
       [(? (λ (l) (member any/sc l)))
        (apply and/sc (remove* (list any/sc) scs))]
+      [else sc])]
+    [(shallow-and/sc: scs ...)
+     (match scs
+      [(list) any/sc]
+      [(list sc) sc]
+      [(? (λ (l) (member none/sc l))) none/sc]
+      [(? (λ (l) (member any/sc l)))
+       (apply shallow-and/sc (remove* (list any/sc) scs))]
       [else sc])]
 
 
@@ -134,7 +155,8 @@
     (for/fold ([acc '()])
               ([sc (in-list scs)])
       (match sc
-        [(or/sc: inner-scs ...)
+        [(or (or/sc: inner-scs ...)
+             (shallow-or/sc: inner-scs ...))
          #:when (eq?*/f inner-scs flat-sc?)
          (set-box! flattened-any? #true)
          (set-union acc inner-scs)]
@@ -170,7 +192,8 @@
     [(arr/sc: args rest (list (any/sc:) ...))
      (arr/sc args rest #f)]
     [(none/sc:) any/sc]
-    [(or/sc: (? flat-sc?) ...)
+    [(or (or/sc: (? flat-sc?) ...)
+         (shallow-or/sc: (? flat-sc?) ...))
      #:when (not is-weak-side?)
      any/sc]
     [(? flat-sc?)
@@ -242,7 +265,8 @@
 ;;  for optimizing the sub-contracts of the given `sc`.
 (define ((make-update-side flat-sc?) sc side)
   (match sc
-   [(or/sc: scs ...)
+   [(or (shallow-or/sc: scs ...)
+        (or/sc: scs ...))
     #:when (not (andmap flat-sc? scs))
     (weaken-side side)]
    [_

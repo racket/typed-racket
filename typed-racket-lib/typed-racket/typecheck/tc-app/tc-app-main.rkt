@@ -69,7 +69,7 @@
              (Values: (list (Result: v
                                      (PropSet: (TrueProp:) (TrueProp:))
                                      (Empty:))
-                            ...)))
+                            ...)) _)
      (Arrow-includes-arity? domain rst args)]
     [_ #f]))
 
@@ -80,7 +80,7 @@
              (list (Keyword: _ _ #f) ...)
              (Values: (list (Result: v
                                      (PropSet: (TrueProp:) (TrueProp:))
-                                     (Empty:)) ...)))
+                                     (Empty:)) ...)) _)
      #f]
     [else #t]))
 
@@ -109,7 +109,7 @@
           (parameterize ([with-refinements? #t])
             (tc/funapp #'f #'args f-ty (map tc-dep-fun-arg args*) expected))]
          [(Fun: (app matching-arities
-                     (list (Arrow: doms rsts _ _) ..1)))
+                     (list (Arrow: doms rsts _ _ _) ..1)))
           (define check-arg (if (and (identifier? #'f)
                                      (with-refinements?)
                                      (has-linear-integer-refinements? #'f))

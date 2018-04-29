@@ -36,7 +36,7 @@
   (add-typeof-expr f-stx (ret (make-Fun (list ftype0))))
   (match* (ftype0 arg-ress)
     ;; we check that all kw args are optional
-    [((Arrow: dom rst (list (Keyword: _ _ #f) ...) rng)
+    [((Arrow: dom rst (list (Keyword: _ _ #f) ...) rng _)
       (list (tc-result1: t-a _ o-a) ...))
      #:when (not (RestDots? rst))
 
@@ -106,16 +106,16 @@
            [res res])))]
     ;; this case should only match if the function type has mandatory keywords
     ;; but no keywords were provided in the application
-    [((Arrow: _ _ kws _) _)
+    [((Arrow: _ _ kws _ _) _)
      #:when (ormap Keyword-required? kws)
      (when check?
        (tc-error/fields "could not apply function"
                         #:more "a required keyword was not supplied"
                         "missing keyword"
                         (car (filter Keyword-required? kws))))]
-    [((Arrow: _ (? RestDots? drest) '() _) _)
+    [((Arrow: _ (? RestDots? drest) '() _ _) _)
      (int-err "funapp with drest args ~a ~a NYI" drest arg-ress)]
-    [((Arrow: _ _ kws _) _)
+    [((Arrow: _ _ kws _ _) _)
      (int-err "funapp with keyword args ~a NYI" kws)]))
 
 
@@ -274,7 +274,8 @@
                             (make-Arrow (car pdoms)
                                         (car rests)
                                         null
-                                        (car rngs))
+                                        (car rngs)
+                                        #f)
                             arg-tys expected)
                 return]
                [else
@@ -309,20 +310,20 @@
           (Fun: (list (Arrow: msg-doms
                               msg-rests
                               (list (Keyword: _ _ #f) ...)
-                              msg-rngs)
+                              msg-rngs _)
                       ...)))
          (PolyDots-names:
           msg-vars
           (Fun: (list (Arrow: msg-doms
                               msg-rests
                               (list (Keyword: _ _ #f) ...)
-                              msg-rngs)
+                              msg-rngs _)
                       ...)))
          (PolyRow-names:
           msg-vars (Fun: (list (Arrow: msg-doms
                               msg-rests
                               (list (Keyword: _ _ #f) ...)
-                              msg-rngs)
+                              msg-rngs _)
                       ...))
           _))
      (let ([fcn-string (name->function-str name)])
@@ -368,13 +369,13 @@
                                 #:arg-names names))))]
     [(or (Poly-names:
           msg-vars
-          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs) ...)))
+          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs _) ...)))
          (PolyDots-names:
           msg-vars
-          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs) ...)))
+          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs _) ...)))
          (PolyRow-names:
           msg-vars
-          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs) ...))
+          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs _) ...))
           _))
      (let ([fcn-string (if name
                            (format "function with keywords ~a" (syntax->datum name))

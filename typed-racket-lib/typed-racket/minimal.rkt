@@ -8,8 +8,10 @@
 (define-for-syntax ts-mod 'typed-racket/typed-racket)
 
 (define-syntax (providing stx)
-  (syntax-case stx (libs from basics except)
-    [(form (libs (except lb ex ...) ...) (basics b ...) (from spec id ...) ...)
+  (syntax-case stx (libs from basics except ts-except)
+    [(form (libs (except lb ex ...) ...) (basics b ...)
+           (ts-except ts-ex ...)
+           (from spec id ...) ...)
      (datum->syntax
       stx
       (syntax->datum
@@ -24,5 +26,5 @@
              (require (only-in spec id ...) ...)
              (provide id ...) ...
              (provide (rename-out [b* b] ...))
-             (provide (except-out (all-from-out ts) b* ...))
+             (provide (except-out (all-from-out ts) b* ... (~? (~@ ts-ex ...))))
              (provide (all-from-out lb) ...))))))]))

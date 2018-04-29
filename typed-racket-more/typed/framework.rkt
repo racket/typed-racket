@@ -89,6 +89,7 @@
  (define -DC<%>-Instance (make-Instance -DC<%>)))
 
 (type-environment
+ #:default-T+ #true
  [application:current-app-name (-Param -String)]
  ;; 3 Autosave
  [autosave:register
@@ -190,7 +191,7 @@
                              -String
                              (-vec -Color%-Instance)
                              (Un (-val 'low) (-val 'high))))))]
- [color:misspelled-text-color-style-name (-> -String)]
+ [color:misspelled-text-color-style-name -String]
  ;; 8 Comment Box
  [comment-box:snip% (parse-type #'Comment-Box:Snip%)]
  [comment-box:snipclass (make-Instance -Snip-Class%)]

@@ -60,8 +60,8 @@
                              (not (regexp-match #rx".*~" (path->string p*)))
                              (not (set-member? excl (path->string (file-name-from-path p*))))))
 
-        (define p (file-name-from-path p*))
-        (define prm (list path p
+        (define-values [p*-base p*-name _] (split-path p*))
+        (define prm (list p*-base p*-name
                           (if (places)
                               (delay/thread
                                 (begin0 (run-in-other-place p* error?)
@@ -69,10 +69,10 @@
                                           (eprintf "."))))
                               (delay
                                 (parameterize ([read-accept-reader #t]
-                                               [current-load-relative-directory path]
-                                               [current-directory path]
+                                               [current-load-relative-directory p*-base]
+                                               [current-directory p*-base]
                                                [current-output-port (open-output-nowhere)])
-                                  (begin0 (dr p)
+                                  (begin0 (dr p*-name)
                                           (when (zero? (modulo i 10))
                                             (eprintf "."))))))))
         prm))
@@ -166,14 +166,14 @@
   (define-values (path p b) (split-path p*))
   (define f
     (let ([dir (path->string path)])
-      (cond [(regexp-match? #rx"fail/$" dir )
+      (cond [(regexp-match? #rx"fail/" dir )
              (lambda (p thnk)
                (define-values (pred info) (exn-pred p))
                (parameterize ([error-display-handler void])
                  (with-check-info
                   (['predicates info])
                   (check-exn pred thnk))))]
-            [(regexp-match? #rx"succeed/$" dir)
+            [(regexp-match? #rx"succeed/" dir)
              (lambda (p thnk) (check-not-exn thnk))]
             [(regexp-match? #rx"optimizer/tests/$" dir)
              (lambda (p* thnk) (test-opt p))]

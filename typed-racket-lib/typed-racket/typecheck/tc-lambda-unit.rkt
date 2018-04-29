@@ -1,6 +1,7 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
+         "../utils/plambda-utils.rkt"
          racket/list syntax/parse syntax/stx
          racket/match syntax/private/id-table
          racket/sequence
@@ -125,6 +126,7 @@
          #:types types]
       (tc-body/check body expected))
     arg-names #:rest-id rst-id)
+   #:T+ #true ;; shallow can trust the results of a literal lambda
    #:rest rst-type))
 
 ;; check-clause: Checks that a lambda clause has arguments and body matching the expected type
@@ -309,7 +311,7 @@
 (define (restrict-Arrow-to-arity arrow n)
   (match arrow
     ;; currently does not handle rest arguments
-    [(Arrow: args #f '() _)
+    [(Arrow: args #f '() _ _)
      #:when (= n (length args))
      arrow]
     [_ #f]))
@@ -458,7 +460,7 @@
   (match* (arities f-or-arrow)
     [((case-arities fixed-arities rest-pos)
       (or (formals (app length arity) rst _)
-          (Arrow:  (app length arity) rst _ _)))
+          (Arrow:  (app length arity) rst _ _ _)))
      (or (>= arity rest-pos)
          (and (not rst) (memv arity fixed-arities) #t))]))
 
@@ -549,7 +551,7 @@
          ;; if this clause has an orig-arrow, we already checked it once and that
          ;; was it's arrow type -- we don't want to check it again at the same arrow
          [_ #:when (member arrow orig-arrows) arrow]
-         [(Arrow: dom rst '() rng)
+         [(Arrow: dom rst '() rng _)
           (define expected
             (values->tc-results rng (formals->objects clause-formals)))
           (tc/lambda-clause/check
@@ -681,40 +683,6 @@
                     [b (in-syntax bodies)])
            (cons (make-formals f not-in-poly) b))
          expected))]))
-
-(define (plambda-prop stx)
-  (define d (plambda-property stx))
-  (and d (car (flatten d))))
-
-(define (has-poly-annotation? form)
-  (or (plambda-prop form) (pair? (lookup-scoped-tvar-layer form))))
-
-(define (remove-poly-layer tvarss)
-  (filter pair? (map rest tvarss)))
-
-(define (get-poly-layer tvarss)
-  (map car tvarss))
-
-(define (get-poly-tvarss form)
-  (let ([plambda-tvars
-          (let ([p (plambda-prop form)])
-            (match (and p (map syntax-e (syntax->list p)))
-              [#f #f]
-              [(list var ... dvar '...)
-               (list (list var dvar))]
-              [(list id ...)
-               (list id)]))]
-        [scoped-tvarss
-          (for/list ((tvarss (in-list (lookup-scoped-tvar-layer form))))
-            (for/list ((tvar (in-list tvarss)))
-              (match tvar
-                [(list (list v ...) dotted-v)
-                 (list (map syntax-e v) (syntax-e dotted-v))]
-                [(list v ...) (map syntax-e v)])))])
-    (if plambda-tvars
-        (cons plambda-tvars scoped-tvarss)
-        scoped-tvarss)))
-
 
 ;; tc/plambda syntax tvarss-list syntax-list syntax-list type -> Poly
 ;; formals and bodies must by syntax-lists

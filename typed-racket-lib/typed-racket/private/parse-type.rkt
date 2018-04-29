@@ -761,7 +761,7 @@
          (parse-object-type stx do-parse)]
         [(:Refinement^ p?:id)
          (match (lookup-id-type/lexical #'p?)
-           [(and t (Fun: (list (Arrow: (list dom) #f '() _))))
+           [(and t (Fun: (list (Arrow: (list dom) #f '() _ _))))
             (make-Refinement dom #'p?)]
            [t (parse-error "expected a predicate for argument to Refinement"
                            "given" t)])]
@@ -1124,7 +1124,7 @@
          ;; use do-parse instead of parse-values-type because we need to add the props from the pred-ty
          (with-arity 1
            (make-pred-ty (list (do-parse #'dom)) (do-parse #'rng) (attribute latent.type)
-                         (-acc-path (attribute latent.path) (-arg-path 0))))]
+                         (-acc-path (attribute latent.path) (-arg-path 0)) #f))]
         [(~or (:->^ dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rest:non-keyword-ty ddd:star rng)
               (dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rest:non-keyword-ty ddd:star :->^ rng))
          (with-arity (length (syntax->list #'(dom ...)))

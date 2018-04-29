@@ -90,7 +90,7 @@
       [((Distinction: _ _ t) _) (path-type path t resolved)]
 
       ;; for private fields in classes
-      [((Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng _ _))))))
+      [((Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng _ _))) _)))
         (cons (FieldPE:) rst))
        (path-type rst rng (hash))]
 

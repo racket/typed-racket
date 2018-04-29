@@ -25,6 +25,7 @@
  (define -Color%-Obj (make-Instance -Color%)))
 
 (type-environment
+ #:default-T+ #t
  [button% (parse-type #'Button%)]
  [canvas% (parse-type #'Canvas%)]
  [check-box% (parse-type #'Check-Box%)]

@@ -316,7 +316,7 @@
    (-> Univ (-lst (-Syntax Univ)) (-Syntax Univ))]
   ;; ... or a Guide is ...
   [(make-template-identifier 'h-splice 'racket/private/template)
-   (-> Univ (-pair -Symbol -Symbol) (Un (-val #f) (-Syntax Univ)) (-lst (-Syntax Univ)))]
+   (-> Univ Univ Univ (-lst (-Syntax Univ)))]
   ;; ... or a Guide is ...
   [(make-template-identifier 't-subst 'racket/private/template)
    (->* (list (Un (-val #f) (-Syntax Univ)) (-Syntax Univ) Univ) Univ (-Syntax Univ))]

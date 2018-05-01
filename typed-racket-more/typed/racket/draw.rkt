@@ -1,4 +1,4 @@
-#lang s-exp typed-racket/base-env/extra-env-lang #:contract-defs
+#lang s-exp typed-racket/base-env/extra-env-lang
 
 ;; This module provides a base type environment including
 ;; racket/draw bindings
@@ -84,15 +84,6 @@
 
 (require "generate-predef-con.rkt"
          typed-racket/base-env/base-types-extra)
-
-(generate-contract-submods 
- [(Instance Bitmap%) impersonator (typed untyped both)]
- [(Instance Bitmap-DC%) impersonator (typed untyped both)]
- [(Instance Color%) impersonator (typed untyped both)]
- [(Instance Font%) impersonator (typed untyped both)]
- [(Instance DC<%>) impersonator (typed untyped both)]
- [(Instance Snip%) impersonator (typed untyped both)])
-
 
 (type-environment
  [bitmap% (parse-type #'Bitmap%)]

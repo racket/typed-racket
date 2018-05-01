@@ -1,4 +1,4 @@
-#lang s-exp typed-racket/base-env/extra-env-lang #:contract-defs
+#lang s-exp typed-racket/base-env/extra-env-lang
 
 ;; A typed wrapper for the framework library
 
@@ -91,9 +91,6 @@
 
 (require "racket/generate-predef-con.rkt"
          typed-racket/base-env/base-types-extra)
-
-(generate-contract-submods 
- [(Instance Canvas:Basic%) impersonator (typed untyped both)])
 
 (type-environment
  [application:current-app-name (-Param -String)]

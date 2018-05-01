@@ -1,4 +1,4 @@
-#lang s-exp typed-racket/base-env/extra-env-lang #:contract-defs
+#lang s-exp typed-racket/base-env/extra-env-lang
 
 ;; This module provides a base type environment including
 ;; most GUI library bindings
@@ -26,12 +26,6 @@
 
 (require "../generate-predef-con.rkt"
          typed-racket/base-env/base-types-extra)
-
-(generate-contract-submods 
- [(Instance Frame%) impersonator (typed untyped both)]
- [(Instance Pane%) impersonator (typed untyped both)]
- [(Instance Dialog%) impersonator (typed untyped both)])
-
 
 (type-environment
  [button% (parse-type #'Button%)]

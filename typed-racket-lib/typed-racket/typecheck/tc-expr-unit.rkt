@@ -153,7 +153,7 @@
        (check-subforms/with-handlers form expected) ]
       [(~and stx:typed-racket:ignore-type-information^ (#%expression inner))
        (tc-expr/check/internal #'inner Univ)
-       (ret Univ -true-propset -empty-obj)]
+       (ret Univ -tt-propset -empty-obj)]
       ;; explicit failure
       [t:typecheck-failure
        (explicit-fail #'t.stx #'t.message #'t.var)]

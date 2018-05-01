@@ -56,3 +56,9 @@
 
 (module-or-top-identifier=? #'a #'b)
 
+(ann (let* ([ xs : (Listof Syntax) (list #'1 #'2)]
+            [ id : (-> Syntax Syntax) (λ (x) x)]
+            [ x  : (Syntaxof Any) #`(#,@(map id xs) #'foo)]
+            )
+       x)
+     (Syntaxof Any))

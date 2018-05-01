@@ -52,14 +52,16 @@ has type `Any` along with `true-prop` for both propositions and
 # Drawbacks and Alternatives
 [drawbacks]: #drawbacks
 
+#### Drawbacks
+
 Adds complexity to the type checker.
 
 #### Alternative: use expected type
 
 If there's an expected type when checking `(#%expression sub)` with
-the relevant property, we could instead use it as both the expected
-type when checking `sub` as well as the result of type checking the
-entire expression.
+the relevant property, we could instead use the outer expected as both
+the expected type when checking `sub` as well as the result of type 
+checking the entire expression.
 
 This allows stricly more programs to type check. If we have a macro
 `mark` that added the relevant property, then this would type
@@ -70,8 +72,11 @@ check under this alternative:
 ```
 
 whereas with the proposed design, it's an error since the body has
-type `Any`.  This alternative design would also satisfy the specific
-use case outlined above.
+type `Any`.  
+
+In this alternative, we woul check `"hi"` with the expected type `String`, and the result of checking the form `(mark (#%expression "hi")))` would be `String : Top|Top`. 
+This alternative design would also satisfy the specific
+use case outlined above, because there is no expected type for the test position of an `if` expression, and because the propositions are explicitly erased.
 
 However, I propose the initial design as it is more conservative and
 no use cases have been identified for this alternative.

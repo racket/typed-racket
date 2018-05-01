@@ -4712,6 +4712,10 @@
           (void))
         #:ret (ret -Void #f #f)
         #:msg #rx"Bad arguments to function"]
+
+       ;; props + evaluation order
+       [tc-e ((lambda: ((x : (Un Symbol Natural))) (+ (assert x integer?) x)) 1) -Nat]
+       [tc-e ((lambda: ((x : (Un Symbol Natural))) ((begin (assert x integer?) +) x x)) 1) -Nat]
        )
 
   (test-suite

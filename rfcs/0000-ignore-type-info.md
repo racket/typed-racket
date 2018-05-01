@@ -29,6 +29,8 @@ This was developed specifically to support this pattern in a revised
 version of the keyword argument protocol currently under development
 by @mflatt.
 
+Note that simply using `ann` is not possible here, both because this property is intended to be used from places (such as `racket/private/kw`) that do not depend on Typed Racket, and because `ann` does not have the needed behavior with respect to propositions.
+
 # Guide-level explanation
 
 Any expression with the shape `(#%expression sub)` that has a true

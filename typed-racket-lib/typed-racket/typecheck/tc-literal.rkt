@@ -27,8 +27,10 @@
 ;; return the type of a literal value
 ;; tc-literal: racket-value-syntax [type] -> type
 (define (tc-literal v-stx [expected #f])
+  (define-syntax-class regexp-cls #:attributes () (pattern x #:when (regexp? (syntax-e #'x))))
+  (define-syntax-class byte-regexp-cls #:attributes () (pattern x #:when (byte-regexp? (syntax-e #'x))))
   (define-syntax-class exp
-    (pattern (~and i (~or :number :str :bytes :char))
+    (pattern (~and i (~or :number :str :bytes :char :regexp-cls :byte-regexp-cls))
              #:fail-unless expected #f
              #:fail-unless (let ([n (syntax-e #'i)])
                              (subtype (-val n) expected (if (exact-integer? n) (-lexp n) -empty-obj))) #f))

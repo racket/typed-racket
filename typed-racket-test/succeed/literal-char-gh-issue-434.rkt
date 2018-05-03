@@ -26,3 +26,4 @@
 (vector-set! v 0 #\d)
 (set-box! b #\z)
 ;; (set-box! c #\a) ouch, it would be nice if this worked
+(set-box! c (ann #\a #\a))

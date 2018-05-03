@@ -4487,6 +4487,15 @@
         [tc-e/t (let: ([x : (Un Flonum Natural) 0.0])
                   (if (not (natural? x)) x 1.0))
                -Flonum]
+        
+        [tc-e 
+         (let ()
+           (define-syntax (foo stx)
+             #`(if #,(syntax-property #'(#%expression #f) 'typed-racket:ignore-type-information #t)
+                   'yes
+                   'no))
+           (foo))
+         (Un (-val 'yes) (-val 'no))]
 
        ;; regexps can be typechecked at their precise, singleton type
        ;; when it is the expected type

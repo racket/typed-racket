@@ -73,6 +73,24 @@ the error message.
 
 }
 
+@section{Ignoring type information}
+
+In some contexts, it is useful to have the typechecker forget type
+information on particular expressions. Any expression with the shape
+@racket[(#%expression sub)] that has a true value for the syntax property
+@racket['typed-racket:ignore-type-information] will have the type @racket[Any], and
+the type checker won't learn anything about the expression for use in
+refining other types.
+@history[#:added "1.7"]
+
+The expression @racket[sub] must still type check, but can have any
+single-valued type.
+
+This is similar to @racket[(ann sub Any)], but differs in whether the
+typechecker can use this to refine other types, and can be used in
+context that do not depend on Typed Racket.
+
+
 @section{Untyped Utilities}
 
 @defmodule[typed/untyped-utils]

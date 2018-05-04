@@ -36,6 +36,11 @@ To best take advantage of the Typed Racket optimizer, consult
 @other-doc['(lib "optimization-coach/scribblings/optimization-coach.scrbl")
 #:indirect "Optimization Coach"]{}.
 
+The Typed Racket optimizer logs events with the topic
+@indexed-racket['TR-optimizer].
+See @Secref["logging" #:doc '(lib "scribblings/reference/reference.scrbl")]
+to learn how to receive these log events.
+
 
 @subsection{Numeric types}
 Being type-driven, the optimizer makes most of its decisions based on

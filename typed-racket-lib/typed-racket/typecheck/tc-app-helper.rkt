@@ -16,10 +16,10 @@
     ((syntax? stx-list? Arrow? (listof tc-results/c) (or/c #f tc-results/c))
      (#:check boolean?)
      . ->* . full-tc-results/c)])
-(define (tc/funapp1 f-stx args-stx ftype0 argtys expected #:check [check? #t])
+(define (tc/funapp1 f-stx args-stx ftype0 arg-ress expected #:check [check? #t])
   ;; update tooltip-table with inferred function type
   (add-typeof-expr f-stx (ret (make-Fun (list ftype0))))
-  (match* (ftype0 argtys)
+  (match* (ftype0 arg-ress)
     ;; we check that all kw args are optional
     [((Arrow: dom rest (list (Keyword: _ _ #f) ...) rng)
       (list (tc-result1: t-a _ o-a) ...))
@@ -38,10 +38,12 @@
                                "expected at least" (length dom)
                                "given" (length t-a)
                                #:delayed? #t)])
-       (for ([dom-t (if rest (in-list/rest dom rest) (in-list dom))]
-             [a (in-syntax args-stx)]
-             [arg-t (in-list t-a)])
-         (parameterize ([current-orig-stx a]) (check-below arg-t dom-t))))
+       (for ([a (in-syntax args-stx)]
+             [arg-res (in-list arg-ress)]
+             [dom-t (in-list/rest dom rest)]
+             #:when dom-t)
+         (parameterize ([current-orig-stx a])
+           (check-below arg-res dom-t))))
      (let ([dom-count (length dom)])
        ;; Currently do nothing with rest args and keyword args
        ;; as there are no support for them in objects yet.
@@ -64,7 +66,7 @@
                         "missing keyword"
                         (car (filter Keyword-required? kws))))]
     [((Arrow: _ (? RestDots? drest) '() _) _)
-     (int-err "funapp with drest args ~a ~a NYI" drest argtys)]
+     (int-err "funapp with drest args ~a ~a NYI" drest arg-ress)]
     [((Arrow: _ _ kws _) _)
      (int-err "funapp with keyword args ~a NYI" kws)]))
 

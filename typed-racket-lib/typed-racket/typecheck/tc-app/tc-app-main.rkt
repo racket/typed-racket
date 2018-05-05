@@ -92,7 +92,7 @@
               [(with-refinements?)
                (map tc-dep-fun-arg args*)]
               [else
-               (map-single-value args* (list f-prop))]))
+               (map-single-value/unconditional-prop args* f-prop)]))
           (tc/funapp #'f #'args f-ty arg-types expected)]
          [(or (? DepFun?)
               (Poly-unsafe: _ (? DepFun?)))
@@ -114,5 +114,5 @@
                  (single-value arg-stx (ret dom-ty))]
                 [else (single-value arg-stx)])))
           (tc/funapp #'f #'args f-ty arg-types expected)]
-         [_ (tc/funapp #'f #'args f-ty (map-single-value args* (list f-prop)) expected)]))]))
+         [_ (tc/funapp #'f #'args f-ty (map-single-value/unconditional-prop args* f-prop) expected)]))]))
 

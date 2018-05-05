@@ -4716,6 +4716,10 @@
        ;; props + evaluation order
        [tc-e ((lambda: ((x : (Un Symbol Natural))) (+ (assert x integer?) x)) 1) -Nat]
        [tc-e ((lambda: ((x : (Un Symbol Natural))) ((begin (assert x integer?) +) x x)) 1) -Nat]
+       [tc-e ((lambda: ((x : (Un Symbol Natural)) (y : (Un Symbol Natural)))
+                (+ (assert x integer?) (assert y integer?) (+ x y))) 1 2) -Nat]
+       ;; TODO
+       ;;[tc-e ((lambda: ((x : Symbol)) (void (assert x string?) (+ x 1))) 'A) -Nat]
        )
 
   (test-suite

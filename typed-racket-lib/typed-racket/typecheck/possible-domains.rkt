@@ -71,18 +71,16 @@
 
   (define orig (map list doms rngs rests))
 
-  (define cases
-    (map (compose make-Fun list make-Arrow)
-         doms
-         rests
-         (make-list (length doms) null)
-         (map (match-lambda ; strip props
-                [(AnyValues: f) (-AnyValues -tt)]
-                [(Values: (list (Result: t _ _) ...))
-                 (-values t)]
-                [(ValuesDots: (list (Result: t _ _) ...) _ _)
-                 (-values t)])
-              rngs)))
+  (define cases (for/list ([d (in-list doms)]
+                           [rst (in-list rests)]
+                           [rng (in-list rngs)])
+                  (make-Fun (list (make-Arrow d rst null
+                                              (match rng ; strip props from range
+                                                [(AnyValues: f) (-AnyValues -tt)]
+                                                [(Values: (list (Result: t _ _) ...))
+                                                 (-values t)]
+                                                [(ValuesDots: (list (Result: t _ _) ...) _ _)
+                                                 (-values t)]))))))
 
   ;; iterate in lock step over the function types we analyze and the parts
   ;; that we will need to print the error message, to make sure we throw
@@ -113,9 +111,9 @@
   ;; function types with a return type of any then test for subtyping
   (define fun-tys-ret-any
     (map (match-lambda
-          [(Fun: (list (Arrow: dom rest _ _)))
+          [(Fun: (list (Arrow: dom rst _ _)))
            (make-Fun (list (make-Arrow dom
-                                       rest
+                                       rst
                                        null
                                        (-values (list Univ)))))])
          candidates))
@@ -163,10 +161,9 @@
            ;;  the original, which may confuse `:print-type''s pruning detection)
            t
            ;; pruning helped, return pruned type
-           (make-Fun (map make-Arrow
-                          pdoms
-                          rests
-                          (make-list (length pdoms) null)
-                          rngs))))]
+           (make-Fun (for/list ([pdom (in-list pdoms)]
+                                [rst (in-list rests)]
+                                [rng (in-list rngs)])
+                       (make-Arrow pdom rst null rng)))))]
     ;; not a function type. keep as is.
     [_ t]))

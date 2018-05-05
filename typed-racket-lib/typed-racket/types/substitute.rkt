@@ -100,7 +100,7 @@
          (let ([expanded (sub dty)])
            (map (λ (img) (substitute img name expanded))
                 images)))
-        rimage
+        (if (Type? rimage) (make-Rest (list rimage)) rimage)
         (map sub kws)
         (sub rng))]
       [_ (Rep-fmap target sub)])))

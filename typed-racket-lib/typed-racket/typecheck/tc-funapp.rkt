@@ -151,10 +151,9 @@
          #:infer-when
          ;; only try inference if the argument lengths are appropriate
          (match rst
-           [(? Type?) (<= (length dom) (length argtys))]
            [(RestDots: _ dbound) (and (<= (length dom) (length argtys))
                                       (eq? dotted-var dbound))]
-           [_ (= (length dom) (length argtys))])
+           [_ (Arrow-includes-arity? dom rst argtys)])
          ;; Only try to infer the free vars of the rng (which includes the vars
          ;; in props/objects).
          #:maybe-inferred-substitution
@@ -162,7 +161,7 @@
            (extend-tvars
             fixed-vars
             (match rst
-              [(? Type?)
+              [(? Rest?)
                (infer/vararg
                 fixed-vars (list dotted-var) argtys dom rst rng
                 (and expected (tc-results->values expected))
@@ -197,7 +196,7 @@
          ;; and there's no mandatory kw
          #:infer-when
          (and (not (ormap Keyword-required? kws))
-              ((if rst <= =) (length dom) (length argtys)))
+              (Arrow-includes-arity? dom rst argtys))
          ;; Only try to infer the free vars of the rng (which includes the vars
          ;; in props/objects).
          #:maybe-inferred-substitution

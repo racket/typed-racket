@@ -300,10 +300,13 @@
 ;; Convert an arr (see type-rep.rkt) to its printable form
 (define (arr->sexp arr)
   (match arr
-    [(Arrow: dom rest kws rng)
+    [(Arrow: dom rst kws rng)
+     (define arrow-star? (and (Rest? rst) (> (length (Rest-tys rst)) 1)))
+     (define dom-sexps (map type->sexp dom))
      (append
-      (list '->)
-      (map type->sexp dom)
+      (if arrow-star?
+          (list '->* dom-sexps)
+          (cons '-> dom-sexps))
       ;; Format keyword types as strings because the square
       ;; brackets are significant for printing. Note that
       ;; as long as the resulting s-expressions are `display`ed
@@ -314,8 +317,9 @@
            (if req?
                (format "~a ~a" k (type->sexp t))
                (format "[~a ~a]" k (type->sexp t)))]))
-      (match rest
-        [(? Type?) `(,(type->sexp rest) *)]
+      (match rst
+        [(Rest: (list rst-t)) `(,(type->sexp rst-t) *)]
+        [(Rest: rst-ts) `(#:rest-star ,(map type->sexp rst-ts))]
         [(RestDots: dty dbound)
          `(,(type->sexp dty) ... ,dbound)]
         [_ null])
@@ -385,7 +389,10 @@
                  (for/list ([opt-kw (in-list opt-kws)])
                    (match-define (Keyword: k t _) opt-kw)
                    (list k (type->sexp t))))
-       ,@(if rst (list '#:rest (type->sexp rst)) null)
+       ,@(match rst
+           [#f null]
+           [(Rest: (list rst-t)) `(#:rest ,(type->sexp rst-t))]
+           [(Rest: rst-ts) `(#:rest-star ,(map type->sexp rst-ts))])
        ,(values->sexp rng))]))
 
 ;; cover-case-lambda : (Listof arr) -> (Listof s-expression)
@@ -522,10 +529,20 @@
       [(Pair: a (? tuple?)) #t]
       [(== -Null) #t]
       [_ #f]))
+  (define (improper-tuple? t)
+    (let loop ([t t]
+               [depth 0])
+      (match t
+        [(Pair: a rst) (loop rst (add1 depth))]
+        [_ (>= depth 2)])))
   (define (tuple-elems t)
     (match t
       [(Pair: a e) (cons a (tuple-elems e))]
       [(== -Null) null]))
+  (define (improper-tuple-elems t)
+    (match t
+      [(Pair: a e) (cons a (improper-tuple-elems e))]
+      [end (list end)]))
   (match type
     [(Univ:) 'Any]
     [(Bottom:) 'Nothing]
@@ -580,6 +597,8 @@
      `(MListof ,(t->s elem-ty))]
     [(? tuple? t)
      `(List ,@(map type->sexp (tuple-elems t)))]
+    [(? improper-tuple? t)
+     `(List* ,@(map type->sexp (improper-tuple-elems t)))]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]
     [(Struct: nm       par (list (fld: t _ _) ...)       proc _ _)
      `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
@@ -612,8 +631,11 @@
     [(BaseUnion-bases: bs)
      (define-values (covered remaining) (cover-union type bs ignored-names))
      (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
-    [(Refine-name: x ty prop)
-     `(Refine [,(name-ref->sexp x) : ,ty] ,(prop->sexp prop))]
+    [(Refine: raw-ty raw-prop)
+     (with-printable-names 1 names
+       (define ty (instantiate-obj raw-ty names))
+       (define prop (instantiate-obj raw-prop names))
+       `(Refine [,(name-ref->sexp (car names)) : ,ty] ,(prop->sexp prop)))]
     [(Intersection: elems _)
      (cons '∩ (sort (map t->s elems) primitive<=?))]
     ;; format as a string to preserve reader abbreviations and primitive
@@ -667,8 +689,14 @@
                       #t]
                      [_ #f])))
      'Syntax]
-    [(Mu-name: name body)
+    [(Mu-maybe-name: name (? Type? body))
      `(Rec ,name ,(t->s body))]
+    [(Mu-unsafe: raw-body)
+     (with-printable-names 1 name-ids
+       (let ([names (for/list ([id (in-list name-ids)])
+                      (make-F (syntax-e id)))])
+         `(Rec ,(first names)
+               ,(t->s (instantiate-type raw-body names)))))]
     [(B: idx) `(B ,idx)]
     [(Syntax: t) `(Syntaxof ,(t->s t))]
     [(Instance: (and (? has-name?) cls)) `(Instance ,(t->s cls))]
@@ -692,25 +720,30 @@
     ;[(fld: t a m) `(fld ,(type->sexp t))]
     [(Distinction: name sym ty) ; from define-new-subtype
      name]
-    [(DepFun/pretty-ids: ids dom pre rng)
-     (define (arg-id? id) (member id ids free-identifier=?))
-     (define pre-deps (map name-ref->sexp
-                           (filter arg-id? (free-ids pre))))
-     `(-> ,(for/list ([id (in-list ids)]
-                      [d (in-list dom)])
-             (define deps (map name-ref->sexp
-                               (filter arg-id? (free-ids d))))
-             `(,(syntax-e id)
-               :
-               ,@(if (null? deps)
-                     '()
-                     (list deps))
-               ,(t->s d)))
-          ,@(cond
-              [(TrueProp? pre) '()]
-              [(null? pre-deps) `(#:pre ,(prop->sexp pre))]
-              [else `(#:pre ,pre-deps ,(prop->sexp pre))])
-          ,(values->sexp rng))]
+    [(DepFun: raw-dom raw-pre raw-rng)
+     (with-printable-names (length raw-dom) ids
+       (define dom (for/list ([d (in-list raw-dom)])
+                     (instantiate-obj d ids)))
+       (define pre (instantiate-obj raw-pre ids))
+       (define rng (instantiate-obj raw-rng ids))
+       (define (arg-id? id) (member id ids free-identifier=?))
+       (define pre-deps (map name-ref->sexp
+                             (filter arg-id? (free-ids pre))))
+       `(-> ,(for/list ([id (in-list ids)]
+                        [d (in-list dom)])
+               (define deps (map name-ref->sexp
+                                 (filter arg-id? (free-ids d))))
+               `(,(syntax-e id)
+                 :
+                 ,@(if (null? deps)
+                       '()
+                       (list deps))
+                 ,(t->s d)))
+            ,@(cond
+                [(TrueProp? pre) '()]
+                [(null? pre-deps) `(#:pre ,(prop->sexp pre))]
+                [else `(#:pre ,pre-deps ,(prop->sexp pre))])
+            ,(values->sexp rng)))]
     [else `(Unknown Type: ,(struct->vector type))]))
 
 

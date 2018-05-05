@@ -923,21 +923,9 @@
 [hash-eqv? (-> -HashTableTop B)]
 [hash-equal? (-> -HashTableTop B)]
 [hash-weak? (asym-pred -HashTableTop B (-PS (-is-type 0 -Weak-HashTableTop) (-not-type 0 -Weak-HashTableTop)))]
-[hash (-poly (a b) (cl->* (-> (-Immutable-HT a b))
-                          (a b . -> . (-Immutable-HT a b))
-                          (a b a b . -> . (-Immutable-HT a b))
-                          (a b a b a b . -> . (-Immutable-HT a b))
-                          (a b a b a b a b . -> . (-Immutable-HT a b))))]
-[hasheqv (-poly (a b) (cl->* (-> (-Immutable-HT a b))
-                             (a b . -> . (-Immutable-HT a b))
-                             (a b a b . -> . (-Immutable-HT a b))
-                             (a b a b a b . -> . (-Immutable-HT a b))
-                             (a b a b a b a b . -> . (-Immutable-HT a b))))]
-[hasheq (-poly (a b) (cl->* (-> (-Immutable-HT a b))
-                            (a b . -> . (-Immutable-HT a b))
-                            (a b a b . -> . (-Immutable-HT a b))
-                            (a b a b a b . -> . (-Immutable-HT a b))
-                            (a b a b a b a b . -> . (-Immutable-HT a b))))]
+[hash (-poly (a b) (->* (list) (make-Rest (list a b)) (-Immutable-HT a b)))]
+[hasheqv (-poly (a b) (->* (list) (make-Rest (list a b)) (-Immutable-HT a b)))]
+[hasheq (-poly (a b) (->* (list) (make-Rest (list a b)) (-Immutable-HT a b)))]
 [make-hash (-poly (a b) (->opt [(-lst (-pair a b))] (-Mutable-HT a b)))]
 [make-hasheq (-poly (a b) (->opt [(-lst (-pair a b))] (-Mutable-HT a b)))]
 [make-hasheqv (-poly (a b) (->opt [(-lst (-pair a b))] (-Mutable-HT a b)))]
@@ -949,7 +937,9 @@
 [make-immutable-hasheqv (-poly (a b) (->opt [(-lst (-pair a b))] (-Immutable-HT a b)))]
 
 [hash-set (-poly (a b) ((-HT a b) a b . -> . (-Immutable-HT a b)))]
+[hash-set* (-poly (a b) (->* (list (-HT a b)) (make-Rest (list a b)) (-Immutable-HT a b)))]
 [hash-set! (-poly (a b) ((-HT a b) a b . -> . -Void))]
+[hash-set*! (-poly (a b) (->* (list (-HT a b)) (make-Rest (list a b)) -Void))]
 [hash-ref (-poly (a b c)
                  (cl-> [((-HT a b) a) b]
                        [((-HT a b) a (-val #f)) (-opt b)]

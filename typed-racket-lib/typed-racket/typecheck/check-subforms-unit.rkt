@@ -56,12 +56,12 @@
          (tc/funapp #'here #'(here) t (list (ret arg1)) #f)]
         [(Fun: (list _ ...
                      (Arrow: (list)
-                             (? Type? rst)
+                             (Rest: (list rst-t))
                              (list (Keyword: _ _ #f) ...)
                              _ )
                      _ ...))
-         #:when (subtype prop-type rst)
-         (tc/funapp #'here #'(here) t (list (ret rst)) #f)]
+         #:when (subtype prop-type rst-t)
+         (tc/funapp #'here #'(here) t (list (ret rst-t)) #f)]
         [(? resolvable? t)
          (loop (resolve t))]
         [(or (Poly: ns _) (PolyDots: (list ns ... _) _))

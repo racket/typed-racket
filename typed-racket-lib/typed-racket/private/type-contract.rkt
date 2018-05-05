@@ -492,7 +492,7 @@
         (define prop
           (cond
             [(TrueProp? raw-prop) #f]
-            [else (define x (gen-pretty-id))
+            [else (define x (genid))
                   (define prop (Intersection-prop (-id-path x) type))
                   (define name (format "~a" `(λ (,(syntax->datum x)) ,prop)))
                   (flat-named-lambda/sc name
@@ -736,6 +736,8 @@
         (channel/sc (t->sc t))]
        [(Evt: t)
         (evt/sc (t->sc t))]
+       [(Rest: (list rst-t)) (listof/sc (t->sc rst-t))]
+       [(? Rest? rst) (t->sc (Rest->Type rst))]
        [(? Prop? rep) (prop->sc rep)]
        [_
         (fail #:reason "contract generation not supported for this type")]))))
@@ -812,7 +814,7 @@
              (values (map conv mand-kws)
                      (map conv opt-kws))))
          (define range (map t->sc rngs))
-         (define rest (and rst (listof/sc (t->sc/neg rst))))
+         (define rest (and rst (t->sc/neg rst)))
          (function/sc (from-typed? typed-side) (process-dom mand-args) opt-args mand-kws opt-kws rest range))
        (handle-arrow-range first-arrow convert-arrow)]
       [else
@@ -827,7 +829,7 @@
                                      " with optional keyword arguments")))
                 (if case->
                   (arr/sc (process-dom (map t->sc/neg dom))
-                          (and rst (listof/sc (t->sc/neg rst)))
+                          (and rst (t->sc/neg rst))
                           (map t->sc rngs))
                   (function/sc
                     (from-typed? typed-side)
@@ -836,7 +838,7 @@
                     (map conv mand-kws)
                     (map conv opt-kws)
                     (match rst
-                      [(? Type?) (listof/sc (t->sc/neg rst))]
+                      [(? Rest?) (t->sc/neg rst)]
                       [(RestDots: dty dbound)
                        (listof/sc
                         (t->sc/neg dty

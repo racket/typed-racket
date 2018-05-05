@@ -4,6 +4,7 @@
          (rep type-rep rep-utils)
          (utils tc-utils)
          "substitute.rkt" "tc-result.rkt" "tc-error.rkt"
+         (except-in "base-abbrev.rkt" -> ->*)
          (rep free-variance) 
          racket/match
          racket/set
@@ -13,6 +14,33 @@
 
 (provide (all-from-out "tc-result.rkt" "tc-error.rkt"))
 
+
+(define dom+rst-ref-failure (λ () (int-err "invalid index for domain and rest args")))
+
+;; given the list of domain types (dom)
+;; and the functions rest spec (rst),
+;; get the type for an argument at position idx,
+;; else return default if no such type exists
+;; where default is a procedure (i.e. a thunk
+;; to be called in tail position)
+;; or some other value (to be returned)
+(define (dom+rst-ref dom rst idx [default dom+rst-ref-failure])
+  (match dom
+    [(cons t ts)
+     (cond
+       [(zero? idx) t]
+       [else (dom+rst-ref ts rst (sub1 idx) default)])]
+    [_ (match rst
+         [(Rest: rst-ts) (list-ref rst-ts (remainder idx (length rst-ts)))]
+         [_ (if (procedure? default) (default) default)])]))
+
+(define (Rest->Type r)
+  (match r
+    [#f -Null]
+    [(Rest: (list t)) (-lst t)]
+    [(Rest: (list)) -Null]
+    [(Rest: ts) (make-CyclicListof ts)]
+    [(RestDots: dty dbound) (make-ListDots dty dbound)]))
 
 (define (instantiate-poly t types)
   (match t
@@ -120,5 +148,9 @@
  [fv/list ((listof Rep?) . -> . (set/c symbol?))]
  [current-poly-struct (parameter/c (or/c #f poly?))]
  [has-optional-args? (-> (listof Arrow?) any)]
+ [Rest->Type (-> (or/c #f Rest? RestDots?) Type?)]
+ [dom+rst-ref (->* ((listof Type?) (or/c #f Rest? RestDots?) exact-nonnegative-integer?)
+                   (any/c)
+                   any/c)]
  )
 

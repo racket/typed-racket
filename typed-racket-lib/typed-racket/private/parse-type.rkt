@@ -254,7 +254,7 @@
 ;; that looks the same as the original and which meets the above
 ;; conditions.
 (define (id->local-id id)
-  (gen-pretty-id (syntax->datum id)))
+  (symbol->fresh-pretty-normal-id (syntax->datum id)))
 
 (define-syntax-class dependent-fun-arg
   #:description "dependent function argument"
@@ -296,7 +296,7 @@
            ;; does not need to be delayed since there's no parsing done
            #:attr result #'t))
 
-(define-splicing-syntax-class ->*-rest
+(define-splicing-syntax-class optional->*-rest
   #:description "rest argument type for ->*"
   #:attributes (type)
   (pattern (~optional (~seq #:rest type:non-keyword-ty))))
@@ -683,16 +683,27 @@
        (-pair (parse-type #'fst) (parse-type #'rst))]
       [(:pred^ t)
        (make-pred-ty (parse-type #'t))]
-      [(:case->^ tys ...)
+      [((~and :case->^ operator) tys ...)
+       (when (eq? (syntax-e #'operator) 'case-lambda)
+         (log-message
+          (current-logger)
+          'warning
+          (format "~a~a"
+                  "The case-lambda type constructor is deprecated!"
+                  " Please use case-> instead.")
+          stx))
        (make-Fun
-        (for/list ([ty (in-syntax #'(tys ...))])
-          (let ([t (parse-type ty)])
-            (match t
-              [(Fun: (list arr)) arr]
-              [_ (parse-error
-                  #:stx ty
-                  "expected a function type for component of case-> type"
-                  "given" t)]))))]
+        (remove-duplicates
+         (apply
+          append
+          (for/list ([ty (in-syntax #'(tys ...))])
+            (let ([t (parse-type ty)])
+              (match t
+                [(Fun: arrows) arrows]
+                [_ (parse-error
+                    #:stx ty
+                    "expected a function type for component of case-> type"
+                    "given" t)]))))))]
       [(:Rec^ x:id t)
        (let* ([var (syntax-e #'x)]
               [tvar (make-F var)])
@@ -968,19 +979,37 @@
               (parse-type #'rng)
               : (-PS (attribute latent.positive) (attribute latent.negative))
               : (attribute latent.object)))]
+      ;; like ->* below but w/ a #:rest-pat present
       [(:->*^ (~var mand (->*-args #t))
               (~optional (~var opt (->*-args #f))
                          #:defaults ([opt.doms null] [opt.kws null]))
-              rest:->*-rest
+              #:rest-star (rest-types-stx:non-keyword-ty ...)
               rng)
        (with-arity (length (attribute mand.doms))
-         (define doms (for/list ([d (attribute mand.doms)])
-                        (parse-type d)))
-         (define opt-doms (for/list ([d (attribute opt.doms)])
-                            (parse-type d)))
+         (define doms (map parse-type (attribute mand.doms)))
+         (define opt-doms (map parse-type (attribute opt.doms)))
+         (define rest-tys (stx-map parse-type #'(rest-types-stx ...)))
+         (cond
+           [(< (length rest-tys) 1)
+            (opt-fn doms opt-doms (parse-values-type #'rng)
+                    #:kws (map force (append (attribute mand.kws)
+                                             (attribute opt.kws))))]
+           [else
+            (opt-fn doms opt-doms (parse-values-type #'rng)
+                    #:rest (make-Rest rest-tys)
+                    #:kws (map force (append (attribute mand.kws)
+                                             (attribute opt.kws))))]))]
+      [(:->*^ (~var mand (->*-args #t))
+              (~optional (~var opt (->*-args #f))
+                         #:defaults ([opt.doms null] [opt.kws null]))
+              rest:optional->*-rest
+              rng)
+       (with-arity (length (attribute mand.doms))
+         (define doms (map parse-type (attribute mand.doms)))
+         (define opt-doms (map parse-type (attribute opt.doms)))
          (opt-fn doms opt-doms (parse-values-type #'rng)
                  #:rest (and (attribute rest.type)
-                             (parse-type (attribute rest.type)))
+                             (make-Rest (list (parse-type (attribute rest.type)))))
                  #:kws (map force (append (attribute mand.kws)
                                           (attribute opt.kws)))))]
       [:->^

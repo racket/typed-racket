@@ -384,6 +384,67 @@
    [FAIL (->* (list -Number) -Number -Boolean) (->* (list -Number -Number -Number) -Number)]
    [(->* (list -Number -Number) -Boolean -Number) (->* (list -Number -Number -Boolean -Boolean) -Number)]
 
+   ;; #:rest-star
+   [(->* (list -Zero) Univ -Boolean)
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)]
+   [(->optkey [-Zero] #:rest Univ -Boolean)
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)]
+   [FAIL
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+    (->* (list -Zero) Univ -Boolean)]
+   [(->* (list Univ) (Un -Zero -Symbol) -Boolean)
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)]
+   [FAIL
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+    (->* (list Univ) (Un -Zero -Symbol) -Boolean)]
+   [(->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) Univ)]
+   [FAIL
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) Univ)
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Boolean)]
+   [FAIL
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Zero)
+    (->* (list -Zero -Zero) -Zero)]
+   [FAIL
+    (->* (list -Zero -Zero) -Zero)
+    (->* (list -Zero) (make-Rest (list -Zero -Symbol)) -Zero)]
+   [(->* (list -Zero) (make-Rest (list -Zero -Zero)) -Zero)
+    (->* (list -Zero -Zero -Zero) -Zero)]
+   [FAIL
+    (->* (list -Zero -Zero -Zero) -Zero)
+    (->* (list -Zero) (make-Rest (list -Zero -Zero)) -Zero)]
+   [FAIL
+    (->* (list -Zero) (make-Rest (list -Zero -Zero -Zero)) -Zero)
+    (->* (list -Zero -Zero -Zero) -Zero)]
+   [(->* (list -Zero -Zero) (make-Rest (list -Boolean -Symbol)) -Zero)
+    (->* (list -Zero -Zero) -Zero)]
+   [(->* (list -Zero -Zero) (make-Rest (list -Boolean -Boolean)) -Zero)
+    (->* (list -Zero -Zero -Boolean -Boolean) -Zero)]
+   [(->* (list) (make-Rest (list -Boolean)) -Zero)
+    (->* (list) (make-Rest (list -Boolean -Boolean)) -Zero)]
+   [FAIL
+    (->* (list) (make-Rest (list -Boolean -Boolean)) -Zero)
+    (->* (list) (make-Rest (list -Boolean)) -Zero)]
+   [(->* (list) (make-Rest (list (Un -Boolean -String))) -Zero)
+    (->* (list) (make-Rest (list -Boolean -String)) -Zero)]
+   [(->* (list) (make-Rest (list -Boolean -String)) -Zero)
+    (->* (list) (make-Rest (list -Boolean -String -Boolean -String -Boolean -String)) -Zero)]
+   [(->* (list) (make-Rest (list -Boolean -String)) -Zero)
+    (->* (list) (make-Rest (list -True -String -False -String -True -String)) -Zero)]
+   [FAIL
+    (->* (list) (make-Rest (list -Boolean -String -Boolean)) -Zero)
+    (->* (list) (make-Rest (list -Boolean -String -Boolean -String -Boolean -String)) -Zero)]
+   [(-poly (a) (->* (list -Zero a) (make-Rest (list -Boolean -Boolean)) a))
+    (->* (list -Zero -Zero -Boolean -Boolean) -Zero)]
+   [(-poly (a) (->* (list -Zero -Zero) (make-Rest (list -Boolean a)) -Zero))
+    (->* (list -Zero -Zero -Boolean -Boolean) -Zero)]
+   [(-poly (a) (->* (list a) (make-Rest (list -Zero -Zero)) a))
+    (->* (list -Zero -Zero -Zero) -Zero)]
+   [(-poly (a) (->* (list -Byte) (make-Rest (list a -Zero)) a))
+    (->* (list -Zero -Zero -Zero) -Zero)]
+   [(-poly (a) (->* (list a) (make-Rest (list a -Zero)) a))
+    (->* (list -Zero -Zero -Zero) -Zero)]
+
    [(-poly (a) (cl-> [() a]
                      [(-Number) a]))
     (cl-> [() (-pair -Number (-v b))]
@@ -766,6 +827,57 @@
                                 (-eq (-lexp (-id-path n))
                                      (-lexp (-id-path x))))])
            -Int)]
+   [(->* (list) -Int -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)]
+   [(->* (list -Int) -Int -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)]
+   [(->* (list -Int -Int) -Int -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)]
+   [FAIL
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)
+    (->* (list -Int) -Int -Int)]
+   [(->* (list) (make-Rest (list -Int -Int)) -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)]
+   [FAIL
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)
+    (->* (list) (make-Rest (list -Int -Int)) -Int)]
+   [(->* (list -Int -Int) (make-Rest (list -Int -Int)) -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)]
+   [FAIL
+    (->* (list -Int) (make-Rest (list -Int -Int)) -Int)
+    (dep-> ([x : -Int]
+            [y : (-refine/fresh n -Int
+                                (-eq (-lexp (-id-path n))
+                                     (-lexp (-id-path x))))])
+           -Int)]
    [FAIL
     (dep-> ([x : -Int]
             [y : (-refine/fresh n -Int
@@ -786,6 +898,19 @@
                       (-lexp (-id-path x)))
            -Int)
     (-> -Int -Int -Int)]
+   [(->* (list) (make-Rest (list -Int -Int)) -Int)
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-eq (-lexp (-id-path y))
+                      (-lexp (-id-path x)))
+           -Int)]
+   [FAIL
+    (->* (list -Int) (make-Rest (list -Int -Int)) -Int)
+    (dep-> ([x : -Int]
+            [y : -Int])
+           #:pre (-eq (-lexp (-id-path y))
+                      (-lexp (-id-path x)))
+           -Int)]
    [(-> -Int -Int -Int)
     (dep-> ([x : -Int]
             [y : -Int])

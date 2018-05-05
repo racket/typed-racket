@@ -55,6 +55,7 @@
     (check-prints-as? (make-Mu 'x (Un -Null (-pair -Nat (make-F 'x))))
                       "(Listof Nonnegative-Integer)")
     (check-prints-as? (-lst* -String -Symbol) "(List String Symbol)")
+    (check-prints-as? (-Tuple* (list -String -Symbol) -String) "(List* String Symbol String)")
 
     ;; next three cases for PR 14552
     (check-prints-as? (-mu x (Un (-pair x x) -Null))
@@ -152,10 +153,20 @@
                       "(->* (Any #:x String) (String) Void)")
     (check-prints-as? (->optkey Univ [-String] #:rest -String #:x -String #t -Void)
                       "(->* (Any #:x String) (String) #:rest String Void)")
+    (check-prints-as? (->optkey Univ [] #:rest (make-Rest (list -String -Symbol))
+                                -String)
+                      "(->* (Any) #:rest-star (String Symbol) String)")
+    (check-prints-as? (->optkey Univ [-String] #:rest (make-Rest (list -String -Symbol))
+                                #:x -String #t -Void)
+                      "(->* (Any #:x String) (String) #:rest-star (String Symbol) Void)")
     (check-prints-as? (cl->* (->opt -Pathlike [-String] -Void)
                              (->optkey Univ [-String] #:rest -String #:x -String #t -Void))
                       (string-append "(case-> (->* (Path-String) (String) Void) "
                                      "(->* (Any #:x String) (String) #:rest String Void))"))
+    (check-prints-as? (cl->* (->opt -Pathlike [-String] -Void)
+                             (->optkey Univ [-String] #:rest (make-Rest (list -String -Symbol)) #:x -String #t -Void))
+                      (string-append "(case-> (->* (Path-String) (String) Void) "
+                                     "(->* (Any #:x String) (String) #:rest-star (String Symbol) Void))"))
     (check-prints-as? (make-Unit null null null (-values (list -String)))
                       "(Unit (import) (export) (init-depend) String)")
     ;; Setup for slightly more complex unit printing test

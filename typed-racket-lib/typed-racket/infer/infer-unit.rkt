@@ -22,6 +22,7 @@
          "signatures.rkt" "fail.rkt"
          "promote-demote.rkt"
          racket/match
+         ;racket/trace
          (contract-req)
          (for-syntax
            racket/base
@@ -175,20 +176,25 @@
 ;; of them.
 (struct seq (types end) #:transparent)
 (struct null-end () #:transparent)
-(struct uniform-end (type) #:transparent)
+(define -null-end (null-end))
+;; ts is the pattern of the rest of the seq that can
+;; occur 0 or more times
+;; e.g. a rest argument of Num would just be (list Num)
+;;      a rest arg of (Num Str) would be (list Num Str)
+(struct star-end (ts) #:transparent)
 (struct dotted-end (type bound) #:transparent)
 
 (define (Values->seq v)
   (match v
-    [(Values: ts) (seq ts (null-end))]
+    [(Values: ts) (seq ts -null-end)]
     [(ValuesDots: ts dty dbound) (seq ts (dotted-end (-result dty) dbound))]
     [_ #f]))
 
 
 (define (List->end v)
   (match v
-    [(== -Null) (null-end)]
-    [(Listof: t) (uniform-end t)]
+    [(== -Null) -null-end]
+    [(Listof: t) (star-end (list t))]
     [(ListDots: t dbound) (dotted-end t dbound)]
     [_ #f]))
 
@@ -256,19 +262,27 @@
     [((seq ss (null-end))
       (seq ts (null-end)))
       (cgen/list context ss ts)]
-    ;; One is null-end the other is uniform-end
+    ;; One is null-end the other is star-end
     [((seq ss (null-end))
-      (seq ts (uniform-end t-rest)))
-     (cgen/list context ss (list-extend ss ts t-rest))]
-    [((seq ss (uniform-end s-rest))
+      (seq ts (star-end t-rest)))
+     (define ss-len (length ss))
+     (define ts-len (length ts))
+     #:return-unless (<= ts-len ss-len) #f
+     (define fewer-args (- ss-len ts-len))
+     (define cycle-len (length t-rest))
+     #:return-unless (zero? (remainder fewer-args cycle-len)) #f
+     (define repetitions (quotient fewer-args cycle-len))
+     (define new-ts (append ts (repeat-list t-rest repetitions)))
+     (cgen/list context ss new-ts)]
+    [((seq ss (star-end _))
       (seq ts (null-end)))
      #f]
-    ;; Both are uniform-end
-    [((seq ss (uniform-end s-rest))
-      (seq ts (uniform-end t-rest)))
-     (cgen/list context
-                (cons s-rest ss)
-                (cons t-rest (list-extend ss ts t-rest)))]
+    ;; Both are star-end
+    [((seq ss (star-end s-rest))
+      (seq ts (and t-end (star-end t-rest))))
+     (cgen/seq context
+               (seq (append s-rest ss) -null-end)
+               (seq (append t-rest ts) t-end))]
     ;; dotted below, nothing above
     [((seq ss (dotted-end dty dbound))
       (seq ts (null-end)))
@@ -326,27 +340,37 @@
           (% move-dotted-rest-to-dmap (cgen (context-add-var context dbound*) s-dty t-dty) dbound* dbound)))]
 
     ;; * <: ...
-    [((seq ss (uniform-end s-rest))
+    [((seq ss (star-end (list s-rest-ty)))
       (seq ts (dotted-end t-dty dbound)))
      #:return-unless (inferable-index? context dbound)
      #f
      #:return-unless (<= (length ts) (length ss))
      #f
      (define new-bound (gensym dbound))
-     (define-values (vars new-tys) (generate-dbound-prefix dbound t-dty (- (length ss) (length ts))
-                                                           new-bound))
+     (define-values (vars new-tys)
+       (generate-dbound-prefix dbound t-dty (- (length ss) (length ts))
+                               new-bound))
      (define-values (ss-front ss-back) (split-at ss (length ts)))
      (% cset-meet
         (cgen/list context ss-front ts)
         (% move-vars+rest-to-dmap
            (% cset-meet
-              (cgen/list (context-add context #:bounds (list new-bound) #:vars vars #:indices (list new-bound))
-                         ss-back new-tys)
-              (cgen (context-add-var context dbound) s-rest t-dty))
+              (cgen/list (context-add context
+                                      #:bounds (list new-bound)
+                                      #:vars vars
+                                      #:indices (list new-bound))
+                         ss-back
+                         new-tys)
+              (cgen (context-add-var context dbound) s-rest-ty t-dty))
            vars dbound #:exact #t))]
+    ;; TODO figure out how above code could be modified to support
+    ;; star-end w/ a cycle of len > 1
+    [((seq ss (star-end _))
+      (seq ts (dotted-end _ _)))
+     #f]
 
     [((seq ss (dotted-end s-dty dbound))
-      (seq ts (uniform-end t-rest)))
+      (seq ts (star-end (list t-rest-ty))))
      (cond
        [(inferable-index? context dbound)
         (define new-bound (gensym dbound))
@@ -356,16 +380,21 @@
         (% cset-meet
            (cgen/list context ss (if (positive? length-delta)
                                      (drop-right ts length-delta)
-                                     (list-extend ss ts t-rest)))
+                                     (list-extend ss ts t-rest-ty)))
            (% move-vars+rest-to-dmap
               (% cset-meet
                  (cgen/list (context-add context #:bounds (list new-bound) #:vars vars #:indices (list new-bound))
                             new-tys (take-right ts (max 0 length-delta)))
-                 (cgen (context-add-var context dbound) s-dty t-rest))
+                 (cgen (context-add-var context dbound) s-dty t-rest-ty))
               vars dbound))]
        [else
         (extend-tvars (list dbound)
-          (cgen/seq (context-add context #:bounds (list dbound)) (seq ss (uniform-end s-dty)) t-seq))])]))
+                      (cgen/seq (context-add context #:bounds (list dbound))
+                                (seq ss (star-end (list s-dty)))
+                                t-seq))])]
+    [((seq ts (dotted-end _ _))
+      (seq ss (star-end _)))
+     #f]))
 
 (define/cond-contract (cgen/arrow context s-arr t-arr)
   (context? Arrow? Arrow? . -> . (or/c #f cset?))
@@ -374,10 +403,10 @@
       (Arrow: ts t-rest t-kws t))
      (define (rest->end rest)
        (match rest
-         [(? Type?) (uniform-end rest)]
+         [(Rest: rst-ts) (star-end rst-ts)]
          [(RestDots: ty dbound)
           (dotted-end ty dbound)]
-         [_ (null-end)]))
+         [_ -null-end]))
 
      (define s-seq (seq ss (rest->end s-rest)))
      (define t-seq (seq ts (rest->end t-rest)))
@@ -947,9 +976,16 @@
 ;; like infer, but T-var is the vararg type:
 (define (infer/vararg X Y S T T-var R [expected #f]
                       #:objs [objs '()])
-  (define new-T (if T-var (list-extend S T T-var) T))
   (and ((length S) . >= . (length T))
-       (infer X Y S new-T R expected #:objs objs)))
+       (let* ([fewer-ts (- (length S) (length T))]
+              [new-T (match T-var
+                       [(? Type? var-t) (list-extend S T var-t)]
+                       [(Rest: rst-ts)
+                        #:when (zero? (remainder fewer-ts (length rst-ts)))
+                        (append T (repeat-list rst-ts
+                                               (quotient fewer-ts (length rst-ts))))]
+                       [_ T])])
+         (infer X Y S new-T R expected #:objs objs))))
 
 ;; like infer, but dotted-var is the bound on the ...
 ;; and T-dotted is the repeated type
@@ -988,6 +1024,6 @@
 ;(trace substs-gen)
 ;(trace cgen)
 ;(trace cgen/list)
-;(trace cgen/arr)
+;(trace cgen/arrow)
 ;(trace cgen/seq)
 

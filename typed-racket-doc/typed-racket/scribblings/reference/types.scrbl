@@ -724,7 +724,8 @@ functions and continuation mark functions.
           [optional-dom type
                         (code:line keyword type)]
           [rest (code:line)
-                (code:line #:rest type)])]{
+                (code:line #:rest type)
+                (code:line #:rest-star (type ...))])]{
   Constructs the type of functions with optional or rest arguments. The first
   list of @racket[mandatory-dom]s correspond to mandatory argument types. The list
   @racket[optional-doms], if provided, specifies the optional argument types.
@@ -733,13 +734,29 @@ functions and continuation mark functions.
       (define (append-bar str [how-many 1])
         (apply string-append str (make-list how-many "bar")))]
 
-  If provided, the @racket[rest] expression specifies the type of
+  If provided, the @racket[#:rest type] specifies the type of
   elements in the rest argument list.
 
   @ex[(: +all (->* (Integer) #:rest Integer (Listof Integer)))
       (define (+all inc . rst)
         (map (λ ([x : Integer]) (+ x inc)) rst))
       (+all 20 1 2 3)]
+
+  A @racket[#:rest-star (type ...)] specifies the rest list is a sequence
+  of types which occurs 0 or more times (i.e. the Kleene closure of the
+  sequence).
+
+ @ex[(: print-name+ages (->* () #:rest-star (String Natural) Void))
+     (define (print-name+ages . names+ages)
+       (let loop ([names+ages : (Rec x (U Null (List* String Natural x))) names+ages])
+         (when (pair? names+ages)
+           (printf "~a is ~a years old!\n"
+                   (first names+ages)
+                   (second names+ages))
+           (loop (cddr names+ages))))
+       (printf "done printing ~a ages" (/ (length names+ages) 2)))
+     (print-name+ages)
+     (print-name+ages "Charlotte" 8 "Harrison" 5 "Sydney" 3)]
 
   Both the mandatory and optional argument lists may contain keywords paired
   with types.
@@ -783,8 +800,9 @@ functions and continuation mark functions.
  @ex[((λ #:forall (A) ([x : (∩ Symbol A)]) x) 'foo)]}
 
 @defform[(case-> fun-ty ...)]{is a function that behaves like all of
-  the @racket[fun-ty]s, considered in order from first to last.  The @racket[fun-ty]s must all be function
-  types constructed with @racket[->].
+  the @racket[fun-ty]s, considered in order from first to last.
+ The @racket[fun-ty]s must all be non-dependent function types (i.e. no
+ preconditions or dependencies between arguments are currently allowed).
   @ex[(: add-map : (case->
                      [(Listof Integer) -> (Listof Integer)]
                      [(Listof Integer) (Listof Integer) -> (Listof Integer)]))]

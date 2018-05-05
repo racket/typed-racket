@@ -36,21 +36,21 @@
   ;; Returns the changed arr or #f if there is no arr above it
   (define (arr-change arr)
     (match arr
-      [(Arrow: dom rest kws rng)
+      [(Arrow: dom rst kws rng)
        (cond
          [(apply V-in? V (get-propsets rng))
           #f]
-         [(and (RestDots? rest)
-               (memq (RestDots-nm rest) V))
+         [(and (RestDots? rst)
+               (memq (RestDots-nm rst) V))
           (make-Arrow
            (map contra dom)
-           (contra (RestDots-ty rest))
+           (contra (RestDots-ty rst))
            (map contra kws)
            (co rng))]
          [else
           (make-Arrow
            (map contra dom)
-           (and rest (contra rest))
+           (and rst (contra rst))
            (map contra kws)
            (co rng))])]))
   (match cur

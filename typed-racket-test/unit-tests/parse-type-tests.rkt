@@ -5,6 +5,7 @@
            racket/base
            racket/dict
            racket/set
+           racket/list
            syntax/parse
            (base-env base-structs)
            (env tvar-env type-alias-env mvar-env)
@@ -151,6 +152,24 @@
                                                                  [(N N) N])]
    [(case-> (Number -> Boolean) (-> Number Number Number)) (cl-> [(N) B]
                                                                  [(N N) N])]
+   [(case-> (Boolean -> Boolean)
+            (-> Boolean Boolean Boolean)
+            (-> Boolean String * Boolean)
+            (->* (Boolean) #:rest String Boolean)
+            (->* (Boolean) #:rest-star (String Symbol) Boolean)
+            (->* (Boolean) (Boolean) #:rest-star (String Symbol) Boolean)
+            (->* (Boolean Boolean) #:rest-star (String Symbol) Boolean))
+    (make-Fun
+     (remove-duplicates
+      (list (-Arrow (list -Boolean) -Boolean)
+            (-Arrow (list -Boolean -Boolean) -Boolean)
+            (-Arrow (list -Boolean) #:rest -String -Boolean)
+            (-Arrow (list -Boolean)
+                    #:rest (make-Rest (list -String -Symbol))
+                    -Boolean)
+            (-Arrow (list -Boolean -Boolean)
+                    #:rest (make-Rest (list -String -Symbol))
+                    -Boolean))))]
    [1 (-val 1)]
    [#t (-val #t)]
    [#f (-val #f)]
@@ -293,6 +312,25 @@
     (->optkey -String [] #:rest -String #:a -String #t -String)]
    [(String [#:a String] String * -> String)
     (->optkey -String [] #:rest -String #:a -String #f -String)]
+
+   ;; #:rest-star tests
+   [(->* () #:rest-star () String)
+    (->optkey () -String)]
+   [(->* () (Symbol) #:rest-star (String Symbol) String)
+    (->optkey (-Symbol) #:rest (make-Rest (list -String -Symbol)) -String)]
+   [(->* () #:rest-star (String) String)
+    (->optkey () #:rest (make-Rest (list -String)) -String)]
+   [(->* () #:rest-star (String Symbol) String)
+    (->optkey () #:rest (make-Rest (list -String -Symbol)) -String)]
+   [(->* (String) #:rest-star (String Symbol) String)
+    (->optkey -String () #:rest (make-Rest (list -String -Symbol)) -String)]
+   [(->* (String) (Symbol) #:rest-star (String Symbol) String)
+    (->optkey -String (-Symbol) #:rest (make-Rest (list -String -Symbol)) -String)]
+   [(->* (String) (Symbol) #:rest-star () String)
+    (->optkey -String (-Symbol) -String)]
+   [FAIL (->* (String) #:rest-star Number String)]
+   [FAIL (->* (String) (Symbol) #:rest-star Number String)]
+   [FAIL (->* (String) (Symbol) #:rest-star (Not-A-Real-Type-Should-Fail) String)]
 
    ;;; Prefab structs
    [(Prefab foo String) (-prefab 'foo -String)]

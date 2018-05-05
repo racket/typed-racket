@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
          (utils tc-utils)
-         (types abbrev tc-result)
+         (types abbrev tc-result utils)
          (rep core-rep type-rep values-rep)
          (base-env annotate-classes)
          racket/list racket/set racket/match
@@ -16,9 +16,10 @@
                  rng ; SomeValues?
                  maybe-rst ; (or/c #f Type? RestDots?)
                  split?) ; boolean?
-  (when (RestDots? maybe-rst) (int-err "RestDots passed to kw-convert"))
-  ;; the kw function protocol passes rest args as an explicit list
-  (define rst-type (if maybe-rst (list (-lst maybe-rst)) empty))
+  (define rst-type (match maybe-rst
+                     [#f '()]
+                     [(? Rest?) (list (Rest->Type maybe-rst))]
+                     [_ (int-err "Invalid rest kind passed to kw-convert")]))
 
   ;; the kw protocol puts the arguments in keyword-sorted order in the
   ;; function header, so we need to sort the types to match

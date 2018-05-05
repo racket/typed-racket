@@ -264,7 +264,9 @@
      `(make-Opaque (quote-syntax ,pred))]
     [(Refinement: parent pred)
      `(make-Refinement ,(type->sexp parent) (quote-syntax ,pred))]
-    [(Mu-name: n b)
+    [(Mu-maybe-name: n (? Type? b))
+     `(make-Mu (quote ,n) ,(type->sexp b))]
+    [(Mu: n b)
      `(make-Mu (quote ,n) ,(type->sexp b))]
     [(Poly-names: ns b)
      `(make-Poly (list ,@(for/list ([n (in-list ns)])
@@ -324,6 +326,8 @@
        ,(and rest (type->sexp rest))
        (list ,@(map type->sexp kws))
        ,(type->sexp rng))]
+    [(Rest: tys )
+     `(make-Rest (list ,@(map type->sexp tys)))]
     [(RestDots: ty db)
      `(make-RestDots ,(type->sexp ty)
                      (quote ,db))]

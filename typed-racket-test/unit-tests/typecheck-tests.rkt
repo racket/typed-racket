@@ -4302,6 +4302,26 @@
        [tc-e
         (let ()
           (ann
+           (case-lambda
+             [(w x y z . rst)
+              (ann rst (Rec x (U Null (Pairof Number (Pairof String x)))))
+              (+ w (string-length x) y (string-length z))
+              42]
+             [(w x y . rst)
+              (+ w (string-length x) (string-length (car rst)) y)
+              42]
+             [(w x . rst)
+              (ann rst (Rec x (U Null (Pairof Number (Pairof String x)))))
+              (+ w (string-length x))
+              42]
+             [(w . rst) (+ (string-length (car rst)) w)]
+             [rst (ann rst (Rec x (U Null (Pairof Number (Pairof String x))))) 42])
+           (->* () () #:rest-star (Number String) Number))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (ann
            (case-lambda [(x str num . nums)
                          (+ x num (string-length str))]
                         [(x str . nums)
@@ -4506,6 +4526,192 @@
        [tc-err (let () (define b2 (box #px".*")) (set-box! b2 #rx".*"))]
        ;; Inferred type should be Byte-PRegexp, so we should not be able to set a Byte-Regexp:
        [tc-err (let () (define b2 (box #px#".*")) (set-box! b2 #rx#".*"))]
+
+       ;; rest-pat tests
+       [tc-e
+        (let ()
+          (ann
+           (tr:case-lambda
+             ((str1 num1 . rst1)
+              rst1
+              (ann rst1 (Pair String (Pair Symbol (Rec x (U Null (Pair Number (Pair String (Pair Symbol x))))))))
+              (+ num1 (string-length str1)))
+             ((str2 num2 str22 . rst2)
+              rst2
+              (ann rst2 (Pair Symbol (Rec x (U Null (Pair Number (Pair String (Pair Symbol x)))))))
+              (+ num2 (string-length str2)))
+             ((str3 num3 str32 sym3 . rst3)
+              (ann rst3 (Rec x (U Null (Pair Number (Pair String (Pair Symbol x))))))
+              (+ num3 (string-length str3)))
+             ((str3 num3 str32 sym3 num32 str33 . rst3)
+              (ann rst3 (Pair Symbol (Rec x (U Null (Pair Number (Pair String (Pair Symbol x)))))))
+              (+ num3 (string-length str3)))
+             ((str4 . rst4)
+              (ann rst4 (Rec x (U Null (Pair Number (Pair String (Pair Symbol x))))))
+              (string-length str4))
+             (rst5 (length (ann rst5 Null))))
+           (->* () (String) #:rest-star (Number String Symbol) Number))
+          (void))
+        -Void]
+       [tc-e ((inst hash Number Symbol))
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e ((inst hash Number String) 1 "a")
+             (-Immutable-HT -Number -String)]
+       [tc-e ((inst hash Number Symbol)
+              1 'a 2 'b 3 'c 4 'd 5 'e 6 'f 7 'g 8 'h 9 'i 10 'j)
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e (hash)
+             (-Immutable-HT Univ Univ)]
+       [tc-e (hash (ann 1 Number) "a")
+             (-Immutable-HT -Number -String)]
+       [tc-e (hash 0 "a" 1 "b" 2 "c" 3 "d" 4 "e" 5 "f" 6 "g" 7 "h" 8 "i" 9 "j")
+             (-Immutable-HT -Byte -String)]
+       [tc-e ((inst hash-set* Number Symbol)
+              ((inst hash Number Symbol)))
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e ((inst hash-set* Number Symbol)
+              (hash))
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e ((inst hash-set* Number Symbol) (hash) 1 'one)
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e ((inst hash-set* Number Symbol)
+              ((inst hash Number Symbol))
+              1 'one)
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e (hash-set* ((inst hash Number Symbol)) 1 'one)
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e (ann (hash-set* (hash 0 'zero) 1 'one)
+                  (Immutable-HashTable Number Symbol))
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e (ann (apply hash-set* (hash 0 'zero) 1 'one '())
+                  (Immutable-HashTable Number Symbol))
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e (ann (apply hash-set* (hash 0 'zero) 1 'one '(2 two))
+                  (Immutable-HashTable Number Symbol))
+             (-Immutable-HT -Number -Symbol)]
+       [tc-e (let ([h ((inst make-hash Number Symbol))])
+               ((inst hash-set*! Number Symbol) h 1 'one))
+             -Void]
+       [tc-e (let ([h ((inst make-hash Number Symbol))])
+               (hash-set*! h))
+             -Void]
+       [tc-e (let ([h ((inst make-hash Number Symbol))])
+               (hash-set*! h 1 'one))
+             -Void]
+       [tc-e ((inst hash-set* Number Symbol)
+              ((inst hash Number Symbol))
+              2 'two)
+             (-Immutable-HT -Number -Symbol)]
+       [tc-err (let ()
+                 ((inst hash-set* Number Symbol) ((inst hash Number Symbol)) 2 'two 3)
+                 (void))
+               #:ret (ret -Void #f #f)
+               #:msg #rx"wrong number of rest arguments"]
+       [tc-err (let ()
+                 ((inst hash-set* Number Symbol) (hash) 2 'two 3)
+                 (void))
+               #:ret (ret -Void #f #f)
+               #:msg #rx"wrong number of rest arguments"]
+       [tc-err (let ([h (inst make-hash Number Symbol)])
+                 ((inst hash-set*! Number Symbol) h 2 'two 'three)
+                 (void))
+               #:ret (ret -Void #f #f)
+               #:msg #rx"wrong number of rest arguments"]
+       [tc-err
+        (let ()
+          (apply hash (ann 0 Number) null)
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash (ann 0 Number) null)
+          (void))
+        #:ret (ret (-Immutable-HT -Number -String) #f #f)
+        #:expected (ret (-Immutable-HT -Number -String) #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash (ann 0 Number) (ann null (Listof (U Number String))))
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash (ann 0 Number) (ann null (Listof (U Number String))))
+          (void))
+        #:ret (ret (-Immutable-HT -Number -String) #f #f)
+        #:expected (ret (-Immutable-HT -Number -String) #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash (ann 0 Number) (ann "0" String) (ann 0 Number))
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash
+                 (ann 0 Number)
+                 (ann "0" String)
+                 (ann 0 Number)
+                 (list (ann "0" String)
+                       (ann 0 Number)))
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash
+                 (ann 0 Number)
+                 (ann "0" String)
+                 (ann 0 Number)
+                 (list (ann "0" String)
+                       (ann 0 Number)))
+          (void))
+        #:ret (ret (-Immutable-HT -Number -String) #f #f)
+        #:expected (ret (-Immutable-HT -Number -String) #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash
+                 (ann 0 Number)
+                 (ann "0" String)
+                 (ann 0 Number)
+                 (ann (list (ann 0 Number))
+                      (Listof Number)))
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash
+                 (ann 0 Number)
+                 (ann "0" String)
+                 (list (ann 0 Number)
+                       (ann "0" String)
+                       (ann 0 Number)))
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash
+                 (ann 0 Number)
+                 (ann "0" String)
+                 (list (ann 0 Number)
+                       (ann "0" String)
+                       (ann 0 Number)))
+          (void))
+        #:ret (ret (-Immutable-HT -Number -String) #f #f)
+        #:expected (ret (-Immutable-HT -Number -String) #f #f)
+        #:msg #rx"Bad arguments to function"]
+       [tc-err
+        (let ()
+          (apply hash-set* (hash) 1 'one '(2 two 3))
+          (void))
+        #:ret (ret -Void #f #f)
+        #:msg #rx"Bad arguments to function"]
        )
 
   (test-suite

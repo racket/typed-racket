@@ -4712,6 +4712,154 @@
           (void))
         #:ret (ret -Void #f #f)
         #:msg #rx"Bad arguments to function"]
+
+       ;; optional arg bad default non-immediate
+       [tc-err (let ()
+               (: f (-> Number Number))
+               (tr:define (f x [y (string-append "x" "y")])
+                 (+ x y))
+               (void))
+             #:ret (ret -Void #f #f)
+             #:msg #rx"expected: Number"]
+       ;; optional arg bad default immediate
+       [tc-err (let ()
+                 (: f (-> Number Number))
+                 (tr:define (f x [y 'y])
+                   (+ x y))
+                 (void))
+               #:ret (ret -Void #f #f)
+               #:msg #rx"expected: Number"]
+       ;; optional kw arg bad default non-immediate
+       [tc-err (let ()
+                 (: f (-> Number Number))
+                 (tr:define (f x #:y [y (string-append "x" "y")])
+                   (+ x y))
+                 (void))
+               #:ret (ret -Void #f #f)
+               #:msg #rx"expected: Number"]
+       ;; optional kw arg bad default immediate
+       [tc-err (let ()
+                 (: f (-> Number Number))
+                 (tr:define (f x #:y [y 'y])
+                   (+ x y))
+                 (void))
+               #:ret (ret -Void #f #f)
+               #:msg #rx"expected: Number"]
+       ;; type omits optional argument (immediate):
+       [tc-e
+        (let ()
+          (: foo (-> Number Number))
+          (tr:define (foo x [y 0])
+            (+ x y))
+          (void))
+        -Void]
+       ;; type omits optional argument (non-immediate):
+       [tc-e
+        (let ()
+          (: f (-> Number Number))
+          (tr:define (f x [y (+ 1 0)])
+            (+ x y))
+          (void))
+        -Void]
+       ;; type omits optional kw argument (immediate):
+       [tc-e
+        (let ()
+          (: f (-> Number Number))
+          (tr:define (f x #:y [y 0])
+            (+ x y))
+          (void))
+        -Void]
+       ;; type omits optional kw argument (non-immediate):
+       [tc-e
+        (let ()
+          (: f (-> Number Number))
+          (tr:define (f x #:y [y (+ 1 0)])
+            (+ x y))
+          (void))
+        -Void]
+       ;; Mix by-position, by-keyword, and [non-]immediate:
+       [tc-e
+        (let ()
+          (: f (-> Number Number))
+          (tr:define (f x
+                     [y1 0]
+                     [y2 (+ 1 0)]
+                     #:z1 [z1 0]
+                     #:z2 [z2 (+ 1 0)])
+            (+ x y1 y2 z1 z2))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (: f (-> Number Number Number))
+          (tr:define (f x
+                     [y1 0]
+                     [y2 (+ 1 0)]
+                     #:z1 [z1 0]
+                     #:z2 [z2 (+ 1 0)])
+            (+ x y1 y2 z1 z2))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (: f (-> Number Number Number Number))
+          (tr:define (f x
+                     [y1 0]
+                     [y2 (+ 1 0)]
+                     #:z1 [z1 0]
+                     #:z2 [z2 (+ 1 0)])
+            (+ x y1 y2 z1 z2))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (: f (->* (Number) (#:z1 Number) Number))
+          (tr:define (f x
+                     [y1 0]
+                     [y2 (+ 1 0)]
+                     #:z1 [z1 0]
+                     #:z2 [z2 (+ 1 0)])
+            (+ x y1 y2 z1 z2))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (: f (->* (Number) (Number #:z1 Number) Number))
+          (tr:define (f x
+                     [y1 0]
+                     [y2 (+ 1 0)]
+                     #:z1 [z1 0]
+                     #:z2 [z2 (+ 1 0)])
+            (+ x y1 y2 z1 z2))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (: f (->* (Number)
+                    (Number
+                     Number
+                     #:z1 Number
+                     #:z2 Number)
+                    Number))
+          (tr:define (f x
+                     [y1 0]
+                     [y2 (+ 1 0)]
+                     #:z1 [z1 0]
+                     #:z2 [z2 (+ 1 0)])
+            (+ x y1 y2 z1 z2))
+          (void))
+        -Void]
+       [tc-e
+        (let ()
+          (: f (-> Number Number))
+          (tr:define (f x
+                     [y1 0]
+                     [y2 (+ 1 0)]
+                     #:z1 [z1 0]
+                     #:z2 [z2 (+ 1 0)])
+            (+ x y1 y2 z1 z2))
+          (void))
+        -Void]
        )
 
   (test-suite

@@ -13,6 +13,7 @@
          "signatures.rkt"
          (private parse-type syntax-properties)
          (env lexical-env tvar-env global-env type-alias-helper mvar-env)
+         (base-env annotate-classes)
          (types utils abbrev subtype resolve generalize)
          (typecheck check-below internal-forms)
          (utils tc-utils mutated-vars)
@@ -233,7 +234,11 @@
                  kw:kw-lambda^)
            #:do [(register/method #'meth-name)]
            #:with props-core
-                  (kw-lambda-property #'kw-core (attribute kw.value))
+                  (let ([kw-val (attribute kw.value)])
+                    (kw-lambda-property
+                     #'kw-core
+                     (struct-copy lambda-kws kw-val
+                                  [pos-mand-count (add1 (lambda-kws-pos-mand-count kw-val))])))
            #:with plam-core
                   (cond [(plambda-property this-syntax)
                          => (λ (plam) (plambda-property #'props-core plam))]

@@ -11,8 +11,8 @@
 ;; ----------------
 ;;
 ;; A LambdaKeywords is a
-;;   (lambda-kws (Listof Keyword) (Listof Keyword) (Listof Keyword) (listof Boolean))
-(struct lambda-kws (mand opt opt-supplied pos-opt-supplied?))
+;;   (lambda-kws (Listof Keyword) (Listof Keyword) (Listof Keyword) Integer (listof Boolean))
+(struct lambda-kws (mand opt opt-supplied pos-mand-count pos-opt-supplied?))
 
 ;; interp.
 ;;   - the first list contains the mandatory keywords
@@ -276,6 +276,12 @@
                      (values (cons (syntax-e kw) mand-kws)
                              opt-kws
                              opt-kws-supplied))))
+             (define pos-mand-count
+               (for/sum ([kw (in-list kws)]
+                         [default (in-list defaults)]
+                         #:unless default
+                         #:unless kw)
+                 1))
              (define pos-opt-supplied?s
                (for/list ([kw (in-list kws)]
                           [default (in-list defaults)]
@@ -284,7 +290,7 @@
                  (immediate-default? default)))
              (and (or (not (null? mand-kws))
                       (not (null? opt-kws)))
-                  (lambda-kws mand-kws opt-kws opt-kws-supplied pos-opt-supplied?s)))
+                  (lambda-kws mand-kws opt-kws opt-kws-supplied pos-mand-count pos-opt-supplied?s)))
            #:attr opt-property
            (list (length (attribute mand))
                  (length (attribute opt))

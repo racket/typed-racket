@@ -22,7 +22,7 @@
          #`(let () #,@(car defs+ctc) #,(cadr defs+ctc))))]))
 
 (define tests
-  (test-suite "Conversion Tests"
+  (test-suite "Instantiate Tests"
     (let ([nat-ctc (sc->contract (flat/sc #'exact-nonnegative-integer?))])
       (check-true (nat-ctc 4))
       (check-false (nat-ctc -4)))

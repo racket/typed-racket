@@ -110,16 +110,25 @@
 
 
 ;; Reduce a static contract assuming that we trusted the current side
-(define ((make-trusted-side-reduce flat-sc?) sc)
+;; If `is-weak-side?` is true, then preserve the "head constructor" of the
+;;  result --- if `((make-trusted-side-reduce ...) sc #true) = sc+`, then
+;;  both `sc` and `sc+` must give the same answer to `contract-first-order`
+;;  after instantiation.
+(define ((make-trusted-side-reduce flat-sc?) sc is-weak-side?)
   (match sc
     [(->/sc: mand-args opt-args mand-kw-args opt-kw-args rest-arg (list (any/sc:) ...))
      (function/sc #t mand-args opt-args mand-kw-args opt-kw-args rest-arg #f)]
     [(arr/sc: args rest (list (any/sc:) ...))
      (arr/sc args rest #f)]
     [(none/sc:) any/sc]
-    [(or/sc: (? flat-sc?) ...) any/sc]
-    [(? flat-sc?) any/sc]
+    [(or/sc: (? flat-sc?) ...)
+     #:when (not is-weak-side?)
+     any/sc]
+    [(? flat-sc?)
+     #:when (not is-weak-side?)
+     any/sc]
     [(syntax/sc: (? recursive-sc?))
+     #:when (not is-weak-side?)
      ;;bg; _temporary_ case to allow contracts from the `Syntax` type.
      ;;    This is temporary until TR has types for immutable-vector
      ;;    and box-immutable & changes the definition of the `Syntax` type.
@@ -134,11 +143,20 @@
 (define (side? v)
   (memq v '(positive negative both)))
 
-;; A _weak side_ is a side that is currently unsafe to optimize
+;; A _weak side_ is a side that may be optimized with caution --- optimization
+;;  cannot change the value of `contract-first-order` on the result.
 ;; Example:
 ;;  when optimizing an `(or/sc scs ...)` on the 'positive side,
 ;;  each of the `scs` should be optimized on the '(weak positive) side,
 ;;  and their sub-contracts --- if any --- may be optimized on the 'positive side
+;;
+;;  - `(or/sc integer? (-> boolean? boolean?))`
+;;    ==> `(or/sc integer? (-> boolean? any))`
+;;    is OK
+;;  - `(or/sc integer? (-> boolean? boolean?))`
+;;    ==> `(or/sc any/c (-> boolean? boolean?))`
+;;    is NOT ok, because the second contract accepts any value and will
+;;    let typed functions cross without protection into untyped code.
 (define (weak-side? x)
   (match x
    [(list 'weak (? side?))
@@ -314,16 +332,14 @@
   ;; single-step: reduce and trusted-side-reduce if appropriate
   (define (single-step sc maybe-weak-side)
     (define trusted
-      (if (weak-side? maybe-weak-side)
-        #false
-        (case maybe-weak-side
-          [(positive) trusted-positive]
-          [(negative) trusted-negative]
-          [(both) (and trusted-positive trusted-negative)])))
+      (case (strengthen-side maybe-weak-side)
+        [(positive) trusted-positive]
+        [(negative) trusted-negative]
+        [(both) (and trusted-positive trusted-negative)]))
 
     (reduce
       (if trusted
-          (trusted-side-reduce sc)
+          (trusted-side-reduce sc (weak-side? maybe-weak-side))
           sc)))
 
   ;; full-pass: single-step at every static contract subpart

@@ -268,6 +268,42 @@
               (chaperone-procedure foo? #f))
             #:typed))
 
+   ;; Github pull request #714
+   ;; - typed functions that return flat typed do not need chaperones
+   ;; - typed functions that return non-flat types _do_ need chaperones,
+   ;;   unless they happen to be struct-predicate-procedures
+   (t-int (-> Univ -Boolean)
+          (lambda (f)
+            (when (has-contract? f)
+              (raise-argument-error 'issue712-regression "(not/c has-contract?)" f)))
+          ;; typed function returns flat value --- no need to chaperone
+          (lambda (x) (string? x))
+          #:typed)
+   (t-int (-> Univ Univ)
+          (lambda (f)
+            (unless (has-contract? f)
+              (raise-argument-error 'issue712-regression "has-contract?" f)))
+          ;; typed function may return higher-order value --- need chaperone
+          (lambda (x) (if (string? x) #true string?))
+          #:typed)
+   (t-int (-> Univ Univ)
+          (lambda (actual-struct-predicate)
+            (when (has-contract? actual-struct-predicate)
+              (raise-argument-error 'pr714-regression "unchaperoned struct predicate" actual-struct-predicate)))
+          (let ()
+            (struct foo ())
+            foo?)
+          #:typed)
+   (t-int (-> Univ Univ)
+          (lambda (aliased-struct-predicate)
+            (when (has-contract? aliased-struct-predicate)
+              (raise-argument-error 'pr714-regression "unchaperoned struct predicate" aliased-struct-predicate)))
+          (let ()
+            (struct foo ())
+            (define f foo?)
+            f)
+          #:typed)
+
    ;; classes
    (t-sc (-class) (class/sc #f null null))
    (t-sc (-class #:init ([x -Number #f] [y -Number #f]))

@@ -15,6 +15,7 @@ before_install:
 - sh installer.sh --in-place --dest ~/racket/
 
 install:
+- raco pkg install --auto -i --no-setup --skip-installed typed-racket-test # so that this works for Utah snapshots
 - racket -l- pkg/dirs-catalog --link --check-metadata pkgs-catalog .
 - echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
 - raco pkg config catalogs >> catalog-config.txt

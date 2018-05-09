@@ -16,7 +16,7 @@
          racket/list
          racket/private/class-internal
          syntax/parse
-         (typecheck internal-forms tc-envops)
+         (typecheck internal-forms tc-envops tc-metafunctions)
          racket/sequence
          racket/extflonum
          ;; Needed for current implementation of typechecking letrec-syntax+values
@@ -354,6 +354,25 @@
     [_ (tc-error/expr
           #:stx form
           "expected single value, got multiple (or zero) values")]))
+
+;; Apply `single-value` to a list of forms in order, accumulate the prop info
+(define (map-single-value/unconditional-prop forms [prop -tt])
+  (define any-res (-tc-any-results #f))
+  (let loop ((forms forms)
+             (prop prop))
+    (match forms
+     ['()
+      '()]
+     [(cons e rst)
+      (define tcr
+        (with-lexical-env+props
+          (list prop)
+          #:expected any-res
+          #:unreachable (for-each register-ignored! rst)
+          (single-value e)))
+      (define prop+
+        (-and (unconditional-prop tcr) prop))
+      (cons tcr (loop rst prop+))])))
 
 (define (tc-dep-fun-arg form [expected #f])
   (define t (tc-expr/check form expected #t))

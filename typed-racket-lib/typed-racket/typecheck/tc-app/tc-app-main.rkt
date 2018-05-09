@@ -9,7 +9,7 @@
          "../signatures.rkt" "../tc-funapp.rkt"
          (types abbrev utils prop-ops)
          (env lexical-env)
-         (typecheck tc-subst tc-envops check-below)
+         (typecheck tc-subst tc-envops check-below tc-metafunctions)
          (rep type-rep prop-rep object-rep values-rep))
 
 (import tc-expr^ tc-app-keywords^
@@ -75,8 +75,10 @@
 (define (tc/app-regular form expected)
   (syntax-case form ()
     [(f . args)
-     (let ([f-ty (tc-expr/t #'f)]
-           [args* (syntax->list #'args)])
+     (let* ([f-res (single-value #'f)]
+            [f-ty (match f-res [(tc-result1: t _ _) t])]
+            [f-prop (unconditional-prop f-res)]
+            [args* (syntax->list #'args)])
        (define (matching-arities arrs)
          (for/list ([arr (in-list arrs)] #:when (arrow-matches? arr args*)) arr))
        (define (has-drest/props? arrs)
@@ -89,7 +91,8 @@
             (cond
               [(with-refinements?)
                (map tc-dep-fun-arg args*)]
-              [else (map single-value args*)]))
+              [else
+               (map-single-value/unconditional-prop args* f-prop)]))
           (tc/funapp #'f #'args f-ty arg-types expected)]
          [(or (? DepFun?)
               (Poly-unsafe: _ (? DepFun?)))
@@ -111,5 +114,5 @@
                  (single-value arg-stx (ret dom-ty))]
                 [else (single-value arg-stx)])))
           (tc/funapp #'f #'args f-ty arg-types expected)]
-         [_ (tc/funapp #'f #'args f-ty (map single-value args*) expected)]))]))
+         [_ (tc/funapp #'f #'args f-ty (map-single-value/unconditional-prop args* f-prop) expected)]))]))
 

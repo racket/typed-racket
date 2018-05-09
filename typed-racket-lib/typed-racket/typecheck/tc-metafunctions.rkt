@@ -13,7 +13,8 @@
          combine-props
          merge-tc-results
          tc-results->values
-         erase-existentials)
+         erase-existentials
+         unconditional-prop)
 
 ;; Objects representing the rest argument are currently not supported
 (define/cond-contract (abstract-results results arg-names #:rest-id [rest-id #f])

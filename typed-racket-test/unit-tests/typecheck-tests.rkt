@@ -4728,32 +4728,28 @@
                (tr:define (f x [y (string-append "x" "y")])
                  (+ x y))
                (void))
-             #:ret (ret -Void #f #f)
-             #:msg #rx"expected: Number"]
+             #:ret (ret -Void #f #f)]
        ;; optional arg bad default immediate
        [tc-err (let ()
                  (: f (-> Number Number))
                  (tr:define (f x [y 'y])
                    (+ x y))
                  (void))
-               #:ret (ret -Void #f #f)
-               #:msg #rx"expected: Number"]
+               #:ret (ret -Void #f #f)]
        ;; optional kw arg bad default non-immediate
        [tc-err (let ()
                  (: f (-> Number Number))
                  (tr:define (f x #:y [y (string-append "x" "y")])
                    (+ x y))
                  (void))
-               #:ret (ret -Void #f #f)
-               #:msg #rx"expected: Number"]
+               #:ret (ret -Void #f #f)]
        ;; optional kw arg bad default immediate
        [tc-err (let ()
                  (: f (-> Number Number))
                  (tr:define (f x #:y [y 'y])
                    (+ x y))
                  (void))
-               #:ret (ret -Void #f #f)
-               #:msg #rx"expected: Number"]
+               #:ret (ret -Void #f #f)]
        ;; type omits optional argument (immediate):
        [tc-e
         (let ()

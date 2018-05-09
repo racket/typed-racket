@@ -29,6 +29,16 @@
     (sort keywords (λ (kw1 kw2) (keyword<? (Keyword-kw kw1)
                                            (Keyword-kw kw2)))))
 
+  (define pos-opt-arg-types
+    (append (for/list ([t (in-list optional-arg-types)]
+                       [supplied? (in-list pos-opts-supplied?)])
+              (if supplied?
+                  t
+                  (Un t -Unsafe-Undefined)))
+            (let ([num-opts (length optional-arg-types)])
+              (make-missing-opt-args (- (length pos-opts-supplied?) num-opts)
+                                     (list-tail pos-opts-supplied? num-opts)))))
+
   (make-Fun
    (cond
      [(not split?)
@@ -42,11 +52,7 @@
                                       t
                                       (Un t -Unsafe-Undefined))]))
           mandatory-arg-types
-          (for/list ([t (in-list optional-arg-types)]
-                     [supplied? (in-list pos-opts-supplied?)])
-            (if supplied?
-                t
-                (Un t -Unsafe-Undefined)))
+          pos-opt-arg-types
           rst-type)))
 
       (list (-Arrow ts rng))]
@@ -66,14 +72,7 @@
                  (cons t pos) ; keyword always supplied by expansion, so no unsafe-undefined check
                  (cons (Un t -Unsafe-Undefined) pos))])))
 
-      (define updated-optional-arg-types
-        (for/list ([t (in-list optional-arg-types)]
-                   [supplied? (in-list pos-opts-supplied?)])
-          (if supplied?
-              t
-              (Un t -Unsafe-Undefined))))
-
-      (list (-Arrow (append kw-args mandatory-arg-types updated-optional-arg-types rst-type)
+      (list (-Arrow (append kw-args mandatory-arg-types pos-opt-arg-types rst-type)
                     rng))])))
 
 ;; This is used to fix the props of keyword types.
@@ -102,7 +101,8 @@
 ;; keywords list. This allows the typechecker to check some branches of the
 ;; type that match the actual kws. Add extra actual keywords with Bottom type.
 (define (handle-extra-or-missing-kws kws actual-kws)
-  (match-define (lambda-kws actual-mands actual-opts actual-opts-supplied actual-pos-opts-supplied?)
+  (match-define (lambda-kws actual-mands actual-opts actual-opts-supplied
+                            actual-pos-mand-count actual-pos-opts-supplied?)
     actual-kws)
   (define expected-kws (map Keyword-kw kws))
   (define missing-removed
@@ -165,7 +165,7 @@
     ;; use for/list and remove duplicates afterwards instead of
     ;; set and set->list to retain determinism
     (remove-duplicates
-     (for/list ([(arrow mand-arg-count) (in-assoc mand-arg-table)])
+     (for/list ([(arrow arrow-mand-arg-count) (in-assoc mand-arg-table)])
        (match arrow
          [(Arrow: dom rst kws rng)
           (define kws* (if actual-kws
@@ -174,13 +174,24 @@
           (define kw-opts-supplied (if actual-kws
                                        (lambda-kws-opt-supplied actual-kws)
                                        '()))
+          (define mand-arg-count (if actual-kws
+                                     (lambda-kws-pos-mand-count actual-kws)
+                                     arrow-mand-arg-count))
+          (define opt-arg-count (- (length dom) mand-arg-count))
+          (define extra-opt-arg-count
+            ;; In case `dom` has too many arguments that we try to treat
+            ;; as optional:
+            (if actual-kws
+                (max 0 (- opt-arg-count (length (lambda-kws-pos-opt-supplied? actual-kws))))
+                0))
           (convert kws*
                    kw-opts-supplied
                    (take dom mand-arg-count)
                    (drop dom mand-arg-count)
                    (if actual-kws
-                       (lambda-kws-pos-opt-supplied? actual-kws)
-                       (make-list (- (length dom) mand-arg-count) #f))
+                       (append (lambda-kws-pos-opt-supplied? actual-kws)
+                               (make-list extra-opt-arg-count #f))
+                       (make-list opt-arg-count #f))
                    rng
                    rst
                    split?)]))))
@@ -246,7 +257,8 @@
             (define opt-types-count (length opt-types))
             (make-Fun
              (for/list ([to-take (in-range (add1 opt-types-count))])
-               (-Arrow (append mand-args (take opt-types to-take))
+               (-Arrow (append mand-args
+                               (take opt-types to-take))
                        (erase-props/Values rng)
                        #:kws actual-kws
                        #:rest (if (= to-take opt-types-count) rest-type #f))))]
@@ -259,7 +271,8 @@
 ;; the type that we've given. Allows for better error messages than just
 ;; relying on tc-expr. Return #f if the function shouldn't be checked.
 (define (check-kw-arity kw-prop f-type)
-  (match-define (lambda-kws actual-mands actual-opts actual-opts-supplied actual-pos-opts-supplied?)
+  (match-define (lambda-kws actual-mands actual-opts actual-opts-supplied
+                            actual-pos-mand-count actual-pos-opts-supplied?)
     kw-prop)
   (define arrs
     (match f-type
@@ -319,7 +332,8 @@
   (match arr
     [(Arrow: args #f '() result)
      (define num-args (length args))
-     (and (= num-args (+ required-pos optional-pos))
+     (and (>= num-args required-pos)
+          (<= num-args (+ required-pos optional-pos))
           (let* ([required-args (take args required-pos)]
                  [opt-args (for/list ([arg (in-list (drop args required-pos))]
                                       [supplied? (in-list optional-supplied?)])
@@ -327,9 +341,20 @@
                                  arg
                                  (Un -Unsafe-Undefined arg)))])
             (-Arrow (append required-args
-                            opt-args)
+                            opt-args
+                            (make-missing-opt-args (- (+ required-pos optional-pos) num-args)
+                                                   (list-tail optional-supplied? (- num-args required-pos))))
                     result)))]
     [_ #f]))
+
+(define (make-missing-opt-args num-missing-opt-args supplied?s)
+  (for/list ([i (in-range num-missing-opt-args)]
+             [supplied? (in-list supplied?s)])
+    (if supplied?
+        ;; body will get the right type from other `if` branch:
+        (Un)
+        ;; body can deal with an unsafe-undefined argument:
+        -Unsafe-Undefined)))
 
 (define (opt-convert ft required-pos optional-pos optional-supplied?)
   (let loop ([ft ft])
@@ -376,9 +401,7 @@
       ;; if min and max both have rest args, then there cannot
       ;; have been any optional arguments
       [(arg:id ... . rst:id) 0]))
-  ;; counted twice since optionals expand to two arguments
-  (define argc (+ raw-argc opt-argc))
-  (define mand-argc (- argc (* 2 opt-argc)))
+  (define mand-argc (- raw-argc opt-argc))
   (match ft
     [(Fun: arrs)
      (cond [(= 1 (length arrs))

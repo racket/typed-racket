@@ -166,6 +166,9 @@
     (check-optimize (or/sc set?/sc)
       #:pos any/sc
       #:neg set?/sc)
+    (check-optimize (or/sc (or/sc set?/sc list?/sc))
+      #:pos any/sc
+      #:neg (or/sc set?/sc list?/sc))
     (check-optimize (or/sc set?/sc any/sc)
       #:pos any/sc
       #:neg any/sc)

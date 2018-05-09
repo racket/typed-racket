@@ -10,7 +10,8 @@ env:
 before_install:
 - "export DISPLAY=:99.0"
 - "sh -e /etc/init.d/xvfb start"
-- curl -L -o installer.sh http://plt.eecs.northwestern.edu/snapshots/current/installers/racket-test-current-x86_64-linux-precise.sh
+#- curl -L -o installer.sh http://plt.eecs.northwestern.edu/snapshots/current/installers/racket-test-current-x86_64-linux-precise.sh
+- curl -L -o installer.sh http://www.cs.utah.edu/plt/snapshots/current/installers/racket-current-x86_64-linux-precise.sh
 - sh installer.sh --in-place --dest ~/racket/
 
 install:

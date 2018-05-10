@@ -60,6 +60,13 @@
       [(? (λ (l) (member any/sc l))) any/sc]
       [(? (λ (l) (member none/sc l)))
        (apply or/sc (remove* (list none/sc) scs))]
+      [(list pre-scs ... (or/sc: mid-scs ...) post-scs ...)
+       ;; Assumes `sc->kind` is the same for all `mid-scs`.
+       ;; If this assumption is false, then the flattened contract might
+       ;;  accept a value that the original contract failed for ---
+       ;;  consider `(or/c (or/c procedure? (-> boolean?)) (-> integer?))`
+       ;;  and `(or/c procedure? (-> boolean?) (-> integer?))` any thunk
+       (apply or/sc (set-union pre-scs mid-scs post-scs))]
       [else sc])]
 
     ;; and/sc cases
@@ -214,6 +221,7 @@
         (arr/sc: _ _ _)
         (async-channel/sc: _)
         (box/sc: _)
+        (case->/sc: _)
         (channel/sc: _)
         (cons/sc: _ _)
         (continuation-mark-key/sc: _)
@@ -235,6 +243,7 @@
         (weak-hash/sc: _ _))
     #true]
    [_
+     ;; class/sc object/sc rec/sc ...
     #false]))
 
 (define (remove-unused-recursive-contracts sc)

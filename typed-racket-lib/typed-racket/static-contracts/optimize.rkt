@@ -65,7 +65,8 @@
        ;; If this assumption is false, then the flattened contract might
        ;;  accept a value that the original contract failed for ---
        ;;  consider `(or/c (or/c procedure? (-> boolean?)) (-> integer?))`
-       ;;  and `(or/c procedure? (-> boolean?) (-> integer?))` any thunk
+       ;;  and `(or/c procedure? (-> boolean?) (-> integer?))`
+       ;;  and any thunk.
        (apply or/sc (set-union pre-scs mid-scs post-scs))]
       [else sc])]
 

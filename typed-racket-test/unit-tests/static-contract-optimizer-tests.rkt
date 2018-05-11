@@ -359,6 +359,16 @@
       (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc))
       #:pos (or/sc (box/sc cons?/sc) cons?/sc)
       #:neg (or/sc (box/sc cons?/sc) cons?/sc))
+    (check-optimize
+      ;; flatten multiple or/sc
+      (or/sc cons?/sc (or/sc set?/sc syntax?/sc) (or/sc list?/sc identifier?/sc))
+      #:pos any/sc
+      #:neg (or/sc identifier?/sc list?/sc syntax?/sc set?/sc cons?/sc))
+    (check-optimize
+      ;; flatten deeply-nested or/sc
+      (or/sc cons?/sc (or/sc set?/sc (or/sc syntax?/sc (or/sc list?/sc identifier?/sc))))
+      #:pos any/sc
+      #:neg (or/sc set?/sc identifier?/sc list?/sc syntax?/sc cons?/sc))
     (let ([rec-chaperone (recursive-sc (list #'x) (list cons?/sc) (box/sc (recursive-sc-use #'x)))])
       (check-optimize
         (or/sc cons?/sc rec-chaperone)

@@ -60,14 +60,8 @@
       [(? (λ (l) (member any/sc l))) any/sc]
       [(? (λ (l) (member none/sc l)))
        (apply or/sc (remove* (list none/sc) scs))]
-      [(list pre-scs ... (or/sc: mid-scs ...) post-scs ...)
-       ;; Assumes `sc->kind` is the same for all `mid-scs`.
-       ;; If this assumption is false, then the flattened contract might
-       ;;  accept a value that the original contract failed for ---
-       ;;  consider `(or/c (or/c procedure? (-> boolean?)) (-> integer?))`
-       ;;  and `(or/c procedure? (-> boolean?) (-> integer?))`
-       ;;  and any thunk.
-       (apply or/sc (set-union pre-scs mid-scs post-scs))]
+      [(? (λ (l) (ormap (match-lambda [(or/sc: _ ...) #true] [_ #false]) l)))
+       (apply or/sc (flatten-or/sc scs))]
       [else sc])]
 
     ;; and/sc cases
@@ -116,6 +110,25 @@
 
     [else sc]))
 
+;; flatten-or/sc : (listof static-contract?) -> (listof static-contract?)
+;; Basically, flatten a list `(list pre-scs ... (or/sc mid-scs ...) post-scs ...)`
+;;  to `(list pre-scs ... mid-scs ... post-scs ...)`, but:
+;;  - flatten all `or/sc` contracts in the given list
+;;  - remove duplicate contracts from the result
+;; This optimization assumes that `sc->kind` is the same for all `mid-scs`.
+;; If this assumption is false, then the flattened contract might
+;;  accept a value that the original contract failed for. Example:
+;;  consider `(or/c (or/c procedure? (-> boolean?)) (-> integer?))`
+;;  and `(or/c procedure? (-> boolean?) (-> integer?))`
+;;  and any thunk. The first contract fails and the second passes.
+(define (flatten-or/sc scs)
+  (for/fold ([acc '()])
+            ([sc (in-list scs)])
+    (match sc
+      [(or/sc: inner-scs ...)
+       (set-union acc inner-scs)]
+      [_
+       (set-add acc sc)])))
 
 ;; Reduce a static contract assuming that we trusted the current side
 ;; If `is-weak-side?` is true, then preserve the "head constructor" of the

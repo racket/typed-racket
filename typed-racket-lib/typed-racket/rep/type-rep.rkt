@@ -7,7 +7,7 @@
          (for-syntax "../utils/utils.rkt"))
 
 ;; TODO use contract-req
-(require (utils tc-utils)
+(require (utils tc-utils prefab)
          "rep-utils.rkt"
          "core-rep.rkt"
          "object-rep.rkt"
@@ -693,6 +693,13 @@
          [pred-id (normalize-id pred-id)])
      (make-Struct name parent flds proc poly? pred-id))])
 
+
+(def-type StructTop ([name Struct?])
+  [#:frees (f) (f name)]
+  [#:fmap (f) (make-StructTop (f name))]
+  [#:for-each (f) (f name)]
+  [#:mask (mask-union mask:struct mask:procedure)])
+
 ;; Represents prefab structs
 ;; key  : prefab key encoding mutability, auto-fields, etc.
 ;; flds : the types of all of the prefab fields
@@ -702,6 +709,17 @@
   [#:fmap (f) (make-Prefab key (map f flds))]
   [#:for-each (f) (for-each f flds)]
   [#:mask mask:prefab])
+
+(def-type PrefabTop ([key prefab-key?])
+  #:base
+  [#:mask mask:prefab]
+  [#:custom-constructor
+   (cond
+     [(prefab-key/mutable-fields? key)
+      (make-PrefabTop key)]
+     [else
+      (make-Prefab key (build-list (prefab-key->field-count key)
+                                   (λ (_) Univ)))])])
 
 (def-type StructTypeTop ()
   [#:mask mask:struct-type]
@@ -713,12 +731,6 @@
   [#:fmap (f) (make-StructType (f s))]
   [#:for-each (f) (f s)]
   [#:mask mask:struct-type])
-
-(def-type StructTop ([name Struct?])
-  [#:frees (f) (f name)]
-  [#:fmap (f) (make-StructTop (f name))]
-  [#:for-each (f) (f name)]
-  [#:mask (mask-union mask:struct mask:procedure)])
 
 
 ;;************************************************************

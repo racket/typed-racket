@@ -10,11 +10,11 @@
 (require "../utils/utils.rkt"
          (except-in
           (combine-in
-           (utils tc-utils)
+           (utils tc-utils prefab)
            (rep free-variance type-rep prop-rep object-rep
                 values-rep rep-utils type-mask)
            (types utils abbrev numeric-tower subtype resolve
-                  substitute generalize prefab)
+                  substitute generalize)
            (env lexical-env index-env tvar-env)
            (logic proves))
           make-env -> ->* one-of/c)

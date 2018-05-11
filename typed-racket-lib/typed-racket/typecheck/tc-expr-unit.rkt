@@ -157,6 +157,11 @@
       ;; explicit failure
       [t:typecheck-failure
        (explicit-fail #'t.stx #'t.message #'t.var)]
+      [t:assert-typecheck-failure
+       (cond
+         [(tc-expr/check? #'t.body expected)
+          (tc-error/expr #:stx #'t.body (format "Expected a type check error!"))]
+         [else expected])]
       ;; data
       [(quote #f) (ret (-val #f) -false-propset)]
       [(quote #t) (ret (-val #t) -true-propset)]
@@ -395,21 +400,21 @@
 
 ;; find-stx-type : Any [(or/c Type? #f)] -> Type?
 ;; recursively find the type of either a syntax object or the result of syntax-e
-(define (find-stx-type datum-stx [expected #f])
-  (match datum-stx
+(define (find-stx-type datum-stx-or-datum [expected-type #f])
+  (match datum-stx-or-datum
     [(? syntax? (app syntax-e stx-e))
-     (match (and expected (resolve (intersect expected (-Syntax Univ))))
+     (match (and expected-type (resolve (intersect expected-type (-Syntax Univ))))
        [(Syntax: t) (-Syntax (find-stx-type stx-e t))]
        [_ (-Syntax (find-stx-type stx-e))])]
     [(or (? symbol?) (? null?) (? number?) (? extflonum?) (? boolean?) (? string?) (? char?)
          (? bytes?) (? regexp?) (? byte-regexp?) (? keyword?))
-     (tc-literal #`#,datum-stx expected)]
+     (tc-literal #`#,datum-stx-or-datum expected-type)]
     [(cons car cdr)
-     (match (and expected (resolve (intersect expected (-pair Univ Univ))))
+     (match (and expected-type (resolve (intersect expected-type (-pair Univ Univ))))
        [(Pair: car-t cdr-t) (-pair (find-stx-type car car-t) (find-stx-type cdr cdr-t))]
        [_ (-pair (find-stx-type car) (find-stx-type cdr))])]
     [(vector xs ...)
-     (match (and expected (resolve (intersect expected -VectorTop)))
+     (match (and expected-type (resolve (intersect expected-type -VectorTop)))
        [(Vector: t)
         (make-Vector
          (check-below
@@ -425,32 +430,11 @@
        [_ (make-HeterogeneousVector (for/list ([x (in-list xs)])
                                       (generalize (find-stx-type x #f))))])]
     [(box x)
-     (match (and expected (resolve (intersect expected -BoxTop)))
+     (match (and expected-type (resolve (intersect expected-type -BoxTop)))
        [(Box: t) (-box (check-below (find-stx-type x t) t))]
        [_ (-box (generalize (find-stx-type x)))])]
-    [(? hash? h)
-     (cond
-      [(immutable? h)
-       (match (and expected (resolve (intersect expected (-Immutable-HT Univ Univ))))
-        [(Immutable-HashTable: k v)
-         (value->HT/find-stx-type h -Immutable-HT k v)]
-        [_
-         (value->HT/find-stx-type h -Immutable-HT)])]
-      [(hash-weak? h)
-       (match (and expected (resolve (intersect expected (-Weak-HT Univ Univ))))
-        [(Weak-HashTable: k v)
-         (value->HT/find-stx-type h -Weak-HT k v)]
-        [_
-         (value->HT/find-stx-type h -Weak-HT)])]
-      [else
-       (match (and expected (resolve (intersect expected (-Mutable-HT Univ Univ))))
-        [(Mutable-HashTable: k v)
-         (value->HT/find-stx-type h -Mutable-HT k v)]
-        [_
-         (value->HT/find-stx-type h -HT)])])]
-    [(? prefab-struct-key)
-     ;; FIXME is there a type for prefab structs?
-     Univ]
+    [(? hash? hash-val) (tc-hash find-stx-type hash-val expected-type)]
+    [(? prefab-struct-key prefab-val) (tc-prefab find-stx-type prefab-val expected-type)]
     [_ Univ]))
 
 ;; value->HT/find-stx-type : hash? (-> type? type? type?) -> type?

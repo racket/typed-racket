@@ -16,9 +16,10 @@
                   "types/utils.rkt" "types/abbrev.rkt"
                   "types/union.rkt" "types/numeric-tower.rkt"
                   "types/resolve.rkt"
-                  "types/prefab.rkt"
+                  "utils/prefab.rkt"
                   "utils/utils.rkt"
-                  "utils/tc-utils.rkt")
+                  "utils/tc-utils.rkt"
+                  "types/struct-table.rkt")
          (for-syntax racket/base syntax/parse))
 
 ;; printer-type: (one-of/c 'custom 'debug)
@@ -87,9 +88,6 @@
 (define (print-type type port write? [ignored-names '()])
   (display (type->sexp type ignored-names) port))
 
-(define (print-pathelem pe port write?)
-  (display (pathelem->sexp pe) port))
-
 
 (define (print-prop prop port write?)
   (display (prop->sexp prop) port))
@@ -100,6 +98,9 @@
 
 (define (print-object obj port write?)
   (display (object->sexp obj) port))
+
+(define (print-pathelem pe port write?)
+  (display (cons 'PathElem (vector->list (struct->vector pe))) port))
 
 (define (print-result res port write?)
   (display (result->sexp res) port))
@@ -171,73 +172,109 @@
     [(LeqProp: lhs rhs) `(<= ,(object->sexp lhs) ,(object->sexp rhs))]
     [else `(Unknown Prop: ,(struct->vector prop))]))
 
-;; pathelem->sexp : PathElem -> S-expression
-;; Print a PathElem (see object-rep.rkt) to the given port
-(define (pathelem->sexp pathelem)
-  (match pathelem
-    [(CarPE:) 'car]
-    [(CdrPE:) 'cdr]
-    [(ForcePE:) 'force]
-    [(StructPE: t i) `(,(type->sexp t)-,i)]
-    [(VecLenPE:) 'vector-length]
-    [(SyntaxPE:) 'syntax]
-    [else `(Invalid Path-Element: ,(struct->vector pathelem))]))
+
+;; c is the constant (exact-integer)
+;; terms is the mapping of objects to coefficients
+(define (linear-expression->sexp c terms)
+  (cond
+    [(terms-empty? terms) c]
+    [else
+     (define (positive-term? t)
+       (match t
+         [(? number? n) (exact-positive-integer? n)]
+         [(list '* (? number? n) var) (exact-positive-integer? n)]
+         [(or (? symbol?) (? list?)) ;; obj w/ coeff 1
+          #t]))
+     (define term-list
+       (let ([terms (for/list ([(obj coeff) (in-terms terms)])
+                      (if (= 1 coeff)
+                          (object->sexp obj)
+                          `(* ,coeff ,(object->sexp obj))))])
+         (if (zero? c) terms (cons c terms))))
+     (cond
+       [(null? (cdr term-list)) (car term-list)]
+       [else
+        (define-values (pos-terms neg-terms) (partition positive-term? term-list))
+        (define (flip-sign term)
+          (match term
+            [(? number? n) (* -1 n)]
+            [(list '* (? number? n) obj)
+             (if (= -1 n)
+                 obj
+                 `(* ,(* -1 n) ,obj))]
+            [(or (? symbol? obj) (? list? obj)) ;; obj w/ coeff 1
+             (list '* -1 obj)]))
+        (cond
+          [(null? neg-terms) (cons '+ pos-terms)]
+          ;; if we have zero or one positive term t1,
+          ;; and the rest (-t2 -t3 etc) are negative,
+          ;; turn it into (- t1 t2 t3 ...) (where t1 may be omitted)
+          [(<= (length pos-terms) 1)
+           (append '(-)
+                   pos-terms
+                   (map flip-sign neg-terms))]
+          ;; otherwise we have some negative terms (-t1 -t2 ...)
+          ;; and two or more positive terms (t3 t4 ...),
+          ;; convert it into (- (+ t3 t4 ...) t1 t2 ...)
+          [else
+           (append '(-)
+                   (cons '+ pos-terms)
+                   (map flip-sign neg-terms))])])]))
 
 ;; object->sexp : Object -> S-expression
 ;; Print an Object (see object-rep.rkt) to the given port
 (define (object->sexp object)
+  ;; take a `adaa` (or similar) turn it into `cadaar`
+  (define (pair-seq->sym seq)
+    (string->symbol (apply string-append (append (cons "c" seq) (list "r")))))
   (match object
     [(Empty:) '-]
     [(Path: pes n)
-     (let ([pes (map pathelem->sexp pes)])
-       (cond
-         [(null? pes) (name-ref->sexp n)]
-         [else (append pes (list (name-ref->sexp n)))]))]
-    [(LExp: c terms)
-     (cond
-       [(terms-empty? terms) c]
-       [else
-        (define (positive-term? t)
-          (match t
-            [(? number? n) (exact-positive-integer? n)]
-            [(list '* (? number? n) var) (exact-positive-integer? n)]
-            [(or (? symbol?) (? list?)) ;; obj w/ coeff 1
-             #t]))
-        (define term-list
-          (let ([terms (for/list ([(obj coeff) (in-terms terms)])
-                         (if (= 1 coeff)
-                             (object->sexp obj)
-                             `(* ,coeff ,(object->sexp obj))))])
-            (if (zero? c) terms (cons c terms))))
-        (cond
-          [(null? (cdr term-list)) (car term-list)]
-          [else
-           (define-values (pos-terms neg-terms) (partition positive-term? term-list))
-           (define (flip-sign term)
-             (match term
-               [(? number? n) (* -1 n)]
-               [(list '* (? number? n) obj)
-                (if (= -1 n)
-                    obj
-                    `(* ,(* -1 n) ,obj))]
-               [(or (? symbol? obj) (? list? obj)) ;; obj w/ coeff 1
-                (list '* -1 obj)]))
-           (cond
-             [(null? neg-terms) (cons '+ pos-terms)]
-             ;; if we have zero or one positive term t1,
-             ;; and the rest (-t2 -t3 etc) are negative,
-             ;; turn it into (- t1 t2 t3 ...) (where t1 may be omitted)
-             [(<= (length pos-terms) 1)
-              (append '(-)
-                      pos-terms
-                      (map flip-sign neg-terms))]
-             ;; otherwise we have some negative terms (-t1 -t2 ...)
-             ;; and two or more positive terms (t3 t4 ...),
-             ;; convert it into (- (+ t3 t4 ...) t1 t2 ...)
-             [else
-              (append '(-)
-                      (cons '+ pos-terms)
-                      (map flip-sign neg-terms))])])])]
+     (for/fold ([sexp (name-ref->sexp n)]
+                [pair-seq '()]
+                [depth 0]
+                #:result (cond
+                           [(not (null? pair-seq))
+                            (list (pair-seq->sym pair-seq) sexp)]
+                           [else sexp]))
+               ([pe (in-list (reverse pes))])
+       (let ([sexp (if (= 4 (length pair-seq))
+                       (list (pair-seq->sym pair-seq) sexp)
+                       sexp)])
+         (match pe
+           [(CarPE:) (values sexp (cons "a" pair-seq) (add1 depth))]
+           [(CdrPE:) (values sexp (cons "d" pair-seq) (add1 depth))]
+           [_
+            (let ([sexp (if (not (null? pair-seq))
+                            (list (pair-seq->sym pair-seq) sexp)
+                            sexp)])
+              (values
+               (match pe
+                 [(ForcePE:) (values (list 'force sexp) '() (add1 depth))]
+                 [(StructPE: t idx)
+                  (define maybe-accessor-id
+                    (id-for-struct-pe (match-lambda
+                                        [(StructPE: s (== idx)) (subtype t s)]
+                                        [_ #f])))
+                  (cond
+                    [maybe-accessor-id
+                     (list (syntax-e maybe-accessor-id) sexp)]
+                    [else (list 'struct-ref sexp idx)])]
+                 [(PrefabPE: key idx)
+                  (define maybe-accessor-id
+                    (id-for-struct-pe (match-lambda
+                                        [(PrefabPE: (== key) (== idx)) #t]
+                                        [_ #f])))
+                  (cond
+                    [maybe-accessor-id
+                     (list (syntax-e maybe-accessor-id) sexp)]
+                    [else (list 'prefab-ref sexp idx)])]
+                 [(VecLenPE:) (list 'vector-length sexp)]
+                 [(SyntaxPE:) (list 'syntax-e sexp)]
+                 [_ `((Invalid Path-Element: ,(struct->vector pe)) ,sexp)])
+               '()
+               (add1 depth)))])))]
+    [(LExp: c terms) (linear-expression->sexp c terms)]
     [else `(Unknown Object: ,(struct->vector object))]))
 
 ;; cover-union : Type LSet<Type> -> Listof<Symbol> Listof<Type>
@@ -334,7 +371,7 @@
          (list (type->sexp t))]
         [(Values: (list (Result: t
                                  (PropSet:
-                                  (TypeProp: (Path: pth1 (cons 0 0)) ft1)
+                                  (TypeProp: (and o (Path: pth1 (cons 0 0))) ft1)
                                   (NotTypeProp: (Path: pth2 (cons 0 0)) ft2))
                                  (? Empty?))))
          ;; Only print a simple prop for single argument functions,
@@ -346,7 +383,7 @@
          (if (null? pth1)
              `(,(type->sexp t) : ,(type->sexp ft1))
              `(,(type->sexp t) : ,(type->sexp ft1) @
-               ,@(map pathelem->sexp pth1)))]
+               ,(object->sexp o)))]
         ;; Print asymmetric props with only a positive prop as a
         ;; special case (even when complex printing is off) because it's
         ;; useful to users who use functions like `prop`.
@@ -576,6 +613,9 @@
     [(Prefab: key field-types)
      `(Prefab ,(abbreviate-prefab-key key)
               ,@(map t->s field-types))]
+    [(PrefabTop: key)
+     `(PrefabTop ,(abbreviate-prefab-key key)
+                 ,(prefab-key->field-count key))]
     [(BoxTop:) 'BoxTop]
     [(Weak-BoxTop:) 'Weak-BoxTop]
     [(ChannelTop:) 'ChannelTop]

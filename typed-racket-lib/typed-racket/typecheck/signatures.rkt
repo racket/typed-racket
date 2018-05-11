@@ -33,7 +33,15 @@
   ([cond-contracted tc/if-twoarm ((syntax? syntax? syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]))
 
 (define-signature tc-literal^
-  ([cond-contracted tc-literal (->* (syntax?) ((or/c Type? #f)) Type?)]))
+  ([cond-contracted tc-literal (->* (syntax?) ((or/c Type? #f)) Type?)]
+   [cond-contracted tc-hash (-> (-> any/c (or/c Type? #f) Type?)
+                                hash?
+                                (or/c Type? #f)
+                                Type?)]
+   [cond-contracted tc-prefab (-> (-> any/c (or/c Type? #f) Type?)
+                                  prefab-struct-key ;; i.e. a prefab struct instance
+                                  (or/c Type? #f)
+                                  Type?)]))
 
 (define-signature tc-send^
   ([cond-contracted tc/send ((syntax? syntax?

@@ -6,13 +6,13 @@
          (rep type-rep prop-rep object-rep
               core-rep type-mask values-rep rep-utils
               free-variance rep-switch)
-         (utils tc-utils)
+         (utils tc-utils prefab)
          (only-in (env type-env-structs)
                   with-lexical-env
                   with-naively-extended-lexical-env
                   lexical-env)
          (types utils resolve match-expanders current-seen
-                numeric-tower substitute prefab signatures)
+                numeric-tower substitute signatures)
          (for-syntax racket/base syntax/parse racket/sequence)
          "../infer/fail.rkt"
          (except-in (rename-in "abbrev.rkt"
@@ -1044,6 +1044,11 @@
                                             (subtype* t s)
                                             (subtype* s t))
                                (subtype* A s t))))))))]
+     [(PrefabTop: k2) (and (prefab-key-subtype? k1 k2) A)]
+     [_ (continue<: A t1 t2 obj)])]
+  [(case: PrefabTop (PrefabTop: k1))
+   (match t2
+     [(PrefabTop: k2) (and (prefab-key-subtype? k1 k2) A)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Promise (Promise: elem1))
    (match t2

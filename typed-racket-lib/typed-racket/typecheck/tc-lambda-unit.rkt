@@ -236,7 +236,7 @@
 
 ;; typecheck a single opt-lambda clause with argument list and body
 (define/cond-contract (tc/opt-lambda-clause arg-list body aux-table)
-  (-> (listof identifier?) syntax? free-id-table? free-id-table?
+  (-> (listof identifier?) syntax? free-id-table?
       (listof Arrow?))
   ;; arg-types: Listof[Type?]
   (define arg-types

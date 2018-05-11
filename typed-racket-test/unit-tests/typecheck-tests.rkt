@@ -1104,6 +1104,7 @@
                                                                    (Syntaxof (U 1 2 'bar)))))
                 (-Syntax (make-HashTable (t:Un (-val 1) (-val 2) (-val 'foo))
                                          (-Syntax (t:Un (-val 1) (-val 2) (-val 'bar)))))]
+        [tc-e/t #'#s(point 0 1) (-Syntax (-prefab 'point (-Syntax (-val 0)) (-Syntax (-val 1))))]
         ;; syntax->list
         [tc-e (syntax->list #'(2 3 4)) (-lst (-Syntax -PosByte))]
         [tc-e (syntax->list #'not-a-list) (t:Un (-val #f) (-lst (-Syntax Univ)))]

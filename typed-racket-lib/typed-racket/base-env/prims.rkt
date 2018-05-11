@@ -786,6 +786,13 @@ the typed racket language.
     [(_ orig)
      #'(quote-syntax (typecheck-fail-internal orig "Incomplete case coverage" #f) #:local)]))
 
+(define-syntax (assert-typecheck-fail stx)
+  (syntax-parse stx
+    [(_ orig)
+     #'(if (odd? 0)
+           (quote-syntax (assert-typecheck-fail-internal orig) #:local)
+           (void))]))
+
 (define-syntax (base-for/vector stx)
   (syntax-case stx ()
     [(name for ann T K #:length n-expr #:fill fill-expr (clauses ...) body-expr)

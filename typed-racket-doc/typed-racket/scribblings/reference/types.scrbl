@@ -860,20 +860,77 @@ this top type.
 @ex[(struct-info (arity-at-least 0))]
 }
 
-@defform[(Prefab key type ...)]{
-  Represents a @rtech{prefab} structure type with the given prefab structure
-  key (such as one returned by @racket[prefab-struct-key] or accepted by
-  @racket[make-prefab-struct]) and with the given types for each field.
+@defform[(Prefab key type ...)]{Describes a @rtech{prefab}
+ structure with the given (implicitly quoted) @emph{prefab
+  key} @racket[key] and specified field types.
 
-  In the case of prefab structure types with supertypes, the field types of the
-  supertypes come before the field types of the child structure type. The order
-  of types matches the order of arguments to a prefab struct constructor.
+ Prefabs are more-or-less tagged polymorphic tuples which
+ can be directly serialized and whose fields can be accessed
+ by anyone. Subtyping is covariant for immutable fields and
+ invariant for mutable fields.
 
-  @ex[#s(salad "potato" "mayo")
-      (: q-salad (Prefab (salad food 1) String String Symbol))
-      (define q-salad
-        #s((salad food 1) "quinoa" "EVOO" salad))]
+ When a prefab struct is defined with @racket[struct] the
+ struct name is bound at the type-level to the
+ @racket[Prefab] type with the corresponding key and field
+ types and the constructor expects types corresponding to
+ those declared for each field. The defined predicate,
+ however, only tests whether a value is a prefab structure
+ with the same key and number of fields, but does not inspect
+ the fields' values.
+
+  @ex[(struct person ([name : String]) #:prefab)
+      person
+      person?
+      person-name
+      (person "Jim")
+      (ann '#s(person "Dwight") person)
+      (ann '#s(person "Pam") (Prefab person String))
+      (ann '#s(person "Michael") (Prefab person Any))
+      (eval:error (person 'Toby))
+      (eval:error (ann #s(person Toby) (Prefab person String)))
+      (ann '#s(person Toby) (Prefab person Symbol))
+      (person? '#s(person "Michael"))
+      (person? '#s(person Toby))
+      (struct employee person ([schrute-bucks : Natural]) #:prefab)
+      (employee "Oscar" 10000)
+      (ann '#s((employee person 1) "Oscar" 10000) employee)
+      (ann '#s((employee person 1) "Oscar" 10000)
+           (Prefab (employee person 1) String Natural))
+      (person? '#s((employee person 1) "Oscar" 10000))
+      (employee? '#s((employee person 1) "Oscar" 10000))
+      (eval:error (employee 'Toby -1))
+      (ann '#s((employee person 1) Toby -1)
+           (Prefab (employee person 1) Symbol Integer))
+      (person? '#s((employee person 1) Toby -1))
+      (employee? '#s((employee person 1) Toby -1))]
 }
+
+@defform[(PrefabTop key field-count)]{Describes all
+prefab types with the (implicitly quoted) prefab-key
+ @racket[key] and @racket[field-count] many fields.
+
+ For immutable prefabs this is equivalent to
+ @racket[(Prefab key Any ...)] with @racket[field-count] many
+ occurrences of @racket[Any]. For mutable prefabs, this
+ describes a prefab that can be read from but not written to
+ (since we do not know at what type other code may have the
+ fields typed at).
+
+@ex[(struct point ([x : Number] [y : Number])
+      #:prefab
+      #:mutable)
+    point
+    point-x
+    point-y
+    point?
+    (define (maybe-read-x p)
+      (if (point? p)
+          (ann (point-x p) Any)
+          'not-a-point))
+    (eval:error (define (read-some-x-num p)
+      (if (point? p)
+          (ann (point-x p) Number)
+          -1)))]}
 
 @defalias[Union U]
 @defalias[Intersection ∩]

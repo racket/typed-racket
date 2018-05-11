@@ -803,4 +803,11 @@
             [(zero . rst) #f])
           #:typed
           #:msg #rx"contract violation")
+   ;; prefab contracts
+   (t (-prefab 'point -Zero -Zero))
+   (t (-prefab 'point (-prefab 'point -Zero -Zero) (-prefab 'point -Zero -Zero)))
+   (t (-prefab 'fun (-Number . -> . -Number)))
+   (t (-prefab '(box-box #(0)) (-box -Number)))
+   (t (-prefab-top 'point 2))
+   (t (-prefab-top '(box-box #(0)) 1))
    ))

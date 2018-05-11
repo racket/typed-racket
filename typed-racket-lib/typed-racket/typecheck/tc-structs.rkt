@@ -6,9 +6,9 @@
          (prefix-in c: (contract-req))
          (rep type-rep object-rep free-variance)
          (private parse-type syntax-properties)
-         (types abbrev subtype utils resolve substitute struct-table prefab)
+         (types abbrev subtype utils resolve substitute struct-table)
          (env global-env type-name-env type-alias-env tvar-env)
-         (utils tc-utils)
+         (utils tc-utils prefab)
          (typecheck def-binding internal-forms error-message)
          (for-syntax syntax/parse racket/base))
 
@@ -125,7 +125,7 @@
                  (struct-names-predicate names))))
 
 
-;; construct all the various types for structs, and then register the approriate names
+;; construct all the various types for structs, and then register the appropriate names
 ;; identifier listof[identifier] type listof[fld] listof[Type] boolean ->
 ;;  (values Type listof[Type] listof[Type])
 (define/cond-contract (register-sty! sty names desc)
@@ -140,14 +140,112 @@
   (register-type-name type-name
                       (make-Poly (struct-desc-tvars desc) sty)))
 
-
-
-
 ;; Register the approriate types to the struct bindings.
 (define/cond-contract (register-struct-bindings! sty names desc si)
   (c:-> (c:or/c Struct? Prefab?) struct-names? struct-desc? (c:or/c #f struct-info?) (c:listof binding?))
+  (match sty
+    [(? Struct?) (register-non-prefab-bindings! sty names desc si)]
+    [(? Prefab?) (register-prefab-bindings! sty names desc si)]))
 
+(define/cond-contract (register-prefab-bindings! pty names desc si)
+  (c:-> Prefab? struct-names? struct-desc? (c:or/c #f struct-info?) (c:listof binding?))
+  (define key (Prefab-key pty))
+  (define constructor-tvars (struct-desc-tvars desc))
+  (define all-fields (struct-desc-all-fields desc))
+  (define parent-fields (struct-desc-parent-fields desc))
+  (define self-fields (struct-desc-self-fields desc))
+  (define self-count (length self-fields))
+  (define self-mutable (struct-desc-mutable desc))
+  (define parent-count (struct-desc-parent-count desc))
 
+  (define field-count (+ self-count parent-count))
+  (define field-univs (build-list field-count (λ (_) Univ)))
+  (define field-tvar-syms
+    (build-list field-count (λ (_) (gen-pretty-sym))))
+  (define field-tvar-Fs (map make-F field-tvar-syms))
+  (define poly-prefab
+    (make-Prefab key field-tvar-Fs))
+  (define prefab-top-type (make-PrefabTop key))
+  
+  (define bindings
+    (list*
+     ;; the list of names w/ types
+     (make-def-binding (struct-names-struct-type names) (make-StructType pty))
+     (make-def-binding (struct-names-predicate names)
+                       (make-pred-ty prefab-top-type))
+     (append
+      (for/list ([g (in-list (struct-names-getters names))]
+                 [t (in-list self-fields)]
+                 [i (in-naturals parent-count)])
+        (let* ([path (make-PrefabPE key i)]
+               [fld-sym (list-ref field-tvar-syms i)]
+               [fld-t (list-ref field-tvar-Fs i)]
+               [func (if self-mutable
+                         (make-Poly
+                          field-tvar-syms
+                          (cl-> [(poly-prefab) fld-t]
+                                [(prefab-top-type) Univ]))
+                         (make-Poly
+                          (list fld-sym)
+                          (->acc (list (make-Prefab key (list-set field-univs i fld-t)))
+                                 fld-t
+                                 (list path))))])
+          (add-struct-accessor-fn! g path self-mutable)
+          (make-def-binding g func)))
+      (if self-mutable
+          (for/list ([s (in-list (struct-names-setters names))]
+                     [t (in-list self-fields)]
+                     [i (in-naturals parent-count)])
+            (let ([path (make-PrefabPE key i)]
+                  [fld-t (list-ref field-tvar-Fs i)])
+              (add-struct-mutator-fn! s path)
+              (make-def-binding s (make-Poly
+                                   field-tvar-syms
+                                   (->* (list poly-prefab fld-t) -Void)))))
+          null))))
+
+  ;; the base-type, with free type variables
+  ;; NOTE: This type is only used for the constructor
+  ;;       of a prefab---other operators are entirely polymorphic
+  (define name-type
+    (make-Name (struct-names-type-name names)
+               (length constructor-tvars)
+               #t))
+  (define poly-base
+    (if (null? constructor-tvars)
+        name-type
+        (make-App name-type (map make-F constructor-tvars))))
+  (define extra-constructor (struct-names-extra-constructor names))
+
+  (define constructor-binding
+    (make-def-binding (struct-names-constructor names)
+                      (make-Poly constructor-tvars
+                                 (->* all-fields poly-base))))
+  (define constructor-bindings
+    (cons constructor-binding
+          (if extra-constructor
+              (list (make-def-binding
+                     extra-constructor
+                     (make-Poly constructor-tvars
+                                (->* all-fields poly-base))))
+              null)))
+
+  (for ([b (in-list (append constructor-bindings bindings))])
+    (register-type (binding-name b) (def-binding-ty b)))
+
+  (append
+   (if (free-identifier=? (struct-names-type-name names)
+                          (struct-names-constructor names))
+       null
+       (list constructor-binding))
+   (cons
+    (make-def-struct-stx-binding (struct-names-type-name names)
+                                 si
+                                 (def-binding-ty constructor-binding))
+    bindings)))
+
+(define/cond-contract (register-non-prefab-bindings! sty names desc si)
+  (c:-> Struct? struct-names? struct-desc? (c:or/c #f struct-info?) (c:listof binding?))
   (define tvars (struct-desc-tvars desc))
   (define all-fields (struct-desc-all-fields desc))
   (define parent-fields (struct-desc-parent-fields desc))
@@ -183,7 +281,6 @@
      (make-def-binding (struct-names-struct-type names) (make-StructType sty))
      (make-def-binding (struct-names-predicate names)
                        (make-pred-ty (if (not covariant?)
-                                         ;; FIXME: does this make sense with prefabs?
                                          (make-StructTop sty)
                                          (subst-all (make-simple-substitution
                                                      tvars (map (const Univ) tvars)) poly-base))))
@@ -196,13 +293,13 @@
                       (if mutable
                           (->* (list poly-base) t)
                           (->acc (list poly-base) t (list path))))])
-          (add-struct-fn! g path #f)
+          (add-struct-accessor-fn! g path mutable)
           (make-def-binding g func)))
       (if mutable
           (for/list ([s (in-list (struct-names-setters names))]
                      [t (in-list self-fields)]
                      [i (in-naturals parent-count)])
-            (add-struct-fn! s (make-StructPE poly-base i) #t)
+            (add-struct-mutator-fn! s (make-StructPE poly-base i))
             (make-def-binding s (poly-wrapper (->* (list poly-base t) -Void))))
           null))))
 
@@ -218,7 +315,7 @@
                                       (poly-wrapper (->* all-fields poly-base))))
               null)))
 
-  (for ([b (append constructor-bindings bindings)])
+  (for ([b (in-list (append constructor-bindings bindings))])
     (register-type (binding-name b) (def-binding-ty b)))
 
   (append
@@ -229,6 +326,8 @@
    (cons
      (make-def-struct-stx-binding (struct-names-type-name names) si (def-binding-ty constructor-binding))
      bindings)))
+
+
 
 (define (register-parsed-struct-sty! ps)
   (match ps
@@ -383,4 +482,3 @@
                           (list #'fld ...)
                           (list ty ...)
                           opts.kernel-maker)]))
-

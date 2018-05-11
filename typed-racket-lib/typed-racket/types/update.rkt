@@ -5,7 +5,7 @@
          (contract-req)
          (infer-in infer)
          (rep core-rep type-rep prop-rep object-rep values-rep rep-utils)
-         (utils tc-utils)
+         (utils tc-utils prefab)
          (types resolve subtype subtract)
          (rename-in (types abbrev)
                     [-> -->]
@@ -57,6 +57,14 @@
             [(Bottom:) -Bottom]
             [ty (let ([flds (append lhs (cons (make-fld ty acc-id #f) rhs))])
                   (make-Struct nm par flds proc poly pred))])]
+
+         ;; prefab struct ops
+         [((Prefab: key flds) (PrefabPE: path-key idx))
+          #:when (prefab-key-subtype? key path-key)
+          (match-define-values (lhs (cons fld-ty rhs)) (split-at flds idx))
+          (match (update fld-ty rst)
+            [(Bottom:) -Bottom]
+            [fld-ty (make-Prefab key (append lhs (cons fld-ty rhs)))])]
          
          ;; class field ops
          ;;

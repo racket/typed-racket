@@ -4,8 +4,10 @@
 
 (require "test-utils.rkt"
          racket/list
+         racket/contract
          rackunit
-         typed-racket/types/prefab)
+         typed-racket/utils/prefab
+         typed-racket/utils/prefab-c)
 
 (provide tests)
 (gen-test-main)
@@ -20,71 +22,192 @@
                 (prefab-struct-key
                   (apply make-prefab-struct key (make-list n 0)))))
 
+(struct pair (fst snd) #:prefab)
+(define raw-p (pair 1 2))
+(define p0
+  (contract
+   (prefab/c 'pair integer? integer?)
+   raw-p
+   'pos
+   'neg))
+(define p1
+  (contract
+   (prefab/c 'pair integer? (vectorof integer?))
+   (pair 1 (vector 2))
+   'pos
+   'neg))
+(define p2
+  (contract
+   (prefab/c 'pair integer? (vectorof integer?))
+   `#s(pair 1 ,(vector 2))
+   'pos
+   'neg))
+(struct mpair (fst snd) #:prefab #:mutable)
+(define mpair/c (prefab/c '(mpair #(0 1)) integer? (vectorof integer?)))
+(define mp1 (contract mpair/c (mpair 1 (vector 2)) 'pos 'neg))
+(define p3
+  (contract
+   (prefab/c 'pair integer? (vectorof integer?))
+   (pair 1 (vector "1"))
+   'pos
+   'neg))
+
+(define p4
+  (contract (struct/c pair integer? (vectorof integer?))
+            (pair 1 (vector "1"))
+            'pos
+            'neg))
+
 (define tests
- (test-suite
-  "Tests for prefab type helpers"
-  (check-normalize '(foo) 1 '(foo 1 (0 #f) #()))
-  (check-normalize '(foo) 3 '(foo 3 (0 #f) #()))
-  (check-normalize '(foo 1) 1 '(foo 1 (0 #f) #()))
-  (check-normalize '(foo 3) 3 '(foo 3 (0 #f) #()))
-  (check-normalize '(foo bar 3) 4 '(foo 1 (0 #f) #() bar 3 (0 #f) #()))
-  (check-normalize '(foo 3 bar 3) 6 '(foo 3 (0 #f) #() bar 3 (0 #f) #()))
-  (check-normalize '(foo 1 #()) 1 '(foo 1 (0 #f) #()))
-  (check-normalize '(foo 1 #(0)) 1 '(foo 1 (0 #f) #(0)))
-  (check-normalize '(foo 5 (0 #f)) 5 '(foo 5 (0 #f) #()))
-  (check-normalize '(foo 5 (1 #f)) 6 '(foo 5 (1 #f) #()))
-  (check-normalize '(foo 5 (0 #f) #()) 5 '(foo 5 (0 #f) #()))
-  (check-normalize '(foo bar 4) 7 '(foo 3 (0 #f) #() bar 4 (0 #f) #()))
-  (check-normalize '(foo (1 #f) bar 4) 8 '(foo 3 (1 #f) #() bar 4 (0 #f) #()))
-  (check-normalize '(foo #(1) bar 4) 7 '(foo 3 (0 #f) #(1) bar 4 (0 #f) #()))
-  (check-normalize '(foo bar 4 (1 #f)) 8 '(foo 3 (0 #f) #() bar 4 (1 #f) #()))
-  (check-normalize '(foo bar 1 baz 4 (1 #f))
-                   8
-                   '(foo 2 (0 #f) #() bar 1 (0 #f) #() baz 4 (1 #f) #()))
+  (test-suite
+   "Tests for prefab type helpers"
+   (check-normalize '(foo) 1 '(foo 1 (0 #f) #()))
+   (check-normalize '(foo) 3 '(foo 3 (0 #f) #()))
+   (check-normalize '(foo 1) 1 '(foo 1 (0 #f) #()))
+   (check-normalize '(foo 3) 3 '(foo 3 (0 #f) #()))
+   (check-normalize '(foo bar 3) 4 '(foo 1 (0 #f) #() bar 3 (0 #f) #()))
+   (check-normalize '(foo 3 bar 3) 6 '(foo 3 (0 #f) #() bar 3 (0 #f) #()))
+   (check-normalize '(foo 1 #()) 1 '(foo 1 (0 #f) #()))
+   (check-normalize '(foo 1 #(0)) 1 '(foo 1 (0 #f) #(0)))
+   (check-normalize '(foo 5 (0 #f)) 5 '(foo 5 (0 #f) #()))
+   (check-normalize '(foo 5 (1 #f)) 6 '(foo 5 (1 #f) #()))
+   (check-normalize '(foo 5 (0 #f) #()) 5 '(foo 5 (0 #f) #()))
+   (check-normalize '(foo bar 4) 7 '(foo 3 (0 #f) #() bar 4 (0 #f) #()))
+   (check-normalize '(foo (1 #f) bar 4) 8 '(foo 3 (1 #f) #() bar 4 (0 #f) #()))
+   (check-normalize '(foo #(1) bar 4) 7 '(foo 3 (0 #f) #(1) bar 4 (0 #f) #()))
+   (check-normalize '(foo bar 4 (1 #f)) 8 '(foo 3 (0 #f) #() bar 4 (1 #f) #()))
+   (check-normalize '(foo bar 1 baz 4 (1 #f))
+                    8
+                    '(foo 2 (0 #f) #() bar 1 (0 #f) #() baz 4 (1 #f) #()))
 
-  (check-equal? (prefab-key->field-count '(foo 1 (0 #f) #()))
-                1)
-  (check-equal? (prefab-key->field-count '(foo 1 (1 #f) #()))
-                2)
-  (check-equal? (prefab-key->field-count
-                 '(foo 1 (1 #f) #() bar 1 (0 #f) #()))
-                3)
-  (check-equal? (prefab-key->field-count
-                 '(foo 1 (1 #f) #() bar 1 (0 #f) #() baz 2 (0 #f) #()))
-                5)
+   (check-equal? (prefab-key->field-count '(foo 1 (0 #f) #()))
+                 1)
+   (check-equal? (prefab-key->field-count '(foo 1 (1 #f) #()))
+                 2)
+   (check-equal? (prefab-key->field-count
+                  '(foo 1 (1 #f) #() bar 1 (0 #f) #()))
+                 3)
+   (check-equal? (prefab-key->field-count
+                  '(foo 1 (1 #f) #() bar 1 (0 #f) #() baz 2 (0 #f) #()))
+                 5)
 
-  (check-abbreviate '(foo) 1)
-  (check-abbreviate '(foo 1) 1)
-  (check-abbreviate '(foo 3) 3)
-  (check-abbreviate '(foo bar 3) 4)
-  (check-abbreviate '(foo 3 bar 3) 6)
-  (check-abbreviate '(foo 1 #()) 1)
-  (check-abbreviate '(foo 1 #(0)) 1)
-  (check-abbreviate '(foo 5 (0 #f)) 5)
-  (check-abbreviate '(foo 5 (1 #f)) 6)
-  (check-abbreviate '(foo 5 (0 #f) #()) 5)
-  (check-abbreviate '(foo 5 (1 #f) #()) 6)
-  (check-abbreviate '(foo 5 (0 #f) #(1)) 5)
-  (check-abbreviate '(foo 5 (1 #f) #(1)) 6)
-  (check-abbreviate '(foo 5 (0 #f) #() bar 1) 6)
-  (check-abbreviate '(foo 5 (0 #f) #(1) bar 1) 6)
-  (check-abbreviate '(foo 5 (1 #f) #(1) bar 1) 7)
-  (check-abbreviate '(foo 5 (1 #f) #(1) bar 1 #()) 7)
-  (check-abbreviate '(foo 5 (0 #f) #(1) bar 1 #()) 6)
-  (check-abbreviate '(foo 5 (0 #f) #() bar 1 #()) 6)
-  (check-abbreviate '(foo 5 (1 #f) #(1) bar 1 #(0)) 7)
+   (check-abbreviate '(foo) 1)
+   (check-abbreviate '(foo 1) 1)
+   (check-abbreviate '(foo 3) 3)
+   (check-abbreviate '(foo bar 3) 4)
+   (check-abbreviate '(foo 3 bar 3) 6)
+   (check-abbreviate '(foo 1 #()) 1)
+   (check-abbreviate '(foo 1 #(0)) 1)
+   (check-abbreviate '(foo 5 (0 #f)) 5)
+   (check-abbreviate '(foo 5 (1 #f)) 6)
+   (check-abbreviate '(foo 5 (0 #f) #()) 5)
+   (check-abbreviate '(foo 5 (1 #f) #()) 6)
+   (check-abbreviate '(foo 5 (0 #f) #(1)) 5)
+   (check-abbreviate '(foo 5 (1 #f) #(1)) 6)
+   (check-abbreviate '(foo 5 (0 #f) #() bar 1) 6)
+   (check-abbreviate '(foo 5 (0 #f) #(1) bar 1) 6)
+   (check-abbreviate '(foo 5 (1 #f) #(1) bar 1) 7)
+   (check-abbreviate '(foo 5 (1 #f) #(1) bar 1 #()) 7)
+   (check-abbreviate '(foo 5 (0 #f) #(1) bar 1 #()) 6)
+   (check-abbreviate '(foo 5 (0 #f) #() bar 1 #()) 6)
+   (check-abbreviate '(foo 5 (1 #f) #(1) bar 1 #(0)) 7)
 
-  (check-true (prefab-key-subtype? '(foo 1 (0 #f) #() bar 1 (0 #f) #())
-                                   '(bar 1 (0 #f) #())))
-  (check-false (prefab-key-subtype? '(foo 1 (0 #f) #())
+   (check-true (prefab-key-subtype? '(foo 1 (0 #f) #() bar 1 (0 #f) #())
                                     '(bar 1 (0 #f) #())))
+   (check-false (prefab-key-subtype? '(foo 1 (0 #f) #())
+                                     '(bar 1 (0 #f) #())))
 
-  (check-equal? (prefab-key->field-mutability
-                 '(foo 1 (0 #f) #() bar 1 (0 #f) #()))
-                (list #f #f))
-  (check-equal? (prefab-key->field-mutability
-                 '(foo 2 (0 #f) #(0) bar 3 (0 #f) #(1)))
-                (list #f #t #f #t #f))
-  (check-equal? (prefab-key->field-mutability
-                 '(foo 2 (0 #f) #(0) bar 3 (0 #f) #(1) baz 1 (0 #f) #(0)))
-                (list #t #f #t #f #t #f))))
+   (check-equal? (prefab-key->field-mutability
+                  '(foo 1 (0 #f) #() bar 1 (0 #f) #()))
+                 (list #f #f))
+   (check-equal? (prefab-key->field-mutability
+                  '(foo 2 (0 #f) #(0) bar 3 (0 #f) #(1)))
+                 (list #f #t #f #t #f))
+   (check-equal? (prefab-key->field-mutability
+                  '(foo 2 (0 #f) #(0) bar 3 (0 #f) #(1) baz 1 (0 #f) #(0)))
+                 (list #t #f #t #f #t #f))
+   ;; immutable prefab example
+   (check-eq? raw-p p0)
+   (check-equal? (pair-fst p0) 1)
+   (check-equal? (pair-snd p0) 2)
+   (check-exn exn:fail:contract:blame?
+              (λ () (contract
+                     (prefab/c 'pair integer? integer?)
+                     (pair 1 "2")
+                     'pos
+                     'neg)))
+   (check-exn exn:fail:contract:blame?
+              (λ () (contract
+                     (prefab/c 'pair integer? integer?)
+                     (pair "1" 2)
+                     'pos
+                     'neg)))
+   (check-exn exn:fail:contract:blame?
+              (λ () (contract
+                     (prefab/c 'pair integer? (vectorof integer?))
+                     (pair 1 1)
+                     'pos
+                     'neg)))
+   ;; this error shouldn't be reported at creation
+   (check-not-exn
+    (λ () (contract
+           (prefab/c 'pair integer? (vectorof integer?))
+           (pair 1 (vector "2"))
+           'pos
+           'neg)))
+   ;; error when prefab key and struct are a mismatch
+   (check-exn exn:fail:contract?
+              (λ () (contract
+                     (prefab/c '(pair #(0 1)) integer? integer?)
+                     (pair 1 2)
+                     'pos
+                     'neg)))
+  ;; accessing fields
+   (check-equal? (pair-fst p1) 1)
+   (check-equal? (pair-fst p2) 1)
+   (check-equal? (pair-snd p1) (vector 2))
+   (check-equal? (pair-snd p2) (vector 2))
+   ;; higher order contract on field value
+   (check-exn exn:fail:contract:blame?
+              (λ () (vector-set! (pair-snd p1)
+                                 0
+                                 "1")))
+   (check-exn exn:fail:contract:blame?
+              (λ () (vector-set! (pair-snd p2)
+                                 0
+                                 "1")))
+   (check-not-exn (λ () (vector-set! (pair-snd p1)
+                                     0
+                                     42)))
+   (check-not-exn (λ () (vector-set! (pair-snd p2)
+                                     0
+                                     42)))
+   (check-equal? (vector-ref (pair-snd p1) 0) 42)
+   (check-equal? (vector-ref (pair-snd p2) 0) 42)
+
+   ;; mutable prefab example
+   ;; check contracting bad struct fails
+   (check-exn exn:fail:contract:blame?
+              (λ () (contract mpair/c (mpair "1" (vector 2)) 'pos 'neg)))
+   (check-exn exn:fail:contract:blame?
+              (λ () (contract mpair/c (mpair "1" (vector "2")) 'pos 'neg)))
+
+   ;; accessing fields
+   (check-equal? (mpair-fst mp1) 1)
+   (check-equal? (mpair-snd mp1) (vector 2))
+   ;; violating higher order contract on field value
+   (check-exn exn:fail:contract:blame?
+              (λ () (set-mpair-fst! mp1 "0")))
+   (check-exn exn:fail:contract:blame?
+              (λ () (vector-set! (mpair-snd mp1)
+                                 0
+                                 "1")))
+   (check-not-exn (λ () (vector-set! (mpair-snd mp1)
+                                     0
+                                     42)))
+   (check-equal? (vector-ref (pair-snd p2) 0) 42)
+   (check-not-exn (λ () (set-mpair-fst! mp1 0)))
+   (check-not-exn (λ () (set-mpair-snd! mp1 (vector 33))))
+   (check-equal? (mpair-fst mp1) 0)
+   (check-equal? (mpair-snd mp1) (vector 33))
+   ))

@@ -822,6 +822,7 @@
           ;; let's keep going!
           (define arg-order (arg-deps->idx-order (attribute args.deps)))
           (define arg-type-dict (make-hasheq))
+          ;; parse argument type syntax in the (dependency based) order
           (for ([idx (in-list arg-order)])
             (define dep-ids (cdr (list-ref (attribute args.deps) idx)))
             (define-values (dep-local-ids dep-local-types)
@@ -836,21 +837,40 @@
                    #:types dep-local-types]
                 (with-local-term-names (map cons dep-ids dep-local-ids)
                   (parse-type (list-ref (attribute args.type-stx) idx)))))
-
             (hash-set! arg-type-dict idx idx-type))
+          
           (define (abstract rep)
             (abstract-obj rep (attribute args.local-name)))
           (define dom (for/list ([idx (in-range (length arg-order))])
                               (hash-ref arg-type-dict idx)))
           (define abstracted-dom (map abstract dom))
+          (define arg-idents (attribute args.name))
+          (define arg-local-idents (attribute args.local-name))
+          ;; type check the pre-condition with the specified args in scope
+          (define abstracted-pre-prop
+            (let-values ([(in-scope-arg-names
+                           in-scope-arg-local-names
+                           in-scope-arg-types)
+                          (for/lists (_1 _2 _3)
+                                     ([arg-id (in-list arg-idents)]
+                                      [arg-local-id (in-list arg-local-idents)]
+                                      [arg-ty (in-list dom)]
+                                      #:when (member arg-id pre-deps free-identifier=?))
+                            (values arg-id arg-local-id arg-ty))])
+              (with-extended-lexical-env
+                  [#:identifiers in-scope-arg-local-names
+                   #:types in-scope-arg-types]
+                (with-local-term-names (map cons
+                                            in-scope-arg-names
+                                            in-scope-arg-local-names)
+                  (abstract (parse-prop #'pre-stx))))))
+          ;; now type check the range
           (with-extended-lexical-env
-              [#:identifiers (attribute args.local-name)
+              [#:identifiers arg-local-idents
                #:types dom]
             (with-local-term-names (map cons
-                                        (attribute args.name)
-                                        (attribute args.local-name))
-              (define pre-prop (parse-prop #'pre-stx))
-              (define abstracted-pre-prop (abstract pre-prop))
+                                        arg-idents
+                                        arg-local-idents)
               (match (parse-values-type #'rng-type)
                 ;; single value'd return type, propositions/objects allowed
                 [(Values: (list (Result: rng-t _ _)))

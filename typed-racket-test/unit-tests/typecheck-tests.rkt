@@ -4225,6 +4225,15 @@
                  (void))
                #:ret (ret -Void #f #f)
                #:msg #rx"unable to prove precondition"]
+       [tc-err (let ()
+                 (: safe-ref (All (A) (-> ([v : (Vectorof A)]
+                                           [n : Natural])
+                                          #:pre () (< n (vector-length v))
+                                          A)))
+                 (define (safe-ref v n) (vector-ref v n))
+                 (void)
+                 #:ret (ret -Void #f #f)
+                 #:msg #rx"unbound")]
        ;; polymorphic dependent function application
        [tc-e (let ()
                (: safe-ref (All (A) (-> ([v : (Vectorof A)]

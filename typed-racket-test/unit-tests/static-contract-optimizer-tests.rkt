@@ -355,10 +355,10 @@
 
     ;; more Or case
     (check-optimize
-      ;; flatten & de-duplicate nested or/sc
+      ;; do not flatten nested or/sc containing flat & chaperone contracts (must be all flat or all chaperone)
       (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc))
-      #:pos (or/sc (box/sc cons?/sc) cons?/sc)
-      #:neg (or/sc (box/sc cons?/sc) cons?/sc))
+      #:pos (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc))
+      #:neg (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc)))
     (check-optimize
       ;; flatten multiple or/sc
       (or/sc cons?/sc (or/sc set?/sc syntax?/sc) (or/sc list?/sc identifier?/sc))

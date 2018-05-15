@@ -21,7 +21,7 @@
                                . ->* . static-contract?)])
 
 ;; Reduce a static contract to a smaller simpler one that protects in the same way
-(define (reduce sc)
+(define (reduce sc flat-sc?)
   (match sc
     ;; none/sc cases
     [(listof/sc: (none/sc:)) empty-list/sc]
@@ -61,7 +61,10 @@
       [(? (λ (l) (member none/sc l)))
        (apply or/sc (remove* (list none/sc) scs))]
       [(? (λ (l) (ormap (match-lambda [(or/sc: _ ...) #true] [_ #false]) l)))
-       (apply or/sc (flatten-or/sc scs))]
+       (define new-scs (flatten-or/sc scs flat-sc?))
+       (if new-scs
+         (apply or/sc new-scs)
+         sc)]
       [else sc])]
 
     ;; and/sc cases
@@ -115,20 +118,41 @@
 ;;  to `(list pre-scs ... mid-scs ... post-scs ...)`, but:
 ;;  - flatten all `or/sc` contracts in the given list
 ;;  - remove duplicate contracts from the result
-;; This optimization assumes that `sc->kind` is the same for all `mid-scs`.
-;; If this assumption is false, then the flattened contract might
+;; Uses `flat-sc?` to check that the `mid-scs ...` are either (1) all flat
+;;  or (2) all non-flat. Without this check, the flattened contract might
 ;;  accept a value that the original contract failed for. Example:
 ;;  consider `(or/c (or/c procedure? (-> boolean?)) (-> integer?))`
 ;;  and `(or/c procedure? (-> boolean?) (-> integer?))`
 ;;  and any thunk. The first contract fails and the second passes.
-(define (flatten-or/sc scs)
-  (for/fold ([acc '()])
-            ([sc (in-list scs)])
-    (match sc
-      [(or/sc: inner-scs ...)
-       (set-union acc inner-scs)]
-      [_
-       (set-add acc sc)])))
+(define (flatten-or/sc scs flat-sc?)
+  (define flattened-any? (box #false))
+  (define new-scs
+    (for/fold ([acc '()])
+              ([sc (in-list scs)])
+      (match sc
+        [(or/sc: inner-scs ...)
+         #:when (eq?*/f inner-scs flat-sc?)
+         (set-box! flattened-any? #true)
+         (set-union acc inner-scs)]
+        [_
+         (set-add acc sc)])))
+  (and (unbox flattened-any?) new-scs))
+
+;; eq?*/f : (-> (listof a) (-> a b) boolean?)
+;; Returns #true if (f x) is `eq?` to `(f y)` for all `x`, `y` in the given list.
+(define (eq?*/f x* f)
+  (define undef 'undef)
+  (let loop ((x* x*)
+             (prev undef))
+    (cond
+      [(null? x*)
+       #true]
+      [(eq? prev undef)
+       (loop (cdr x*) (f (car x*)))]
+      [(eq? prev (f (car x*)))
+       (loop (cdr x*) prev)]
+      [else
+        #false])))
 
 ;; Reduce a static contract assuming that we trusted the current side
 ;; If `is-weak-side?` is true, then preserve the "head constructor" of the
@@ -363,7 +387,8 @@
     (reduce
       (if trusted
           (trusted-side-reduce sc (weak-side? maybe-weak-side))
-          sc)))
+          sc)
+      flat-sc?))
 
   ;; full-pass: single-step at every static contract subpart
   (define (full-pass sc)

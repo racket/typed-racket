@@ -272,7 +272,7 @@ don't depend on any other portion of the system
   (raise (make-exn:fail:tc
           (string-append
            "Internal Typechecker Error: "
-           (apply format msg args)
+           (if (null? args) msg (apply format msg args))
            (let ([stx (current-orig-stx)])
              (format "\nwhile typechecking:\n~a\noriginally:\n~a"
                      (and stx (syntax->datum stx))

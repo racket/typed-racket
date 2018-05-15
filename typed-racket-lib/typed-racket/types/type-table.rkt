@@ -79,7 +79,7 @@
 
 (define (type-of e)
   (hash-ref type-table e
-            (lambda () (int-err (format "no type for ~a at: ~a line ~a col ~a"
+            (lambda () (int-err (format "no type for ~s at: ~a line ~a col ~a"
                                         (syntax->datum e)
                                         (syntax-source e)
                                         (syntax-line e)

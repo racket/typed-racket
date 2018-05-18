@@ -1048,6 +1048,15 @@
      [_ (continue<: A t1 t2 obj)])]
   [(case: PrefabTop (PrefabTop: k1))
    (match t2
+     [(Prefab: k2 flds)
+      (and (prefab-key-subtype? k1 k2)
+           (not (prefab-key/mutable-fields? k2))
+           (for/fold ([A A])
+                     ([fld-t (in-list flds)]
+                      ;; only check the fields both have in common
+                      [_ (in-range (prefab-key->field-count k2))]
+                      #:break (not A))
+             (subtype* A Univ fld-t)))]
      [(PrefabTop: k2) (and (prefab-key-subtype? k1 k2) A)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Promise (Promise: elem1))

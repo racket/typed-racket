@@ -6,6 +6,7 @@
 ;; extends it with more types and type abbreviations.
 
 (require "../utils/utils.rkt"
+         "../utils/identifier.rkt"
          "../rep/type-rep.rkt"
          "../rep/prop-rep.rkt"
          "../rep/object-rep.rkt"
@@ -210,10 +211,7 @@
                  #:object obj))))
 
 (define (cl->* . args)
-  (define (funty-arities f)
-    (match f
-      [(Fun: as) as]))
-  (make-Fun (apply append (map funty-arities args))))
+  (make-Fun (apply append (map Fun-arrows args))))
 
 (define-syntax (cl-> stx)
   (syntax-parse stx

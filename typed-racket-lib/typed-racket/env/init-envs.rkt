@@ -463,16 +463,18 @@
   (make-init-code
    struct-fn-table-map
    (λ (id v)
-     (match-define (list pe mutator? mutable?) v)
+     (match-define (struct-field-entry type idx mutator? mutable?) v)
      (cond
        [mutator?
         #`(add-struct-mutator-fn!
            (quote-syntax #,id)
-           #,(path-elem->sexp pe))]
+           #,(type->sexp type)
+           #,idx)]
        [else
-        #`(add-struct-accessor-fn!
+        #`(add-struct-mutator-fn!
            (quote-syntax #,id)
-           #,(path-elem->sexp pe)
+           #,(type->sexp type)
+           #,idx
            #,mutable?)]))))
 
 ;; -> (Listof Syntax)

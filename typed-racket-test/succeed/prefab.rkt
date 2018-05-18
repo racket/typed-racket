@@ -2,6 +2,7 @@
 
 ;; Test prefab struct declarations
 
+
 (provide (struct-out foo))
 
 (struct foo ([x : Symbol]) #:prefab)
@@ -9,7 +10,7 @@
 (define-struct foo* ([x : Symbol]) #:prefab)
 (define-struct (bar* foo*) ([y : String] [z : String]) #:prefab)
 
-(: a-bar (Prefab (bar foo 1) Symbol String String))
+(: a-bar (Prefab (bar foo 1) Symbol String String)) 
 (define a-bar (bar 'foo "bar1" "bar2"))
 
 (ann (foo-x (foo 'foo)) Symbol)
@@ -43,7 +44,7 @@
 (ann read-some-unknown-foo1 (-> (Prefab foo Any) Any))
 
 (ann read-some-unknown-foo2 (-> (PrefabTop foo 1) Any))
-
+ 
 
 (: read-some-unknown-foo3 (-> Any Any))
 (define (read-some-unknown-foo3 x)
@@ -261,3 +262,204 @@
 
 (assert-typecheck-fail
  (define-predicate is-num-boxes num-boxes))
+
+
+
+(struct num-num ([n1 : Number] [n2 : Number]) #:prefab)
+(struct num-num-str-str-str num-num ([s1 : String] [s2 : String] [s3 : String]) #:prefab)
+
+
+(num-num 1 2)
+(assert-typecheck-fail
+ (num-num 1 "2"))
+(assert-typecheck-fail
+ (num-num "1" 2))
+(num-num-str-str-str 1 2 "1" "2" "3")
+(assert-typecheck-fail
+ (num-num-str-str-str 1 2 1 "2" "3"))
+(assert-typecheck-fail
+ (num-num-str-str-str 1 2 "1" 2 "3"))
+(assert-typecheck-fail
+ (num-num-str-str-str 1 2 "1" "2" 3))
+(unless (equal? 1 (ann (num-num-n1 (num-num-str-str-str 1 2 "3" "4" "5")) Number))
+  (error "oh no! didn't get 1!"))
+(unless (equal? 1 (ann (num-num-n1 #s((num-num-str-str-str num-num 2) 1 2 "3" "4" "5")) Number))
+  (error "oh no! didn't get 1!"))
+(unless (equal? 2 (ann (num-num-n2 #s((num-num-str-str-str num-num 2) 1 2 "3" "4" "5")) Number))
+  (error "oh no! didn't get 2!"))
+(unless (equal? 2 (ann (num-num-n2 (num-num-str-str-str 1 2 "3" "4" "5")) Number))
+  (error "oh no! didn't get 2!"))
+(unless (equal? "3" (ann (num-num-str-str-str-s1 (num-num-str-str-str 1 2 "3" "4" "5")) String))
+  (error "oh no! didn't get \"3\""))
+(unless (equal? "3" (ann (num-num-str-str-str-s1 #s((num-num-str-str-str num-num 2) 1 2 "3" "4" "5")) String))
+  (error "oh no! didn't get \"3\""))
+(unless (equal? "4" (ann (num-num-str-str-str-s2 (num-num-str-str-str 1 2 "3" "4" "5")) String))
+  (error "oh no! didn't get \"4\""))
+(unless (equal? "4" (ann (num-num-str-str-str-s2 #s((num-num-str-str-str num-num 2) 1 2 "3" "4" "5")) String))
+  (error "oh no! didn't get \"4\""))
+(unless (equal? "5" (ann (num-num-str-str-str-s3 (num-num-str-str-str 1 2 "3" "4" "5")) String))
+  (error "oh no! didn't get \"5\""))
+(unless (equal? "5" (ann (num-num-str-str-str-s3 #s((num-num-str-str-str num-num 2) 1 2 "3" "4" "5")) String))
+  (error "oh no! didn't get \"5\""))
+
+
+
+(unless (equal?
+         (let ([val : (PrefabTop (num-num-str-str-str num-num 2) 5)
+                    #s((num-num-str-str-str num-num 2) "one" "two" 'three 'four 'five)])
+           (ann (cond
+                  [(not (num-num? val)) (+ "dead" 'code)]
+                  [(not (num-num-str-str-str? val)) (+ "dead" 'code)]
+                  [(string? (num-num-n1 val)) (num-num-n1 val)]  
+                  [(string? (num-num-n2 val)) (num-num-n2 val)]
+                  [(symbol? (num-num-str-str-str-s1 val)) (symbol->string (num-num-str-str-str-s1 val))]
+                  [(symbol? (num-num-str-str-str-s2 val)) (symbol->string (num-num-str-str-str-s2 val))]
+                  [(symbol? (num-num-str-str-str-s3 val)) (symbol->string (num-num-str-str-str-s3 val))]
+                  [else "missed"])
+                String))
+         "one")
+  (error "accessors broken num-num-str-str-str 1")) 
+
+(unless (equal?
+         (let ([val : Any #s((num-num-str-str-str num-num 2) "one" "two" 'three 'four 'five)])
+           (ann (cond
+                  [(not (num-num-str-str-str? val)) "nope"]
+                  [(string? (num-num-n1 val)) (num-num-n1 val)] 
+                  [(string? (num-num-n2 val)) (num-num-n2 val)]
+                  [(symbol? (num-num-str-str-str-s1 val)) (symbol->string (num-num-str-str-str-s1 val))]
+                  [(symbol? (num-num-str-str-str-s2 val)) (symbol->string (num-num-str-str-str-s2 val))]
+                  [(symbol? (num-num-str-str-str-s3 val)) (symbol->string (num-num-str-str-str-s3 val))]
+                  [else "missed"])
+                String))
+         "one")
+  (error "accessors broken num-num-str-str-str 2"))
+ 
+(unless (equal?
+         (match (ann #s((num-num-str-str-str num-num 2) "one" "two" three four five) Any)
+           [(num-num-str-str-str fld1 fld2 fld3 fld4 fld5)
+            (list fld1 fld2 fld3 fld4 fld5)])
+         (list "one" "two" 'three 'four 'five))
+  (error "prefab pattern matching broken! num-num-str-str-str"))
+
+
+
+(struct sym-sym ([n1 : Symbol] [n2 : Symbol]) #:prefab #:mutable)
+(struct sym-sym-str-str-str sym-sym ([s1 : String] [s2 : String] [s3 : String]) #:prefab)
+
+
+(sym-sym 'one 'two)
+(sym-sym-str-str-str 'one 'two "1" "2" "3")
+(unless (equal? 'one (ann (sym-sym-n1 (sym-sym-str-str-str 'one 'two "3" "4" "5")) Symbol))
+  (error "oh no! didn't get 'one!"))
+(unless (equal? 'two (ann (sym-sym-n2 (sym-sym-str-str-str 'one 'two "3" "4" "5")) Symbol))
+  (error "oh no! didn't get 'two!"))
+(unless (equal? "3" (ann (sym-sym-str-str-str-s1 (sym-sym-str-str-str 'one 'two "3" "4" "5")) String))
+  (error "oh no! didn't get \"3\""))
+(unless (equal? "4" (ann (sym-sym-str-str-str-s2 (sym-sym-str-str-str 'one 'two "3" "4" "5")) String))
+  (error "oh no! didn't get \"4\""))
+(unless (equal? "5" (ann (sym-sym-str-str-str-s3 (sym-sym-str-str-str 'one 'two "3" "4" "5")) String))
+  (error "oh no! didn't get \"5\""))
+
+(unless
+    (equal?
+     (let ([val : Any (read (open-input-string "#s((sym-sym-str-str-str sym-sym 2 #(0 1)) \"one\" \"two\" 'three 'four 'five)"))])
+       (ann (cond
+              [(not (sym-sym-str-str-str? val)) "nope"]
+              [else
+               (let ([fld1 (sym-sym-n1 val)]
+                     [fld2 (sym-sym-n2 val)]
+                     [fld3 (sym-sym-str-str-str-s1 val)]
+                     [fld4 (sym-sym-str-str-str-s2 val)]
+                     [fld5 (sym-sym-str-str-str-s3 val)])
+                 (cond
+                   [(string? fld1) fld1]
+                   [(string? fld2) fld2]
+                   [(symbol? fld3) (symbol->string fld3)]
+                   [(symbol? fld4) (symbol->string fld4)]
+                   [(symbol? fld5) (symbol->string fld5)]
+                   [else "missed"]))])
+            String))
+     "one")
+  (error "accessors broken sym-sym-str-str-str"))
+
+(unless (equal?
+         (match (ann (read (open-input-string "#s((sym-sym-str-str-str sym-sym 2 #(0 1)) \"one\" \"two\" 'three 'four 'five)"))
+                     Any)
+           [(sym-sym-str-str-str fld1 fld2 fld3 fld4 fld5)
+            (list fld1 fld2 fld3 fld4 fld5)])
+         (list "one" "two" 'three 'four 'five))
+  (error "prefab pattern matching broken! sym-sym-str-str-str"))
+
+
+(struct num-num-sym-sym-sym num-num ([s1 : Symbol] [s2 : Symbol] [s3 : Symbol]) #:prefab #:mutable)
+
+(num-num-sym-sym-sym 1 2 'three 'four 'five)
+(unless (equal? 1 (ann (num-num-n1 (num-num-sym-sym-sym 1 2 'three 'four 'five)) Number))
+  (error "oh no! didn't get 1e!"))
+(unless (equal? 2 (ann (num-num-n2 (num-num-sym-sym-sym 1 2 'three 'four 'five)) Number))
+  (error "oh no! didn't get 2!"))
+(unless (equal? 'three (ann (num-num-sym-sym-sym-s1 (num-num-sym-sym-sym 1 2 'three 'four 'five)) Symbol))
+  (error "oh no! didn't get \"3\""))
+(unless (equal? 'four (ann (num-num-sym-sym-sym-s2 (num-num-sym-sym-sym 1 2 'three 'four 'five)) Symbol))
+  (error "oh no! didn't get \"4\""))
+(unless (equal? 'five (ann (num-num-sym-sym-sym-s3 (num-num-sym-sym-sym 1 2 'three 'four 'five)) Symbol))
+  (error "oh no! didn't get \"5\""))
+
+
+(unless
+    (equal?
+     (let ([val : Any (read (open-input-string "#s((num-num-sym-sym-sym #(0 1 2) num-num 2) \"one\" \"two\" 3 4 5)"))])
+       (ann (cond
+              [(not (num-num-sym-sym-sym? val)) "nope"]
+              [else
+               (let ([fld1 (num-num-n1 val)] 
+                     [fld2 (num-num-n2 val)]
+                     [fld3 (num-num-sym-sym-sym-s1 val)]
+                     [fld4 (num-num-sym-sym-sym-s2 val)]
+                     [fld5 (num-num-sym-sym-sym-s3 val)])
+                 (cond
+                   [(string? fld1) fld1]
+                   [(string? fld2) fld2]
+                   [(number? fld3) (number->string fld3)]
+                   [(number? fld4) (number->string fld4)]
+                   [(number? fld5) (number->string fld5)]
+                   [else "missed"]))])
+            String))
+     "one")
+  (error "accessors broken num-num-sym-sym-sym"))
+
+(struct str-str ([s1 : String] [s2 : String]) #:prefab #:mutable)
+(struct str-str-num-num-num str-str ([n1 : Number] [n2 : Number] [n3 : Number]) #:prefab #:mutable)
+
+
+(unless
+    (equal?
+     (let ([val : Any (read (open-input-string
+                             "#s((str-str-num-num-num #(0 1 2) str-str 2 #(0 1)) 'one 'two 'three 'four 'five)"))])
+       (ann (cond
+              [(not (str-str-num-num-num? val)) "nope"]
+              [else
+               (let ([fld1 (str-str-s1 val)]
+                     [fld2 (str-str-s2 val)]
+                     [fld3 (str-str-num-num-num-n1 val)]
+                     [fld4 (str-str-num-num-num-n2 val)]
+                     [fld5 (str-str-num-num-num-n3 val)])
+                 (cond
+                   [(string? fld1) fld1]
+                   [(string? fld2) fld2]
+                   [(number? fld3) (number->string fld3)]
+                   [(number? fld4) (number->string fld4)]
+                   [(number? fld5) (number->string fld5)]
+                   [else "missed"]))])
+            String))
+     "one")
+  (error "accessors broken num-num-sym-sym-sym"))
+
+(unless (equal?
+         (match (ann (read (open-input-string
+                             "#s((str-str-num-num-num #(0 1 2) str-str 2 #(0 1)) 'one 'two 'three 'four 'five)"))
+                     Any)
+           [(str-str-num-num-num fld1 fld2 fld3 fld4 fld5)
+            (list fld1 fld2 fld3 fld4 fld5)])
+         (list 'one 'two 'three 'four 'five))
+  (error "prefab pattern matching broken! sym-sym-str-str-str"))

@@ -16,12 +16,12 @@
   (pattern op:id
     #:when (struct-accessor? #'op)
     #:attr message "struct ref"
-    #:with idx #`'#,(struct-fn-idx #'op)
+    #:with idx #`'#,(struct-accessor? #'op)
     #:with opt #'unsafe-struct-ref)
   (pattern op:id
     #:when (struct-mutator? #'op)
     #:attr message "struct set"
-    #:with idx #`'#,(struct-fn-idx #'op)
+    #:with idx #`'#,(struct-mutator? #'op)
     #:with opt #'unsafe-struct-set!))
 
 (define-syntax-class struct-opt-expr

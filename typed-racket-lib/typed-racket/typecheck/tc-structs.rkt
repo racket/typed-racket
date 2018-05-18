@@ -150,21 +150,23 @@
 (define/cond-contract (register-prefab-bindings! pty names desc si)
   (c:-> Prefab? struct-names? struct-desc? (c:or/c #f struct-info?) (c:listof binding?))
   (define key (Prefab-key pty))
-  (define constructor-tvars (struct-desc-tvars desc))
-  (define all-fields (struct-desc-all-fields desc))
-  (define parent-fields (struct-desc-parent-fields desc))
-  (define self-fields (struct-desc-self-fields desc))
+  (match-define
+    (struct-desc parent-fields self-fields
+                 constructor-tvars
+                 self-mutable parent-mutable _)
+    desc)
+  (define any-mutable (or self-mutable parent-mutable))
+  (define all-fields (append parent-fields self-fields))
   (define self-count (length self-fields))
-  (define self-mutable (struct-desc-mutable desc))
-  (define parent-count (struct-desc-parent-count desc))
-
+  (define parent-count (length parent-fields))
   (define field-count (+ self-count parent-count))
   (define field-univs (build-list field-count (λ (_) Univ)))
   (define field-tvar-syms
     (build-list field-count (λ (_) (gen-pretty-sym))))
   (define field-tvar-Fs (map make-F field-tvar-syms))
-  (define poly-prefab
+  (define raw-poly-prefab ;; since all prefabs are polymorphic by nature
     (make-Prefab key field-tvar-Fs))
+
   (define prefab-top-type (make-PrefabTop key))
   
   (define bindings
@@ -174,34 +176,41 @@
      (make-def-binding (struct-names-predicate names)
                        (make-pred-ty prefab-top-type))
      (append
-      (for/list ([g (in-list (struct-names-getters names))]
+      (for/list ([acc-id (in-list (struct-names-getters names))]
                  [t (in-list self-fields)]
-                 [i (in-naturals parent-count)])
-        (let* ([path (make-PrefabPE key i)]
-               [fld-sym (list-ref field-tvar-syms i)]
-               [fld-t (list-ref field-tvar-Fs i)]
-               [func (if self-mutable
-                         (make-Poly
-                          field-tvar-syms
-                          (cl-> [(poly-prefab) fld-t]
-                                [(prefab-top-type) Univ]))
-                         (make-Poly
-                          (list fld-sym)
-                          (->acc (list (make-Prefab key (list-set field-univs i fld-t)))
+                 [idx (in-range parent-count field-count)])
+        (let* ([path (make-PrefabPE key idx)]
+               [fld-sym (list-ref field-tvar-syms idx)]
+               [fld-t (list-ref field-tvar-Fs idx)]
+               [func-t (cond
+                         [(or self-mutable parent-mutable)
+                          ;; NOTE - if we ever track mutable fields more ganularly
+                          ;; than "all of the fields are mutable or not" then this
+                          ;; could be more precise (i.e. include the path elem
+                          ;; for any immutable field).
+                          (make-Poly
+                           field-tvar-syms
+                           (cl-> [(raw-poly-prefab) fld-t]
+                                 [(prefab-top-type) Univ]))]
+                       [else
+                        (make-Poly
+                         (list fld-sym)
+                         (cl->*
+                          (->acc (list (make-Prefab key (list-set field-univs idx fld-t)))
                                  fld-t
-                                 (list path))))])
-          (add-struct-accessor-fn! g path self-mutable)
-          (make-def-binding g func)))
+                                 (list path))
+                          (-> prefab-top-type Univ)))])])
+          (add-struct-accessor-fn! acc-id prefab-top-type idx self-mutable)
+          (make-def-binding acc-id func-t)))
       (if self-mutable
           (for/list ([s (in-list (struct-names-setters names))]
                      [t (in-list self-fields)]
-                     [i (in-naturals parent-count)])
-            (let ([path (make-PrefabPE key i)]
-                  [fld-t (list-ref field-tvar-Fs i)])
-              (add-struct-mutator-fn! s path)
+                     [idx (in-range parent-count field-count)])
+            (let ([fld-t (list-ref field-tvar-Fs idx)])
+              (add-struct-mutator-fn! s prefab-top-type idx)
               (make-def-binding s (make-Poly
                                    field-tvar-syms
-                                   (->* (list poly-prefab fld-t) -Void)))))
+                                   (->* (list raw-poly-prefab fld-t) -Void)))))
           null))))
 
   ;; the base-type, with free type variables
@@ -287,19 +296,19 @@
      (append
       (for/list ([g (in-list (struct-names-getters names))]
                  [t (in-list self-fields)]
-                 [i (in-naturals parent-count)])
+                 [i (in-naturals parent-count)]) ;; TODO BUG???
         (let* ([path (make-StructPE poly-base i)]
                [func (poly-wrapper
                       (if mutable
                           (->* (list poly-base) t)
                           (->acc (list poly-base) t (list path))))])
-          (add-struct-accessor-fn! g path mutable)
+          (add-struct-accessor-fn! g poly-base i mutable)
           (make-def-binding g func)))
       (if mutable
           (for/list ([s (in-list (struct-names-setters names))]
                      [t (in-list self-fields)]
-                     [i (in-naturals parent-count)])
-            (add-struct-mutator-fn! s (make-StructPE poly-base i))
+                     [i (in-naturals parent-count)]) ;; TODO BUG???
+            (add-struct-mutator-fn! s poly-base i)
             (make-def-binding s (poly-wrapper (->* (list poly-base t) -Void))))
           null))))
 
@@ -407,8 +416,7 @@
            (match parent-key
              [(list-rest _ num-fields _ mutable _)
               (= num-fields (vector-length mutable))]
-             ;; no parent, so trivially true
-             ['() #t]))
+             ['() #f]))
          (define desc
            (struct-desc parent-fields types tvars mutable parent-mutable #f))
          (parsed-struct (make-Prefab key (append parent-fields types))

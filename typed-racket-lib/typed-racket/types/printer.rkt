@@ -253,18 +253,19 @@
                  [(ForcePE:) (values (list 'force sexp) '() (add1 depth))]
                  [(StructPE: t idx)
                   (define maybe-accessor-id
-                    (id-for-struct-pe (match-lambda
-                                        [(StructPE: s (== idx)) (subtype t s)]
-                                        [_ #f])))
+                    (id-for-struct-pe
+                     (λ (t* idx*) (and (subtype t t*)
+                                       (= idx idx*)))))
                   (cond
                     [maybe-accessor-id
                      (list (syntax-e maybe-accessor-id) sexp)]
                     [else (list 'struct-ref sexp idx)])]
                  [(PrefabPE: key idx)
                   (define maybe-accessor-id
-                    (id-for-struct-pe (match-lambda
-                                        [(PrefabPE: (== key) (== idx)) #t]
-                                        [_ #f])))
+                    (id-for-struct-pe
+                     (λ (t* idx*) (and (Prefab? t*)
+                                       (prefab-key-subtype? (Prefab-key t*) key)
+                                       (= idx idx*)))))
                   (cond
                     [maybe-accessor-id
                      (list (syntax-e maybe-accessor-id) sexp)]

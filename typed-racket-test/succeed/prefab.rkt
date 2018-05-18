@@ -382,13 +382,15 @@
      "one")
   (error "accessors broken sym-sym-str-str-str"))
 
-(unless (equal?
-         (match (ann (read (open-input-string "#s((sym-sym-str-str-str sym-sym 2 #(0 1)) \"one\" \"two\" 'three 'four 'five)"))
-                     Any)
-           [(sym-sym-str-str-str fld1 fld2 fld3 fld4 fld5)
-            (list fld1 fld2 fld3 fld4 fld5)])
-         (list "one" "two" 'three 'four 'five))
-  (error "prefab pattern matching broken! sym-sym-str-str-str"))
+(match (ann (read (open-input-string "#s((sym-sym-str-str-str sym-sym 2 #(0 1)) \"one\" \"two\" three four five)"))
+            Any)
+  [(sym-sym-str-str-str fld1 fld2 fld3 fld4 fld5)
+   (unless (equal? (list fld1 fld2 fld3 fld4 fld5)
+                   (list "one" "two" 'three 'four 'five))
+     (error 'sym-sym-str-str-str "prefab pattern matching broken! got: ~a\n"
+            (list fld1 fld2 fld3 fld4 fld5)))]
+  [val (error "prefab pattern matching broken! sym-sym-str-str-str did not match ~a\n"
+              val)])
 
 
 (struct num-num-sym-sym-sym num-num ([s1 : Symbol] [s2 : Symbol] [s3 : Symbol]) #:prefab #:mutable)
@@ -435,7 +437,7 @@
 (unless
     (equal?
      (let ([val : Any (read (open-input-string
-                             "#s((str-str-num-num-num #(0 1 2) str-str 2 #(0 1)) 'one 'two 'three 'four 'five)"))])
+                             "#s((str-str-num-num-num #(0 1 2) str-str 2 #(0 1)) one two three four five)"))])
        (ann (cond
               [(not (str-str-num-num-num? val)) "nope"]
               [else
@@ -452,14 +454,14 @@
                    [(number? fld5) (number->string fld5)]
                    [else "missed"]))])
             String))
-     "one")
+     "missed")
   (error "accessors broken num-num-sym-sym-sym"))
 
 (unless (equal?
          (match (ann (read (open-input-string
-                             "#s((str-str-num-num-num #(0 1 2) str-str 2 #(0 1)) 'one 'two 'three 'four 'five)"))
+                             "#s((str-str-num-num-num #(0 1 2) str-str 2 #(0 1)) one two three four five)"))
                      Any)
            [(str-str-num-num-num fld1 fld2 fld3 fld4 fld5)
             (list fld1 fld2 fld3 fld4 fld5)])
          (list 'one 'two 'three 'four 'five))
-  (error "prefab pattern matching broken! sym-sym-str-str-str"))
+  (error "prefab pattern matching broken! str-str-num-num-num"))

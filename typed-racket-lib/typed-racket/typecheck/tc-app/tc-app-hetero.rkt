@@ -4,6 +4,7 @@
          syntax/parse syntax/stx racket/match racket/sequence
          "signatures.rkt"
          "utils.rkt"
+         (utils prefab)
          (types utils abbrev numeric-tower resolve type-table
                 generalize match-expanders)
          (typecheck signatures check-below)
@@ -93,6 +94,12 @@
        (tc/hetero-ref #'index flds struct-t "struct" #'op)]
       [(tc-result1: (and struct-t (app resolve (Prefab: _ (list flds ...)))))
        (tc/hetero-ref #'index flds struct-t "prefab struct" #'op)]
+      [(tc-result1: (and struct-t (app resolve (PrefabTop: key))))
+       (tc/hetero-ref #'index
+                      (build-list (prefab-key->field-count key) (λ (_) Univ))
+                      struct-t
+                      "prefab struct"
+                      #'op)]
       [s-ty (tc/app-regular #'form expected)]))
   ;; vector-ref on het vectors
   (pattern (~and form ((~and op (~or vector-ref unsafe-vector-ref unsafe-vector*-ref)) vec:expr index:expr))

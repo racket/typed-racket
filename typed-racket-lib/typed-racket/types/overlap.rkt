@@ -169,12 +169,10 @@
    [((PrefabTop: key1) (or (PrefabTop: key2)
                            (Prefab:    key2 _)))
     #:no-order
-    (or (equal? key1 key2)
-        (prefab-key-subtype? key1 key2)
+    (or (prefab-key-subtype? key1 key2)
         (prefab-key-subtype? key2 key1))]
    [((Prefab: key1 flds1) (Prefab: key2 flds2))
-    (and (or (equal? key1 key2)
-             (prefab-key-subtype? key1 key2)
+    (and (or (prefab-key-subtype? key1 key2)
              (prefab-key-subtype? key2 key1))
          (for/and ([fty1 (in-list flds1)]
                    [fty2 (in-list flds2)])

@@ -178,6 +178,11 @@
 ;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ;; prefab contract structs
 ;; - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+;; NOTE: these are meant to more-or-less mirror struct/c
+;; in how they work. One notable difference: we don't
+;; necessarily have identifiers corresponding to accessor
+;; functions for prefabs.
+
 
 
 (struct base-prefab/c (key field-contracts mutability-bits))

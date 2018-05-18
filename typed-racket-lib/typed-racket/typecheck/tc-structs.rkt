@@ -8,7 +8,7 @@
          (private parse-type syntax-properties)
          (types abbrev subtype utils resolve substitute struct-table)
          (env global-env type-name-env type-alias-env tvar-env)
-         (utils tc-utils prefab)
+         (utils tc-utils prefab identifier)
          (typecheck def-binding internal-forms error-message)
          (for-syntax syntax/parse racket/base))
 

@@ -3,6 +3,7 @@
          (for-syntax racket/base)
          (r:infer infer)
          (rep type-rep)
+         (utils prefab)
          (types abbrev numeric-tower subtype subtract overlap)
          rackunit)
 (provide tests)
@@ -83,7 +84,37 @@
     (-Weak-HT -String -Symbol)]
    [(make-Listof (-mu x (Un -String (-HT -String x))))
     (make-Listof -HashTableTop)
-    (make-Listof (-HT -String (-mu x (Un -String (-HT -String x)))))]))
+    (make-Listof (-HT -String (-mu x (Un -String (-HT -String x)))))]
+   [(-prefab (normalize-prefab-key 'point 2)
+             (Un -Number -String) (Un -Number -String))
+    (-prefab (normalize-prefab-key 'point 2)
+             (Un -Number -Symbol) (Un -Number -Symbol))
+    (-prefab (normalize-prefab-key 'point 2)
+             -Number -Number)]
+   [(-prefab (normalize-prefab-key 'point 2)
+             (Un -Number -String) (Un -Number -String))
+    (-prefab (normalize-prefab-key '(3dpoint point 2) 3)
+             (Un -Number -Symbol)
+             (Un -Number -Symbol)
+             (Un -Number -Symbol))
+    (-prefab (normalize-prefab-key '(3dpoint point 2) 3)
+             -Number
+             -Number
+             (Un -Number -Symbol))]
+   [(-prefab (normalize-prefab-key 'point 2)
+             (Un -Number -String) (Un -Number -String))
+    (-prefab-top (normalize-prefab-key 'point 2) 2)
+    (-prefab (normalize-prefab-key 'point 2)
+             (Un -Number -String) (Un -Number -String))]
+   [(-prefab (normalize-prefab-key '(3dpoint point 2) 3)
+             -Number
+             -Number
+             (Un -Number -Symbol))
+    (-prefab-top (normalize-prefab-key 'point 2) 2)
+    (-prefab (normalize-prefab-key '(3dpoint point 2) 3)
+             -Number
+             -Number
+             (Un -Number -Symbol))]))
 
 (define-syntax (remo-tests stx)
   (syntax-case stx ()

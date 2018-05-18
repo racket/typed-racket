@@ -46,9 +46,7 @@
         [(prefab-combinator args _ field-mutability)
          (merge-restricts*
            (if (ormap values field-mutability) 'chaperone 'flat)
-           (map (lambda (a mut?)
-                  ;; ??? If it's _not_ mutable, we restric the constraints to be no greater
-                  ;; than a chaperone, otherwise... we allow anything? what is the point of this?
+           (map (λ (a mut?)
                   (if (not mut?) (add-constraint (f a) 'chaperone) (f a)))
                 args
                 field-mutability))]))])

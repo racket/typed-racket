@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
+         (utils identifier)
          racket/match racket/sequence racket/set racket/list
          (contract-req)
          (typecheck check-below tc-subst tc-metafunctions possible-domains)

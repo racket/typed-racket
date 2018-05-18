@@ -153,12 +153,14 @@
             [kt (apply Un kts)]
             [vt (apply Un vts)])
        (-Immutable-HT (check-below kt k) (check-below vt v)))]
-    [_
+    [_ #:when (immutable? hash-inst)
      (let* ([kts (hash-map hash-inst (lambda (x y) (check-element x #f)))]
             [vts (hash-map hash-inst (lambda (x y) (check-element y #f)))]
             [kt (generalize (apply Un kts))]
             [vt (generalize (apply Un vts))])
-       (-Immutable-HT kt vt))]))
+       (-Immutable-HT kt vt))]
+    [_ (Un -Mutable-HashTableTop
+           -Weak-HashTableTop)]))
 
 
 ;; Typecheck a prefab struct literal (or result of syntax-e)

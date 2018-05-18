@@ -789,7 +789,7 @@ the typed racket language.
 (define-syntax (assert-typecheck-fail stx)
   (syntax-parse stx
     [(_ orig)
-     #'(if (odd? 0)
+     #`(if #,(syntax-property #'#f 'typed-racket:ignore-type-information)
            (quote-syntax (assert-typecheck-fail-internal orig) #:local)
            (void))]))
 

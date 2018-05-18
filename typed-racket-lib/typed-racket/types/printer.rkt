@@ -16,7 +16,7 @@
                   "types/utils.rkt" "types/abbrev.rkt"
                   "types/union.rkt" "types/numeric-tower.rkt"
                   "types/resolve.rkt"
-                  "utils/prefab.rkt"
+                  "utils/prefab.rkt" "utils/identifier.rkt"
                   "utils/utils.rkt"
                   "utils/tc-utils.rkt"
                   "types/struct-table.rkt")

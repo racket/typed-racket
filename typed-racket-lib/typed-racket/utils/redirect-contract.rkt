@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require syntax/private/modcollapse-noctc
-         syntax/id-table
+         syntax/private/id-table
          (for-template racket/base))
 (provide make-make-redirect-to-contract)
 

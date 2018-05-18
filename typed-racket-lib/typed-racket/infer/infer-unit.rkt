@@ -10,7 +10,7 @@
 (require "../utils/utils.rkt"
          (except-in
           (combine-in
-           (utils tc-utils prefab)
+           (utils tc-utils prefab identifier)
            (rep free-variance type-rep prop-rep object-rep
                 values-rep rep-utils type-mask)
            (types utils abbrev numeric-tower subtype resolve

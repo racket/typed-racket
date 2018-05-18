@@ -7,7 +7,7 @@
          (for-syntax "../utils/utils.rkt"))
 
 ;; TODO use contract-req
-(require (utils tc-utils prefab)
+(require (utils tc-utils prefab identifier)
          "rep-utils.rkt"
          "core-rep.rkt"
          "object-rep.rkt"

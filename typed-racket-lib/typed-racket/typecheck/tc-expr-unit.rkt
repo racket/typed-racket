@@ -11,7 +11,7 @@
          (private-in syntax-properties parse-type)
          (rep type-rep prop-rep object-rep)
          (only-in (infer infer) intersect)
-         (utils tc-utils)
+         (utils tc-utils identifier)
          (env lexical-env scoped-tvar-env)
          racket/list
          racket/private/class-internal

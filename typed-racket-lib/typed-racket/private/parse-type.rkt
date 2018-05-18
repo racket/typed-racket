@@ -8,7 +8,8 @@
                 classes signatures
                 subtype path-type numeric-tower)
          (only-in (infer-in infer) intersect)
-         (utils tc-utils prefab stxclass-util literal-syntax-class)
+         (utils tc-utils prefab stxclass-util literal-syntax-class
+                identifier)
          syntax/stx (prefix-in c: (contract-req))
          syntax/parse racket/sequence
          (env tvar-env type-alias-env mvar-env

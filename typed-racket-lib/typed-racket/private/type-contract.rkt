@@ -6,7 +6,7 @@
  "../utils/utils.rkt"
  syntax/parse
  (rep type-rep prop-rep object-rep fme-utils)
- (utils tc-utils prefab)
+ (utils tc-utils prefab identifier)
  (env type-name-env row-constraint-env)
  (rep core-rep rep-utils free-ids type-mask values-rep
       base-types numeric-base-types)
@@ -719,14 +719,10 @@
                                "untyped code"))
             (struct-type/sc null))]
        [(Prefab: key (list (app t->sc fld/scs) ...)) (prefab/sc key fld/scs)]
-       [(PrefabTop: key)
-        (define short-key (abbreviate-prefab-key key))
-        (define field-count (prefab-key->field-count key))
-        (flat/sc #`(let* ([struct-type (prefab-key->struct-type #,key #,field-count)]
-                          [pred? (struct-type-make-predicate struct-type)])
-                     (flat-named-contract
-                      '(PrefabTop #,short-key #,field-count)
-                      (lambda (x) (pred? x)))))]
+       [(PrefabTop: key) 
+        (flat/sc #`(struct-type-make-predicate
+                    (prefab-key->struct-type #,(abbreviate-prefab-key key)
+                                             #,(prefab-key->field-count key))))]
        [(Syntax: (? Base:Symbol?)) identifier?/sc]
        [(Syntax: t)
         (syntax/sc (t->sc t))]

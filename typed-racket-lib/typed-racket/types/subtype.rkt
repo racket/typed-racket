@@ -6,7 +6,7 @@
          (rep type-rep prop-rep object-rep
               core-rep type-mask values-rep rep-utils
               free-variance rep-switch)
-         (utils tc-utils prefab)
+         (utils tc-utils prefab identifier)
          (only-in (env type-env-structs)
                   with-lexical-env
                   with-naively-extended-lexical-env

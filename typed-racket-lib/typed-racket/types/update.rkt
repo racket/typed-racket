@@ -45,6 +45,8 @@
           (rebuild -Promise (update t rst))]
          
          ;; struct ops
+         ;; (NOTE: we assume path elements to mutable fields
+         ;;        are never created)
          [((Struct: nm par flds proc poly pred)
            (StructPE: s idx))
           #:when (subtype t s)
@@ -59,6 +61,8 @@
                   (make-Struct nm par flds proc poly pred))])]
 
          ;; prefab struct ops
+         ;; (NOTE: we assume path elements to mutable fields
+         ;;        are never created)
          [((Prefab: key flds) (PrefabPE: path-key idx))
           #:when (prefab-key-subtype? key path-key)
           (match-define-values (lhs (cons fld-ty rhs)) (split-at flds idx))

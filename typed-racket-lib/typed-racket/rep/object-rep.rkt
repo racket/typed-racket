@@ -9,6 +9,7 @@
          "fme-utils.rkt"
          racket/match
          "rep-utils.rkt"
+         (utils identifier)
          "core-rep.rkt"
          "free-variance.rkt"
          (env mvar-env)

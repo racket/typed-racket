@@ -5,7 +5,7 @@
 ;; within Typed Racket implementation code.
 
 (require "../utils/utils.rkt"
-         (utils prefab)
+         (utils prefab identifier)
          racket/list
          racket/match
          (prefix-in c: (contract-req))

@@ -471,7 +471,7 @@
            #,(type->sexp type)
            #,idx)]
        [else
-        #`(add-struct-mutator-fn!
+        #`(add-struct-accessor-fn!
            (quote-syntax #,id)
            #,(type->sexp type)
            #,idx

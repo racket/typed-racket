@@ -63,5 +63,5 @@
  [struct-mutator? (identifier? . c:-> . (c:or/c #f exact-nonnegative-integer?))]
  [immutable-struct-field-accessor? (identifier? . c:-> . exact-nonnegative-integer?)]
  [id-for-struct-pe (c:-> (c:-> Type? exact-nonnegative-integer? boolean?) (c:or/c identifier? #f))]
- [struct-fn-table-map (c:-> (c:-> identifier? field-entry? c:any/c)
+ [struct-fn-table-map (c:-> (c:-> identifier? struct-field-entry? c:any/c)
                             (c:listof c:any/c))])

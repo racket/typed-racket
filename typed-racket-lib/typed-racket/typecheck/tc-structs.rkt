@@ -178,7 +178,7 @@
      (append
       (for/list ([acc-id (in-list (struct-names-getters names))]
                  [t (in-list self-fields)]
-                 [idx (in-range parent-count field-count)])
+                 [idx (in-naturals parent-count)])
         (let* ([path (make-PrefabPE key idx)]
                [fld-sym (list-ref field-tvar-syms idx)]
                [fld-t (list-ref field-tvar-Fs idx)]
@@ -205,7 +205,7 @@
       (if self-mutable
           (for/list ([s (in-list (struct-names-setters names))]
                      [t (in-list self-fields)]
-                     [idx (in-range parent-count field-count)])
+                     [idx (in-naturals parent-count)])
             (let ([fld-t (list-ref field-tvar-Fs idx)])
               (add-struct-mutator-fn! s prefab-top-type idx)
               (make-def-binding s (make-Poly
@@ -296,7 +296,7 @@
      (append
       (for/list ([g (in-list (struct-names-getters names))]
                  [t (in-list self-fields)]
-                 [i (in-naturals parent-count)]) ;; TODO BUG???
+                 [i (in-naturals parent-count)])
         (let* ([path (make-StructPE poly-base i)]
                [func (poly-wrapper
                       (if mutable
@@ -307,7 +307,7 @@
       (if mutable
           (for/list ([s (in-list (struct-names-setters names))]
                      [t (in-list self-fields)]
-                     [i (in-naturals parent-count)]) ;; TODO BUG???
+                     [i (in-naturals parent-count)])
             (add-struct-mutator-fn! s poly-base i)
             (make-def-binding s (poly-wrapper (->* (list poly-base t) -Void))))
           null))))

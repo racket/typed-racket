@@ -1,7 +1,8 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
-         (rep type-rep type-mask rep-utils)
+         (utils prefab)
+         (rep type-rep object-rep type-mask rep-utils)
          (types abbrev subtype resolve overlap)
          "signatures.rkt"
          racket/match
@@ -54,6 +55,23 @@
       ;; contain not only *if* they are polymorphic, but *which* fields are too
       ;;[((Struct: _ _ _ _ _ _)
       ;; (Struct: _ _ _ _ _ _))]
+     [((Prefab: key1 flds1) (Prefab: key2 flds2))
+       #:when (and (or (prefab-key-subtype? key1 key2)
+                       (prefab-key-subtype? key2 key1))
+                   (not (prefab-key/mutable-fields? key1))
+                   (not (prefab-key/mutable-fields? key2)))
+       (define-values (resulting-key extra-fields)
+         (if (prefab-key-subtype? key1 key2)
+             (values key1 (list-tail flds1 (length flds2)))
+             (values key2 (list-tail flds2 (length flds1)))))
+       (define flds* (for/list ([fty1 (in-list flds1)]
+                                [fty2 (in-list flds2)]
+                                [n (in-naturals)])
+                       (rec fty1 fty2 (-prefab-idx-of resulting-key n obj))))
+       (cond
+         [(ormap Bottom? flds*) -Bottom]
+         [else (make-Prefab resulting-key
+                            (append flds* extra-fields))])]
       [((Syntax: t1*) (Syntax: t2*))
        (rebuild -Syntax (rec t1* t2*))]
       [((Promise: t1*) (Promise: t2*))

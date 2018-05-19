@@ -21,7 +21,7 @@
 (define-other-types
   -> ->* case-> U Union ∩ Intersection Rec All Opaque Vector
   Parameterof List List* Class Object Row Unit Values AnyValues Instance Refinement
-  pred Struct Struct-Type Prefab Distinction Sequenceof Refine)
+  pred Struct Struct-Type Prefab PrefabTop Distinction Sequenceof Refine)
 
 (define-other-props
   Top Bot !)

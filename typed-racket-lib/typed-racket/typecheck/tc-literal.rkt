@@ -3,11 +3,10 @@
 (require "../utils/utils.rkt"
          racket/match
          (typecheck signatures check-below)
-         (types abbrev numeric-tower resolve subtype generalize
-                prefab)
+         (types abbrev numeric-tower resolve subtype generalize)
          (rep type-rep)
          (only-in (infer infer) intersect)
-         (utils stxclass-util)
+         (utils stxclass-util prefab)
          syntax/parse
          racket/extflonum)
 
@@ -136,35 +135,48 @@
                                       (-vec-len-of (-id-path v))))
          vec-ty)]
     [(~var i (3d hash?))
-     (let ([h (syntax-e #'i)])
-       (match (and expected (resolve (intersect expected (-Immutable-HT Univ Univ))))
-        [(Immutable-HashTable: k v)
-         (let* ([kts (hash-map h (lambda (x y) (tc-literal x k)))]
-                [vts (hash-map h (lambda (x y) (tc-literal y v)))]
-                [kt (apply Un kts)]
-                [vt (apply Un vts)])
-           (-Immutable-HT (check-below kt k) (check-below vt v)))]
-        [_
-         (let* ([kts (hash-map h (lambda (x y) (tc-literal x)))]
-                [vts (hash-map h (lambda (x y) (tc-literal y)))]
-                [kt (generalize (apply Un kts))]
-                [vt (generalize (apply Un vts))])
-           (-Immutable-HT kt vt))]))]
+     (tc-hash tc-literal (syntax-e #'i) expected)]
     [(~var i (3d prefab-struct-key))
-     (tc-prefab (syntax-e #'i) expected)]
+     (tc-prefab tc-literal (syntax-e #'i) expected)]
     [_ Univ]))
 
-;; Typecheck a prefab struct literal
-(define (tc-prefab struct-inst expected)
-  (define expected-ts
-    (match (and expected (resolve expected))
-      [(Prefab: _ ts) (in-list/rest ts #f)]
-      [_ (in-cycle (in-value #f))]))
+
+;; Typecheck a hash literal (or result of syntax-e)
+;; `check-element` allows hash tables in syntax to be checked by passing
+;; a function that unwraps their syntax for recursive checks (see
+;; `find-stx-type` in tc-expr-unit)
+(define (tc-hash check-element hash-inst expected-type)
+  (match (and expected-type (resolve (intersect expected-type (-Immutable-HT Univ Univ))))
+    [(Immutable-HashTable: k v)
+     (let* ([kts (hash-map hash-inst (lambda (x y) (check-element x k)))]
+            [vts (hash-map hash-inst (lambda (x y) (check-element y v)))]
+            [kt (apply Un kts)]
+            [vt (apply Un vts)])
+       (-Immutable-HT (check-below kt k) (check-below vt v)))]
+    [_ #:when (immutable? hash-inst)
+     (let* ([kts (hash-map hash-inst (lambda (x y) (check-element x #f)))]
+            [vts (hash-map hash-inst (lambda (x y) (check-element y #f)))]
+            [kt (generalize (apply Un kts))]
+            [vt (generalize (apply Un vts))])
+       (-Immutable-HT kt vt))]
+    [_ (Un -Mutable-HashTableTop
+           -Weak-HashTableTop)]))
+
+
+;; Typecheck a prefab struct literal (or result of syntax-e)
+;; `check-field` allows prefabs in syntax to be checked by passing
+;; a function that unwraps their syntax for recursive checks (see
+;; `find-stx-type` in tc-expr-unit)
+(define (tc-prefab check-field struct-inst expected-type)
+  (define maybe-expected-field-ts
+    (match (and expected-type (resolve expected-type))
+      [(Prefab: _ ts) ts]
+      [_ '()]))
   (define key (prefab-struct-key struct-inst))
   (define struct-vec (struct->vector struct-inst))
   (define fields
     (for/list ([elem (in-vector struct-vec 1)]
-               [expected-t expected-ts])
-      (tc-literal elem expected-t)))
+               [expected-t (in-list/rest maybe-expected-field-ts #f)])
+      (check-field elem expected-t)))
   (make-Prefab (normalize-prefab-key key (length fields))
                fields))

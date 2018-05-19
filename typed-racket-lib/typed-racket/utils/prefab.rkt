@@ -16,7 +16,9 @@
                        [prefab-key-subtype?
                         (-> prefab-key? prefab-key? any)]
                        [prefab-key->field-mutability
-                        (-> prefab-key? (listof boolean?))])
+                        (-> prefab-key? (listof boolean?))]
+                       [prefab-key/mutable-fields?
+                        (-> prefab-key? boolean?)])
 
 ;; Convert a prefab key to its expanded version
 (define (normalize-prefab-key key field-length)
@@ -123,3 +125,13 @@
            (append (loop parents)
                    (for/list ([idx (in-range len)])
                      (and (member idx mut-list) #t)))])))
+
+
+;; does `key` have mutable fields? (don't allocate)
+(define (prefab-key/mutable-fields? key)
+  (let loop ([key key])
+    (cond [(null? key) #f]
+          [else
+           (match-define (list sym len auto mut parents ...) key)
+           (or (not (eqv? 0 (vector-length mut)))
+               (loop parents))])))

@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
+         (utils identifier)
          racket/match racket/list
          (except-in (types abbrev utils prop-ops)
                     -> ->* one-of/c)

@@ -31,6 +31,7 @@
   type-declaration
   typed-define-signature
   typed-define-values/invoke-unit
+  assert-typecheck-failure
   typecheck-failure
 
   type-alias?
@@ -63,6 +64,7 @@
                   assert-predicate-internal
                   declare-refinement-internal
                   :-internal
+                  assert-typecheck-fail-internal
                   typecheck-fail-internal
                   define-signature-internal
                   define-values/invoke-unit-internal))
@@ -181,6 +183,11 @@
 (define-syntax-class typecheck-failure
   #:literal-sets (kernel-literals internal-literals)
   (pattern (quote-syntax (typecheck-fail-internal stx message:str var) #:local)))
+
+(define-syntax-class assert-typecheck-failure
+  #:literal-sets (kernel-literals internal-literals)
+  (pattern (quote-syntax (assert-typecheck-fail-internal body:expr) #:local)))
+
 
 ;;; Internal form creation
 (define (internal stx)

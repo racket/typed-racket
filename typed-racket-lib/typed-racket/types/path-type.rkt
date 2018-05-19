@@ -4,7 +4,7 @@
          racket/match racket/set
          (contract-req)
          (rep object-rep type-rep values-rep)
-         (utils tc-utils)
+         (utils tc-utils prefab)
          (typecheck renamer)
          (types subtype resolve numeric-tower)
          (except-in (types utils abbrev kw-types) -> ->* one-of/c))
@@ -48,12 +48,17 @@
       [((Promise: t) (cons (ForcePE:) rst))
        (path-type rst t (hash))]
 
-      ;; struct ops
-      [((Struct: nm par flds proc poly pred) (cons (StructPE: struct-ty idx) rst))
+      ;; struct ops (non-prefab)
+      [((Struct: _ _ flds _ _ _) (cons (StructPE: struct-ty idx) rst))
        #:when  (subtype t struct-ty)
        (match-let ([(fld: ft _ _) (list-ref flds idx)])
          (path-type rst ft (hash)))]
 
+      ;; prefab ops
+      [((Prefab: key flds) (cons (PrefabPE: path-key idx) rst))
+       #:when  (prefab-key-subtype? key path-key)
+       (path-type rst (list-ref flds idx) (hash))]
+      
       ;; vector length
       [(vec-t (list (VecLenPE:)))
        #:when (subtype vec-t -VectorTop)

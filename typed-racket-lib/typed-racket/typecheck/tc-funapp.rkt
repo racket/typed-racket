@@ -3,7 +3,7 @@
 (require (rename-in "../utils/utils.rkt" [infer r:infer])
          racket/match racket/list racket/sequence
          (prefix-in c: (contract-req))
-         (utils tc-utils)
+         (utils tc-utils identifier)
          (env tvar-env lexical-env)
          (for-syntax syntax/parse racket/base)
          (types utils subtype resolve abbrev

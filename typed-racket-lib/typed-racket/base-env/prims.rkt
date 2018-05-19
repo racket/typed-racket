@@ -786,6 +786,18 @@ the typed racket language.
     [(_ orig)
      #'(quote-syntax (typecheck-fail-internal orig "Incomplete case coverage" #f) #:local)]))
 
+(define-syntax (assert-typecheck-fail stx)
+  (syntax-parse stx
+    [(_ orig) #'(assert-typecheck-fail orig #:result (void))]
+    [(_ orig #:result res)
+     #`(if #,(syntax-property #'(#%expression #f)
+                              'typed-racket:ignore-type-information
+                              #t)
+           (quote-syntax (assert-typecheck-fail-internal
+                          #,(local-expand #'orig 'expression '()))
+                         #:local)
+           res)]))
+
 (define-syntax (base-for/vector stx)
   (syntax-case stx ()
     [(name for ann T K #:length n-expr #:fill fill-expr (clauses ...) body-expr)

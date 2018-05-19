@@ -9,32 +9,59 @@
          (env env-utils)
          (types abbrev))
 
+
+;; struct-type : what type is this an accessor for?
+;; field-index : what is the (absolute) field-index for this field?
+;;             (i.e. the `i` where `(unsafe-struct-ref s i)` would return
+;;                   this field)
+;; mutator? : #t if this is a mutator, #f if it is an accessor
+;; mutable? : #t if this field is mutable, #f if it is immutable
+(struct struct-field-entry (struct-type field-index mutator? mutable?) #:prefab)
+
 (define struct-fn-table (make-free-id-table))
 
-(define (add-struct-fn! id pe mut?)
-  (free-id-table-set! struct-fn-table id (list pe mut?)))
 
-(define-values (struct-accessor? struct-mutator?)
-  (let ()
-    (define ((mk mut?) id)
-      (cond [(free-id-table-ref struct-fn-table id #f)
-             => (match-lambda [(list pe m) (and (eq? m mut?) pe)] [_ #f])]
-            [else #f]))
-    (values (mk #f) (mk #t))))
+(define (add-struct-accessor-fn! fn-id type idx mutable-field?)
+  (free-id-table-set! struct-fn-table fn-id (struct-field-entry type idx #f mutable-field?)))
 
-(define (struct-fn-idx id)
+(define (add-struct-mutator-fn! fn-id type idx)
+  (free-id-table-set! struct-fn-table fn-id (struct-field-entry type idx #t #t)))
+
+(define (struct-accessor? id)
   (match (free-id-table-ref struct-fn-table id #f)
-    [(list (StructPE: _ idx) _) idx]
-    [_ (int-err (format "no struct fn table entry for ~a" (syntax->datum id)))]))
+    [(struct-field-entry _ idx #f _) idx]
+    [_ #f]))
+
+(define (struct-mutator? id)
+  (match (free-id-table-ref struct-fn-table id #f)
+    [(struct-field-entry _ idx #t _) idx]
+    [_ #f]))
+
+(define (immutable-struct-field-accessor? id)
+  (match (free-id-table-ref struct-fn-table id #f)
+    [(struct-field-entry _ idx #t #t) idx]
+    [_ #f]))
 
 (define (struct-fn-table-map f)
   (for/list ([(k v) (in-sorted-dict struct-fn-table id<)])
     (f k v)))
 
+(define (id-for-struct-pe type/idx=?)
+  (for*/or ([(id entry) (in-free-id-table struct-fn-table)]
+            [type (in-value (struct-field-entry-struct-type entry))]
+            [idx (in-value (struct-field-entry-field-index entry))]
+            #:when (type/idx=? type idx))
+    id))
+
+
+(provide struct-field-entry)
+
 (provide/cond-contract
- [add-struct-fn! (identifier? StructPE? boolean? . c:-> . c:any/c)]
- [struct-accessor? (identifier? . c:-> . (c:or/c #f StructPE?))]
- [struct-mutator? (identifier? . c:-> . (c:or/c #f StructPE?))]
- [struct-fn-idx (identifier? . c:-> . exact-integer?)]
- [struct-fn-table-map (c:-> (c:-> identifier? (c:list/c StructPE? boolean?) c:any/c)
+ [add-struct-accessor-fn! (identifier? Type? exact-nonnegative-integer? boolean? . c:-> . c:any/c)]
+ [add-struct-mutator-fn! (identifier? Type? exact-nonnegative-integer? . c:-> . c:any/c)]
+ [struct-accessor? (identifier? . c:-> . (c:or/c #f exact-nonnegative-integer?))]
+ [struct-mutator? (identifier? . c:-> . (c:or/c #f exact-nonnegative-integer?))]
+ [immutable-struct-field-accessor? (identifier? . c:-> . exact-nonnegative-integer?)]
+ [id-for-struct-pe (c:-> (c:-> Type? exact-nonnegative-integer? boolean?) (c:or/c identifier? #f))]
+ [struct-fn-table-map (c:-> (c:-> identifier? struct-field-entry? c:any/c)
                             (c:listof c:any/c))])

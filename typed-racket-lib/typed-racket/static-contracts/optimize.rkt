@@ -229,6 +229,7 @@
         (sequence/sc: _ ...)
         (set/sc: _)
         (struct/sc: _ _)
+        (prefab/sc: _ _)
         (syntax/sc: _)
         (vector/sc: _ ...)
         (vectorof/sc: _)

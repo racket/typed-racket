@@ -5,10 +5,11 @@
 (require (rename-in "../utils/utils.rkt" [infer infer-in])
          (rep core-rep type-rep object-rep values-rep free-ids rep-utils)
          (types abbrev utils prop-ops resolve
-                classes prefab signatures
+                classes signatures
                 subtype path-type numeric-tower)
          (only-in (infer-in infer) intersect)
-         (utils tc-utils stxclass-util literal-syntax-class)
+         (utils tc-utils prefab stxclass-util literal-syntax-class
+                identifier)
          syntax/stx (prefix-in c: (contract-req))
          syntax/parse racket/sequence
          (env tvar-env type-alias-env mvar-env
@@ -136,6 +137,7 @@
 (define-literal-syntax-class #:for-label Struct)
 (define-literal-syntax-class #:for-label Struct-Type)
 (define-literal-syntax-class #:for-label Prefab)
+(define-literal-syntax-class #:for-label PrefabTop)
 (define-literal-syntax-class #:for-label Values)
 (define-literal-syntax-class #:for-label values)
 (define-literal-syntax-class #:for-label AnyValues)
@@ -609,6 +611,18 @@
                       "key" (prefab-key->field-count new-key)
                       "fields" num-fields))
        (make-Prefab new-key (parse-types #'(ts ...)))]
+      [(:PrefabTop^ key count)
+       #:fail-unless (prefab-key? (syntax->datum #'key))
+       "expected a prefab key"
+       #:fail-unless (exact-nonnegative-integer? (syntax->datum #'count))
+       "expected a field count (i.e. an exact nonnegative integer)"
+       (define num-fields (syntax->datum #'count))
+       (define new-key (normalize-prefab-key (syntax->datum #'key) num-fields))
+       (unless (= (prefab-key->field-count new-key) num-fields)
+         (parse-error "the number of fields in the prefab key and type disagree"
+                      "key" (prefab-key->field-count new-key)
+                      "fields" num-fields))
+       (make-PrefabTop new-key)]
       [(:Refine^ [x:id :colon^ type:expr] prop:expr)
        ;; x is not in scope for the type
        (define t (parse-type #'type))

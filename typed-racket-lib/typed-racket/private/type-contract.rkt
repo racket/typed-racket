@@ -6,7 +6,7 @@
  "../utils/utils.rkt"
  syntax/parse
  (rep type-rep prop-rep object-rep fme-utils)
- (utils tc-utils)
+ (utils tc-utils prefab identifier)
  (env type-name-env row-constraint-env)
  (rep core-rep rep-utils free-ids type-mask values-rep
       base-types numeric-base-types)
@@ -177,6 +177,7 @@
       typed-racket/utils/utils
       (for-syntax typed-racket/utils/utils)
       typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
+      typed-racket/utils/prefab-c
       typed-racket/utils/opaque-object
       typed-racket/utils/evt-contract
       typed-racket/utils/hash-contract
@@ -705,7 +706,7 @@
           [poly?
            (define nm* (generate-temporary #'n*))
            (define fields
-             (for/list ([fty flds] [mut? mut?])
+             (for/list ([fty (in-list flds)])
                (t->sc fty #:recursive-values (hash-set
                                               recursive-values
                                               nm (recursive-sc-use nm*)))))
@@ -717,6 +718,11 @@
             (fail #:reason (~a "cannot import structure types from"
                                "untyped code"))
             (struct-type/sc null))]
+       [(Prefab: key (list (app t->sc fld/scs) ...)) (prefab/sc key fld/scs)]
+       [(PrefabTop: key) 
+        (flat/sc #`(struct-type-make-predicate
+                    (prefab-key->struct-type (quote #,(abbreviate-prefab-key key))
+                                             #,(prefab-key->field-count key))))]
        [(Syntax: (? Base:Symbol?)) identifier?/sc]
        [(Syntax: t)
         (syntax/sc (t->sc t))]

@@ -9,6 +9,7 @@
          "fme-utils.rkt"
          racket/match
          "rep-utils.rkt"
+         (utils identifier)
          "core-rep.rkt"
          "free-variance.rkt"
          (env mvar-env)
@@ -49,6 +50,9 @@
   [#:frees (f) (f t)]
   [#:fmap (f) (make-StructPE (f t) idx)]
   [#:for-each (f) (f t)])
+;; NOTE: key must be the verbose/expanded key! (see utils/prefab.rkt)
+(def-path-elem PrefabPE ([key prefab-key?] [idx natural-number/c])
+  #:base)
 
 (def-path-elem VecLenPE () [#:singleton -vec-len])
 
@@ -69,6 +73,10 @@
   (if (Empty? o) ;; lets not make the pe if we don't need to
       o
       (-path-elem-of (make-StructPE t idx) o)))
+(define/provide (-prefab-idx-of key idx o)
+  (if (Empty? o) ;; lets not make the pe if we don't need to
+      o
+      (-path-elem-of (make-PrefabPE key idx) o)))
 
 
 ;; e.g. (car (cdr x)) == (make-Path (list -car -cdr) x)

@@ -79,7 +79,7 @@ Explicitly produce a type error if @racket[body-expr] does not produce a type er
 If @racket[result-expr] is provided, it will be the result of evaluating the
  expression, otherwise @racket[(void)] will be returned. If there is an expected type,
  that type is propagated as the expected type when checking @racket[body-expr].
-}
+@history[#:added "1.7"]}
 
 @section{Ignoring type information}
 

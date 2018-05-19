@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; Static contract for struct/c.
+;; Static contract for prefab/c.
 
 (require "../../utils/utils.rkt"
          "../structures.rkt"

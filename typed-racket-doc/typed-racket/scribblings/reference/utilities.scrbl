@@ -73,6 +73,14 @@ the error message.
 
 }
 
+@defform*[[(assert-typecheck-fail body-expr)
+           (assert-typecheck-fail body-expr #:result result-expr)]]{
+Explicitly produce a type error if @racket[body-expr] does not produce a type error.
+If @racket[result-expr] is provided, it will be the result of evaluating the
+ expression, otherwise @racket[(void)] will be returned. If there is an expected type,
+ that type is propagated as the expected type when checking @racket[body-expr].
+}
+
 @section{Ignoring type information}
 
 In some contexts, it is useful to have the typechecker forget type

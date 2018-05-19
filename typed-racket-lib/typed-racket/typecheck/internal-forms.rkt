@@ -186,7 +186,7 @@
 
 (define-syntax-class assert-typecheck-failure
   #:literal-sets (kernel-literals internal-literals)
-  (pattern (quote-syntax (assert-typecheck-fail-internal (#%expression body:expr)) #:local)))
+  (pattern (quote-syntax (assert-typecheck-fail-internal body:expr) #:local)))
 
 
 ;;; Internal form creation

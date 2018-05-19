@@ -788,10 +788,15 @@ the typed racket language.
 
 (define-syntax (assert-typecheck-fail stx)
   (syntax-parse stx
-    [(_ orig)
-     #`(if #,(syntax-property #'#f 'typed-racket:ignore-type-information)
-           (quote-syntax (assert-typecheck-fail-internal orig) #:local)
-           (void))]))
+    [(_ orig) #'(assert-typecheck-fail orig #:result (void))]
+    [(_ orig #:result res)
+     #`(if #,(syntax-property #'(#%expression #f)
+                              'typed-racket:ignore-type-information
+                              #t)
+           (quote-syntax (assert-typecheck-fail-internal
+                          #,(local-expand #'orig 'expression '()))
+                         #:local)
+           res)]))
 
 (define-syntax (base-for/vector stx)
   (syntax-case stx ()

@@ -209,8 +209,8 @@
   (cond
     [(initials? i)
      (assert-typecheck-fail
-      (initials-first i))
-     'yay!]
+      (initials-first i)
+      #:result 'default)]
     [else 'also-okay]))  
 
 ;; we cannot write to a mutable prefab when
@@ -252,17 +252,6 @@
 
 (when (is-num-tuple? (if (zero? (random 1)) bad-point2 good-point))
   (error "is-num-tuple? broken!"))
-
-(struct (A B) unops ([fst : (-> A A)] [snd : (-> B B)]) #:prefab)
-
-(assert-typecheck-fail
- (define-predicate is-unops (unops Any Any)))
-
-(struct num-boxes ([fst : Number] [snd : Number]) #:prefab #:mutable)
-
-(assert-typecheck-fail
- (define-predicate is-num-boxes num-boxes))
-
 
 
 (struct num-num ([n1 : Number] [n2 : Number]) #:prefab)

@@ -930,7 +930,9 @@ prefab types with the (implicitly quoted) prefab-key
     (eval:error (define (read-some-x-num p)
       (if (point? p)
           (ann (point-x p) Number)
-          -1)))]}
+          -1)))]
+
+@history[#:added "1.7"]}
 
 @defalias[Union U]
 @defalias[Intersection ∩]

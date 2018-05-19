@@ -75,6 +75,13 @@
   (--> syntax? Type? tc-results/c)
   (tc-expr/check form (ret expected)))
 
+;; form : what expression are we typechecking?
+;; expected : what is the expected tc-result (can be #f)
+;; existential? : do we want to create an existential
+;;   identifier for this expression if it does not
+;;   have a non-trivual object? This is useful when
+;;   the type of other expressions can depend on
+;;   the specific type of this term.
 (define (tc-expr/check form expected [existential? #f])
   (parameterize ([current-orig-stx form])
     ;; the argument must be syntax

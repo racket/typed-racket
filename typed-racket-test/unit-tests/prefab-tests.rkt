@@ -130,19 +130,25 @@
    (check-eq? raw-p p0)
    (check-equal? (pair-fst p0) 1)
    (check-equal? (pair-snd p0) 2)
-   (check-exn exn:fail:contract:blame?
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'pos (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'neg (blame-negative (exn:fail:contract:blame-object e)))))
               (λ () (contract
                      (prefab/c 'pair integer? integer?)
                      (pair 1 "2")
                      'pos
                      'neg)))
-   (check-exn exn:fail:contract:blame?
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'pos (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'neg (blame-negative (exn:fail:contract:blame-object e)))))
               (λ () (contract
                      (prefab/c 'pair integer? integer?)
                      (pair "1" 2)
                      'pos
                      'neg)))
-   (check-exn exn:fail:contract:blame?
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'pos (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'neg (blame-negative (exn:fail:contract:blame-object e)))))
               (λ () (contract
                      (prefab/c 'pair integer? (vectorof integer?))
                      (pair 1 1)
@@ -168,11 +174,15 @@
    (check-equal? (pair-snd p1) (vector 2))
    (check-equal? (pair-snd p2) (vector 2))
    ;; higher order contract on field value
-   (check-exn exn:fail:contract:blame?
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'neg (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'pos (blame-negative (exn:fail:contract:blame-object e)))))
               (λ () (vector-set! (pair-snd p1)
                                  0
                                  "1")))
-   (check-exn exn:fail:contract:blame?
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'neg (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'pos (blame-negative (exn:fail:contract:blame-object e)))))
               (λ () (vector-set! (pair-snd p2)
                                  0
                                  "1")))
@@ -187,18 +197,26 @@
 
    ;; mutable prefab example
    ;; check contracting bad struct fails
-   (check-exn exn:fail:contract:blame?
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'pos (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'neg (blame-negative (exn:fail:contract:blame-object e)))))
               (λ () (contract mpair/c (mpair "1" (vector 2)) 'pos 'neg)))
-   (check-exn exn:fail:contract:blame?
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'pos (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'neg (blame-negative (exn:fail:contract:blame-object e)))))
               (λ () (contract mpair/c (mpair "1" (vector "2")) 'pos 'neg)))
 
    ;; accessing fields
    (check-equal? (mpair-fst mp1) 1)
    (check-equal? (mpair-snd mp1) (vector 2))
    ;; violating higher order contract on field value
-   (check-exn exn:fail:contract:blame?
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'neg (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'pos (blame-negative (exn:fail:contract:blame-object e)))))
               (λ () (set-mpair-fst! mp1 "0")))
-   (check-exn exn:fail:contract:blame?
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'neg (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'pos (blame-negative (exn:fail:contract:blame-object e)))))
               (λ () (vector-set! (mpair-snd mp1)
                                  0
                                  "1")))

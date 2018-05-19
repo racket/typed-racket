@@ -78,35 +78,42 @@
                   (struct-type-info prefab-struct-type)])
       (values accessor-proc mutator-proc)))
   (define chaperone? (andmap chaperone-contract? field-contracts))
-  (define (generate-field-functions/contracts first-projs late-projs val b-)
+  (define (generate-field-functions/contracts first-projs
+                                              late-acc-projs
+                                              late-mut-projs
+                                              val
+                                              b-)
     (for/fold ([ctcs '()])
               ([first-proj (in-list first-projs)]
-               [late-proj (in-list late-projs)]
+               [late-acc-proj (in-list late-acc-projs)]
+               [late-mut-proj (in-list late-mut-projs)]
                [idx (in-naturals)])
       ;; first order check on value
       ((first-proj (accessor-proc val idx)) b-)
       (let ([ctcs/accessor (if (flat-contract? ctc)
                                ctcs
                                (list* (make-struct-field-accessor accessor-proc idx)
-                                      (λ (self val) (late-proj val b-))
+                                      (λ (self val) (late-acc-proj val b-))
                                       ctcs))])
         (if (bitwise-bit-set? mutability-bits idx)
             (list* (make-struct-field-mutator mutator-proc idx)
-                   (λ (self val) (late-proj val b-))
+                   (λ (self val) (late-mut-proj val b-))
                    ctcs/accessor)
             ctcs/accessor))))
   (λ (b+)
-    (define-values (first-projs late-projs)
-      (for/lists (_1 _2) ([field-ctc (in-list field-contracts)]
-                          [idx (in-naturals)])
+    (define-values (first-projs late-acc-projs late-mut-projs)
+      (for/lists (_1 _2 _3)
+                 ([field-ctc (in-list field-contracts)]
+                  [idx (in-naturals)])
         (define field-context
           (format "the ~a~a field of"
                   (add1 idx) (ending (add1 idx))))
-        (define blame (blame-add-context b+ field-context))
         (values ((get/build-val-first-projection field-ctc)
-                 blame)
+                 (blame-add-context b+ field-context))
                 ((get/build-late-neg-projection field-ctc)
-                 blame))))
+                 (blame-add-context b+ field-context))
+                ((get/build-late-neg-projection field-ctc)
+                 (blame-add-context b+ field-context #:swap? #t)))))
     (λ (val b-)
       (unless (pred? val)
         (raise-blame-error b+ #:missing-party b-
@@ -117,7 +124,11 @@
        (if chaperone? chaperone-struct impersonate-struct)
        val
        prefab-struct-type
-       (generate-field-functions/contracts first-projs late-projs val b-)))))
+       (generate-field-functions/contracts first-projs
+                                           late-acc-projs
+                                           late-mut-projs
+                                           val
+                                           b-)))))
 
 (define (prefab-sub-key? this-key this-field-count that-key that-field-count)
   (and (equal? this-key that-key)

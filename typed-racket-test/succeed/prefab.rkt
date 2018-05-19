@@ -3,7 +3,7 @@
 ;; Test prefab struct declarations
 
 
-(provide (struct-out foo))
+(provide (all-defined-out))
 
 (struct foo ([x : Symbol]) #:prefab)
 (struct bar foo ([y : String] [z : String]) #:prefab)

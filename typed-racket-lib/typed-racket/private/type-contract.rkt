@@ -721,7 +721,7 @@
        [(Prefab: key (list (app t->sc fld/scs) ...)) (prefab/sc key fld/scs)]
        [(PrefabTop: key) 
         (flat/sc #`(struct-type-make-predicate
-                    (prefab-key->struct-type #,(abbreviate-prefab-key key)
+                    (prefab-key->struct-type (quote #,(abbreviate-prefab-key key))
                                              #,(prefab-key->field-count key))))]
        [(Syntax: (? Base:Symbol?)) identifier?/sc]
        [(Syntax: t)

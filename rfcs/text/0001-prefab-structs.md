@@ -109,6 +109,21 @@ Other things to know:
   `(-> Any Boolean : point)` which will inspect the fields to ensure
   they are `Integer`s.
 
+- Prefab structures should be protected with a contract combinator
+  almost identical to `struct/c`, but which instead only requires
+  the prefab key and the field contracts. E.g., the type
+  `(Prefab point Integer Integer)` should be contracted with
+  a contract `(prefab/c 'point exact-integer? exact-integer?)` which
+  accepts prefabs with key `'point` and two fields, both of which
+  are exact integers. We believe this new combinator is necessary
+  because `struct/c` requires actual struct/bindings identifiers
+  and those are not necessary for prefabs (since they already
+  exist and anyone can create them). _NOTE: This `prefab/c` combinator
+  does not currently exist. An initial fix would likely include
+  an implementation that may someday be added to `racket/contract`
+  if that makes sense._
+  
+
 ## Mutable Prefabs
 
 This __mutable prefab defininition__:
@@ -341,13 +356,91 @@ and inconsistent fix with numerous caveats.
 
 # Unresolved questions
 
-- How many programs in the wild will these changes break? (_NOTE: prefabs
-  have been pretty buggy in Typed Racket so far, so it is probably the
-  case that at least some users who might have used them decided not to. _)
+- How many programs in the wild will these changes break?
+  (_NOTE: prefabs have been pretty buggy in Typed Racket so
+  far, so it is probably the case that at least some users
+  who might have used them decided not to. _) The only
+  observed breakage (one case) so far is unsound usages of a
+  prefab predicate to read serialized data from disk
+  (i.e. the current predicate tells the type system what is
+  in the fields when in fact we do not know what is in the
+  fields because we have not tested it). Hopefully we can
+  quickly address any such issues with fixes that work
+  with previous and past versions. E.g., the following
+  unsound program will be broken by the proposed
+  changes:
 
-- How will we generate contracts for arbitrary prefab structs? We can move
-forward without addressing this, but it should be addressed soon. Currently
-we can only create a prefab contract if we have its constructor and
-field accessors; instead we should be able to create a prefab contract 
-whenever we know the key and types of the fields (i.e. we shouldn't
-have to  have in-scope identifiers which can operate on the prefab).
+```racket
+#lang typed/racket
+
+(struct serialized-point ([x : Integer] [y : Integer]) #:prefab)
+(struct point ([x : Integer] [y : Integer]) #:transparent)
+
+(: try-read-serialized-point (-> Any (U point #f)))
+(define (try-read-serialized-point data)
+  (cond
+    [(serialized-point? data)
+     (point (serialized-point-x data)
+            (serialized-point-y data))]
+    [else #f]))
+
+(try-read-serialized-point
+ (read (open-input-string "#s(serialized-point one two)")))
+;; produces a point with symbols, yikes!
+```
+
+and can be fixed in a way that works with current Racket and
+after the proposed fixes in this RFC as follows:
+
+```
+#lang typed/racket
+
+(struct serialized-point ([x : Integer] [y : Integer]) #:prefab)
+(struct point ([x : Integer] [y : Integer]) #:transparent)
+
+(: try-read-serialized-point (-> Any (U point #f)))
+(define (try-read-serialized-point data)
+  (cond
+    [(serialized-point? data)
+     (let ([x : Any (serialized-point-x data)]
+           [y : Any (serialized-point-y data)])
+       (if (and (exact-integer? x)
+                (exact-integer? y))
+           (point x y)
+           #f))]
+    [else #f]))
+
+(try-read-serialized-point
+ (read (open-input-string "#s(serialized-point one two)")))
+ ;; produces #f, yay!
+```
+
+i.e. we add explicit tests to the fields, along with `Any`
+annotations for the fields to tell the type system to
+forget about the alleged types for those fields.
+
+For a simpler fix (but that will only work after the proposed
+changes have been merged and will not work in previous
+versions) `define-predicate` can be used:
+
+```racket
+#lang typed/racket
+
+(struct serialized-point ([x : Integer] [y : Integer]) #:prefab)
+(struct point ([x : Integer] [y : Integer]) #:transparent)
+
+(define-predicate valid-point? serialized-point)
+
+(: try-read-serialized-point (-> Any (U point #f)))
+(define (try-read-serialized-point data)
+  (cond
+    [(valid-point? data)
+     (point (serialized-point-x data)
+            (serialized-point-y data))]
+    [else #f]))
+
+(try-read-serialized-point
+ (read (open-input-string "#s(serialized-point one two)")))
+```
+
+

@@ -4875,6 +4875,16 @@
             (+ x y1 y2 z1 z2))
           (void))
         -Void]
+       [tc-e
+        (let ()
+          (: id (All (X) (-> X X)))
+          (tr:define id values)
+
+          (: foo (->* () ((-> Symbol Symbol)) Symbol))
+          (tr:define (foo [f id])
+            (f 'hi))
+          (void))
+        -Void]
        )
 
   (test-suite

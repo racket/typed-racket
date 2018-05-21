@@ -306,7 +306,8 @@
       [(? resolvable?)
        (tc/funapp f-stx args-stx (resolve-once f-type) args-res expected)]
       ;; a union of functions can be applied if we can apply all of the elements
-      [(Union: (? Bottom?) ts) #:when (andmap Fun? ts)
+      [(Union: (? Bottom?) ts) #:when (for/and ([t (in-list ts)])
+                                        (subtype t top-func))
        (merge-tc-results
         (for/list ([fty (in-list ts)])
           (tc/funapp f-stx args-stx fty args-res expected)))]

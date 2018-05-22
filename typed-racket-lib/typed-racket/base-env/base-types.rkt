@@ -93,7 +93,7 @@
 
 [Void -Void]
 [Undefined -Undefined] ; initial value of letrec bindings
-;; [Unsafe-Undefined -Unsafe-Undefined] ; not clear that it makes sense to export this
+[Unsafe-Undefined -Unsafe-Undefined] ; not clear that it makes sense to export this
 [Boolean -Boolean]
 [Symbol -Symbol]
 [String -String]

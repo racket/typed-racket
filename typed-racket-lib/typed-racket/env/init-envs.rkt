@@ -83,7 +83,7 @@
                  ;; predefined table
                  [(and (not (identifier? *res))
                        (popular? ty))
-                  (define id (gensym))
+                  (define id (car (generate-temporaries '(g))))
                   (enqueue! type-definitions #`(define/decl #,id #,*res))
                   id]
                  [else *res]))

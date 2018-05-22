@@ -177,22 +177,6 @@
 ;; TODO: It would be better to have individual contracts specify which
 ;; modules should be required, but for now this is just all of them.
 (define extra-requires
-<<<<<<< HEAD
-  #'(require
-      (submod typed-racket/private/type-contract predicates)
-      typed-racket/utils/utils
-      (for-syntax typed-racket/utils/utils)
-      typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
-      typed-racket/utils/prefab-c
-      typed-racket/utils/opaque-object
-      typed-racket/utils/evt-contract
-      typed-racket/utils/hash-contract
-      typed-racket/utils/sealing-contract
-      typed-racket/utils/promise-not-name-contract
-      typed-racket/utils/simple-result-arrow
-      racket/sequence
-      racket/contract/parametric))
-=======
   #`(require
      ;; some built-in types that aren't available in `racket/base`
      (submod typed-racket/private/type-contract predicates)
@@ -205,6 +189,7 @@
      racket/sequence
      ;; contract combinators
      typed-racket/utils/any-wrap typed-racket/utils/struct-type-c
+     typed-racket/utils/prefab-c
      typed-racket/utils/opaque-object
      typed-racket/utils/evt-contract
      typed-racket/utils/hash-contract
@@ -212,7 +197,6 @@
      typed-racket/utils/promise-not-name-contract
      typed-racket/utils/simple-result-arrow
      racket/contract/parametric))
->>>>>>> Predefine some contracts for the gui system where the types are defined.
 
 ;; Should the above requires be included in the output?
 ;;   This box is only used for contracts generated for `require/typed`

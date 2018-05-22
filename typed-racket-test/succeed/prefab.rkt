@@ -454,3 +454,19 @@
             (list fld1 fld2 fld3 fld4 fld5)])
          (list 'one 'two 'three 'four 'five))
   (error "prefab pattern matching broken! str-str-num-num-num"))
+
+
+(struct vec ([x : Float] [y : Float]))
+
+
+(struct par-vec ([x : Float] [y : Float]) #:prefab)
+
+
+(: partial-dec (-> Any vec))
+(define (partial-dec x)
+  (cond
+    [(and (par-vec? x)
+          (flonum? (par-vec-x x))
+          (flonum? (par-vec-y x)))
+     (vec (par-vec-x x) (par-vec-y x))]
+    [else (error "invalid encoding")]))

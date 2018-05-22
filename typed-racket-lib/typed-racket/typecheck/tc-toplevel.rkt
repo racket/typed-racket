@@ -526,6 +526,7 @@
             ;; We need a submodule for a for-syntax use of
             ;; `define-runtime-module-path`:
             (module #%contract-defs-reference racket/base
+              (#%declare #:empty-namespace)
               (require racket/runtime-path
                        (for-syntax racket/base))
               (define-runtime-module-path-index contract-defs-submod

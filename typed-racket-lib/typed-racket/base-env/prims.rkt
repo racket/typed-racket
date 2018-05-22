@@ -141,6 +141,7 @@ the typed racket language.
 ;; contracted bindings in typed modules) values that are contracted
 ;; for _all_ typed programs.
 (module+ #%contract-defs
+  (#%declare #:empty-namespace)
   (require "base-contracted.rkt")
   (provide (all-from-out "base-contracted.rkt")))
 

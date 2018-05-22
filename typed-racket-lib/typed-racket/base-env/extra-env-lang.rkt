@@ -89,8 +89,9 @@
      #'(#%plain-module-begin
         ;; auto-generate these modules unless they are explicitly provided
         ;; use #%plain-module-begin to avoid adding add-mod! calls in them
-        (begin-for-syntax (module* #%contract-defs-names #f (#%plain-module-begin)))
-        (module* #%contract-defs #f (#%plain-module-begin))
+        (begin-for-syntax (module* #%contract-defs-names #f
+                            (#%plain-module-begin (#%declare #:empty-namespace))))
+        (module* #%contract-defs #f (#%plain-module-begin (#%declare #:empty-namespace)))
         (require (for-syntax typed-racket/env/env-req))
         e ...
         ;; need to register this module

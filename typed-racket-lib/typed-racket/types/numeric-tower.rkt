@@ -225,6 +225,11 @@
             (set! props (cons (-eq (-vec-len-of obj) (-lexp (length ts)))
                               props))
             rep]
+           [_ #:when (and (with-refinements?)
+                          (eqv? mask:vector (mask rep)))
+              (set! props (cons (-leq (-lexp 0) (-vec-len-of obj))
+                                props))
+              rep]
            [(Intersection: ts _)
             (apply -unsafe-intersect
                    (for/list ([t (in-list ts)])

@@ -4885,6 +4885,18 @@
             (f 'hi))
           (void))
         -Void]
+       [tc-e
+        (let ()
+          (: foo (-> ([v : (Vectorof Any)]
+                      [i : Natural])
+                     #:pre (i v) (<= i (vector-length v))
+                     Any))
+          (tr:define (foo xs n) (error 'foo))
+          (tr:define v : (Vectorof Any) (vector))
+          ;; we should know vector-length of any v is >= 0
+          (foo v 0)
+          (void))
+        #:ret (ret -Void #f #f)]
        )
 
   (test-suite

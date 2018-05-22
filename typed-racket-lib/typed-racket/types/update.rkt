@@ -100,6 +100,15 @@
             [(CdrPE:) (intersect t (-pair Univ (update Univ rst)))]
             [(SyntaxPE:) (intersect t (-syntax-e (update Univ rst)))]
             [(ForcePE:) (intersect t (-force (update Univ rst)))]
+            [(PrefabPE: key idx)
+             #:when (not (prefab-key/mutable-fields? key))
+             (define field-count (prefab-key->field-count key))
+             (define updated-field (update Univ rst))
+             (define fields (for/list ([fld-idx (in-range field-count)])
+                              (if (eqv? idx fld-idx)
+                                  updated-field
+                                  Univ)))
+             (intersect t (make-Prefab key fields))]
             [_ t])])]
       ;; path is empty (base case)
       [_ (cond

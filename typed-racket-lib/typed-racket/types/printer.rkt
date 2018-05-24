@@ -250,7 +250,7 @@
                             sexp)])
               (values
                (match pe
-                 [(ForcePE:) (values (list 'force sexp) '() (add1 depth))]
+                 [(ForcePE:) (list 'force sexp)]
                  [(StructPE: t idx)
                   (define maybe-accessor-id
                     (id-for-struct-pe

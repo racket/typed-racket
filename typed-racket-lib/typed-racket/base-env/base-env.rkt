@@ -3089,19 +3089,10 @@
     (cl->* (->opt -Pathlike
                   (Un (-lst -String) (-vec -String))
                   (-lst (Un (-pair mode-sym
-                                   (-lst (-lst* (-lst -String)
-                                                ;; Accepts flags procedures that take 0-5 mandatory
-                                                ;; command-line arguments and (implicitly)
-                                                ;; flag procedures that consume all remaining
-                                                ;; command-line argumets.
-                                                (Un (-> -String Univ)
-                                                    (-> -String -String Univ)
-                                                    (-> -String -String -String Univ)
-                                                    (-> -String -String -String -String Univ)
-                                                    (-> -String -String -String -String -String Univ)
-                                                    (-> -String -String -String -String -String -String Univ))
-                                                (-pair (Un -String (-lst -String))
-                                                       (-lst -String)))))
+                                   ;; With the `command-line` macro, the typechecker
+                                   ;; can't figure out that a type specifying the shape of
+                                   ;; the flag specification list would be satisfied.
+                                   (-lst Univ))
                             (-pair label-sym
                                    (-lst -String))))
                   (->... (list (-lst Univ)) [-String a] b)

@@ -131,6 +131,7 @@
                                            b-)))))
 
 (define (prefab-sub-key? this-key this-field-count that-key that-field-count)
+  ;; TODO this could easily be more complete
   (and (equal? this-key that-key)
        (= this-field-count that-field-count)))
 
@@ -159,6 +160,19 @@
                   (contract-stronger? that-field-contract this-field-contract))]
             [else
              (contract-stronger? this-field-contract that-field-contract)]))])]))
+
+;; equivalent
+(define (prefab/c-equivalent this that)
+  (cond
+    [(not (and (base-prefab/c? that)
+               (equal? (base-prefab/c-key this) (base-prefab/c-key that))))
+     #f]
+    [else
+     (define these-field-contracts (base-prefab/c-field-contracts this))
+     (define those-field-contracts (base-prefab/c-field-contracts that))
+     (and (eqv? (length these-field-contracts)
+                (length those-field-contracts))
+          (andmap contract-equivalent? these-field-contracts those-field-contracts))]))
 
 ;; generate
 (define ((prefab/c-generate ctc) fuel)
@@ -205,6 +219,7 @@
    #:first-order prefab/c-flat-first-order
    #:late-neg-projection #f
    #:stronger prefab/c-stronger
+   #:equivalent prefab/c-equivalent
    #:generate prefab/c-generate))
 
 (struct prefab/c base-prefab/c ()
@@ -214,6 +229,7 @@
    #:first-order prefab/c-flat-first-order
    #:late-neg-projection prefab/c-late-neg-projection
    #:stronger prefab/c-stronger
+   #:equivalent prefab/c-equivalent
    #:generate prefab/c-generate
    #:exercise #f))
 
@@ -224,6 +240,7 @@
    #:first-order prefab/c-flat-first-order
    #:late-neg-projection prefab/c-late-neg-projection
    #:stronger prefab/c-stronger
+   #:equivalent prefab/c-equivalent
    #:generate prefab/c-generate
    #:exercise #f))
 
@@ -235,8 +252,10 @@
 ;; creates a contract for a prefab with key `key`
 ;; and with `(length args)` fields
 (define (-prefab/c key . args)
-  (define field-contracts
-    (coerce-contracts 'prefab/c args))
+  (unless (prefab-key? key)
+    (raise-argument-error 'prefab/c "prefab-key?" key))
+  (define field-contracts (for/list ([arg (in-list args)])
+                            (coerce-contract 'prefab/c arg)))
   ;; construct struct type and other struct information so we can
   ;; reject nonsensical prefabs early and determine if this will
   ;; be a flat contract or not

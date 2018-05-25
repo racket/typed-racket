@@ -172,15 +172,17 @@
   (define name (restrict-typed->/c-name ctc))
   (build-compound-type-name 'restrict-typed->/c name))
 
+(define (restrict-typed->/c-equivalent? this that)
+  (and (restrict-typed->/c? that)
+       (eq? (restrict-typed->/c-name this)
+            (restrict-typed->/c-name that))))
+
 (struct restrict-typed->/c (name)
         #:property prop:chaperone-contract
         (build-chaperone-contract-property
          #:name restrict-typed->-name
-         #:stronger
-         (λ (this that)
-           (and (restrict-typed->/c? that)
-                (eq? (restrict-typed->/c-name this)
-                     (restrict-typed->/c-name that))))
+         #:stronger restrict-typed->/c-equivalent?
+         #:equivalent restrict-typed->/c-equivalent?
          #:late-neg-projection restrict-typed->-late-neg-projection))
 
 (define (restrict-typed-field-late-neg-proj ctc)
@@ -202,13 +204,15 @@
   (define name (restrict-typed-field/c-name ctc))
   (build-compound-type-name 'restrict-typed-field/c name))
 
+(define (restrict-typed-equivalent? this that)
+  (and (restrict-typed-field/c? that)
+       (equal? (restrict-typed-field/c-name this)
+               (restrict-typed-field/c-name that))))
+
 (struct restrict-typed-field/c (name)
         #:property prop:flat-contract
         (build-flat-contract-property
          #:name restrict-typed-field-name
-         #:stronger
-         (λ (this that)
-           (and (restrict-typed-field/c? that)
-                (eq? (restrict-typed-field/c-name this)
-                     (restrict-typed-field/c-name that))))
+         #:stronger restrict-typed-equivalent?
+         #:equivalent restrict-typed-equivalent?
          #:late-neg-projection restrict-typed-field-late-neg-proj))

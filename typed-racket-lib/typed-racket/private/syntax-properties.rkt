@@ -59,6 +59,8 @@
   (type-inst type-inst)
   (row-inst row-inst)
   (type-label type-label)
+  (optional-non-immediate-arg optional-non-immediate-arg)
+  (optional-immediate-arg optional-immediate-arg)
   (type-dotted type-dotted)
   (exn-predicate typechecker:exn-predicate)
   (exn-handler typechecker:exn-handler)

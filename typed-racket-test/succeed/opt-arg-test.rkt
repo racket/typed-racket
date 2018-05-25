@@ -43,3 +43,13 @@
 (: f4 (-> Integer Integer))
 (define (f4 x [y1 0] [y2 (+ 1 0)] #:z1 [z1 0] #:z2 [z2 (+ 1 0)])
   (+ x y1 y2 z1 z2))
+
+
+(define b (box 42))
+;; make sure Unsafe-Undefined is added to the core-lambda
+;; argument type when a partial type annotation exists
+(define (foo [n : Integer (unbox b)])
+  (+ n 0))
+
+(unless (equal? 42 (foo))
+  (error "oops! a bug!"))

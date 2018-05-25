@@ -243,9 +243,13 @@
     (for/list ([a (in-list arg-list)])
       (get-type a #:default (lambda ()
                               (define id (free-id-table-ref aux-table a #f))
-                              (if id
-                                  (get-type id #:default Univ)
-                                  Univ)))))
+                              (cond
+                                [id
+                                 (define ty (get-type id #:default Univ))
+                                 (if (optional-non-immediate-arg-property id)
+                                     (Un -Unsafe-Undefined ty)
+                                     ty)]
+                                [else Univ])))))
 
   (list (tc-lambda-body arg-list arg-types body)))
 

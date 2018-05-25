@@ -438,7 +438,7 @@
                                       (generalize (find-stx-type x #f))))])]
     [(box x)
      (match (and expected-type (resolve (intersect expected-type -BoxTop)))
-       [(Box: t) (-box (check-below (find-stx-type x t) t))]
+       [(Box: t-w t-r) (-box t-w (check-below (find-stx-type x t-r) t-r))]
        [_ (-box (generalize (find-stx-type x)))])]
     [(? hash? hash-val) (tc-hash find-stx-type hash-val expected-type)]
     [(? prefab-struct-key prefab-val) (tc-prefab find-stx-type prefab-val expected-type)]

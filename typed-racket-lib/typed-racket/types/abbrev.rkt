@@ -30,7 +30,9 @@
 (define -App make-App)
 (define -mpair make-MPair)
 (define (-Param t1 [t2 t1]) (make-Param t1 t2))
-(define -box make-Box)
+(define (-box t1 [t2 t1]) (make-Box t1 t2))
+(define (-Boxof/Read t) (-box -Bottom t))
+(define (-Boxof/Write t) (-box t Univ))
 (define -channel make-Channel)
 (define -async-channel make-Async-Channel)
 (define -thread-cell make-ThreadCell)
@@ -96,7 +98,7 @@
   (-mu e
        (Un -Null -Boolean -Symbol -String -Keyword -Char -Number
            (make-Vector (-Syntax e))
-           (make-Box (-Syntax e))
+           (-box (-Syntax e))
            (make-Listof (-Syntax e))
            (-pair (-Syntax e) (-Syntax e)))))
 (define/decl Any-Syntax (-Syntax In-Syntax))
@@ -107,7 +109,7 @@
            -Number -Boolean -Symbol -String -Keyword -Char
            (-pair sexp sexp)
            (make-Vector sexp)
-           (make-Box sexp)
+           (-box sexp)
            t)))
 (define/decl -Flat
   (-mu flat

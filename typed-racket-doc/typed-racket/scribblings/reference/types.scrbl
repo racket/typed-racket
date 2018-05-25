@@ -360,9 +360,47 @@ corresponding to @racket[trest], where @racket[bound]
 @ex[(lambda: ([x : Any]) (if (mpair? x) x (error "not an mpair!")))]
 }
 
-@defform[(Boxof t)]{A @rtech{box} of @racket[t]}
+@defform*[[(Boxof t)
+           (Boxof write-t read-t)]]{
+  The first form is a @rtech{box} of @racket[t].
+
+  The second form is a @rtech{box} that supports write operations like
+  @racket[set-box!] taking @racket[write-t], and read operations like
+  @racket[unbox] returning @racket[read-t]. For this type to make sense,
+  @racket[write-t] should be a subtype of @racket[read-t]. This form can
+  be used to restrict writing to the box, or to safely express uncertainty
+  about the values other code could put in the box.
+}
 
 @ex[(box "hello world")]
+
+@defform[(Boxof/Read t)]{
+  A @rtech{box} of @racket[t] that only supports read-only operations
+  such as @racket[unbox]. A @racket[(Boxof/Read a)] is a subtype of
+  @racket[(Boxof/Read b)] if @racket[a] is a subtype of @racket[b].
+
+  A @racket[(Boxof/Read t)] is a supertype of @racket[(Boxof t)], so
+  any @racket[(Boxof t)] can be used as a @racket[(Boxof/Read t)], but
+  but not the other way around. It is equivalent to
+  @racket[(Boxof Nothing t)].}
+
+@ex[(box-immutable "hello world")
+    (code:comment "though this does not necessarily imply immutability:")
+    (define b : (Boxof Integer) (box 3))
+    (define b-read-only : (Boxof/Read Integer) b)
+    (eval:error (set-box! b-read-only 5))
+    (unbox b-read-only)
+    (set-box! b 5)
+    (unbox b-read-only)]
+
+@defform[(Boxof/Write t)]{
+  A @rtech{box} that could contain anything, but can only take
+  @racket[t] for write operations such as @racket[set-box!].
+
+  A @racket[(Boxof/Write t)] is a supertype of @racket[(Boxof t)], so
+  a @racket[(Boxof t)] can be used as a @racket[(Boxof/Write t)], but
+  but not the other way around. It is equivalent to
+  @racket[(Boxof t Any)].}
 
 @defidform[BoxTop]{is the type of a @rtech{box} with an unknown element
   type and is the supertype of all box types. Only read-only box operations

@@ -736,9 +736,9 @@
         ;; vectors are invariant - generate constraints *both* ways
         [((Vector: e) (Vector: e*))
          (cg/inv e e*)]
-        ;; boxes are invariant - generate constraints *both* ways
-        [((Box: e) (Box: e*))
-         (cg/inv e e*)]
+        ;; boxes are contravariant for writing, covariant for reading
+        [((Box: e-w e-r) (Box: e-w* e-r*))
+         (% cset-meet (cg e-w* e-w) (cg e-r e-r*))]
         [((Weak-Box: e) (Weak-Box: e*))
          (cg/inv e e*)]
         [((MPair: s t) (MPair: s* t*))

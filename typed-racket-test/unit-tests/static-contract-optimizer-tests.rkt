@@ -182,10 +182,19 @@
       ;; if all contracts are flat, optimize trusted positive
       #:pos any/sc
       #:neg (or/sc set?/sc (list/sc set?/sc) (list/sc set?/sc set?/sc)))
-    (check-optimize (or/sc set?/sc (list/sc (flat/sc #'symbol?)) (box/sc (flat/sc #'symbol?)))
-      ;; don't optimize if any contracts are non-flat --- but do optimize under guarded constructors
-      #:pos (or/sc set?/sc (list-length/sc 1) (box/sc (flat/sc #'symbol?)))
-      #:neg (or/sc set?/sc (list/sc (flat/sc #'symbol?)) (box/sc (flat/sc #'symbol?))))
+    (check-optimize (or/sc set?/sc
+                           (list/sc (flat/sc #'symbol?))
+                           (box/sc (flat/sc #'symbol?) (flat/sc #'symbol?)))
+      ;; A contract can be optimized away only if is a flat contract in a
+      ;; purely covariant position. Don't optimize away contracts that are
+      ;; non-flat, and don't optimize away anything in contravariant or
+      ;; invariant positions.
+      #:pos (or/sc set?/sc
+                   (list-length/sc 1)
+                   (box/sc (flat/sc #'symbol?) any/sc))
+      #:neg (or/sc set?/sc
+                   (list/sc (flat/sc #'symbol?))
+                   (box/sc any/sc (flat/sc #'symbol?))))
 
     ;; None
     (check-optimize none/sc
@@ -193,15 +202,15 @@
       #:neg none/sc)
 
     ;; Boxes
-    (check-optimize (box/sc any/sc)
+    (check-optimize (box/sc any/sc any/sc)
       #:pos any/sc
       #:neg box?/sc)
-    (check-optimize (box/sc none/sc)
-      #:pos (box/sc none/sc)
-      #:neg (box/sc none/sc))
-    (check-optimize (box/sc set?/sc)
-      #:pos (box/sc set?/sc)
-      #:neg (box/sc set?/sc))
+    (check-optimize (box/sc none/sc none/sc)
+      #:pos (box/sc none/sc any/sc)
+      #:neg (box/sc any/sc none/sc))
+    (check-optimize (box/sc set?/sc set?/sc)
+      #:pos (box/sc set?/sc any/sc)
+      #:neg (box/sc any/sc set?/sc))
 
     ;; Syntax Objects
     (check-optimize (syntax/sc any/sc)
@@ -224,9 +233,9 @@
     (check-optimize (promise/sc set?/sc)
       #:pos any/sc
       #:neg (promise/sc set?/sc))
-    (check-optimize (promise/sc (box/sc set?/sc))
-      #:pos (promise/sc (box/sc set?/sc))
-      #:neg (promise/sc (box/sc set?/sc)))
+    (check-optimize (promise/sc (box/sc set?/sc set?/sc))
+      #:pos (promise/sc (box/sc set?/sc any/sc))
+      #:neg (promise/sc (box/sc any/sc set?/sc)))
 
     (check-optimize
       (function/sc #t
@@ -352,26 +361,33 @@
 
     ;; more Or case
     (check-optimize
-      ;; (or (or ....)), both "or"s contain non-flat contracts --- don't optimize
-      (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc))
-      #:pos (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc))
-      #:neg (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc)))
+      ;; (or (or ....)), both "or"s contain non-flat contracts --- don't
+      ;; optimize other or-content contracts
+      (or/sc cons?/sc
+             (or/sc cons?/sc (box/sc cons?/sc cons?/sc))
+             (box/sc cons?/sc cons?/sc))
+      #:pos (or/sc cons?/sc
+                   (or/sc cons?/sc (box/sc cons?/sc any/sc))
+                   (box/sc cons?/sc any/sc))
+      #:neg (or/sc cons?/sc
+                   (or/sc cons?/sc (box/sc any/sc cons?/sc))
+                   (box/sc any/sc cons?/sc)))
     (check-optimize
       ;; (or (or ...)), only the inner "or" contains a non-flat contract --- don't optimize
-      (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)))
-      #:pos (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)))
-      #:neg (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc))))
+      (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc cons?/sc)))
+      #:pos (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc any/sc)))
+      #:neg (or/sc cons?/sc (or/sc cons?/sc (box/sc any/sc cons?/sc))))
     (check-optimize
       ;; (or (or ...)), only the outer "or" contains a non-flat contract --- still don't optimize
-      (or/sc (box/sc cons?/sc) (or/sc cons?/sc set?/sc))
-      #:pos (or/sc (box/sc cons?/sc) (or/sc cons?/sc set?/sc))
-      #:neg (or/sc (box/sc cons?/sc) (or/sc cons?/sc set?/sc)))
+      (or/sc (box/sc cons?/sc cons?/sc) (or/sc cons?/sc set?/sc))
+      #:pos (or/sc (box/sc cons?/sc any/sc) (or/sc cons?/sc set?/sc))
+      #:neg (or/sc (box/sc any/sc cons?/sc) (or/sc cons?/sc set?/sc)))
     (check-optimize
       ;; (or (and/sc ...)) where the "or" has a non-flat "and" is all flat --- don't optimize
       ;; this is just to make sure `and/sc` isn't treated specially
-      (or/sc (box/sc cons?/sc) (and/sc cons?/sc list?/sc))
-      #:pos (or/sc (box/sc cons?/sc) (and/sc cons?/sc list?/sc))
-      #:neg (or/sc (box/sc cons?/sc) (and/sc cons?/sc list?/sc)))
+      (or/sc (box/sc cons?/sc cons?/sc) (and/sc cons?/sc list?/sc))
+      #:pos (or/sc (box/sc cons?/sc any/sc) (and/sc cons?/sc list?/sc))
+      #:neg (or/sc (box/sc any/sc cons?/sc) (and/sc cons?/sc list?/sc)))
     (check-optimize
       ;; (or (and ...)) where both contain flat contracts --- could optimize, but would need to recognize the and/c is flat
       (or/sc set?/sc (and/sc cons?/sc list?/sc))

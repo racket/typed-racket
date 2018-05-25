@@ -183,7 +183,9 @@
 [HashTable (-poly (a b) (Un (-Mutable-HT a b) (-Immutable-HT a b) (-Weak-HT a b)))]
 [Promise (-poly (a) (-Promise a))]
 [Pair (-poly (a b) (-pair a b))]
-[Boxof (-poly (a) (make-Box a))]
+;; Boxof is implemented as a special form in base-types-extra and parse-type
+[Boxof/Read (-poly (r) (-Boxof/Read r))]
+[Boxof/Write (-poly (w) (-Boxof/Write w))]
 [Weak-Boxof (-poly (a) (-weak-box a))]
 [Channelof (-poly (a) (make-Channel a))]
 [Async-Channelof (-poly (a) (make-Async-Channel a))]

@@ -21,7 +21,7 @@
  "base-structs.rkt"
  racket/file
  (only-in racket/private/pre-base new-apply-proc)
- (only-in (types abbrev) [-Boolean B] [-Symbol Sym] -Flat)
+ (only-in (types abbrev) [-Boolean B] [-Symbol Sym] -Flat -Boxof/Read -Boxof/Write)
  (only-in (types numeric-tower) [-Number N])
  (only-in (rep type-rep values-rep object-rep)
           -car
@@ -902,18 +902,18 @@
 [box (-poly (a) (a . -> . (-box a)))]
 [box-immutable (-poly (a) (a . -> . (-box a)))]
 [unbox (-poly (a) (cl->*
-                   ((-box a) . -> . a)
+                   ((-Boxof/Read a) . -> . a)
                    (-BoxTop . -> . Univ)))]
-[set-box! (-poly (a) ((-box a) a . -> . -Void))]
+[set-box! (-poly (a) ((-Boxof/Write a) a . -> . -Void))]
 [box-cas! (-poly (a) ((-box a) a a . -> . -Boolean))]
 [unsafe-unbox (-poly (a) (cl->*
-                          ((-box a) . -> . a)
+                          ((-Boxof/Read a) . -> . a)
                           (-BoxTop . -> . Univ)))]
-[unsafe-set-box! (-poly (a) ((-box a) a . -> . -Void))]
+[unsafe-set-box! (-poly (a) ((-Boxof/Write a) a . -> . -Void))]
 [unsafe-unbox* (-poly (a) (cl->*
-                           ((-box a) . -> . a)
+                           ((-Boxof/Read a) . -> . a)
                            (-BoxTop . -> . Univ)))]
-[unsafe-set-box*! (-poly (a) ((-box a) a . -> . -Void))]
+[unsafe-set-box*! (-poly (a) ((-Boxof/Write a) a . -> . -Void))]
 [unsafe-box*-cas! (-poly (a) ((-box a) a a . -> . -Boolean))]
 [box? (make-pred-ty -BoxTop)]
 

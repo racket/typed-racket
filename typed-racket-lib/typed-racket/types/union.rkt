@@ -4,6 +4,7 @@
          (rep type-rep rep-utils)
          (prefix-in c: (contract-req))
          (types subtype base-abbrev resolve current-seen)
+         (only-in (infer infer) intersect)
          racket/match
          racket/list)
 
@@ -30,6 +31,13 @@
     (cond
       [(subtype t* t) (list t)]
       [(subtype t t*) ts]
+      ;; the union of two box types is a box type where the write type has to
+      ;; satisfy both write types, and the read type can satisfy either of the
+      ;; two read types
+      [(and (Box? t) (ormap Box? ts))
+       (match* (t ts)
+         [((Box: a-w a-r) (list-no-order (Box: b-w b-r) bs ...))
+          (cons (make-Box (intersect a-w b-w) (union a-r b-r)) bs)])]
       [else (cons t (filter-not (λ (ts-elem) (subtype ts-elem t)) ts))])))
 
 ;; Recursively reduce unions so that they do not contain

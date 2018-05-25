@@ -95,7 +95,7 @@
 ;;   and `this` has stronger contracts on all members
 ;; - `that` is an object/c contract
 ;;   and `this` has stronger contracts on their common members
-(define (object/c-opaque-stronger this that)
+(define (object/c-opaque-stronger? this that)
   (define that-opaque? (base-object/c-opaque? that))
   (cond
    [(or that-opaque?
@@ -112,12 +112,20 @@
       #t)]
    [else #f]))
 
+;; An `object/c-opaque` contract is equivalent to another `object/c-opaque`
+;;  contract that has the same fields+methods and the same contracts on them.
+(define (object/c-opaque-equivalent? this that)
+  (and (base-object/c-opaque? that)
+       (contract-equivalent? (base-object/c-opaque-obj/c this)
+                             (base-object/c-opaque-obj/c that))))
+
 (struct base-object/c-opaque
   (obj/c ; keep a copy of the normal object/c for first-order and stronger checks
    method-names method-ctcs field-names field-ctcs)
   #:property prop:contract
   (build-contract-property
-   #:stronger object/c-opaque-stronger
+   #:stronger object/c-opaque-stronger?
+   #:equivalent object/c-opaque-equivalent?
    #:name object/c-opaque-name
    #:first-order (λ (ctc)
                    (define obj/c (base-object/c-opaque-obj/c ctc))
@@ -204,7 +212,7 @@
   (define name (restrict-typed-field/c-name ctc))
   (build-compound-type-name 'restrict-typed-field/c name))
 
-(define (restrict-typed-equivalent? this that)
+(define (restrict-typed-field-equivalent? this that)
   (and (restrict-typed-field/c? that)
        (equal? (restrict-typed-field/c-name this)
                (restrict-typed-field/c-name that))))
@@ -213,6 +221,6 @@
         #:property prop:flat-contract
         (build-flat-contract-property
          #:name restrict-typed-field-name
-         #:stronger restrict-typed-equivalent?
-         #:equivalent restrict-typed-equivalent?
+         #:stronger restrict-typed-field-equivalent?
+         #:equivalent restrict-typed-field-equivalent?
          #:late-neg-projection restrict-typed-field-late-neg-proj))

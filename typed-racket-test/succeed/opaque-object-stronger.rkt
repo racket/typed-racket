@@ -22,18 +22,22 @@
 (define (test-equivalent? c1 c2)
   (unless (contract-equivalent? c1 c2)
     (error 'opaque-object-equivalent
-           "contract ~s is unexpectedly weaker than ~s" c1 c2)))
+           "contract ~s is unexpectedly not equivalent to ~s" c1 c2)))
 
 (define (test-not-equivalent? c1 c2)
   (when (contract-equivalent? c1 c2)
     (error 'opaque-object-equivalent
-           "contract ~s is unexpectedly stronger than ~s" c1 c2)))
+           "contract ~s is unexpectedly equivalent to ~s" c1 c2)))
 
 ;; --------------------------------------------------------------------------------------------------
 ;; stronger? tests
 
 (let () ;; object/c-opaque with the same members
   (test-stronger?
+    (object/c-opaque)
+    (object/c-opaque))
+
+  (test-equivalent?
     (object/c-opaque)
     (object/c-opaque))
 
@@ -50,10 +54,24 @@
       (m1 (->m any/c object? (-> integer? integer?))))
     (object/c-opaque
       (m1 (->m any/c object? (-> integer? integer?)))))
+
+  (test-equivalent?
+    (object/c-opaque
+      (m1 (->m object? object?))
+      (field (f1 integer?)))
+    (object/c-opaque
+      (m1 (->m object? object?))
+      (field (f1 integer?))))
+
 )
 
 (let () ;; object/c-opaque with fewer members (unspecified = opaque)
   (test-stronger?
+    (object/c-opaque)
+    (object/c-opaque
+      (field (x symbol?))))
+
+  (test-not-equivalent?
     (object/c-opaque)
     (object/c-opaque
       (field (x symbol?))))
@@ -82,11 +100,27 @@
       (c (-> real? real?))
       (d (-> real? real?))))
 
+  (test-not-equivalent?
+    (object/c-opaque
+      (field (a integer?))
+      (c (-> real? real?)))
+    (object/c-opaque
+      (field (a integer?)
+             (b integer?))
+      (c (-> real? real?))
+      (d (-> real? real?))))
+
 )
 
 (let () ;; object/c-opaque with stronger members
 
   (test-stronger?
+    (object/c-opaque
+      (m1 (->m any/c integer?)))
+    (object/c-opaque
+      (m1 (->m any/c any/c))))
+
+  (test-not-equivalent?
     (object/c-opaque
       (m1 (->m any/c integer?)))
     (object/c-opaque
@@ -106,15 +140,18 @@
       (m1 (->m any/c integer?))
       (m2 (->m any/c (listof any/c)))))
 
-  (test-stronger?
-    (object/c-opaque
-      (a (->m symbol?))
-      (b (->m (between/c 2 3)))
-      (c (->m any/c (listof (char-in #\A #\B)))))
-    (object/c-opaque
-      (a (->m symbol?))
-      (b (->m (between/c 0 5)))
-      (c (->m any/c (listof (char-in #\A #\Z))))))
+  (let ([ctc-stronger
+         (object/c-opaque
+           (a (->m symbol?))
+           (b (->m (between/c 2 3)))
+           (c (->m any/c (listof (char-in #\A #\B)))))]
+        [ctc-weaker
+         (object/c-opaque
+           (a (->m symbol?))
+           (b (->m (between/c 0 5)))
+           (c (->m any/c (listof (char-in #\A #\Z)))))])
+    (test-stronger? ctc-stronger ctc-weaker)
+    (test-not-equivalent? ctc-stronger ctc-weaker))
 )
 
 (let () ;; vs. object/c
@@ -144,6 +181,16 @@
     (object/c
       (field (a real?) (b boolean?))
       (m1 (->m any/c (</c 10)))))
+
+  (test-not-equivalent?
+    (object/c-opaque)
+    (object/c))
+
+  (test-not-equivalent?
+    (object/c-opaque
+      (field (a boolean?)))
+    (object/c
+      (field (a boolean?))))
 )
 
 ;; --------------------------------------------------------------------------------------------------
@@ -187,6 +234,14 @@
       (f (->m integer? integer?))))
 
   (test-not-stronger?
+    (object/c
+      (field (x integer?))
+      (m1 (->m any/c any/c any/c)))
+    (object/c-opaque
+      (field (x real?))
+      (m1 (->m any/c any/c any/c))))
+
+  (test-not-equivalent?
     (object/c
       (field (x integer?))
       (m1 (->m any/c any/c any/c)))
@@ -248,4 +303,5 @@
     (value-contract
      (contract ctc (make-obj) 'p 'n)))
   (test-stronger? c1 c2)
-  (test-stronger? c2 c1))
+  (test-stronger? c2 c1)
+  (test-equivalent? c1 c2))

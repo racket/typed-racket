@@ -19,6 +19,16 @@
            (contract-name ctc-stronger)
            (contract-name ctc-weaker))))
 
+(define (test-equivalent? c1 c2)
+  (unless (contract-equivalent? c1 c2)
+    (error 'opaque-object-equivalent
+           "contract ~s is unexpectedly weaker than ~s" c1 c2)))
+
+(define (test-not-equivalent? c1 c2)
+  (when (contract-equivalent? c1 c2)
+    (error 'opaque-object-equivalent
+           "contract ~s is unexpectedly stronger than ~s" c1 c2)))
+
 ;; --------------------------------------------------------------------------------------------------
 ;; stronger? tests
 
@@ -202,6 +212,23 @@
   (test-not-stronger?
      (restrict-typed-field/c 'foo)
      (restrict-typed-field/c 'bar))
+
+  (test-equivalent?
+   (restrict-typed->/c 'foo)
+   (restrict-typed->/c 'foo))
+
+  (test-not-equivalent?
+   (restrict-typed->/c 'foo)
+   (restrict-typed->/c 'bar))
+
+  (test-equivalent?
+   (restrict-typed-field/c 'foo)
+   (restrict-typed-field/c 'foo))
+
+  (test-not-equivalent?
+   (restrict-typed-field/c 'foo)
+   (restrict-typed-field/c 'bar))
+
 )
 
 (let ()

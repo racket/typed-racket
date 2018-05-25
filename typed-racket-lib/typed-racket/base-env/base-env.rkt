@@ -3074,15 +3074,25 @@
 
 ;; Section 15.9 (racket/cmdline)
 [parse-command-line
- (let ([mode-sym (one-of/c 'once-each 'once-any 'multi 'final 'help-labels)])
-   (-polydots (b a)
-              (cl->* (-Pathlike
-                      (Un (-lst -String) (-vec -String))
-                      (-lst (Un (-pair mode-sym (-lst (-lst Univ)))
-                                (-pair (-val 'ps) (-lst -String))))
-                      ((list Univ) [a a] . ->... . b)
-                      (-lst -String)
-                      . -> . b))))]
+ (let ([mode-sym (one-of/c 'once-each 'once-any 'multi 'final)]
+       [label-sym (one-of/c 'ps 'help-labels 'usage-help)])
+   (-polydots
+    (b a) 
+    (cl->* (->opt -Pathlike
+                  (Un (-lst -String) (-vec -String))
+                  (-lst (Un (-pair mode-sym
+                                   ;; With the `command-line` macro, the typechecker
+                                   ;; can't figure out that a type specifying the shape of
+                                   ;; the flag specification list would be satisfied.
+                                   (-lst Univ))
+                            (-pair label-sym
+                                   (-lst -String))))
+                  (->... (list (-lst Univ)) [-String a] b)
+                  (-lst -String)
+                  [(-> -String Univ)
+                   ;; Still permits unknown-proc args that accept rest arguments
+                   (-> -String Univ)]
+                  b))))] 
 
 ;; Section 16.1 (Weak Boxes)
 [make-weak-box (-poly (a) (-> a (-weak-box a)))]

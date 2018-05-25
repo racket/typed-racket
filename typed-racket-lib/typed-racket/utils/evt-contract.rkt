@@ -49,9 +49,20 @@
 
 ;; evt/c-stronger? : Contract Contract -> Boolean
 (define (evt/c-stronger? this that)
-  (define this-ctcs (tr-evt/c-ctc this))
-  (define that-ctcs (tr-evt/c-ctc that))
-  (contract-stronger? this that))
+  (cond
+    [(tr-evt/c? that)
+     (define this-ctcs (tr-evt/c-ctc this))
+     (define that-ctcs (tr-evt/c-ctc that))
+     (contract-stronger? this-ctcs that-ctcs)]
+    [else #f]))
+
+(define (evt/c-equivalent? this that)
+  (cond
+    [(tr-evt/c? that)
+     (define this-ctcs (tr-evt/c-ctc this))
+     (define that-ctcs (tr-evt/c-ctc that))
+     (contract-equivalent? this-ctcs that-ctcs)]
+    [else #f]))
 
 (define-struct tr-evt/c (ctc)
   #:property prop:chaperone-contract
@@ -59,4 +70,5 @@
    #:late-neg-projection evt/c-late-neg-proj
    #:first-order evt/c-first-order
    #:stronger evt/c-stronger?
+   #:equivalent evt/c-equivalent?
    #:name evt/c-name))

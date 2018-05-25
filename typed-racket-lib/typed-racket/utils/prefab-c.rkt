@@ -156,8 +156,7 @@
                   [idx (in-naturals)])
           (cond
             [(bitwise-bit-set? this-mutability-bits idx)
-             (and (contract-stronger? this-field-contract that-field-contract)
-                  (contract-stronger? that-field-contract this-field-contract))]
+             (contract-equivalent? this-field-contract that-field-contract)]
             [else
              (contract-stronger? this-field-contract that-field-contract)]))])]))
 

@@ -223,11 +223,18 @@
   #:attributes (form id default type kw)
   #:literal-sets (colon)
   (pattern [id:id default:expr]
-           #:with form #'([id default])
+           #:with form #`([#,(if (immediate-default? #'default)
+                                 (optional-immediate-arg-property #'id #t)
+                                 (optional-non-immediate-arg-property #'id #t))
+                           default])
            #:attr type #f
            #:attr kw #f)
   (pattern [id:id : type:expr default:expr]
-           #:with form #`([#,(type-label-property #'id #'type) default])
+           #:with form #`([#,(let ([t-id (type-label-property #'id #'type)])
+                               (if (immediate-default? #'default)
+                                   (optional-immediate-arg-property t-id #t)
+                                   (optional-non-immediate-arg-property t-id #t)))
+                           default])
            #:attr kw #f)
   (pattern :kw-formal))
 

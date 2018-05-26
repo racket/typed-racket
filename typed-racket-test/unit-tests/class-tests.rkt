@@ -7,7 +7,9 @@
          (for-syntax racket/base
                      (submod "typecheck-tests.rkt" test-helpers)
                      typed-racket/tc-setup
-                     typed-racket/utils/tc-utils))
+                     typed-racket/utils/tc-utils)
+         (only-in racket/contract contract-stronger? contract-equivalent?)
+         typed-racket/utils/sealing-contract)
 
 (provide tests)
 (gen-test-main)
@@ -2133,4 +2135,55 @@
                 (values (open-input-file path) (open-output-file path)))
               (super-new)))
           (void))
-        -Void]))
+        -Void]
+
+  ;; contract-stronger / contract-equivalent tests
+  (let ([ctc-empty (sealing->/c A (() () ()) values)]
+        [ctc-a (sealing->/c A ((a) () ()) values)]
+        [ctc-b (sealing->/c A (() (b) ()) values)]
+        [ctc-c (sealing->/c A (() () (c)) values)]
+        [ctc-abc   (sealing->/c A ((a) (b) (c)) values)])
+    ;; check-true contract-stronger
+    (check-true
+      (contract-stronger? ctc-empty
+                          ctc-empty))
+    (check-true
+      (contract-stronger? ctc-a
+                          ctc-empty))
+    (check-true
+      (contract-stronger? (sealing->/c A ((a) (b1 b) (c)) values)
+                          ctc-abc))
+    ;; check-false contract-stronger
+    (check-false
+      (contract-stronger? ctc-empty
+                          (sealing->/c a (() () ()) void)))
+    (check-false
+      (contract-stronger? ctc-empty
+                          (sealing->/c A (() () ()) string?)))
+    (check-false
+      (contract-stronger? ctc-empty
+                          ctc-a))
+    (check-false
+      (contract-stronger? ctc-empty
+                          ctc-b))
+    (check-false
+      (contract-stronger? ctc-empty
+                          ctc-c))
+    ;; check-true contract-equivalent
+    (check-true
+      (contract-equivalent? ctc-empty
+                            ctc-empty))
+    (check-true
+      (contract-equivalent? (sealing->/c A ((a) (b b1) (c c1 c2)) values)
+                            (sealing->/c A ((a) (b b1) (c2 c1 c)) values)))
+    ;; check-false contract-equivalent
+    (check-false
+      (contract-equivalent? ctc-empty
+                            (sealing->/c a (() () ()) void)))
+    (check-false
+      (contract-equivalent? ctc-empty
+                            (sealing->/c A (() () ()) string?)))
+    (check-false (contract-equivalent? ctc-a ctc-empty))
+    (check-false (contract-equivalent? ctc-empty ctc-a))
+    (check-false (contract-equivalent? ctc-b ctc-c))
+    (check-false (contract-equivalent? ctc-c ctc-abc)))))

@@ -19,6 +19,43 @@
                          (quote ((?i ...) (?f ...) (?m ...)))
                          (λ (?var) ?c))]))
 
+(define ((make-sealing-contract-<=? ctc-<=? member-name-<=?) this that)
+  (cond
+   [(sealing-contract? that)
+    (define this-unsealed (sealing-contract-unsealed this))
+    (define that-unsealed (sealing-contract-unsealed that))
+    (match-define (list this-inits this-fields this-methods) this-unsealed)
+    (match-define (list that-inits that-fields that-methods) that-unsealed)
+    (define that-<=-this?
+      (and (member-name-<=? this-inits that-inits)
+           (member-name-<=? this-fields that-fields)
+           (member-name-<=? this-methods that-methods)))
+    (cond [that-<=-this?
+           (define sealer/unsealer
+             (seal/unseal (gensym) #t that-unsealed))
+           ;; see if the instantiated contract is stronger
+           (ctc-<=? ((sealing-contract-proc this)
+                     sealer/unsealer)
+                    ((sealing-contract-proc that)
+                     sealer/unsealer))]
+          [else #f])]
+   [else #f]))
+
+(define (superset? this-sym* that-sym*)
+  (for/and ([that-sym (in-list that-sym*)])
+    (memq that-sym this-sym*)))
+
+(define (set=? this-sym* that-sym*)
+  (and (= (length this-sym*) (length that-sym*))
+       (for/and ([this-sym (in-list this-sym*)])
+         (memq this-sym that-sym*))))
+
+(define sealing-contract-stronger?
+  (make-sealing-contract-<=? contract-stronger? superset?))
+
+(define sealing-contract-equivalent?
+  (make-sealing-contract-<=? contract-equivalent? set=?))
+
 ;; represents a sealing function contract
 ;; name     - a datum for the printed form of the contract
 ;; unsealed - init/field/method names left unsealed by sealers/unsealers
@@ -27,30 +64,8 @@
         #:property prop:contract
         (build-contract-property
          #:name (λ (ctc) (sealing-contract-name ctc))
-         #:stronger
-         (λ (this that)
-           (cond
-            [(sealing-contract? that)
-             (define this-unsealed (sealing-contract-unsealed this))
-             (define that-unsealed (sealing-contract-unsealed that))
-             (match-define (list this-inits this-fields this-methods) this-unsealed)
-             (match-define (list that-inits that-fields that-methods) that-unsealed)
-             (define (that-subset-of-this? this that)
-               (for/and ([that-member (in-list that)])
-                 (member that-member this)))
-             (that-subset-of-this? this-inits that-inits)
-             (that-subset-of-this? this-fields that-fields)
-             (that-subset-of-this? this-methods that-methods)
-             (cond [that-subset-of-this?
-                    (define sealer/unsealer
-                      (seal/unseal (gensym) #t that-unsealed))
-                    ;; see if the instantiated contract is stronger
-                    (contract-stronger? ((sealing-contract-proc this)
-                                         sealer/unsealer)
-                                        ((sealing-contract-proc that)
-                                         sealer/unsealer))]
-                   [else #f])]
-            [else #f]))
+         #:stronger sealing-contract-stronger?
+         #:equivalent sealing-contract-equivalent?
          #:late-neg-projection
          (λ (ctc)
            (define unsealed (sealing-contract-unsealed ctc))

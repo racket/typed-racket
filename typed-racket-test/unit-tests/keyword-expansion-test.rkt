@@ -60,17 +60,11 @@
     [t-opt ((one two three four) ())
            (-> one two three four result)]
     [t-opt (() (one))
-           (cl->*
-            (-> -Unsafe-Undefined result)
-            (-> (-or-undefined one) result))]
+           (-> (-or-undefined one) result)]
     [t-opt (() (one two))
-           (cl->*
-            (-> -Unsafe-Undefined -Unsafe-Undefined result)
-            (-> (-or-undefined one) -Unsafe-Undefined result)
-            (-> (-or-undefined one) (-or-undefined two) result))]
+           (-> (-or-undefined one) (-or-undefined two) result)]
     [t-opt ((one) (two three))
-           (cl->*
-            (-> one -Unsafe-Undefined -Unsafe-Undefined result)
-            (-> one (-or-undefined two) -Unsafe-Undefined result)
-            (-> one (-or-undefined two) (-or-undefined three) result))]
+           (-> one (-or-undefined two) (-or-undefined three) result)]
+    [t-opt ((one two) (three four))
+           (-> one two (-or-undefined three) (-or-undefined four) result)]
     ))

@@ -53,3 +53,20 @@
 
 (unless (equal? 42 (foo))
   (error "oops! a bug!"))
+
+
+(require (prefix-in r: racket/base))
+;; This expression below either needs to fail to type check
+;; (because the λ is from racket/base and thus we fail
+;; to add (i.e. union) Unsafe-Undefined to `n`'s type),
+;; or it needs to type check but not produce a runtime error.
+;; Currently (Racket v 6.90.0.29) it fails to type check
+;; (and is therefore wrapped in `assert-typecheck-fail`).
+;; If at some point in the future it does type check,
+;; then `assert-typecheck-fail` can be removed and
+;; the expression should not produce a runtime error.
+(assert-typecheck-fail
+ (unless (equal? 42 ((r:λ ([#{n : Integer} (unbox b)])
+                          (+ n 0))))
+   (error "aah!")))
+

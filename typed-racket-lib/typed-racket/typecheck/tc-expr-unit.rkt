@@ -444,23 +444,6 @@
     [(? prefab-struct-key prefab-val) (tc-prefab find-stx-type prefab-val expected-type)]
     [_ Univ]))
 
-;; value->HT/find-stx-type : hash? (-> type? type? type?) -> type?
-;;                         : hash? (-> type? type? type?) type? type? -> type?
-;; Build a HashTable type from a value, type constructor, and (optionally)
-;;  upper bounds on the key and value types.
-(define value->HT/find-stx-type
-  (case-lambda
-   [(h tycon expected-kt expected-vt)
-    (let* ([kts (hash-map h (lambda (x y) (find-stx-type x expected-kt)))]
-           [vts (hash-map h (lambda (x y) (find-stx-type y expected-vt)))]
-           [kt (apply Un kts)]
-           [vt (apply Un vts)])
-      (tycon (check-below kt expected-kt) (check-below vt expected-vt)))]
-   [(h tycon)
-    (let ([kt (generalize (apply Un (map find-stx-type (hash-keys h))))]
-          [vt (generalize (apply Un (map find-stx-type (hash-values h))))])
-      (tycon kt vt))]))
-
 
 ;; adds linear info for the following operations:
 ;; + - * < <= = >= > make-vector

@@ -101,3 +101,16 @@
 (define v : (Vectorof Real) (vector 0 5 9 12 3 0 4 6 3))
 (quicksort! v)
 v
+
+
+
+
+
+
+
+(: misc-inf-loop (-> (Refine [n : Natural] (<= n 11))
+                     (Listof (Refine [n : Natural] (<= n 11)))))
+(define (misc-inf-loop x)
+  (cond
+    [(or (= x 1) (= x 6)) (list x)]
+    [else (list)]))

@@ -452,11 +452,13 @@
                    (subtype* A t1 t2 obj))])
           (and A
                (or (TrueProp? raw-prop)
-                   (let* ([obj (if (Object? obj) obj (-id-path (genid)))]
-                          [prop (instantiate-obj raw-prop obj)])
-                     (implies-in-env? (lexical-env)
-                                      (-is-type obj t1)
-                                      prop)))
+                   (let ([A (remember t1 t2 A)])
+                     (with-updated-seen A
+                       (let* ([obj (if (Object? obj) obj (-id-path (genid)))]
+                              [prop (instantiate-obj raw-prop obj)])
+                         (implies-in-env? (lexical-env)
+                                          (-is-type obj t1)
+                                          prop)))))
                A))]
        [(_ (? resolvable?))
         (let ([A (remember t1 t2 A)])
@@ -468,7 +470,9 @@
                               (cons lower-bound upper-bound)))
         #:when (and (with-refinements?)
                     (subtype* A t1 -Int obj)
-                    (provable-int-subtype? A t1 lower-bound upper-bound obj))
+                    (let ([A (remember t1 t2 A)])
+                      (with-updated-seen A
+                        (provable-int-subtype? A t1 t2 lower-bound upper-bound obj))))
         A]
        [(_ _) ;; otherwise we case on t1
         (subtype-cases A t1 t2 obj)])]))
@@ -476,7 +480,7 @@
 
 
 ;; if obj ∈ t1, can we prove 'lower-bound <= obj' and 'obj <= upper-bound'? 
-(define (provable-int-subtype? A t1 lower-bound upper-bound obj)
+(define (provable-int-subtype? A t1 t2 lower-bound upper-bound obj)
   (define lower-ineq
     (cond
       [lower-bound (-leq (-lexp lower-bound)
@@ -493,19 +497,20 @@
     ;; both inequalities were trivially true, succeed!
     [(and (TrueProp? lower-ineq) (TrueProp? upper-ineq)) A]
     [else
-     ;; otherwise we have at least one inequality that must
-     ;; be provable for subtyping to hold
-     (define-values (t1* extracted-props) (extract-props obj t1))
-     (define assumptions (apply -and (cons (-is-type obj t1*) extracted-props)))
+     (let ([A (remember t1 t2 A)])
+       (with-updated-seen A
+         ;; be provable for subtyping to hold
+         (define-values (t1* extracted-props) (extract-props obj t1))
+         (define assumptions (apply -and (cons (-is-type obj t1*) extracted-props)))
 
-     (define goal
-       (match* (lower-ineq upper-ineq)
-         [((? TrueProp?) p) p]
-         [(p (? TrueProp?)) p]
-         [(_ _) (make-AndProp (list lower-ineq upper-ineq))]))
-     (implies-in-env? (lexical-env)
-                      assumptions
-                      goal)]))
+         (define goal
+           (match* (lower-ineq upper-ineq)
+             [((? TrueProp?) p) p]
+             [(p (? TrueProp?)) p]
+             [(_ _) (make-AndProp (list lower-ineq upper-ineq))]))
+         (implies-in-env? (lexical-env)
+                          assumptions
+                          goal)))]))
 
 
 (define (continue<: A t1 t2 obj)

@@ -5,6 +5,7 @@
          racket/match (prefix-in - (contract-req))
          "signatures.rkt"
          "check-below.rkt" "../types/kw-types.rkt"
+         "integer-refinements.rkt"
          (types utils abbrev subtype type-table path-type
                 prop-ops overlap resolve generalize tc-result
                 numeric-tower)
@@ -225,11 +226,12 @@
           ;(tc-expr/check #'e3 expected)
           (tc-error/expr "with-continuation-mark requires a continuation-mark-key, but got ~a" key-t)])]
       ;; application
-      [(#%plain-app . _)
+      [(#%plain-app fun . args-stx)
        (define result (tc/app form expected))
        (cond
-         [(with-refinements?)
-          (add-applicable-linear-info form result)]
+         [(and (identifier? #'fun)
+               (with-refinements?))
+          (maybe-add-linear-integer-refinements #'fun #'args-stx result)]
          [else result])]
       ;; #%expression
       [(#%expression e) (tc/#%expression form expected)]
@@ -444,121 +446,4 @@
     [(? prefab-struct-key prefab-val) (tc-prefab find-stx-type prefab-val expected-type)]
     [_ Univ]))
 
-
-;; adds linear info for the following operations:
-;; + - * < <= = >= > make-vector
-;; when the arguments are integers w/ objects.
-;; These are the 'axiomatized' arithmetic operators.
-;; NOTE: We should keep these axiomatizations so that they
-;; only add info that we could later reasonably encode in a
-;; standard function type for TR, so we're not bound to always
-;; doing this.
-(define (add-applicable-linear-info form result)
-  ;; class to recognize expressions that typecheck at a subtype of -Int
-  ;; and whose object is non-empty
-  (define-syntax-class (t/obj type)
-    #:attributes (obj)
-    (pattern e:expr
-             #:do [(define o
-                     (match (type-of #'e)
-                       [(tc-result1: t _ (? Object? o))
-                        #:when (subtype t type)
-                        o]
-                       [_ #f]))]
-             #:fail-unless o (format "not a ~a expr with a non-empty object" type)
-             #:attr obj o))
-  (define-syntax (obj stx)
-    (syntax-case stx ()
-      [(_ e)
-       (with-syntax ([e* (format-id #'e "~a.obj" (syntax->datum #'e))])
-         (syntax/loc #'e (attribute e*)))]))
-  ;; class to recognize int comparisons and associate their
-  ;; internal TR prop constructors
-  (define-syntax-class int-comparison
-    #:attributes (constructor)
-    (pattern (~literal <) #:attr constructor -lt)
-    (pattern (~literal <=) #:attr constructor -leq)
-    (pattern (~literal >=) #:attr constructor -geq)
-    (pattern (~literal >) #:attr constructor -gt)
-    (pattern (~literal =) #:attr constructor -eq))
-
-  ;; takes a result and adds p to the then proposition
-  ;; and (not p) to the else proposition
-  (define (add-p/not-p result p)
-    (match result
-      [(tc-result1: t (PropSet: p+ p-) o)
-       (ret t
-            (-PS (-and p p+) (-and (negate-prop p) p-))
-            o)]
-      [_ result]))
-
-  ;; inspect the function appplication to see if it is a linear
-  ;; integer compatible form we want to enrich with info when
-  ;; #:with-logical-refinements is specified by the user
-  (match result
-    [(tc-result1: ret-t ps orig-obj)
-     (syntax-parse form
-       ;; *
-       [(#%plain-app (~literal *) (~var e1 (t/obj -Int)) (~var e2 (t/obj -Int)))
-        (define product-obj (-obj* (obj e1) (obj e2)))
-        (cond
-          [(Object? product-obj)
-           (ret (-refine/fresh x ret-t (-eq (-lexp x) product-obj))
-                ps
-                product-obj)]
-          [else result])]
-       ;; +/- (2 args)
-       [(#%plain-app (~and op (~or (~literal +) (~literal -)))
-                     (~var e1 (t/obj -Int))
-                     (~var e2 (t/obj -Int)))
-        (define (sign o) (if (eq? '+ (syntax->datum #'op))
-                             o
-                             (scale-obj -1 o)))
-        (define l (-lexp (obj e1) (sign (obj e2))))
-        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
-             ps
-             l)]
-       ;; +/- (3 args)
-       [(#%plain-app (~and op (~or (~literal +) (~literal -)))
-                     (~var e1 (t/obj -Int))
-                     (~var e2 (t/obj -Int))
-                     (~var e3 (t/obj -Int)))
-        (define (sign o) (if (eq? '+ (syntax->datum #'op))
-                             o
-                             (scale-obj -1 o)))
-        (define l (-lexp (obj e1) (sign (obj e2)) (sign (obj e3))))
-        (ret (-refine/fresh x ret-t (-eq (-lexp x) l))
-             ps
-             l)]
-       ;; integer comparisons, 2 args
-       [(#%plain-app comp:int-comparison
-                     (~var e1 (t/obj -Int))
-                     (~var e2 (t/obj -Int)))
-        (define p ((attribute comp.constructor)
-                   (obj e1)
-                   (obj e2)))
-        (add-p/not-p result p)]
-       ;; integer comparisons, 3 args
-       [(#%plain-app comp:int-comparison
-                     (~var e1 (t/obj -Int))
-                     (~var e2 (t/obj -Int))
-                     (~var e3 (t/obj -Int)))
-        (define p (-and ((attribute comp.constructor)
-                         (obj e1)
-                         (obj e2))
-                        ((attribute comp.constructor)
-                         (obj e2)
-                         (obj e3))))
-        (add-p/not-p result p)]
-       ;; make-vector include length in result
-       [(#%plain-app (~literal make-vector)
-                     (~var size (t/obj -Int))
-                     . _)
-        #:when (Object? (obj size))
-        (ret (-refine/fresh v ret-t (-eq (-lexp (-vec-len-of (-id-path v)))
-                                         (obj size)))
-             ps
-             orig-obj)]
-       [_ result])]
-    [_ result]))
 

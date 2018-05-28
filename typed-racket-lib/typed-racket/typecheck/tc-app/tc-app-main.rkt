@@ -7,6 +7,7 @@
          syntax/parse racket/match 
          syntax/parse/experimental/reflect
          "../signatures.rkt" "../tc-funapp.rkt"
+         "../integer-refinements.rkt"
          (types abbrev utils prop-ops)
          (env lexical-env)
          (typecheck tc-subst tc-envops check-below)
@@ -97,6 +98,11 @@
             (tc/funapp #'f #'args f-ty (map tc-dep-fun-arg args*) expected))]
          [(Fun: (app matching-arities
                      (list (Arrow: doms rsts _ _) ..1)))
+          (define check-arg (if (and (identifier? #'f)
+                                     (with-refinements?)
+                                     (has-linear-integer-refinements? #'f))
+                                tc-dep-fun-arg
+                                single-value))
           ;; if for a particular argument, all of the domain types
           ;; agree for each arrow type in the case->, then we use
           ;; that type to check the argument expression against
@@ -108,8 +114,12 @@
                 [(for/and ([dom (in-list (cdr doms))]
                            [rst (in-list (cdr rsts))])
                    (equal? dom-ty (dom+rst-ref dom rst arg-idx)))
-                 (single-value arg-stx (ret dom-ty))]
-                [else (single-value arg-stx)])))
+                 (check-arg arg-stx (ret dom-ty))]
+                [else (check-arg arg-stx)])))
           (tc/funapp #'f #'args f-ty arg-types expected)]
+         [_ #:when (and (identifier? #'f)
+                        (with-refinements?)
+                        (has-linear-integer-refinements? #'f))
+            (tc/funapp #'f #'args f-ty (map tc-dep-fun-arg args*) expected)]
          [_ (tc/funapp #'f #'args f-ty (map single-value args*) expected)]))]))
 

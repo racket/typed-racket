@@ -104,13 +104,35 @@ v
 
 
 
-
-
-
-
 (: misc-inf-loop (-> (Refine [n : Natural] (<= n 11))
                      (Listof (Refine [n : Natural] (<= n 11)))))
 (define (misc-inf-loop x)
   (cond
     [(or (= x 1) (= x 6)) (list x)]
     [else (list)]))
+
+
+(ann (add1 1) (Refine [n : Integer] (= n 2)))
+(ann (sub1 5) (Refine [n : Integer] (= n 4)))
+(ann (random 5) (Refine [n : Integer] (<= 0 n 4)))
+(ann (random 1 5) (Refine [n : Integer] (<= 1 n 4)))
+(ann (add1 (random 5)) (Refine [n : Integer] (<= 1 n 6)))
+(ann (modulo 1 5) (Refine [n : Integer] (<= 0 n 4)))
+
+(: foo (-> Integer (Refine [n : Integer] (= n 42))))
+(define (foo x)
+  (if (equal? x 42)
+      x
+      42))
+
+(: bar (-> Integer (Refine [n : Integer] (= n 42))))
+(define (bar x)
+  (if (eqv? x 42)
+      x
+      42))
+
+(: baz (-> Integer (Refine [n : Integer] (= n 42))))
+(define (baz x)
+  (if (eq? x 42)
+      x
+      42))

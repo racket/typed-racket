@@ -7,7 +7,7 @@
          (rep type-rep prop-rep object-rep rep-utils)
          (utils tc-utils)
          racket/set
-         (types tc-result resolve update prop-ops subtract)
+         (types tc-result resolve update prop-ops subtract path-type)
          (env type-env-structs lexical-env mvar-env)
          (only-in (infer infer) intersect)
          (rename-in (types abbrev)
@@ -32,11 +32,12 @@
      (define-values (props atoms) (combine-props ps (env-props env)))
      (cond
        [props
-        (let loop ([ps atoms]
+        (let loop ([todo atoms]
+                   [atoms '()]
                    [negs '()]
                    [new '()]
                    [Γ (env-replace-props env props)])
-          (match ps
+          (match todo
             [(cons p ps)
              ;; update-obj-pos-type : (listof Prop?) env? Object? Type? -> env or #f
              ;; sometimes we need to update the object's type directly -- this helper
@@ -46,12 +47,16 @@
                  (define new-t (intersect t pt obj))
                  (cond
                    [(Bottom? new-t) #f]
-                   [(equal? t new-t) (loop ps negs new Γ)]
+                   [(equal? t new-t) (loop ps (cons p atoms) negs new Γ)]
                    [else
                     ;; it's a new type! check if there are any logical propositions that can
                     ;; be extracted from new-t
                     (define-values (new-t* new-props) (extract-props obj new-t))
-                    (loop ps negs (append new-props new) (env-set-obj-type Γ obj new-t*))])))
+                    (loop ps
+                          (cons (-is-type obj new-t*) atoms)
+                          negs
+                          (append new-props new)
+                          (env-set-obj-type Γ obj new-t*))])))
              (match p
                [(TypeProp: (and obj (Path: pes (? identifier? x))) pt)
                 (let ([t (lookup-id-type/lexical x Γ #:fail (λ (_) Univ))])
@@ -62,7 +67,7 @@
                      (cond
                        [(ormap uninterpreted-PE? pes)
                         (update-obj-pos-type new Γ obj pt)]
-                       [else (loop ps negs new Γ)])]
+                       [else (loop ps (cons p atoms) negs new Γ)])]
                     [else
                      ;; it's a new type! check if there are any logical propositions that can
                      ;; be extracted from new-t
@@ -77,7 +82,11 @@
                                              obj
                                              pt)]
                        [else
-                        (loop ps negs (append new-props new) (env-set-id-type Γ x new-t*))])]))]
+                        (loop ps
+                              (cons (-is-type obj (path-type pes new-t*)) atoms)
+                              negs
+                              (append new-props new)
+                              (env-set-id-type Γ x new-t*))])]))]
                [(TypeProp: obj pt)
                 (update-obj-pos-type new Γ obj pt)]
                ;; process negative info _after_ positive info so we don't miss anything!
@@ -85,9 +94,10 @@
                ;; with x ∉ String and then x ∈ String just produces a Γ with x ∈ String,
                ;; but updating with x ∈ String _and then_ x ∉ String derives a contradiction)
                [(? NotTypeProp?)
-                (loop ps (cons p negs) new Γ)]
-               [_ (loop ps negs new Γ)])]
+                (loop ps atoms (cons p negs) new Γ)]
+               [_ (loop ps atoms negs new Γ)])]
             [_ (let loop ([negs negs]
+                          [atoms atoms]
                           [new new]
                           [Γ Γ])
                  (match negs
@@ -100,12 +110,15 @@
                         (define new-t (subtract t pt))
                         (cond
                           [(Bottom? new-t) #f]
-                          [(equal? t new-t) (loop negs new Γ)]
+                          [(equal? t new-t) (loop negs (cons p atoms) new Γ)]
                           [else
                            ;; it's a new type! check if there are any logical propositions that can
                            ;; be extracted from new-t
                            (define-values (new-t* new-props) (extract-props obj new-t))
-                           (loop negs (append new-props new) (env-set-obj-type Γ obj new-t*))])))
+                           (loop negs
+                                 (cons (-is-type obj new-t*) atoms)
+                                 (append new-props new)
+                                 (env-set-obj-type Γ obj new-t*))])))
                     (match p
                       [(NotTypeProp: (and obj (Path: pes (? identifier? x))) pt)
                        (let ([t (lookup-id-type/lexical x Γ #:fail (λ (_) Univ))])
@@ -116,7 +129,7 @@
                             (cond
                               [(ormap uninterpreted-PE? pes)
                                (update-obj-neg-type new Γ obj pt)]
-                              [else (loop negs new Γ)])]
+                              [else (loop negs (cons p atoms) new Γ)])]
                            [else
                             ;; it's a new type! check if there are any logical propositions that can
                             ;; be extracted from new-t
@@ -131,7 +144,10 @@
                                                     obj
                                                     pt)]
                               [else
-                               (loop negs (append new-props new) (env-set-id-type Γ x new-t*))])]))]
+                               (loop negs
+                                     (cons p atoms)
+                                     (append new-props new)
+                                     (env-set-id-type Γ x new-t*))])]))]
                       [(NotTypeProp: obj pt)
                        (update-obj-neg-type new Γ obj pt)])]
                    [_

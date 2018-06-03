@@ -34,7 +34,7 @@
 
 (define-signature tc-literal^
   ([cond-contracted tc-literal (->* (syntax?) ((or/c Type? #f)) Type?)]
-   [cond-contracted tc-hash (-> (-> any/c (or/c Type? #f) Type?)
+   [cond-contracted tc-hash (-> (->* [any/c] [(or/c Type? #f)] Type?)
                                 hash?
                                 (or/c Type? #f)
                                 Type?)]

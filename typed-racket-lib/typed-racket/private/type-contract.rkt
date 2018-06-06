@@ -472,7 +472,7 @@
            ;; - because `HashTableTop` is a union containing `(Immutable-HashTable Any Any)`
            ;; - and `Any` makes a chaperone contract
            hash?/sc]
-          [(Union-all: elems)
+          [(Union-all-flat: elems)
            (define-values [hash-elems other-elems] (partition hash/kv? elems))
            (define maybe-hash/sc (hash-types->sc hash-elems))
            (if maybe-hash/sc

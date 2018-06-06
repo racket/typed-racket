@@ -226,7 +226,9 @@
    (t-sc -Number number/sc)
    (t-sc -Integer integer/sc)
    (t-sc (-lst Univ) (listof/sc any-wrap/sc))
-   (t-sc (Un (-lst Univ) -Number) (or/sc number/sc (listof/sc any-wrap/sc)))
+   (t-sc (Un (-lst Univ) (-val #t)) (or/sc (flat/sc #''#t) (listof/sc any-wrap/sc)))
+   (t-sc (Un (-val #f) (-val #t) (-lst (-val #f)))
+         (or/sc (flat/sc #''#t) (flat/sc #''#f) (listof/sc (flat/sc #''#f))))
 
    (t-int Any-Syntax syntax? #'#'A #:typed) ;; GitHub issue #616
 

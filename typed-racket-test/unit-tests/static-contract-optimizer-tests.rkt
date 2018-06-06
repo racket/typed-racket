@@ -166,6 +166,9 @@
     (check-optimize (or/sc set?/sc)
       #:pos any/sc
       #:neg set?/sc)
+    (check-optimize (or/sc (or/sc set?/sc list?/sc))
+      #:pos any/sc
+      #:neg (or/sc set?/sc list?/sc))
     (check-optimize (or/sc set?/sc any/sc)
       #:pos any/sc
       #:neg any/sc)
@@ -352,20 +355,30 @@
 
     ;; more Or case
     (check-optimize
-      ;; (or (or ....)), both "or"s contain non-flat contracts --- don't optimize
+      ;; do not flatten nested or/sc containing flat & chaperone contracts (must be all flat or all chaperone)
       (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc))
       #:pos (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc))
       #:neg (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)) (box/sc cons?/sc)))
     (check-optimize
-      ;; (or (or ...)), only the inner "or" contains a non-flat contract --- don't optimize
-      (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)))
-      #:pos (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc)))
-      #:neg (or/sc cons?/sc (or/sc cons?/sc (box/sc cons?/sc))))
+      ;; flatten multiple or/sc
+      (or/sc cons?/sc (or/sc set?/sc syntax?/sc) (or/sc list?/sc identifier?/sc))
+      #:pos any/sc
+      #:neg (or/sc identifier?/sc list?/sc syntax?/sc set?/sc cons?/sc))
     (check-optimize
-      ;; (or (or ...)), only the outer "or" contains a non-flat contract --- still don't optimize
-      (or/sc (box/sc cons?/sc) (or/sc cons?/sc set?/sc))
-      #:pos (or/sc (box/sc cons?/sc) (or/sc cons?/sc set?/sc))
-      #:neg (or/sc (box/sc cons?/sc) (or/sc cons?/sc set?/sc)))
+      ;; flatten deeply-nested or/sc
+      (or/sc cons?/sc (or/sc set?/sc (or/sc syntax?/sc (or/sc list?/sc identifier?/sc))))
+      #:pos any/sc
+      #:neg (or/sc set?/sc identifier?/sc list?/sc syntax?/sc cons?/sc))
+    (let ([rec-chaperone (recursive-sc (list #'x) (list cons?/sc) (box/sc (recursive-sc-use #'x)))])
+      (check-optimize
+        (or/sc cons?/sc rec-chaperone)
+        #:pos (or/sc cons?/sc rec-chaperone)
+        #:neg (or/sc cons?/sc rec-chaperone)))
+    (let ([rec-flat (recursive-sc (list #'x) (list cons?/sc) (and/sc set?/sc (recursive-sc-use #'x)))])
+      (check-optimize
+        (or/sc (box/sc cons?/sc) rec-flat)
+        #:pos (or/sc (box/sc cons?/sc) rec-flat)
+        #:neg (or/sc (box/sc cons?/sc) rec-flat)))
     (check-optimize
       ;; (or (and/sc ...)) where the "or" has a non-flat "and" is all flat --- don't optimize
       ;; this is just to make sure `and/sc` isn't treated specially
@@ -373,7 +386,7 @@
       #:pos (or/sc (box/sc cons?/sc) (and/sc cons?/sc list?/sc))
       #:neg (or/sc (box/sc cons?/sc) (and/sc cons?/sc list?/sc)))
     (check-optimize
-      ;; (or (and ...)) where both contain flat contracts --- could optimize, but would need to recognize the and/c is flat
+      ;; (or (and ...)) where both contain flat contracts --- could optimize, but would need to realize this and/c is flat
       (or/sc set?/sc (and/sc cons?/sc list?/sc))
       #:pos (or/sc set?/sc (and/sc cons?/sc list?/sc))
       #:neg (or/sc set?/sc (and/sc cons?/sc list?/sc)))

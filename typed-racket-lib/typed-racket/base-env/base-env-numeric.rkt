@@ -83,33 +83,22 @@
   (define round-type ; also used for truncate
     (lambda ()
       (from-cases
-       (map unop all-int-types)
+       (-> (Un -Int -RealZero) (Un -Int -RealZero) : -true-filter : (-arg-path 0))
        (-> -NonNegRat -Nat)
        (-> -NonPosRat -NonPosInt)
        (-> -Rat -Int)
-       (map unop (list -FlonumPosZero -FlonumNegZero -FlonumZero
-                       -NonNegFlonum -NonPosFlonum -Flonum
-                       -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero
+       (map unop (list -NonNegFlonum -NonPosFlonum -Flonum
                        -NonNegSingleFlonum -NonPosSingleFlonum -SingleFlonum
-                       -InexactRealPosZero -InexactRealNegZero -InexactRealZero
                        -NonNegInexactReal -NonPosInexactReal -InexactReal
-                       -RealZero -NonNegReal -NonPosReal -Real)))))
-  
-  (define (inexact-zero->exact-zero-type)
-    (for/list ([t (in-list
-                    (list -FlonumPosZero -FlonumNegZero -FlonumZero
-                          -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero
-                          -InexactRealPosZero -InexactRealNegZero -InexactRealZero
-                          -RealZero))])
-      (-> t -Zero)))
+                       -NonNegReal -NonPosReal -Real)))))
   
   (define (exact-round-type) ; also used for exact-truncate
     (from-cases
-     (map unop all-int-types)
-     (inexact-zero->exact-zero-type)
-     (-> (Un -NonNegRat -NonNegFlonum -NonNegSingleFlonum -NonNegInexactReal -NonNegReal) -Nat)
-     (-> (Un -NonPosRat -NonPosFlonum -NonPosSingleFlonum -NonPosInexactReal -NonPosReal) -NonPosInt)
-     (-> (Un -Rat -Flonum -SingleFlonum -InexactReal -Real) -Int)))
+     (-> -Int -Int : -true-filter : (-arg-path 0))
+     (-> -RealZero -Zero)
+     (-> -NonNegReal -Nat)
+     (-> -NonPosReal -NonPosInt)
+     (-> -Real -Int)))
   
   (define fl-unop (lambda () (unop -Flonum)))
   (define extfl-unop (lambda () (unop -ExtFlonum)))
@@ -1456,24 +1445,20 @@
 
 ;; exactness
 [exact->inexact
- (from-cases (map unop all-float-types)
+ (from-cases (-> (Un -InexactComplex -InexactReal) (Un -InexactReal -InexactComplex)
+                 : -true-filter : (-arg-path 0))
              (-Zero . -> . -FlonumZero)
              (-PosInt . -> . -PosFlonum)
              (-NegInt . -> . -NegFlonum)
-             (-PosRat . -> . -NonNegFlonum)
-             (-NegRat . -> . -NonPosFlonum)
+             (-NonNegRat . -> . -NonNegFlonum) ; not for Pos, possible underflow
+             (-NonPosRat . -> . -NonPosFlonum)
              (-Rat . -> . -Flonum)
-             (map unop (list -FlonumZero -PosFlonum -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
-                             -SingleFlonumZero -PosSingleFlonum -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum -SingleFlonum))
              (-NonNegReal . -> . -NonNegInexactReal) ; not for Pos, possible underflow
              (-NonPosReal . -> . -NonPosInexactReal)
              (-Real . -> . -InexactReal)
-             (-FloatComplex . -> . -FloatComplex)
-             (-SingleFlonumComplex . -> . -SingleFlonumComplex)
-             (-InexactComplex . -> . -InexactComplex)
              (N . -> . (Un -InexactReal -InexactComplex)))]
 [inexact->exact
- (from-cases (map unop all-rat-types)
+ (from-cases (-> -ExactNumber -ExactNumber : -true-filter : (-arg-path 0))
              (-RealZero . -> . -Zero)
              (-PosReal . -> . -PosRat)
              (-NonNegReal . -> . -NonNegRat)
@@ -1489,7 +1474,7 @@
                     (-NonPosFlonum . -> . -NonPosInt)
                     (-Flonum . -> . -Int))]
 [real->single-flonum
- (from-cases (map unop single-flonum-types)
+ (from-cases (-> -SingleFlonum -SingleFlonum : -true-filter : (-arg-path 0))
              (-FlonumPosZero . -> . -SingleFlonumPosZero)
              (-FlonumNegZero . -> . -SingleFlonumNegZero)
              (-RealZero . -> . -SingleFlonumZero)
@@ -1500,7 +1485,7 @@
              (-NonPosReal . -> . -NonPosSingleFlonum)
              (-Real . -> . -SingleFlonumZero))]
 [real->double-flonum
- (from-cases (map unop all-flonum-types)
+ (from-cases (-> -Flonum -Flonum : -true-filter : (-arg-path 0))
              (-SingleFlonumPosZero . -> . -FlonumPosZero)
              (-SingleFlonumNegZero . -> . -FlonumNegZero)
              (-RealZero . -> . -FlonumZero)
@@ -1513,32 +1498,26 @@
 
 [floor
  (from-cases
-  (map unop all-int-types)
+  (-> (Un -Int -RealZero) (Un -Int -RealZero) : -true-filter : (-arg-path 0))
   (-> -NonNegRat -Nat)
   (-> -NegRat -NegInt)
   (-> -NonPosRat -NonPosInt)
   (-> -Rat -Int)
-  (map unop (list -FlonumPosZero -FlonumNegZero -FlonumZero
-                  -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
-                  -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero
+  (map unop (list -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
                   -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum -SingleFlonum
-                  -InexactRealPosZero -InexactRealNegZero -InexactRealZero
                   -NonNegInexactReal -NegInexactReal -NonPosInexactReal -InexactReal
-                  -RealZero -NonNegReal -NegReal -NonPosReal -Real)))]
+                  -NonNegReal -NegReal -NonPosReal -Real)))]
 [ceiling
  (from-cases
-  (map unop all-int-types)
+  (-> (Un -Int -RealZero) (Un -Int -RealZero) : -true-filter : (-arg-path 0))
   (-> -PosRat -PosInt)
   (-> -NonNegRat -Nat)
   (-> -NonPosRat -NonPosInt)
   (-> -Rat -Int)
-  (map unop (list -FlonumPosZero -FlonumNegZero -FlonumZero
-                  -PosFlonum -NonNegFlonum -NonPosFlonum -Flonum
-                  -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero
+  (map unop (list -PosFlonum -NonNegFlonum -NonPosFlonum -Flonum
                   -PosSingleFlonum -NonNegSingleFlonum -NonPosSingleFlonum -SingleFlonum
-                  -InexactRealPosZero -InexactRealNegZero -InexactRealZero
                   -PosInexactReal -NonNegInexactReal -NonPosInexactReal -InexactReal
-                  -RealZero -PosReal -NonNegReal -NonPosReal -Real)))]
+                  -PosReal -NonNegReal -NonPosReal -Real)))]
 [truncate (round-type)]
 [round (round-type)]
 
@@ -1554,7 +1533,7 @@
                    (-InexactReal -InexactReal . -> . -InexactComplex)
                    (-Real -Real . -> . N))]
 [real-part (from-cases
-            (map unop all-real-types)
+            (-> -Real -Real : -true-filter : (-arg-path 0))
             (-ExactNumber . -> . -Rat)
             (-FloatComplex . -> . -Flonum)
             (-SingleFlonumComplex . -> . -SingleFlonum)
@@ -1575,7 +1554,7 @@
                   (-InexactComplex . -> . -InexactReal)
                   (N . -> . (Un -InexactReal -Zero)))]
 [numerator
- (from-cases (map unop all-int-types)
+ (from-cases (-> -Int -Int : -true-filter : (-arg-path 0))
              (-PosRat . -> . -PosInt)
              (-NonNegRat . -> . -Nat)
              (-NegRat . -> . -NegInt)
@@ -1590,8 +1569,7 @@
                     (-InexactReal . -> . -PosInexactReal)
                     (-Real . -> . -PosReal))]
 [rationalize
- (from-cases (map (lambda (t) (-> t -Rat t))
-                  all-int-types)
+ (from-cases (-> -Int -Rat -Int : -true-filter : (-arg-path 0))
              (-NonNegRat -Rat . -> . -NonNegRat) ; non-zero args produce zero
              (-NonPosRat -Rat . -> . -NonPosRat)
              (-Rat -Rat . -> . -Rat)
@@ -1611,7 +1589,7 @@
              (map binop (list -NonNegReal -NonPosReal -Real)))]
 [expt
  (from-cases (-> -One -Rat -One)
-             (map (lambda (t) (-> t -Zero -One)) all-number-types) ; will error if negative
+             (-> N -Zero -One) ; will error if negative
              (-PosInt -Nat . -> . -PosInt)
              (-Nat -Nat . -> . -Nat)
              (-Int -Nat . -> . -Int)
@@ -1653,11 +1631,11 @@
              (N N . -> . N))]
 [sqrt
  (from-cases
-  (map unop (list -Zero -One
-                  -FlonumPosZero -FlonumNegZero -FlonumZero -PosFlonum -NonNegFlonum
-                  -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero -PosSingleFlonum -NonNegSingleFlonum
-                  -InexactRealPosZero -InexactRealNegZero -InexactRealZero -PosInexactReal -NonNegInexactReal
-                  -RealZero -PosReal -NonNegReal))
+  (-> (Un -RealZero -One) (Un -RealZero -One) : -true-filter : (-arg-path 0))
+  (map unop (list -PosFlonum -NonNegFlonum
+                  -PosSingleFlonum -NonNegSingleFlonum
+                  -PosInexactReal -NonNegInexactReal
+                  -PosReal -NonNegReal))
   (-FloatComplex . -> . -FloatComplex)
   (-SingleFlonumComplex . -> . -SingleFlonumComplex)
   (-InexactComplex . -> . -InexactComplex)
@@ -1820,7 +1798,7 @@
                  (map unop (list -FloatComplex -SingleFlonumComplex
                                  -InexactComplex -ExactNumber N)))]
 [conjugate (from-cases
-            (map unop all-real-types)
+            (-> -Real -Real : -true-filter : (-arg-path 0))
             (-FloatComplex . -> . -FloatComplex)
             (-SingleFlonumComplex . -> . -SingleFlonumComplex)
             (-InexactComplex . -> . -InexactComplex)
@@ -1883,21 +1861,21 @@
 
 [exact-floor
  (from-cases
-  (map unop all-int-types)
-  (inexact-zero->exact-zero-type)
-  (-> (Un -NonNegRat -NonNegFlonum -NonNegSingleFlonum -NonNegInexactReal -NonNegReal) -Nat)
-  (-> (Un -NegRat -NegFlonum -NegSingleFlonum -NegInexactReal -NegReal) -NegInt)
-  (-> (Un -NonPosRat -NonPosFlonum -NonPosSingleFlonum -NonPosInexactReal -NonPosReal) -NonPosInt)
-  (-> (Un -Rat -Flonum -SingleFlonum -InexactReal -Real) -Int))]
+  (-> -Int -Int : -true-filter : (-arg-path 0))
+  (-> -RealZero -Zero)
+  (-> -NonNegReal -Nat)
+  (-> -NegReal -NegInt)
+  (-> -NonPosReal -NonPosInt)
+  (-> -Real -Int))]
 
 [exact-ceiling
  (from-cases
-  (map unop all-int-types)
-  (inexact-zero->exact-zero-type)
-  (-> (Un -PosRat -PosFlonum -PosSingleFlonum -PosInexactReal -PosReal) -PosInt)
-  (-> (Un -NonNegRat -NonNegFlonum -NonNegSingleFlonum -NonNegInexactReal -NonNegReal) -Nat)
-  (-> (Un -NonPosRat -NonPosFlonum -NonPosSingleFlonum -NonPosInexactReal -NonPosReal) -NonPosInt)
-  (-> (Un -Rat -Flonum -SingleFlonum -InexactReal -Real) -Int))]
+  (-> -Int -Int : -true-filter : (-arg-path 0))
+  (-> -RealZero -Zero)
+  (-> -PosReal -PosInt)
+  (-> -NonNegReal -Nat)
+  (-> -NonPosReal -NonPosInt)
+  (-> -Real -Int))]
 
 [nan? (make-pred-ty (list -Real) B -InexactRealNan)]
 

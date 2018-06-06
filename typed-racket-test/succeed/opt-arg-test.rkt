@@ -54,6 +54,12 @@
 (unless (equal? 42 (foo))
   (error "oops! a bug!"))
 
+(define (foo2 #:kw [n : Integer (unbox b)])
+  (+ n 0))
+
+(unless (equal? 42 (foo2))
+  (error "oops! a bug!"))
+
 
 (require (prefix-in r: racket/base))
 ;; This expression below either needs to fail to type check

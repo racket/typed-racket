@@ -195,13 +195,20 @@
            #:attr default #f
            #:attr type #f)
   (pattern (~seq kw:keyword [id:id default:expr])
-           #:with form #'(kw [id default])
+           #:with i-id (if (immediate-default? #'default)
+                           (optional-immediate-arg-property #'id #true)
+                           (optional-non-immediate-arg-property #'id #true))
+           #:with form #`(kw [i-id default])
            #:attr type #f)
   (pattern (~seq kw:keyword [id:id : type:expr])
            #:with form #`(kw #,(type-label-property #'id #'type))
            #:attr default #f)
   (pattern (~seq kw:keyword [id:id : type:expr default:expr])
-           #:with form #`(kw [#,(type-label-property #'id #'type) default])))
+           #:with t-id (type-label-property #'id #'type)
+           #:with i-id (if (immediate-default? #'default)
+                           (optional-immediate-arg-property #'t-id #true)
+                           (optional-non-immediate-arg-property #'t-id #true))
+           #:with form #`(kw [i-id default])))
 
 (define-splicing-syntax-class mand-formal
   #:description "lambda argument"

@@ -10,8 +10,7 @@
          signature-env-map
          signature-env-for-each)
 
-(require syntax/id-table
-         racket/match
+(require syntax/private/id-table
          racket/promise
          (for-syntax syntax/parse racket/base)
          "env-utils.rkt"
@@ -34,7 +33,7 @@
 ;; Iterate over the signature environment forcing the types of bindings
 ;; in each signature
 (define (finalize-signatures!)
-  (sorted-dict-for-each signature-env (λ (id sig) (force sig)) id<))
+  (sorted-free-id-table-for-each signature-env (λ (id sig) (force sig))))
 
 ;; lookup-signature : identifier? -> (or/c #f Signature?)
 ;; look up the signature corresponding to the given identifier
@@ -55,7 +54,7 @@
                        #:stx id)))
 
 (define (signature-env-map f)
-  (sorted-dict-map signature-env (λ (id sig) (f id (force sig))) id<))
+  (sorted-free-id-table-map signature-env (λ (id sig) (f id (force sig)))))
 
 (define (signature-env-for-each f)
-  (sorted-dict-for-each signature-env (λ (id sig) (f id (force sig))) id<))
+  (sorted-free-id-table-for-each signature-env (λ (id sig) (f id (force sig)))))

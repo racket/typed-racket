@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/id-table racket/match
+(require syntax/private/id-table racket/match
          racket/syntax
          "../utils/utils.rkt"
          (prefix-in c: (contract-req))
@@ -43,7 +43,7 @@
     [_ #f]))
 
 (define (struct-fn-table-map f)
-  (for/list ([(k v) (in-sorted-dict struct-fn-table id<)])
+  (for/list ([(k v) (in-sorted-free-id-table struct-fn-table)])
     (f k v)))
 
 (define (id-for-struct-pe type/idx=?)

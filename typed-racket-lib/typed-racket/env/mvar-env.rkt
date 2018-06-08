@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require syntax/id-table)
+(require syntax/private/id-table)
 
 (provide mvar-env register-mutated-var is-var-mutated?)
 

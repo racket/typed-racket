@@ -190,7 +190,7 @@
   ;; Build the final provide with auxilliary definitions
   (for/lists (defs export-defs provides aliases)
     ;; sort provs to generate deterministic output
-    ([(internal-id external-ids) (in-sorted-dict provs id<)])
+    ([(internal-id external-ids) (in-sorted-free-id-table provs)])
     (define-values (defs export-def id alias) (mk internal-id))
     (define provide-forms
       (for/list ([external-id (in-list external-ids)])

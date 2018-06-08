@@ -1,18 +1,28 @@
 #lang racket/base
 
-(require racket/dict racket/sequence)
-(provide id< sorted-dict-map sorted-dict-for-each in-sorted-dict)
+(require "../utils/utils.rkt" syntax/private/id-table)
+(provide id<
+         sorted-free-id-table-map
+         sorted-free-id-table-for-each
+         in-sorted-free-id-table
+         in-sorted-free-id-table-keys)
 
 (define (id< a b) (symbol<? (syntax-e a) (syntax-e b)))
 
-(define (sorted-dict-map dict f <)
-  (define sorted (sort (dict-map dict cons) (λ (x y) (< (car x) (car y)))))
-  (map (lambda (a) (f (car a) (cdr a))) sorted))
+(define-syntax-rule (in-sorted-free-id-table table)
+  (in-assoc (sort (for/list ([(k v) (in-free-id-table table)])
+                    (cons k v))
+                  (λ (entry1 entry2) (id< (car entry1) (car entry2))))))
 
-(define (sorted-dict-for-each dict f <)
-  (define sorted (sort (dict-map dict cons) (λ (x y) (< (car x) (car y)))))
-  (for-each (lambda (a) (f (car a) (cdr a))) sorted))
+(define-syntax-rule (in-sorted-free-id-table-keys table)
+  (in-list (sort (for/list ([(k _) (in-free-id-table table)])
+                   k)
+                 id<)))
 
-(define (in-sorted-dict dict <)
-  (define sorted (sort #:key car (dict-map dict cons) <))
-  (in-dict sorted))
+(define (sorted-free-id-table-map table f)
+  (for/list ([(k v) (in-sorted-free-id-table table)])
+    (f k v)))
+
+(define (sorted-free-id-table-for-each table f)
+  (for ([(k v) (in-sorted-free-id-table table)])
+    (f k v)))

@@ -102,7 +102,7 @@
 ;; map over the-mapping, producing a list
 ;; (id type -> T) -> listof[T]
 (define (type-env-map f)
-  (sorted-dict-map the-mapping f id<))
+  (sorted-free-id-table-map the-mapping f))
 
 (define (type-env-for-each f)
-  (sorted-dict-for-each the-mapping f id<))
+  (sorted-free-id-table-map the-mapping f))

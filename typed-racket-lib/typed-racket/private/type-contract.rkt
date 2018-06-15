@@ -150,6 +150,7 @@
                        #,orig-id
                        #,(or maybe-inline-val #'ctc-id)
                        #:pos-source #,blame-id
+                       #:no-context
                        #:srcloc (vector (quote #,(syntax-source orig-id))
                                         #,(syntax-line orig-id)
                                         #,(syntax-column orig-id)

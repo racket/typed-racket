@@ -17,6 +17,9 @@
          Style-Delta%
          Style-List%)
 
+(require "generate-predef-con.rkt"
+         typed-racket/base-env/base-types-extra)
+
 (type-environment
  [snip% (parse-type #'Snip%)]
  [snip-admin% (parse-type #'Snip-Admin%)]

@@ -32,6 +32,7 @@
      (parametric->/c (a) ((static-contract? (-> #:reason (or/c #f string?) a))
                           (contract-kind? #:cache hash? #:recursive-kinds (or/c hash? #f))
                           . ->* . (or/c a (list/c (listof syntax?) syntax?))))]
+ [function-contract? (-> syntax? boolean?)]
  [should-inline-contract? (-> syntax? boolean?)])
 
 ;; Providing these so that tests can work directly with them.
@@ -159,6 +160,8 @@
   ;; calls, which helps for inlining
   (define (recur sc [top-level? #f])
     (cond [(and cache (hash-ref cache sc #f)) => car]
+          ;; fixme: check for kind
+          [(hash-ref predef-contracts sc #f)]
           [(arr/sc? sc) (make-contract sc)]
           [(or (parametric->/sc? sc) (sealing->/sc? sc))
            (match-define (or (parametric->/sc: vars _)
@@ -173,14 +176,16 @@
           [(static-contract-may-contain-free-ids?) (make-contract sc)]
           [else
            (define ctc (make-contract sc))
-           (cond [(and ;; when a contract benefits from inlining
-                       ;; (e.g., ->) and this contract appears
-                       ;; directly in a define-module-boundary-contract
-                       ;; position (i.e, top-level? is #t) then
-                       ;; don't generate a new identifier for it
-                       (or (not (should-inline-contract? ctc))
-                           (not top-level?))
-                       cache)
+           (cond [(and
+                   cache
+                   ;; when a contract benefits from inlining
+                   ;; (e.g., ->) and this contract appears
+                   ;; directly in a define-module-boundary-contract
+                   ;; position (i.e, top-level? is #t) then
+                   ;; don't generate a new identifier for it
+                   (not (should-inline-contract? ctc))
+                   (or (not (function-contract? ctc))
+                       (not top-level?)))
                   (define fresh-id (generate-temporary))
                   (hash-set! cache sc (cons fresh-id ctc))
                   (set! sc-queue (cons sc sc-queue))
@@ -232,16 +237,37 @@
                   #`(define #,id #,ctc)))
         ctc))
 
+(module predefined-contracts racket/base
+  ;; this table maps (cons Type? typed-side?) -> (cons identifier? kind?)
+  ;; where the identifier can be used instead of generating a contract for the type
+  (define predef-contracts (make-hash))
+  (define-syntax-rule (define/contract-decl i ctc sc)
+    (begin (hash-set! predef-contracts sc #'i)
+           (define i ctc)))
+  (provide predef-contracts define/contract-decl))
+
+(require (submod "." predefined-contracts)
+         (for-template (submod "." predefined-contracts)))
+
 ;; Determine whether the given contract syntax should be inlined or not.
 (define (should-inline-contract? stx)
-  (or
-   ;; no need to generate an extra def for things that are already identifiers
-   (identifier? stx)
-   ;; ->* are handled specially by the contract system
-   (let ([sexp (syntax-e stx)])
-     (and (pair? sexp)
-          (or (free-identifier=? (car sexp) #'->)
-              (free-identifier=? (car sexp) #'->*))))))
+   (syntax-case stx (quote)
+     ;; no need to generate an extra def for things that are already identifiers
+     [i (identifier? #'i) #t]
+     [(quote i) (or (identifier? #'i)
+                    (boolean? (syntax-e #'i))
+                    (number? (syntax-e #'i)))
+      #t]
+      [_ #f]))
+
+(define (function-contract? stx)
+  (syntax-case stx ()
+    [(arrow . _)
+     (and (identifier? #'arrow)
+          (or (free-identifier=? #'arrow #'->)
+              (free-identifier=? #'arrow #'->*)))
+     #t]
+    [_ #f]))
 
 ;; determine if a given name is free in the sc
 (define (name-free-in? name sc)

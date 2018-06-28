@@ -61,13 +61,15 @@
 ;; Compute for a given type how many times each type inside of it
 ;; is referenced
 (define (compute-popularity x)
+  (define v (hash-ref pop-table x 0))
   (when (Type? x)
-    (hash-update! pop-table x add1 0))
-  (when (Rep? x)
+    (hash-set! pop-table x (add1 v)))
+  (when (and (Rep? x) (zero? v))
     (Rep-for-each x compute-popularity)))
 
+;; types that are popular (referenced more than once) get their own definition
 (define (popular? ty)
-  (> (hash-ref pop-table ty 0) 5))
+  (> (hash-ref pop-table ty 0) 1))
 
 ;; Type -> S-Exp
 ;; Convert a type to an s-expression to evaluate
@@ -81,8 +83,8 @@
                  ;; predefined table
                  [(and (not (identifier? *res))
                        (popular? ty))
-                  (define id (gensym))
-                  (enqueue! type-definitions #`(define #,id #,*res))
+                  (define id (car (generate-temporaries '(g))))
+                  (enqueue! type-definitions #`(define/decl #,id #,*res))
                   id]
                  [else *res]))
         (hash-set! type-cache ty res)
@@ -168,6 +170,15 @@
                                               (TrueProp:))
                                     (Empty:)))))))
      `(simple-> (list ,@(map type->sexp dom)) ,(type->sexp t))]
+    [(Fun: (list (Arrow: dom #f '()
+                         (Values:
+                          (list
+                           (Result: t
+                                    (PropSet: (TrueProp:)
+                                              (TrueProp:))
+                                    (Empty:))
+                           ...)))))
+     `(simple->values (list ,@(map type->sexp dom)) (list ,@(map type->sexp t)))]
     [(Fun: (list (Arrow: dom #f'()
                          (Values:
                           (list
@@ -197,7 +208,7 @@
      (match-define (Arrow: fdoms _ kws rng) (first arrs))
      (match-define (Arrow: ldoms rst _ _) (last arrs))
      (define opts (drop ldoms (length fdoms)))
-     `(opt-fn
+     `(opt-fn*
        (list ,@(map type->sexp fdoms))
        (list ,@(map type->sexp opts))
        ,(type->sexp rng)
@@ -278,10 +289,10 @@
                            `(quote ,n)))
                      ,(type->sexp b))]
     [(PolyRow-names: ns c b)
-     `(make-PolyRow (list ,@(for/list ([n (in-list ns)])
-                              `(quote ,n)))
-                    (quote ,c)
-                    ,(type->sexp b))]
+     `(make-PolyRow-simple (list ,@(for/list ([n (in-list ns)])
+                                     `(quote ,n)))
+                           (quote ,c)
+                           ,(type->sexp b))]
     [(Row: inits fields methods augments init-rest)
      `(make-Row (list ,@(convert-row-clause inits #t))
                 (list ,@(convert-row-clause fields))
@@ -295,6 +306,7 @@
                   (list ,@(convert-row-clause methods))
                   (list ,@(convert-row-clause augments))
                   ,(and init-rest (type->sexp init-rest)))]
+    [(Instance: (Name: n 0 #f)) `(simple-inst (quote-syntax ,n))]
     [(Instance: ty) `(make-Instance ,(type->sexp ty))]
     [(Signature: name extends mapping)
      (define (serialize-mapping m)
@@ -312,15 +324,9 @@
                  (list ,@(map type->sexp exports))
                  (list ,@(map type->sexp init-depends))
                  ,(type->sexp result))]
-    [(Arrow: dom #f '()
-             (Values: (list (Result: t (PropSet: (TrueProp:)
-                                                 (TrueProp:))
-                                     (Empty:)))))
-     `(-Arrow (list ,@(map type->sexp dom))
-              ,(type->sexp t))]
     [(Arrow: dom #f '() rng)
-     `(-Arrow (list ,@(map type->sexp dom))
-              ,(type->sexp rng))]
+     `(simple-arrow (list ,@(map type->sexp dom))
+                    ,(type->sexp rng))]
     [(Arrow: dom rest kws rng)
      `(make-Arrow
        (list ,@(map type->sexp dom))

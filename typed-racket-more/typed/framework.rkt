@@ -62,6 +62,7 @@
  (define -Continuation-Mark-Set (-opq #'continuation-mark-set?))
  (define -Struct Univ) ; FIXME
  (define -Text:Range (-opq #'text:range?))
+ 
 
  ; Frequently reused instances
  (define -Color%-Instance (make-Instance -Color%))
@@ -87,6 +88,9 @@
  (define -Area<%>-Instance (make-Instance -Area<%>))
  (define -Window<%>-Instance (make-Instance -Window<%>))
  (define -DC<%>-Instance (make-Instance -DC<%>)))
+
+(require "racket/generate-predef-con.rkt"
+         typed-racket/base-env/base-types-extra)
 
 (type-environment
  [application:current-app-name (-Param -String)]

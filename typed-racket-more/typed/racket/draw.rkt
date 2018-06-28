@@ -82,6 +82,9 @@
   (define -Font-Hinting (parse-type #'Font-Hinting))
   (define -LoadFileKind (parse-type #'LoadFileKind)))
 
+(require "generate-predef-con.rkt"
+         typed-racket/base-env/base-types-extra)
+
 (type-environment
  [bitmap% (parse-type #'Bitmap%)]
  [bitmap-dc% (parse-type #'Bitmap-DC%)]

@@ -5,8 +5,8 @@
 (require "gui/base.rkt"
          typed/racket)
 
-(provide (all-from-out "gui/base.rkt")
-         (all-from-out typed/racket))
+(#%provide (all-from "gui/base.rkt")
+           (all-from typed/racket))
 
 ;; language definition
 (module reader syntax/module-reader

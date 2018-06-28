@@ -31,6 +31,7 @@
 (begin-for-syntax
   (module* #%type-decl #f
     (#%plain-module-begin
+     (#%declare #:empty-namespace)
      (require typed-racket/env/global-env
               typed-racket/types/abbrev
               typed-racket/rep/type-rep)
@@ -43,3 +44,9 @@
       ;;
       ;;       Also, this type works better with inference.
       (-> (make-Prompt-Tagof Univ (-> Univ ManyUniv)))))))
+
+;; we also have to manually add these submodules which extra-env-lang.rkt would do for us
+(begin-for-syntax
+  (module* #%contract-defs-names #f (#%plain-module-begin (#%declare #:empty-namespace))))
+(module* #%contract-defs #f (#%plain-module-begin (#%declare #:empty-namespace)))
+

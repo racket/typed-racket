@@ -4,7 +4,7 @@
          (for-syntax racket/base
                      syntax/parse)
          (for-template racket/base)
-         (private type-contract)
+         (except-in (private type-contract) type->contract)
          (rep type-rep values-rep)
          (types abbrev numeric-tower prop-ops)
          (static-contracts combinators optimize)

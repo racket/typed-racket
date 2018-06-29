@@ -22,6 +22,7 @@
          -InexactRealPosZero -InexactRealNegZero -InexactRealZero -InexactRealNan
          -PosInexactReal -NonNegInexactReal -NegInexactReal -NonPosInexactReal -InexactReal
          -RealZero -RealZeroNoNan -PosReal -NonNegReal -NegReal -NonPosReal -Real
+         -RealZeroNoNan -PosRealNoNan -NonNegRealNoNan -NegRealNoNan -NonPosRealNoNan -RealNoNan
          -PosInfinity -NegInfinity
          -ExactImaginary -FloatImaginary -SingleFlonumImaginary -InexactImaginary -Imaginary
          -ExactNumber -ExactComplex -FloatComplex -SingleFlonumComplex -InexactComplex -Number
@@ -80,8 +81,8 @@
 (define/decl -InexactRealPosZero (Un -SingleFlonumPosZero -FlonumPosZero))
 (define/decl -InexactRealNegZero (Un -SingleFlonumNegZero -FlonumNegZero))
 (define/decl -InexactRealZero    (Un -InexactRealPosZero
-                                 -InexactRealNegZero
-                                 -InexactRealNan))
+                                     -InexactRealNegZero
+                                     -InexactRealNan))
 
 
 (define/decl -PosSingleFlonum    (Un -PosSingleFlonumNoNan -SingleFlonumNan))
@@ -98,12 +99,19 @@
 
 ;; Reals
 (define/decl -RealZero      (Un -Zero -InexactRealZero))
-(define/decl -RealZeroNoNan (Un -Zero -InexactRealPosZero -InexactRealNegZero))
 (define/decl -PosReal       (Un -PosRat -PosInexactReal))
 (define/decl -NonNegReal    (Un -NonNegRat -NonNegInexactReal))
 (define/decl -NegReal       (Un -NegRat -NegInexactReal))
 (define/decl -NonPosReal    (Un -NonPosRat -NonPosInexactReal))
 (define/decl -Real          (Un -Rat -InexactReal))
+
+;; Reals sans NaN (used for comparison specifications)
+(define/decl -RealZeroNoNan      (Un -Zero -InexactRealPosZero -InexactRealNegZero))
+(define/decl -PosRealNoNan       (Un -PosRat -PosFlonumNoNan -PosSingleFlonumNoNan))
+(define/decl -NonNegRealNoNan    (Un -RealZeroNoNan -PosRealNoNan))
+(define/decl -NegRealNoNan       (Un -NegRat -NegFlonumNoNan -NegSingleFlonumNoNan))
+(define/decl -NonPosRealNoNan    (Un -RealZeroNoNan -NegRealNoNan))
+(define/decl -RealNoNan          (Un -NegRealNoNan -RealZeroNoNan -PosRealNoNan))
 
 (define/decl -ExactNumber (Un -ExactImaginary -ExactComplex -Rat))
 (define/decl -InexactImaginary (Un -FloatImaginary -SingleFlonumImaginary))

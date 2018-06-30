@@ -4897,6 +4897,206 @@
           (foo v 0)
           (void))
         #:ret (ret -Void #f #f)]
+       
+       ;; comparisons must correctly account for if the
+       ;; #false result was caused by a NaN (see TR Github issue #747)
+       ;; less-than
+       (tc-err
+        (let ([x : Positive-Real +nan.0]
+              [y : Negative-Fixnum -42])
+          (if (< y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Positive-Real +nan.0]
+              [y : Negative-Integer -42])
+          (if (< y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Byte 0]
+              [y : Negative-Real +nan.0])
+          (if (< y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Index 0]
+              [y : Negative-Real +nan.0])
+          (if (< y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Nonnegative-Fixnum 0]
+              [y : Negative-Real +nan.0])
+          (if (< y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Natural 0]
+              [y : Negative-Real +nan.0])
+          (if (< y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+
+
+       ;; less-than-or-equal-to
+       (tc-err
+        (let ([x : Positive-Real +nan.0]
+              [y : Negative-Fixnum -42])
+          (if (<= y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Positive-Real +nan.0]
+              [y : Negative-Integer -42])
+          (if (<= y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Byte 0]
+              [y : Negative-Real +nan.0])
+          (if (<= y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Index 0]
+              [y : Negative-Real +nan.0])
+          (if (<= y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Nonnegative-Fixnum 0]
+              [y : Negative-Real +nan.0])
+          (if (<= y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Natural 0]
+              [y : Negative-Real +nan.0])
+          (if (<= y x)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       ;; greater-than-or-equal-to
+       (tc-err
+        (let ([x : Positive-Real +nan.0]
+              [y : Negative-Fixnum -42])
+          (if (>= x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Positive-Real +nan.0]
+              [y : Negative-Integer -42])
+          (if (>= x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Byte 0]
+              [y : Negative-Real +nan.0])
+          (if (>= x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Index 0]
+              [y : Negative-Real +nan.0])
+          (if (>= x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Nonnegative-Fixnum 0]
+              [y : Negative-Real +nan.0])
+          (if (>= x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Natural 0]
+              [y : Negative-Real +nan.0])
+          (if (>= x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       ;; greater-than
+       (tc-err
+        (let ([x : Positive-Real +nan.0]
+              [y : Negative-Fixnum -42])
+          (if (> x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Positive-Real +nan.0]
+              [y : Negative-Integer -42])
+          (if (> x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Byte 0]
+              [y : Negative-Real +nan.0])
+          (if (> x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Index 0]
+              [y : Negative-Real +nan.0])
+          (if (> x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Nonnegative-Fixnum 0]
+              [y : Negative-Real +nan.0])
+          (if (> x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
+
+       (tc-err
+        (let ([x : Natural 0]
+              [y : Negative-Real +nan.0])
+          (if (> x y)
+              (void)
+              (void (+ "1" "2"))))
+        #:ret (ret -Void #f #f))
        )
 
   (test-suite

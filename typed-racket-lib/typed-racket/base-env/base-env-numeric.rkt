@@ -598,51 +598,51 @@
   ;; As explained below, this is because props don't do intersections.
   ;; Cases that may include NaN don't learn anything when a comparison returns
   ;; false, because anything at all compared to NaN is always false.
-  (define (<-type-pattern base pos non-neg neg non-pos [zero -RealZero]
+  (define (<-type-pattern base pos non-neg neg non-pos [zero -RealZeroNoNan]
                           #:no-false-props? [no-false-props? #f])
     (define (-PS* t f) (-PS t (if no-false-props? -tt f)))
     (list (-> base zero B : (-PS* (-is-type 0 neg) (-is-type 0 non-neg)))
           (-> zero base B : (-PS* (-is-type 1 pos) (-is-type 1 non-pos)))
-          (-> base -PosReal B : (-PS* -tt (-is-type 0 pos)))
-          (-> base -NonNegReal B : (-PS* -tt (-is-type 0 non-neg)))
+          (-> base -PosRealNoNan B : (-PS* -tt (-is-type 0 pos)))
+          (-> base -NonNegRealNoNan B : (-PS* -tt (-is-type 0 non-neg)))
           (-> -NonNegReal base B : (-PS* (-is-type 1 pos) -tt))
           (-> base -NonPosReal B : (-PS* (-is-type 0 neg) -tt))
-          (-> -NegReal base B : (-PS* -tt (-is-type 1 neg)))
-          (-> -NonPosReal base B : (-PS* -tt (-is-type 1 non-pos)))))
-  (define (>-type-pattern base pos non-neg neg non-pos [zero -RealZero]
+          (-> -NegRealNoNan base B : (-PS* -tt (-is-type 1 neg)))
+          (-> -NonPosRealNoNan base B : (-PS* -tt (-is-type 1 non-pos)))))
+  (define (>-type-pattern base pos non-neg neg non-pos [zero -RealZeroNoNan]
                           #:no-false-props? [no-false-props? #f])
     (define (-PS* t f) (-PS t (if no-false-props? -tt f)))
     (list (-> base zero B : (-PS* (-is-type 0 pos) (-is-type 0 non-pos)))
           (-> zero base B : (-PS* (-is-type 1 neg) (-is-type 1 non-neg)))
           (-> base -NonNegReal B : (-PS* (-is-type 0 pos) -tt))
-          (-> -PosReal base B : (-PS* -tt (-is-type 1 pos)))
-          (-> -NonNegReal base B : (-PS* -tt (-is-type 1 non-neg)))
+          (-> -PosRealNoNan base B : (-PS* -tt (-is-type 1 pos)))
+          (-> -NonNegRealNoNan base B : (-PS* -tt (-is-type 1 non-neg)))
           (-> -NonPosReal base B : (-PS* (-is-type 1 neg) -tt))
-          (-> base -NegReal B : (-PS* -tt (-is-type 0 neg)))
-          (-> base -NonPosReal B : (-PS* -tt (-is-type 0 non-pos)))))
+          (-> base -NegRealNoNan B : (-PS* -tt (-is-type 0 neg)))
+          (-> base -NonPosRealNoNan B : (-PS* -tt (-is-type 0 non-pos)))))
   ;; this is > with flipped props
-  (define (<=-type-pattern base pos non-neg neg non-pos [zero -RealZero]
+  (define (<=-type-pattern base pos non-neg neg non-pos [zero -RealZeroNoNan]
                            #:no-false-props? [no-false-props? #f])
     (define (-PS* t f) (-PS t (if no-false-props? -tt f)))
     (list (-> base zero B : (-PS* (-is-type 0 non-pos) (-is-type 0 pos)))
           (-> zero base B : (-PS* (-is-type 1 non-neg) (-is-type 1 neg)))
-          (-> base -NonNegReal B : (-PS* -tt (-is-type 0 pos)))
+          (-> base -NonNegRealNoNan B : (-PS* -tt (-is-type 0 pos)))
           (-> -PosReal base B : (-PS* (-is-type 1 pos) -tt))
           (-> -NonNegReal base B : (-PS* (-is-type 1 non-neg) -tt))
-          (-> -NonPosReal base B : (-PS* -tt (-is-type 1 neg)))
+          (-> -NonPosRealNoNan base B : (-PS* -tt (-is-type 1 neg)))
           (-> base -NegReal B : (-PS* (-is-type 0 neg) -tt))
           (-> base -NonPosReal B : (-PS* (-is-type 0 non-pos) -tt))))
-  (define (>=-type-pattern base pos non-neg neg non-pos [zero -RealZero]
+  (define (>=-type-pattern base pos non-neg neg non-pos [zero -RealZeroNoNan]
                            #:no-false-props? [no-false-props? #f])
     (define (-PS* t f) (-PS t (if no-false-props? -tt f)))
     (list (-> base zero B : (-PS* (-is-type 0 non-neg) (-is-type 0 neg)))
           (-> zero base B : (-PS* (-is-type 1 non-pos) (-is-type 1 pos)))
           (-> base -PosReal B : (-PS* (-is-type 0 pos) -tt))
           (-> base -NonNegReal B : (-PS* (-is-type 0 non-neg) -tt))
-          (-> -NonNegReal base B : (-PS* -tt (-is-type 1 pos)))
-          (-> base -NonPosReal B : (-PS* -tt (-is-type 0 neg)))
+          (-> -NonNegRealNoNan base B : (-PS* -tt (-is-type 1 pos)))
+          (-> base -NonPosRealNoNan B : (-PS* -tt (-is-type 0 neg)))
           (-> -NegReal base B : (-PS* (-is-type 1 neg) -tt))
-          (-> -NonPosReal base B : (-PS* (-is-type 1 non-pos) -tt))))
+          (-> -NonPosRealNoNan base B : (-PS* (-is-type 1 non-pos) -tt))))
 
   (define (negation-pattern pos neg non-neg non-pos)
     (list (-> pos neg)

@@ -143,9 +143,18 @@
      (sinh E*)
      (cosh E*)
      (tanh E*)
-     (expt E* E*)
-     ])
-;; generated from: (map car (file->list "base-env-parts"))
+     (expt E* E*)]
+  [INEQ < <= >= >]
+  [R n (+ R R) (- R R) (* R R) (expt R R)]
+  [C (let* ([x R] [y R])
+       (if (INEQ x y) x #false))
+     (let* ([x R] [y R])
+       (if (INEQ x y) #false x))
+     (let* ([x R] [y R])
+       (if (INEQ x y) y #false))
+     (let* ([x R] [y R])
+       (if (INEQ x y) #false y))])
+;; initial version generated from: (map car (file->list "base-env-parts"))
 
 ;; Redex can't generate reals, so we convert ints to reals.
 (define (exp->real-exp E) ; numbers or symbols or lists
@@ -256,8 +265,16 @@
                #:attempts 1000
                #:prepare exp->real-exp
                #:keep-going? #t)
+  (redex-check tr-arith C #:in-order (check-all-reals (term C) verbose?)
+               #:attempts 1000
+               #:prepare exp->real-exp
+               #:keep-going? #t)
   ;; then switch to purely random to get different ones every run
   (redex-check tr-arith E #:ad-hoc (check-all-reals (term E) verbose?)
+               #:attempts n-attempts
+               #:prepare exp->real-exp
+               #:keep-going? #t)
+  (redex-check tr-arith C #:ad-hoc (check-all-reals (term C) verbose?)
                #:attempts n-attempts
                #:prepare exp->real-exp
                #:keep-going? #t)

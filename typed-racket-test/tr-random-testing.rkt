@@ -146,14 +146,10 @@
      (expt E* E*)]
   [INEQ < <= >= >]
   [R n (+ R R) (- R R) (* R R) (expt R R)]
-  [C (let* ([x R] [y R])
-       (if (INEQ x y) x #false))
-     (let* ([x R] [y R])
-       (if (INEQ x y) #false x))
-     (let* ([x R] [y R])
-       (if (INEQ x y) y #false))
-     (let* ([x R] [y R])
-       (if (INEQ x y) #false y))])
+  [C (let ([x R] [y R]) (if (INEQ x y) x  #f))
+     (let ([x R] [y R]) (if (INEQ x y) #f x))
+     (let ([x R] [y R]) (if (INEQ x y) y #f))
+     (let ([x R] [y R]) (if (INEQ x y) #f y))])
 ;; initial version generated from: (map car (file->list "base-env-parts"))
 
 ;; Redex can't generate reals, so we convert ints to reals.

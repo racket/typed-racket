@@ -5097,6 +5097,16 @@
               (void)
               (void (+ "1" "2"))))
         #:ret (ret -Void #f #f))
+
+       (tc-e
+        (let ([id (tr:lambda #:forall (t) ([x : t]) x)])
+          id)
+        #:ret (tc-ret (-poly (A)
+                          (t:-> A A
+                                : (-PS (-not-type (cons 0 0) (-val #f))
+                                       (-is-type (cons 0 0) (-val #f)))
+                                : (make-Path null (cons 0 0))))
+                        -true-propset))
        )
 
   (test-suite

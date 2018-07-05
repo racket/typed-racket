@@ -312,7 +312,7 @@
 ;; say that this binding is only called in tail position
 (define ((tc-expr-t/maybe-expected expected) e)
   (syntax-parse e #:literal-sets (kernel-literals)
-    [(~and (#%plain-lambda (fmls:type-annotation^ ...) _) _:tail-position^)
+    [(~and _:tail-position^ (#%plain-lambda (fmls:type-annotation^ ...) _))
      #:when expected
      (define arg-tys (attribute fmls.type))
      (tc-expr/check e (ret (t:->* arg-tys (tc-results->values expected))))]

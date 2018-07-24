@@ -1,3 +1,10 @@
+7.0
+- Revamp prefab struct handling.
+- Improve contract generation for unions.
+- Handle NaN correctly in comparisons.
+- Improve `unsafe-provide` on imported bindings.
+- Add `#:rest-star` in function types.
+- Add `typed-racket:ignore-type-information` syntax property.
 6.12
 - Fixes for contract generation (merged before 6.11 but not released).
 - Change `inst` to handle missing arguments (uses `Any`).

@@ -6,7 +6,7 @@
          (utils tc-utils identifier)
          (env tvar-env lexical-env)
          (for-syntax syntax/parse racket/base)
-         (types utils subtype resolve abbrev
+         (types utils subtype resolve abbrev type-table
                 substitute classes prop-ops)
          (typecheck tc-metafunctions tc-app-helper tc-subst tc-envops
                     check-below)
@@ -115,17 +115,14 @@
        ;; check there are no RestDots
        #:when (not (for/or ([a (in-list arrows)])
                      (RestDots? (Arrow-rst a))))
-       (cond
-         ;; find the first function where the argument types match
-         [(ormap (match-lambda
-                   [(and a (Arrow: dom rst _ _))
-                    (and (subtypes/varargs argtys dom rst) a)])
-                 arrows)
-          => (λ (a)
-               ;; then typecheck here -- we call the separate function so that we get
-               ;; the appropriate props/objects
-               (tc/funapp1 f-stx args-stx a args-res expected #:check #f))]
-         [else
+       (define applicable-arrows
+         (filter (match-lambda
+                   [(Arrow: dom rst _ _)
+                    (subtypes/varargs argtys dom rst)])
+                 arrows))
+       
+       (match applicable-arrows
+         [(list)
           ;; if nothing matched, error
           (match arrows
             [(list (Arrow: doms rsts _ rngs) ...)
@@ -135,7 +132,30 @@
               #:msg-thunk (lambda (dom)
                             (string-append
                              "No function domains matched in function application:\n"
-                             dom)))])])]
+                             dom)))])]
+         [(list a) (tc/funapp1 f-stx args-stx a args-res expected #:check #f)]
+         [_
+          ;; call a separate function so that we get
+          ;; the appropriate props/objects
+          (define app-result
+            (intersect-tc-results
+             (for/list ([a (in-list applicable-arrows)])
+               (tc/funapp1 f-stx args-stx a args-res expected
+                           #:check #f
+                           #:tooltip? #f))))
+          (define applicable-domain
+            ;; gather and intersect applicable domains to report to user
+            ;; generally what class of inputs produces the resulting output
+            (for/fold ([domtys (build-list (length argtys) (λ (_) Univ))])
+                      ([a (in-list applicable-arrows)])
+              (match a
+                [(Arrow: dom rst _ _) (for/list ([domty (in-list domtys)]
+                                                 [idx (in-naturals)])
+                                        (intersect domty (dom+rst-ref dom rst idx)))])))
+          (add-typeof-expr
+           f-stx
+           (ret (make-Fun (list (-Arrow applicable-domain (tc-results->values app-result))))))
+          app-result])]
       ;; any kind of dotted polymorphic function without mandatory keyword args
       [(PolyDots: (list fixed-vars ... dotted-var)
                   (Fun: arrows))
@@ -308,7 +328,7 @@
       ;; a union of functions can be applied if we can apply all of the elements
       [(Union: (? Bottom?) ts) #:when (for/and ([t (in-list ts)])
                                         (subtype t top-func))
-       (merge-tc-results
+       (union-tc-results
         (for/list ([fty (in-list ts)])
           (tc/funapp f-stx args-stx fty args-res expected)))]
       ;; bottom or error type is a perfectly good fcn type

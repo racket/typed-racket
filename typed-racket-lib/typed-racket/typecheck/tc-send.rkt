@@ -42,7 +42,7 @@
                      rcvr-type)])]
       ;; union of objects, check pointwise and union the results
       [(Union: (? Bottom?) objs) #:when (andmap Instance? objs)
-       (merge-tc-results (map do-check objs))]
+       (union-tc-results (map do-check objs))]
       [_ (tc-error/expr/fields
           "send: type mismatch"
           "expected" "an object"

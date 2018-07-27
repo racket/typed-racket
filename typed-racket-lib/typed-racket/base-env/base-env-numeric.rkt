@@ -1498,7 +1498,7 @@
              ;; no positive / negative cases, possible underflow
              (-NonNegReal . -> . -NonNegSingleFlonum)
              (-NonPosReal . -> . -NonPosSingleFlonum)
-             (-Real . -> . -SingleFlonumZero))]
+             (-Real . -> . -SingleFlonum))]
 [real->double-flonum
  (from-cases (map unop all-flonum-types)
              (-SingleFlonumPosZero . -> . -FlonumPosZero)

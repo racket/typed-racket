@@ -15,11 +15,14 @@
 (provide/cond-contract
   [tc/funapp1
     ((syntax? stx-list? Arrow? (listof tc-results/c) (or/c #f tc-results/c))
-     (#:check boolean?)
+     (#:check boolean? #:tooltip? boolean?)
      . ->* . full-tc-results/c)])
-(define (tc/funapp1 f-stx args-stx ftype0 arg-ress expected #:check [check? #t])
+(define (tc/funapp1 f-stx args-stx ftype0 arg-ress expected
+                    #:check [check? #t]
+                    #:tooltip? [tooltip? #t])
   ;; update tooltip-table with inferred function type
-  (add-typeof-expr f-stx (ret (make-Fun (list ftype0))))
+  (when tooltip?
+    (add-typeof-expr f-stx (ret (make-Fun (list ftype0)))))
   (match* (ftype0 arg-ress)
     ;; we check that all kw args are optional
     [((Arrow: dom rst (list (Keyword: _ _ #f) ...) rng)

@@ -371,8 +371,9 @@
    (-> -ExtFlVector (-seq -ExtFlonum))]
   [(make-template-identifier 'make-namespace-anchor 'racket/private/namespace)
    (-> -Variable-Reference -Namespace-Anchor)]
+  ;; do-partial-app and source-location-source come from contract-out
   [(make-template-identifier 'do-partial-app 'racket/contract/private/provide)
-   (-> Univ Univ Univ Univ Univ (-values (list Univ Univ)))]
+   (-> Univ Univ Univ Univ Univ Univ (-values (list Univ Univ)))]
   [(make-template-identifier 'source-location-source 'syntax/srcloc)
    (-> (-Syntax Univ) Univ)]
   )

@@ -66,6 +66,8 @@
          abstract-obj
          substitute-names
          DepFun/ids:
+         Contract? Contract-in-ty Contract-out-ty
+         FlatContract? FlatContract-in-ty FlatContract-out-ty
          (rename-out [Union:* Union:]
                      [Intersection:* Intersection:]
                      [make-Intersection* make-Intersection]

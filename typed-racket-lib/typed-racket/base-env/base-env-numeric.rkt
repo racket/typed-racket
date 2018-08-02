@@ -1268,24 +1268,16 @@
 
 [add1 (from-cases
        (-> -Zero -One)
-       (-> -One -PosByte)
-       (-> -Byte -PosIndex)
-       (-> -Index -PosFixnum)
-       (-> -NegFixnum -NonPosFixnum)
+       (-> -One -Byte)
+       (-> -Byte -Index)
+       (-> -Index -Fixnum)
        (-> -NonPosFixnum -Fixnum)
-       (-> -Nat -Pos)
        (-> -NegInt -NonPosInt)
-       (unop -Int)
-       (-> -NonNegRat -PosRat)
-       (unop -Rat)
-       (-> -NonNegFlonum -PosFlonum)
-       (unop -Flonum)
-       (-> -NonNegSingleFlonum -PosSingleFlonum)
-       (unop -SingleFlonum)
-       (-> -NonNegInexactReal -PosInexactReal)
-       (unop -InexactReal)
        (-> -NonNegReal -PosReal)
-       (map unop (list -Real -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
+       (-> -InexactReal -InexactReal)
+       (map unop (list -Int -Rat -Flonum -SingleFlonum
+                       -FloatComplex -SingleFlonumComplex
+                       -Real -InexactReal -InexactComplex N)))]
 
 [sub1 (from-cases
        (-> -One -Zero)

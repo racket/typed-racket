@@ -2,6 +2,7 @@
 
 @begin[(require "../utils.rkt" scribble/example racket/sandbox)
        (require (for-label (only-meta-in 0 [except-in typed/racket])
+                           (only-in racket/contract contract-out)
                            (only-in racket/base)))]
 
 @(define the-eval (make-base-eval))
@@ -510,9 +511,6 @@ for function types.
     (: var4 : String -> Integer)]
 }
 
-@defform[(provide: [v t] ...)]{This declares that the @racket[v]s have
-the types @racket[t], and also provides all of the @racket[v]s.}
-
 @defform/none[#{v : t}]{ This declares that the variable @racket[v] has type
 @racket[t].  This is legal only for binding occurrences of @racket[_v].
 
@@ -709,6 +707,41 @@ Uses outside of a module top-level raise an error.
     (require 'evts)
     (sync (alarm-evt (+ 100 (current-inexact-milliseconds))))]
 }
+
+@section{Provide}
+
+@defform[(provide: [v t] ...)]{This declares that the @racket[v]s have
+the types @racket[t], and also provides all of the @racket[v]s.}
+
+@defform/subs[
+#:literals (rename struct type)
+(type-out type-out-spec ...)
+([type-out-spec
+  (id t)
+  (rename orig-id id t)
+  (struct maybe-type-vars id/super ((id : t) ...)
+    struct-option)]
+ [maybe-type-vars code:blank
+                  (v ...)]
+ [id/super id
+           (id super-id)]
+ [struct-option (code:line)
+                #:omit-constructor])]{
+A @racket[_provide-spec] similar to @racket[contract-out] for use in @racket[provide]
+ (currently only for the same phase level as the enclosing @racket[provide] form).
+
+The basic @racket[(id t)] form applies the type annotation @racket[t] to the identifier
+ @racket[id] and exports @racket[id].
+This has the same effect as the sequence @racket[(begin (: id t) (provide id))].
+
+The @racket[rename] form assigns @racket[orig-id] the type @racket[t] and exports
+ @racket[orig-id] under the name @racket[id].
+Within the module only @racket[orig-id] is visible, but clients may only use @racket[id].
+
+The @racket[struct] form describes the name and public fields of an existing structure type.
+When the @racket[#:omit-constructor] option is given, the constructor name is not exported.
+}
+
 
 @section{Other Forms}
 

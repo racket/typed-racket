@@ -342,11 +342,22 @@
               (~datum prefix-all-defined) (~datum prefix-all-defined-except)
               (~datum expand)))))
 
+;; Move type declarations introduced by 'type-out' to the beginning
+;;  of a list of forms.
+;; Maintain relative ordering of lifted declarations and of other declarations.
+;; Exists because typechecking depends on the ordering of annotations vs. defs,
+;;  and there is no `syntax-local-lift-module-begin-declaration` function.
+;; (-> (Listof Syntax) (Listof Syntax))
+(define (lift-type-out-declarations form*)
+  (define (is-type-out-decl? form)
+    (syntax-property form tr:type-out:type-annotation-property))
+  (call-with-values (lambda () (partition is-type-out-decl? form*)) append))
+
 ;; actually do the work on a module
 ;; produces prelude and post-lude syntax objects
 ;; syntax-list -> (values syntax syntax)
 (define (type-check forms0)
-  (define forms (syntax->list forms0))
+  (define forms (lift-type-out-declarations (syntax->list forms0)))
   (do-time "before form splitting")
   (define-values (type-aliases struct-defs stx-defs0 val-defs0 provs signature-defs)
     (filter-multiple

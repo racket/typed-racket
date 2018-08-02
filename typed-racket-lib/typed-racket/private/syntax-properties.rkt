@@ -78,6 +78,7 @@
   (tr:class:local-table tr:class:local-table)
   (tr:class:name-table tr:class:name-table)
   (tr:class:def tr:class:def)
+  (tr:type-out:type-annotation tr:type-out:type-annotation)
   (tr:unit tr:unit #:mark)
   (tr:unit:body-exp-def-type tr:unit:body-exp-def-type)
   (tr:unit:invoke tr:unit:invoke)

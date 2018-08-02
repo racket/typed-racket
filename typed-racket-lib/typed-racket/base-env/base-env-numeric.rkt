@@ -1283,22 +1283,13 @@
        (-> -One -Zero)
        (-> -PosByte -Byte)
        (-> -PosIndex -Index)
-       (-> -Index -Fixnum)
-       (-> -PosFixnum -NonNegFixnum)
        (-> -NonNegFixnum -Fixnum)
        (-> -Pos -Nat)
-       (-> -NonPosInt -NegInt)
-       (unop -Int)
-       (-> -NonPosRat -NegRat)
-       (unop -Rat)
-       (-> -NonPosFlonum -NegFlonum)
-       (unop -Flonum)
-       (-> -NonPosSingleFlonum -NegSingleFlonum)
-       (unop -SingleFlonum)
-       (-> -NonPosInexactReal -NegInexactReal)
-       (unop -InexactReal)
        (-> -NonPosReal -NegReal)
-       (map unop (list -Real -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
+       (map unop (list -Int -Rat -Flonum -SingleFlonum
+                       -Real -InexactReal -FloatComplex
+                       -SingleFlonumComplex -InexactComplex
+                       N)))]
 
 [quotient
  (from-cases

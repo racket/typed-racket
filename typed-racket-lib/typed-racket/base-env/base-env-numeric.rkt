@@ -664,22 +664,10 @@
   (define abs-cases ; used both for abs and magnitude
     (list
      ;; abs is not the identity on negative zeros.
-     ((Un -Zero -PosReal) . -> . (Un -Zero -PosReal) : -true-propset : (-arg-path 0))
-     ;; but we know that we at least get *some* zero, and that it preserves exactness
-     (map unop (list -FlonumZero -SingleFlonumZero -RealZero))
-     ;; abs may not be closed on fixnums. (abs min-fixnum) is not a fixnum
-     ((Un -PosInt -NegInt) . -> . -PosInt)
-     (-Int . -> . -Nat)
-     ((Un -PosRat -NegRat) . -> . -PosRat)
-     (-Rat . -> . -NonNegRat)
-     ((Un -PosFlonum -NegFlonum) . -> . -PosFlonum)
-     (-Flonum . -> . -NonNegFlonum)
-     ((Un -PosSingleFlonum -NegSingleFlonum) . -> . -PosSingleFlonum)
-     (-SingleFlonum . -> . -NonNegSingleFlonum)
-     ((Un -PosInexactReal -NegInexactReal) . -> . -PosInexactReal)
-     (-InexactReal . -> . -NonNegInexactReal)
-     ((Un -PosReal -NegReal) . -> . -PosReal)
-     (-Real . -> . -NonNegReal)))
+     (-> (Un -Zero -PosReal) (Un -Zero -PosReal) : -true-propset : (-arg-path 0))
+     (map unop (list -RealZero -Int -Rat -Flonum -SingleFlonum))
+     (-> (Un -PosReal -NegReal) -PosReal)
+     (-> -Real -NonNegReal)))
 
   ;Check to ensure we fail fast if the flonum bindings change
   (define-namespace-anchor anchor)

@@ -13,7 +13,7 @@
     [(_ (s t) result)
      (syntax/loc stx
        (check-equal? (pairwise-intersect s t) result))]))
-(define intersect-exn? #rx"pairwise-intersect[^:]*:")
+(define intersect-exn? #rx"match[^:]*:")
 (define-syntax (check-intersect/err stx)
   (syntax-case stx ()
     [(_ (s t))

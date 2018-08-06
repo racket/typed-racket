@@ -48,6 +48,8 @@
   (make-PrefabTop (normalize-prefab-key key field-count)))
 (define -unit make-Unit)
 (define -signature make-Signature)
+(define -Contract make-Contract)
+(define -FlatContract make-FlatContract)
 
 (define (-seq . args) (make-Sequence args))
 

@@ -66,6 +66,8 @@
          abstract-obj
          substitute-names
          DepFun/ids:
+         Contract? Contract-in-ty Contract-out-ty
+         FlatContract? FlatContract-in-ty FlatContract-out-ty
          (rename-out [Union:* Union:]
                      [Intersection:* Intersection:]
                      [make-Intersection* make-Intersection]
@@ -1226,6 +1228,9 @@
        -Bottom
        (make-Distinction nm id ty))])
 
+;; Contract type
+(def-structural Contract ([in-ty #:contravariant] [out-ty #:covariant]))
+(def-structural FlatContract ([in-ty #:contravariant] [out-ty #:covariant]))
 
 ;;************************************************************
 ;; Type Variable tools (i.e. Abstraction/Instantiation)

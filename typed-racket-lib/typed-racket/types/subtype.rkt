@@ -6,7 +6,7 @@
          (rep type-rep prop-rep object-rep
               core-rep type-mask values-rep rep-utils
               free-variance rep-switch)
-         (utils tc-utils prefab identifier)
+         (utils tc-utils prefab identifier contract-utils)
          (only-in (env type-env-structs)
                   with-lexical-env
                   with-naively-extended-lexical-env
@@ -348,7 +348,6 @@
           [(Struct: _ #f _ _ _ _) #f]
           [_ (int-err "what is this?!?! ~a" s)])))
   (not (or (in-hierarchy? s1 s2) (in-hierarchy? s2 s1))))
-
 
 ;;************************************************************
 ;; Values Subtyping
@@ -709,6 +708,13 @@
      [(Continuation-Mark-Keyof: val2)
       (type≡? A val1 val2)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: Contract (Contract: t1-pre t1-post))
+   (match t2
+     [(Contract: t2-pre t2-post)
+      (subtype-seq A
+                   (subtype* t2-pre t1-pre)
+                   (subtype* t1-post t2-post))]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: CustodianBox (CustodianBox: elem1))
    (match t2
      [(CustodianBox: elem2) (subtype* A elem1 elem2)]
@@ -803,6 +809,17 @@
      ;; tvars are equal if they are the same variable
      [(F: var2) (eq? var1 var2)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: FlatContract (FlatContract: t1-pre t1-post))
+   (match t2
+     [(FlatContract: t2-pre t2-post)
+      (subtype-seq A
+                   (subtype* t2-pre t1-pre)
+                   (subtype* t1-post t2-post))]
+     [(Contract: t2-pre t2-post)
+      (subtype-seq A
+                   (subtype* t2-pre t1-pre)
+                   (subtype* t1-post t2-post))]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Fun (Fun: arrows1))
    (match* (t2 arrows1)
      ;; special case when t1 can be collapsed into simpler arrow
@@ -822,6 +839,14 @@
      [((? DepFun? dfun) _)
       (for/or ([a1 (in-list arrows1)])
         (arrow-subtype-dfun* A a1 dfun))]
+     [((or (FlatContract: t2-pre t2-post)
+           (Contract: t2-pre t2-post))
+       _)
+      (match t1
+        [(ConFn*: t1-pre t1-post)
+         (subtype-seq A
+                      (subtype* t2-pre t1-pre)
+                      (subtype* t1-post t2-post))])]
      [(_ _) (continue<: A t1 t2 obj)])]
   [(case: Future (Future: elem1))
    (match t2

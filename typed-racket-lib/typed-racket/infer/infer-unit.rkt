@@ -10,7 +10,7 @@
 (require "../utils/utils.rkt"
          (except-in
           (combine-in
-           (utils tc-utils prefab identifier)
+           (utils tc-utils prefab identifier contract-utils)
            (rep free-variance type-rep prop-rep object-rep
                 values-rep rep-utils type-mask)
            (types utils abbrev numeric-tower subtype resolve
@@ -616,6 +616,22 @@
          (cg S T obj)]
         [((Distinction: _ _ S) T)
          (cg S T obj)]
+
+        [((Contract: S-pre S-post) (Contract: T-pre T-post))
+         (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
+        [((FlatContract: S-pre S-post) (FlatContract: T-pre T-post))
+         (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
+        [((FlatContract: S-pre S-post) (Contract: T-pre T-post))
+         (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
+        [((and (PredicateProp: (PropSet: (TypeProp: _ S-post) _))
+               (Fun: (list (Arrow: (list S-pre) _ _ _))))
+          ;; Apparently I can't just have the FlatCon case -- is the inference
+          ;; not aware of the subtyping relation?
+          (Contract*: T-pre T-post))
+         (% cset-meet (cg T-pre S-pre) (cg S-post T-post))]
+        [((Fun: (list (Arrow: (list S-pre) _ _ _)))
+          (Contract*: T-pre T-post))
+         (% cset-meet (cg T-pre S-pre) (cg S-pre T-post))]
 
         ;; two structs with the same name
         ;; just check pairwise on the fields

@@ -204,3 +204,5 @@
 
 [Continuation-Mark-Keyof (-poly (a) (make-Continuation-Mark-Keyof a))]
 [Prompt-Tagof (-poly (a b) (make-Prompt-Tagof a b))]
+[Contract (-poly (a b) (make-Contract a b))]
+[FlatContract (-poly (a b) (make-FlatContract a b))]

@@ -27,7 +27,7 @@
          (for-syntax
            racket/base
            syntax/parse)
-         racket/hash racket/list)
+         racket/hash racket/list racket/stream)
 
 (import dmap^ constraints^)
 (export infer^)
@@ -103,7 +103,7 @@
 ;; (CMap DMap -> Pair<CMap, DMap>) CSet -> CSet
 ;; Map a function over a constraint set
 (define (map/cset f cset)
-  (% make-cset (for/list/fail ([cmap/dmap (in-list (cset-maps cset))])
+  (% make-cset (for/list/fail ([cmap/dmap (in-stream (cset-maps cset))])
                  (f (car cmap/dmap) (cdr cmap/dmap)))))
 
 ;; Symbol DCon -> DMap
@@ -908,8 +908,9 @@
          ;; verify that we got all the important variables
          (extend-idxs subst))]))
   (if multiple-substitutions?
-      (map build-subst (cset-maps C))
-      (build-subst (car (cset-maps C)))))
+      (for/list ([md (in-stream (cset-maps C))])
+        (build-subst md))
+      (build-subst (stream-first (cset-maps C)))))
 
 ;; context : the context of what to infer/not infer
 ;; S : a list of types to be the subtypes of T

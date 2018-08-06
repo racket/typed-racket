@@ -5,7 +5,8 @@
 	 racket/dict
      "fail.rkt" "signatures.rkt" "constraint-structs.rkt"
      racket/match
-     racket/list)
+     racket/set
+     racket/stream)
 
 (import intersect^ dmap^)
 (export constraints^)
@@ -67,14 +68,16 @@
     [(x y)
      (match* (x y)
       [((struct cset (maps1)) (struct cset (maps2)))
-       (define maps (for*/list ([(map1 dmap1) (in-dict (remove-duplicates maps1))]
-                                [(map2 dmap2) (in-dict (remove-duplicates maps2))]
-                                [v (in-value (% cons
-                                                (hash-union/fail map1 map2 #:combine c-meet)
-                                                (dmap-meet dmap1 dmap2)))]
-                                #:when v)
-                      v))
-       (cond [(null? maps)
+       (define maps
+         (for*/stream ([md1 (in-stream (stream-remove-duplicates maps1))]
+                       [md2 (in-stream (stream-remove-duplicates maps2))]
+                       [v (in-value
+                            (% cons
+                               (hash-union/fail (car md1) (car md2) #:combine c-meet)
+                               (dmap-meet (cdr md1) (cdr md2))))]
+                       #:when v)
+           v))
+       (cond [(stream-empty? maps)
               #f]
              [else (make-cset maps)])])]
     [(x . ys)
@@ -90,4 +93,12 @@
 ;; FIXME: should this call `remove-duplicates`?
 (define (cset-join l)
   (let ([mapss (map cset-maps l)])
-    (make-cset (apply append mapss))))
+    (make-cset (apply stream-append mapss))))
+
+(define (stream-remove-duplicates st)
+  (define seen (mutable-set))
+  (define (new-elem? elem)
+    (and (not (set-member? seen elem))
+         (set-add! seen elem)
+         #true))
+  (stream-filter new-elem? st))

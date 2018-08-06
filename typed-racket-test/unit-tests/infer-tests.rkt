@@ -312,6 +312,13 @@
    ;; error tests
    [i2-f (-lst (-v a)) Univ]
    [i2-f (->* null B B) (-> (-v a) (-v b))]
+   [infer-t
+     ;; union of type variables vs. wide union type, has exponentially-many solutions
+     (Un (-pair -Rat (-val null))
+         (-vec -Rat))
+     (Un (-pair (Un (-v a) (-v b)) (-val null))
+         (-vec (Un (-v a) (-v b))))
+     #:vars '(a b)]
    ))
 
 

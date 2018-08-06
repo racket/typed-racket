@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require "../utils/utils.rkt" (contract-req))
+(require "../utils/utils.rkt" racket/stream (contract-req))
 
 (require-for-cond-contract (rep type-rep))
 
@@ -29,13 +29,13 @@
 ;; map : hash mapping index variables to dcons
 (define-struct/cond-contract dmap ([map (hash/c symbol? dcon/c)]) #:transparent)
 
-;; maps is a list of pairs of
+;; maps is a (lazy) sequence of pairs of
 ;;    - functional maps from vars to c's
 ;;    - dmaps (see dmap.rkt)
 ;; we need a bunch of mappings for each cset to handle case-lambda
 ;; because case-lambda can generate multiple possible solutions, and we
 ;; don't want to rule them out too early
-(define-struct/cond-contract cset ([maps (listof (cons/c (hash/c symbol? c? #:immutable #t) dmap?))]) #:transparent)
+(define-struct/cond-contract cset ([maps (stream/c (cons/c (hash/c symbol? c? #:immutable #t) dmap?))]) #:transparent)
 
 (define no-cset (make-cset '()))
 

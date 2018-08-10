@@ -184,8 +184,8 @@ significant slowdowns. See @secref{contract-costs} for details.
 
 @section{Pattern Matching and Occurrence Typing}
 
-The @racket[match] macro does not support occurrence typing (specifically,
-negative propositions) as well as @racket[cond] and @racket[if] do.
+The @racket[match] macro does not support occurrence typing as well as
+@racket[cond] and @racket[if] do.
 For example, the following function safely applies @racket[add1] to integers
 and @racket[string-length] to strings but the type checker rejects it:
 
@@ -197,8 +197,8 @@ and @racket[string-length] to strings but the type checker rejects it:
         [_ (string-length x)])))]
 
 The reason for the type error is that Typed Racket checks the expanded form
-of the pattern-match, and @racket[match] expands to code where the call to
-@racket[string-length] occurs before the @racket[integer?] test.
+of the pattern-match, and @racket[match] expands to code that obscures the
+connection between @racket[string-length] and the @racket[integer?] test.
 This out-of-order expansion makes backtracking (via a
 @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{failure procedure})
 possible, but unfortunately causes the type checker reject more programs.

@@ -477,8 +477,6 @@
        [(_ _) ;; otherwise we case on t1
         (subtype-cases A t1 t2 obj)])]))
 
-
-
 ;; if obj ∈ t1, can we prove 'lower-bound <= obj' and 'obj <= upper-bound'? 
 (define (provable-int-subtype? A t1 t2 lower-bound upper-bound obj)
   (define lower-ineq

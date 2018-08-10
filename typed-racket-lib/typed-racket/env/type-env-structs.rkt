@@ -8,7 +8,7 @@
          ;; (e.g. performance is irrelevant)
          (only-in racket/dict dict->list dict-map)
          (rep core-rep object-rep)
-         (types numeric-tower)
+         (except-in (types abbrev) -> ->* one-of/c)
          (for-syntax racket/base syntax/parse))
 
 (require-for-cond-contract (rep type-rep prop-rep))

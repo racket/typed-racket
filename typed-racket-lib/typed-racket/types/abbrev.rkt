@@ -9,7 +9,7 @@
          racket/list
          racket/match
          (prefix-in c: (contract-req))
-         (rep rep-utils type-rep prop-rep object-rep values-rep)
+         (rep rep-utils type-rep type-mask prop-rep object-rep values-rep)
          (types numeric-tower)
          ;; Using this form so all-from-out works
          "base-abbrev.rkt" "match-expanders.rkt"
@@ -23,7 +23,6 @@
          (for-syntax racket/base syntax/parse))
 
 (provide (all-defined-out)
-         extract-props
          (all-from-out "base-abbrev.rkt" "match-expanders.rkt"))
 
 ;; Convenient constructors
@@ -248,3 +247,49 @@
      (syntax/loc stx
        (let ([x (genid (syntax->datum #'x))])
          (-refine t (abstract-obj p (list x)))))]))
+
+;; extract-props : Object Type -> (values Type (listof Prop?))
+;; given the fact that 'obj' is of type 'type',
+;; look inside of type trying to learn
+;; more info about obj
+(define (extract-props obj type)
+  (cond
+    [(Empty? obj) (values type '())]
+    [else
+     (define props '())
+     (define new-type
+       (let extract ([rep type]
+                     [obj obj])
+         (match rep
+           [(app int-type->known-bounds
+                 (cons maybe-lower-bound maybe-upper-bound))
+            #:when (with-refinements?)
+            (when maybe-lower-bound
+              (set! props (cons (-leq (-lexp maybe-lower-bound) (-lexp obj))
+                                props)))
+            (when maybe-upper-bound
+              (set! props (cons (-leq (-lexp obj) (-lexp maybe-upper-bound))
+                                props)))
+            rep]
+           [(Pair: t1 t2) (make-Pair (extract t1 (-car-of obj))
+                                     (extract t2 (-cdr-of obj)))]
+           [(Refine-obj: obj t prop)
+            (set! props (cons prop props))
+            (extract t obj)]
+           [(HeterogeneousVector: ts)
+            #:when (with-refinements?)
+            (set! props (cons (-eq (-vec-len-of obj) (-lexp (length ts)))
+                              props))
+            rep]
+           [_ #:when (and (with-refinements?)
+                          (eqv? mask:vector (mask rep)))
+              (set! props (cons (-leq (-lexp 0) (-vec-len-of obj))
+                                props))
+              rep]
+           [(Intersection: ts _)
+            (apply -unsafe-intersect
+                   (for/list ([t (in-list ts)])
+                     (extract t obj)))]
+           [_ rep])))
+     (values new-type props)]))
+

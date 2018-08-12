@@ -186,7 +186,7 @@ significant slowdowns. See @secref{contract-costs} for details.
 
 Because Typed Racket type checks code @emph{after} macro
 expansion, certain forms---such as @racket[match]---are
-difficult for Typed Racket to completely reasoning about. In
+difficult for Typed Racket to reason about completely. In
 particular, in a @racket[match] clause, the type of an
 identifier is often @emph{not} updated to reflect the fact
 that a previous pattern failed to match. For example, in

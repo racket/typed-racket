@@ -180,3 +180,66 @@ circumvent the protections of the type system.
 
 Contract boundaries installed for typed-untyped interaction may cause
 significant slowdowns. See @secref{contract-costs} for details.
+
+@section{Pattern Matching and Occurrence Typing}
+
+
+Because Typed Racket type checks code @emph{after} macro
+expansion, certain forms---such as @racket[match]---are
+difficult for Typed Racket to reason about completely. In
+particular, in a @racket[match] clause, the type of an
+identifier is often @emph{not} updated to reflect the fact
+that a previous pattern failed to match. For example, in
+the following function, the type checker is unaware that
+if execution reaches the last clause then the
+@racket[string?] predicate has already failed to match on
+the value for @racket[x], and so @racket[(abs x)] in the
+last clause fails to type check:
+
+@examples[#:label #f #:eval the-eval
+    (: size (-> (U String Integer) Integer))
+  (eval:error
+    (define (size x)
+      (match x
+        [(? string?) (string-length x)]
+        [_ (abs x)])))]
+
+Because they are much simpler forms, similar @racket[cond]
+and @racket[if] expressions do type check successfully:
+
+
+@examples[#:label #f #:eval the-eval
+  (: size (-> (U String Integer) Integer))
+  (define (size x)
+      (cond
+        [(string? x) (string-length x)]
+        [else (abs x)]))]
+
+
+One work around is to simply not rely on a catch-all "else"
+clause that needs to know that previous patterns have failed
+to match in order to type check:
+
+@examples[#:label #f #:eval the-eval
+  (: size (-> (U String Integer) Integer))
+  (define (size x)
+      (match x
+        [(? string?) (string-length x)]
+        [(? exact-integer?) (abs x)]))]
+
+It is important to note, however, that @racket[match] @emph{
+ always} inserts a catch-all failure clause if one is not
+provided! This means that the type checker will not inform
+the programmer that match clause coverage is insufficient
+because the implicit (i.e. macro-inserted) failure clause
+@emph{will} cover any cases the programmer failed to
+anticipate with their pattern matching, e.g.:
+
+@examples[#:label #f #:eval the-eval
+  (: size (-> (U String Integer) Integer))
+  (define (size x)
+      (match x
+        [(? string?) (string-length x)]))
+
+  (eval:error
+   (size 42))]

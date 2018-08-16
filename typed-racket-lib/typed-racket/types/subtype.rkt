@@ -27,7 +27,7 @@
  ("../typecheck/tc-envops.rkt" (env+ implies-in-env?)))
 
 
-(provide NameStruct:)
+(provide NameStruct: positional-domain->Tuple)
 
 (provide/cond-contract
  [subtype (->* (Type? Type?) ((or/c #f OptObject?)) boolean?)]
@@ -39,7 +39,8 @@
                        (listof Type?)
                        (or/c Type? Rest? #f)
                        boolean?)]
- [unrelated-structs (-> Struct? Struct? boolean?)])
+ [unrelated-structs (-> Struct? Struct? boolean?)]
+ [intersect-arrows (-> Arrow? Arrow? (or/c #f (cons/c Type? Values?)))])
 
 
 ;; When subtype is called w/ no object, we
@@ -227,27 +228,33 @@
     (parameterize ([temp-ids seq])
       . body)))
 
-;; simple co/contra-variance for ->
-(define/cond-contract (arrow-subtype* A arr1 arr2)
-  (-> list? Arrow? Arrow? (or/c #f list?))
-  (match* (arr1 arr2)
-    [((Arrow: dom1 rst1 kws1 raw-rng1)
-      (Arrow: dom2 rst2 kws2 raw-rng2))
-     (define A* (subtype-seq A
-                             (positional-domain-subtypes* dom1 rst1 dom2 rst2)
-                             (kw-subtypes* kws1 kws2)))
-     (cond
-       [(not A*) #f]
-       [else
-        (with-fresh-ids (length dom2) ids
-          (define mapping
-            (for/list ([idx (in-naturals)]
-                       [id (in-list ids)]
-                       [t (in-list dom2)])
-              (list* idx id t)))
-          (subval* A*
-                   (instantiate-obj+simplify raw-rng1 mapping)
-                   (instantiate-obj raw-rng2 ids)))])]))
+;; A <: C₁ ∩ ... ∩ Cₙ
+;; D₁ ∩ ... ∩ Dₙ <: B
+;; ------------------------
+;; (C₁→D₁∩...∩Cₙ→Dₙ) <: A→B
+(define/cond-contract (arrows/arrow-subtype* A arrows1 arrow2)
+  (-> list? (listof Arrow?) Arrow? (or/c #f list?))
+  (match-define (Arrow: dom2 rst2 kws2 raw-cdom2) arrow2)
+  (define raw-cdom1
+    (for/fold ([cdom #f])
+              ([a1 (in-list arrows1)])
+      (match-define (Arrow: dom1 rst1 kws1 raw-cdom1) a1)
+      (cond
+        [(Arrow-domain-subtypes* A dom1 rst1 kws1 dom2 rst2 kws2)
+         (if cdom (intersect-values cdom raw-cdom1) raw-cdom1)]
+        [else cdom])))
+  (cond
+    [(not raw-cdom1) #f]
+    [else
+     (with-fresh-ids (length dom2) ids
+       (define mapping
+         (for/list ([idx (in-naturals)]
+                    [id (in-list ids)]
+                    [t (in-list dom2)])
+           (list* idx id t)))
+       (subval* A
+                (instantiate-obj+simplify raw-cdom1 mapping)
+                (instantiate-obj raw-cdom2 ids)))]))
 
 
 ;; is an Arrow a subtype of a DepFun?
@@ -819,7 +826,7 @@
    (match* (t2 arrows1)
      ;; special case when t1 can be collapsed into simpler arrow
      [((Fun: (list arrow2)) (app collapsable-arrows? (? Arrow? arrow1)))
-      (arrow-subtype* A arrow1 arrow2)]
+      (arrows/arrow-subtype* A (list arrow1) arrow2)]
      ;; special case when t1 can be collapsed into simpler arrow
      [((? DepFun? dfun) (app collapsable-arrows? (? Arrow? arrow1)))
       (arrow-subtype-dfun* A arrow1 dfun)]
@@ -830,31 +837,7 @@
          (for/fold ([A A])
                    ([a2 (in-list arrows2)]
                     #:break (not A))
-           (match-define (Arrow: dom2 rst2 kws2 raw-cdom2) a2)
-           ;; A <: C₁ ∩ ... ∩ Cₙ
-           ;; D₁ ∩ ... ∩ Dₙ <: B
-           ;; ------------------------
-           ;; (C₁→D₁∩...∩Cₙ→Dₙ) <: A→B
-           (define raw-cdom1
-             (for/fold ([cdom #f])
-                       ([a1 (in-list arrows1)])
-               (match-define (Arrow: dom1 rst1 kws1 raw-cdom1) a1)
-               (cond
-                 [(Arrow-domain-subtypes* A dom1 rst1 kws1 dom2 rst2 kws2)
-                  (if cdom (intersect-values cdom raw-cdom1) raw-cdom1)]
-                 [else cdom])))
-           (cond
-             [(not raw-cdom1) #f]
-             [else
-              (with-fresh-ids (length dom2) ids
-                (define mapping
-                  (for/list ([idx (in-naturals)]
-                             [id (in-list ids)]
-                             [t (in-list dom2)])
-                    (list* idx id t)))
-                (subval* A
-                         (instantiate-obj+simplify raw-cdom1 mapping)
-                         (instantiate-obj raw-cdom2 ids)))]))])]
+           (arrows/arrow-subtype* A arrows1 a2))])]
      [((? DepFun? dfun) _)
       (for/or ([a1 (in-list arrows1)])
         (arrow-subtype-dfun* A a1 dfun))]
@@ -1288,7 +1271,7 @@
      (cond
        [(= (length rs1) (length rs2))
         (make-Values (map intersect-results rs1 rs2))]
-       [else (make-AnyValues -ff)])]))
+       [else (-values -Bottom (-PS -ff -ff) -empty-obj)])]))
 
 ;; intersects two Results (i.e. see rep/core-rep.rkt) pointwise
 (define (intersect-results r1 r2)
@@ -1296,3 +1279,41 @@
     [((Result: t1 (PropSet: p1+ p1-) o1)
       (Result: t2 (PropSet: p2+ p2-) o2))
      (make-Result (intersect t1 t2) (-PS (-and p1+ p2+) (-and p1- p2-)) (intersect-objects o1 o2))]))
+
+
+(define (positional-domain->Tuple dom rst)
+  (-Tuple* dom (or (and rst (Rest->Type rst))
+                   -Null)))
+
+(define (intersect-arrows arrow1 arrow2)
+  (match* (arrow1 arrow2)
+    [((cons dom1 cdom1) (cons dom2 cdom2))
+     (define dom (intersect dom1 dom2))
+     (cond
+       [(Bottom? dom) #f]
+       [else (cons dom (intersect-values cdom1 cdom2))])]
+    [((Arrow: dom1 rst1 kws1 cdom1)
+      (Arrow: dom2 rst2 kws2 cdom2))
+     #:when (and (andmap (λ (kw) (not (Keyword-required? kw))) kws1)
+                 (andmap (λ (kw) (not (Keyword-required? kw))) kws2))
+     (define dom (intersect (positional-domain->Tuple dom1 rst1)
+                            (positional-domain->Tuple dom2 rst2)))
+     (cond
+       [(Bottom? dom) #f]
+       [else (cons dom (intersect-values cdom1 cdom2))])]
+    [((cons dom1 cdom1)
+      (Arrow: dom2 rst2 kws2 cdom2))
+     #:when (andmap (λ (kw) (not (Keyword-required? kw))) kws2)
+     (define dom (intersect dom1 (positional-domain->Tuple dom2 rst2)))
+     (cond
+       [(Bottom? dom) #f]
+       [else (cons dom (intersect-values cdom1 cdom2))])]
+    [((Arrow: dom1 rst1 kws1 cdom1)
+      (cons dom2 cdom2))
+     #:when (andmap (λ (kw) (not (Keyword-required? kw))) kws1)
+     (define dom (intersect (positional-domain->Tuple dom1 rst1)
+                            dom2))
+     (cond
+       [(Bottom? dom) #f]
+       [else (cons dom (intersect-values cdom1 cdom2))])]
+    [(_ _) #f]))

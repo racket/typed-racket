@@ -234,7 +234,7 @@
  [can-get-page-setup-from-user? (-> -Boolean)]
  ;; 4.2 Eventspaces
  [#:opaque Eventspace eventspace?]
- [make-eventspace (-> -Eventspace)]
+ [make-eventspace (->key #:suspend-to-kill? Univ #f -Eventspace)]
  [current-eventspace (-Param -Eventspace -Eventspace)]
  [event-dispatch-handler (-Param (-> -Eventspace Univ) (-> -Eventspace Univ))]
  [eventspace-event-evt

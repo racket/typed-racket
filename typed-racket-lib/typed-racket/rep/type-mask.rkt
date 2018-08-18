@@ -31,7 +31,8 @@
          sub-mask?
          mask:bottom
          mask:unknown
-         mask:base+number)
+         mask:base+number
+         mask:vector)
 
 (define-syntax OR (make-rename-transformer #'unsafe-fxior))
 (define-syntax AND (make-rename-transformer #'unsafe-fxand))
@@ -129,7 +130,8 @@
  mask:number
  mask:pair
  mask:mpair
- mask:vector
+ mask:mutable-vector
+ mask:immutable-vector
  mask:mutable-hash
  mask:immutable-hash
  mask:weak-hash
@@ -153,3 +155,4 @@
  mask:unit)
 
 (define mask:base+number (mask-union mask:base mask:number))
+(define mask:vector (mask-union mask:immutable-vector mask:mutable-vector))

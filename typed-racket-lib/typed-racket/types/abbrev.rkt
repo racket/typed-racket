@@ -35,7 +35,12 @@
 (define -thread-cell make-ThreadCell)
 (define -Promise make-Promise)
 (define -set make-Set)
+(define -mvec make-Mutable-Vector)
+(define -ivec make-Immutable-Vector)
+(define (make-Vector a) (Un (-mvec a) (-ivec a)))
 (define -vec make-Vector)
+(define (-ivec* . ts) (make-Immutable-HeterogeneousVector ts))
+(define (-mvec* . ts) (make-Mutable-HeterogeneousVector ts))
 (define (-vec* . ts) (make-HeterogeneousVector ts))
 (define -future make-Future)
 (define -evt make-Evt)
@@ -282,7 +287,9 @@
                               props))
             rep]
            [_ #:when (and (with-refinements?)
-                          (eqv? mask:vector (mask rep)))
+                          (or (eqv? mask:immutable-vector (mask rep))
+                              (eqv? mask:mutable-vector (mask rep))
+                              (eqv? mask:vector (mask rep))))
               (set! props (cons (-leq (-lexp 0) (-vec-len-of obj))
                                 props))
               rep]

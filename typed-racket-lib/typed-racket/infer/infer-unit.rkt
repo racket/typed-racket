@@ -600,6 +600,16 @@
 
         [(_ (Bottom:)) no-cset]
         
+        ;; from define-new-subtype
+        ;; NOTE: these cases for `((Distinction: _ _ _) _)`
+        ;;  need to appear before the cases for `(_ (Union: _ _))`.
+        ;;  See `typed-racket-test/succeed/in-hash-in-vector-subtype.rkt`
+        [((Distinction: nm1 id1 S) (app resolve (Distinction: nm2 id2 T)))
+         #:when (and (equal? nm1 nm2) (equal? id1 id2))
+         (cg S T obj)]
+        [((Distinction: _ _ S) T)
+         (cg S T obj)]
+        
         ;; find *an* element of es which can be made to be a supertype of S
         ;; FIXME: we're using multiple csets here, but I don't think it makes a difference
         ;; not using multiple csets will break for: ???
@@ -609,13 +619,6 @@
                       [v (in-value (cg S e obj))]
                       #:when v)
             v))]
-        
-        ;; from define-new-subtype
-        [((Distinction: nm1 id1 S) (app resolve (Distinction: nm2 id2 T)))
-         #:when (and (equal? nm1 nm2) (equal? id1 id2))
-         (cg S T obj)]
-        [((Distinction: _ _ S) T)
-         (cg S T obj)]
 
         ;; two structs with the same name
         ;; just check pairwise on the fields
@@ -670,12 +673,18 @@
         [((List: ts) (Sequence: (list t*)))
          (% cset-meet* (for/list/fail ([t (in-list ts)])
                                       (cg t t*)))]
-        [((HeterogeneousVector: ts) (HeterogeneousVector: ts*))
+        [((Immutable-HeterogeneousVector: ts) (Immutable-HeterogeneousVector: ts*))
+         (cgen/list context ts ts*)]
+        [((Mutable-HeterogeneousVector: ts) (Mutable-HeterogeneousVector: ts*))
          (% cset-meet (cgen/list context ts ts*) (cgen/list context ts* ts))]
-        [((HeterogeneousVector: ts) (Vector: s))
-         (define ts* (map (λ _ s) ts)) ;; invariant, everything has to match
-         (% cset-meet (cgen/list context ts ts*) (cgen/list context ts* ts))]
-        [((HeterogeneousVector: ts) (Sequence: (list t*)))
+        [((Immutable-HeterogeneousVector: ts) (Immutable-Vector: s))
+         (define ss (map (λ _ s) ts))
+         (cgen/list context ts ss)]
+        [((Mutable-HeterogeneousVector: ts) (Mutable-Vector: s))
+         (define ss (map (λ _ s) ts)) ;; invariant, everything has to match
+         (% cset-meet (cgen/list context ts ss) (cgen/list context ss ts))]
+        [((HeterogeneousVector: ts)
+          (Sequence: (list t*)))
          (% cset-meet* (for/list/fail ([t (in-list ts)])
                                       (cg t t*)))]
         [((Vector: t) (Sequence: (list t*)))
@@ -733,9 +742,12 @@
         [((StructType: s) (StructType: t))
          (cg/inv s t)]
 
-        ;; vectors are invariant - generate constraints *both* ways
-        [((Vector: e) (Vector: e*))
+        ;; mutable vectors are invariant - generate constraints *both* ways
+        [((Mutable-Vector: e) (Mutable-Vector: e*))
          (cg/inv e e*)]
+        ;; immutable vectors are covariant
+        [((Immutable-Vector: e) (Immutable-Vector: e*))
+         (cg e e*)]
         ;; boxes are invariant - generate constraints *both* ways
         [((Box: e) (Box: e*))
          (cg/inv e e*)]
@@ -778,7 +790,7 @@
         [((? Base:Will-Executor?) (Evt: t))
          (cg S t)]
         [((? Base:Log-Receiver?) (Evt: t ))
-         (cg (make-HeterogeneousVector
+         (cg (make-Immutable-HeterogeneousVector
               (list -Symbol -String Univ
                     (Un (-val #f) -Symbol)))
              t)]

@@ -105,26 +105,59 @@
 
 
     ;; Vectors
-    (check-optimize (vectorof/sc any/sc)
+    (let ()
+      (define-syntax-rule (make-?vectorof/sc-check ctc flat-ctc)
+        (begin
+          (check-optimize (ctc any/sc)
+            #:pos any/sc
+            #:neg flat-ctc)
+          (check-optimize (ctc none/sc)
+            #:pos (ctc none/sc)
+            #:neg (ctc none/sc))))
+      (make-?vectorof/sc-check immutable-vectorof/sc immutable-vector?/sc)
+      (make-?vectorof/sc-check mutable-vectorof/sc mutable-vector?/sc)
+      (make-?vectorof/sc-check vectorof/sc vector?/sc))
+    ;; immutable-vectorof is covariant
+    (check-optimize (immutable-vectorof/sc (flat/sc #'integer?))
       #:pos any/sc
-      #:neg vector?/sc)
-    (check-optimize (vectorof/sc none/sc)
-      #:pos (vectorof/sc none/sc)
-      #:neg (vectorof/sc none/sc))
+      #:neg (immutable-vectorof/sc (flat/sc #'integer?)))
+    ;; mutable-vectorof and vectorof are invariant
+    (check-optimize (mutable-vectorof/sc set?/sc)
+      #:pos (mutable-vectorof/sc set?/sc)
+      #:neg (mutable-vectorof/sc set?/sc))
+    (check-optimize (vectorof/sc (flat/sc #'boolean?))
+      #:pos (vectorof/sc (flat/sc #'boolean?))
+      #:neg (vectorof/sc (flat/sc #'boolean?)))
 
     ;; Heterogeneous Vectors
     (check-optimize (vector/sc any/sc)
       #:pos any/sc
       #:neg (vector-length/sc 1))
-    (check-optimize (vector/sc none/sc)
-      #:pos (vector/sc none/sc)
-      #:neg (vector/sc none/sc))
+    (let ()
+      (define-syntax-rule (make-?vector/sc-check ctc)
+        (check-optimize (ctc none/sc)
+          #:pos (ctc none/sc)
+          #:neg (ctc none/sc)))
+      (make-?vector/sc-check immutable-vector/sc)
+      (make-?vector/sc-check mutable-vector/sc)
+      (make-?vector/sc-check vector/sc))
     (check-optimize (vector/sc)
       #:pos any/sc
       #:neg empty-vector/sc)
     (check-optimize (vector/sc set?/sc)
       #:pos (vector/sc set?/sc)
       #:neg (vector/sc set?/sc))
+    ;; immutable-vector is covariant
+    (check-optimize (immutable-vector/sc (flat/sc #'integer?) hash?/sc)
+      #:pos any/sc
+      #:neg (immutable-vector/sc (flat/sc #'integer?) hash?/sc))
+    ;; mutable-vector and vector are invariant
+    (check-optimize (mutable-vector/sc list?/sc list?/sc)
+      #:pos (mutable-vector/sc list?/sc list?/sc)
+      #:neg (mutable-vector/sc list?/sc list?/sc))
+    (check-optimize (vector/sc identifier?/sc)
+      #:pos (vector/sc identifier?/sc)
+      #:neg (vector/sc identifier?/sc))
 
     ;; HashTables
     (let ()
@@ -143,6 +176,20 @@
       (make-?hash/sc-check immutable-hash/sc immutable-hash?/sc)
       (make-?hash/sc-check mutable-hash/sc mutable-hash?/sc)
       (make-?hash/sc-check weak-hash/sc weak-hash?/sc))
+    ;; immutable-hash is covariant
+    (check-optimize (immutable-hash/sc (flat/sc #'symbol?) (flat/sc #'string?))
+      #:pos any/sc
+      #:neg (immutable-hash/sc (flat/sc #'symbol?) (flat/sc #'string?)))
+    ;; mutable-hash weak-hash hash are invariant
+    (check-optimize (mutable-hash/sc identifier?/sc hash?/sc)
+      #:pos (mutable-hash/sc identifier?/sc hash?/sc)
+      #:neg (mutable-hash/sc identifier?/sc hash?/sc))
+    (check-optimize (weak-hash/sc list?/sc (flat/sc #'symbol?))
+      #:pos (weak-hash/sc list?/sc (flat/sc #'symbol?))
+      #:neg (weak-hash/sc list?/sc (flat/sc #'symbol?)))
+    (check-optimize (hash/sc (flat/sc #'symbol?) (flat/sc #'string?))
+      #:pos (hash/sc (flat/sc #'symbol?) (flat/sc #'string?))
+      #:neg (hash/sc (flat/sc #'symbol?) (flat/sc #'string?)))
 
     ;; And
     (check-optimize (and/sc set?/sc)

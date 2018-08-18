@@ -468,6 +468,13 @@
        (for/vector: : (Vectorof Number) ([i : Natural (in-range 3)]) 5)
        (vector 5 5 5))
 (check equal?
+       (for/vector: : (Mutable-Vectorof Number) ([i : Natural (in-range 3)]) 5)
+       (vector 5 5 5))
+(check equal?
+       (ann (for/vector: : (Mutable-Vectorof Number) ([i : Natural (in-range 3)]) 5)
+            (Mutable-Vectorof Number))
+       (vector 5 5 5))
+(check equal?
        (for/vector: ([i : Natural (in-range 3)]) : Number 5)
        (vector 5 5 5))
 

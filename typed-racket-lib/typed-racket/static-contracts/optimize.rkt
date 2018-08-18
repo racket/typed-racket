@@ -41,7 +41,11 @@
     [(cons/sc: (any/sc:) (any/sc:)) cons?/sc]
     [(listof/sc: (any/sc:)) list?/sc]
     [(list/sc: (and scs (any/sc:)) ...) (list-length/sc (length scs))]
+    [(immutable-vectorof/sc: (any/sc:)) immutable-vector?/sc]
+    [(mutable-vectorof/sc: (any/sc:)) mutable-vector?/sc]
     [(vectorof/sc: (any/sc:)) vector?/sc]
+    [(immutable-vector/sc: (and scs (any/sc:)) ...) (immutable-vector-length/sc (length scs))]
+    [(mutable-vector/sc: (and scs (any/sc:)) ...) (mutable-vector-length/sc (length scs))]
     [(vector/sc: (and scs (any/sc:)) ...) (vector-length/sc (length scs))]
     [(set/sc: (any/sc:)) set?/sc]
     [(box/sc: (any/sc:)) box?/sc]
@@ -266,9 +270,13 @@
         (evt/sc: _)
         (hash/sc: _ _)
         (immutable-hash/sc: _ _)
+        (immutable-vector/sc: _ ...)
+        (immutable-vectorof/sc: _)
         (list/sc: _ ...)
         (listof/sc: _)
         (mutable-hash/sc: _ _)
+        (mutable-vector/sc: _ ...)
+        (mutable-vectorof/sc: _)
         (parameter/sc: _ _)
         (promise/sc: _)
         (prompt-tag/sc: _ _)

@@ -169,6 +169,8 @@
     [make-Promise ()]
     [make-Ephemeron ()]
     [make-CustodianBox ()]
+    [make-Immutable-Vector ()]
+    [make-Immutable-HashTable () ()]
     [make-Set ()]
     [make-Evt ()]
     [make-Syntax ()]
@@ -176,6 +178,7 @@
    (invariant-tests
     [make-MPair () () #:top -MPairTop]
     [make-Vector () #:top -VectorTop]
+    [make-Mutable-Vector () #:top -Mutable-VectorTop]
     [make-Box () #:top -BoxTop]
     [make-Channel () #:top -ChannelTop]
     [make-Async-Channel () #:top -Async-ChannelTop]
@@ -265,6 +268,11 @@
     (-mu x (Un -Number (make-Listof x)))]
    [(Un -Number (-val #f) (-mu x (Un -Number -Symbol (make-Listof x))))
     (-mu x (Un -Number -Symbol -Boolean (make-Listof x)))]
+
+   [(-pair (-ivec (Un (-val ':a)
+                        (-mu X (-pair (-ivec (Un (-val ':a) X)) (Un (-val ':b) X)))))
+           (-val ':b))
+    (-mu X (-pair (-ivec (Un (-val ':a) X)) (Un (-val ':b) X)))]
    ;; sexps vs list*s of nums
    [(-mu x (Un -Number -Symbol (make-Listof x))) (-mu x (Un -Number -Symbol -Boolean (make-Listof x)))]
    [(-mu x (Un -Number (make-Listof x))) (-mu x (Un -Number -Symbol (make-Listof x)))]
@@ -309,6 +317,12 @@
    [FAIL (make-HeterogeneousVector (list t1a)) (make-HeterogeneousVector (list t1b t1a))]
    [FAIL (make-HeterogeneousVector (list t1a t2)) (make-HeterogeneousVector (list t1b t1a))]
    [FAIL (make-HeterogeneousVector (list t2 t1a)) (make-HeterogeneousVector (list t1b t1a))]
+   [(make-Immutable-HeterogeneousVector (list t1a t1b)) (make-Immutable-HeterogeneousVector (list t1b t1a))]
+   [(make-Immutable-HeterogeneousVector (list t1a t1b)) (make-HeterogeneousVector (list t1b t1a))]
+   [FAIL (make-Immutable-HeterogeneousVector (list t1a t1b)) (make-Mutable-HeterogeneousVector (list t1b t1a))]
+   [(make-Mutable-HeterogeneousVector (list t1a t1b)) (make-Mutable-HeterogeneousVector (list t1b t1a))]
+   [(make-Mutable-HeterogeneousVector (list t1a t1b)) (make-HeterogeneousVector (list t1b t1a))]
+   [FAIL (make-Mutable-HeterogeneousVector (list t1a t1b)) (make-Immutable-HeterogeneousVector (list t1b t1a))]
    ))
 
 (define set-theoretic-type-tests

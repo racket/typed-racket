@@ -1,7 +1,9 @@
 #lang racket/unit
 
 (require "../../utils/utils.rkt"
+         racket/list
          syntax/parse syntax/stx racket/match racket/sequence
+         (for-syntax racket/base syntax/parse racket/syntax)
          "signatures.rkt"
          "utils.rkt"
          (utils prefab)
@@ -86,6 +88,22 @@
      (single-value val-e)
      (index-error i-val i-bound i-e vec-t name)]))
 
+;; hetero-vecs->elems : (Listof Type?) -> (U #f (Listof Type?))
+;; If `vts` is a list of HeterogeneousVector types
+;;  all with the same elements,
+;;  return the elements.
+;; Else return `#false`
+(define (hetero-vecs->elems ts)
+  (for/fold ([acc #t])
+            ([t (in-list ts)])
+    (and acc
+         (match t
+           [(HeterogeneousVector: es)
+            (if (eq? acc #true)
+              es
+              (and (equal? acc es) acc))]
+           [_ #f]))))
+
 (define-tc/app-syntax-class (tc/app-hetero expected)
   #:literal-sets (hetero-literals)
   (pattern (~and form ((~and op (~or unsafe-struct-ref unsafe-struct*-ref)) struct:expr index:expr))
@@ -106,6 +124,8 @@
     (match (single-value #'vec)
       [(tc-result1: (and vec-t (app resolve (Is-a: (HeterogeneousVector: es)))))
        (tc/hetero-ref #'index es vec-t "vector" #'op)]
+      [(tc-result1: (and vec-t (app resolve (Union: _ (app hetero-vecs->elems (? pair? es))))))
+       (tc/hetero-ref #'index es vec-t "vector" #'op)]
       [v-ty (tc/app-regular #'form expected)]))
   ;; unsafe struct-set!
   (pattern (~and form ((~and op (~or unsafe-struct-set! unsafe-struct*-set!)) s:expr index:expr val:expr))
@@ -118,51 +138,88 @@
     (match (single-value #'v)
       [(tc-result1: (and vec-t (app resolve (Is-a: (HeterogeneousVector: es)))))
        (tc/hetero-set! #'index es #'val vec-t "vector" #'op)]
+      [(tc-result1: (and vec-t (app resolve (Union: _ (app hetero-vecs->elems (? pair? es))))))
+       (tc/hetero-set! #'index es #'val vec-t "vector" #'op)]
       [v-ty (tc/app-regular #'form expected)]))
-  (pattern (~and form ((~and op (~or vector-immutable vector)) args:expr ...))
-    (match expected
-      [(tc-result1: (app resolve (Is-a: (Vector: t))))
-       (define arg-tys
-         (for/list ([e (in-syntax #'(args ...))])
-           (tc-expr/check e (ret t))
-           t))
-       (define return-ty
-         (make-HeterogeneousVector arg-tys))
-       (add-typeof-expr #'op (ret (->* arg-tys return-ty)))
-       (ret return-ty)]
-      [(tc-result1: (app resolve (Is-a: (HeterogeneousVector: ts))))
-       (cond
-         [(= (length ts) (syntax-length #'(args ...)))
-          (define arg-tys
-            (for/list ([e (in-syntax #'(args ...))]
-                       [t (in-list ts)])
-              (tc-expr/check/t e (ret t))))
-          (define return-ty
-            (make-HeterogeneousVector arg-tys))
-          (add-typeof-expr #'op (ret (->* arg-tys return-ty)))
-          (ret return-ty -true-propset)]
-         [else
-          (tc-error/expr
-            "expected vector with ~a elements, but got ~a"
-            (length ts) (make-HeterogeneousVector (stx-map tc-expr/t #'(args ...))))])]
-      ;; If the expected type is a union, then we examine just the parts
-      ;; of the union that are vectors.  If there's only one of those,
-      ;; we re-run this whole algorithm with that.  Otherwise, we treat
-      ;; it like any other expected type.
-      [(tc-result1: (app resolve (Union: _ ts))) (=> continue)
-       (define u-ts (for/list ([t (in-list ts)]
-                               #:when (eq? mask:vector (mask t)))
+  (pattern (~and form (vector-immutable args:expr ...))
+    (tc-app-immutable-hetero-vector #'form expected))
+  (pattern (~and form (vector args:expr ...))
+    (tc-app-mutable-hetero-vector #'form expected)))
+
+;; The cases for `(vector-immutable e ...)` and `(vector e ...)` are similar
+;;  but use different match expanders, so we use a macro to abstract over the similar parts
+;; The `#:with` clause below contains the differences
+(define-values [tc-app-immutable-hetero-vector tc-app-mutable-hetero-vector]
+  (let ()
+    (define-syntax (make-tc-app-hetero-vector stx)
+      (syntax-parse stx #:literals (quote)
+       [(_ (quote mode:id))
+        #:with (?make-HV ?match-V ?match-HV ?maskV ?tc-expr/t/maybe-generalize ?fn)
+               (case (syntax-e #'mode)
+                [(immutable)
+                 (syntax/loc stx
+                   (make-Immutable-HeterogeneousVector
+                    Immutable-Vector:
+                    Immutable-HeterogeneousVector:
+                    mask:immutable-vector
+                    tc-expr/t
+                    "vector-immutable"))]
+                [(mutable)
+                 (syntax/loc stx
+                   (make-Mutable-HeterogeneousVector
+                    Mutable-Vector:
+                    Mutable-HeterogeneousVector:
+                    mask:mutable-vector
+                    (lambda (e) (generalize (tc-expr/t e)))
+                    "vector"))]
+                [else
+                 (raise-argument-error 'make-tc-app-hetero-vector "(or/c 'immutable 'mutable)" (syntax-e #'mode))])
+        (syntax/loc stx
+          (let ([has-vector-mask? (λ (t) (eq? ?maskV (mask t)))])
+            (λ (form expected)
+              (syntax-parse form #:literal-sets (hetero-literals)
+               [((~and op (~or vector-immutable vector)) . args)
+                (match expected
+                 [(tc-result1: (app resolve (Is-a: (?match-V t))))
+                  (define arg-tys
+                    (for/list ([e (in-syntax #'args)])
+                      (tc-expr/check e (ret t))
                       t))
-       (match u-ts
-         [(list t0) (tc/app #'(#%plain-app . form) (ret t0))]
-         [_ (continue)])]
-      ;; since vectors are mutable, if there is no expected type, we want to generalize the element type
-      [(or #f (tc-any-results: _) (tc-result1: _))
-       (define arg-tys
-         (for/list ((e (in-syntax #'(args ...))))
-           (generalize (tc-expr/t e))))
-       (define return-ty
-         (make-HeterogeneousVector arg-tys))
-       (add-typeof-expr #'op (ret (->* arg-tys return-ty)))
-       (ret return-ty)]
-      [_ (ret Err)])))
+                  (define return-ty
+                    (?make-HV arg-tys))
+                  (add-typeof-expr #'op (ret (->* arg-tys return-ty)))
+                  (ret return-ty)]
+                 [(tc-result1: (app resolve (Is-a: (?match-HV ts))))
+                  (cond
+                   [(= (length ts) (syntax-length #'args))
+                    (define arg-tys
+                      (for/list ([e (in-syntax #'args)]
+                                 [t (in-list ts)])
+                        (tc-expr/check/t e (ret t))))
+                    (define return-ty
+                      (?make-HV arg-tys))
+                    (add-typeof-expr #'op (ret (->* arg-tys return-ty)))
+                    (ret return-ty -true-propset)]
+                   [else
+                    (tc-error/expr
+                      "expected vector with ~a elements, but got ~a"
+                      (length ts) (?make-HV (stx-map tc-expr/t #'args)))])]
+                 ;; If the expected type is a union, then we examine just the parts
+                 ;; of the union that are vectors.  If there's only one of those,
+                 ;; we re-run this whole algorithm with that.  Otherwise, we treat
+                 ;; it like any other expected type.
+                 [(tc-result1: (app resolve (Is-a: (Union: _ ts))))
+                  #:when (= 1 (count has-vector-mask? ts))
+                  (define t0 (findf has-vector-mask? ts))
+                  (tc/app #`(#%plain-app . #,form) (ret t0))]
+                 ;; if mutable, generalize element types
+                 [_
+                  (define tc-hv-elem ?tc-expr/t/maybe-generalize)
+                  (define arg-tys
+                    (for/list ((e (in-syntax #'args)))
+                      (tc-hv-elem e)))
+                  (define return-ty
+                    (?make-HV arg-tys))
+                  (add-typeof-expr #'op (ret (->* arg-tys return-ty)))
+                  (ret return-ty)])]))))]))
+  (values (make-tc-app-hetero-vector 'immutable) (make-tc-app-hetero-vector 'mutable))))

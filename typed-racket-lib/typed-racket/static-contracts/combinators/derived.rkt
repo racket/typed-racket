@@ -23,12 +23,16 @@
 (define empty-set/sc (and/sc set?/sc (flat/sc #'set-empty?)))
 
 (define vector?/sc (flat/sc #'vector?))
+(define immutable-vector?/sc (and/sc vector?/sc
+                                     (flat/sc #'immutable?)))
+(define mutable-vector?/sc (and/sc vector?/sc
+                                   (flat/sc #'(λ (v) (not (immutable? v))))))
 
 (define hash?/sc (flat/sc #'hash?))
+(define immutable-hash?/sc (and/sc hash?/sc (flat/sc #'immutable?)))
 (define mutable-hash?/sc (and/sc hash?/sc
                                  (flat/sc #'(λ (h) (not (immutable? h))))
                                  (flat/sc #'(λ (h) (not (hash-weak? h))))))
-(define immutable-hash?/sc (and/sc hash?/sc (flat/sc #'immutable?)))
 (define weak-hash?/sc (and/sc hash?/sc (flat/sc #'hash-weak?)))
 (define empty-hash/sc (and/sc hash?/sc (flat/sc #'(λ (h) (zero? (hash-count h))))))
 

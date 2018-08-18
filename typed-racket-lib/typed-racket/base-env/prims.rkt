@@ -805,7 +805,7 @@ the typed racket language.
        (call/ec
         (ann (λ (break)
                (define n n-expr)
-               (define vs (ann (make-vector n fill-expr) T))
+               (define: vs : T (make-vector n fill-expr))
                (define i 0)
                (for (clauses ...)
                  (unsafe-vector-set! vs i body-expr)
@@ -819,7 +819,7 @@ the typed racket language.
          (define vs
            (call/ec
             (ann (λ (break)
-                   (define vs (ann (vector) T))
+                   (define: vs : T (vector))
                    (define i 0)
                    (for (clauses ...)
                      (define v body-expr)
@@ -829,7 +829,7 @@ the typed racket language.
                      ;; the vector
                      ;; other unsafe ops are after vector allocation, and so are
                      ;; fine
-                     (cond [(= i 0)  (define new-vs (ann (make-vector n v) T))
+                     (cond [(= i 0)  (define: new-vs : T (make-vector n v))
                                               (set! vs new-vs)]
                            [else  (unsafe-vector-set! vs i v)])
                      (set! i (unsafe-fx+ i 1))
@@ -844,7 +844,7 @@ the typed racket language.
      (syntax/loc stx
        (let ()
          (define n 0)
-         (define vs (ann (vector) T))
+         (define: vs : T (vector))
          (define i 0)
          (for (clauses ...)
            (define v body-expr)
@@ -859,7 +859,7 @@ the typed racket language.
           [(= i (vector-length vs)) vs]
           ;; We inline `vector-copy` to avoid a dependency.
           ;; The vector-ref here ensures that we have a well-typed initial element.
-          [else (define new-vs (ann (make-vector i (vector-ref vs 0)) T))
+          [else (define: new-vs : T (make-vector i (vector-ref vs 0)))
                 (vector-copy! new-vs 1 vs 1 i)
                 new-vs])))]))
 
@@ -876,10 +876,10 @@ the typed racket language.
        (with-syntax ([(maybe-length ...)  (if (attribute n-expr) #'(#:length n-expr) #'())]
                      [(maybe-fill ...)  (if (attribute fill-expr) #'(#:fill fill-expr) #'())]
                      [body-expr  (if A #`(ann (let () body ...) #,A) #'(let () body ...))]
-                     [T  (cond [(and T A)  #`(U #,T (Vectorof #,A))]
+                     [T  (cond [(and T A)  #`(U #,T (Mutable-Vectorof #,A))]
                                [T  T]
-                               [A  #`(Vectorof #,A)]
-                               [else  #'(Vectorof Any)])])
+                               [A  #`(Mutable-Vectorof #,A)]
+                               [else  #'(Mutable-Vectorof Any)])])
          (quasisyntax/loc stx
            (base-for/vector #,for: ann T ((T -> Nothing) -> T)
                             maybe-length ... maybe-fill ... (clauses ...) body-expr))))]))

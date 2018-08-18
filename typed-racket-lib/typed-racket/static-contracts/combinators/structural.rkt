@@ -18,6 +18,7 @@
                        racket/promise
                        "../../utils/evt-contract.rkt"
                        "../../utils/hash-contract.rkt"
+                       "../../utils/vector-contract.rkt"
                        "../../utils/promise-not-name-contract.rkt")
          racket/contract
          racket/async-channel)
@@ -156,8 +157,12 @@
   ((listof/sc (#:covariant)) listof #:flat)
   ((cons/sc (#:covariant) (#:covariant)) cons/c #:flat)
   ((set/sc (#:covariant #:chaperone)) set/c #:flat)
-  ((vector/sc . (#:invariant)) vector/c #:chaperone)
+  ((immutable-vectorof/sc (#:covariant)) immutable-vectorof/c #:flat)
+  ((mutable-vectorof/sc (#:invariant)) mutable-vectorof/c #:chaperone)
   ((vectorof/sc (#:invariant)) vectorof #:chaperone)
+  ((immutable-vector/sc . (#:covariant)) immutable-vector/c #:flat)
+  ((mutable-vector/sc . (#:invariant)) mutable-vector/c #:chaperone)
+  ((vector/sc . (#:invariant)) vector/c #:chaperone)
   ((promise/sc (#:covariant)) promise-not-name/c #:chaperone)
   ((syntax/sc (#:covariant #:flat)) syntax/c #:flat)
   ((hash/sc (#:invariant) (#:invariant)) typed-racket-hash/c #:chaperone)

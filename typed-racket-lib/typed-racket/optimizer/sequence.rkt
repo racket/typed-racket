@@ -24,7 +24,11 @@
                    [(List: _) #t]
                    [_ #f]))))
 (define-syntax-class/specialize vector-expr
-  (typed-expr (disjoin Vector? HeterogeneousVector?)))
+  (typed-expr (λ (t)
+                 (match t
+                   [(? Vector?) #t]
+                   [(? HeterogeneousVector?) #t]
+                   [_ #f]))))
 
 (define-syntax-rule (log-seq-opt opt-label stx)
   (log-optimization

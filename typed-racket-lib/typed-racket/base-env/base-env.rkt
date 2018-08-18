@@ -35,7 +35,6 @@
           -MPairTop
           -BoxTop
           -ChannelTop
-          -VectorTop
           -ThreadCellTop
           make-Ephemeron
           make-CustodianBox
@@ -57,8 +56,8 @@
 [eq? (-> Univ Univ B)]
 
 [equal?/recur (-> Univ Univ (-> Univ Univ Univ) B)]
-[immutable? (asym-pred Univ B (-PS (-is-type 0 (Un -Bytes -BoxTop -String -VectorTop (-Immutable-HT Univ Univ)))
-                                   (-not-type 0 (Un (-Immutable-HT Univ Univ)))))]
+[immutable? (asym-pred Univ B (-PS (-is-type 0 (Un -Bytes -BoxTop -String (-Immutable-HT Univ Univ) (-ivec Univ)))
+                                   (-not-type 0 (Un (-Immutable-HT Univ Univ) (-ivec Univ)))))]
 [prop:equal+hash -Struct-Type-Property]
 
 ;; Section 4.1.1 (racket/bool)
@@ -847,13 +846,13 @@
 [vector? (make-pred-ty -VectorTop)]
 [vector->list (-poly (a) (cl->* (-> (-vec a) (-lst a))
                                 (-> -VectorTop (-lst Univ))))]
-[list->vector (-poly (a) (-> (-lst a) (-vec a)))]
+[list->vector (-poly (a) (-> (-lst a) (-mvec a)))]
 [vector-length (->acc (list -VectorTop)
                       -Index
                       (list -vec-len))]
-[vector (-poly (a) (->* (list) a (-vec a)))]
-[vector-immutable (-poly (a) (->* (list) a (-vec a)))]
-[vector->immutable-vector (-poly (a) (-> (-vec a) (-vec a)))]
+[vector (-poly (a) (->* (list) a (-mvec a)))]
+[vector-immutable (-poly (a) (->* (list) a (-ivec a)))]
+[vector->immutable-vector (-poly (a) (-> (-vec a) (-ivec a)))]
 [vector-fill! (-poly (a) (-> (-vec a) a -Void))]
 [vector-argmax (-poly (a) (-> (-> a -Real) (-vec a) a))]
 [vector-argmin (-poly (a) (-> (-> a -Real) (-vec a) a))]
@@ -874,29 +873,29 @@
                               ((asym-pred a Univ (-PS (-is-type 0 b) -tt))
                                (-vec a)
                                . -> .
-                               (-vec b))
-                              ((a . -> . Univ) (-vec a) . -> . (-vec a))))]
+                               (-mvec b))
+                              ((a . -> . Univ) (-vec a) . -> . (-mvec a))))]
 
 [vector-filter-not
- (-poly (a b) (cl->* ((a . -> . Univ) (-vec a) . -> . (-vec a))))]
+ (-poly (a b) (cl->* ((a . -> . Univ) (-vec a) . -> . (-mvec a))))]
 [vector-copy
  (-poly (a)
-        (cl->* ((-vec a) . -> . (-vec a))
-               ((-vec a) -Integer . -> . (-vec a))
-               ((-vec a) -Integer -Integer . -> . (-vec a))))]
+        (cl->* ((-vec a) . -> . (-mvec a))
+               ((-vec a) -Integer . -> . (-mvec a))
+               ((-vec a) -Integer -Integer . -> . (-mvec a))))]
 [vector-map (-polydots (c a b) ((list ((list a) (b b) . ->... . c) (-vec a))
-                                ((-vec b) b) . ->... .(-vec c)))]
+                                ((-vec b) b) . ->... .(-mvec c)))]
 [vector-map! (-polydots (a b) ((list ((list a) (b b) . ->... . a) (-vec a))
-                               ((-vec b) b) . ->... .(-vec a)))]
-[vector-append (-poly (a) (->* (list) (-vec a) (-vec a)))]
-[vector-take   (-poly (a) ((-vec a) -Integer . -> . (-vec a)))]
-[vector-drop   (-poly (a) ((-vec a) -Integer . -> . (-vec a)))]
-[vector-take-right   (-poly (a) ((-vec a) -Integer . -> . (-vec a)))]
-[vector-drop-right   (-poly (a) ((-vec a) -Integer . -> . (-vec a)))]
+                               ((-vec b) b) . ->... .(-mvec a)))]
+[vector-append (-poly (a) (->* (list) (-vec a) (-mvec a)))]
+[vector-take   (-poly (a) ((-vec a) -Integer . -> . (-mvec a)))]
+[vector-drop   (-poly (a) ((-vec a) -Integer . -> . (-mvec a)))]
+[vector-take-right   (-poly (a) ((-vec a) -Integer . -> . (-mvec a)))]
+[vector-drop-right   (-poly (a) ((-vec a) -Integer . -> . (-mvec a)))]
 [vector-split-at
- (-poly (a) ((-vec a) -Integer . -> . (-values (list (-vec a) (-vec a)))))]
+ (-poly (a) ((-vec a) -Integer . -> . (-values (list (-mvec a) (-mvec a)))))]
 [vector-split-at-right
- (-poly (a) ((-vec a) -Integer . -> . (-values (list (-vec a) (-vec a)))))]
+ (-poly (a) ((-vec a) -Integer . -> . (-values (list (-mvec a) (-mvec a)))))]
 
 ;; Section 4.12 (Boxes)
 [box (-poly (a) (a . -> . (-box a)))]
@@ -3066,7 +3065,7 @@
 [version (-> -String)]
 [banner (-> -String)]
 
-[current-command-line-arguments (-Param (-vec -String) (-vec -String))]
+[current-command-line-arguments (-Param (-vec -String) (-mvec -String))]
 [current-thread-initial-stack-size (-Param -PosInt -PosInt)]
 [vector-set-performance-stats! (cl->* [-> (-vec -Int) -Void]
                                       [-> (-vec -Int) -False -Void]

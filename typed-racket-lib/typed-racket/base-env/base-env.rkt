@@ -3121,6 +3121,13 @@
 [current-memory-use (-> -Nat)]
 [dump-memory-stats (->* '() Univ Univ)]
 
+[unsafe-char=? (->* (list -Char -Char) -Char B)]
+[unsafe-char<=? (->* (list -Char -Char) -Char B)]
+[unsafe-char>=? (->* (list -Char -Char) -Char B)]
+[unsafe-char<? (->* (list -Char -Char) -Char B)]
+[unsafe-char>? (->* (list -Char -Char) -Char B)]
+[unsafe-char->integer (-> -Char -Index)]
+
 ;; Section 17.2 (Unsafe Data Extraction)
 [unsafe-car (-poly (a b)
                    (cl->*

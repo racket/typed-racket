@@ -33,17 +33,11 @@
                         dmap)))]))
 
 ;; meet: Type Type -> Type
-;; intersect the given types. produces a lower bound on both, but
-;; perhaps not the GLB
-(define (meet S T)
-  (let ([s* (intersect S T)])
-    (if (and (subtype s* S)
-             (subtype s* T))
-        s*
-        (Un))))
+;; intersect the given types, producing the greatest lower bound
+(define (meet S T) (intersect S T))
 
 ;; join: Type Type -> Type
-;; union the given types
+;; union the given types, producing the least upper bound
 (define (join T U) (Un T U))
 
 

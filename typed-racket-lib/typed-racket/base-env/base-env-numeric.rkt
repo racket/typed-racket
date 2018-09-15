@@ -438,7 +438,7 @@
                 (syntax/loc stx
                   (lambda (type)
                     (unless (memq type '(flonum ext-flonum))
-                      (raise-argument-error 'fl-type-lambda "(or/c 'flonum 'ext-flonum)"))
+                      (raise-argument-error 'fl-type-lambda "(or/c 'flonum 'ext-flonum)" type))
                     (parameterize ([fl-type type])
                       body))))))))]))
 

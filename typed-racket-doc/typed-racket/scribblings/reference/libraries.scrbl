@@ -76,8 +76,18 @@ The following libraries are included with Typed Racket in the
 @defmodule/incl[typed/framework]
 @defmodule/incl[typed/json]
 
+Unlike the untyped @racketmodname[json] library,
+@racketmodname[typed/json] always uses @racket['null]
+to represent the JSON ``null'' value.
+The functions exported by @racketmodname[typed/json]
+do not accept a @racket[#:null] argument, and they
+are not sensitive to the current value of the @racket[json-null] parameter.
+The @racket[json-null] binding itself is not
+exported by @racketmodname[typed/json].
+
 @deftype[JSExpr]{
-  Describes a @tech["jsexpr" #:doc '(lib "json/json.scrbl")].
+ Describes a @tech["jsexpr" #:doc '(lib "json/json.scrbl")],
+ where @racket['null] is always used to represent the JSON ``null'' value.
 }
 
 @defmodule/incl[typed/mred/mred]

@@ -300,3 +300,11 @@
            [_ rep])))
      (values new-type props)]))
 
+
+
+(define (-list-set s) (Un (-lst s) (-set s)))
+
+(define-syntax-rule (set-abs s e)
+  (cl->*
+   (let ([s -set]) e)
+   (let ([s -lst]) e)))

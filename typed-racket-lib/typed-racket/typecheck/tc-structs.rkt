@@ -200,14 +200,14 @@
                                  fld-t
                                  (list path))
                           (-> prefab-top-type Univ)))])])
-          (add-struct-accessor-fn! acc-id prefab-top-type idx self-mutable)
+          (add-struct-accessor-fn! acc-id prefab-top-type idx self-mutable #t)
           (make-def-binding acc-id func-t)))
       (if self-mutable
           (for/list ([s (in-list (struct-names-setters names))]
                      [t (in-list self-fields)]
                      [idx (in-naturals parent-count)])
             (let ([fld-t (list-ref field-tvar-Fs idx)])
-              (add-struct-mutator-fn! s prefab-top-type idx)
+              (add-struct-mutator-fn! s prefab-top-type idx #t)
               (make-def-binding s (make-Poly
                                    field-tvar-syms
                                    (->* (list raw-poly-prefab fld-t) -Void)))))
@@ -302,13 +302,13 @@
                       (if mutable
                           (->* (list poly-base) t)
                           (->acc (list poly-base) t (list path))))])
-          (add-struct-accessor-fn! g poly-base i mutable)
+          (add-struct-accessor-fn! g poly-base i mutable #f)
           (make-def-binding g func)))
       (if mutable
           (for/list ([s (in-list (struct-names-setters names))]
                      [t (in-list self-fields)]
                      [i (in-naturals parent-count)])
-            (add-struct-mutator-fn! s poly-base i)
+            (add-struct-mutator-fn! s poly-base i #f)
             (make-def-binding s (poly-wrapper (->* (list poly-base t) -Void))))
           null))))
 

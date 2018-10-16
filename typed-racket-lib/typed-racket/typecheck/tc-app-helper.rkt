@@ -122,7 +122,8 @@
        (format "~a~a~a"
                doms-string
                (match rst
-                 [(Rest: rst-ts) (format "(~a)*" rst)]
+                 [(Rest: (list rst-t)) (format "~a *" rst-t)]
+                 [(Rest: rst-ts) (format "~a *" rst-ts)]
                  [(? Type?) (format "~a *" rst)]
                  [_ ""])
                rng-string)])))

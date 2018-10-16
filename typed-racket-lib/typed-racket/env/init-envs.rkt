@@ -467,19 +467,10 @@
   (make-init-code
    struct-fn-table-map
    (λ (id v)
-     (match-define (struct-field-entry type idx mutator? mutable?) v)
-     (cond
-       [mutator?
-        #`(add-struct-mutator-fn!
-           (quote-syntax #,id)
-           #,(type->sexp type)
-           #,idx)]
-       [else
-        #`(add-struct-accessor-fn!
-           (quote-syntax #,id)
-           #,(type->sexp type)
-           #,idx
-           #,mutable?)]))))
+     (match-define (struct-field-metadata type info) v)
+     #`(add-struct-field-metadata!
+        (quote-syntax #,id)
+        (struct-field-metadata #,(type->sexp type) (quote #,info))))))
 
 ;; -> (Listof Syntax)
 ;; Construct syntax that does type environment serialization

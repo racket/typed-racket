@@ -7,6 +7,7 @@
          (only-in (private type-contract) include-extra-requires?)
          (private syntax-properties)
          (typecheck renamer def-binding)
+         (types struct-table)
          (utils tc-utils)
          (env env-utils)
          (for-syntax racket/base)
@@ -77,6 +78,8 @@
                           ;; if it wasn't there, put it in, and skip this case
                           (λ () (free-id-table-set! mapping internal-id new-id) #f))
        => mk-ignored-quad]
+      [(prefab-struct-field-operator? internal-id)
+       (mk-ignored-quad internal-id)]
       [(free-id-table-ref defs internal-id #f)
        =>
        (match-lambda

@@ -253,7 +253,7 @@
                  [(ForcePE:) (list 'force sexp)]
                  [(StructPE: t idx)
                   (define maybe-accessor-id
-                    (id-for-struct-pe
+                    (find-struct-accessor-id
                      (λ (t* idx*) (and (subtype t t*)
                                        (= idx idx*)))))
                   (cond
@@ -262,7 +262,7 @@
                     [else (list 'struct-ref sexp idx)])]
                  [(PrefabPE: key idx)
                   (define maybe-accessor-id
-                    (id-for-struct-pe
+                    (find-struct-accessor-id
                      (λ (t* idx*) (and (Prefab? t*)
                                        (prefab-key-subtype? (Prefab-key t*) key)
                                        (= idx idx*)))))

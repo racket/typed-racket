@@ -16,8 +16,15 @@
 ;; bit 1 : field mutability
 ;; bit 2 : is this for a prefab struct?
 ;; bits 3-rest : field index
+;; NOTE: since `info` is a bitfield, `struct-field-metadata` instances
+;; should generally be created with `mk-field-metadata` and not manually.
 (struct struct-field-metadata (struct-type info) #:prefab)
 
+;; mk-field-metadata
+;;
+;; constructs a `struct-field-metadata` struct, recording the type
+;; for which a field accessor/mutator is valid for, and packing
+;; other information into a bitfield (see struct-field-metadata above).
 (define (mk-field-metadata struct-type field-index mutator? mutable? prefab?)
   (struct-field-metadata
    struct-type
@@ -32,17 +39,37 @@
 (define (struct-field-prefab? metadata)  (bitwise-bit-set? (struct-field-metadata-info metadata)  2))
 (define (struct-field-index metadata)    (arithmetic-shift (struct-field-metadata-info metadata) -3))
 
+;; mapping from identifiers (i.e. struct accessor/mutators) to
+;; information about the values they operate on, etc.
+;; See struct-field-metadata above.
 (define struct-fn-table (make-free-id-table))
 
 
+;; add-struct-field-metadata!
+;;
+;; Records that the identifier `fn-id` is a struct
+;; accessor/mutator with `metadata` being a struct-field-metadata
+;; (see above) describing properties of that accessor/mutator.
 (define (add-struct-field-metadata! fn-id metadata)
   (free-id-table-set! struct-fn-table fn-id metadata))
 
+;; add-struct-accessor-fn!
+;;
+;; Records that identifier `fn-id` as an accessor for
+;; the `idx`th field of struct values of type `type`.
+;; mutable-field? - a boolean describing whether the field is mutable.
+;; prefab? - a boolean describing if this is a prefab struct
 (define (add-struct-accessor-fn! fn-id type idx mutable-field? prefab?)
   (free-id-table-set! struct-fn-table fn-id (mk-field-metadata type idx #f mutable-field? prefab?)))
 
+;; add-struct-mutator-fn!
+;;
+;; Records that identifier `fn-id` as a mutator for
+;; the `idx`th field of struct values of type `type`.
+;; prefab? - a boolean describing if this is a prefab struct
 (define (add-struct-mutator-fn! fn-id type idx prefab?)
   (free-id-table-set! struct-fn-table fn-id (mk-field-metadata type idx #t #t prefab?)))
+
 
 (define (struct-accessor? id)
   (match (free-id-table-ref struct-fn-table id #f)
@@ -70,16 +97,25 @@
     [(? struct-field-metadata? entry) (struct-field-prefab? entry)]
     [_ #f]))
 
+
 (define (struct-fn-table-map f)
   (for/list ([(k v) (in-sorted-free-id-table struct-fn-table)])
     (f k v)))
 
 
-(define (id-for-struct-pe type/idx=?)
+;; find-struct-accessor-id
+;;
+;; takes a predicate `pred` of type (-> Type? natural? boolean?)
+;; and searches for a struct-accessor identifier for whom
+;; `(pred type index)` produces a non-#f value, where
+;; `type` and `index` are the corresponding info in the recorded
+;; struct metadata (see `struct-field-metadata` above)
+(define (find-struct-accessor-id pred)
   (for*/or ([(id entry) (in-free-id-table struct-fn-table)]
+            #:when (struct-field-accessor? entry)
             [type (in-value (struct-field-metadata-struct-type entry))]
-            [idx (in-value (struct-field-index entry))]
-            #:when (type/idx=? type idx))
+            [index (in-value (struct-field-index entry))]
+            #:when (pred type index))
     id))
 
 
@@ -93,6 +129,6 @@
  [struct-mutator? (identifier? . c:-> . (c:or/c #f exact-nonnegative-integer?))]
  [prefab-struct-field-operator? (identifier? . c:-> . c:any/c)]
  [immutable-struct-field-accessor? (identifier? . c:-> . exact-nonnegative-integer?)]
- [id-for-struct-pe (c:-> (c:-> Type? exact-nonnegative-integer? boolean?) (c:or/c identifier? #f))]
+ [find-struct-accessor-id (c:-> (c:-> Type? exact-nonnegative-integer? boolean?) (c:or/c identifier? #f))]
  [struct-fn-table-map (c:-> (c:-> identifier? struct-field-metadata? c:any/c)
                             (c:listof c:any/c))])

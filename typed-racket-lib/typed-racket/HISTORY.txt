@@ -1,3 +1,5 @@
+7.1
+- Add immutable vectors.
 7.0
 - Revamp prefab struct handling.
 - Improve contract generation for unions.

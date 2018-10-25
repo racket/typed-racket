@@ -204,6 +204,7 @@
       (check-prints-as? (make-Unit (list a^ b^) (list c^ d^) (list b^ a^) (-values (list -String)))
                         "(Unit (import a^ b^) (export c^ d^) (init-depend b^ a^) String)"))
     (check-prints-as? -UnitTop "UnitTop")
+    (check-prints-as? (-HT -String -Symbol) "(HashTable String Symbol)")
     (check-prints-as? (-refine/fresh x -Int (-leq (-lexp x) (-lexp 42)))
                       (λ (str) (match (read (open-input-string str))
                                  [`(Refine [,(? symbol? x) : Integer]

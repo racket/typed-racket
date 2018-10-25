@@ -7,6 +7,7 @@
          racket/pretty
          racket/list
          racket/set
+         (except-in (path-up "utils/utils.rkt") infer)
          (path-up "rep/type-rep.rkt" "rep/prop-rep.rkt" "rep/object-rep.rkt"
                   "rep/core-rep.rkt" "rep/values-rep.rkt" "rep/fme-utils.rkt"
                   "rep/rep-utils.rkt" "rep/free-ids.rkt"
@@ -17,9 +18,10 @@
                   "types/union.rkt" "types/numeric-tower.rkt"
                   "types/resolve.rkt"
                   "utils/prefab.rkt" "utils/identifier.rkt"
-                  "utils/utils.rkt"
                   "utils/tc-utils.rkt"
-                  "types/struct-table.rkt")
+                  "types/struct-table.rkt"
+                  "infer/infer.rkt"
+                  "types/substitute.rkt")
          (for-syntax racket/base syntax/parse))
 
 ;; printer-type: (one-of/c 'custom 'debug)
@@ -287,13 +289,30 @@
   (define valid-names
     ;; We keep only unions, and only those that are subtypes of t.
     ;; It's no use attempting to cover t with things that go outside of t.
-    (filter (lambda (p)
-              (match p
-                [(cons name (and t* (or (? Union?) (? BaseUnion?))))
-                 (and (not (member name ignored-names))
-                      (subtype t* t))]
-                [_ #f]))
-            (force (current-type-names))))
+    (let loop ([todo (force (current-type-names))]
+               [valid-names '()])
+      (match todo
+        [(list) (reverse valid-names)]
+        [(cons (and entry (cons name t*)) remaining)
+         (match t*
+           [(or (? Union?) (? BaseUnion?))
+            (cond
+              [(and (not (member name ignored-names))
+                    (subtype t* t))
+               (loop remaining (cons entry valid-names))]
+              [else
+               (loop remaining valid-names)])]
+           [(Poly: names (and body (or (? Union?) (? BaseUnion?))))
+            (define type-sub (infer names null (list body) (list t) Univ))
+            (cond
+              [type-sub
+               (define args (map (λ (name) (t-subst-type (hash-ref type-sub name))) names))
+               (loop remaining (cons (cons (cons name (map type->sexp args))
+                                           (subst-all type-sub body))
+                                     valid-names))]
+              [else
+               (loop remaining valid-names)])]
+           [_ (loop remaining valid-names)])])))
   ;; names and the sets themselves (not the union types)
   ;; note that racket/set supports lists with equal?
   (define candidates
@@ -669,7 +688,9 @@
      (match type
        [(Union-all-flat: ts)
         (define-values (covered remaining) (cover-union type ts ignored-names))
-        (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
+        (match (sort (append covered (map t->s remaining)) primitive<=?)
+          [(list t) t]
+          [ts (cons 'U ts)])]
        [_ (t->s type)])]
     [(BaseUnion-bases: bs)
      (define-values (covered remaining) (cover-union type bs ignored-names))

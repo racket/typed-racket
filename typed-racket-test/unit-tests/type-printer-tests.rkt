@@ -69,7 +69,7 @@
     (check-prints-as? (make-Opaque #'integer?) "(Opaque integer?)")
     (check-prints-as? (make-Immutable-Vector -Nat) "(Immutable-Vectorof Nonnegative-Integer)")
     (check-prints-as? (make-Mutable-Vector -Nat) "(Mutable-Vectorof Nonnegative-Integer)")
-    (check-prints-as? (make-Vector -Nat) "(U (Immutable-Vectorof Nonnegative-Integer) (Mutable-Vectorof Nonnegative-Integer))")
+    (check-prints-as? (make-Vector -Nat) "(Vectorof Nonnegative-Integer)")
     (check-prints-as? (make-Immutable-HeterogeneousVector (list -Symbol -String))
                       "(Immutable-Vector Symbol String)")
     (check-prints-as? (make-Mutable-HeterogeneousVector (list -Symbol -String))
@@ -218,7 +218,7 @@
     (check-prints-as? (-refine/fresh x (-vec Univ) (-leq (-lexp (-vec-len-of (-id-path x)))
                                                          (-lexp 42)))
                       (λ (str) (match (read (open-input-string str))
-                                 [`(Refine [,x : (U (Immutable-Vectorof Any) (Mutable-Vectorof Any))] (<= (vector-length ,x) 42)) #t]
+                                 [`(Refine [,x : (Vectorof Any)] (<= (vector-length ,x) 42)) #t]
                                  [_ #f])))
     (check-prints-as? (-refine/fresh x -Int (-and (-leq (-lexp x) (-lexp 42))
                                                   (-leq (-lexp 42) (-lexp x))

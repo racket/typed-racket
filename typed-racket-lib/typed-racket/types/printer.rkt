@@ -287,32 +287,28 @@
 ;; cover, and all the names types we know about being the sets.
 (define (cover-union t elems ignored-names)
   (define valid-names
-    ;; We keep only unions, and only those that are subtypes of t.
-    ;; It's no use attempting to cover t with things that go outside of t.
-    (let loop ([todo (force (current-type-names))]
-               [valid-names '()])
-      (match todo
-        [(list) (reverse valid-names)]
-        [(cons (and entry (cons name t*)) remaining)
-         (match t*
-           [(or (? Union?) (? BaseUnion?))
-            (cond
-              [(and (not (member name ignored-names))
-                    (subtype t* t))
-               (loop remaining (cons entry valid-names))]
-              [else
-               (loop remaining valid-names)])]
-           [(Poly: names (and body (or (? Union?) (? BaseUnion?))))
-            (define type-sub (infer names null (list body) (list t) Univ))
-            (cond
-              [type-sub
-               (define args (map (λ (name) (t-subst-type (hash-ref type-sub name))) names))
-               (loop remaining (cons (cons (cons name (map type->sexp args))
-                                           (subst-all type-sub body))
-                                     valid-names))]
-              [else
-               (loop remaining valid-names)])]
-           [_ (loop remaining valid-names)])])))
+    ;; We keep only the unions and (instantiated) polymorphic unions
+    ;; which are subtypes of t. It's no use attempting to cover t with
+    ;; things that go outside of t.
+    (filter-map
+     (match-lambda
+       [(and name/type (cons name t*))
+        (match t*
+          [(or (? Union?) (? BaseUnion?))
+           #:when (not (member name ignored-names))
+           (and (subtype t* t) name/type)]
+          [(Poly: names (and raw-body (or (? Union?) (? BaseUnion?))))
+           #:when (not (member name ignored-names))
+           (match (infer names null (list raw-body) (list t) Univ)
+             [(and (? hash? type-sub)
+                   (app (λ (sub) (subst-all sub raw-body))
+                        (and body (or (? Union?) (? BaseUnion?)))))
+              (define args (for/list ([arg-name (in-list names)])
+                             (type->sexp (t-subst-type (hash-ref type-sub arg-name)))))
+              (cons (cons name args) body)]
+             [_ #f])]
+          [_ #f])])
+     (force (current-type-names))))
   ;; names and the sets themselves (not the union types)
   ;; note that racket/set supports lists with equal?
   (define candidates

@@ -293,21 +293,21 @@
     (filter-map
      (match-lambda
        [(and name/type (cons name t*))
-        (match t*
-          [(or (? Union?) (? BaseUnion?))
-           #:when (not (member name ignored-names))
-           (and (subtype t* t) name/type)]
-          [(Poly: names (and raw-body (or (? Union?) (? BaseUnion?))))
-           #:when (not (member name ignored-names))
-           (match (infer names null (list raw-body) (list t) Univ)
-             [(and (? hash? type-sub)
-                   (app (λ (sub) (subst-all sub raw-body))
-                        (and body (or (? Union?) (? BaseUnion?)))))
-              (define args (for/list ([arg-name (in-list names)])
-                             (type->sexp (t-subst-type (hash-ref type-sub arg-name)))))
-              (cons (cons name args) body)]
-             [_ #f])]
-          [_ #f])])
+        (and
+         (not (member name ignored-names))
+         (match t*
+           [(or (? Union?) (? BaseUnion?))
+            (and (subtype t* t) name/type)]
+           [(Poly: names (and raw-body (or (? Union?) (? BaseUnion?))))
+            (match (infer names null (list raw-body) (list t) Univ)
+              [(and (? hash? type-sub)
+                    (app (λ (sub) (subst-all sub raw-body))
+                         (and body (or (? Union?) (? BaseUnion?)))))
+               (define args (for/list ([arg-name (in-list names)])
+                              (type->sexp (t-subst-type (hash-ref type-sub arg-name)))))
+               (cons (cons name args) body)]
+              [_ #f])]
+           [_ #f]))])
      (force (current-type-names))))
   ;; names and the sets themselves (not the union types)
   ;; note that racket/set supports lists with equal?

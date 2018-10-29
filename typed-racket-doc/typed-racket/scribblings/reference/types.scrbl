@@ -514,8 +514,10 @@ or sets that are implemented using @racket[gen:set].
 
 @defform[(Futureof t)]{A @rtech{future} which produce a value of type @racket[t] when touched.}
 
-@defform[(Sequenceof t)]{A @rtech{sequence} that produces values of
-type @racket[_t] on each iteration.}
+@defform[(Sequenceof t t ...)]{A @rtech{sequence} that produces
+ @racket[(Values _t _t ...)] on each iteration. E.g., @racket[(Sequenceof String)]
+is a sequence of strings, @racket[(Sequenceof Number String)] is a sequence which
+produces two values---a number and a string---on each iteration, etc.}
 
 @defform[(Custodian-Boxof t)]{A @rtech{custodian box} of @racket[t].}
 @defform[(Thread-Cellof t)]{A @rtech{thread cell} of @racket[t].}

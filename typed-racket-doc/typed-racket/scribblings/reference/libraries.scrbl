@@ -72,6 +72,7 @@ The following libraries are included with Typed Racket in the
 }
 
 @defmodule/incl[typed/file/md5]
+@defmodule/incl[typed/file/sha1]
 @defmodule/incl[typed/file/tar]
 @defmodule/incl[typed/framework]
 @defmodule/incl[typed/json]

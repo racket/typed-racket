@@ -72,7 +72,6 @@
     [v:parent
       (if (attribute v.par)
           (let* ([parent0 (parse-type #'v.par)]
-                 ;; TODO ensure this is a struct
                  [parent (let loop ((parent parent0))
                                (cond
                                  ((Name? parent) (loop (resolve-name parent)))
@@ -134,9 +133,12 @@
   ;; a type alias needs to be registered here too, to ensure
   ;; that parse-type will map the identifier to this Name type
   (define type-name (struct-names-type-name names))
-  (register-resolved-type-alias
-   type-name
-   (make-Name type-name (length (struct-desc-tvars desc)) (Struct? sty)))
+  (define (register-alias alias)
+    (register-resolved-type-alias
+     alias
+     (make-Name type-name (length (struct-desc-tvars desc)) (Struct? sty))))
+  (register-alias type-name)
+  (register-alias (struct-names-struct-name names))
   (register-type-name type-name
                       (make-Poly (struct-desc-tvars desc) sty)))
 

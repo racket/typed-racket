@@ -7,6 +7,7 @@
          "signatures.rkt"
          "utils.rkt"
          (utils prefab)
+         (only-in (infer infer) intersect)
          (types utils abbrev numeric-tower resolve type-table
                 generalize match-expanders)
          (typecheck signatures check-below)
@@ -108,17 +109,24 @@
   #:literal-sets (hetero-literals)
   (pattern (~and form ((~and op (~or unsafe-struct-ref unsafe-struct*-ref)) struct:expr index:expr))
     (match (single-value #'struct)
-      [(tc-result1: (and struct-t (app resolve (Struct: _ _ (list (fld: flds _ _) ...) _ _ _))))
-       (tc/hetero-ref #'index flds struct-t "struct" #'op)]
-      [(tc-result1: (and struct-t (app resolve (Prefab: _ (list flds ...)))))
-       (tc/hetero-ref #'index flds struct-t "prefab struct" #'op)]
-      [(tc-result1: (and struct-t (app resolve (PrefabTop: key))))
-       (tc/hetero-ref #'index
-                      (build-list (prefab-key->field-count key) (λ (_) Univ))
-                      struct-t
-                      "prefab struct"
-                      #'op)]
-      [s-ty (tc/app-regular #'form expected)]))
+      [(tc-result1: (app resolve t))
+       (let loop ([struct-t t])
+         (match struct-t
+           [(Intersection: ts _)
+            (for/first ([t (in-list ts)]
+                        #:when (or (Prefab? t) (Struct? t) (PrefabTop? t)))
+              (loop t))]
+           [(Struct: _ _ (list (fld: flds _ _) ...) _ _ _)
+            (tc/hetero-ref #'index flds struct-t "struct" #'op)]
+           [(Prefab: _ (list flds ...))
+            (tc/hetero-ref #'index flds struct-t "prefab struct" #'op)]
+           [(PrefabTop: key)
+            (tc/hetero-ref #'index
+                           (build-list (prefab-key->field-count key) (λ (_) Univ))
+                           struct-t
+                           "prefab struct"
+                           #'op)]
+           [_ (tc/app-regular #'form expected)]))]))
   ;; vector-ref on het vectors
   (pattern (~and form ((~and op (~or vector-ref unsafe-vector-ref unsafe-vector*-ref)) vec:expr index:expr))
     (match (single-value #'vec)

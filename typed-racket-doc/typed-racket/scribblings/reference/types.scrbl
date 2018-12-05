@@ -644,6 +644,8 @@ functions and continuation mark functions.
                 [dom type
                      mandatory-kw
                      opt-kw]
+                [rng type
+                     (Values type ...)]
                 [mandatory-kw (code:line keyword type)]
                 [opt-kw [keyword type]]
                 [opt-proposition (code:line)

@@ -300,3 +300,14 @@
            [_ rep])))
      (values new-type props)]))
 
+
+
+(define (-list-or-set s) (Un (-lst s) (-set s)))
+
+;; Since generics are not yet supported, we currently overload 
+;; the set operations to work both on list sets and hash sets.
+;; This helper makes those types in the base-env less verbose.
+(define-syntax-rule (set-abs s e)
+  (cl->*
+   (let ([s -set]) e)
+   (let ([s -lst]) e)))

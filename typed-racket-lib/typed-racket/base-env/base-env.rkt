@@ -2300,6 +2300,11 @@
 
 ;; Section 13.10
 
+;; Section 13.11
+[sha1-bytes (->opt (Un -Bytes -Input-Port) [-Nat (Un -Nat (-val #f))] -Bytes)]
+[sha224-bytes (->opt (Un -Bytes -Input-Port) [-Nat (Un -Nat (-val #f))] -Bytes)]
+[sha256-bytes (->opt (Un -Bytes -Input-Port) [-Nat (Un -Nat (-val #f))] -Bytes)]
+
 ;; Section 14.1 (Namespaces)
 [namespace? (make-pred-ty -Namespace)]
 [make-namespace (->opt [(one-of/c  'empty 'initial)] -Namespace)]

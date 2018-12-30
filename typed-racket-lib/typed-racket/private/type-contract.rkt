@@ -516,6 +516,8 @@
         (or/sc (flat/sc #'exact-nonnegative-integer?)
                (sequence/sc (t->sc t)))]
        [(Sequence: ts) (apply sequence/sc (map t->sc ts))]
+       [(SequenceTop:)
+        (only-untyped (flat/sc #'sequence?))]
        [(Immutable-HeterogeneousVector: ts)
         (apply immutable-vector/sc (map t->sc ts))]
        [(Immutable-Vector: t)

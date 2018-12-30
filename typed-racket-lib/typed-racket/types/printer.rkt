@@ -776,6 +776,7 @@
      `(Refinement ,(t->s parent) ,(syntax-e p?))]
     [(Sequence: ts)
      `(Sequenceof ,@(map t->s ts))]
+    [(SequenceTop:) 'SequenceTop]
     [(Error:) 'Error]
     ;[(fld: t a m) `(fld ,(type->sexp t))]
     [(Distinction: name sym ty) ; from define-new-subtype

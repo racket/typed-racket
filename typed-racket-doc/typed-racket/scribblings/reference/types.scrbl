@@ -524,6 +524,7 @@ produces two values---a number and a string---on each iteration, etc.}
   appears in programs via the combination of ocurrence typing ang
   @racket[sequence?].
 @ex[(lambda: ([x : Any]) (if (sequence? x) x (error "not a sequence!")))]
+@history[#:added "1.10"]
 }
 
 @defform[(Custodian-Boxof t)]{A @rtech{custodian box} of @racket[t].}

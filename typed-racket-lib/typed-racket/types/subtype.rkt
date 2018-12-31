@@ -610,17 +610,8 @@
                (nbits-overlap? nbits bits)
                (bbits-overlap? bbits bits))
            A)]
-     [(SequenceTop:)
-      (cond
-        [(Base:Null? t1) A]
-        [(hash-ref seq->elem-table t1 #f) A]
-        [num?
-         (define type
-           (for/or ([num-t (in-list num-seq-types)])
-             (or (and (subtype* A t1 num-t) num-t))))
-         (and type A)]
-        [else #f])]
-     [(Sequence: (list seq-t))
+     [(or (SequenceTop:) (Sequence: (list _)))
+      (define seq-t (if (SequenceTop? t2) Univ (first (Sequence-tys t2))))
       (cond
         [(Base:Null? t1) A]
         [(hash-ref seq->elem-table t1 #f)
@@ -867,7 +858,7 @@
      [(or (? Mutable-VectorTop?)
           (? Mutable-Vector?))
       #false]
-    [(SequenceTop:) A]
+     [(SequenceTop:) A]
      [(Sequence: (list seq-t))
       (for/fold ([A A])
                 ([elem1 (in-list elems1)]
@@ -881,7 +872,7 @@
      [(or (? Mutable-VectorTop?)
           (? Mutable-Vector?))
       #false]
-    [(SequenceTop:) A]
+     [(SequenceTop:) A]
      [(Sequence: (list seq-t))
       (subtype* A elem1 seq-t)]
      [_ (continue<: A t1 t2 obj)])]

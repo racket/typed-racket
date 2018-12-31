@@ -4,7 +4,7 @@
 (define deps '("redex-lib"
                "sandbox-lib"
                ("base" #:version "6.2.900.16")
-               ("typed-racket-lib" #:version "1.3")
+               ("typed-racket-lib" #:version "1.10")
                "typed-racket-more"
                "typed-racket-compatibility"
                "2d"
@@ -28,7 +28,7 @@
 
 (define pkg-authors '(samth stamourv endobson asumu "andmkent@iu.edu"))
 
-(define version "1.8")
+(define version "1.10")
 
 
 ;; Collection info

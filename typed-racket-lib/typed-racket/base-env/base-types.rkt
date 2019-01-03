@@ -128,6 +128,7 @@
 [Mutable-VectorTop -Mutable-VectorTop]
 [HashTableTop -HashTableTop]
 [MPairTop -MPairTop]
+[SequenceTop -SequenceTop]
 [Thread-CellTop -ThreadCellTop]
 [Prompt-TagTop -Prompt-TagTop]
 [Continuation-Mark-KeyTop -Continuation-Mark-KeyTop]

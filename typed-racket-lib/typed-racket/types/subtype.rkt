@@ -610,7 +610,8 @@
                (nbits-overlap? nbits bits)
                (bbits-overlap? bbits bits))
            A)]
-     [(Sequence: (list seq-t))
+     [(or (SequenceTop:) (Sequence: (list _)))
+      (define seq-t (if (SequenceTop? t2) Univ (first (Sequence-tys t2))))
       (cond
         [(Base:Null? t1) A]
         [(hash-ref seq->elem-table t1 #f)
@@ -831,6 +832,7 @@
      (subtype-seq A
                   (subtype* key1 key2)
                   (subtype* val1 val2))]
+    [(SequenceTop:) A]
     [(Sequence: (list key2 val2))
      (subtype-seq A
                   (subtype* key1 key2)
@@ -856,6 +858,7 @@
      [(or (? Mutable-VectorTop?)
           (? Mutable-Vector?))
       #false]
+     [(SequenceTop:) A]
      [(Sequence: (list seq-t))
       (for/fold ([A A])
                 ([elem1 (in-list elems1)]
@@ -869,6 +872,7 @@
      [(or (? Mutable-VectorTop?)
           (? Mutable-Vector?))
       #false]
+     [(SequenceTop:) A]
      [(Sequence: (list seq-t))
       (subtype* A elem1 seq-t)]
      [_ (continue<: A t1 t2 obj)])]
@@ -948,6 +952,10 @@
                    (type≡? t12 t22))]
      ;; To check that mutable pair is a sequence we check that the cdr
      ;; is both an mutable list and a sequence 
+     [(SequenceTop:)
+      (subtype-seq A
+                   (subtype* t12 null-or-mpair-top)
+                   (subtype* t12 -SequenceTop))]
      [(Sequence: (list seq-t))
       (subtype-seq A
                    (subtype* t11 seq-t)
@@ -967,6 +975,7 @@
      (subtype-seq A
                   (type≡? key1 key2)
                   (type≡? val1 val2))]
+    [(SequenceTop:) A]
     [(Sequence: (list key2 val2))
      (subtype-seq A
                   (subtype* key1 key2)
@@ -992,6 +1001,7 @@
       (for/fold ([A A])
                 ([elem1 (in-list elems1)] #:break (not A))
         (type≡? A elem1 elem2))]
+     [(SequenceTop:) A]
      [(Sequence: (list seq-t))
       (for/fold ([A A])
                 ([elem1 (in-list elems1)]
@@ -1004,6 +1014,7 @@
       A]
      [(Mutable-Vector: elem2)
       (type≡? A elem1 elem2)]
+     [(SequenceTop:) A]
      [(Sequence: (list seq-t))
       (subtype* A elem1 seq-t)]
      [(Immutable-Vector: elem2)
@@ -1028,6 +1039,8 @@
       (subtype-seq A
                    (subtype* t11 t21 (-car-of obj))
                    (subtype* t12 t22 (-cdr-of obj)))]
+     [(SequenceTop:)
+      (subtype* A t12 (-lst Univ))]
      [(Sequence: (list seq-t))
       (subtype-seq A
                    (subtype* t11 seq-t)
@@ -1131,11 +1144,13 @@
   ;; sequences are covariant
   [(case: Sequence (Sequence: ts1))
    (match t2
+     [(SequenceTop:) A]
      [(Sequence: ts2) (subtypes* A ts1 ts2)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Set (Set: elem1))
    (match t2
      [(Set: elem2) (subtype* A elem1 elem2)]
+     [(SequenceTop:) A]
      [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _))
@@ -1226,6 +1241,8 @@
       (for*/or ([b (in-list bs)]
                 [pred (in-value (Base-predicate b))])
         (and (pred val1) A))]
+     [(SequenceTop:)
+      (and (exact-nonnegative-integer? val1) A)]
      [(Sequence: (list seq-t))
       (cond
         [(exact-nonnegative-integer? val1)
@@ -1260,6 +1277,7 @@
      (subtype-seq A
                   (type≡? key1 key2)
                   (type≡? val1 val2))]
+    [(SequenceTop:) A]
     [(Sequence: (list key2 val2))
      (subtype-seq A
                   (subtype* key1 key2)

@@ -519,6 +519,14 @@ or sets that are implemented using @racket[gen:set].
 is a sequence of strings, @racket[(Sequenceof Number String)] is a sequence which
 produces two values---a number and a string---on each iteration, etc.}
 
+@defidform[SequenceTop]{is the type of a @rtech{sequence} with unknown element
+  type and is the supertype of all sequences. This type typically
+  appears in programs via the combination of ocurrence typing ang
+  @racket[sequence?].
+@ex[(lambda: ([x : Any]) (if (sequence? x) x (error "not a sequence!")))]
+@history[#:added "1.10"]
+}
+
 @defform[(Custodian-Boxof t)]{A @rtech{custodian box} of @racket[t].}
 @defform[(Thread-Cellof t)]{A @rtech{thread cell} of @racket[t].}
 @defidform[Thread-CellTop]{is the type of a @rtech{thread cell} with unknown

@@ -35,6 +35,7 @@
           -MPairTop
           -BoxTop
           -ChannelTop
+          -SequenceTop
           -ThreadCellTop
           make-Ephemeron
           make-CustodianBox
@@ -1057,7 +1058,7 @@
 [make-weak-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]
 
 ;; Section 4.14 (Sequences and Streams)
-[sequence? (make-pred-ty (-seq Univ))]
+[sequence? (make-pred-ty -SequenceTop)]
 [in-sequences
  (-poly (a) (->* (list) (-seq a) (-seq a)))]
 [in-cycle
@@ -1092,7 +1093,7 @@
 ;; Doesn't render nicely (but seems to work fine):
 [empty-sequence (-poly (a) (-seq a))]
 [sequence->list (-poly (a) ((-seq a) . -> . (-lst a)))]
-[sequence-length (-poly (a) ((-seq a) . -> . -Nat))]
+[sequence-length (-SequenceTop . -> . -Nat)]
 [sequence-ref (-poly (a) ((-seq a) -Integer . -> . a))]
 [sequence-tail (-poly (a) ((-seq a) -Integer . -> . (-seq a)))]
 [sequence-append (-poly (a) (->* (list) (-seq a) (-seq a)))]

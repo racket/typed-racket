@@ -4023,6 +4023,22 @@
        [tc-e (ann (in-hash-pairs (hash)) (Sequenceof (Pairof Any Any)))
              (-seq (-pair Univ Univ))]
 
+       ;; SequenceTop
+       [tc-e (sequence? (ann empty-sequence SequenceTop))
+             #:ret (tc-ret -Boolean -true-propset)]
+       [tc-e (sequence? (ann empty-sequence (Sequenceof Any)))
+             #:ret (tc-ret -Boolean -true-propset)]
+       [tc-e (sequence? (ann (in-hash (hash)) SequenceTop))
+             #:ret (tc-ret -Boolean -true-propset)]
+       [tc-e (sequence? (ann (in-hash (hash)) (Sequenceof Any Any)))
+             #:ret (tc-ret -Boolean -true-propset)]
+       [tc-e (sequence-length (ann (in-hash (hash)) SequenceTop)) -Nat]
+       [tc-e (sequence-length (ann (in-hash (hash)) (Sequenceof Any Any))) -Nat]
+       [tc-err (sequence->list (ann empty-sequence SequenceTop))]
+       [tc-err (let: ([f : (Any -> Any) (lambda (x) (if (sequence? x) (sequence-ref x 0) #f))])
+                 (f (in-hash (hash))))
+               #:ret (tc-ret Univ)]
+
        ;; integer literals w/ refinements
        [tc-e (ann -1 (Refine [x : Integer] (= x -1)))
              (-refine/fresh x -Int (-eq (-lexp x) (-lexp -1)))]

@@ -103,7 +103,11 @@
    [((Pair: a b) (Pair: a* b*)) (and (overlap? a a*)
                                      (overlap? b b*))]
    ;; lots of things are sequences, but not values where sequence? produces #f
-   [((Sequence: _) (Val-able: v)) #:no-order (sequence? v)]
+   [((or (Sequence: _)
+         (SequenceTop:))
+     (Val-able: v))
+    #:no-order
+    (sequence? v)]
    ;; hash tables are two-valued sequences
    [((Sequence: (or (list _) (list _ _ _ ...)))
      (or (HashTableTop:)
@@ -117,7 +121,11 @@
     #:no-order
     #f]
    ;; be conservative about other kinds of sequences
-   [((Sequence: _) _) #:no-order #t]
+   [((or (Sequence: _)
+         (SequenceTop:))
+     _)
+    #:no-order
+    #t]
    ;; Values where evt? produces #f cannot be Evt
    [((Evt: _) (Val-able: v)) #:no-order (evt? v)]
    [((Pair: _ _) _) #:no-order #f]

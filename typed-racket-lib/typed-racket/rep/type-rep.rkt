@@ -1260,7 +1260,14 @@
    (f result)]
   [#:mask mask:unit])
 
-;; sequences
+
+;;************************************************************
+;; Sequences
+;;************************************************************
+
+(def-type SequenceTop ()
+  [#:singleton -SequenceTop])
+
 ;; includes lists, vectors, etc
 ;; tys : sequence produces this set of values at each step
 (def-type Sequence ([tys (listof Type?)])

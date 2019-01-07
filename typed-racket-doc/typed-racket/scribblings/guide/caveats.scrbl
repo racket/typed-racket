@@ -243,3 +243,98 @@ anticipate with their pattern matching, e.g.:
 
   (eval:error
    (size 42))]
+
+
+@section{@racket[is-a?] and Occurrence Typing}
+
+Typed Racket does not use the @racket[is-a?] predicate to refine object types
+ because the target object may have been created in untyped code and
+ @racket[is-a?] does not check the types of fields and methods.
+
+For example, the code below defines a class type @racket[Pizza%], a subclass
+ type @racket[Sauce-Pizza%], and a function @racket[get-sauce] (this
+ function contains a type error).
+The @racket[get-sauce] function uses @racket[is-a?] to test the class of its
+ argument; if the test is successful, the function expects the argument to have
+ a field named @racket[topping] that contains a value of type @racket[Sauce].
+
+@codeblock{
+  #lang typed/racket
+
+  (define-type Pizza%
+    (Class (field [topping Any])))
+
+  (define-type Sauce
+    (U 'tomato 'bbq 'no-sauce))
+
+  (define-type Sauce-Pizza%
+    (Class #:implements Pizza% (field [topping Sauce])))
+
+  (define sauce-pizza% : Sauce-Pizza%
+    (class object%
+      (super-new)
+      (field [topping 'tomato])))
+
+  (define (get-sauce [pizza : (Instance Pizza%)]) : Sauce
+    (cond
+      [(is-a? pizza sauce-pizza%)
+       (get-field topping pizza)] ; type error
+      [else
+       'bbq]))}
+
+The type-error message explains that @racket[(get-field topping pizza)]
+ can return any kind of value, even when @racket[pizza] is an instance
+ of the @racket[sauce-pizza%] class.
+In particular, @racket[pizza] could be an instance of an untyped subclass
+ that sets its @racket[topping] to the integer @racket[0]:
+
+@codeblock{
+  ; #lang racket
+  (define evil-pizza%
+    (class sauce-pizza%
+      (inherit-field topping)
+      (super-new)
+      (set! topping 0)))}
+
+To downcast as intended, add a @racket[cast] after the @racket[is-a?] test.
+Below is a complete example that passes the type checker and raises a run-time
+ error to prevent the typed @racket[get-sauce] function from returning
+ a non-@racket[Sauce] value.
+
+@examples[#:eval (make-base-eval '(require racket/class))
+  (module pizza typed/racket
+    (provide get-sauce sauce-pizza%)
+
+    (define-type Pizza%
+      (Class (field [topping Any])))
+
+    (define-type Sauce
+      (U 'tomato 'bbq 'no-sauce))
+
+    (define-type Sauce-Pizza%
+      (Class #:implements Pizza% (field [topping Sauce])))
+
+    (define sauce-pizza% : Sauce-Pizza%
+      (class object%
+        (super-new)
+        (field [topping 'tomato])))
+
+    (define (get-sauce [pizza : (Instance Pizza%)]) : Sauce
+      (cond
+        [(is-a? pizza sauce-pizza%)
+         (define p+ (cast pizza (Instance Sauce-Pizza%)))
+         (get-field topping p+)]
+        [else
+         'no-sauce])))
+
+  (require 'pizza)
+
+  (define evil-pizza%
+    (class sauce-pizza%
+      (inherit-field topping)
+      (super-new)
+      (set! topping 0)))
+
+  (eval:error
+    (get-sauce (new evil-pizza%)) #;(code:comment "runtime error"))
+]

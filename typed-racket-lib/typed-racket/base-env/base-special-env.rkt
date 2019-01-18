@@ -371,4 +371,6 @@
    (-> -ExtFlVector (-seq -ExtFlonum))]
   [(make-template-identifier 'make-namespace-anchor 'racket/private/namespace)
    (-> -Variable-Reference -Namespace-Anchor)]
+  [(make-template-identifier 'check-logger-or-false 'racket/private/logger)
+   (-> -Symbol Univ (Un (-val #f) -Logger))]
   )

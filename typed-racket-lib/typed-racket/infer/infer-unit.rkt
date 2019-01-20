@@ -480,12 +480,14 @@
               (ValuesDots: (list (Result: _ psets _) ...) _ _))
           (AnyValues: q))
          (cset-join
-          (for*/list ([pset (in-list psets)]
-                      [cs (in-value (% cset-meet
-                                       (cgen/prop context (PropSet-thn pset) q)
-                                       (cgen/prop context (PropSet-els pset) q)))]
-                      #:when cs)
-            cs))]
+          (cons
+           empty
+           (for*/list ([pset (in-list psets)]
+                       [cs (in-value (% cset-meet
+                                        (cgen/prop context (PropSet-thn pset) q)
+                                        (cgen/prop context (PropSet-els pset) q)))]
+                       #:when cs)
+             cs)))]
 
         ;; check all non Type? first so that calling subtype is safe
 

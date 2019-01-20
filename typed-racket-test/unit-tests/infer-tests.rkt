@@ -192,6 +192,7 @@
    (infer-t (-v a) (-v b) #:fail)
    (infer-t (-v a) (-v b) #:vars '(a))
    (infer-t (-v a) (-v b) #:vars '(b))
+   (infer-t (-values-dots '() (-v a) 'a) ManyUniv #:vars '(a))
 
    (infer-t (make-ListDots -Symbol 'b) (-lst -Symbol) #:indices '(b)
             #:result [(make-ListDots (-v b) 'b) -Null])

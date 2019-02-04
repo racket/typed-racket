@@ -6,7 +6,7 @@
                "base"
 	       "net-lib"
 	       "web-server-lib"
-               "db-lib"
+               ["db-lib" #:version "1.5"]
                "draw-lib"
                "rackunit-lib"
                "rackunit-gui"

@@ -15,7 +15,7 @@
 
 (define-type SQL-Datum (U Boolean String Real Char Bytes SQL-Null))
 (define-type SQL-Type (List Boolean (Option Symbol) SQL-Datum))
-(define-type Statement (U String Prepared-Statement Virtual-Statement Statement-Binding))
+(define-type Statement (U String Prepared-Statement Virtual-Statement Statement-Binding Other-Statement))
 
 (define-type SQL-Field (U String Natural))
 (define-type SQL-Grouping (U SQL-Field (Vectorof SQL-Field)))
@@ -97,6 +97,7 @@
  [#:opaque Prepared-Statement prepared-statement?]
  [#:opaque Virtual-Statement virtual-statement?]
  [#:opaque Statement-Binding statement-binding?]
+ [#:opaque Other-Statement prop:statement?]
  [prepare (-> Connection (U String Virtual-Statement) Prepared-Statement)]
  [prepared-statement-parameter-types (-> Prepared-Statement (Listof SQL-Type))]
  [prepared-statement-result-types (-> Prepared-Statement (Listof SQL-Type))]
@@ -108,7 +109,8 @@
     (or (string? s)
         (prepared-statement? s)
         (statement-binding? s)
-        (virtual-statement? s))))
+        (virtual-statement? s)
+        (prop:statement? s))))
 
 (require/typed/provide
  db/base

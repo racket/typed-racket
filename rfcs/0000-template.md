@@ -49,7 +49,6 @@ A few examples of what this can include are:
 - Does this feature exist in other programming languages and what experience have their community had?
 - Papers: Are there published papers, books, great blog posts, etc that discuss this? Be _specific_!
 
-
 # Unresolved questions
 [unresolved]: #unresolved-questions
 

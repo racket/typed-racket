@@ -208,4 +208,3 @@
    #:property prop:custom-print-quotable 'never
    #:methods gen:custom-write
    [(define (write-proc v port write?) (print-result v port write?))]])
-

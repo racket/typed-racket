@@ -345,4 +345,3 @@
     [(_ (var) consts ty)
      (let ([var (-v var)])
        (make-PolyRow (list 'var) consts ty))]))
-

@@ -100,7 +100,7 @@
 
 
 ;; code in type-alias-helper.rkt calls `parse-type` for effect to build up
-;; info about how types depend on eachother -- during this parsing, we can't
+;; info about how types depend on each other -- during this parsing, we can't
 ;; check certain invariant successfully (i.e. when a user writes `(car p)`
 ;; `p` is <: (Pair Any Any), etc), so we use this flag to disable/enable
 ;; invariant checking while parsing

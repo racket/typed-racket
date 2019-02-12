@@ -639,6 +639,7 @@
     [(ThreadCellTop:) 'ThreadCellTop]
     [(MPairTop:) 'MPairTop]
     [(Prompt-TagTop:) 'Prompt-TagTop]
+    [(StructProperty: ty) `(StructProperty ,(t->s ty))]
     [(Continuation-Mark-KeyTop:) 'Continuation-Mark-KeyTop]
     [(App: rator rands)
      (list* (type->sexp rator) (map type->sexp rands))]

@@ -29,7 +29,7 @@ specify type of expected instances in the type annotation. Here is an example of
 `prop:custom-write`:
 
 ```racket
-(: prop:input-port (Struct-Property (-> Self Port Boolean Void)))
+(: prop:custom-write (Struct-Property (-> Self Port Boolean Void)))
 ```
 
 This specifies the value in structs for `custom-write` to have the function type
@@ -40,8 +40,7 @@ type of the value using the struct type to match `Self` in the type annotation
 of the struct property. Here is an example of using `prop:custom-write` in the
 definition of the struct `Point` :
 
-```
-racket
+```racket
 
 (struct Point ([x : number][y : number])
     #:prop prop:custom-write

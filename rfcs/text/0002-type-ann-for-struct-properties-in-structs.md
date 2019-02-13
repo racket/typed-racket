@@ -13,7 +13,7 @@ By adding types for struct properties, we further complete the type annotations
 for struct types.
 
 # Guide-level explanation
-struct properties are type-annotated with `Struct-Property`, where the only
+struct type properties are type-annotated with `Struct-Property`, where the only
 argument is the expected type of property value expressions. Here is an example
 of `prop:input-port`:
 

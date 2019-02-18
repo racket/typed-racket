@@ -88,7 +88,7 @@ Adds complexity to the type checker.
 
 As of Racket 7.2, most struct properties doesn't work in Typed Racket. Type
 information of struct type properties is incomplete. For example, the type of
-`prop:custom` is `Struct-Type-Property`, which contains no specific type
+`prop:custom-write` is just `Struct-Type-Property`, which contains no specific type
 information it expects. Also, there is no type-checking property values against
 properties.
 

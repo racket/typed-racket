@@ -43,7 +43,7 @@ definition of the struct `Point` :
 ```racket
 
 (struct Point ([x : number][y : number])
-    #:prop prop:custom-write
+    #:property prop:custom-write
         (lambda ([self : Point]
                  [p : Port]
                  [mode : Boolean])
@@ -56,14 +56,41 @@ Note that using `Self` in value expressions for properties like
 
 
 # Reference-level explanation
+## Struct Type Property Types
+`(Struct-Property ty)` is a new structral type, where its argument can be any
+valid type in Typed Racket. User aren't allowed to use this form as the type
+constructor to define a struct property type. All built-in struct type
+properties are type-annotated.
+
+In addition, `Self` is added as a singleton type to specify the instance value
+which a property is extracted from. `Self` will only appear in `(Struct-Property)`
+
+## Type-checking Struct Property Values In Struct Definitions
+1. A new field `props` is added to the structure of `struct type` used in the
+   type checker
+2. After a `struct` is parsed, its attached properties and their values are retained
+   for the following type checking.
+3. During type checking, `Self` will be substituted with the `struct type` that
+   the property is attached to.
 
 
 # Drawbacks and Alternatives
 [drawbacks]: #drawbacks
 
+## Drawbacks
+Adds complexity to the type checker.
+
+## Backward Compatibility
+<!-- TODO -->
 
 # Prior art
 [prior-art]: #prior-art
+
+As of Racket 7.2, most struct properties doesn't work in Typed Racket. Type
+information of struct type properties is incomplete. For example, the type of
+`prop:custom` is `Struct-Type-Property`, which contains no specific type
+information it expects. Also, there is no type-checking property values against
+properties.
 
 
 # Unresolved questions

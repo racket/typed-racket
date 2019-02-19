@@ -3082,7 +3082,7 @@
  (let ([mode-sym (one-of/c 'once-each 'once-any 'multi 'final)]
        [label-sym (one-of/c 'ps 'help-labels 'usage-help)])
    (-polydots
-    (b a)
+    (b a) 
     (cl->* (->opt -Pathlike
                   (Un (-lst -String) (-vec -String))
                   (-lst (Un (-pair mode-sym
@@ -3097,7 +3097,7 @@
                   [(-> -String Univ)
                    ;; Still permits unknown-proc args that accept rest arguments
                    (-> -String Univ)]
-                  b))))]
+                  b))))] 
 
 ;; Section 16.1 (Weak Boxes)
 [make-weak-box (-poly (a) (-> a (-weak-box a)))]
@@ -3438,8 +3438,8 @@
             (-lst -Bytes)))
 (display-lines
  (->optkey (-lst Univ) [-Output-Port] #:separator Univ #f -Void))
-(find-relative-path (->key -SomeSystemPathlike
-                           -SomeSystemPathlike
+(find-relative-path (->key -SomeSystemPathlike 
+                           -SomeSystemPathlike 
                            #:more-than-root? Univ #f
                            #:more-than-same? Univ #f
                            #:normalize-case? Univ #f

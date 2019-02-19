@@ -14,7 +14,7 @@
          "provide-handling.rkt" "def-binding.rkt" "tc-structs.rkt"
          "typechecker.rkt" "internal-forms.rkt"
          (typecheck provide-handling def-binding tc-structs
-                    typechecker internal-forms
+                    typechecker internal-forms 
                     check-below)
          syntax/location
          racket/format
@@ -143,7 +143,7 @@
        #:when (contract-lifted-property #'expr)
        #:do [(register-ignored! #'expr)]
        (list)]
-
+      
       ;; register types of variables defined by define-values/invoke-unit forms
       [dviu:typed-define-values/invoke-unit
        (for ([export-sig (in-list (syntax->list #'(dviu.export.sig ...)))]
@@ -241,7 +241,7 @@
 ;; no side-effects
 ;; syntax? -> (or/c 'no-type tc-results/c)
 (define (tc-toplevel/pass2 form [expected (-tc-any-results -tt)])
-
+  
   (do-time (format "pass2 ~a line ~a"
                    (if #t
                        (substring (~a (syntax-source form))
@@ -351,7 +351,7 @@
   (define-values (type-aliases struct-defs stx-defs0 val-defs0 provs signature-defs)
     (filter-multiple
      forms
-     type-alias?
+     type-alias? 
      (lambda (e) (or (typed-struct? e) (typed-struct/exec? e)))
      parse-syntax-def
      parse-def
@@ -550,7 +550,7 @@
            ;; loading the contracts (or the `racket/contract` library
            ;; itself) at the runtime of typed modules that don't need
            ;; them. This is similar to the reason for the
-           ;; `#%type-decl` submodule.
+           ;; `#%type-decl` submodule. 
            (module* #%contract-defs #f
              (#%plain-module-begin
               (#%declare #:empty-namespace) ;; avoid binding info from here
@@ -626,3 +626,4 @@
      (define rep-ty (parse-type (attribute form.rep-type)))
      (register-type (attribute form.constructor) (-> rep-ty ty))
      (list)]))
+

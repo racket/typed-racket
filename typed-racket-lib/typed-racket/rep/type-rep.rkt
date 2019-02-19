@@ -160,7 +160,7 @@
 (def-type App ([rator Type?]
                [rands (listof Type?)])
   [#:frees (f)
-   (match rator
+   (match rator 
      [(Name: n _ _)
       (instantiate-frees n (map f rands))]
      [_ (f (resolve-app rator rands))])]
@@ -412,7 +412,7 @@
 
 ;; body: the type of the body
 ;; handler: the type of the prompt handler
-;;   prompts with this tag will return a union of `body`
+;;   prompts with this tag will return a union of `body` 
 ;;   and the codomains of `handler`
 (def-structural Prompt-Tagof ([body #:invariant]
                               [handler #:invariant])
@@ -790,12 +790,6 @@
   [#:for-each (f) (f s)]
   [#:mask mask:struct-type])
 
-(def-type Self ()
-  [#:mask mask:self]
-  [#:singleton -Self])
-
-(def-structural StructProperty ([elem #:invariant])
-  [#:mask mask:struct-property])
 
 ;;************************************************************
 ;; Singleton Values (see also Base)

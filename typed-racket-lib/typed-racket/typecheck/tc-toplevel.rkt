@@ -5,7 +5,7 @@
          racket/list racket/match racket/sequence
          (prefix-in c: (contract-req))
          (rep core-rep type-rep values-rep)
-         (types utils abbrev type-table struct-table resolve)
+         (types utils abbrev type-table struct-table resolve substitute)
          (private parse-type type-annotation syntax-properties type-contract)
          (env global-env init-envs type-name-env type-alias-env
               lexical-env env-req mvar-env scoped-tvar-env
@@ -14,7 +14,7 @@
          "provide-handling.rkt" "def-binding.rkt" "tc-structs.rkt"
          "typechecker.rkt" "internal-forms.rkt"
          (typecheck provide-handling def-binding tc-structs
-                    typechecker internal-forms 
+                    typechecker internal-forms
                     check-below)
          syntax/location
          racket/format
@@ -54,11 +54,13 @@
                   #:maker (attribute t.maker)
                   #:extra-maker (attribute t.extra-maker)
                   #:type-only (attribute t.type-only)
-                  #:prefab? (attribute t.prefab))]
+                  #:prefab? (attribute t.prefab)
+                  #:properties (attribute t.properties))]
       [t:typed-struct/exec
        (tc/struct null #'t.nm #'t.type-name
                   (syntax->list #'(t.fields ...)) (syntax->list #'(t.types ...))
                   #:proc-ty #'t.proc-type)])))
+
 
 (define (type-vars-of-struct form)
   (syntax-parse form
@@ -143,7 +145,7 @@
        #:when (contract-lifted-property #'expr)
        #:do [(register-ignored! #'expr)]
        (list)]
-      
+
       ;; register types of variables defined by define-values/invoke-unit forms
       [dviu:typed-define-values/invoke-unit
        (for ([export-sig (in-list (syntax->list #'(dviu.export.sig ...)))]
@@ -189,6 +191,35 @@
       ;; handles expressions, provides, requires, etc and whatnot
       [_ (list)])))
 
+
+(define-syntax-class expaneded-props
+  #:literals (null list)
+  #:datum-literals (#%app)
+  (pattern null #:attr prop-li null)
+  (pattern (#%app list props ...) #:attr prop-li (syntax->list #'(props ...))))
+
+(define (tc/struct-prop-values form name)
+  (syntax-parse form
+    #:literals (define-values define-syntaxes begin #%expression let-values quote list cons make-struct-type values null)
+    #:datum-literals (#%app)
+    [(define-values (struct-var r ...)
+       (let-values (((var1 r1 ...)
+                     (let-values ()
+                       (#%expression
+                        (let-values ()
+                          (#%app make-struct-type _name _super-type _init-fcnt _auto-fcnt auto-v props:expaneded-props r_args ...))))))
+         (#%app values args-v ...)))
+     (for ([p (in-list (attribute props.prop-li))])
+       (match-define (tc-results: tcr _) (tc-expr p))
+       (match-define (list (tc-result: re)) tcr)
+       (match-define (Pair: pty ety) re)
+       (match-define (StructProperty: ty) pty)
+       (define sty (lookup-type-alias name parse-type))
+       (match-define (F: var) -Self)
+       (define new-ty (subst var sty ty))
+       (check-type name new-ty ety))]
+    [(define-syntaxes (nm ...) . rest) (void)]))
+
 ;; tc-toplevel/pass1.5 : syntax? -> (listof def-binding?)
 ;; Handles `define-values` that still need types synthesized. Runs after
 ;; pass1 but before pass2.
@@ -201,7 +232,12 @@
   (parameterize ([current-orig-stx form])
     (syntax-parse form
       #:literals (define-values begin)
-      [(~or _:ignore^ _:ignore-some^) (list)]
+      [t:ignore^ (cond
+                   [(syntax-property #'t 'tc-struct)
+                    => (λ (name)
+                         (tc/struct-prop-values form name))])
+                 (list)]
+      [_:ignore-some^ (list)]
 
       ;; definitions lifted from contracts should be ignored
       [(define-values (lifted) expr)
@@ -241,7 +277,7 @@
 ;; no side-effects
 ;; syntax? -> (or/c 'no-type tc-results/c)
 (define (tc-toplevel/pass2 form [expected (-tc-any-results -tt)])
-  
+
   (do-time (format "pass2 ~a line ~a"
                    (if #t
                        (substring (~a (syntax-source form))
@@ -351,7 +387,7 @@
   (define-values (type-aliases struct-defs stx-defs0 val-defs0 provs signature-defs)
     (filter-multiple
      forms
-     type-alias? 
+     type-alias?
      (lambda (e) (or (typed-struct? e) (typed-struct/exec? e)))
      parse-syntax-def
      parse-def
@@ -389,11 +425,11 @@
       (define parsed (parse-typed-struct def))
       (register-parsed-struct-sty! parsed)
       parsed))
-
   (refine-struct-variance! parsed-structs)
 
   ;; register the bindings of the structs
   (define struct-bindings (map register-parsed-struct-bindings! parsed-structs))
+
   (do-time "before pass1")
   ;; do pass 1, and collect the defintions
   (define *defs (apply append
@@ -550,7 +586,7 @@
            ;; loading the contracts (or the `racket/contract` library
            ;; itself) at the runtime of typed modules that don't need
            ;; them. This is similar to the reason for the
-           ;; `#%type-decl` submodule. 
+           ;; `#%type-decl` submodule.
            (module* #%contract-defs #f
              (#%plain-module-begin
               (#%declare #:empty-namespace) ;; avoid binding info from here
@@ -626,4 +662,3 @@
      (define rep-ty (parse-type (attribute form.rep-type)))
      (register-type (attribute form.constructor) (-> rep-ty ty))
      (list)]))
-

@@ -42,7 +42,7 @@
          bbits-intersect
          bbits-subtract)
 
-;; these logical combinators are for single argument 
+;; these logical combinators are for single argument
 ;; functions and perform better than the generic
 ;; variants from racket/function
 (define-syntax-rule (¬ f) (λ (x) (not (f x))))

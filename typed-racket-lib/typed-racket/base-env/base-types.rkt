@@ -196,6 +196,7 @@
 [Evtof (-poly (r) (-evt r))]
 [Continuation-Mark-Set -Cont-Mark-Set]
 [False -False]
+[Self -Self]
 [True -True]
 [Null -Null]
 [Nothing (Un)]
@@ -205,6 +206,7 @@
 [MListof (-poly (a) (-mlst a))]
 [Thread-Cellof (-poly (a) (-thread-cell a))]
 [Custodian-Boxof (-poly (a) (make-CustodianBox a))]
+[StructProperty (-poly (a) (-struct-property a))]
 
 [Continuation-Mark-Keyof (-poly (a) (make-Continuation-Mark-Keyof a))]
 [Prompt-Tagof (-poly (a b) (make-Prompt-Tagof a b))]

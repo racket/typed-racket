@@ -48,14 +48,14 @@
              (format "field `~a' requires a type annotation"
                      (syntax-e #'fld))
              #:with form 'dummy))
-  
+
   (define-syntax-class struct-name
     #:description "struct name (with optional super-struct name)"
     #:attributes (name super)
     (pattern (name:id super:id))
     (pattern name:id
              #:with super #f))
-  
+
   (define-splicing-syntax-class struct-name/new
     #:description "struct name (with optional super-struct name)"
     (pattern (~seq name:id super:id)
@@ -142,7 +142,6 @@
             (mk #'define-typed-struct/exec-internal))))
 
 
-
 ;; User-facing macros for defining typed structure types
 (define-syntax (define-typed-struct stx)
   (syntax-parse stx
@@ -174,11 +173,19 @@
                       #'())]
            [extra-maker (if (attribute opts.ecname)
                             #`(#:extra-maker #,(attribute opts.ecname))
-                            #'())])
+                            #'())]
+           [properties (if (not (empty? (attribute opts.prop)))
+                           #`(#,@(append* (for/list ([prop (in-list (attribute opts.prop))]
+                                                     [prop-val (in-list (attribute opts.prop-val))])
+                                            (list #'#:property prop prop-val))))
+                           #'())])
        (with-syntax* ([type (or (attribute opts.type) #'nm.name)]
-                      [d-s (ignore (quasisyntax/loc stx
-                                     (struct #,@(attribute nm.new-spec) (fs.fld ...)
-                                       . opts.untyped)))]
+                      [d-s (syntax-property (ignore (quasisyntax/loc stx
+                                                      (struct #,@(attribute nm.new-spec) (fs.fld ...)
+                                                        . opts.untyped)))
+                                            'tc-struct #'nm.name)]
+                      [prop-vals (quasisyntax/loc stx
+                                   (define prop-val-li (list #,@(attribute opts.prop-val))))]
                       [stx-err-fun (if (not (free-identifier=? #'nm.name #'type))
                                        (syntax/loc stx
                                          (define-syntax type type-name-error))
@@ -189,7 +196,9 @@
                                      #,@mutable?
                                      #,@prefab?
                                      #,@maker
-                                     #,@extra-maker))])
+                                     #,@extra-maker
+                                     #,@properties
+                                     ))])
          #'(begin d-s stx-err-fun dtsi)))]))
 
 ;; this has to live here because it's used below
@@ -236,4 +245,3 @@
               #'(define constructor (lambda (x) x)))
            #,(internal (syntax/loc stx
                          (define-new-subtype-internal ty (constructor rep-ty) #:gen-id gen-id))))])))
-

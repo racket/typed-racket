@@ -581,7 +581,7 @@
                           [v (in-value (cg t T obj))]
                           #:when v)
                 v))))]
-        
+
         ;; constrain S to be below *each* element of elems, and then combine the constraints
         [(S (Intersection: ts raw-prop))
          (define cs (for/list/fail ([t (in-list ts)]) (cg S t obj)))
@@ -591,7 +591,7 @@
                                  (-is-type obj S)
                                  (instantiate-obj raw-prop obj))
                 (cset-meet* (cons empty cs))))]
-        
+
         ;; constrain *each* element of es to be below T, and then combine the constraints
         [((BaseUnion-bases: es) T)
          (define cs (for/list/fail ([e (in-list es)]) (cg e T obj)))
@@ -601,7 +601,7 @@
          (and cs (cset-meet* (cons empty cs)))]
 
         [(_ (Bottom:)) no-cset]
-        
+
         ;; from define-new-subtype
         ;; NOTE: these cases for `((Distinction: _ _ _) _)`
         ;;  need to appear before the cases for `(_ (Union: _ _))`.
@@ -611,7 +611,7 @@
          (cg S T obj)]
         [((Distinction: _ _ S) T)
          (cg S T obj)]
-        
+
         ;; find *an* element of es which can be made to be a supertype of S
         ;; FIXME: we're using multiple csets here, but I don't think it makes a difference
         ;; not using multiple csets will break for: ???
@@ -624,7 +624,7 @@
 
         ;; two structs with the same name
         ;; just check pairwise on the fields
-        [((Struct: nm _ flds proc _ _) (Struct: nm* _ flds* proc* _ _))
+        [((Struct: nm _ flds proc _ _ _) (Struct: nm* _ flds* proc* _ _ _))
          #:when (free-identifier=? nm nm*)
          (let ([proc-c
                 (cond [(and proc proc*)
@@ -736,7 +736,7 @@
         ;; If the struct names don't match, try the parent of S
         ;; Needs to be done after App and Mu in case T is actually the current struct
         ;; but not currently visible
-        [((Struct: nm (? Type? parent) _ _ _ _) other)
+        [((Struct: nm (? Type? parent) _ _ _ _ _) other)
          (cg parent other)]
 
         ;; Invariant here because struct types aren't subtypes just because the
@@ -1041,4 +1041,3 @@
 ;(trace cgen/list)
 ;(trace cgen/arrow)
 ;(trace cgen/seq)
-

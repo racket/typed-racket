@@ -3,7 +3,7 @@
 ;; This module defined both Typed Racket-internal forms (such as
 ;; `define-type-alias-internal`, which is part of the expansion of
 ;; `define-type`) as well as syntax classes that recognize them and
-;; functions that create them. 
+;; functions that create them.
 
 ;; Since the forms themselves are needed by all Typed Racket programs,
 ;; they are defined in a `forms` submodule that does _not_ depend on
@@ -53,7 +53,7 @@
         (define-literal-set set-name (nms ...)))
       (define-syntax (nms stx)
         (raise-syntax-error 'typecheck "Internal typechecker form used out of context" stx)) ...))
-  
+
   (internal-forms internal-literals
                   require/typed-internal
                   define-type-alias-internal
@@ -76,14 +76,16 @@
 ;;; Helpers
 
 (define-splicing-syntax-class dtsi-fields
- #:attributes (mutable prefab type-only maker extra-maker)
+  #:attributes (mutable prefab type-only maker extra-maker [prop 1] [prop-val 1])
  (pattern
   (~seq
     (~or (~optional (~and #:mutable (~bind (mutable #t))))
          (~optional (~and #:prefab (~bind (prefab #t))))
          (~optional (~and #:type-only (~bind (type-only #t))))
          (~optional (~seq #:extra-maker extra-maker))
-         (~optional (~seq #:maker maker))) ...)))
+         (~optional (~seq #:maker maker))
+         (~seq #:property prop prop-val))
+    ...)))
 
 (define-syntax-class struct-name
  (pattern nm:id)
@@ -92,7 +94,7 @@
 
 (define-syntax-class define-typed-struct-body
   #:attributes (name type-name mutable prefab type-only maker extra-maker nm
-                (tvars 1) (fields 1) (types 1))
+                     (tvars 1) (fields 1) (types 1) properties)
   (pattern ((~optional (tvars:id ...) #:defaults (((tvars 1) null)))
             nm:struct-name type-name:id ([fields:id : types:expr] ...) options:dtsi-fields)
            #:attr name #'nm.nm
@@ -100,7 +102,10 @@
            #:attr prefab (attribute options.prefab)
            #:attr type-only (attribute options.type-only)
            #:attr maker (or (attribute options.maker) #'nm.nm)
-           #:attr extra-maker (attribute options.extra-maker)))
+           #:attr extra-maker (attribute options.extra-maker)
+           #:attr properties (for/list ([p (attribute options.prop)]
+                                        [pv (attribute options.prop-val)])
+                               (list p pv))))
 
 (define-syntax-class dviu-import/export
   (pattern (sig-id:id member-id:id ...)
@@ -125,12 +130,12 @@
 (define-syntax (define-internal-classes stx)
   (define-syntax-class clause
     (pattern [name:id (lit:id . body:expr)]
-     #:with pred (format-id #'name "~a?" #'name)))
+             #:with pred (format-id #'name "~a?" #'name)))
 
   (syntax-parse stx
     [(_ :clause ...)
      (syntax
-      (begin 
+      (begin
         (begin
           (define-syntax-class name
             #:auto-nested-attributes
@@ -162,7 +167,7 @@
     (assert-predicate-internal type predicate)]
   [type-declaration
     (:-internal id:identifier type)]
-  ;; the check field indicates whether this signature is being 
+  ;; the check field indicates whether this signature is being
   ;; required from an untyped context in which case the super
   ;; value is ignored and information about parent signatures
   ;; is inferred from static information bound to the signature

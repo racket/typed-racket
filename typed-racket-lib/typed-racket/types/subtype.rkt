@@ -332,20 +332,20 @@
   (define (in-hierarchy? s par)
     (define s-name
       (match s
-        [(Poly: _ (Struct: s-name _ _ _ _ _)) s-name]
-        [(Struct: s-name _ _ _ _ _) s-name]))
+        [(Poly: _ (Struct: s-name _ _ _ _ _ _)) s-name]
+        [(Struct: s-name _ _ _ _ _ _) s-name]))
     (define p-name
       (match par
-        [(Poly: _ (Struct: p-name _ _ _ _ _)) p-name]
-        [(Struct: p-name _ _ _ _ _) p-name]))
+        [(Poly: _ (Struct: p-name _ _ _ _ _ _)) p-name]
+        [(Struct: p-name _ _ _ _ _ _) p-name]))
     (or (free-identifier=? s-name p-name)
         (match s
           [(Poly: _ (? Struct? s*)) (in-hierarchy? s* par)]
-          [(Struct: _ (and (Name/struct:) p) _ _ _ _)
+          [(Struct: _ (and (Name/struct:) p) _ _ _ _ _)
            (in-hierarchy? (resolve-once p) par)]
-          [(Struct: _ (? Struct? p) _ _ _ _) (in-hierarchy? p par)]
-          [(Struct: _ (Poly: _ p) _ _ _ _) (in-hierarchy? p par)]
-          [(Struct: _ #f _ _ _ _) #f]
+          [(Struct: _ (? Struct? p) _ _ _ _ _) (in-hierarchy? p par)]
+          [(Struct: _ (Poly: _ p) _ _ _ _ _) (in-hierarchy? p par)]
+          [(Struct: _ #f _ _ _ _ _) #f]
           [_ (int-err "what is this?!?! ~a" s)])))
   (not (or (in-hierarchy? s1 s2) (in-hierarchy? s2 s1))))
 
@@ -422,7 +422,7 @@
 ;;
 ;; List[(cons Number Number)] Type Type (Object or #f)
 ;; -> List[(cons Number Number)] or #f
-;; 
+;;
 ;; is t1 a subtype of t2, taking into account previously seen pairs A,
 ;; and given that we are inquiring about Object 'obj' (relevant when
 ;; the types include refinements which may be proven by propositions
@@ -477,7 +477,7 @@
        [(_ _) ;; otherwise we case on t1
         (subtype-cases A t1 t2 obj)])]))
 
-;; if obj ∈ t1, can we prove 'lower-bound <= obj' and 'obj <= upper-bound'? 
+;; if obj ∈ t1, can we prove 'lower-bound <= obj' and 'obj <= upper-bound'?
 (define (provable-int-subtype? A t1 t2 lower-bound upper-bound obj)
   (define lower-ineq
     (cond
@@ -951,7 +951,7 @@
                    (type≡? t11 t21)
                    (type≡? t12 t22))]
      ;; To check that mutable pair is a sequence we check that the cdr
-     ;; is both an mutable list and a sequence 
+     ;; is both an mutable list and a sequence
      [(SequenceTop:)
       (subtype-seq A
                    (subtype* t12 null-or-mpair-top)
@@ -1153,7 +1153,7 @@
      [(SequenceTop:) A]
      [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _))
+  [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _ _))
    (match t2
      ;; Avoid resolving things that refer to different structs.
      ;; Saves us from non-termination
@@ -1161,7 +1161,7 @@
       #:when (unrelated-structs t1 t2)
       #f]
      ;; subtyping on immutable structs is covariant
-     [(Struct: nm2 _ flds2 proc2 _ _)
+     [(Struct: nm2 _ flds2 proc2 _ _ _)
       #:when (free-identifier=? nm1 nm2)
       (let ([A (remember t1 t2 A)])
         (with-updated-seen A
@@ -1180,7 +1180,7 @@
                    [mutable1? (type≡? A fty1 fty2)]
                    [else (subtype* A fty1 fty2 (-struct-idx-of t1 idx obj))])]
                 [(_ _) #f])))))]
-     [(StructTop: (Struct: nm2 _ _ _ _ _))
+     [(StructTop: (Struct: nm2 _ _ _ _ _ _))
       #:when (free-identifier=? nm1 nm2)
       A]
      [(Val-able: (? (negate struct?) _)) #f]

@@ -4,7 +4,7 @@
 ;; Type Masks
 ;;
 ;; - - Purpose - -
-;; 
+;;
 ;; Type masks allow us to identify disjoint base types and unions of
 ;; base types. This allows us to short-circuit certain subtype and
 ;; overlap checks.
@@ -54,7 +54,7 @@
 
 ;; define the max size of type  masks -- if we limit the size to
 ;; 30 we are guaranteed to be a fixnum on 32 and 64 bit machines.
-;; (30 is the max number of bits available in a 2's complement 
+;; (30 is the max number of bits available in a 2's complement
 ;; tagged integer on a 32-bit machine)
 (module const racket/base
   (provide max-mask-size)
@@ -149,6 +149,8 @@
  mask:struct
  mask:prefab
  mask:struct-type
+ mask:self
+ mask:struct-property
  mask:syntax
  mask:class
  mask:instance

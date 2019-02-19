@@ -215,7 +215,7 @@
         (generate-contract-def/provide form ctc-cache sc-cache)]
        [(module* name #f forms ...)
         (quasisyntax/loc form
-          (module* name #f 
+          (module* name #f
             #,@(change-provide-fixups (syntax->list #'(forms ...))
                                       ctc-cache sc-cache)))]
        [((~literal #%plain-module-begin) forms ...)
@@ -588,7 +588,7 @@
            (define untyped (rec b 'untyped rv))
            (define typed (rec b 'typed rv))
            (define both (rec b 'both rv))
-           
+
            (recursive-sc
             n*s
             (list untyped typed both)
@@ -676,13 +676,13 @@
        [(Unit: imports exports init-depends results)
         (define (traverse sigs)
           (for/list ([sig (in-list sigs)])
-            (define mapping 
+            (define mapping
               (map
-               (match-lambda 
+               (match-lambda
                  [(cons id type) (cons id (t->sc type))])
                (Signature-mapping sig)))
             (signature-spec (Signature-name sig) (map car mapping) (map cdr mapping))))
-        
+
         (define imports-specs (traverse imports))
         (define exports-specs (traverse exports))
         (define init-depends-ids (map Signature-name init-depends))
@@ -692,7 +692,7 @@
                               " with unknown return values"))]
           [(Values: (list (Result: rngs _ _) ...))
            (unit/sc imports-specs exports-specs init-depends-ids (map t->sc rngs))])]
-       [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred?)
+       [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred? props)
         (cond
           [(hash-ref recursive-values nm #f)]
           [proc (fail #:reason "procedural structs are not supported")]
@@ -712,7 +712,7 @@
                                "untyped code"))
             (struct-type/sc null))]
        [(Prefab: key (list (app t->sc fld/scs) ...)) (prefab/sc key fld/scs)]
-       [(PrefabTop: key) 
+       [(PrefabTop: key)
         (flat/sc #`(struct-type-make-predicate
                     (prefab-key->struct-type (quote #,(abbreviate-prefab-key key))
                                              #,(prefab-key->field-count key))))]
@@ -1160,7 +1160,7 @@
                      (and (inexact-real? (imag-part x))
                           (inexact-real? (real-part x)))))))
   (define number/sc (numeric/sc Number number?))
-  
+
   (define extflonum-zero/sc (numeric/sc ExtFlonum-Zero (and/c extflonum? extflzero?)))
   (define nonnegative-extflonum/sc (numeric/sc Nonnegative-ExtFlonum (and/c extflonum? extflnonnegative?)))
   (define nonpositive-extflonum/sc (numeric/sc Nonpositive-ExtFlonum (and/c extflonum? extflnonpositive?)))
@@ -1221,5 +1221,3 @@
     [(== t:-NonPosExtFlonum) nonpositive-extflonum/sc]
     [(== t:-ExtFlonum) extflonum/sc]
     [else #f]))
-
-

@@ -19,7 +19,7 @@
 ;; new-t      : new type
 ;; pos?       : whether the update is positive or negative
 ;; path-elems : which fields we're traversing to update,
-;;   in *syntactic order* (e.g. (car (cdr x)) -> '(car cdr))  
+;;   in *syntactic order* (e.g. (car (cdr x)) -> '(car cdr))
 (define/cond-contract (update t new-t pos? path-elems)
   (Type? Type? boolean? (listof PathElem?) . -> . Type?)
   ;; update's inner recursive loop
@@ -43,11 +43,11 @@
          ;; promise op
          [((Promise: t) (ForcePE:))
           (rebuild -Promise (update t rst))]
-         
+
          ;; struct ops
          ;; (NOTE: we assume path elements to mutable fields
          ;;        are never created)
-         [((Struct: nm par flds proc poly pred)
+         [((Struct: nm par flds proc poly pred props)
            (StructPE: s idx))
           #:when (subtype t s)
           ;; Note: this updates fields even if they are not polymorphic.
@@ -58,7 +58,7 @@
           (match (update ty rst)
             [(Bottom:) -Bottom]
             [ty (let ([flds (append lhs (cons (make-fld ty acc-id #f) rhs))])
-                  (make-Struct nm par flds proc poly pred))])]
+                  (make-Struct nm par flds proc poly pred props))])]
 
          ;; prefab struct ops
          ;; (NOTE: we assume path elements to mutable fields
@@ -69,7 +69,7 @@
           (match (update fld-ty rst)
             [(Bottom:) -Bottom]
             [fld-ty (make-Prefab key (append lhs (cons fld-ty rhs)))])]
-         
+
          ;; class field ops
          ;;
          ;; A refinement of a private field in a class is really a refinement of the
@@ -81,7 +81,7 @@
          [((Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng _ _))))))
            (FieldPE:))
           (make-Fun (list (-Arrow doms (update rng rst))))]
-         
+
          [((Union: _ ts) _)
           ;; Note: if there is a path element, then all Base types are
           ;; incompatible with the type and we can therefore drop the
@@ -93,7 +93,7 @@
                              ([elem (in-list ts)])
                      (intersect t (update elem path)))
                    raw-prop)]
-         
+
          [(_ _)
           (match path-elem
             [(CarPE:) (intersect t (-pair (update Univ rst) Univ))]

@@ -138,6 +138,7 @@
 (define-literal-syntax-class #:for-label Vector)
 (define-literal-syntax-class #:for-label Struct)
 (define-literal-syntax-class #:for-label Struct-Type)
+#;(define-literal-syntax-class #:for-label StructProperty)
 (define-literal-syntax-class #:for-label Prefab)
 (define-literal-syntax-class #:for-label PrefabTop)
 (define-literal-syntax-class #:for-label Values)
@@ -655,7 +656,7 @@
              (make-Instance v)))]
       [(:Unit^ (:import^ import:id ...)
                (:export^ export:id ...)
-               (~optional (:init-depend^ init-depend:id ...) 
+               (~optional (:init-depend^ init-depend:id ...)
                           #:defaults ([(init-depend 1) null]))
                (~optional result
                           #:defaults ([result #f])))
@@ -858,7 +859,7 @@
                 (with-local-term-names (map cons dep-ids dep-local-ids)
                   (parse-type (list-ref (attribute args.type-stx) idx)))))
             (hash-set! arg-type-dict idx idx-type))
-          
+
           (define (abstract rep)
             (abstract-obj rep (attribute args.local-name)))
           (define dom (for/list ([idx (in-range (length arg-order))])

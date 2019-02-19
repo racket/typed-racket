@@ -1,6 +1,6 @@
 #lang racket/base
-(require "../utils/utils.rkt" 
-         racket/unit 
+(require "../utils/utils.rkt"
+         racket/unit
          (contract-req)
          (utils unit-utils) (rep type-rep) (types utils))
 (provide (all-defined-out))
@@ -72,4 +72,3 @@
 
 (define-signature tc-dots^
   ([cond-contracted tc/dots (syntax? . -> . (values Type? symbol?))]))
-

@@ -1844,8 +1844,8 @@
 [current-output-port (-Param -Output-Port -Output-Port)]
 [current-error-port (-Param -Output-Port -Output-Port)]
 
-[file-stream-port? (-> Univ B)]
-[terminal-port? (-> Univ B)]
+[file-stream-port? (asym-pred Univ B (-PS (-is-type 0 -Port) -tt))]
+[terminal-port? (asym-pred Univ B (-PS (-is-type 0 -Port) -tt))]
 
 [eof (-val eof)]
 [eof-object? (make-pred-ty (-val eof))]

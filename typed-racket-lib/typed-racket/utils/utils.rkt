@@ -10,7 +10,8 @@ at least theoretically.
          racket/match
          racket/list
          syntax/parse/define
-         racket/struct-info "timing.rkt")
+         racket/struct-info "timing.rkt"
+         "disarm.rkt")
 
 (provide
  ;; optimization
@@ -217,7 +218,7 @@ at least theoretically.
 ;FIXME when multiple bindings are supported
 (define (self-ctor-transformer orig stx)
   (define (transfer-srcloc orig stx)
-    (datum->syntax orig (syntax-e orig) stx orig))
+    (datum->syntax (disarm* orig) (syntax-e orig) stx orig))
   (syntax-case stx ()
     [(self arg ...) (datum->syntax stx
                                    (cons (syntax-property (transfer-srcloc orig #'self)

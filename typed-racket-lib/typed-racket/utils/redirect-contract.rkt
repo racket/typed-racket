@@ -2,7 +2,8 @@
 
 (require syntax/private/modcollapse-noctc
          syntax/private/id-table
-         (for-template racket/base))
+         (for-template racket/base)
+         "disarm.rkt")
 (provide make-make-redirect-to-contract)
 
 ;; This is used to define identifiers that expand to a local-require
@@ -28,7 +29,8 @@
 
 (define id-table (make-free-id-table))
 
-(define ((make-make-redirect-to-contract contract-defs-submod-modidx) id)
+(define ((make-make-redirect-to-contract contract-defs-submod-modidx) orig-id)
+  (define id (disarm* orig-id))
   (define (redirect stx)
     (cond
      [(identifier? stx)

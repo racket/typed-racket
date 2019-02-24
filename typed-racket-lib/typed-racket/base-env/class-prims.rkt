@@ -262,12 +262,12 @@
                             #'letrec-values))
     (define expanded (local-expand stx (syntax-local-context) stop-list))
     (define stx*
-      (syntax-parse expanded
+      (syntax-parse (disarm* expanded)
         #:literal-sets (kernel-literals)
         ;; an extra #%expression is inserted by the local expansion but
         ;; won't appear in the actual expansion, so ignore it
         [(#%expression e) #'e]
-        [_ expanded]))
+        [e #'e]))
     (syntax-parse stx*
       #:literal-sets (kernel-literals)
       #:literals (lambda λ)

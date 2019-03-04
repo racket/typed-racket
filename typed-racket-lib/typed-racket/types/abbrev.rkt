@@ -151,8 +151,8 @@
   (make-Name name 0 #t))
 
 ;; Structs
-(define (-struct name parent flds [proc #f] [poly #f] [pred #'dummy])
-  (make-Struct name parent flds proc poly pred))
+(define (-struct name parent flds [proc #f] [poly #f] [pred #'dummy] [props null])
+  (make-Struct name parent flds proc poly pred props))
 
 ;; Function type constructors
 (define/decl top-func (make-Fun (list)))

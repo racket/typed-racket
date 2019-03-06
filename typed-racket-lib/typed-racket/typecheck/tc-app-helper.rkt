@@ -323,7 +323,7 @@
      (with-printable-names (length raw-domain) names
        (define domain (for/list ([d (in-list raw-domain)])
                         (instantiate-obj d names)))
-       (define rng (instantiate-obj rng names))
+       (define rng (instantiate-obj raw-rng names))
        (let ([fcn-string (name->function-str name)])
          (if (and (null? domain)
                   (null? argtypes))

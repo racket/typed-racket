@@ -4249,7 +4249,7 @@
                  (== x y)
                  (void))
                #:ret (ret -Void #f #f)
-               #:msg #rx"unable to prove precondition"]
+               #:msg #rx"unable to prove"]
        [tc-err (let ()
                  (: safe-ref (-> ([v : (Vectorof Any)]
                                   [i : Natural])
@@ -4261,7 +4261,7 @@
                  (safe-ref (three-vals) (ann 3 (Refine [n : Natural] (= n 3))))
                  (void))
                #:ret (ret -Void #f #f)
-               #:msg #rx"unable to prove precondition"]
+               #:msg #rx"unable to prove"]
        [tc-err (let ()
                  (: safe-ref (All (A) (-> ([v : (Vectorof A)]
                                            [n : Natural])
@@ -4292,7 +4292,7 @@
                  (define (three-syms) (error 'bar))
                  (safe-ref (three-syms) (ann 3 (Refine [n : Natural] (= n 3)))))
                #:ret (ret -Symbol #f #f)
-               #:msg #rx"unable to prove precondition"]
+               #:msg #rx"unable to prove"]
        [tc-e (let ()
                (: foo (-> VectorTop Byte))
                (define (foo vec)

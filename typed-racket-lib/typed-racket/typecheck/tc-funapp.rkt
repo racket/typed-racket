@@ -107,7 +107,7 @@
                (check-below arg-res (ret dom-t))))
            (unless (implies-in-env? (lexical-env) -tt pre)
              (tc-error/fields "could not apply function"
-                              #:more "unable to prove precondition"
+                              #:more "unable to prove"
                               "precondition" pre
                               #:delayed? #t))
            rng))]
@@ -232,7 +232,7 @@
                                      (subst-dom-objs argtys argobjs raw-pre)))
               (unless (implies-in-env? (lexical-env) -tt pre)
                 (tc-error/fields "could not apply function"
-                                 #:more "unable to prove precondition"
+                                 #:more "unable to prove"
                                  "precondition" pre
                                  #:delayed? #t))
               (values->tc-results/explicit-subst

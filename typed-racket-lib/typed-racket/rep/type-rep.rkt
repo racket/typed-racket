@@ -714,6 +714,8 @@
 ;; Structs
 ;;************************************************************
 
+(def-structural StructProperty ([elem #:invariant])
+  [#:mask mask:struct-property])
 
 
 (def-rep fld ([t Type?] [acc identifier?] [mutable? boolean?])
@@ -794,9 +796,6 @@
   [#:for-each (f) (f s)]
   [#:mask mask:struct-type])
 
-
-(def-structural StructProperty ([elem #:invariant])
-  [#:mask mask:struct-property])
 
 ;;************************************************************
 ;; Singleton Values (see also Base)

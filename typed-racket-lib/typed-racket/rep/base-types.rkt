@@ -170,7 +170,7 @@
   [-Subprocess Subprocess #'subprocess? subprocess?]
   [-Security-Guard Security-Guard #'security-guard? security-guard?]
   [-Thread-Group Thread-Group #'thread-group? thread-group?]
-  [-Struct-Type-Property Struct-Type-Property #'struct-type-property? struct-type-property?]
+  ;;[-Struct-Type-Property Struct-Type-Property #'struct-type-property? struct-type-property?]
   [-Impersonator-Property Impersonator-Property #'impersonator-property? impersonator-property?]
   [-Semaphore Semaphore #'semaphore? semaphore?]
   [-FSemaphore FSemaphore #'fsemaphore? fsemaphore?]

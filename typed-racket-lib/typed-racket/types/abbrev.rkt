@@ -146,9 +146,12 @@
 (define/decl -NonPosExtFlonum (Un -NegExtFlonum -ExtFlonumZero))
 (define/decl -ExtFlonum (Un -NegExtFlonumNoNan -ExtFlonumNegZero -ExtFlonumPosZero -PosExtFlonumNoNan -ExtFlonumNan))
 
+(define/decl -Struct-Type-Property (-struct-property Univ))
+
 ;; Type alias names
 (define (-struct-name name)
   (make-Name name 0 #t))
+
 
 ;; Structs
 (define (-struct name parent flds [proc #f] [poly #f] [pred #'dummy] [props null])

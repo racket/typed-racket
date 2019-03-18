@@ -257,8 +257,8 @@
                    ,(and proc (type->sexp proc))
                    ,poly?
                    (quote-syntax ,pred-id)
-                   (list ,@properties)
-                   #;(list ,@(map type->sexp props))
+                   ;(list ,@properties)
+                   (list ,@(map type->sexp properties))
                    )]
     [(StructType: struct) `(make-StructType ,(type->sexp struct))]
     [(StructProperty: ty) `(make-StructProperty ,(type->sexp ty))]

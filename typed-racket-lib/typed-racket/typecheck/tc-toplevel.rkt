@@ -216,7 +216,7 @@
          [(tc-result1: (StructProperty: ty))
           (define sty (lookup-type-alias name parse-type))
           (match-define (F: var) -Self)
-          (tc-expr/check pval (subst var sty ty))]
+          (tc-expr/check/type pval (subst var sty ty))]
          [(tc-result1: ty)
           (tc-error "expected a struct type property but got something else")]))]
     [(define-syntaxes (nm ...) . rest) (void)]))

@@ -2290,7 +2290,7 @@
 
 ;; Section 13.8
 #;[prop:custom-write -Struct-Type-Property]
-[prop:custom-write (-struct-property (-> -Self -Output-Port B -Void))]
+[prop:custom-write (-struct-property (-> -Self -Output-Port B Univ))]
 [custom-write? (-> Univ B)]
 [custom-write-accessor (-> Univ (-> Univ -Output-Port B ManyUniv))]
 

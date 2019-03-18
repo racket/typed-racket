@@ -24,3 +24,15 @@
 (struct foobarabc^ foobar ([z : Number]) #:property prop:custom-write
   (lambda ([self : foobar] [p : Output-Port] [b : Boolean]) : Void
           (displayln (+ (foobar-y self) 20) p)))
+
+
+(struct (A B) poly-foo ([x : A] [y : B])
+  #:property prop:custom-print-quotable 'never
+  #:property prop:custom-write
+  (lambda ([self : poly-foo] [p : Output-Port] [b : Boolean]) : Void
+          (printf "~a : ~a" (poly-foo-x self) (poly-foo-y self))))
+
+(struct (A B) poly-foo^ ([x : A] [y : B])
+  #:property prop:custom-write
+  (lambda (self p b)
+          (printf "~a : ~a" (poly-foo^-x self) (poly-foo^-y self))))

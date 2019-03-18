@@ -11,7 +11,6 @@
    [cond-contracted tc-expr/check? (syntax? (or/c tc-results/c #f) . -> . (or/c full-tc-results/c #f))]
    [cond-contracted tc-expr/check/t (syntax? tc-results/c . -> . Type?)]
    [cond-contracted tc-expr/check/t? (syntax? (or/c tc-results/c #f) . -> . (or/c Type? #f))]
-   tc-expr/check/type
    [cond-contracted tc-body/check (syntax? (or/c tc-results/c #f) . -> . full-tc-results/c)]
    [cond-contracted tc-expr/t (syntax? . -> . Type?)]
    [cond-contracted single-value ((syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]

@@ -216,7 +216,7 @@
          [(tc-result1: (StructProperty: ty))
           (define sty (lookup-type-alias name parse-type))
           (match-define (F: var) -Self)
-          (tc-expr/check/type pval (subst var sty ty))]
+          (tc-expr/check pval (ret (subst var sty ty)))]
          [(tc-result1: ty)
           (tc-error "expected a struct type property but got something else")]))]
     [(define-syntaxes (nm ...) . rest) (void)]))
@@ -233,11 +233,7 @@
   (parameterize ([current-orig-stx form])
     (syntax-parse form
       #:literals (define-values begin)
-      [t:ignore^ (cond
-                   [(syntax-property #'t 'tc-struct)
-                    => (λ (name)
-                         (tc/struct-prop-values form name))])
-                 (list)]
+      [t:ignore^ (list)]
       [_:ignore-some^ (list)]
 
       ;; definitions lifted from contracts should be ignored
@@ -308,6 +304,10 @@
        'no-type]
       ;; these forms we have been instructed to ignore
       [stx:ignore^
+       (cond
+         [(syntax-property #'stx 'tc-struct)
+          => (λ (name)
+               (tc/struct-prop-values #'stx name))])
        'no-type]
 
       ;; this is a form that we mostly ignore, but we check some interior parts

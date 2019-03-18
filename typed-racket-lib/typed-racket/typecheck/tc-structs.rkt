@@ -467,6 +467,7 @@
 (define/cond-contract (tc/builtin-struct nm parent fld-names tys kernel-maker properties)
   (c:-> identifier? (c:or/c #f identifier?) (c:listof identifier?)
         (c:listof Type?) (c:or/c #f identifier?)
+        (c:listof (c:cons/c identifier? Type?))
         c:any/c)
   (define parent-type
     (and parent (resolve-name (make-Name parent 0 #t))))

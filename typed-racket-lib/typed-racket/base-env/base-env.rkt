@@ -1285,6 +1285,9 @@
  (cl->* (-> Sym (Un))
         (->* (list -String) Univ (Un))
         (->* (list Sym -String) Univ (Un)))]
+[raise-argument-error
+ (cl->* (->key Sym -String Univ #:more-info (Un -String (-val #f)) #t (Un))
+        (->key Sym -String -Nat #:more-info (Un -String (-val #f)) #t Univ (Un)))]
 [raise-user-error
  (cl->* (-> Sym (Un))
         (->* (list -String) Univ (Un))

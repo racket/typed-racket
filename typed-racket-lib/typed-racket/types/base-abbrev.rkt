@@ -231,6 +231,15 @@
 
 (define-syntax (->key stx)
   (syntax-parse stx
+    [(_ ty:expr ... (~seq k:keyword kty:expr opt:boolean) ... rst rng)
+     (syntax/loc stx
+       (make-Fun
+        (list
+         (-Arrow (list ty ...)
+                 rng
+		 #:rest rst
+                 #:kws (sort (list (make-Keyword 'k kty opt) ...)
+                             Keyword<?)))))]
     [(_ ty:expr ... (~seq k:keyword kty:expr opt:boolean) ... rng)
      (syntax/loc stx
        (make-Fun

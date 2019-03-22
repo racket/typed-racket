@@ -193,34 +193,6 @@
 
 
 
-(define-syntax-class expaneded-props
-  #:literals (null list #%plain-app)
-  (pattern null #:attr prop-names null #:attr prop-vals null)
-  (pattern (#%plain-app list (#%plain-app cons pn pv) ...)
-           #:attr prop-names (syntax->list #'(pn ...))
-           #:attr prop-vals (syntax->list #'(pv ...))))
-
-(define (tc/struct-prop-values form name)
-  (syntax-parse form
-    #:literals (define-values #%plain-app define-syntaxes begin #%expression let-values quote list cons make-struct-type values null)
-    [(define-values (struct-var r ...)
-       (let-values (((var1 r1 ...)
-                     (let-values ()
-                       (#%expression
-                        (let-values ()
-                          (#%plain-app make-struct-type _name _super-type _init-fcnt _auto-fcnt auto-v props:expaneded-props r_args ...))))))
-         (#%plain-app values args-v ...)))
-     (for ([p (in-list (attribute props.prop-names))]
-           [pval (in-list (attribute props.prop-vals))])
-       (match (single-value p)
-         [(tc-result1: (StructProperty: ty))
-          (define sty (lookup-type-alias name parse-type))
-          (match-define (F: var) -Self)
-          (tc-expr/check pval (ret (subst var sty ty)))]
-         [(tc-result1: ty)
-          (tc-error "expected a struct type property but got something else")]))]
-    [(define-syntaxes (nm ...) . rest) (void)]))
-
 ;; tc-toplevel/pass1.5 : syntax? -> (listof def-binding?)
 ;; Handles `define-values` that still need types synthesized. Runs after
 ;; pass1 but before pass2.

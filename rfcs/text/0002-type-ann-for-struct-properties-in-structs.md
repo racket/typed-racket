@@ -81,7 +81,7 @@ which a property is extracted from. `Self` will only appear in `(Struct-Property
 Adds complexity to the type checker.
 
 ## Backward Compatibility
-<!-- TODO -->
+The old `Struct-Type-Property` becomes an alias to `(Struct-Property Any)`
 
 # Prior art
 [prior-art]: #prior-art

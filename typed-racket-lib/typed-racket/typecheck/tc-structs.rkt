@@ -410,7 +410,7 @@
                    #:type-only [type-only #f]
                    #:prefab? [prefab? #f]
                    #:properties [properties null])
-  (define property-tys (map (λ (x) (lookup-type (car x))) properties))
+  (define property-tys (map lookup-type properties))
   (define-values (nm parent-name parent) (parse-parent nm/par prefab?))
   ;; create type variables for the new type parameters
   (define tvars (map syntax-e vars))

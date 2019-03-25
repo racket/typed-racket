@@ -175,9 +175,8 @@
                             #`(#:extra-maker #,(attribute opts.ecname))
                             #'())]
            [properties (if (not (empty? (attribute opts.prop)))
-                           #`(#,@(append* (for/list ([prop (in-list (attribute opts.prop))]
-                                                     [prop-val (in-list (attribute opts.prop-val))])
-                                            (list #'#:property prop prop-val))))
+                           #`(#,@(append* (for/list ([prop (in-list (attribute opts.prop))])
+                                            (list #'#:property prop))))
                            #'())])
        (with-syntax* ([type (or (attribute opts.type) #'nm.name)]
                       [d-s (syntax-property (ignore (quasisyntax/loc stx

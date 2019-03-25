@@ -76,7 +76,7 @@
 ;;; Helpers
 
 (define-splicing-syntax-class dtsi-fields
-  #:attributes (mutable prefab type-only maker extra-maker [prop 1] [prop-val 1])
+  #:attributes (mutable prefab type-only maker extra-maker [prop 1])
  (pattern
   (~seq
     (~or (~optional (~and #:mutable (~bind (mutable #t))))
@@ -84,7 +84,7 @@
          (~optional (~and #:type-only (~bind (type-only #t))))
          (~optional (~seq #:extra-maker extra-maker))
          (~optional (~seq #:maker maker))
-         (~seq #:property prop prop-val))
+         (~seq #:property prop))
     ...)))
 
 (define-syntax-class struct-name
@@ -103,9 +103,7 @@
            #:attr type-only (attribute options.type-only)
            #:attr maker (or (attribute options.maker) #'nm.nm)
            #:attr extra-maker (attribute options.extra-maker)
-           #:attr properties (for/list ([p (attribute options.prop)]
-                                        [pv (attribute options.prop-val)])
-                               (list p pv))))
+           #:attr properties (attribute options.prop)))
 
 (define-syntax-class dviu-import/export
   (pattern (sig-id:id member-id:id ...)

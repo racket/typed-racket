@@ -1,3 +1,5 @@
+#;
+(exn-pred " Type Checker: type mismatch")
 #lang typed/racket
 (struct foo ([x : Number]))
 

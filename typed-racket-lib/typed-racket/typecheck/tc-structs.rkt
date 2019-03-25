@@ -70,10 +70,10 @@
 
 (define-syntax-class expanded-props
   #:literals (null list #%plain-app)
-  (pattern null #:attr prop-names null #:attr prop-vals null)
-  (pattern (#%plain-app list (#%plain-app cons pn pv) ...)
-           #:attr prop-names (syntax->list #'(pn ...))
-           #:attr prop-vals (syntax->list #'(pv ...))))
+  (pattern null
+           #:with (prop-names ...) #'()
+           #:with (prop-vals ...) #'())
+  (pattern (#%plain-app list (#%plain-app cons prop-names prop-vals) ...)))
 
 (define (tc/struct-prop-values form name)
   (syntax-parse form

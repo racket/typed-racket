@@ -68,7 +68,7 @@
     [(~or t:typed-struct t:typed-struct/exec)
      #'t.type-name]))
 
-(define-syntax-class expaneded-props
+(define-syntax-class expanded-props
   #:literals (null list #%plain-app)
   (pattern null #:attr prop-names null #:attr prop-vals null)
   (pattern (#%plain-app list (#%plain-app cons pn pv) ...)
@@ -83,7 +83,7 @@
                      (let-values ()
                        (#%expression
                         (let-values ()
-                          (#%plain-app make-struct-type _name _super-type _init-fcnt _auto-fcnt auto-v props:expaneded-props r_args ...))))))
+                          (#%plain-app make-struct-type _name _super-type _init-fcnt _auto-fcnt auto-v props:expanded-props r_args ...))))))
          (#%plain-app values args-v ...)))
      (for ([p (in-list (attribute props.prop-names))]
            [pval (in-list (attribute props.prop-vals))])

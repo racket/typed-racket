@@ -492,13 +492,12 @@
 ;; register a struct type
 ;; convenience function for built-in structs
 ;; tc/builtin-struct : identifier Maybe[identifier] Listof[identifier]
-;;                     Listof[Type] Maybe[identifier] Listof[Type] ListOf[Expression]
+;;                     Listof[Type] Maybe[identifier] Listof[Type]
 ;;                     -> void
 ;; FIXME - figure out how to make this lots lazier
-(define/cond-contract (tc/builtin-struct nm parent fld-names tys kernel-maker properties)
+(define/cond-contract (tc/builtin-struct nm parent fld-names tys kernel-maker)
   (c:-> identifier? (c:or/c #f identifier?) (c:listof identifier?)
         (c:listof Type?) (c:or/c #f identifier?)
-        (c:listof (c:cons/c any/c Type?))
         c:any/c)
   (define parent-type
     (and parent (resolve-name (make-Name parent 0 #t))))
@@ -517,11 +516,7 @@
 ;; syntax for tc/builtin-struct
 (define-syntax (d-s stx)
   (define-splicing-syntax-class options
-    #:attributes ([prop 1] [prop-val 1] kernel-maker)
-    (pattern (~seq (~or (~optional (~seq #:kernel-maker maker:id))
-
-                        (~seq #:property prop:expr prop-val:expr))
-                   ...)
+    (pattern (~optional (~seq #:kernel-maker maker:id))
              #:attr kernel-maker (if (attribute maker) #'(quote-syntax maker) #'#f)))
 
   (syntax-parse stx
@@ -529,12 +524,9 @@
      #'(tc/builtin-struct #'nm #'par
                           (list #'fld ...)
                           (list ty ...)
-                          opts.kernel-maker
-                          (list (cons #'opts.prop #'opts.prop-val) ...))]
+                          opts.kernel-maker)]
     [(_ nm:id ([fld:id (~datum :) ty] ...) opts:options)
      #'(tc/builtin-struct #'nm #f
                           (list #'fld ...)
                           (list ty ...)
-                          opts.kernel-maker
-                          (list (cons #'opts.prop #'opts.prop-val) ...)
-                          )]))
+                          opts.kernel-maker)]))

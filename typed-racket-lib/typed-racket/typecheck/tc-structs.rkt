@@ -492,13 +492,13 @@
 ;; register a struct type
 ;; convenience function for built-in structs
 ;; tc/builtin-struct : identifier Maybe[identifier] Listof[identifier]
-;;                     Listof[Type] Maybe[identifier] Listof[Type] ListOf[Pairof[identifier, Type]]
+;;                     Listof[Type] Maybe[identifier] Listof[Type] ListOf[Expression]
 ;;                     -> void
 ;; FIXME - figure out how to make this lots lazier
 (define/cond-contract (tc/builtin-struct nm parent fld-names tys kernel-maker properties)
   (c:-> identifier? (c:or/c #f identifier?) (c:listof identifier?)
         (c:listof Type?) (c:or/c #f identifier?)
-        (c:listof (c:cons/c identifier? Type?))
+        (c:listof (c:cons/c any/c Type?))
         c:any/c)
   (define parent-type
     (and parent (resolve-name (make-Name parent 0 #t))))

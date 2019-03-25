@@ -93,7 +93,7 @@
           (match-define (F: var) -Self)
           (tc-expr/check pval (ret (subst var sty ty)))]
          [(tc-result1: ty)
-          (tc-error "expected a struct type property but got something else")]))]
+          (tc-error "expected a struct type property but got ~a") ty]))]
     [(define-syntaxes (nm ...) . rest) (void)]))
 
 

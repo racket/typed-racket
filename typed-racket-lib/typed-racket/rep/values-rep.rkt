@@ -60,7 +60,7 @@
         (combine-frees (map free-vars* (cons dty results))))]
    [#:idxs (f)
     (if (symbol? dbound)
-        (combine-frees (cons (single-free-var dbound)
+        (combine-frees (cons (single-free-var dbound) 
                              (map free-idxs* (cons dty results))))
         (combine-frees (map free-idxs* (cons dty results))))]]
   [#:fmap (f) (make-ValuesDots (map f results) (f dty) dbound)]

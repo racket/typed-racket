@@ -62,12 +62,12 @@
 
 ;; map over the-mapping, producing a list
 ;; (id type -> T) -> listof[T]
-(define (type-alias-env-map f)
+(define (type-alias-env-map f)  
   (for/list ([(id t) (in-sorted-free-id-table the-mapping)]
              #:when (resolved? t))
     (f id (resolved-ty t))))
 
-(define (type-alias-env-for-each f)
+(define (type-alias-env-for-each f)  
   (for ([(id t) (in-sorted-free-id-table the-mapping)]
         #:when (resolved? t))
     (f id (resolved-ty t))))

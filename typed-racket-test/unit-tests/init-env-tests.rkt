@@ -52,11 +52,11 @@
         (convert-type -field)
         '-field)
       (check-equal?
-        (convert-type (make-StructType (make-Struct #'foo #f null #f #f #'foo? null)))
+       (convert-type (make-StructType (make-Struct #'foo #f null #f #f #'foo? (list))))
         '(make-StructType
           (make-Struct (quote-syntax foo) #f (list) #f #f (quote-syntax foo?) (list))))
       (check-equal?
-        (convert-type (make-StructTop (make-Struct #'foo #f null #f #f #'foo? null)))
+       (convert-type (make-StructTop (make-Struct #'foo #f null #f #f #'foo? (list))))
         '(make-StructTop
           (make-Struct (quote-syntax foo) #f (list) #f #f (quote-syntax foo?) (list))))
       (check-equal?
@@ -68,6 +68,4 @@
                            null null #f))
         '(make-Row (list (list 'foo -String #t))
                    (list (list 'bar -String))
-                   (list) (list) #f))
-    )
-  ))
+                   (list) (list) #f)))))

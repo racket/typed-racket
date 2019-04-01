@@ -8,7 +8,7 @@
          "env-utils.rkt"
          syntax/parse
          syntax/id-table
-         racket/lazy-require)
+         racket/lazy-require) 
 (provide register-type register-type-if-undefined
          finish-register-type
          maybe-finish-register-type
@@ -63,7 +63,7 @@
 ;; identifier -> type
 (define (lookup-type id [fail-handler (λ () (lookup-fail id))])
   (define v (free-id-table-ref the-mapping id fail-handler))
-  (cond [(box? v) (unbox v)]
+  (cond [(box? v) (unbox v)] 
         [(procedure? v) (define t (v)) (register-type id t) t]
         [else v]))
 

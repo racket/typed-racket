@@ -27,7 +27,6 @@
 
 ;; Convenient constructors
 (define -App make-App)
-(define -Self (make-F 'self-))
 (define -mpair make-MPair)
 (define (-Param t1 [t2 t1]) (make-Param t1 t2))
 (define -box make-Box)
@@ -73,6 +72,7 @@
                    dty dbound))
 
 ;; Basic types
+(define -Self (make-F (gensym 'self-)))
 (define -Listof (-poly (list-elem) (make-Listof list-elem)))
 (define/decl -Regexp (Un -PRegexp -Base-Regexp))
 (define/decl -Byte-Regexp (Un -Byte-Base-Regexp -Byte-PRegexp))

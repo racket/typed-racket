@@ -149,7 +149,6 @@
  mask:struct
  mask:prefab
  mask:struct-type
- mask:self
  mask:struct-property
  mask:syntax
  mask:class

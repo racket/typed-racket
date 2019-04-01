@@ -2289,8 +2289,7 @@
 [special-comment-value (-> -Special-Comment Univ)]
 
 ;; Section 13.8
-#;[prop:custom-write -Struct-Type-Property]
-[prop:custom-write (-struct-property (-> -Self -Output-Port B Univ))]
+[prop:custom-write (-struct-property (-> -Self -Output-Port B ManyUniv))]
 [custom-write? (-> Univ B)]
 [custom-write-accessor (-> Univ (-> Univ -Output-Port B ManyUniv))]
 

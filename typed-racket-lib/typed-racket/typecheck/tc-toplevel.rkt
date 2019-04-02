@@ -205,8 +205,7 @@
   (parameterize ([current-orig-stx form])
     (syntax-parse form
       #:literals (define-values begin)
-      [t:ignore^ (list)]
-      [_:ignore-some^ (list)]
+      [(~or _:ignore^ _:ignore-some^)  (list)]
 
       ;; definitions lifted from contracts should be ignored
       [(define-values (lifted) expr)

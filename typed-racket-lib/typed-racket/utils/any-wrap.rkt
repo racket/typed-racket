@@ -171,8 +171,16 @@
                                                          (with-contract-continuation-mark
                                                           blame+neg-party
                                                           (any-wrap/traverse v neg-party))))))]
-      [(? set?)
-       (for/set ([i (in-set v)]) (any-wrap/traverse i neg-party))]
+      [(? set?) (chaperone-hash-set
+                 v
+                 (λ (s e) e) ; inject
+                 (λ (s e) (if (immutable? v)
+                              e
+                              (fail neg-party v))) ; add
+                 (λ (s e) e) ; remove
+                 (λ (s e) (with-contract-continuation-mark
+                           blame+neg-party
+                           (any-wrap/traverse e neg-party))))] ; extract
       ;; could do something with generic sets here if they had
       ;; chaperones, or if i could tell if they were immutable.
       [(? struct?)

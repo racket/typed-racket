@@ -1,6 +1,7 @@
 #lang typed/racket
 
-(require typed/net/url)
+(require typed/net/url
+         typed/racket/date)
 
 (provide (all-defined-out))
 
@@ -57,65 +58,104 @@
                        [#:struct response
                                  ([code : Natural]
                                   [message : Bytes]
-                                  [seconds : Natural]
+                                  [seconds : Real]
                                   [mime : (Option Bytes)]
                                   [headers : (Listof Header)]
-                                  [output : (-> Output-Port Void)])]
+                                  [output : (-> Output-Port Any)])]
                        [response/full
                         (-> Natural
                             Bytes
-                            Number
+                            Real
                             (Option Bytes)
                             (Listof Header)
                             (Listof Bytes)
                             Response)]
                        [response/output
-                        (-> (-> Output-Port Void)
+                        (-> (-> Output-Port Any)
                             [#:code Natural]
                             [#:message Bytes]
-                            [#:seconds Number]
+                            [#:seconds Real]
                             [#:mime-type (Option Bytes)]
                             [#:headers (Listof Header)]
                             Response)]
                        [TEXT/HTML-MIME-TYPE Bytes])
 
+;; For backwards compatability:
+;; these bindings are not and never were
+;; exported by web-server/http,
+;; but they were exported by previous versions of
+;; typed/web-server/http based on net/cookie.
 
-(require/typed/provide net/cookie
-                       [#:opaque Cookie cookie?]
-                       [#:opaque Cookie-Name cookie-name?]
-                       [#:opaque Cookie-Value cookie-value?]
-                       [#:opaque Valid-Domain valid-domain?])
+(require (only-in "../net/cookies/server.rkt"
+                  Cookie
+                  cookie?)
+         (only-in "../net/cookies/common.rkt"
+                  cookie-name?
+                  cookie-value?
+                  [domain-value? valid-domain?]))
 
-(require/typed/provide web-server/http/cookie
-                       [make-cookie
-                        (-> Cookie-Name Cookie-Value
-                            [#:comment (Option String)]
-                            [#:domain (Option Valid-Domain)]
-                            [#:max-age (Option Natural)]
-                            [#:path (Option String)]
-                            [#:expires (Option String)]	 	 	 	 
-                            [#:secure? (Option Boolean)]
-                            Cookie)]
-                       [cookie->header
-                        (-> Cookie
-                            Header)])
+(define-type Cookie-Name String)
+(define-type Cookie-Value String)
+(define-type Valid-Domain String)
+
+(provide (all-from-out "../net/cookies/server.rkt")
+         (all-from-out "../net/cookies/common.rkt")
+         Cookie-Name
+         Cookie-Value
+         Valid-Domain)
+
+(require/typed/provide
+ web-server/http/cookie
+ [make-cookie
+  (-> String String
+      [#:comment Any]
+      [#:domain (Option String)]
+      [#:max-age (Option Natural)]
+      [#:path (Option String)]
+      [#:expires (Option (U date String))]
+      [#:extension (Option String)]
+      ;; yes, these are really different
+      ;; than for typed/net/cookies/server
+      [#:secure? Any]
+      [#:http-only? Any]
+      Cookie)]
+ [cookie->header
+  (-> Cookie
+      Header)])
 
 (require/typed/provide web-server/http/id-cookie
                        [make-id-cookie
-                        (-> Cookie-Name
+                        (-> String
                             Bytes
-                            Cookie-Value
+                            String
                             [#:path (Option String)]
+                            [#:expires (Option date)]
+                            [#:max-age (Option Exact-Positive-Integer)]
+                            [#:domain (Option String)]
+                            [#:extension (Option String)]
+                            ;; yes, these are really different
+                            ;; than for typed/net/cookies/server
+                            [#:secure? Any]	 	 	 	 
+                            [#:http-only? Any]
                             Cookie)]
                        [request-id-cookie
-                        (-> Cookie-Name
+                        (-> String
                             Bytes
                             Request
-                            #:timeout Number
-                            (Option Cookie-Value))]
+                            [#:timeout Number]
+                            [#:shelf-life Real]
+                            (Option String))]
+                       [valid-id-cookie?
+                        (-> Any ;; yes, this is really Any
+                            #:name String
+                            #:key Bytes
+                            [#:timeout Number]
+                            [#:shelf-life Real]
+                            (Option String))]
                        [logout-id-cookie
-                        (-> Cookie-Name
+                        (-> String
                             [#:path (Option String)]
+                            [#:domain (Option String)]
                             Cookie)]
                        [make-secret-salt/file
                         (-> Path-String
@@ -125,7 +165,7 @@
                        [#:struct client-cookie
                                  ([name : String]
                                   [value : String]
-                                  [domain : (Option Valid-Domain)]
+                                  [domain : (Option String)]
                                   [path : (Option String)])]
                        [request-cookies
                         (-> Request
@@ -139,6 +179,7 @@
                              Response)]
                        [permanently Redirection-Status]
                        [temporarily Redirection-Status]
+                       [temporarily/same-method Redirection-Status]
                        [see-other Redirection-Status])
 
 (require/typed/provide web-server/http/basic-auth
@@ -170,7 +211,7 @@
                         (-> Any  ;;; it should be `xexpr?`ed value, but `Any` also works well.
                             [#:code Natural]
                             [#:message Bytes]
-                            [#:seconds Number]
+                            [#:seconds Real]
                             [#:mime-type (Option Bytes)]
                             [#:headers (Listof Header)]
                             [#:cookies (Listof Cookie)]

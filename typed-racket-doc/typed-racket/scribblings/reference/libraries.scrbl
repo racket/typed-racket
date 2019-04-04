@@ -94,10 +94,29 @@ exported by @racketmodname[typed/json].
 @defmodule/incl[typed/mred/mred]
 @defmodule/incl[typed/net/base64]
 @defmodule/incl[typed/net/cgi]
-@defmodule/incl[typed/net/cookie]
+@defmodule/incl[typed/net/cookies]
+@defmodule/incl[typed/net/cookies/common]
+@history[#:added "1.10"]
+
+@defmodule/incl[typed/net/cookies/server]
 
 @deftype[Cookie]{
-  Describes an HTTP cookie as implemented by @racketmodname[net/cookie].
+ Describes a server-side @hyperlink["https://tools.ietf.org/html/rfc6265.html"]{RFC 6265}
+ HTTP cookie, as implemented by @racketmodname[net/cookies/server].
+}
+
+@history[#:added "1.10"]
+
+@defmodule/incl[typed/net/cookie]
+
+@deprecated[@racketmodname[typed/net/cookies]]{
+ This library is deprecated for the same reasons
+ that @racketmodname[net/cookie] is deprecated.
+}
+
+@deftype[Cookie]{
+ Describes an HTTP cookie as implemented by @racketmodname[net/cookie],
+ which is deprecated in favor of @racketmodname[net/cookies].
 }
 
 @defmodule/incl[typed/net/dns]
@@ -229,6 +248,11 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/syntax/stx]
 @defmodule/incl[typed/web-server/configuration/responders]
 @defmodule/incl[typed/web-server/http]
+
+@history[#:changed "1.10"
+         @elem{Updated to reflect @racketmodname[web-server/http]
+          version 1.3.}]
+
 @defmodule/incl[typed/db]
 @defmodule/incl[typed/db/base]
 @defmodule/incl[typed/db/sqlite3]

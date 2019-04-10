@@ -5,7 +5,8 @@
 (define deps '("srfi-lite-lib"
                "base"
 	       "net-lib"
-	       "web-server-lib"
+               "net-cookies-lib"
+	       ["web-server-lib" #:version "1.3"]
                ["db-lib" #:version "1.5"]
                "draw-lib"
                "rackunit-lib"
@@ -25,4 +26,4 @@
 
 (define pkg-authors '(samth stamourv))
 
-(define version "1.9")
+(define version "1.10")

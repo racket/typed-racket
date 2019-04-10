@@ -3,6 +3,7 @@
 (define collection 'multi)
 
 (define build-deps '("net-doc"
+                     "net-cookies-doc"
                      "scheme-lib"
                      "srfi-lite-lib"
                      "r6rs-doc"
@@ -14,7 +15,7 @@
                      "pict-lib"
                      ("typed-racket-lib" #:version "1.10")
                      "typed-racket-compatibility"
-                     "typed-racket-more"
+                     ("typed-racket-more" #:version "1.10")
                      "racket-doc"
                      "draw-lib"))
 (define deps '("base"))

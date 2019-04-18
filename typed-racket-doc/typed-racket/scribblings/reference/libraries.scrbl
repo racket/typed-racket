@@ -114,7 +114,7 @@ exported by @racketmodname[typed/json].
  that @racketmodname[net/cookie] is deprecated.
 }
 
-@deftype[Cookie]{
+@deftype[#:link-target? #false Cookie]{
  Describes an HTTP cookie as implemented by @racketmodname[net/cookie],
  which is deprecated in favor of @racketmodname[net/cookies].
 }

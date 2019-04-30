@@ -54,8 +54,7 @@
                   #:maker (attribute t.maker)
                   #:extra-maker (attribute t.extra-maker)
                   #:type-only (attribute t.type-only)
-                  #:prefab? (attribute t.prefab)
-                  #:properties (attribute t.properties))]
+                  #:prefab? (attribute t.prefab))]
       [t:typed-struct/exec
        (tc/struct null #'t.nm #'t.type-name
                   (syntax->list #'(t.fields ...)) (syntax->list #'(t.types ...))

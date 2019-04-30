@@ -258,7 +258,7 @@
                    ,poly?
                    (quote-syntax ,pred-id)
                    ;(list ,@properties)
-                   (list ,@(map type->sexp properties))
+                   (box (list ,@(map type->sexp (unbox properties))))
                    )]
     [(StructType: struct) `(make-StructType ,(type->sexp struct))]
     [(StructProperty: ty) `(make-StructProperty ,(type->sexp ty))]

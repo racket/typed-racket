@@ -52,10 +52,8 @@
 ;; mutable: Any
 ;; parent-mutable: Any
 ;; proc-ty: (Option Type)
-;; property-tys: (Listof Type)
 (struct struct-desc (parent-fields self-fields tvars
-                     mutable parent-mutable proc-ty
-                     property-tys)
+                     mutable parent-mutable proc-ty)
         #:transparent)
 
 (define (struct-desc-all-fields fields)
@@ -85,15 +83,17 @@
                         (let-values ()
                           (#%plain-app make-struct-type _name _super-type _init-fcnt _auto-fcnt auto-v props:expanded-props r_args ...))))))
          (#%plain-app values args-v ...)))
-     (for ([p (in-list (attribute props.prop-names))]
-           [pval (in-list (attribute props.prop-vals))])
-       (match (single-value p)
-         [(tc-result1: (StructProperty: ty))
-          (define sty (lookup-type-alias name parse-type))
-          (match-define (F: var) -Self)
-          (tc-expr/check pval (ret (subst var sty ty)))]
-         [(tc-result1: ty)
-          (tc-error "expected a struct type property but got ~a" ty)]))]
+     (let ([names (attribute props.prop-names)])
+       (unless (null? names)
+         (define sty (lookup-type-alias name parse-type))
+         (for/list ([p (in-list names)]
+                    [pval (in-list (attribute props.prop-vals))])
+           (match (single-value p)
+             [(tc-result1: (StructProperty: ty))
+              (match-define (F: var) -Self)
+              (tc-expr/check pval (ret (subst var sty ty)))]
+             [(tc-result1: ty)
+              (tc-error "expected a struct type property but got ~a" ty)]))))]
     [(define-syntaxes (nm ...) . rest) (void)]))
 
 
@@ -157,7 +157,7 @@
                  (struct-desc-proc-ty desc)
                  (not (null? (struct-desc-tvars desc)))
                  (struct-names-predicate names)
-                 (struct-desc-property-tys desc))))
+                 (box null))))
 
 
 ;; construct all the various types for structs, and then register the appropriate names
@@ -191,7 +191,7 @@
   (match-define
     (struct-desc parent-fields self-fields
                  constructor-tvars
-                 self-mutable parent-mutable _ _)
+                 self-mutable parent-mutable _)
     desc)
   (define any-mutable (or self-mutable parent-mutable))
   (define all-fields (append parent-fields self-fields))
@@ -408,9 +408,8 @@
                    #:extra-maker [extra-maker #f]
                    #:mutable [mutable #f]
                    #:type-only [type-only #f]
-                   #:prefab? [prefab? #f]
-                   #:properties [properties null])
-  (define property-tys (map lookup-type properties))
+                   #:prefab? [prefab? #f])
+  (define property-tys (box null))
   (define-values (nm parent-name parent) (parse-parent nm/par prefab?))
   ;; create type variables for the new type parameters
   (define tvars (map syntax-e vars))
@@ -457,7 +456,7 @@
               (= num-fields (vector-length mutable))]
              ['() #f]))
          (define desc
-           (struct-desc parent-fields types tvars mutable parent-mutable #f property-tys))
+           (struct-desc parent-fields types tvars mutable parent-mutable #f))
          (parsed-struct (make-Prefab key (append parent-fields types))
                         names desc (struct-info-property nm/par) #f)]
         [else
@@ -483,8 +482,7 @@
                        tvars
                        mutable
                        parent-mutable
-                       maybe-proc-ty
-                       property-tys))
+                       maybe-proc-ty))
          (define sty (mk/inner-struct-type names desc concrete-parent))
 
          (parsed-struct sty names desc (struct-info-property nm/par) type-only)]))
@@ -505,7 +503,7 @@
 
   (define names (get-struct-names nm nm fld-names #f #f))
   ;; built-in structs are assumed to be immutable with immutable parents
-  (define desc (struct-desc parent-tys tys null #f #f #f null))
+  (define desc (struct-desc parent-tys tys null #f #f #f))
   (define sty (mk/inner-struct-type names desc parent-type))
 
   (register-sty! sty names desc)

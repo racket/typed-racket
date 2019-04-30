@@ -14,7 +14,8 @@
   (only-in '#%kernel [apply kernel:apply] [reverse kernel:reverse])
   (only-in racket/private/pre-base new-apply-proc)
   compatibility/mlist
-  file/convertible
+  (only-in file/convertible prop:convertible)
+  (only-in mzlib/pconvert-prop prop:print-converter)
   racket/logging
   racket/private/stx
   (only-in mzscheme make-namespace)
@@ -2293,7 +2294,7 @@
 ;; Section 13.8
 [prop:custom-write (-struct-property (-> -Self -Output-Port (Un B (-val 1) (-val 0)) ManyUniv))]
 [custom-write? (-> Univ B)]
-[custom-write-accessor (-> Univ (-> Univ -Output-Port B ManyUniv))]
+[custom-write-accessor (-> Univ (-> Univ -Output-Port (Un B (-val 1) (-val 0)) ManyUniv))]
 
 [prop:custom-print-quotable (-struct-property (Un (-val 'self)
                                                   (-val 'never)
@@ -3479,4 +3480,8 @@
    (->optkey -Pattern -Input (N ?N -Bytes) #:match-select sel #f output)))
 
 ;; File: Racket File and Format Libraries
-[prop:convertible -Real]
+[prop:convertible (-struct-property (-> -Self -Symbol Univ Univ))]
+
+
+;; MzLib: Legacy Libraries
+[prop:print-converter (-struct-property (-> -Self (-> Univ Univ) Univ))]

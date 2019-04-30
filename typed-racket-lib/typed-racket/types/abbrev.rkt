@@ -154,7 +154,7 @@
 
 
 ;; Structs
-(define (-struct name parent flds [proc #f] [poly #f] [pred #'dummy] [props null])
+(define (-struct name parent flds [proc #f] [poly #f] [pred #'dummy] [props (box null)])
   (make-Struct name parent flds proc poly pred props))
 
 ;; Function type constructors

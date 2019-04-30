@@ -57,3 +57,28 @@
   #:property prop:custom-write
   (lambda (self p b)
           (printf "~a : ~a" (poly-foo^-x self) (poly-foo^-y self))))
+
+;; test prop:convertible
+(require file/convertible)
+(struct conv-foo []
+  #:property prop:convertible
+  (λ ([self : conv-foo] [request : Symbol] [default : Any])
+    (cond
+      [(eqv? request 'text) default]
+      ;[(eqv? request 'gif-bytes) default]
+      [(eqv? request 'png-bytes+bounds) default]
+      [else default])
+    #;
+    [(self request)
+     (cond
+       [(eqv? request 'text) #f]
+       [(eqv? request 'gif-bytes) #f]
+       [(eqv? request 'png-bytes+bounds) #f]
+       [else #f])]))
+
+
+(require mzlib/pconvert-prop)
+(struct pconvert-foo [[x : Number]]
+  #:property prop:print-converter
+  (lambda ([self : pconvert-foo] [f : (-> Any Any)])
+          (f (pconvert-foo-x self))))

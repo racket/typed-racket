@@ -15,6 +15,7 @@
  (private parse-type syntax-properties)
  racket/match racket/syntax racket/list
  racket/format
+ racket/string
  syntax/flatten-begin
  (only-in (types abbrev) -Bottom -Boolean)
  (static-contracts instantiate structures combinators constraints)
@@ -541,6 +542,8 @@
        ;; TODO: this is not quite right for case->
        [(Prompt-Tagof: s (Fun: (list (Arrow: ts _ _ _))))
         (prompt-tag/sc (map t->sc ts) (t->sc s))]
+       [(F: v) #:when (string-prefix? (symbol->string v) "self-")
+               (fail #:reason "contract generation not supported for Self")]
        ;; TODO
        [(F: v)
         (triple-lookup

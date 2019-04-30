@@ -714,8 +714,7 @@
 ;; Structs
 ;;************************************************************
 
-(def-structural StructProperty ([elem #:invariant])
-  [#:mask mask:struct-property])
+(def-structural StructProperty ([elem #:invariant]))
 
 
 (def-rep fld ([t Type?] [acc identifier?] [mutable? boolean?])
@@ -733,10 +732,10 @@
                   [proc (or/c #f Fun?)]
                   [poly? boolean?]
                   [pred-id identifier?]
-                  [properties (listof StructProperty?)])
+                  [properties (box/c (listof StructProperty?))])
   [#:frees (f) (combine-frees (map f (append (if proc (list proc) null)
                                              (if parent (list parent) null)
-                                             properties
+                                             (unbox properties)
                                              flds)))]
   [#:fmap (f) (make-Struct name
                            (and parent (f parent))
@@ -744,12 +743,12 @@
                            (and proc (f proc))
                            poly?
                            pred-id
-                           (map f properties))]
+                           (box (map f (unbox properties))))]
   [#:for-each (f)
    (when parent (f parent))
    (for-each f flds)
    (when proc (f proc))
-   (for-each f properties)]
+   (for-each f (unbox properties))]
   ;; This should eventually be based on understanding of struct properties.
   [#:mask (mask-union mask:struct mask:procedure)]
   [#:custom-constructor

@@ -14,6 +14,7 @@
   (only-in '#%kernel [apply kernel:apply] [reverse kernel:reverse])
   (only-in racket/private/pre-base new-apply-proc)
   compatibility/mlist
+  file/convertible
   racket/logging
   racket/private/stx
   (only-in mzscheme make-namespace)
@@ -1490,6 +1491,7 @@
 [system-idle-evt (-> (-evt -Void))]
 [alarm-evt (-> -Real (-mu x (-evt x)))]
 [handle-evt? (asym-pred Univ B (-PS (-is-type 0 (-evt Univ)) -tt))]
+[prop:evt (-struct-property (Un (-evt Univ) (-> -Self ManyUniv) -NonNegFixnum))]
 [current-evt-pseudo-random-generator
  (-Param -Pseudo-Random-Generator -Pseudo-Random-Generator)]
 
@@ -2289,11 +2291,14 @@
 [special-comment-value (-> -Special-Comment Univ)]
 
 ;; Section 13.8
-[prop:custom-write (-struct-property (-> -Self -Output-Port B ManyUniv))]
+[prop:custom-write (-struct-property (-> -Self -Output-Port (Un B (-val 1) (-val 0)) ManyUniv))]
 [custom-write? (-> Univ B)]
 [custom-write-accessor (-> Univ (-> Univ -Output-Port B ManyUniv))]
 
-[prop:custom-print-quotable -Struct-Type-Property]
+[prop:custom-print-quotable (-struct-property (Un (-val 'self)
+                                                  (-val 'never)
+                                                  (-val 'maybe)
+                                                  (-val 'always)))]
 [custom-print-quotable? (-> Univ B)]
 [custom-print-quotable-accessor (-> Univ Univ)]
 
@@ -3472,3 +3477,6 @@
         (output (-opt (-pair ind-pair (-lst (-opt ind-pair)))))
         (-Input (Un -String -Input-Port -Bytes -Path)))
    (->optkey -Pattern -Input (N ?N -Bytes) #:match-select sel #f output)))
+
+;; File: Racket File and Format Libraries
+[prop:convertible -Real]

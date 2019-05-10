@@ -1,3 +1,7 @@
+7.3
+- Bug fixes and type updates.
+7.2
+- Bug fixes and type updates.
 7.1
 - Add immutable vectors.
 7.0

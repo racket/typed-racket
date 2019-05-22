@@ -121,11 +121,14 @@
            (hash-set! memo-table sc result)
            result]))
   (define constraints
-    (if (hash-empty? name-defs)
-        (recur sc)
-        (close-loop (apply append (hash-keys name-defs))
-                    (map recur (apply append (hash-values name-defs)))
-                    (recur sc))))
+    (cond
+      [(hash-empty? name-defs)
+       (recur sc)]
+      [else
+       (define keys+values (hash->list name-defs))
+       (close-loop (apply append (map car keys+values))
+                   (map recur (apply append (map cdr keys+values)))
+                   (recur sc))]))
   (validate-constraints (add-constraint constraints max-kind))
   constraints)
 
@@ -216,9 +219,10 @@
   (define extra-defs
     (cond [(hash-empty? name-defs) null]
           [else
-           (define names (apply append (hash-keys name-defs)))
+           (define names+values (hash->list name-defs))
+           (define names (apply append (map car names+values)))
            (for/list ([name (in-list names)]
-                      [sc   (in-list (apply append (hash-values name-defs)))]
+                      [sc   (in-list (apply append (map cdr names+values)))]
                       #:unless (lookup-name-defined name))
              (set-name-defined name)
              #`(define #,name

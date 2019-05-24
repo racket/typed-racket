@@ -242,7 +242,7 @@
          (and (right-type? sexp)
               (same-result-as-untyped? sexp))))))
 
-(module+ main
+(define (run-tests)
   (define n-attempts 1000)
   (define seed       (+ 1 (random (expt 2 30))))
   (define verbose?   #f)
@@ -277,7 +277,11 @@
 
   (printf "bad tests (usually typechecking failed): ~v~n" num-exceptions))
 
+(module+ main
+  (run-tests))
+
 (module+ test
   (module config info
     (define timeout 600)
-    (define random? #t)))
+    (define random? #t))
+  (run-tests))

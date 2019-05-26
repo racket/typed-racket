@@ -77,7 +77,7 @@
      v 
      "Attempted to use a higher-order value passed as `Any` in untyped code: ~v" v))
   
-  (define (wrap-struct neg-party s [inspector (current-inspector)])
+  (define (wrap-struct neg-party s seen [inspector (current-inspector)])
     (define blame+neg-party (cons b neg-party))
     (define (extract-functions struct-type)
       (define-values (sym init auto ref set! imms par skip?)
@@ -93,7 +93,7 @@
                (list* (make-struct-field-accessor ref n)
                       (lambda (s v) (with-contract-continuation-mark
                                      blame+neg-party
-                                     (any-wrap/traverse v neg-party)))
+                                     (any-wrap/traverse v neg-party seen)))
                       res)
                (cdr imms))
               ;; field is mutable
@@ -101,7 +101,7 @@
                (list* (make-struct-field-accessor ref n)
                       (lambda (s v) (with-contract-continuation-mark
                                      blame+neg-party
-                                     (any-wrap/traverse v neg-party)))
+                                     (any-wrap/traverse v neg-party seen)))
                       (make-struct-field-mutator set! n)
                       (lambda (s v) (fail neg-party s))
                       res)
@@ -114,26 +114,30 @@
         (struct-info s)))
     ;; It's ok to just ignore skipped? -- see https://github.com/racket/typed-racket/issues/203
     (apply chaperone-struct s (extract-functions type)))
- 
-  (define (any-wrap/traverse v neg-party)
+
+  (define (any-wrap/traverse v neg-party [seen (seteq)])
     (define blame+neg-party (cons b neg-party))
+    (define seen/v (set-add seen v))
     (match v
+      [(? (λ (v) (set-member? seen v)))
+       ;; TODO handle cycles with a correct deep copy (github issue #823)
+       (raise-argument-error 'any-wrap/c "acyclic value" 0 v neg-party)]
       [(? base-val?)
        v]
       [(? unsafe-val?)
        (fail neg-party v)]
-      [(cons x y) (cons (any-wrap/traverse x neg-party) (any-wrap/traverse y neg-party))]
+      [(cons x y) (cons (any-wrap/traverse x neg-party seen/v) (any-wrap/traverse y neg-party seen/v))]
       [(? vector? (? immutable?))
        ;; fixme -- should have an immutable for/vector
        (vector->immutable-vector
         (for/vector #:length (vector-length v)
-          ([i (in-vector v)]) (any-wrap/traverse i neg-party)))]
-      [(? box? (? immutable?)) (box-immutable (any-wrap/traverse (unbox v) neg-party))]
+          ([i (in-vector v)]) (any-wrap/traverse i neg-party seen/v)))]
+      [(? box? (? immutable?)) (box-immutable (any-wrap/traverse (unbox v) neg-party seen/v))]
       [(? box?) (chaperone-box v
                                (lambda (v e)
                                  (with-contract-continuation-mark
                                   blame+neg-party
-                                  (any-wrap/traverse e neg-party)))
+                                  (any-wrap/traverse e neg-party seen/v)))
                                (lambda (v e) (fail neg-party v)))]
       ;; fixme -- handling keys properly makes it not a chaperone
       ;; [(? hasheq? (? immutable?))
@@ -144,20 +148,20 @@
       [(? (λ (e) 
             (and (hash? e) (immutable? e) 
                  (not (hash-eqv? e)) (not (hash-eq? e)))))
-       (for/hash ([(k v) (in-hash v)]) (values (any-wrap/traverse k neg-party)
-                                               (any-wrap/traverse v neg-party)))]
+       (for/hash ([(k v) (in-hash v)]) (values (any-wrap/traverse k neg-party seen/v)
+                                               (any-wrap/traverse v neg-party seen/v)))]
       [(? vector?) (chaperone-vector v
                                      (lambda (v i e)
                                        (with-contract-continuation-mark
                                         blame+neg-party
-                                        (any-wrap/traverse e neg-party)))
+                                        (any-wrap/traverse e neg-party seen/v)))
                                      (lambda (v i e) (fail neg-party v)))]
       [(? hash?) (chaperone-hash v
                                  (lambda (h k)
                                    (values k (lambda (h k v)
                                                (with-contract-continuation-mark
                                                 blame+neg-party
-                                                (any-wrap/traverse v neg-party))))) ;; ref
+                                                (any-wrap/traverse v neg-party seen/v))))) ;; ref
                                  (lambda (h k n)
                                    (if (immutable? v) 
                                        (values k n)
@@ -166,11 +170,11 @@
                                  (lambda (h k)
                                    (with-contract-continuation-mark
                                     blame+neg-party
-                                    (any-wrap/traverse k neg-party))))] ;; key
+                                    (any-wrap/traverse k neg-party seen/v))))] ;; key
       [(? evt?) (chaperone-evt v (lambda (e) (values e (λ (v)
                                                          (with-contract-continuation-mark
                                                           blame+neg-party
-                                                          (any-wrap/traverse v neg-party))))))]
+                                                          (any-wrap/traverse v neg-party seen/v))))))]
       [(? set?) (chaperone-hash-set
                  v
                  (λ (s e) e) ; inject
@@ -180,11 +184,11 @@
                  (λ (s e) e) ; remove
                  (λ (s e) (with-contract-continuation-mark
                            blame+neg-party
-                           (any-wrap/traverse e neg-party))))] ; extract
+                           (any-wrap/traverse e neg-party seen/v))))] ; extract
       ;; could do something with generic sets here if they had
       ;; chaperones, or if i could tell if they were immutable.
       [(? struct?)
-       (wrap-struct neg-party v)]
+       (wrap-struct neg-party v seen/v)]
       [(? procedure?)
        (chaperone-procedure v (lambda args (fail neg-party v)))]
       [(? promise?)
@@ -197,14 +201,14 @@
            (λ (promise)
              (values (λ (val) (with-contract-continuation-mark
                                blame+neg-party
-                               (any-wrap/traverse val neg-party)))
+                               (any-wrap/traverse val neg-party seen/v)))
                      promise)))))]
       [(? channel?)
        ;;bg; Should be able to take `Any` from the channel, but can't put anything in
        (chaperone-channel v
                           (lambda (e) (with-contract-continuation-mark
                                        blame+neg-party
-                                       (values v (any-wrap/traverse v neg-party))))
+                                       (values v (any-wrap/traverse v neg-party seen/v))))
                           (lambda (e) (fail neg-party v)))]
       [_
        (on-opaque v b neg-party)]))

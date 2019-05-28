@@ -419,12 +419,13 @@
 
 (check equal?
        (let ([ht #hash((a . 1) (b . 2))])
-         (for/list : (Listof (Listof (Pairof Symbol Integer)))
-                   ([(k1 v1) (in-hash ht)]
-                    [k2 (in-hash-keys ht)]
-                    [v2 (in-hash-values ht)]
-                    [k3+v3 (in-hash-pairs ht)])
-           (list (cons k1 v1) (cons k2 v2) k3+v3)))
+         (sort-by-first-key
+          (for/list : (Listof (Listof (Pairof Symbol Integer)))
+              ([(k1 v1) (in-hash ht)]
+               [k2 (in-hash-keys ht)]
+               [v2 (in-hash-values ht)]
+               [k3+v3 (in-hash-pairs ht)])
+            (list (cons k1 v1) (cons k2 v2) k3+v3))))
        '(((a . 1) (a . 1) (a . 1)) ((b . 2) (b . 2) (b . 2))))
 
 (check equal?

@@ -107,12 +107,13 @@
     [else            -inf.f]))
 
 ;; Converts random integers to random reals
-(define (random-integer->random-real E)
+(define (random-integer->random-real E racketcs-available?)
   (define r (random))
   ;; probability 0.25 each
   (cond [(r . < . 0.25)  E]
         [(r . < . 0.50)  (random-integer->random-exact-rational E)]
         [(and (r . < . 0.75)
-              (single-flonum-available?))
+              (single-flonum-available?)
+              (not racketcs-available?)) ; does not support single-flonums
          (random-integer->random-single-flonum E)]
         [else            (random-integer->random-flonum E)]))

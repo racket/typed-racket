@@ -24,7 +24,7 @@
   [n real]
   ;; randomly generate F, not E, because literal numbers self-evaluate
   ;; (i.e. generates a useless test)
-  [E* n E F S I]
+  [E* n E F I]
   ;; racket/math
   ;; [E (degrees->radians E)
   ;;    (radians->degrees E)
@@ -83,10 +83,6 @@
      (unsafe-fl- F* F*)
      (unsafe-fl* F* F*)
      (unsafe-fl/ F* F*)]
-  ;; not many single-flonum-specific ops, so will mostly be used in E context
-  [S (real->single-flonum n)
-     (inexact->exact S)
-     (real->double-flonum S)]
   ;; more likely to be integers
   [I* (exact-round n) I] ; TODO fix pre-processing to avoid cast
   [I (* I* ...)

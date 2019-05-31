@@ -3,10 +3,9 @@
 (require math/flonum)
 
 (provide random-exponential random-laplace
-         random-flonum random-single-flonum
+         random-flonum
          random-integer->random-exact-rational
          random-integer->random-flonum
-         random-integer->random-single-flonum
          random-integer->random-real)
 
 ;; Returns a rational flonum from an exponential distribution
@@ -33,23 +32,6 @@
   (let loop ()
     (define x (bit-field->flonum (random-flonum-bits)))
     ;; appx. 0.0005 probability this loops
-    (if (rational? x) x (loop))))
-
-;; Returns a single flonum with bits uniformly distributed; sometimes -inf.f or +inf.f
-(define (random-single-flonum*)
-  (define s (random #b10))  ; sign bit
-  (define e (random #b100000000))  ; exponent
-  (define f (random #b100000000000000000000000))  ; fractional part
-  ;; Formula from Wikipedia page on IEEE 754 binary32 format
-  (real->single-flonum
-   (* (if (= s 0) 1 -1)
-      (+ 1 (/ f #b100000000000000000000000))
-      (expt 2 (- e 127)))))
-
-;; Returns a rational single flonum with bits uniformly distributed
-(define (random-single-flonum)
-  (let loop ()
-    (define x (random-single-flonum*))
     (if (rational? x) x (loop))))
 
 ;; Converts random integers to random exact rationals
@@ -92,25 +74,10 @@
     [(r . < . 0.95)  +inf.0]
     [else            -inf.0]))
 
-;; Converts random integers to random single flonums
-;; Sometimes returns +nan.f, +inf.f or -inf.f
-(define (random-integer->random-single-flonum E)
-  (define r (random))
-  (cond
-    ;; probability 0.50: random single flonum, laplace-distributed with scale E
-    [(r . < . 0.50)  (real->single-flonum (random-laplace (abs E)))]
-    ;; probability 0.35: random single flonum with uniform bits
-    [(r . < . 0.85)  (random-single-flonum)]
-    ;; probability 0.05 each: +nan.f, +inf.f, -inf.f
-    [(r . < . 0.90)  +nan.f]
-    [(r . < . 0.95)  +inf.f]
-    [else            -inf.f]))
-
 ;; Converts random integers to random reals
 (define (random-integer->random-real E)
   (define r (random))
   ;; probability 0.25 each
-  (cond [(r . < . 0.25)  E]
-        [(r . < . 0.50)  (random-integer->random-exact-rational E)]
-        [(r . < . 0.75)  (random-integer->random-flonum E)]
-        [else            (random-integer->random-single-flonum E)]))
+  (cond [(r . < . 0.33)  E]
+        [(r . < . 0.66)  (random-integer->random-exact-rational E)]
+        [else            (random-integer->random-flonum E)]))

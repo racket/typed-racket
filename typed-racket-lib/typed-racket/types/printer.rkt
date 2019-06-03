@@ -660,7 +660,7 @@
      `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
         ,(map t->s t)
         ,@(if proc (list (t->s proc)) null)
-        ,@(list (map t->s property-tys)))]
+        ,@(list (map t->s (unbox property-tys))))]
     [(? Fun?)
      (parameterize ([current-print-type-fuel
                      (sub1 (current-print-type-fuel))])

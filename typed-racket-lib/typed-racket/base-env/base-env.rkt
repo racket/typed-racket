@@ -61,7 +61,14 @@
 [equal?/recur (-> Univ Univ (-> Univ Univ Univ) B)]
 [immutable? (asym-pred Univ B (-PS (-is-type 0 (Un -Bytes -BoxTop -String (-Immutable-HT Univ Univ) (-ivec Univ)))
                                    (-not-type 0 (Un (-Immutable-HT Univ Univ) (-ivec Univ)))))]
-[prop:equal+hash -Struct-Type-Property]
+
+
+;; we can't use -Self for the second argument in the first fucntion, because
+;; -Self denotes the exact struct instance from which property values are
+;; extracted.
+[prop:equal+hash (-struct-property (-lst* (-> -Self Univ (-> Univ Univ B) Univ)
+                                          (-> -Self (-> Univ -Int) -Int)
+                                          (-> -Self (-> Univ -Int) -Int)))]
 
 ;; Section 4.1.1 (racket/bool)
 [true (-val #t)]
@@ -1308,7 +1315,7 @@
 [error-print-source-location (-Param Univ B)]
 
 ;; Section 10.2.5
-[prop:exn:srclocs -Struct-Type-Property]
+[prop:exn:srclocs (-struct-property (-> -Self (-lst -Srcloc)))]
 [exn:srclocs? (-> Univ B)]
 [exn:srclocs-accessor (-> Univ (-lst Univ))] ;TODO
 
@@ -1492,7 +1499,7 @@
 [system-idle-evt (-> (-evt -Void))]
 [alarm-evt (-> -Real (-mu x (-evt x)))]
 [handle-evt? (asym-pred Univ B (-PS (-is-type 0 (-evt Univ)) -tt))]
-[prop:evt (-struct-property (Un (-evt Univ) (-> -Self ManyUniv) -NonNegFixnum))]
+[prop:evt (-struct-property (Un (-evt Univ) (-> -Self ManyUniv) -Nat))]
 [current-evt-pseudo-random-generator
  (-Param -Pseudo-Random-Generator -Pseudo-Random-Generator)]
 
@@ -1705,12 +1712,14 @@
 [set!-transformer? (-> Univ B)]
 [make-set!-transformer (-> (-> (-Syntax Univ) (-Syntax Univ)) Univ)]
 [set!-transformer-procedure (-> Univ (-> (-Syntax Univ) (-Syntax Univ)))]
-[prop:set!-transformer -Struct-Type-Property]
+[prop:set!-transformer (-struct-property (Un -Nat
+                                             (cl-> [(-Self) (-Syntax Univ)]
+                                                   [(-Self (-Syntax Univ)) (-Syntax Univ)])))]
 
 [rename-transformer? (-> Univ B)]
 [make-rename-transformer (->opt (-Syntax Sym) [(-> (-Syntax Sym) (-Syntax Sym))] Univ)]
 [rename-transformer-target (-> Univ (-Syntax Sym))]
-[prop:rename-transformer -Struct-Type-Property]
+[prop:rename-transformer (-struct-property (Un -Nat (-Syntax Sym) (-> -Self (-Syntax Sym))))]
 
 [local-expand
  (->opt (-Syntax Univ)
@@ -1937,8 +1946,8 @@
 [pipe-content-length (-> (Un -Input-Port -Output-Port) -Nat)]
 
 ;; Section 13.1.8
-[prop:input-port -Struct-Type-Property]
-[prop:output-port -Struct-Type-Property]
+[prop:input-port (-struct-property (Un -Input-Port -Nat))]
+[prop:output-port (-struct-property (Un -Output-Port -Nat))]
 
 ;; Section 13.1.9
 [make-input-port

@@ -21,6 +21,8 @@
 ;; We don't want -0.0 here
 (define-syntax-class/specialize non-neg-real-expr
   (subtyped-expr (Un -PosReal -Zero -InexactRealPosZero)))
+(define-syntax-class/specialize non-neg-real-expr/not-exact-zero
+  (subtyped-expr (Un -PosReal -InexactRealPosZero)))
 
 
 (define-syntax-class number-opt-expr
@@ -43,6 +45,6 @@
     #:do [(log-opt "unary number" "Projection elimination.")]
     #:with opt #'f.opt)
 
-  (pattern (#%plain-app op:angle^ f:non-neg-real-expr)
+  (pattern (#%plain-app op:angle^ f:non-neg-real-expr/not-exact-zero)
     #:do [(log-opt "unary number" "Projection elimination.")]
     #:with opt #'0))

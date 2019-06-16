@@ -36,7 +36,7 @@
           (begin
             (write-stringln "#<<END")
             (write-stringln new-output)
-            (write-string "END"))
+            (write-stringln "END"))
           (begin
             (write new-output)))
           (write-string source-code))))

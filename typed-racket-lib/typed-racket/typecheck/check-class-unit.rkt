@@ -11,7 +11,7 @@
          syntax/parse
          syntax/stx
          "signatures.rkt"
-         (private parse-type syntax-properties)
+         (private parse-type syntax-properties type-annotation)
          (env lexical-env tvar-env global-env type-alias-helper mvar-env)
          (base-env annotate-classes)
          (types utils abbrev subtype resolve generalize)
@@ -1167,13 +1167,16 @@
 ;; Given top-level expressions in the class, synthesize types from
 ;; the initialization expressions for private fields. Returns the initial
 ;; value expressions that were type synthesized.
+;;
+;; This also checks for type label annotations as well and uses those if present
 (define (synthesize-private-field-types stxs locals types)
   (for/fold ([synthed-stxs null])
             ([stx (in-list stxs)])
     (syntax-parse stx
       #:literal-sets (kernel-literals)
       [(begin
-         (quote ((~datum declare-field-initialization) _))
+         (quote ((~datum declare-field-initialization)
+                 declared-name:id))
          (let-values ([(obj:id) self])
            (let-values ([(field:id) initial-value])
              (with-continuation-mark
@@ -1185,7 +1188,13 @@
        (define processed-init
          (process-private-field-init-val #'initial-value))
        ;; don't synthesize if there's already a type annotation
-       (cond [(hash-has-key? types name) synthed-stxs]
+       (cond [(type-label-property #'declared-name) =>
+              (λ (type-label)
+                (define type (parse-type/id #'declared-name type-label))
+                (check-duplicate-member types name type)
+                (hash-set! types name (list type))
+                synthed-stxs)]
+             [(hash-has-key? types name) synthed-stxs]
              [else
               ;; FIXME: this always generalizes the private field
               ;;        type, but it's better to only generalize if
@@ -1195,7 +1204,8 @@
               (cons #'initial-value synthed-stxs)])]
       [(let-values ([(initial-value-name:id ...) initial-values])
          (begin
-           (quote ((~datum declare-field-initialization) _))
+           (quote ((~datum declare-field-initialization)
+                   declared-name:id))
            (let-values ([(obj:id) self])
              (let-values ([(field:id) initial-value-name-2:id])
                (with-continuation-mark
@@ -1204,6 +1214,8 @@
          (#%plain-app _))
        (define field-names (map syntax-e (syntax-e (tr:class:def-property stx))))
        (define temporary-stxs (syntax-e #'(initial-value-name ...)))
+       (define declared-names (syntax-e #'(declared-name ...)))
+       (define type-labels (map type-label-property declared-names))
        (define init-types
          ;; this gets re-checked later, so don't throw any errors yet
          (match (tc-expr/check? #'initial-values #f)
@@ -1212,8 +1224,14 @@
            [#f (make-list (length field-names) Univ)]))
        (for ([name (in-list field-names)]
              [temp-stx (in-list temporary-stxs)]
-             [type (in-list init-types)])
+             [type (in-list init-types)]
+             [declared-name (in-list declared-names)]
+             [type-label (in-list type-labels)])
          (define type-table-val (generalize type))
+         (when type-label
+           (define type (parse-type/id declared-name type-label))
+           (check-duplicate-member types name type)
+           (hash-set! types name (list type)))
          (unless (hash-has-key? types name)
            (hash-set! types name (list type-table-val)))
          (cons temp-stx type-table-val))

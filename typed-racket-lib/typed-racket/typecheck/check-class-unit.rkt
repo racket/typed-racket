@@ -1123,15 +1123,16 @@
        ;; check this only in the synthesis stage, but caused some regressions.
        (define temp-names (syntax->list #'(names ...)))
        (define init-types (tc-results-ts (tc-expr #'val-expr)))
-       (unless (= (length temp-names) (length init-types))
-         (tc-error/expr "wrong number of values: expected ~a but got ~a"
-                        (length temp-names) (length init-types)))
-       ;; Extend lexical type env with temporaries introduced in the
-       ;; expansion of the field initialization or setter
-       (with-extended-lexical-env
-         [#:identifiers temp-names
-          #:types init-types]
-         (check-field-set!s #'(begins ...) synthed-stxs inits))]
+       (cond [(not (= (length temp-names) (length init-types)))
+              (tc-error/expr "wrong number of values: expected ~a but got ~a"
+                             (length temp-names) (length init-types))]
+             [else
+              ;; Extend lexical type env with temporaries introduced in the
+              ;; expansion of the field initialization or setter
+              (with-extended-lexical-env
+                [#:identifiers temp-names
+                 #:types init-types]
+                (check-field-set!s #'(begins ...) synthed-stxs inits))])]
       [_ (void)])))
 
 ;; setter->type : Id -> Type

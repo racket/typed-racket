@@ -8,11 +8,6 @@
   (: non-neg-flonum Nonnegative-Flonum)
   (: non-pos-flonum Nonpositive-Flonum)
 
-  (: neg-single-flonum     Negative-Single-Flonum)
-  (: pos-single-flonum     Positive-Single-Flonum)
-  (: non-neg-single-flonum Nonnegative-Single-Flonum)
-  (: non-pos-single-flonum Nonpositive-Single-Flonum)
-
   (: neg-ineact-real     Negative-Inexact-Real)
   (: pos-ineact-real     Positive-Inexact-Real)
   (: non-neg-ineact-real Nonnegative-Inexact-Real)
@@ -33,11 +28,6 @@
   (define pos-flonum     +nan.0)
   (define non-neg-flonum +nan.0)
   (define non-pos-flonum +nan.0)
-
-  (define neg-single-flonum     +nan.f)
-  (define pos-single-flonum     +nan.f)
-  (define non-neg-single-flonum +nan.f)
-  (define non-pos-single-flonum +nan.f)
 
   (define neg-ineact-real     +nan.0)
   (define pos-ineact-real     +nan.0)
@@ -61,11 +51,6 @@
   (: non-neg-flonum-0 Nonnegative-Flonum)
   (: non-pos-flonum-0 Nonpositive-Flonum)
 
-  (: non-neg-single-flonum+0 Nonnegative-Single-Flonum)
-  (: non-pos-single-flonum+0 Nonpositive-Single-Flonum)
-  (: non-neg-single-flonum-0 Nonnegative-Single-Flonum)
-  (: non-pos-single-flonum-0 Nonpositive-Single-Flonum)
-
   (: non-neg-ineact-real+0 Nonnegative-Inexact-Real)
   (: non-pos-ineact-real+0 Nonpositive-Inexact-Real)
   (: non-neg-ineact-real-0 Nonnegative-Inexact-Real)
@@ -85,11 +70,6 @@
   (define non-pos-flonum+0 0.0)
   (define non-neg-flonum-0 -0.0)
   (define non-pos-flonum-0 -0.0)
-
-  (define non-neg-single-flonum+0 0.0f0)
-  (define non-pos-single-flonum+0 0.0f0)
-  (define non-neg-single-flonum-0 -0.0f0)
-  (define non-pos-single-flonum-0 -0.0f0)
 
   (define non-neg-ineact-real+0 0.0)
   (define non-pos-ineact-real+0 0.0)
@@ -114,10 +94,6 @@ neg-flonum
 pos-flonum
 non-neg-flonum
 non-pos-flonum
-neg-single-flonum
-pos-single-flonum
-non-neg-single-flonum
-non-pos-single-flonum
 neg-ineact-real
 pos-ineact-real
 non-neg-ineact-real
@@ -135,11 +111,6 @@ non-neg-flonum+0
 non-pos-flonum+0
 non-neg-flonum-0
 non-pos-flonum-0
-
-non-neg-single-flonum+0
-non-pos-single-flonum+0
-non-neg-single-flonum-0
-non-pos-single-flonum-0
 
 non-neg-ineact-real+0
 non-pos-ineact-real+0

@@ -112,5 +112,7 @@
   ;; probability 0.25 each
   (cond [(r . < . 0.25)  E]
         [(r . < . 0.50)  (random-integer->random-exact-rational E)]
-        [(r . < . 0.75)  (random-integer->random-flonum E)]
-        [else            (random-integer->random-single-flonum E)]))
+        [(and (r . < . 0.75)
+              (single-flonum-available?))
+         (random-integer->random-single-flonum E)]
+        [else            (random-integer->random-flonum E)]))

@@ -1012,9 +1012,7 @@
       (prefix-in t: (types numeric-predicates))))
   (provide (all-defined-out))
 
-  (define-syntax-rule (numeric/sc name body) (flat/sc #'body)
-    #;
-    (flat/sc #'(flat-named-contract 'name body) 'name))
+  (define-syntax-rule (numeric/sc name body) (flat/sc #'body))
 
   (define positive-byte/sc (numeric/sc Positive-Byte (and/c byte? positive?)))
   (define byte/sc (numeric/sc Byte byte?))

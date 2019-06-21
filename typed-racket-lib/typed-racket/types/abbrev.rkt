@@ -73,6 +73,7 @@
 
 ;; Basic types
 (define -Self (make-F (gensym 'self-)))
+(define -Imp (make-F (gensym 'self-imp-)))
 (define -Listof (-poly (list-elem) (make-Listof list-elem)))
 (define/decl -Regexp (Un -PRegexp -Base-Regexp))
 (define/decl -Byte-Regexp (Un -Byte-Base-Regexp -Byte-PRegexp))

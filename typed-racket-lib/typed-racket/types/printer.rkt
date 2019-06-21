@@ -26,7 +26,6 @@
 
 ;; printer-type: (one-of/c 'custom 'debug)
 (define-for-syntax printer-type 'custom)
-
 (define-syntax (provide-printer stx)
   (if (eq? printer-type 'debug)
       #'(provide (rename-out [debug-printer print-type]

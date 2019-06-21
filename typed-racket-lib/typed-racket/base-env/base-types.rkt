@@ -197,6 +197,7 @@
 [Continuation-Mark-Set -Cont-Mark-Set]
 [False -False]
 [Self -Self]
+[Imp -Imp]
 [True -True]
 [Null -Null]
 [Nothing (Un)]

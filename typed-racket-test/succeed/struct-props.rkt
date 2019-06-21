@@ -50,7 +50,7 @@
 (struct (A B) poly-foo ([x : A] [y : B])
   #:property prop:custom-print-quotable 'never
   #:property prop:custom-write
-  (lambda ([self : poly-foo] [p : Output-Port] [m : (U Boolean 1 0)]) : Void
+  (lambda ([self : (poly-foo A B)] [p : Output-Port] [m : (U Boolean 1 0)]) : Void
           (printf "~a : ~a" (poly-foo-x self) (poly-foo-y self))))
 
 (struct (A B) poly-foo^ ([x : A] [y : B])
@@ -67,14 +67,7 @@
       [(eqv? request 'text) default]
       ;[(eqv? request 'gif-bytes) default]
       [(eqv? request 'png-bytes+bounds) default]
-      [else default])
-    #;
-    [(self request)
-     (cond
-       [(eqv? request 'text) #f]
-       [(eqv? request 'gif-bytes) #f]
-       [(eqv? request 'png-bytes+bounds) #f]
-       [else #f])]))
+      [else default])))
 
 
 (require mzlib/pconvert-prop)
@@ -82,3 +75,35 @@
   #:property prop:print-converter
   (lambda ([self : pconvert-foo] [f : (-> Any Any)])
           (f (pconvert-foo-x self))))
+
+
+;; # test imp in prop:eqaul+hash
+(struct equal-foo-boring ([x : Number]) #:mutable
+  #:property prop:equal+hash
+  (list
+   (lambda #:∀ (B) ([self : equal-foo-boring] [other : equal-foo-boring] [conv : (-> Any Any Boolean)]) : Any
+             10)
+   (lambda #:∀ (A) ([self : equal-foo-boring] [conv : (-> Any Integer)]) : Integer
+           10)
+   (lambda #:∀ (A) ([self : equal-foo-boring] [conv : (-> Any Integer)]) : Integer
+           10)))
+
+(struct (T) equal-foo ([x : T]) #:mutable
+  #:property prop:equal+hash
+  (list
+   (lambda #:∀ (B) ([self : (equal-foo T)] [other : (equal-foo B)] [conv : (-> Any Any Boolean)]) : Any
+             10)
+   (lambda #:∀ (A) ([self : (equal-foo A)] [conv : (-> Any Integer)]) : Integer
+           10)
+   (lambda #:∀ (A) ([self : (equal-foo A)] [conv : (-> Any Integer)]) : Integer
+           10)))
+
+(struct (T V) equal-foo-two ([x : T] [y : V]) #:mutable
+  #:property prop:equal+hash
+  (list
+   (lambda #:∀ (A B) ([self : (equal-foo-two T V)] [other : (equal-foo-two A B)] [conv : (-> Any Any Boolean)]) : Any
+             10)
+   (lambda #:∀ (A B) ([self : (equal-foo-two A B)] [conv : (-> Any Integer)]) : Integer
+           10)
+   (lambda #:∀ (A B) ([self : (equal-foo-two A B)] [conv : (-> Any Integer)]) : Integer
+           10)))

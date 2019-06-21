@@ -4,7 +4,7 @@
          syntax/struct syntax/parse racket/function racket/match racket/list
 
          (prefix-in c: (contract-req))
-         (rep type-rep object-rep free-variance)
+         (rep type-rep object-rep free-variance values-rep)
          (private parse-type syntax-properties)
          (types abbrev subtype utils resolve substitute struct-table)
          (env global-env type-name-env type-alias-env tvar-env)
@@ -85,13 +85,32 @@
          (#%plain-app values args-v ...)))
      (let ([names (attribute props.prop-names)])
        (unless (null? names)
-         (define sty (lookup-type-alias name parse-type))
          (for/list ([p (in-list names)]
                     [pval (in-list (attribute props.prop-vals))])
            (match (single-value p)
              [(tc-result1: (StructProperty: ty))
               (match-define (F: var) -Self)
-              (tc-expr/check pval (ret (subst var sty ty)))]
+              (match-define (F: var-imp) -Imp)
+              (match (lookup-type name)
+                [(Poly-names: names (Fun: (list (Arrow: dom _ _ (Values: (list (Result: sty _ _)))))))
+                 (let* ([_v (subst var sty ty)]
+                        [__v (for/fold ([res sty]
+                                        #:result (subst var-imp res _v))
+                                       ([n names])
+                               (subst n (make-F (gensym n)) res))]
+                        [__retv (ret __v)])
+                   (extend-tvars names (tc-expr/check pval __retv)))]
+                [(Fun: (list (Arrow: dom _ _ (Values: (list (Result: sty _ _))))))
+                 (tc-expr/check pval (ret (subst var-imp sty (subst var sty ty))))])
+              #;
+              (match (resolve (lookup-type-name name))
+                [(Poly-names: names sty)
+                 (extend-tvars names (tc-expr/check pval (ret (subst var-imp
+                                                                     (subst (list-ref names 0)
+                                                                            (make-F (gensym (list-ref names 0))) sty)
+                                                                     (subst var sty ty)))))]
+                [sty
+                 (tc-expr/check pval (ret (subst var-imp sty (subst var sty ty))))])]
              [(tc-result1: ty)
               (tc-error "expected a struct type property but got ~a" ty)]))))]
     [(define-syntaxes (nm ...) . rest) (void)]))
@@ -409,7 +428,6 @@
                    #:mutable [mutable #f]
                    #:type-only [type-only #f]
                    #:prefab? [prefab? #f])
-  (define property-tys (box null))
   (define-values (nm parent-name parent) (parse-parent nm/par prefab?))
   ;; create type variables for the new type parameters
   (define tvars (map syntax-e vars))

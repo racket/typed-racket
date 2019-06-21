@@ -66,7 +66,7 @@
 ;; we can't use -Self for the second argument in the first fucntion, because
 ;; -Self denotes the exact struct instance from which property values are
 ;; extracted.
-[prop:equal+hash (-struct-property (-lst* (-> -Self Univ (-> Univ Univ B) Univ)
+[prop:equal+hash (-struct-property (-lst* (-> -Self -Imp (-> Univ Univ B) Univ)
                                           (-> -Self (-> Univ -Int) -Int)
                                           (-> -Self (-> Univ -Int) -Int)))]
 

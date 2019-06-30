@@ -30,7 +30,7 @@
        ;; if there was not any expected results, then merge the 'then'
        ;; and 'else' results so we propogate the correct info upwards
        [(or #f (tc-any-results: #f))
-        (merge-tc-results (list thn-res els-res))]
+        (union-tc-results (list thn-res els-res))]
        ;; otherwise, the subcomponents have already been checked and
        ;; we just return the expected result 'fixed' to replace any
        ;; missing fields (i.e. #f props or objects)

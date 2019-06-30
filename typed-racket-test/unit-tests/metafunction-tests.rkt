@@ -75,33 +75,33 @@
        #t)
     )
 
-    (test-suite "merge-tc-results"
+    (test-suite "union-tc-results"
       (check-equal?
-        (merge-tc-results (list))
+        (union-tc-results (list))
         (ret -Bottom))
       (check-equal?
-        (merge-tc-results (list (ret Univ)))
+        (union-tc-results (list (ret Univ)))
         (ret Univ))
       (check-equal?
-        (merge-tc-results (list (ret Univ -tt-propset (make-Path null #'x))))
+        (union-tc-results (list (ret Univ -tt-propset (make-Path null #'x))))
         (ret Univ -tt-propset (make-Path null #'x)))
       (check-equal?
-        (merge-tc-results (list (ret -Bottom) (ret -Symbol -tt-propset (make-Path null #'x))))
+        (union-tc-results (list (ret -Bottom) (ret -Symbol -tt-propset (make-Path null #'x))))
         (ret -Symbol -tt-propset (make-Path null #'x)))
       (check-equal?
-        (merge-tc-results (list (ret -String) (ret -Symbol)))
+        (union-tc-results (list (ret -String) (ret -Symbol)))
         (ret (Un -Symbol -String)))
       (check-equal?
-        (merge-tc-results (list (ret -String -true-propset) (ret -Symbol -true-propset)))
+        (union-tc-results (list (ret -String -true-propset) (ret -Symbol -true-propset)))
         (ret (Un -Symbol -String) -true-propset))
       (check-equal?
-        (merge-tc-results (list (ret (-val #f) -false-propset) (ret -Symbol -true-propset)))
+        (union-tc-results (list (ret (-val #f) -false-propset) (ret -Symbol -true-propset)))
         (ret (Un -Symbol (-val #f)) -tt-propset))
       (check-equal?
-        (merge-tc-results (list (ret (list (-val 0) (-val 1))) (ret (list (-val 1) (-val 2)))))
+        (union-tc-results (list (ret (list (-val 0) (-val 1))) (ret (list (-val 1) (-val 2)))))
         (ret (list (Un (-val 0) (-val 1)) (Un (-val 1) (-val 2)))))
       (check-equal?
-        (merge-tc-results (list (ret null null null -Symbol 'x) (ret null null null -String 'x)))
+        (union-tc-results (list (ret null null null -Symbol 'x) (ret null null null -String 'x)))
         (ret null null null (Un -Symbol -String) 'x))
     )
 

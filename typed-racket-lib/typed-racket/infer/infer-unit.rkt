@@ -420,6 +420,19 @@
          (cgen context s t)
          (cgen/seq context t-seq s-seq)))]))
 
+(define/cond-contract (cgen/arrow-pair/arrow context s-arr-pair t-arr)
+  (context? (cons/c Type? Values?) Arrow? . -> . (or/c #f cset?))
+  (match* (s-arr-pair t-arr)
+    [((cons dom1 cdom1)
+      (Arrow: dom2 rst2 kws2 cdom2))
+     (and
+      (null? kws2)
+      (% cset-meet
+         (cgen context cdom1 cdom2)
+         (cgen context
+               (positional-domain->Tuple dom2 rst2)
+               dom1)))]))
+
 (define/cond-contract (cgen/flds context flds-s flds-t)
   (context? (listof fld?) (listof fld?)  . -> . (or/c #f cset?))
   (% cset-meet*
@@ -826,17 +839,35 @@
          (% cset-meet (cg in2 in1) (cg out1 out2))]
         [((Fun: s-arr)
           (Fun: t-arr))
+         (define s-arrow-combinations
+           (let loop ([arrows s-arr]
+                      [acc #f])
+             (match arrows
+               ['() (if acc (list acc) '())]
+               [(cons a rst)
+                (define a* (if acc
+                               (intersect-arrows a acc)
+                               (match a
+                                 [(Arrow: dom rst kws cdom)
+                                  (and (for/and ([kw (in-list kws)])
+                                         (not (Keyword-required? kw)))
+                                       (cons (positional-domain->Tuple dom rst)
+                                             cdom))])))
+                (if a*
+                    (append (loop rst a*)
+                            (loop rst acc))
+                    (loop rst acc))])))
          (% cset-meet*
             (for/list/fail
-             ([t-arr (in-list t-arr)])
-             ;; for each element of t-arr, we need to get at least one element of s-arr that works
-             (let ([results (for*/list ([s-arr (in-list s-arr)]
-                                        [v (in-value (cgen/arrow context s-arr t-arr))]
-                                        #:when v)
-                              v)])
-               ;; ensure that something produces a constraint set
-               (and (not (null? results))
-                    (cset-join results)))))]
+                ([t-arr (in-list t-arr)])
+              ;; for each element of t-arr, we need to get at least one element of s-arr that works
+              (let ([results (for*/list ([s-arr-pair (in-list s-arrow-combinations)]
+                                         [v (in-value (cgen/arrow-pair/arrow context s-arr-pair t-arr))]
+                                         #:when v)
+                               v)])
+                ;; ensure that something produces a constraint set
+                (and (not (null? results))
+                     (cset-join results)))))]
         [(_ _)
          ;; nothing worked, and we fail
          #f]))]))

@@ -664,22 +664,10 @@
   (define abs-cases ; used both for abs and magnitude
     (list
      ;; abs is not the identity on negative zeros.
-     ((Un -Zero -PosReal) . -> . (Un -Zero -PosReal) : -true-propset : (-arg-path 0))
-     ;; but we know that we at least get *some* zero, and that it preserves exactness
-     (map unop (list -FlonumZero -SingleFlonumZero -RealZero))
-     ;; abs may not be closed on fixnums. (abs min-fixnum) is not a fixnum
-     ((Un -PosInt -NegInt) . -> . -PosInt)
-     (-Int . -> . -Nat)
-     ((Un -PosRat -NegRat) . -> . -PosRat)
-     (-Rat . -> . -NonNegRat)
-     ((Un -PosFlonum -NegFlonum) . -> . -PosFlonum)
-     (-Flonum . -> . -NonNegFlonum)
-     ((Un -PosSingleFlonum -NegSingleFlonum) . -> . -PosSingleFlonum)
-     (-SingleFlonum . -> . -NonNegSingleFlonum)
-     ((Un -PosInexactReal -NegInexactReal) . -> . -PosInexactReal)
-     (-InexactReal . -> . -NonNegInexactReal)
-     ((Un -PosReal -NegReal) . -> . -PosReal)
-     (-Real . -> . -NonNegReal)))
+     (-> (Un -Zero -PosReal) (Un -Zero -PosReal) : -true-propset : (-arg-path 0))
+     (map unop (list -RealZero -Int -Rat -Flonum -SingleFlonum))
+     (-> (Un -PosReal -NegReal) -PosReal)
+     (-> -Real -NonNegReal)))
 
   ;Check to ensure we fail fast if the flonum bindings change
   (define-namespace-anchor anchor)
@@ -1032,65 +1020,44 @@
     (commutative-case -InexactComplex (Un -InexactComplex -InexactReal -PosRat -NegRat) -InexactComplex)
     (varop N))]
 [+ (from-cases
-    (-> -Zero)
     (-> N N : -true-propset : (-arg-path 0))
-    (binop -Zero)
     (-> N -Zero N : -true-propset : (-arg-path 0))
     (-> -Zero N N : -true-propset : (-arg-path 1))
-    (-> -PosByte -PosByte -PosIndex)
     (-> -Byte -Byte -Index)
-    (-> -PosByte -PosByte -PosByte -PosIndex)
     (-> -Byte -Byte -Byte -Index)
-    (commutative-binop -PosIndex -Index -PosFixnum)
-    (-> -PosIndex -Index -Index -PosFixnum)
-    (-> -Index -PosIndex -Index -PosFixnum)
-    (-> -Index -Index -PosIndex -PosFixnum)
     (-> -Index -Index -NonNegFixnum)
     (-> -Index -Index -Index -NonNegFixnum)
-    (commutative-binop -NegFixnum -One -NonPosFixnum)
-    (commutative-binop -NonPosFixnum -NonNegFixnum -Fixnum)
-    (commutative-case -PosInt -Nat -PosInt)
-    (commutative-case -NegInt -NonPosInt -NegInt)
-    (map varop (list -Nat -NonPosInt -Int))
-    (commutative-case -PosRat -NonNegRat -PosRat)
-    (commutative-case -NegRat -NonPosRat -NegRat)
-    (map varop (list -NonNegRat -NonPosRat -Rat))
-    ;; flonum + real -> flonum
-    (commutative-case -PosFlonum -NonNegReal -PosFlonum)
-    (commutative-case -PosReal -NonNegFlonum -PosFlonum)
-    (commutative-case -NegFlonum -NonPosReal -NegFlonum)
-    (commutative-case -NegReal -NonPosFlonum -NegFlonum)
-    (commutative-case -NonNegFlonum -NonNegReal -NonNegFlonum)
-    (commutative-case -NonPosFlonum -NonPosReal -NonPosFlonum)
-    (commutative-case -Flonum -Real -Flonum)
-    (varop-1+ -Flonum)
-    ;; single-flonum + rat -> single-flonum
-    (commutative-case -PosSingleFlonum (Un -NonNegRat -NonNegSingleFlonum) -PosSingleFlonum)
-    (commutative-case (Un -PosRat -PosSingleFlonum) -NonNegSingleFlonum -PosSingleFlonum)
-    (commutative-case -NegSingleFlonum (Un -NonPosRat -NonPosSingleFlonum) -NegSingleFlonum)
-    (commutative-case (Un -NegRat -NegSingleFlonum) -NonPosSingleFlonum -NegSingleFlonum)
-    (commutative-case -NonNegSingleFlonum (Un -NonNegRat -NonNegSingleFlonum) -NonNegSingleFlonum)
-    (commutative-case -NonPosSingleFlonum (Un -NonPosRat -NonPosSingleFlonum) -NonPosSingleFlonum)
-    (commutative-case -SingleFlonum (Un -Rat -SingleFlonum) -SingleFlonum)
-    (varop-1+ -SingleFlonum)
-    ;; inexact-real + real -> inexact-real
-    (commutative-case -PosInexactReal -NonNegReal -PosInexactReal)
-    (commutative-case -PosReal -NonNegInexactReal -PosInexactReal)
-    (commutative-case -NegInexactReal -NonPosReal -NegInexactReal)
-    (commutative-case -NegReal -NonPosInexactReal -NegInexactReal)
-    (commutative-case -NonNegInexactReal -NonNegReal -NonNegInexactReal)
-    (commutative-case -NonPosInexactReal -NonPosReal -NonPosInexactReal)
-    (commutative-case -InexactReal -Real -InexactReal)
-    ;; real
-    (commutative-case -PosReal -NonNegReal -PosReal)
-    (commutative-case -NegReal -NonPosReal -NegReal)
-    (map varop (list -NonNegReal -NonPosReal -Real -ExactNumber))
-    ;; complex
-    (commutative-case -FloatComplex N -FloatComplex)
-    (commutative-case -Flonum -InexactComplex -FloatComplex)
-    (commutative-case -SingleFlonumComplex (Un -Rat -SingleFlonum -SingleFlonumComplex) -SingleFlonumComplex)
-    (commutative-case -InexactComplex (Un -Rat -InexactReal -InexactComplex) -InexactComplex)
-    (varop N))]
+    (-> -NegFixnum -One -NonPosFixnum)
+    (-> -One -NegFixnum -NonPosFixnum)
+    (-> -NonPosFixnum -NonNegFixnum -Fixnum)
+    (-> -NonNegFixnum -NonPosFixnum -Fixnum)
+    (-> -Flonum -Real -Flonum)
+    (-> -Real -Flonum -Flonum)
+    (-> -SingleFlonum (Un -Rat -SingleFlonum) -SingleFlonum)
+    (-> (Un -Rat -SingleFlonum) -SingleFlonum -SingleFlonum)
+    (-> -InexactReal -Real -InexactReal)
+    (-> -Real -InexactReal -InexactReal)
+    (-> -FloatComplex N -FloatComplex)
+    (-> N -FloatComplex -FloatComplex)
+    (-> -Flonum -InexactComplex -FloatComplex)
+    (-> -InexactComplex -Flonum -FloatComplex)
+    (-> -SingleFlonumComplex (Un -Rat -SingleFlonum -SingleFlonumComplex) -SingleFlonumComplex)
+    (-> (Un -Rat -SingleFlonum -SingleFlonumComplex) -SingleFlonumComplex -SingleFlonumComplex)
+    (-> -InexactComplex (Un -Rat -InexactReal -InexactComplex) -InexactComplex)
+    (-> (Un -Rat -InexactReal -InexactComplex) -InexactComplex -InexactComplex)
+    (-> -PosReal -NonNegReal -PosReal)
+    (-> -NonNegReal -PosReal -PosReal)
+    (-> -PosReal -NonNegReal -NonNegReal -PosReal)
+    (-> -NonNegReal -PosReal -NonNegReal -PosReal)
+    (-> -NonNegReal -NonNegReal -PosReal -PosReal)
+    (-> -NegReal -NonPosReal -NegReal)
+    (-> -NonPosReal -NegReal -NegReal)
+    (-> -NegReal -NonPosReal -NonPosReal -NegReal)
+    (-> -NonPosReal -NegReal -NonPosReal -NegReal)
+    (-> -NonPosReal -NonPosReal -NegReal -NegReal)
+    (map varop (list -Zero -Nat -Int -PosReal -NegReal
+                     -NonNegReal -NonPosReal -Real -ExactNumber N))
+    (map varop-1+ (list -Flonum -SingleFlonum)))]
 
 [- (from-cases
     (binop -Zero)
@@ -1269,45 +1236,28 @@
 
 [add1 (from-cases
        (-> -Zero -One)
-       (-> -One -PosByte)
-       (-> -Byte -PosIndex)
-       (-> -Index -PosFixnum)
-       (-> -NegFixnum -NonPosFixnum)
+       (-> -One -Byte)
+       (-> -Byte -Index)
+       (-> -Index -Fixnum)
        (-> -NonPosFixnum -Fixnum)
-       (-> -Nat -Pos)
        (-> -NegInt -NonPosInt)
-       (unop -Int)
-       (-> -NonNegRat -PosRat)
-       (unop -Rat)
-       (-> -NonNegFlonum -PosFlonum)
-       (unop -Flonum)
-       (-> -NonNegSingleFlonum -PosSingleFlonum)
-       (unop -SingleFlonum)
-       (-> -NonNegInexactReal -PosInexactReal)
-       (unop -InexactReal)
        (-> -NonNegReal -PosReal)
-       (map unop (list -Real -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
+       (-> -InexactReal -InexactReal)
+       (map unop (list -Int -Rat -Flonum -SingleFlonum
+                       -FloatComplex -SingleFlonumComplex
+                       -Real -InexactReal -InexactComplex N)))]
 
 [sub1 (from-cases
        (-> -One -Zero)
        (-> -PosByte -Byte)
        (-> -PosIndex -Index)
-       (-> -Index -Fixnum)
-       (-> -PosFixnum -NonNegFixnum)
        (-> -NonNegFixnum -Fixnum)
        (-> -Pos -Nat)
-       (-> -NonPosInt -NegInt)
-       (unop -Int)
-       (-> -NonPosRat -NegRat)
-       (unop -Rat)
-       (-> -NonPosFlonum -NegFlonum)
-       (unop -Flonum)
-       (-> -NonPosSingleFlonum -NegSingleFlonum)
-       (unop -SingleFlonum)
-       (-> -NonPosInexactReal -NegInexactReal)
-       (unop -InexactReal)
        (-> -NonPosReal -NegReal)
-       (map unop (list -Real -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
+       (map unop (list -Int -Rat -Flonum -SingleFlonum
+                       -Real -InexactReal -FloatComplex
+                       -SingleFlonumComplex -InexactComplex
+                       N)))]
 
 [quotient
  (from-cases

@@ -136,7 +136,7 @@
     [stx:exn-body^
      (set! body-results (tc-expr/check #'stx expected))])
   (define handler-results (get-handler-results))
-  (merge-tc-results (cons body-results handler-results)))
+  (union-tc-results (cons body-results handler-results)))
 
 ;; typecheck the expansion of a with-handlers form
 ;; syntax -> void

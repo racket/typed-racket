@@ -67,13 +67,13 @@
               ;; the car should be the latest stx for the location
               (if (equal? e (car seen))
                   ;; combine types seen at the latest
-                  (tooltip seen (merge-tc-results (list t results) #t))
+                  (tooltip seen (union-tc-results (list t results) #t))
                   old)
               (tooltip (cons e seen) t))]))
      #f))
   (hash-update! type-table e
                 (λ (prev) (cond
-                            [prev (merge-tc-results (list t prev) #t)]
+                            [prev (union-tc-results (list t prev) #t)]
                             [else t]))
                 #f))
 

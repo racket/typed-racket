@@ -37,6 +37,7 @@
          obj-seq-next
          scale-obj
          uninterpreted-PE?
+         intersect-objects
          (rename-out [make-LExp* make-LExp]
                      [make-LExp raw-make-LExp])
          (all-from-out "fme-utils.rkt"))
@@ -396,3 +397,11 @@
   (match l
     [(LExp: const terms)
      (make-LExp* const (terms-set terms p (add1 (terms-ref terms p))))]))
+
+
+(define (intersect-objects o1 o2)
+  (match* (o1 o2)
+    [(o o) o]
+    [((Empty:) _) o2]
+    [(_ (Empty:)) o1]
+    [(_ _) o1]))

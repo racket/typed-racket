@@ -5,6 +5,7 @@
          racket/match racket/list
          (except-in (types abbrev utils prop-ops)
                     -> ->* one-of/c)
+         (only-in (infer infer) intersect)
          (rep type-rep prop-rep object-rep values-rep rep-utils)
          (typecheck tc-subst)
          (logic ineq)
@@ -12,7 +13,8 @@
 
 (provide abstract-results
          combine-props
-         merge-tc-results
+         union-tc-results
+         intersect-tc-results
          tc-results->values
          erase-existentials)
 
@@ -145,7 +147,7 @@
               (-or p+ p-)])
            tcrs))]))
 
-(define (merge-tc-results results [ignore-propositions? #f])
+(define (union-tc-results results [ignore-propositions? #f])
   (define/match (merge-tc-result r1 r2)
     [((tc-result: t1 (and ps1 (PropSet: p1+ p1-)) o1)
       (tc-result: t2 (PropSet: p2+ p2-) o2))
@@ -165,13 +167,13 @@
      (make-RestDots (Un t1 t2) dbound)])
 
 
-  (define/match (merge-two-results res1 res2)
+  (define/match (union-two-results res1 res2)
     [((tc-result1: (== -Bottom)) res2) res2]
     [(res1 (tc-result1: (== -Bottom))) res1]
-    [((tc-any-results: f1) res2)
-     (-tc-any-results (-or f1 (unconditional-prop res2)))]
-    [(res1 (tc-any-results: f2))
-     (-tc-any-results (-or (unconditional-prop res1) f2))]
+    [((tc-any-results: p1) res2)
+     (-tc-any-results (-or p1 (unconditional-prop res2)))]
+    [(res1 (tc-any-results: p2))
+     (-tc-any-results (-or (unconditional-prop res1) p2))]
     [((tc-results: results1 dty1)
       (tc-results: results2 dty2))
      ;; if we have the same number of values in both cases
@@ -188,7 +190,55 @@
                            (format "~a and ~a." (length results2) (length results1))))])])
 
   (for/fold ([res (ret -Bottom)]) ([res2 (in-list results)])
-    (merge-two-results res res2)))
+    (union-two-results res res2)))
+
+(define (intersect-tc-results results)
+  (define/match (merge-tc-result r1 r2)
+    [((tc-result: t1 (PropSet: p1+ p1-) o1)
+      (tc-result: t2 (PropSet: p2+ p2-) o2))
+     (-tc-result (intersect t1 t2)
+                 (-PS (-and p1+ p2+) (-and p1- p2-))
+                 (match* (o1 o2)
+                   [(o o) o]
+                   [((Empty:) _) o2]
+                   [(_ (Empty:)) o1]
+                   [(_ _) -empty-obj]))])
+
+  (define/match (same-dty? r1 r2)
+    [(#f #f) #t]
+    [((RestDots: t1 dbound) (RestDots: t2 dbound)) #t]
+    [(_ _) #f])
+  (define/match (merge-dty r1 r2)
+    [(#f #f) #f]
+    [((RestDots: t1 dbound) (RestDots: t2 dbound))
+     (make-RestDots (intersect t1 t2) dbound)])
+
+
+  (define/match (intersect-two-results res1 res2)
+    [((tc-result1: (== -Bottom)) res2) (ret -Bottom)]
+    [(res1 (tc-result1: (== -Bottom))) (ret -Bottom)]
+    [((tc-any-results: p1) res2) (add-unconditional-prop res2 p1)]
+    [(res1 (tc-any-results: p2)) (add-unconditional-prop res1 p2)]
+    [((tc-results: results1 dty1) (tc-results: results2 dty2))
+     ;; if we have the same number of values in both cases
+     (cond
+       [(and (= (length results1) (length results2))
+             (same-dty? dty1 dty2))
+        (-tc-results (map merge-tc-result results1 results2)
+                     (merge-dty dty1 dty2))]
+       ;; otherwise, error
+       [else
+        (tc-error/expr "Expected the same number of values, but got ~a"
+                       (if (< (length results1) (length results2))
+                           (format "~a and ~a." (length results1) (length results2))
+                           (format "~a and ~a." (length results2) (length results1))))])])
+
+  (match results
+    [(list r) r]
+    [(cons r rs)
+     (for/fold ([r-acc r])
+               ([r (in-list rs)])
+       (intersect-two-results r-acc r))]))
 
 
 (define (erase-existentials rep)

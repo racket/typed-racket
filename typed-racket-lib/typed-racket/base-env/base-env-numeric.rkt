@@ -741,6 +741,7 @@
 [exact? (make-pred-ty -ExactNumber)]
 [inexact? (make-pred-ty (Un -InexactReal -InexactImaginary -InexactComplex))]
 [fixnum? (make-pred-ty -Fixnum)]
+[fixnum-for-every-system? (asym-pred Univ B (-PS (-is-type 0 -Fixnum) -tt))]
 [index? (make-pred-ty -Index)]
 [positive? (-> -Real B : (-PS (-is-type 0 -PosReal) (-is-type 0 -NonPosReal)))]
 [negative? (-> -Real B : (-PS (-is-type 0 -NegReal) (-is-type 0 -NonNegReal)))]

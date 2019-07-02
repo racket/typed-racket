@@ -33,11 +33,12 @@
   (define pos-flonum     +nan.0)
   (define non-neg-flonum +nan.0)
   (define non-pos-flonum +nan.0)
-
-  (define neg-single-flonum     +nan.f)
-  (define pos-single-flonum     +nan.f)
-  (define non-neg-single-flonum +nan.f)
-  (define non-pos-single-flonum +nan.f)
+  #reader tests/racket/maybe-single
+  (begin
+    (define neg-single-flonum     +nan.f)
+    (define pos-single-flonum     +nan.f)
+    (define non-neg-single-flonum +nan.f)
+    (define non-pos-single-flonum +nan.f))
 
   (define neg-ineact-real     +nan.0)
   (define pos-ineact-real     +nan.0)
@@ -86,10 +87,12 @@
   (define non-neg-flonum-0 -0.0)
   (define non-pos-flonum-0 -0.0)
 
-  (define non-neg-single-flonum+0 0.0f0)
-  (define non-pos-single-flonum+0 0.0f0)
-  (define non-neg-single-flonum-0 -0.0f0)
-  (define non-pos-single-flonum-0 -0.0f0)
+  #reader tests/racket/maybe-single
+  (begin
+    (define non-neg-single-flonum+0 0.0f0)
+    (define non-pos-single-flonum+0 0.0f0)
+    (define non-neg-single-flonum-0 -0.0f0)
+    (define non-pos-single-flonum-0 -0.0f0))
 
   (define non-neg-ineact-real+0 0.0)
   (define non-pos-ineact-real+0 0.0)

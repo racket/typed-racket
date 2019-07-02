@@ -329,10 +329,10 @@
   (subtyping-tests
    "Set-theoretic Subtyping"
    ;; Unions
-   [(-val 0.0f0) -SingleFlonum]
-   [(-val -0.0f0) -SingleFlonum]
-   [(-val 1.0f0) -SingleFlonum]
-   [(-val -34.2f0) -NegSingleFlonum]
+   #reader tests/racket/maybe-single [(-val 0.0f0) -SingleFlonum]
+   #reader tests/racket/maybe-single [(-val -0.0f0) -SingleFlonum]
+   #reader tests/racket/maybe-single [(-val 1.0f0) -SingleFlonum]
+   #reader tests/racket/maybe-single [(-val -34.2f0) -NegSingleFlonum]
    [(-val 6) -Number]
    [(Un (-val 'foo) (-val 6)) (Un (-val 'foo) (-val 6))]
    [(Un -Number) -Number]

@@ -60,6 +60,7 @@
     (close-input-port _err)
     sp)
   choice-evt]
+ #reader tests/racket/maybe-single
  [Single-Flonum-Complex 1f0+1f0i add1]
  [ExtFlonum-Zero 0.0t0 extflround]
  [ExtFlonum-Negative-Zero -0.0t0 extflround]
@@ -76,22 +77,33 @@
  [Positive-Real 1 add1]
  [Real-Zero 0 add1]
  [Inexact-Real (exact->inexact 1/3) add1]
+ #reader tests/racket/maybe-single
  [Single-Flonum 1.0f0 add1]
  [Nonpositive-Inexact-Real (- (exact->inexact 1/3)) add1]
+ #reader tests/racket/maybe-single
  [Nonpositive-Single-Flonum -1.0f0 add1]
+ #reader tests/racket/maybe-single
  [Negative-Inexact-Real -1.0f0 add1]
+ #reader tests/racket/maybe-single
  [Negative-Single-Flonum -1.0f0 add1]
+ #reader tests/racket/maybe-single
  [Positive-Single-Flonum +1.0f0 add1]
  [Nonnegative-Inexact-Real (exact->inexact 1/3) add1]
+ #reader tests/racket/maybe-single
  [Nonnegative-Single-Flonum 1.0f0 add1]
+ #reader tests/racket/maybe-single
  [Positive-Inexact-Real 1.0f0 add1]
  [Inexact-Real-Nan +nan.0 zero?]
  [Inexact-Real-Zero 0.0 add1]
  [Inexact-Real-Negative-Zero -0.0 add1]
  [Inexact-Real-Positive-Zero 0.0 add1]
+ #reader tests/racket/maybe-single
  [Single-Flonum-Nan +nan.f add1]
+ #reader tests/racket/maybe-single
  [Single-Flonum-Zero 0f0 add1]
+ #reader tests/racket/maybe-single
  [Single-Flonum-Negative-Zero -0f0 add1]
+ #reader tests/racket/maybe-single
  [Single-Flonum-Positive-Zero 0f0 add1]
  [Float 1.0 add1]
  [Flonum 1.0 add1]

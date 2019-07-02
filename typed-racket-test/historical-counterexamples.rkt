@@ -6,6 +6,7 @@
 ;; as of drdr run #32529
 ;; we test that there has been no regression, and print any that are still bugs
 
+#reader tests/racket/maybe-single
 (define counterexamples
   '(
 (/

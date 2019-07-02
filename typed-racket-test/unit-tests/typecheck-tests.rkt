@@ -434,8 +434,8 @@
         (tc-e (- -23524623547234734568) -PosInt)
         (tc-e (- 241.3) -NegFlonum)
         (tc-e (- -24.3) -PosFlonum)
-        (tc-e/t 34.2f0 -PosSingleFlonumNoNan)
-        (tc-e/t -34.2f0 -NegSingleFlonumNoNan)
+        #reader tests/racket/maybe-single (tc-e/t 34.2f0 -PosSingleFlonumNoNan)
+        #reader tests/racket/maybe-single (tc-e/t -34.2f0 -NegSingleFlonumNoNan)
         (tc-e (/ (ann 0 Nonnegative-Real) (ann 1 Nonnegative-Real)) -Real)
 
         (tc-e (- (ann 1000 Index) 1) -Fixnum)
@@ -469,7 +469,7 @@
         (tc-e (expt 0.5 0) -One)
         (tc-e (expt -1/2 -1/2) -Number)
         (tc-e (expt (ann 0.5 Float) (ann 2 Natural)) -Real)
-        (tc-e (expt (ann 0.5f0 Single-Flonum) (ann 2 Natural)) -Real)
+        #reader tests/racket/maybe-single (tc-e (expt (ann 0.5f0 Single-Flonum) (ann 2 Natural)) -Real)
         (tc-e (expt (*) -0.0) (t:Un -NonNegFlonum -One))
         (tc-e (expt (*) 2.4521075152139656e-300) (t:Un -NonNegFlonum -One))
         (tc-e (expt (*) -0.0) (t:Un -NonNegFlonum -One))
@@ -500,6 +500,7 @@
               1.0
               x))
           -NonNegFlonum)
+        #reader tests/racket/maybe-single
         (tc-e (expt
                (sub1 (gcd (exact-round 1)))
                (- (ceiling (real->double-flonum -2.6897657f0))))
@@ -530,21 +531,29 @@
         (tc-e (min (ann -2 Negative-Fixnum) (ann 3 Fixnum)) -NegFixnum)
         (tc-e (min (ann 3 Fixnum) (ann -2 Negative-Fixnum)) -NegFixnum)
         (tc-e (fl/ 1.7976931348623157e+308 -0.0e0) -Flonum)
+        #reader tests/racket/maybe-single 
         (tc-e (expt (make-rectangular 3 -1.7976931348623157e+308) (flacos (real->double-flonum 59.316513f0))) (t:Un -Flonum -FloatComplex))
         (tc-e (exact->inexact (ann 3 Number)) (t:Un -InexactReal -InexactComplex))
+        #reader tests/racket/maybe-single 
         (tc-e (/ (round (exact-round -2.7393196f0)) (real->double-flonum (inexact->exact (real->single-flonum -0.0)))) -Real)
         (tc-e (bitwise-and (exact-round 1.7976931348623157e+308) (exact-round -29)) -Int)
         (tc-e (flexpt -0.0 -1.0) -Flonum)
+        #reader tests/racket/maybe-single
         (tc-e (expt -0.0f0 -3.0) -Real)
+        #reader tests/racket/maybe-single 
         (tc-e (expt -8.665778974912815f+107 -677460115195106837726964554590085563061636191189747) -Number)
         (tc-e (expt (sin +inf.f) +nan.0+nan.0i) -Number)
+        #reader tests/racket/maybe-single 
         (tc-e (/ (gcd 1 0) -0.0f0 2.718281828459045) -Real)
+        #reader tests/racket/maybe-single 
         (tc-e (expt (make-polar (floor 6.468476f+31) (tanh +nan.f)) +nan.0) -Number)
         (tc-e (exact->inexact 3) -PosFlonum)
         (tc-e (exact->inexact -3) -NegFlonum)
         (tc-e (real->double-flonum 0.0) -FlonumPosZero)
         (tc-e (real->double-flonum -0.0) -FlonumNegZero)
+        #reader tests/racket/maybe-single 
         (tc-e (real->double-flonum 0.0f0) -FlonumPosZero)
+        #reader tests/racket/maybe-single 
         (tc-e (real->double-flonum -0.0f0) -FlonumNegZero)
         (tc-e (real->double-flonum #e1e-500) -NonNegFlonum)
         (tc-e (real->double-flonum #e-1e-500) -NonPosFlonum)
@@ -552,7 +561,9 @@
         (tc-e (real->double-flonum -3) -NegFlonum)
         (tc-e (real->single-flonum 0.0) -SingleFlonumPosZero)
         (tc-e (real->single-flonum -0.0) -SingleFlonumNegZero)
+        #reader tests/racket/maybe-single 
         (tc-e (real->single-flonum 0.0f0) -SingleFlonumPosZero)
+        #reader tests/racket/maybe-single 
         (tc-e (real->single-flonum -0.0f0) -SingleFlonumNegZero)
         (tc-e (real->single-flonum #e1e-500) -NonNegSingleFlonum)
         (tc-e (real->single-flonum #e-1e-500) -NonPosSingleFlonum)

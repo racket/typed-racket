@@ -163,12 +163,12 @@
   [-SingleFlonumPosZero ; disjoint from Flonum 0s
    Single-Flonum-Positive-Zero
    ;; eqv? equates 0.0f0 with itself, but not eq?
-   #'(λ (x) (eqv? x 0.0f0))
-   (λ (x) (eqv? x 0.0f0))]
+   #'(λ (x) (eqv? x (real->single-flonum 0.0f0)))
+   (λ (x) (eqv? x (real->single-flonum 0.0f0)))]
   [-SingleFlonumNegZero
    Single-Flonum-Negative-Zero
-   #'(λ (x) (eqv? x -0.0f0))
-   (λ (x) (eqv? x -0.0f0))]
+   #'(λ (x) (eqv? x (real->single-flonum -0.0f0)))
+   (λ (x) (eqv? x (real->single-flonum -0.0f0)))]
   [-PosSingleFlonumNoNan
    Positive-Single-Flonum-No-Nan
    #'(and/c single-flonum? positive?)

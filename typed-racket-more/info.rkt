@@ -6,7 +6,7 @@
                "base"
 	       "net-lib"
                "net-cookies-lib"
-	       ["web-server-lib" #:version "1.3"]
+	       ["web-server-lib" #:version "1.4"]
                ["db-lib" #:version "1.5"]
                "draw-lib"
                "rackunit-lib"
@@ -26,4 +26,4 @@
 
 (define pkg-authors '(samth stamourv))
 
-(define version "1.10")
+(define version "1.11")

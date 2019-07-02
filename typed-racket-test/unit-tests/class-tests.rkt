@@ -1407,7 +1407,7 @@
              (: x String)
              (field [x : Symbol 0]))
            #:ret (tc-ret (-class #:field ([x -String])))
-           #:msg #rx"duplicate type annotation.*new type: Symbol"]
+           #:msg #rx"(duplicate type annotation.*new type: Symbol)|(expected: \\(U Integer String\\))"]
    ;; fails, expected type and annotation don't match
    [tc-err (let ()
              (: c% (Class (field [x String])))

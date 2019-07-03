@@ -29,11 +29,11 @@ argument. To construct appropriate type for such a function, we use `Self` to
 specify which argument must be the associated struct instance. For example, here
 is a type annotation for `prop:custom-write` struct property:
 
-```racketp
+```racket
 (: prop:custom-write (Struct-Property (-> Self Port Boolean Void)))
 ```
 
-This specifies that the value of a struct's `custom-write` property should have
+This specifies that the value of a struct's `prop:custom-write` property should have
 the function type `(-> Self Port Boolean Void)`, i.e. a function will be given
 the associated struct instance as its first argument. Note that `Self` is only a
 valid type within a `Struct-Property` declaration. When defining a struct with a
@@ -53,6 +53,37 @@ declaration. For example, here is a struct `Point` which has the
 
 ```
 
+In addition, some struct properties requires a function to take not only the
+associated struct instance, but also other instance created by the same struct
+constructor. To construct appropriate type for such a function, we use `Self` to
+specify the implementor type. For example, here is a type annotation for
+`prop:equal` struct property:
+
+```racket
+(: prop:equal (Struct-Property (-> Self Imp (-> Any Any Boolean) Boolean)))
+```
+
+This specifies that the a value of a struct's `prop:equal` property should be a
+function, whose second argument will be an instance of the same implementator
+type but not the associated struct instance. Note that `Imp` is only a valid
+type within `Struct-Property` declaration. When defining a struct with a struct
+property whose type features `Imp`, we instead use the name of struct currently
+being defined wherever `Imp` appeared in the struct property's type
+declaration. But for polymorphic struct types, we introduce new type variables
+and use them with type constructors for `Imp`. For example, here is a
+polymorphic struct `Point` which has the `prop:equal` struct property
+mentioned above:
+
+```racket
+(struct (T V) Point ([x : T][y : V])
+  #:property prop:equal
+  (lambda (A B)
+    ([self : (Point T V)]
+     [other : (Point A B)]
+     [conv : (-> Any Any Boolean)])
+    #f))
+```
+
 
 # Reference-level explanation
 ## Struct Type Property Types
@@ -60,8 +91,9 @@ declaration. For example, here is a struct `Point` which has the
 valid type in Typed Racket. All built-in struct type properties are
 type-annotated.
 
-In addition, `Self` is added as a singleton type to specify the instance value
-which a property is extracted from. `Self` will only appear in `(Struct-Property)`
+`Self` and `Imp` are added as unique free variables to specify the instance
+value which a property is extracted from and the implementor type. They will
+only appear in `(Struct-Property)`
 
 ## Type-checking Struct Property Values In Struct Definitions
 1. A new field `props` is added to the structure of `struct type` used in the
@@ -69,7 +101,9 @@ which a property is extracted from. `Self` will only appear in `(Struct-Property
 2. After a `struct` is parsed, its attached properties and their values are retained
    for the following type checking.
 3. During type checking, `Self` will be substituted with the `struct type` that
-   the property is attached to.
+   the property is attached to. `Imp` will be substituted with the `struct
+   type`. If it is polymorphic, its type variables will be replaced with fresh ones.
+
 
 
 # Drawbacks and Alternatives

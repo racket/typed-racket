@@ -19,7 +19,8 @@
                      "compiler-lib"
                      "redex-lib"
                      "htdp-lib"
-                     "sandbox-lib"))
+                     "sandbox-lib"
+                     "racket-test-core"))
 (define update-implies '("typed-racket-lib"
                          "typed-racket-more"
                          "typed-racket-compatibility"))

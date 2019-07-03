@@ -11,7 +11,8 @@
                "rackunit-lib"
                "racket-index"
                "compatibility-lib"
-               "math-lib"))
+               "math-lib"
+               "racket-test-core"))
 (define build-deps '("scheme-lib"
                      "base"
                      "racket-benchmarks"
@@ -19,8 +20,7 @@
                      "compiler-lib"
                      "redex-lib"
                      "htdp-lib"
-                     "sandbox-lib"
-                     "racket-test-core"))
+                     "sandbox-lib"))
 (define update-implies '("typed-racket-lib"
                          "typed-racket-more"
                          "typed-racket-compatibility"))

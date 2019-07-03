@@ -83,36 +83,30 @@
                         (let-values ()
                           (#%plain-app make-struct-type _name _super-type _init-fcnt _auto-fcnt auto-v props:expanded-props r_args ...))))))
          (#%plain-app values args-v ...)))
-     (let ([names (attribute props.prop-names)])
-       (unless (null? names)
-         (for/list ([p (in-list names)]
+     (let ([pnames (attribute props.prop-names)])
+       (unless (null? pnames)
+         (define sty (lookup-type name))
+         (for/list ([p (in-list pnames)]
                     [pval (in-list (attribute props.prop-vals))])
            (match (single-value p)
              [(tc-result1: (StructProperty: ty))
               (match-define (F: var) -Self)
               (match-define (F: var-imp) -Imp)
-              (match (lookup-type name)
+              (match sty
+                ;; since polymorphic types appear in the form of function applications in type error messages,
+                ;; we use Arrow instead of Struct Rep.
                 [(Poly-names: names (Fun: (list (Arrow: dom _ _ (Values: (list (Result: sty _ _)))))))
-                 (let* ([_v (subst var sty ty)]
-                        [__v (for/fold ([res sty]
-                                        #:result (subst var-imp res _v))
-                                       ([n names])
-                               (subst n (make-F (gensym n)) res))]
-                        [__retv (ret __v)])
-                   (extend-tvars names (tc-expr/check pval __retv)))]
+                 (let* ([v (subst var sty ty)]
+                        [v (for/fold ([res sty]
+                                      #:result (subst var-imp res v))
+                                     ([n names])
+                             (subst n (make-F (gensym n)) res))]
+                        [v (ret v)])
+                   (extend-tvars names (tc-expr/check pval v)))]
                 [(Fun: (list (Arrow: dom _ _ (Values: (list (Result: sty _ _))))))
-                 (tc-expr/check pval (ret (subst var-imp sty (subst var sty ty))))])
-              #;
-              (match (resolve (lookup-type-name name))
-                [(Poly-names: names sty)
-                 (extend-tvars names (tc-expr/check pval (ret (subst var-imp
-                                                                     (subst (list-ref names 0)
-                                                                            (make-F (gensym (list-ref names 0))) sty)
-                                                                     (subst var sty ty)))))]
-                [sty
                  (tc-expr/check pval (ret (subst var-imp sty (subst var sty ty))))])]
-             [(tc-result1: ty)
-              (tc-error "expected a struct type property but got ~a" ty)]))))]
+              [(tc-result1: ty)
+               (tc-error "expected a struct type property but got ~a" ty)]))))]
     [(define-syntaxes (nm ...) . rest) (void)]))
 
 

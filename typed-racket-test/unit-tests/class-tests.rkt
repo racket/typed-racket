@@ -2152,7 +2152,7 @@
               (define-values (#{x : Symbol}) 'foo)
               (: x (U String Integer)))
             (error "foo"))
-          #:msg #rx"duplicate type annotation.*new type: Symbol"]
+          #:msg #rx"(expected:.*U Integer String)|(duplicate type annotation.*new type: Symbol)"]
 
   ;; contract-stronger / contract-equivalent tests
   (let ([ctc-empty (sealing->/c A (() () ()) values)]

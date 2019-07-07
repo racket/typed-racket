@@ -781,7 +781,7 @@
         (~a (syntax-e #'p) " expects one or two type arguments, given "
             (sub1 (length (syntax->list #'(args ...))))))]
       [(:Sequenceof^ t ...)
-       (apply -seq (parse-types #'(t ...)))]
+       (parse-sequence-type stx)]
       ;; simple dependent functions
       ;; e.g. (-> ([x : τ] ...+) τ)
       [(:->^ (args:dependent-fun-arg ...+)
@@ -1146,6 +1146,30 @@
                     var)))]
       [(:List^ tys ...)
        (-Tuple (parse-types #'(tys ...)))])))
+
+;; Syntax -> Type
+;; Parse a (Sequenceof ...) type
+(define (parse-sequence-type stx)
+  (parameterize ([current-orig-stx stx])
+    (syntax-parse stx
+      [(:Sequenceof^ tys ... dty :ddd/bound)
+       (let ([var (syntax-e #'bound)])
+         (unless (bound-index? var)
+           (if (bound-tvar? var)
+               (tc-error/stx #'bound "Used a type variable (~a) not bound with ... as a bound on a ..." var)
+               (tc-error/stx #'bound "Type variable ~a is unbound" var)))
+         (-seq-dots (parse-types #'(tys ...))
+                    (extend-tvars (list var)
+                      (parse-type #'dty))
+                    var))]
+      [(:Sequenceof^ tys ... dty _:ddd)
+       (let ([var (infer-index stx)])
+         (-seq-dots (parse-types #'(tys ...))
+                    (extend-tvars (list var)
+                      (parse-type #'dty))
+                    var))]
+      [(:Sequenceof^ tys ...)
+       (apply -seq (parse-types #'(tys ...)))])))
 
 ;; Syntax -> Type
 ;; Parse a (Values ...) or AnyValues type

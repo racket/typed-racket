@@ -55,6 +55,10 @@
 (define -signature make-Signature)
 
 (define (-seq . args) (make-Sequence args))
+(define/cond-contract (-seq-dots args dty dbound)
+  (c:-> (c:listof Type?) Type? (c:or/c symbol? c:natural-number/c)
+        SequenceDots?)
+  (make-SequenceDots args dty dbound))
 
 (define (one-of/c . args)
   (apply Un (map -val args)))

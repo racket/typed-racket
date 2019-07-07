@@ -1280,6 +1280,23 @@
   [#:fmap (f) (make-Sequence (map f tys))]
   [#:for-each (f) (for-each f tys)])
 
+(def-type SequenceDots ([tys (listof Type?)]
+                        [dty Type?]
+                        [dbound (or/c symbol? natural-number/c)])
+  [#:frees
+   [#:vars (f)
+    (if (symbol? dbound)
+        (free-vars-remove (combine-frees (map free-vars* (cons dty tys))) dbound)
+        (combine-frees (map free-vars* (cons dty tys))))]
+   [#:idxs (f)
+    (if (symbol? dbound)
+        (combine-frees (cons (single-free-var dbound)
+                             (map free-idxs* (cons dty tys))))
+        (combine-frees (map free-idxs* (cons dty tys))))]]
+  [#:fmap (f) (make-SequenceDots (map f tys) (f dty) dbound)]
+  [#:for-each (f) (begin (f dty)
+                         (for-each f tys))])
+
 ;; Distinction
 ;; comes from define-new-subtype
 ;; nm: a symbol representing the name of the type
@@ -1400,6 +1417,10 @@
       [(ListDots: dty d)
        (make-ListDots (rec dty)
                       (transform d lvl d #t))]
+      [(SequenceDots: tys dty d)
+       (make-SequenceDots (map rec tys)
+                          (rec dty)
+                          (transform d lvl d #t))]
       ;; forms which introduce bindings (increment lvls appropriately)
       [(Mu: body) (make-Mu (rec/lvl body (add1 lvl)))]
       [(PolyRow: constraints body)

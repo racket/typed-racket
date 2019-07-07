@@ -204,6 +204,13 @@
     [_ #f]))
 
 
+(define (Sequence->seq v)
+  (match v
+    [(Sequence: ts) (seq ts -null-end)]
+    [(SequenceDots: ts dty dbound) (seq ts (dotted-end dty dbound))]
+    [_ #f]))
+
+
 (define-match-expander ValuesSeq:
   (lambda (stx)
     (syntax-parse stx
@@ -213,6 +220,11 @@
   (lambda (stx)
     (syntax-parse stx
       [(_ seq) #'(app List->seq (? values seq))])))
+
+(define-match-expander SequenceSeq:
+  (lambda (stx)
+    (syntax-parse stx
+      [(_ seq) #'(app Sequence->seq (? values seq))])))
 
 
 ;; generate-dbound-prefix: Symbol Type? Natural (U Symbol #f) -> (Values (Listof Symbol) (Listof Type?))
@@ -255,13 +267,15 @@
     ;; FIXME - do something here
     [(_ _) #f]))
 
-(define/cond-contract (cgen/seq context s-seq t-seq)
-  (context? seq? seq? . -> . (or/c #f cset?))
+(define/cond-contract (cgen/seq context s-seq t-seq [objs '()])
+  (->* (context? seq? seq?)
+       ((listof (or/c #f OptObject?)))
+       (or/c #f cset?))
   (match*/early (s-seq t-seq)
     ;; The simplest case - both are null-end
     [((seq ss (null-end))
       (seq ts (null-end)))
-      (cgen/list context ss ts)]
+      (cgen/list context ss ts objs)]
     ;; One is null-end the other is star-end
     [((seq ss (null-end))
       (seq ts (star-end t-rest)))
@@ -273,7 +287,7 @@
      #:return-unless (zero? (remainder fewer-args cycle-len)) #f
      (define repetitions (quotient fewer-args cycle-len))
      (define new-ts (append ts (repeat-list t-rest repetitions)))
-     (cgen/list context ss new-ts)]
+     (cgen/list context ss new-ts objs)]
     [((seq ss (star-end _))
       (seq ts (null-end)))
      #f]
@@ -282,7 +296,8 @@
       (seq ts (and t-end (star-end t-rest))))
      (cgen/seq context
                (seq (append s-rest ss) -null-end)
-               (seq (append t-rest ts) t-end))]
+               (seq (append t-rest ts) t-end)
+               objs)]
     ;; dotted below, nothing above
     [((seq ss (dotted-end dty dbound))
       (seq ts (null-end)))
@@ -292,9 +307,13 @@
      #f
      (define-values (vars new-tys) (generate-dbound-prefix dbound dty (- (length ts) (length ss)) #f))
      (define-values (ts-front ts-back) (split-at ts (length ss)))
+     (define-values (objs-front objs-back)
+       (if (<= (length objs) (length ss))
+           (values objs '())
+           (split-at objs (length ss))))
      (% cset-meet
-        (cgen/list context ss ts-front)
-        (% move-vars-to-dmap (cgen/list (context-add context #:vars vars) new-tys ts-back) dbound vars))]
+        (cgen/list context ss ts-front objs-front)
+        (% move-vars-to-dmap (cgen/list (context-add context #:vars vars) new-tys ts-back objs-back) dbound vars))]
     ;; dotted above, nothing below
     [((seq ss (null-end))
       (seq ts (dotted-end dty dbound)))
@@ -304,9 +323,13 @@
      #f
      (define-values (vars new-tys) (generate-dbound-prefix dbound dty (- (length ss) (length ts)) #f))
      (define-values (ss-front ss-back) (split-at ss (length ts)))
+     (define-values (objs-front objs-back)
+       (if (<= (length objs) (length ts))
+           (values objs '())
+           (split-at objs (length ts))))
      (% cset-meet
-        (cgen/list context ss-front ts)
-        (% move-vars-to-dmap (cgen/list (context-add-vars context vars) ss-back new-tys) dbound vars))]
+        (cgen/list context ss-front ts objs-front)
+        (% move-vars-to-dmap (cgen/list (context-add-vars context vars) ss-back new-tys objs-back) dbound vars))]
 
     ;; same dotted bound
     [((seq ss (dotted-end s-dty dbound))
@@ -314,7 +337,7 @@
      #:return-unless (= (length ss) (length ts))
      #f
      (% cset-meet
-        (cgen/list context ss ts)
+        (cgen/list context ss ts objs)
         (if (inferable-index? context dbound)
             (extend-tvars (list dbound)
               (% move-vars+rest-to-dmap (cgen (context-add-var context dbound) s-dty t-dty) null dbound))
@@ -327,7 +350,7 @@
      #:return-unless (= (length ss) (length ts)) #f
      #:return-when (inferable-index? context dbound*) #f
      (% cset-meet
-        (cgen/list context ss ts)
+        (cgen/list context ss ts objs)
         (extend-tvars (list dbound*)
           (% move-dotted-rest-to-dmap (cgen (context-add-var context dbound) s-dty t-dty) dbound dbound*)))]
     [((seq ss (dotted-end s-dty dbound))
@@ -335,7 +358,7 @@
      #:return-unless (inferable-index? context dbound*) #f
      #:return-unless (= (length ss) (length ts)) #f
      (% cset-meet
-        (cgen/list context ss ts)
+        (cgen/list context ss ts objs)
         (extend-tvars (list dbound)
           (% move-dotted-rest-to-dmap (cgen (context-add-var context dbound*) s-dty t-dty) dbound* dbound)))]
 
@@ -351,8 +374,12 @@
        (generate-dbound-prefix dbound t-dty (- (length ss) (length ts))
                                new-bound))
      (define-values (ss-front ss-back) (split-at ss (length ts)))
+     (define-values (objs-front objs-back)
+       (if (<= (length objs) (length ts))
+           (values objs '())
+           (split-at objs (length ts))))
      (% cset-meet
-        (cgen/list context ss-front ts)
+        (cgen/list context ss-front ts objs-front)
         (% move-vars+rest-to-dmap
            (% cset-meet
               (cgen/list (context-add context
@@ -360,7 +387,8 @@
                                       #:vars vars
                                       #:indices (list new-bound))
                          ss-back
-                         new-tys)
+                         new-tys
+                         objs-back)
               (cgen (context-add-var context dbound) s-rest-ty t-dty))
            vars dbound #:exact #t))]
     ;; TODO figure out how above code could be modified to support
@@ -377,21 +405,28 @@
         (define length-delta (- (length ts) (length ss)))
         (define-values (vars new-tys)
           (generate-dbound-prefix dbound s-dty (max 0 length-delta) new-bound))
+        (define-values (objs-front objs-back)
+          (if (<= (length objs) (length ss))
+              (values objs '())
+              (split-at objs (length ss))))
         (% cset-meet
            (cgen/list context ss (if (positive? length-delta)
                                      (drop-right ts length-delta)
-                                     (list-extend ss ts t-rest-ty)))
+                                     (list-extend ss ts t-rest-ty))
+                      objs-front)
            (% move-vars+rest-to-dmap
               (% cset-meet
                  (cgen/list (context-add context #:bounds (list new-bound) #:vars vars #:indices (list new-bound))
-                            new-tys (take-right ts (max 0 length-delta)))
+                            new-tys (take-right ts (max 0 length-delta))
+                            objs-back)
                  (cgen (context-add-var context dbound) s-dty t-rest-ty))
               vars dbound))]
        [else
         (extend-tvars (list dbound)
                       (cgen/seq (context-add context #:bounds (list dbound))
                                 (seq ss (star-end (list s-dty)))
-                                t-seq))])]
+                                t-seq
+                                objs))])]
     [((seq ts (dotted-end _ _))
       (seq ss (star-end _)))
      #f]))
@@ -658,23 +693,27 @@
             (cg a a* (-car-of obj))
             (cg b b* (-cdr-of obj)))]
         ;; sequences are covariant
-        [((Sequence: ts) (Sequence: ts*))
-         (cgen/list context ts ts*)]
-        [((Listof: t) (Sequence: (list t*)))
-         (cg t t*)]
-        [((Pair: t1 t2) (Sequence: (list t*)))
+        [((SequenceSeq: ts) (SequenceSeq: ts*))
+         (cgen/seq context ts ts*)]
+        [((Listof: t) (SequenceSeq: ts*))
+         (cgen/seq context (seq (list t) -null-end) ts*)]
+        [((Pair: t1 t2) (SequenceSeq: ts*))
          (% cset-meet
-            (cg t1 t* (-car-of obj))
-            (cg t2 (-lst t*) (-cdr-of obj)))]
-        [((MListof: t) (Sequence: (list t*)))
-         (cg t t*)]
+            (cgen/seq context (seq (list t1) -null-end) ts* (list (-car-of obj)))
+            (cg t2 (-lst Univ) (-cdr-of obj))
+            (cg t2 T (-cdr-of obj)))]
+        [((MListof: t) (SequenceSeq: ts*))
+         (cgen/seq context (seq (list t) -null-end) ts*)]
         ;; To check that mutable pair is a sequence we check that the cdr is
         ;; both an mutable list and a sequence
-        [((MPair: t1 t2) (Sequence: (list t*)))
-         (% cset-meet (cg t1 t*) (cg t2 T) (cg t2 (Un -Null -MPairTop)))]
-        [((List: ts) (Sequence: (list t*)))
+        [((MPair: t1 t2) (SequenceSeq: ts*))
+         (% cset-meet
+            (cgen/seq context (seq (list t1) -null-end) ts*)
+            (cg t2 T)
+            (cg t2 (Un -Null -MPairTop)))]
+        [((List: ts) (SequenceSeq: ts*))
          (% cset-meet* (for/list/fail ([t (in-list ts)])
-                                      (cg t t*)))]
+                         (cgen/seq context (seq (list t) -null-end) ts*)))]
         [((Immutable-HeterogeneousVector: ts) (Immutable-HeterogeneousVector: ts*))
          (cgen/list context ts ts*)]
         [((Mutable-HeterogeneousVector: ts) (Mutable-HeterogeneousVector: ts*))
@@ -685,19 +724,18 @@
         [((Mutable-HeterogeneousVector: ts) (Mutable-Vector: s))
          (define ss (map (λ _ s) ts)) ;; invariant, everything has to match
          (% cset-meet (cgen/list context ts ss) (cgen/list context ss ts))]
-        [((HeterogeneousVector: ts)
-          (Sequence: (list t*)))
+        [((HeterogeneousVector: ts) (SequenceSeq: ts*))
          (% cset-meet* (for/list/fail ([t (in-list ts)])
-                                      (cg t t*)))]
-        [((Vector: t) (Sequence: (list t*)))
-         (cg t t*)]
-        [((? Base:String?) (Sequence: (list t*)))
-         (cg -Char t*)]
-        [((? Base:Bytes?) (Sequence: (list t*)))
-         (cg -Nat t*)]
-        [((? Base:Input-Port?) (Sequence: (list t*)))
-         (cg -Nat t*)]
-        [((Value: (? exact-nonnegative-integer? n)) (Sequence: (list t*)))
+                         (cgen/seq context (seq (list t) -null-end) ts*)))]
+        [((Vector: t) (SequenceSeq: ts*))
+         (cgen/seq context (seq (list t) -null-end) ts*)]
+        [((? Base:String?) (SequenceSeq: ts*))
+         (cgen/seq context (seq (list -Char) -null-end) ts*)]
+        [((? Base:Bytes?) (SequenceSeq: ts*))
+         (cgen/seq context (seq (list -Nat) -null-end) ts*)]
+        [((? Base:Input-Port?) (SequenceSeq: ts*))
+         (cgen/seq context (seq (list -Nat) -null-end) ts*)]
+        [((Value: (? exact-nonnegative-integer? n)) (SequenceSeq: ts*))
          (define possibilities
            (list
             (list byte? -Byte)
@@ -709,20 +747,20 @@
              (match pred-type
                [(list pred? type)
                 (and (pred? n) type)])))
-         (cg type t*)]
+         (cgen/seq context (seq (list type) -null-end) ts*)]
         ;; numeric? == #true
-        [((Base-bits: #t _) (Sequence: (list t*)))
+        [((Base-bits: #t _) (SequenceSeq: ts*))
          (define type
            (for/or ([t (in-list (list -Byte -Index -NonNegFixnum -Nat))])
              (and (subtype S t) t)))
-         (% cg type t*)]
+         (cgen/seq context (seq (list type) -null-end) ts*)]
         [((or (Mutable-HashTable: k v)
               (Immutable-HashTable: k v)
               (Weak-HashTable: k v))
-          (Sequence: (list k* v*)))
-         (% cset-meet (cg k k*) (cg v v*))]
-        [((Set: t) (Sequence: (list t*)))
-         (cg t t*)]
+          (SequenceSeq: ts*))
+         (cgen/seq context (seq (list k v) -null-end) ts*)]
+        [((Set: t) (SequenceSeq: ts*))
+         (cgen/seq context (seq (list t) -null-end) ts*)]
 
 
         ;; resolve applications

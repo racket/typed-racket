@@ -1,7 +1,7 @@
 - Feature Name: type-checking-struct-property-values
-- Start Date: TODO
-- RFC PR: (leave this empty)
-- Feature Commit(s): (leave this empty)
+- Start Date: 7/8/2019
+- RFC PR: #803
+- Feature Commit(s): PR #804
 
 # Summary
 

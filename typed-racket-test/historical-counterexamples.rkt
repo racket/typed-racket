@@ -1815,6 +1815,7 @@
            (exact-round 3311118.8f0)))
 (+ (sqrt (make-polar -1.3828875524272957e+166 -0.12420556f0))
    -7.977045912134898e+298)
+(expt -0.0 -1.0)
     ))
 
 (parameterize ([current-output-port (current-error-port)])

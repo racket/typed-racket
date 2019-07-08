@@ -18,6 +18,7 @@
          -PosFlonum -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
          -SingleFlonumPosZero -SingleFlonumNegZero -SingleFlonumZero
          -SingleFlonumNan -PosSingleFlonum -NonNegSingleFlonum -NegSingleFlonum
+         -NonNegSignFlonum
          -NonPosSingleFlonum -SingleFlonum
          -InexactRealPosZero -InexactRealNegZero -InexactRealZero -InexactRealNan
          -PosInexactReal -NonNegInexactReal -NegInexactReal -NonPosInexactReal -InexactReal
@@ -72,6 +73,7 @@
 (define/decl -FlonumZero (Un -FlonumPosZero -FlonumNegZero -FlonumNan))
 (define/decl -PosFlonum (Un -PosFlonumNoNan -FlonumNan))
 (define/decl -NonNegFlonum (Un -PosFlonum -FlonumZero))
+(define/decl -NonNegSignFlonum (Un -PosFlonum -FlonumPosZero))
 (define/decl -NegFlonum (Un -NegFlonumNoNan -FlonumNan))
 (define/decl -NonPosFlonum (Un -NegFlonum -FlonumZero))
 (define/decl -Flonum (Un -NegFlonumNoNan -FlonumNegZero -FlonumPosZero -PosFlonumNoNan -FlonumNan))

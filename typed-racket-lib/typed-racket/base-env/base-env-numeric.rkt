@@ -456,9 +456,9 @@
 
   (define flabs-type
     (fl-type-lambda
-      (cl->* (-> -FlZero -FlZero)
+      (cl->* (-> -FlZero (Un -FlPosZero -FlonumNan))
              (-> (Un -PosFl -NegFl) -PosFl)
-             (-> -Fl -NonNegFl))))
+             (-> -Fl -NonNegSignFlonum))))
   (define fl+-type
     (fl-type-lambda
       (from-cases (map (lambda (t) (commutative-binop t -FlZero t))
@@ -1622,8 +1622,8 @@
              (-PosRat -Int . -> . -PosRat)
              (-NonNegRat -Int . -> . -NonNegRat)
              (-Rat -Int . -> . -Rat)
-             (-NonNegFlonum -Flonum . -> . -NonNegFlonum)
-             (-NonNegFlonum -Real . -> . (Un -NonNegFlonum -One))
+             (-NonNegSignFlonum -Flonum . -> . -NonNegFlonum)
+             (-NonNegSignFlonum -Real . -> . (Un -NonNegFlonum -One))
              (-PosReal -NonNegFlonum . -> . (Un -NonNegFlonum -One))
              ;; even integer exponents can give complex results
              ;; too large exponents turn into infinities, and (expt -inf.0 -inf.0) => nan.0+nan.0i

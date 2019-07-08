@@ -40,7 +40,7 @@
        #f])]))
 
 (define (index-error i-val i-bound expr type name)
-  (cond 
+  (cond
     [(not (and (integer? i-val) (exact? i-val)))
      (tc-error/expr #:stx expr "expected exact integer for ~a index, but got ~a" name i-val)]
     [(< i-val 0)
@@ -116,7 +116,7 @@
             (for/first ([t (in-list ts)]
                         #:when (or (Prefab? t) (Struct? t) (PrefabTop? t)))
               (loop t))]
-           [(Struct: _ _ (list (fld: flds _ _) ...) _ _ _)
+           [(Struct: _ _ (list (fld: flds _ _) ...) _ _ _ _)
             (tc/hetero-ref #'index flds struct-t "struct" #'op)]
            [(Prefab: _ (list flds ...))
             (tc/hetero-ref #'index flds struct-t "prefab struct" #'op)]
@@ -138,7 +138,7 @@
   ;; unsafe struct-set!
   (pattern (~and form ((~and op (~or unsafe-struct-set! unsafe-struct*-set!)) s:expr index:expr val:expr))
     (match (single-value #'s)
-      [(tc-result1: (and struct-t (app resolve (Struct: _ _ (list (fld: flds _ _) ...) _ _ _))))
+      [(tc-result1: (and struct-t (app resolve (Struct: _ _ (list (fld: flds _ _) ...) _ _ _ _))))
        (tc/hetero-set! #'index flds #'val struct-t "struct" #'op)]
       [s-ty (tc/app-regular #'form expected)]))
   ;; vector-set! on het vectors

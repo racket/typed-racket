@@ -33,7 +33,7 @@
       [(t (list)) t]
 
       ;; -- non-empty path beyond here --
-      
+
       ;; pair ops
       [((Pair: t s) (cons (CarPE:) rst))
        (path-type rst t (hash))]
@@ -49,7 +49,7 @@
        (path-type rst t (hash))]
 
       ;; struct ops (non-prefab)
-      [((Struct: _ _ flds _ _ _) (cons (StructPE: struct-ty idx) rst))
+      [((Struct: _ _ flds _ _ _ _) (cons (StructPE: struct-ty idx) rst))
        #:when  (subtype t struct-ty)
        (match-let ([(fld: ft _ _) (list-ref flds idx)])
          (path-type rst ft (hash)))]
@@ -58,7 +58,7 @@
       [((Prefab: key flds) (cons (PrefabPE: path-key idx) rst))
        #:when  (prefab-key-subtype? key path-key)
        (path-type rst (list-ref flds idx) (hash))]
-      
+
       ;; vector length
       [(vec-t (list (VecLenPE:)))
        #:when (subtype vec-t -VectorTop)
@@ -92,5 +92,3 @@
 
       ;; type/path mismatch =(
       [(_ _) #f])))
-
-

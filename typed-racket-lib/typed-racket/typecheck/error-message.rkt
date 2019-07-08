@@ -49,7 +49,7 @@
      ;;        prints the binding locations of each type variable.
      (type-mismatch (format "`~a'" t1) (format "a different `~a'" t2)
                     "type variables bound in different scopes")]
-    [((Struct: n1 _ _ _ _ _) (Struct: n2 _ _ _ _ _))
+    [((Struct: n1 _ _ _ _ _ _) (Struct: n2 _ _ _ _ _ _))
      #:when (and (not (free-identifier=? n1 n2))
                  (eq? (syntax-e n1) (syntax-e n2)))
      (type-mismatch (syntax-e n1) (format "a different ~a" (syntax-e n2))

@@ -43,6 +43,7 @@
 (define (-mvec* . ts) (make-Mutable-HeterogeneousVector ts))
 (define (-vec* . ts) (make-HeterogeneousVector ts))
 (define -future make-Future)
+(define -struct-property make-StructProperty)
 (define -evt make-Evt)
 (define -weak-box make-Weak-Box)
 (define -inst make-Instance)
@@ -71,6 +72,8 @@
                    dty dbound))
 
 ;; Basic types
+(define -Self (make-F (gensym 'self-)))
+(define -Imp (make-F (gensym 'self-imp-)))
 (define -Listof (-poly (list-elem) (make-Listof list-elem)))
 (define/decl -Regexp (Un -PRegexp -Base-Regexp))
 (define/decl -Byte-Regexp (Un -Byte-Base-Regexp -Byte-PRegexp))
@@ -144,13 +147,16 @@
 (define/decl -NonPosExtFlonum (Un -NegExtFlonum -ExtFlonumZero))
 (define/decl -ExtFlonum (Un -NegExtFlonumNoNan -ExtFlonumNegZero -ExtFlonumPosZero -PosExtFlonumNoNan -ExtFlonumNan))
 
+(define/decl -Struct-Type-Property (-struct-property Univ))
+
 ;; Type alias names
 (define (-struct-name name)
   (make-Name name 0 #t))
 
+
 ;; Structs
-(define (-struct name parent flds [proc #f] [poly #f] [pred #'dummy])
-  (make-Struct name parent flds proc poly pred))
+(define (-struct name parent flds [proc #f] [poly #f] [pred #'dummy] [props (box null)])
+  (make-Struct name parent flds proc poly pred props))
 
 ;; Function type constructors
 (define/decl top-func (make-Fun (list)))
@@ -304,7 +310,7 @@
 
 (define (-list-or-set s) (Un (-lst s) (-set s)))
 
-;; Since generics are not yet supported, we currently overload 
+;; Since generics are not yet supported, we currently overload
 ;; the set operations to work both on list sets and hash sets.
 ;; This helper makes those types in the base-env less verbose.
 (define-syntax-rule (set-abs s e)

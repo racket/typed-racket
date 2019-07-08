@@ -157,6 +157,7 @@
   ((listof/sc (#:covariant)) listof #:flat)
   ((cons/sc (#:covariant) (#:covariant)) cons/c #:flat)
   ((set/sc (#:covariant #:chaperone)) set/c #:flat)
+  ((struct-property/sc (#:invariant)) struct-type-property/c #:impersonator)
   ((immutable-vectorof/sc (#:covariant)) immutable-vectorof/c #:flat)
   ((mutable-vectorof/sc (#:invariant)) mutable-vectorof/c #:chaperone)
   ((vectorof/sc (#:invariant)) vectorof #:chaperone)

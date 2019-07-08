@@ -26,7 +26,6 @@
 
 ;; printer-type: (one-of/c 'custom 'debug)
 (define-for-syntax printer-type 'custom)
-
 (define-syntax (provide-printer stx)
   (if (eq? printer-type 'debug)
       #'(provide (rename-out [debug-printer print-type]
@@ -621,11 +620,11 @@
               (set-box! (current-print-unexpanded)
                         (cons (car names) (unbox (current-print-unexpanded)))))
             (car names)])]
-    [(StructType: (Struct: nm _ _ _ _ _)) `(StructType ,(syntax-e nm))]
+    [(StructType: (Struct: nm _ _ _ _ _ _)) `(StructType ,(syntax-e nm))]
     ;; this case occurs if the contained type is a type variable
     [(StructType: ty) `(Struct-Type ,(t->s ty))]
     [(StructTypeTop:) 'Struct-TypeTop]
-    [(StructTop: (Struct: nm _ _ _ _ _)) `(Struct ,(syntax-e nm))]
+    [(StructTop: (Struct: nm _ _ _ _ _ _)) `(Struct ,(syntax-e nm))]
     [(Prefab: key field-types)
      `(Prefab ,(abbreviate-prefab-key key)
               ,@(map t->s field-types))]
@@ -639,6 +638,7 @@
     [(ThreadCellTop:) 'ThreadCellTop]
     [(MPairTop:) 'MPairTop]
     [(Prompt-TagTop:) 'Prompt-TagTop]
+    [(StructProperty: ty) `(StructProperty ,(t->s ty))]
     [(Continuation-Mark-KeyTop:) 'Continuation-Mark-KeyTop]
     [(App: rator rands)
      (list* (type->sexp rator) (map type->sexp rands))]
@@ -655,10 +655,11 @@
     [(? improper-tuple? t)
      `(List* ,@(map type->sexp (improper-tuple-elems t)))]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]
-    [(Struct: nm       par (list (fld: t _ _) ...)       proc _ _)
+    [(Struct: nm par (list (fld: t _ _) ...) proc _ _ property-tys)
      `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
         ,(map t->s t)
-        ,@(if proc (list (t->s proc)) null))]
+        ,@(if proc (list (t->s proc)) null)
+        ,@(list (map t->s (unbox property-tys))))]
     [(? Fun?)
      (parameterize ([current-print-type-fuel
                      (sub1 (current-print-type-fuel))])

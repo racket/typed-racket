@@ -4,17 +4,19 @@
          syntax/struct syntax/parse racket/function racket/match racket/list
 
          (prefix-in c: (contract-req))
-         (rep type-rep object-rep free-variance)
+         (rep type-rep object-rep free-variance values-rep)
          (private parse-type syntax-properties)
          (types abbrev subtype utils resolve substitute struct-table)
          (env global-env type-name-env type-alias-env tvar-env)
          (utils tc-utils prefab identifier)
-         (typecheck def-binding internal-forms error-message)
-         (for-syntax syntax/parse racket/base))
+         (typecheck typechecker def-binding internal-forms error-message)
+         (for-syntax syntax/parse racket/base)
+         (for-template racket/base))
 
 (require-for-cond-contract racket/struct-info)
 
 (provide tc/struct
+         tc/struct-prop-values
          name-of-struct d-s
          refine-struct-variance!
          register-parsed-struct-sty!
@@ -64,6 +66,50 @@
     [(~or t:typed-struct t:typed-struct/exec)
      #'t.type-name]))
 
+(define-syntax-class expanded-props
+  #:literals (null list #%plain-app)
+  (pattern null
+           #:with (prop-names ...) #'()
+           #:with (prop-vals ...) #'())
+  (pattern (#%plain-app list (#%plain-app cons prop-names prop-vals) ...)))
+
+(define (tc/struct-prop-values form name)
+  (syntax-parse form
+    #:literals (define-values #%plain-app define-syntaxes begin #%expression let-values quote list cons make-struct-type values null)
+    [(define-values (struct-var r ...)
+       (let-values (((var1 r1 ...)
+                     (let-values ()
+                       (#%expression
+                        (let-values ()
+                          (#%plain-app make-struct-type _name _super-type _init-fcnt _auto-fcnt auto-v props:expanded-props r_args ...))))))
+         (#%plain-app values args-v ...)))
+     (let ([pnames (attribute props.prop-names)])
+       (unless (null? pnames)
+         (define sty (lookup-type name))
+         (for/list ([p (in-list pnames)]
+                    [pval (in-list (attribute props.prop-vals))])
+           (match (single-value p)
+             [(tc-result1: (StructProperty: ty))
+              (match-define (F: var) -Self)
+              (match-define (F: var-imp) -Imp)
+              (match sty
+                ;; since polymorphic types appear in the form of function applications in type error messages,
+                ;; we use Arrow instead of Struct Rep.
+                [(Poly-names: names (Fun: (list (Arrow: dom _ _ (Values: (list (Result: sty _ _)))))))
+                 (let* ([v (subst var sty ty)]
+                        [v (for/fold ([res sty]
+                                      #:result (subst var-imp res v))
+                                     ([n names])
+                             (subst n (make-F (gensym n)) res))]
+                        [v (ret v)])
+                   (extend-tvars names (tc-expr/check pval v)))]
+                [(Fun: (list (Arrow: dom _ _ (Values: (list (Result: sty _ _))))))
+                 (tc-expr/check pval (ret (subst var-imp sty (subst var sty ty))))])]
+              [(tc-result1: ty)
+               (tc-error "expected a struct type property but got ~a" ty)]))))]
+    [(define-syntaxes (nm ...) . rest) (void)]))
+
+
 
 ;; parse name field of struct, determining whether a parent struct was specified
 (define/cond-contract (parse-parent nm/par prefab?)
@@ -105,7 +151,7 @@
 (define/cond-contract (get-flds p)
   (c:-> (c:or/c Struct? #f) (c:listof fld?))
   (match p
-    [(Struct: _ _ flds _ _ _) flds]
+    [(Struct: _ _ flds _ _ _ _) flds]
     [#f null]))
 
 
@@ -119,9 +165,12 @@
                        (make-fld t g (struct-desc-mutable desc)))]
          [flds (append (get-flds parent) this-flds)])
     (make-Struct (struct-names-struct-name names)
-                 parent flds (struct-desc-proc-ty desc)
+                 parent
+                 flds
+                 (struct-desc-proc-ty desc)
                  (not (null? (struct-desc-tvars desc)))
-                 (struct-names-predicate names))))
+                 (struct-names-predicate names)
+                 (box null))))
 
 
 ;; construct all the various types for structs, and then register the appropriate names
@@ -170,7 +219,7 @@
     (make-Prefab key field-tvar-Fs))
 
   (define prefab-top-type (make-PrefabTop key))
-  
+
   (define bindings
     (list*
      ;; the list of names w/ types
@@ -373,7 +422,6 @@
                    #:mutable [mutable #f]
                    #:type-only [type-only #f]
                    #:prefab? [prefab? #f])
-  ;; parent field types can't actually be determined here
   (define-values (nm parent-name parent) (parse-parent nm/par prefab?))
   ;; create type variables for the new type parameters
   (define tvars (map syntax-e vars))
@@ -382,16 +430,16 @@
   (define types
     ;; add the type parameters of this structure to the tvar env
     (extend-tvars tvars
-      (parameterize ([current-poly-struct `#s(poly ,type-name ,new-tvars)])
-        ;; parse the field types
-        (map parse-type tys))))
+                  (parameterize ([current-poly-struct `#s(poly ,type-name ,new-tvars)])
+                    ;; parse the field types
+                    (map parse-type tys))))
   ;; instantiate the parent if necessary, with new-tvars
   (define concrete-parent
     (if (Poly? parent)
         (if (> (Poly-n parent) (length new-tvars))
             (tc-error "Could not instantiate parent struct type. Required ~a type variables, received ~a."
-              (Poly-n parent)
-              (length new-tvars))
+                      (Poly-n parent)
+                      (length new-tvars))
             (instantiate-poly parent (take new-tvars (Poly-n parent))))
         parent))
   ;; create the actual structure type, and the types of the fields
@@ -433,13 +481,13 @@
                      maybe-parsed-proc-ty]
                     [else (expected-but-got top-func maybe-parsed-proc-ty)
                           #f]))))
-         
+
          (define parent-mutable
            ;; Only valid as long as typed structs must be
            ;; either fully mutable or fully immutable
            (or (not parent)
                (andmap fld-mutable? (get-flds concrete-parent))))
-         
+
          (define desc (struct-desc
                        (map fld-t (get-flds concrete-parent))
                        types
@@ -448,7 +496,7 @@
                        parent-mutable
                        maybe-proc-ty))
          (define sty (mk/inner-struct-type names desc concrete-parent))
-         
+
          (parsed-struct sty names desc (struct-info-property nm/par) type-only)]))
 
 ;; register a struct type
@@ -458,9 +506,9 @@
 ;;                     -> void
 ;; FIXME - figure out how to make this lots lazier
 (define/cond-contract (tc/builtin-struct nm parent fld-names tys kernel-maker)
-     (c:-> identifier? (c:or/c #f identifier?) (c:listof identifier?)
-           (c:listof Type?) (c:or/c #f identifier?)
-           c:any/c)
+  (c:-> identifier? (c:or/c #f identifier?) (c:listof identifier?)
+        (c:listof Type?) (c:or/c #f identifier?)
+        c:any/c)
   (define parent-type
     (and parent (resolve-name (make-Name parent 0 #t))))
   (define parent-tys (map fld-t (get-flds parent-type)))
@@ -478,8 +526,8 @@
 ;; syntax for tc/builtin-struct
 (define-syntax (d-s stx)
   (define-splicing-syntax-class options
-   (pattern (~optional (~seq #:kernel-maker maker:id))
-            #:attr kernel-maker (if (attribute maker) #'(quote-syntax maker) #'#f)))
+    (pattern (~optional (~seq #:kernel-maker maker:id))
+             #:attr kernel-maker (if (attribute maker) #'(quote-syntax maker) #'#f)))
 
   (syntax-parse stx
     [(_ (nm:id par:id) ([fld:id (~datum :) ty] ...) (par-ty ...) opts:options)

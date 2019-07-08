@@ -160,7 +160,7 @@
 (def-type App ([rator Type?]
                [rands (listof Type?)])
   [#:frees (f)
-   (match rator 
+   (match rator
      [(Name: n _ _)
       (instantiate-frees n (map f rands))]
      [_ (f (resolve-app rator rands))])]
@@ -412,7 +412,7 @@
 
 ;; body: the type of the body
 ;; handler: the type of the prompt handler
-;;   prompts with this tag will return a union of `body` 
+;;   prompts with this tag will return a union of `body`
 ;;   and the codomains of `handler`
 (def-structural Prompt-Tagof ([body #:invariant]
                               [handler #:invariant])
@@ -714,6 +714,7 @@
 ;; Structs
 ;;************************************************************
 
+(def-structural StructProperty ([elem #:invariant]))
 
 
 (def-rep fld ([t Type?] [acc identifier?] [mutable? boolean?])
@@ -730,26 +731,30 @@
                   [flds (listof fld?)]
                   [proc (or/c #f Fun?)]
                   [poly? boolean?]
-                  [pred-id identifier?])
+                  [pred-id identifier?]
+                  [properties (box/c (listof StructProperty?))])
   [#:frees (f) (combine-frees (map f (append (if proc (list proc) null)
                                              (if parent (list parent) null)
+                                             (unbox properties)
                                              flds)))]
   [#:fmap (f) (make-Struct name
                            (and parent (f parent))
                            (map f flds)
                            (and proc (f proc))
                            poly?
-                           pred-id)]
+                           pred-id
+                           (box (map f (unbox properties))))]
   [#:for-each (f)
    (when parent (f parent))
    (for-each f flds)
-   (when proc (f proc))]
+   (when proc (f proc))
+   (for-each f (unbox properties))]
   ;; This should eventually be based on understanding of struct properties.
   [#:mask (mask-union mask:struct mask:procedure)]
   [#:custom-constructor
    (let ([name (normalize-id name)]
          [pred-id (normalize-id pred-id)])
-     (make-Struct name parent flds proc poly? pred-id))])
+     (make-Struct name parent flds proc poly? pred-id properties))])
 
 
 (def-type StructTop ([name Struct?])

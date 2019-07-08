@@ -142,32 +142,32 @@
          (Weak-HashTable: _ _)))
     #:no-order
     #f]
-   [((Struct: n _ flds _ _ _)
-     (Struct: n* _ flds* _ _ _))
+   [((Struct: n _ flds _ _ _ _)
+     (Struct: n* _ flds* _ _ _ _))
     #:when (free-identifier=? n n*)
     (for/and ([f (in-list flds)] [f* (in-list flds*)])
       (match* (f f*)
         [((fld: t _ _) (fld: t* _ _)) (overlap? t t*)]))]
-   [((Struct: n #f _ _ _ _)
-     (StructTop: (Struct: n* #f _ _ _ _)))
+   [((Struct: n #f _ _ _ _ _)
+     (StructTop: (Struct: n* #f _ _ _ _ _)))
     #:when (free-identifier=? n n*)
     #t]
-   [((StructTop: (Struct: n* #f _ _ _ _))
-     (Struct: n #f _ _ _ _))
+   [((StructTop: (Struct: n* #f _ _ _ _ _))
+     (Struct: n #f _ _ _ _ _))
     #:when (free-identifier=? n n*)
     #t]
    ;; n and n* must be different, so there's no overlap
-   [((Struct: n #f flds _ _ _)
-     (Struct: n* #f flds* _ _ _))
+   [((Struct: n #f flds _ _ _ _)
+     (Struct: n* #f flds* _ _ _ _))
     #f]
-   [((Struct: n #f flds _ _ _)
-     (StructTop: (Struct: n* #f flds* _ _ _)))
+   [((Struct: n #f flds _ _ _ _)
+     (StructTop: (Struct: n* #f flds* _ _ _ _)))
     #f]
-   [((StructTop: (Struct: n* #f flds* _ _ _))
-     (Struct: n #f flds _ _ _))
+   [((StructTop: (Struct: n* #f flds* _ _ _ _))
+     (Struct: n #f flds _ _ _ _))
     #f]
-   [((and t1 (Struct: _ _ _ _ _ _))
-     (and t2 (Struct: _ _ _ _ _ _)))
+   [((and t1 (Struct: _ _ _ _ _ _ _))
+     (and t2 (Struct: _ _ _ _ _ _ _)))
     (or (subtype t1 t2) (subtype t2 t1)
         (parent-of? t1 t2) (parent-of? t2 t1))]
    [((PrefabTop: key1) (or (PrefabTop: key2)
@@ -190,13 +190,13 @@
 ;; if they are polymorphic)
 (define (parent-of? t1 t2)
   (match* (t1 t2)
-    [((Struct: _ (Struct: pname1 _ _ _ _ _) _ _ _ _)
-      (Struct: pname2 _ _ _ _ _))
+    [((Struct: _ (Struct: pname1 _ _ _ _ _ _) _ _ _ _ _)
+      (Struct: pname2 _ _ _ _ _ _))
      #:when (free-identifier=? pname1 pname2)
      #t]
-    [((Struct: _ #f _ _ _ _)
+    [((Struct: _ #f _ _ _ _ _)
       other)
      #f]
-    [((Struct: _ parent _ _ _ _)
+    [((Struct: _ parent _ _ _ _ _)
       other)
      (parent-of? parent other)]))

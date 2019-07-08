@@ -58,6 +58,7 @@
     (t/sc (cl->* (-Symbol . -> . -Symbol)
                  (-Symbol -Symbol . -> . -Symbol)))
     (t/sc (-Promise -Number))
+    (t/sc (-struct-property (-> Univ -Number Univ)))
     (t/sc (-lst -Symbol))
     (t/sc -Boolean)
     (t/sc Univ)

@@ -181,7 +181,7 @@
          #:function-type f-type
          #:args-results args-res
          #:expected expected)]
-      ;; regular polymorphic functions without dotted rest, 
+      ;; regular polymorphic functions without dotted rest,
       ;; we do not choose any instantiations with mandatory keyword arguments
       [(Poly: vars (Fun: arrows))
        ;; check there are no RestDots
@@ -249,7 +249,7 @@
        ;; check there are no RestDots
        #:when (not (for/or ([a (in-list arrows)])
                      (RestDots? (Arrow-rst a))))
-       
+
        (define (fail)
          (poly-fail f-stx args-stx f-type args-res
                     #:name (and (identifier? f-stx) f-stx)
@@ -283,7 +283,7 @@
                          args-res expected)]
              [else (fail)])]
       ;; procedural structs
-      [(Struct: _ _ _ (? Fun? proc-ty) _ _)
+      [(Struct: _ _ _ (? Fun? proc-ty) _ _ _)
        (tc/funapp f-stx #`(#,(syntax/loc f-stx dummy) . #,args-stx) proc-ty
                   (cons (ret f-type) args-res) expected)]
       ;; parameters are functions too

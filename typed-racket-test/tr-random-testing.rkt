@@ -177,7 +177,7 @@
                  [orig-module-stx (quote-syntax e)])
     (typecheck (datum->syntax #'here e))))
 
-(define (right-type? before)
+(define (right-type? before [verbose? #f])
   (define type-before (match (get-type before) [(tc-result1: b) b]))
   (define after (with-handlers ([values values])
                   (eval before (namespace-anchor->namespace anch))))
@@ -220,7 +220,7 @@
       (error 'racketcs-eval result)
       result))
 
-(define (same-result-as-untyped? sexp)
+(define (same-result-as-untyped? sexp [verbose? #f])
   (define racket-failed?  #f)
   (define both-failed?    #f)
   (define racket-result
@@ -238,9 +238,11 @@
   (or both-failed?
       (and (not racket-failed?)
            ;; for NaN, which is not = to itself
-           (equal? racket-result tr-result))))
+           (or (equal? racket-result tr-result)
+               (begin (printf "not same result untyped: ~s typed: ~s\n" racket-result tr-result)
+                      #f)))))
 
-(define (same-result-as-racketcs? sexp)
+(define (same-result-as-racketcs? sexp [verbose? #f])
   (define racket-failed?   #f)
   (define both-failed?     #f)
   (define racket-result
@@ -256,6 +258,10 @@
                        ;;   process every ~200 tests
                        (eprintf "broken pipe, aborting\n")
                        (raise e))] ; just give up on the rest of this run
+                    [(lambda (e) (and (exn:fail:unsupported? e)
+                                      (regexp-match "single-flonum" (exn-message e))))
+                     ;; ignore this test case
+                     (lambda _ (set! both-failed? #t))]
                     [exn? (λ (e) (when racket-failed?
                                    (set! both-failed? #t)))])
       (racketcs-eval sexp)))
@@ -280,10 +286,10 @@
                        #t)])
            (get-type sexp)
            #f) ; go on and check properties
-         (and (right-type? sexp)
-              (same-result-as-untyped? sexp)
+         (and (right-type? sexp verbose?)
+              (same-result-as-untyped? sexp verbose?)
               (if racketcs-available?
-                  (same-result-as-racketcs? sexp)
+                  (same-result-as-racketcs? sexp verbose?)
                   #t))))))
 
 (define (run-tests)

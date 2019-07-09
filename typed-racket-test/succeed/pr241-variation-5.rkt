@@ -10,7 +10,19 @@
 
 (require
   (for-syntax racket/base)
-  racket/require)
+  racket/require
+  (for-syntax racket/extflonum))
+
+(begin-for-syntax
+  (define-syntax-rule (ext e)
+    (if (extflonum-available?)
+        '(e)
+        null))
+
+  (define-syntax-rule (single e)
+    (if (single-flonum-available?)
+        '(e)
+        null)))
 
 ;; When #t, print a warning if some base-types do not have tests
 (define-for-syntax WARN-MISSING #t)
@@ -24,7 +36,7 @@
 ;;  If #f, a test will assert that (contract VALUE any-wrap/c) fails.
 ;; These USE functions should exercise specific functionality
 ;;  and not be dummy functions like (lambda (x) x).
-(define-for-syntax known-base-types '(
+(define-for-syntax known-base-types `(
  ;; --- TODO missing value for these types
  ;[Read-Table (or (current-readtable) (error 'noo)) #f]
  ;[Internal-Definition-Context (syntax-local-make-definition-context) #f]
@@ -61,10 +73,10 @@
     sp)
   choice-evt]
  #reader tests/racket/maybe-single
- [Single-Flonum-Complex 1f0+1f0i add1]
- [ExtFlonum-Zero 0.0t0 extflround]
- [ExtFlonum-Negative-Zero -0.0t0 extflround]
- [ExtFlonum-Positive-Zero +0.0t0 extflround]
+ ,@(single [Single-Flonum-Complex 1f0+1f0i add1])
+ ,@(single [ExtFlonum-Zero 0.0t0 extflround])
+ ,@(ext [ExtFlonum-Negative-Zero -0.0t0 extflround])
+ ,@(ext [ExtFlonum-Positive-Zero +0.0t0 extflround])
  [Complex 0 add1]
  [Number 0 add1]
  [Inexact-Complex (let ([n (exact->inexact 1/3+1/3i)]) (if (not (real? n)) n (error 'pr241 "Failed to make Inexact-Complex"))) zero?]
@@ -78,19 +90,19 @@
  [Real-Zero 0 add1]
  [Inexact-Real (exact->inexact 1/3) add1]
  #reader tests/racket/maybe-single
- [Single-Flonum 1.0f0 add1]
+ ,@(single [Single-Flonum 1.0f0 add1])
  [Nonpositive-Inexact-Real (- (exact->inexact 1/3)) add1]
  #reader tests/racket/maybe-single
- [Nonpositive-Single-Flonum -1.0f0 add1]
+ ,@(single [Nonpositive-Single-Flonum -1.0f0 add1])
  #reader tests/racket/maybe-single
  [Negative-Inexact-Real -1.0f0 add1]
  #reader tests/racket/maybe-single
- [Negative-Single-Flonum -1.0f0 add1]
+ ,@(single [Negative-Single-Flonum -1.0f0 add1])
  #reader tests/racket/maybe-single
- [Positive-Single-Flonum +1.0f0 add1]
+ ,@(single [Positive-Single-Flonum +1.0f0 add1])
  [Nonnegative-Inexact-Real (exact->inexact 1/3) add1]
  #reader tests/racket/maybe-single
- [Nonnegative-Single-Flonum 1.0f0 add1]
+ ,@(single [Nonnegative-Single-Flonum 1.0f0 add1])
  #reader tests/racket/maybe-single
  [Positive-Inexact-Real 1.0f0 add1]
  [Inexact-Real-Nan +nan.0 zero?]
@@ -98,13 +110,13 @@
  [Inexact-Real-Negative-Zero -0.0 add1]
  [Inexact-Real-Positive-Zero 0.0 add1]
  #reader tests/racket/maybe-single
- [Single-Flonum-Nan +nan.f add1]
+ ,@(single [Single-Flonum-Nan +nan.f add1])
  #reader tests/racket/maybe-single
- [Single-Flonum-Zero 0f0 add1]
+ ,@(single [Single-Flonum-Zero 0f0 add1])
  #reader tests/racket/maybe-single
- [Single-Flonum-Negative-Zero -0f0 add1]
+ ,@(single [Single-Flonum-Negative-Zero -0f0 add1])
  #reader tests/racket/maybe-single
- [Single-Flonum-Positive-Zero 0f0 add1]
+ ,@(single [Single-Flonum-Positive-Zero 0f0 add1])
  [Float 1.0 add1]
  [Flonum 1.0 add1]
  [Nonpositive-Float -1.0 add1]
@@ -147,12 +159,12 @@
  [Positive-Byte 1 add1]
  [Zero 0 add1]
  [One  1 add1]
- [ExtFlonum pi.t extflround]
- [Nonpositive-ExtFlonum (->extfl -1) extflround]
- [Negative-ExtFlonum (->extfl -1) extflround]
- [Nonnegative-ExtFlonum (->extfl 1) extflround]
- [Positive-ExtFlonum (->extfl 1) extflround]
- [ExtFlonum-Nan +nan.t (lambda (n) (extfl= n n))]
+ ,@(ext [ExtFlonum pi.t extflround])
+ ,@(ext [Nonpositive-ExtFlonum (->extfl -1) extflround])
+ ,@(ext [Negative-ExtFlonum (->extfl -1) extflround])
+ ,@(ext [Nonnegative-ExtFlonum (->extfl 1) extflround])
+ ,@(ext [Positive-ExtFlonum (->extfl 1) extflround])
+ ,@(ext [ExtFlonum-Nan +nan.t (lambda (n) (extfl= n n))])
 
  [Any 'a boolean?]
  [Boolean #f not]
@@ -166,7 +178,7 @@
  [Datum 'A (lambda (x) (datum->syntax #f x))]
  [Environment-Variables (current-environment-variables) environment-variables-names]
  [EOF eof eof-object?]
- [ExtFlVector (extflvector pi.t) extflvector-length]
+ ,@(ext [ExtFlVector (extflvector pi.t) extflvector-length])
  [FSemaphore (make-fsemaphore 0) fsemaphore-post]
  [False #f not]
  [FlVector (flvector 1.14 2.14 3.14) flvector-length]

@@ -17,7 +17,7 @@ END
 ;; should error
 (with-handlers ([exn:fail:contract?
                  (lambda: ([e : exn])
-                   (when (regexp-match "index is out of range for empty vector"
+                   (when (regexp-match "(index is out of range for empty vector)|(is not a valid index for)"
                                        (exn-message e))
                      (display "passed\n")))])
   (vector-set! y 1 3.0))

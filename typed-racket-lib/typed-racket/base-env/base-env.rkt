@@ -3060,6 +3060,7 @@
  (cl->*
   (-> (Un (-val 'unix) (-val 'windows) (-val 'macosx)))
   (-> (-val 'os) (Un (-val 'unix) (-val 'windows) (-val 'macosx)))
+  (-> (-val 'vm) -Symbol)
   (-> (-val 'gc) (Un (-val 'cgc) (-val '3m)))
   (-> (-val 'link) (Un (-val 'static) (-val 'shared) (-val 'dll) (-val 'framework)))
   (-> (-val 'so-suffix) -Bytes)

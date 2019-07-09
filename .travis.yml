@@ -4,14 +4,18 @@ language: c
 
 env:
 - TESTS=unit PLT_TR_CONTRACTS=1 PATH=~/racket/bin:$PATH
+- TESTS=unit VARIANT=cs PATH=~/racket/bin:$PATH
+- TESTS=int  VARIANT=cs PATH=~/racket/bin:$PATH
 - TESTS=int  PATH=~/racket/bin:$PATH
 - TESTS=math  PATH=~/racket/bin:$PATH
+- TESTS=math VARIANT=cs PATH=~/racket/bin:$PATH
+- TESTS=extra VARIANT=cs PATH=~/racket/bin:$PATH
+- TESTS=extra PATH=~/racket/bin:$PATH
 
 before_install:
 - "export DISPLAY=:99.0"
 - "sh -e /etc/init.d/xvfb start"
-#- curl -L -o installer.sh http://plt.eecs.northwestern.edu/snapshots/current/installers/racket-test-current-x86_64-linux-precise.sh
-- curl -L -o installer.sh http://www.cs.utah.edu/plt/snapshots/current/installers/racket-current-x86_64-linux-precise.sh
+- if [ $VARIANT = "cs" ]; then curl -L -o installer.sh http://www.cs.utah.edu/plt/snapshots/current/installers/racket-current-x86_64-linux-cs-xenial.sh; else curl -L -o installer.sh http://www.cs.utah.edu/plt/snapshots/current/installers/racket-current-x86_64-linux-precise.sh; fi
 - sh installer.sh --in-place --dest ~/racket/
 
 install:
@@ -31,6 +35,9 @@ script:
 - if [ $TESTS = "int"  ]; then racket -l typed-racket-test/test-docs-complete; fi
 - if [ $TESTS = "math" ]; then raco setup -j 1 math; fi
 - if [ $TESTS = "math" ]; then racket -l typed-racket-test -- --math; fi
+- if [ $TESTS = "extra" ]; then racket -l typed-racket-test/historical-counterexamples; fi
+- if [ $TESTS = "extra" ]; then racket -l typed-racket-test/test-docs-complete; fi
+- if [ $TESTS = "extra" ]; then racket -l typed-racket-test/tr-random-testing; fi
 - echo "done"
 
 after_script:

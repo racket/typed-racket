@@ -390,8 +390,7 @@ the typed racket language.
   (for/list: for/list)
   (for/and: for/and)
   (for/or: for/or)
-  (for/first: for/first)
-  (for/last: for/last))
+  (for/first: for/first))
 
 ;; Unlike with the above, the inferencer can handle any number of #:when
 ;; clauses with these 2.
@@ -469,8 +468,7 @@ the typed racket language.
 (define-for*-variants
   (for*/and: for*/and)
   (for*/or: for*/or)
-  (for*/first: for*/first)
-  (for*/last: for*/last))
+  (for*/first: for*/first))
 
 ;; Like for/lists: and for/fold:, the inferencer can handle these correctly.
 (define-syntax (for*/lists: stx)
@@ -548,6 +546,8 @@ the typed racket language.
                   for*? #'for/folder: #'for/folder #'op #'initial #'final))
               ...))]))
 (define-for/acc:-variants
+  (for/last: for/fold: for/last #f begin #f #%expression)
+  (for*/last: for*/fold: for*/last #t begin #f #%expression)
   (for/sum: for/fold: for/sum #f + 0 #%expression)
   (for*/sum: for*/fold: for*/sum #t + 0 #%expression)
   (for*/list: for*/fold: for*/list #t (lambda (x y) (cons y x)) null reverse)

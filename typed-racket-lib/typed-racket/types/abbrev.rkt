@@ -140,6 +140,7 @@
 (define/decl -ExtFlonumZero (Un -ExtFlonumPosZero -ExtFlonumNegZero -ExtFlonumNan))
 (define/decl -PosExtFlonum (Un -PosExtFlonumNoNan -ExtFlonumNan))
 (define/decl -NonNegExtFlonum (Un -PosExtFlonum -ExtFlonumZero))
+(define/decl -NonNegSignExtFlonum (Un -PosExtFlonum -ExtFlonumPosZero))
 (define/decl -NegExtFlonum (Un -NegExtFlonumNoNan -ExtFlonumNan))
 (define/decl -NonPosExtFlonum (Un -NegExtFlonum -ExtFlonumZero))
 (define/decl -ExtFlonum (Un -NegExtFlonumNoNan -ExtFlonumNegZero -ExtFlonumPosZero -PosExtFlonumNoNan -ExtFlonumNan))

@@ -18,7 +18,8 @@
                "pict-lib"
                "images-lib"
                "racket-index"
-               "sandbox-lib"))
+               "sandbox-lib"
+               "pconvert-lib"))
 
 (define implies '("rackunit-typed"))
 

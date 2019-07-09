@@ -21,12 +21,21 @@
   (test-suite
     (format "Log Comparison for ~a" name)
     (test-begin
+      (define cs-skip-all? (and (eq? (system-type 'vm) 'chez-scheme)
+                                (regexp-match #rx"cs-skip-all" name)))
+      (define cs-skip? (and (eq? (system-type 'vm) 'chez-scheme)
+                            (regexp-match #rx"cs-skip" name)))
       (define-values (log output) (force promised-logs))
       (define-values (expected-log expected-output)
         (get-expected-results (build-path dir name)))
-
-      (check-equal? log expected-log)
-      (check-equal? output expected-output))))
+      (unless cs-skip-all?
+        ;; some things are just hopeless on RacketCS
+        (unless cs-skip?
+          ;; skip log comparison on RacketCS
+          ;; making program output identical on RacketCS is often worthwhile,
+          ;; but optimization logs are too fragile in some cases
+          (check-equal? log expected-log))
+        (check-equal? output expected-output)))))
 
 
 (define-runtime-path tests-dir                "./tests")

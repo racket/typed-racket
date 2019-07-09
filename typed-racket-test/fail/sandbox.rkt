@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"expected: pair\\?\n *given: #<int-wrapper>")
+(exn-pred #rx"(expected: pair\\?\n *given: #<int-wrapper>)|(#<int-wrapper> is not a pair)")
 #lang racket/base
 
 ;; This test checks that TR optimizations are disabled within a

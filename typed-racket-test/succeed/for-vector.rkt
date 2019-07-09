@@ -308,152 +308,153 @@
 ;; ===================================================================================================
 ;; for/extflvector:
 
-(check-equal? (for/extflvector: #:length 4 ([i  (in-range 4)])
-                (real->extfl i))
-              (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
+(when (extflonum-available?)
+  (check-equal? (for/extflvector: #:length 4 ([i  (in-range 4)])
+                                  (real->extfl i))
+                (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
 
-(check-equal? (for/extflvector: #:length 4 ([i  (in-range 0)])
-                (real->extfl i))
-              (extflvector 0.0t0 0.0t0 0.0t0 0.0t0))
+  (check-equal? (for/extflvector: #:length 4 ([i  (in-range 0)])
+                                  (real->extfl i))
+                (extflvector 0.0t0 0.0t0 0.0t0 0.0t0))
 
-(check-equal? (for/extflvector: #:length 4 ()
-                1.2t0)
-              (extflvector 1.2t0 0.0t0 0.0t0 0.0t0))
+  (check-equal? (for/extflvector: #:length 4 ()
+                                  1.2t0)
+                (extflvector 1.2t0 0.0t0 0.0t0 0.0t0))
 
-(check-equal? (for/extflvector: #:length 4 ([i  (in-range 2)])
-                (real->extfl i))
-              (extflvector 0.0t0 1.0t0 0.0t0 0.0t0))
+  (check-equal? (for/extflvector: #:length 4 ([i  (in-range 2)])
+                                  (real->extfl i))
+                (extflvector 0.0t0 1.0t0 0.0t0 0.0t0))
 
-(check-equal? (for/extflvector: #:length 4 ([i  (in-range 5)])
-                (real->extfl i))
-              (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
+  (check-equal? (for/extflvector: #:length 4 ([i  (in-range 5)])
+                                  (real->extfl i))
+                (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
 
-(check-equal? (for/extflvector: #:length 0 ([i  (in-range 5)])
-                (real->extfl i))
-              (extflvector))
+  (check-equal? (for/extflvector: #:length 0 ([i  (in-range 5)])
+                                  (real->extfl i))
+                (extflvector))
 
-(check-equal? (for/extflvector: ([i  (in-range 4)])
-                (real->extfl i))
-              (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
+  (check-equal? (for/extflvector: ([i  (in-range 4)])
+                                  (real->extfl i))
+                (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
 
-(check-equal? (for/extflvector: () 1.2t0)
-              (extflvector 1.2t0))
+  (check-equal? (for/extflvector: () 1.2t0)
+                (extflvector 1.2t0))
 
-(check-equal? (for/extflvector: ([i  (in-range 0)])
-                (real->extfl i))
-              (extflvector))
+  (check-equal? (for/extflvector: ([i  (in-range 0)])
+                                  (real->extfl i))
+                (extflvector))
 
-(check-equal? (for/extflvector: #:length 4 ([x  (in-range 2)]
-                                            #:when #t
-                                            [y  (in-range 2)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 1.0t0 1.0t0 2.0t0))
+  (check-equal? (for/extflvector: #:length 4 ([x  (in-range 2)]
+                                              #:when #t
+                                              [y  (in-range 2)])
+                                  (real->extfl (+ x y)))
+                (extflvector 0.0t0 1.0t0 1.0t0 2.0t0))
 
-(check-equal? (for/extflvector: #:length 4 ([x  (in-range 0)]
-                                            #:when #t
-                                            [y  (in-range 2)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 0.0t0 0.0t0 0.0t0))
+  (check-equal? (for/extflvector: #:length 4 ([x  (in-range 0)]
+                                              #:when #t
+                                              [y  (in-range 2)])
+                                  (real->extfl (+ x y)))
+                (extflvector 0.0t0 0.0t0 0.0t0 0.0t0))
 
-(check-equal? (for/extflvector: #:length 4 ([x  (in-range 2)]
-                                            #:when #t
-                                            [y  (in-range 1)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 1.0t0 0.0t0 0.0t0))
+  (check-equal? (for/extflvector: #:length 4 ([x  (in-range 2)]
+                                              #:when #t
+                                              [y  (in-range 1)])
+                                  (real->extfl (+ x y)))
+                (extflvector 0.0t0 1.0t0 0.0t0 0.0t0))
 
-(check-equal? (for/extflvector: #:length 4 ([x  (in-range 2)]
-                                            #:when #t
-                                            [y  (in-range 3)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 1.0t0 2.0t0 1.0t0))
+  (check-equal? (for/extflvector: #:length 4 ([x  (in-range 2)]
+                                              #:when #t
+                                              [y  (in-range 3)])
+                                  (real->extfl (+ x y)))
+                (extflvector 0.0t0 1.0t0 2.0t0 1.0t0))
 
-(check-equal? (for/extflvector: #:length 0 ([x  (in-range 2)]
-                                            #:when #t
-                                            [y  (in-range 3)])
-                (real->extfl (+ x y)))
-              (extflvector))
+  (check-equal? (for/extflvector: #:length 0 ([x  (in-range 2)]
+                                              #:when #t
+                                              [y  (in-range 3)])
+                                  (real->extfl (+ x y)))
+                (extflvector))
 
-(check-equal? (for/extflvector: ([x  (in-range 2)]
-                                 #:when #t
-                                 [y  (in-range 2)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 1.0t0 1.0t0 2.0t0))
+  (check-equal? (for/extflvector: ([x  (in-range 2)]
+                                   #:when #t
+                                   [y  (in-range 2)])
+                                  (real->extfl (+ x y)))
+                (extflvector 0.0t0 1.0t0 1.0t0 2.0t0))
 
-(check-equal? (for/extflvector: ([x  (in-range 0)]
-                                 #:when #t
-                                 [y  (in-range 2)])
-                (real->extfl (+ x y)))
-              (extflvector))
+  (check-equal? (for/extflvector: ([x  (in-range 0)]
+                                   #:when #t
+                                   [y  (in-range 2)])
+                                  (real->extfl (+ x y)))
+                (extflvector))
 
-;; ===================================================================================================
-;; for*/extflvector:
+  ;; ===================================================================================================
+  ;; for*/extflvector:
 
-(check-equal? (for*/extflvector: #:length 4 ([i  (in-range 4)])
-                (real->extfl i))
-              (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
+  (check-equal? (for*/extflvector: #:length 4 ([i  (in-range 4)])
+                                   (real->extfl i))
+                (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
 
-(check-equal? (for*/extflvector: #:length 4 ([i  (in-range 0)])
-                (real->extfl i))
-              (extflvector 0.0t0 0.0t0 0.0t0 0.0t0))
+  (check-equal? (for*/extflvector: #:length 4 ([i  (in-range 0)])
+                                   (real->extfl i))
+                (extflvector 0.0t0 0.0t0 0.0t0 0.0t0))
 
-(check-equal? (for*/extflvector: #:length 4 ()
-                1.2t0)
-              (extflvector 1.2t0 0.0t0 0.0t0 0.0t0))
+  (check-equal? (for*/extflvector: #:length 4 ()
+                                   1.2t0)
+                (extflvector 1.2t0 0.0t0 0.0t0 0.0t0))
 
-(check-equal? (for*/extflvector: #:length 4 ([i  (in-range 2)])
-                (real->extfl i))
-              (extflvector 0.0t0 1.0t0 0.0t0 0.0t0))
+  (check-equal? (for*/extflvector: #:length 4 ([i  (in-range 2)])
+                                   (real->extfl i))
+                (extflvector 0.0t0 1.0t0 0.0t0 0.0t0))
 
-(check-equal? (for*/extflvector: #:length 4 ([i  (in-range 5)])
-                (real->extfl i))
-              (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
+  (check-equal? (for*/extflvector: #:length 4 ([i  (in-range 5)])
+                                   (real->extfl i))
+                (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
 
-(check-equal? (for*/extflvector: #:length 0 ([i  (in-range 5)])
-                (real->extfl i))
-              (extflvector))
+  (check-equal? (for*/extflvector: #:length 0 ([i  (in-range 5)])
+                                   (real->extfl i))
+                (extflvector))
 
-(check-equal? (for*/extflvector: ([i  (in-range 4)])
-                (real->extfl i))
-              (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
+  (check-equal? (for*/extflvector: ([i  (in-range 4)])
+                                   (real->extfl i))
+                (extflvector 0.0t0 1.0t0 2.0t0 3.0t0))
 
-(check-equal? (for*/extflvector: () 1.2t0)
-              (extflvector 1.2t0))
+  (check-equal? (for*/extflvector: () 1.2t0)
+                (extflvector 1.2t0))
 
-(check-equal? (for*/extflvector: ([i  (in-range 0)])
-                (real->extfl i))
-              (extflvector))
+  (check-equal? (for*/extflvector: ([i  (in-range 0)])
+                                   (real->extfl i))
+                (extflvector))
 
-(check-equal? (for*/extflvector: #:length 4 ([x  (in-range 2)]
-                                             [y  (in-range 2)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 1.0t0 1.0t0 2.0t0))
+  (check-equal? (for*/extflvector: #:length 4 ([x  (in-range 2)]
+                                               [y  (in-range 2)])
+                                   (real->extfl (+ x y)))
+                (extflvector 0.0t0 1.0t0 1.0t0 2.0t0))
 
-(check-equal? (for*/extflvector: #:length 4 ([x  (in-range 0)]
-                                             [y  (in-range 2)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 0.0t0 0.0t0 0.0t0))
+  (check-equal? (for*/extflvector: #:length 4 ([x  (in-range 0)]
+                                               [y  (in-range 2)])
+                                   (real->extfl (+ x y)))
+                (extflvector 0.0t0 0.0t0 0.0t0 0.0t0))
 
-(check-equal? (for*/extflvector: #:length 4 ([x  (in-range 2)]
-                                             [y  (in-range 1)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 1.0t0 0.0t0 0.0t0))
+  (check-equal? (for*/extflvector: #:length 4 ([x  (in-range 2)]
+                                               [y  (in-range 1)])
+                                   (real->extfl (+ x y)))
+                (extflvector 0.0t0 1.0t0 0.0t0 0.0t0))
 
-(check-equal? (for*/extflvector: #:length 4 ([x  (in-range 2)]
-                                             [y  (in-range 3)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 1.0t0 2.0t0 1.0t0))
+  (check-equal? (for*/extflvector: #:length 4 ([x  (in-range 2)]
+                                               [y  (in-range 3)])
+                                   (real->extfl (+ x y)))
+                (extflvector 0.0t0 1.0t0 2.0t0 1.0t0))
 
-(check-equal? (for*/extflvector: #:length 0 ([x  (in-range 2)]
-                                             [y  (in-range 3)])
-                (real->extfl (+ x y)))
-              (extflvector))
+  (check-equal? (for*/extflvector: #:length 0 ([x  (in-range 2)]
+                                               [y  (in-range 3)])
+                                   (real->extfl (+ x y)))
+                (extflvector))
 
-(check-equal? (for*/extflvector: ([x  (in-range 2)]
-                                  [y  (in-range 2)])
-                (real->extfl (+ x y)))
-              (extflvector 0.0t0 1.0t0 1.0t0 2.0t0))
+  (check-equal? (for*/extflvector: ([x  (in-range 2)]
+                                    [y  (in-range 2)])
+                                   (real->extfl (+ x y)))
+                (extflvector 0.0t0 1.0t0 1.0t0 2.0t0))
 
-(check-equal? (for*/extflvector: ([x  (in-range 0)]
-                                  [y  (in-range 2)])
-                (real->extfl (+ x y)))
-              (extflvector))
+  (check-equal? (for*/extflvector: ([x  (in-range 0)]
+                                    [y  (in-range 2)])
+                                   (real->extfl (+ x y)))
+                (extflvector)))

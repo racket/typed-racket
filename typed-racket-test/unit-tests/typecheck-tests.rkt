@@ -439,8 +439,6 @@
         (tc-e (- -23524623547234734568) -PosInt)
         (tc-e (- 241.3) -NegFlonum)
         (tc-e (- -24.3) -PosFlonum)
-        #reader tests/racket/maybe-single (tc-e/t 34.2f0 -PosSingleFlonumNoNan)
-        #reader tests/racket/maybe-single (tc-e/t -34.2f0 -NegSingleFlonumNoNan)
         (tc-e (/ (ann 0 Nonnegative-Real) (ann 1 Nonnegative-Real)) -Real)
 
         (tc-e (- (ann 1000 Index) 1) -Fixnum)
@@ -474,7 +472,6 @@
         (tc-e (expt 0.5 0) -One)
         (tc-e (expt -1/2 -1/2) -Number)
         (tc-e (expt (ann 0.5 Float) (ann 2 Natural)) -Real)
-        #reader tests/racket/maybe-single (tc-e (expt (ann 0.5f0 Single-Flonum) (ann 2 Natural)) -Real)
         (tc-e (expt (*) -0.0) (t:Un -NonNegFlonum -One))
         (tc-e (expt (*) 2.4521075152139656e-300) (t:Un -NonNegFlonum -One))
         (tc-e (expt (*) -0.0) (t:Un -NonNegFlonum -One))
@@ -487,12 +484,6 @@
                x
                -3.0))
            -Flonum)
-        (tc-e/t ;; Github issue #115
-          (let ([x : ExtFlonum 5.0t1])
-            (if (extfl>= x (ann -4.0t1 Nonpositive-ExtFlonum))
-              x
-              -3.0t1))
-          -ExtFlonum)
         (tc-e ;; Github issue #114
           (fx- 0 5)
           -NegFixnum)
@@ -505,11 +496,6 @@
               1.0
               x))
           -NonNegFlonum)
-        #reader tests/racket/maybe-single
-        (tc-e (expt
-               (sub1 (gcd (exact-round 1)))
-               (- (ceiling (real->double-flonum -2.6897657f0))))
-              -Real)
         (tc-e (expt (sqrt (+)) (cosh (flcos (real->double-flonum 0))))
               -Real)
         (tc-e (expt
@@ -521,9 +507,7 @@
         (tc-e (flexpt 0.5 0.3) -NonNegFlonum)
         (tc-e (flexpt 0.00000000001 100000000000.0) -NonNegFlonum)
         (tc-e (flexpt -2.0 -0.5) -Flonum) ; NaN
-        (tc-e (extflexpt 0.5t0 0.3t0) -NonNegExtFlonum)
-        (tc-e (extflexpt 0.00000000001t0 100000000000.0t0) -NonNegExtFlonum)
-        (tc-e (extflexpt -2.0t0 -0.5t0) -ExtFlonum) ; NaN
+
         (tc-e (let-values ([(x y) (integer-sqrt/remainder 0)]) (+ x y)) -Zero)
         (tc-e (tanh (ann 0 Nonnegative-Integer)) -NonNegReal)
         (tc-e (sinh (ann 0 Nonpositive-Integer)) -NonPosReal)
@@ -536,22 +520,9 @@
         (tc-e (min (ann -2 Negative-Fixnum) (ann 3 Fixnum)) -NegFixnum)
         (tc-e (min (ann 3 Fixnum) (ann -2 Negative-Fixnum)) -NegFixnum)
         (tc-e (fl/ 1.7976931348623157e+308 -0.0e0) -Flonum)
-        #reader tests/racket/maybe-single 
-        (tc-e (expt (make-rectangular 3 -1.7976931348623157e+308) (flacos (real->double-flonum 59.316513f0))) (t:Un -Flonum -FloatComplex))
         (tc-e (exact->inexact (ann 3 Number)) (t:Un -InexactReal -InexactComplex))
-        #reader tests/racket/maybe-single 
-        (tc-e (/ (round (exact-round -2.7393196f0)) (real->double-flonum (inexact->exact (real->single-flonum -0.0)))) -Real)
         (tc-e (bitwise-and (exact-round 1.7976931348623157e+308) (exact-round -29)) -Int)
         (tc-e (flexpt -0.0 -1.0) -Flonum)
-        #reader tests/racket/maybe-single
-        (tc-e (expt -0.0f0 -3.0) -Real)
-        #reader tests/racket/maybe-single 
-        (tc-e (expt -8.665778974912815f+107 -677460115195106837726964554590085563061636191189747) -Number)
-        (tc-e (expt (sin +inf.f) +nan.0+nan.0i) -Number)
-        #reader tests/racket/maybe-single 
-        (tc-e (/ (gcd 1 0) -0.0f0 2.718281828459045) -Real)
-        #reader tests/racket/maybe-single 
-        (tc-e (expt (make-polar (floor 6.468476f+31) (tanh +nan.f)) +nan.0) -Number)
         (tc-e (exact->inexact 3) -PosFlonum)
         (tc-e (exact->inexact -3) -NegFlonum)
         (tc-e (real->double-flonum 0.0) -FlonumPosZero)
@@ -576,10 +547,6 @@
         (tc-e (real->single-flonum -1e-300) -NonPosSingleFlonum)
         (tc-e (real->single-flonum 3) -PosSingleFlonum)
         (tc-e (real->single-flonum -3) -NegSingleFlonum)
-        (tc-e (extfl->inexact 1t-500) -NonNegFlonum)
-        (tc-e (extfl->inexact -1t-500) -NonPosFlonum)
-        (tc-e (real->extfl #e1e-8192) -NonNegExtFlonum)
-        (tc-e (real->extfl #e-1e-8192) -NonPosExtFlonum)
         (tc-err (let: ([z : 10000000000000 10000000000000]) z)) ; unsafe
         (tc-err (let: ([z : -4611686018427387904 -4611686018427387904]) z)) ; unsafe
         (tc-e/t (let: ([z : -4611686018427387905 -4611686018427387905]) z)
@@ -2650,10 +2617,8 @@
                (define f1 (sequence-ref s1 0))
                (define s2 (in-fxvector (fxvector 1 2 3)))
                (define f2 (sequence-ref s2 2))
-               (define s3 (in-extflvector (extflvector 1.0t0 2.0t0 3.0t0)))
-               (define f3 (sequence-ref s3 1))
-               (list f1 f2 f3))
-             (-lst* -Flonum -Fixnum -ExtFlonum)]
+               (list f1 f2))
+             (-lst* -Flonum -Fixnum)]
 
        ;; The typechecker should be able to handle the expansion of
        ;; for/flvector, for*/flvector, for/extflvector, and for*/extflvector
@@ -2667,16 +2632,6 @@
                          [b (list 1 1 2 3 5)])
            (real->double-flonum (+ a b)))
          -FlVector]
-       [tc-e
-         (for/extflvector ([a (list 0 1 1 2 3)]
-                           [b (list 1 1 2 3 5)])
-           (real->extfl (+ a b)))
-         -ExtFlVector]
-       [tc-e
-         (for*/extflvector ([a (list 0 1 1 2 3)]
-                            [b (list 1 1 2 3 5)])
-           (real->extfl (+ a b)))
-         -ExtFlVector]
 
        ;; for/hash, for*/hash - PR 14306
        [tc-e (for/hash: : (HashTable Symbol String)
@@ -5234,6 +5189,71 @@
                                 : (make-Path null (cons 0 0))))
                         -true-propset))
        )
+      #reader tests/racket/maybe-single
+      (if (single-flonum-available?)
+          (test-suite "single-flonum tests"
+                      (tc-e/t 34.2f0 -PosSingleFlonumNoNan)
+                      (tc-e/t -34.2f0 -NegSingleFlonumNoNan)                      
+                      (tc-e (expt (ann 0.5f0 Single-Flonum) (ann 2 Natural)) -Real)
+                      (tc-e (expt
+                             (sub1 (gcd (exact-round 1)))
+                             (- (ceiling (real->double-flonum -2.6897657f0))))
+                            -Real)
+                      (tc-e (expt (make-rectangular 3 -1.7976931348623157e+308) (flacos (real->double-flonum 59.316513f0))) (t:Un -Flonum -FloatComplex))
+                      (tc-e (/ (round (exact-round -2.7393196f0)) (real->double-flonum (inexact->exact (real->single-flonum -0.0)))) -Real)
+                      (tc-e (expt -0.0f0 -3.0) -Real)
+                      (tc-e (expt -8.665778974912815f+107 -677460115195106837726964554590085563061636191189747) -Number)
+                      (tc-e (expt (sin +inf.f) +nan.0+nan.0i) -Number)
+                      (tc-e (/ (gcd 1 0) -0.0f0 2.718281828459045) -Real)
+                      (tc-e (expt (make-polar (floor 6.468476f+31) (tanh +nan.f)) +nan.0) -Number)
+
+                      )
+          (test-suite "single-flonum tests"))
+      (if (extflonum-available?)
+          
+          (test-suite
+           "extflonum tests"
+           (tc-e/t ;; Github issue #115
+            (let ([x : ExtFlonum 5.0t1])
+              (if (extfl>= x (ann -4.0t1 Nonpositive-ExtFlonum))
+                  x
+                  -3.0t1))
+            -ExtFlonum)
+           [tc-e (let ()
+                   (define s3 (in-extflvector (extflvector 1.0t0 2.0t0 3.0t0)))
+                   (define f3 (sequence-ref s3 1))
+                   (list f3))
+                 (-lst* -ExtFlonum)]
+   
+           [tc-e
+            (for/extflvector ([a (list 0 1 1 2 3)]
+                              [b (list 1 1 2 3 5)])
+              (real->extfl (+ a b)))
+            -ExtFlVector]
+           [tc-e
+            (for*/extflvector ([a (list 0 1 1 2 3)]
+                               [b (list 1 1 2 3 5)])
+              (real->extfl (+ a b)))
+            -ExtFlVector]
+   
+           (tc-e (extflexpt 0.5t0 0.3t0) -NonNegExtFlonum)
+           (tc-e (extflexpt 0.00000000001t0 100000000000.0t0) -NonNegExtFlonum)
+           (tc-e (extflexpt -2.0t0 -0.5t0) -ExtFlonum) ; NaN
+   
+           (tc-e (extfl->inexact 1t-500) -NonNegFlonum)
+           (tc-e (extfl->inexact -1t-500) -NonPosFlonum)
+           (tc-e (real->extfl #e1e-8192) -NonNegExtFlonum)
+           (tc-e (real->extfl #e-1e-8192) -NonPosExtFlonum)
+           (tc-l 0.0t0 -ExtFlonumPosZero)
+           (tc-l -0.0t0 -ExtFlonumNegZero)
+           (tc-l 5#t0 -PosExtFlonum)
+           (tc-l 5.0t0 -PosExtFlonum)
+           (tc-l 5.1t0 -PosExtFlonum)
+           (tc-l -5#t0 -NegExtFlonum)
+           (tc-l -5.0t0 -NegExtFlonum)
+           (tc-l -5.1t0 -NegExtFlonum))
+          
+          (test-suite "extflonum tests"))
 
   (test-suite
    "tc-literal tests"
@@ -5248,14 +5268,6 @@
    (tc-l -5# -NegFlonumNoNan)
    (tc-l -5.0 -NegFlonumNoNan)
    (tc-l -5.1 -NegFlonumNoNan)
-   (tc-l 0.0t0 -ExtFlonumPosZero)
-   (tc-l -0.0t0 -ExtFlonumNegZero)
-   (tc-l 5#t0 -PosExtFlonum)
-   (tc-l 5.0t0 -PosExtFlonum)
-   (tc-l 5.1t0 -PosExtFlonum)
-   (tc-l -5#t0 -NegExtFlonum)
-   (tc-l -5.0t0 -NegExtFlonum)
-   (tc-l -5.1t0 -NegExtFlonum)
    (tc-l 1+1i -ExactNumber)
    (tc-l 1+1.0i -FloatComplex)
    (tc-l 1.0+1i -FloatComplex)

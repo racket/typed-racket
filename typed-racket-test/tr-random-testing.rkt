@@ -201,7 +201,8 @@
 (define racket-eval (mk-eval 'racket))
 (define tr-eval     (mk-eval 'typed/racket))
 
-(define-values (bin-dir _1 _2) (split-path (find-system-path 'exec-file)))
+(define-values (bin-dir _1 _2)
+  (split-path (find-executable-path (find-system-path 'exec-file))))
 (define racketcs (build-path bin-dir "racketcs"))
 (define-runtime-path racketcs-harness "./racketcs-eval-server.rkt")
 (define-values (rcs-process rcs-out rcs-in rcs-err)
@@ -219,6 +220,13 @@
   (if (string? result)
       (error 'racketcs-eval result)
       result))
+
+(define (simplify-expanded e)
+  (match e
+    [`(#%app . ,e) (map simplify-expanded e)]
+    [`(quote ,(? number? n)) n]
+    [(? list?) (map simplify-expanded e)]
+    [e e]))
 
 (define (same-result-as-untyped? sexp [verbose? #f])
   (define racket-failed?  #f)
@@ -240,6 +248,8 @@
            ;; for NaN, which is not = to itself
            (or (equal? racket-result tr-result)
                (begin (printf "not same result untyped: ~s typed: ~s\n" racket-result tr-result)
+                      (printf "expanded typed code is: ~s\n"
+                              (simplify-expanded (tr-eval `(syntax->datum (expand (quote (#%top-interaction . ,sexp)))))))
                       #f)))))
 
 (define (same-result-as-racketcs? sexp [verbose? #f])

@@ -451,14 +451,15 @@
      (-NegFl     -NegFlonum     -NegExtFlonum)
      (-NonNegFl  -NonNegFlonum  -NonNegExtFlonum)
      (-NonPosFl  -NonPosFlonum  -NonPosExtFlonum)
-     (-Fl        -Flonum        -ExtFlonum)])
+     (-Fl        -Flonum        -ExtFlonum)
+     (-NonNegSignFl -NonNegSignFlonum -NonNegSignExtFlonum)])
 
 
   (define flabs-type
     (fl-type-lambda
       (cl->* (-> -FlZero (Un -FlPosZero -FlonumNan))
              (-> (Un -PosFl -NegFl) -PosFl)
-             (-> -Fl -NonNegSignFlonum))))
+             (-> -Fl -NonNegSignFl))))
   (define fl+-type
     (fl-type-lambda
       (from-cases (map (lambda (t) (commutative-binop t -FlZero t))

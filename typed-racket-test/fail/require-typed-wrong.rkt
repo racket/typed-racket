@@ -1,5 +1,5 @@
 #;
-(exn-pred ".*contract.*")
+(exn-pred "(.*contract.*)|(add1.*is not a number.*)")
 #lang scheme/load
 
 (module m typed-scheme

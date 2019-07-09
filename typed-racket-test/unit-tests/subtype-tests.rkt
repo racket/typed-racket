@@ -325,14 +325,27 @@
    [FAIL (make-Mutable-HeterogeneousVector (list t1a t1b)) (make-Immutable-HeterogeneousVector (list t1b t1a))]
    ))
 
+(define single-flonum-tests/racket
+  #reader tests/racket/maybe-single
+  (subtyping-tests
+   "Single flonum set theoretic (Traditional Racket)"
+   [(-val 0.0f0) -SingleFlonum]
+   [(-val -0.0f0) -SingleFlonum]
+   [(-val 1.0f0) -SingleFlonum]
+   [(-val -34.2f0) -NegSingleFlonum]))
+
+(define single-flonum-tests/racketcs
+  (subtyping-tests
+   "Single flonum set theoretic (RacketCS)"
+   [(-val 0.0f0) -Flonum]
+   [(-val -0.0f0) -Flonum]
+   [(-val 1.0f0) -Flonum]
+   [(-val -34.2f0) -Flonum]))
+
 (define set-theoretic-type-tests
   (subtyping-tests
    "Set-theoretic Subtyping"
    ;; Unions
-   #reader tests/racket/maybe-single [(-val 0.0f0) -SingleFlonum]
-   #reader tests/racket/maybe-single [(-val -0.0f0) -SingleFlonum]
-   #reader tests/racket/maybe-single [(-val 1.0f0) -SingleFlonum]
-   #reader tests/racket/maybe-single [(-val -34.2f0) -NegSingleFlonum]
    [(-val 6) -Number]
    [(Un (-val 'foo) (-val 6)) (Un (-val 'foo) (-val 6))]
    [(Un -Number) -Number]
@@ -1053,6 +1066,9 @@
    simple-tests
    structural-tests
    set-theoretic-type-tests
+   (if (single-flonum-available?)
+       single-flonum-tests/racket
+       single-flonum-tests/racketcs)
    struct-tests
    poly-tests
    function-tests

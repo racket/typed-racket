@@ -21,7 +21,7 @@ install:
 - raco pkg config catalogs >> catalog-config.txt
 - raco pkg config --set catalogs `cat catalog-config.txt`
 - raco pkg update -i --auto --no-setup source-syntax/ typed-racket-lib/ typed-racket-more/ typed-racket-compatibility/ typed-racket-doc/ typed-racket/ typed-racket-test/
-- raco setup typed typed-racket typed-racket-test typed-scheme
+- raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
 
 script:
 - if [ $TESTS = "unit" ]; then racket -l typed-racket-test -- --unit; fi

@@ -4,6 +4,7 @@
 
 (define deps '(("base" #:version "7.3.0.11")
                "source-syntax"
+               "pconvert-lib"
                "compatibility-lib" ;; to assign types
                "string-constants-lib"))
 

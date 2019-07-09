@@ -94,8 +94,10 @@
     [(~var i (3d (lambda (x) (eqv? x +nan.t)))) -ExtFlonumNan]
     [(~var i (3d (lambda (x) (eqv? x +inf.t)))) (-val +inf.t)]
     [(~var i (3d (lambda (x) (eqv? x -inf.t)))) (-val -inf.t)]
-    [(~var i (3d (conjoin extflonum? (λ (x) (extfl> x 0.0t0))))) -PosExtFlonum]
-    [(~var i (3d (conjoin extflonum? (λ (x) (extfl< x 0.0t0))))) -NegExtFlonum]
+    [(~var i (3d (conjoin extflonum? (λ (x) (and (extflonum-available?) (extfl> x 0.0t0))))))
+     -PosExtFlonum]
+    [(~var i (3d (conjoin extflonum? (λ (x) (and (extflonum-available?) (extfl< x 0.0t0))))))
+     -NegExtFlonum]
     [(~var i (3d extflonum?)) -ExtFlonum] ; for nan
     
     [i:str -String]

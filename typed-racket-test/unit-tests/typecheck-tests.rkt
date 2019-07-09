@@ -478,7 +478,7 @@
         (tc-e (expt (*) -0.0) (t:Un -NonNegFlonum -One))
         (tc-e (expt (*) 2.4521075152139656e-300) (t:Un -NonNegFlonum -One))
         (tc-e (expt (*) -0.0) (t:Un -NonNegFlonum -One))
-        (tc-e (expt -0.0 -1.0) -NonNegFlonum)
+        (tc-e (expt -0.0 -1.0) -Flonum)
         (tc-e (expt 0 (flabs (cos (real->double-flonum 2))))
               -Real)
         (tc-e/t ;; Github issue #115

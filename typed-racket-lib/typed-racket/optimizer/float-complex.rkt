@@ -121,13 +121,21 @@
              [b     (if swap? #,a #,b)]
              [c     (if swap? #,d #,c)]
              [d     (if swap? #,c #,d)]
-             [r     (unsafe-fl/ c d)]
-             [den   (unsafe-fl+ d (unsafe-fl* c r))]
-             [i     (if swap?
-                        (unsafe-fl/ (unsafe-fl- a (unsafe-fl* b r)) den)
-                        (unsafe-fl/ (unsafe-fl- (unsafe-fl* b r) a) den))])
-        (values (unsafe-fl/ (unsafe-fl+ b (unsafe-fl* a r)) den)
-                i)))
+             [r     (unsafe-fl/ c d)])
+        (if (or (eqv? r +inf.0) (eqv? r -inf.0))
+            (let ([cm (unsafe-fl+ (unsafe-fl* c c) (unsafe-fl* d d))])
+              (values (unsafe-fl/ (unsafe-fl+ (unsafe-fl* a c)
+                                              (unsafe-fl* b d))
+                                  cm)
+                      (unsafe-fl/ (unsafe-fl- (unsafe-fl* b c)
+                                              (unsafe-fl* a d))
+                                  cm)))
+            (let* ([den   (unsafe-fl+ d (unsafe-fl* c r))]
+                   [i     (if swap?
+                              (unsafe-fl/ (unsafe-fl- a (unsafe-fl* b r)) den)
+                              (unsafe-fl/ (unsafe-fl- (unsafe-fl* b r) a) den))])
+              (values (unsafe-fl/ (unsafe-fl+ b (unsafe-fl* a r)) den)
+                      i)))))
 
   (cond [(and first-non-float second-non-float both-real?)
          ;; we haven't hit float operands, so we shouldn't coerce to float yet
@@ -190,13 +198,22 @@
              [a     #,a] ; don't swap with `b` (`0`) here, but handle below
              [c     (if swap? #,d #,c)]
              [d     (if swap? #,c #,d)]
-             [r     (unsafe-fl/ c d)]
-             [den   (unsafe-fl+ d (unsafe-fl* c r))]
-             [i     (if swap?
-                        (unsafe-fl/ (unsafe-fl* -1.0 (unsafe-fl* a r)) den)
-                        (unsafe-fl/ (unsafe-fl* -1.0 a) den))]
-             [j     (if swap? a (unsafe-fl* a r))])
-          (values (unsafe-fl/ j den) i)))
+             [r     (unsafe-fl/ c d)])
+        (if (or (eqv? r +inf.0) (eqv? r -inf.0))
+            (let ([cm (unsafe-fl+ (unsafe-fl* c c) (unsafe-fl* d d))])
+              (if swap?
+                  (values (unsafe-fl/ (unsafe-fl* a d) cm)
+                          (unsafe-fl/ (unsafe-fl* a c)
+                                      cm))
+                  (values (unsafe-fl/ (unsafe-fl* a c) cm)
+                          (unsafe-fl/ (unsafe-fl* -1.0 (unsafe-fl* a d))
+                                      cm))))
+            (let* ([den   (unsafe-fl+ d (unsafe-fl* c r))]
+                   [i     (if swap?
+                              (unsafe-fl/ (unsafe-fl* -1.0 (unsafe-fl* a r)) den)
+                              (unsafe-fl/ (unsafe-fl* -1.0 a) den))]
+                   [j     (if swap? a (unsafe-fl* a r))])
+              (values (unsafe-fl/ j den) i)))))
   #`[(#,res-real #,res-imag)
      (cond [(unsafe-fl= #,d 0.0) #,d=0-case]
            [(unsafe-fl= #,c 0.0) #,c=0-case]

@@ -251,7 +251,11 @@ and the @racket[URL] and @racket[Path/Param] types from
 
 @history[#:changed "1.10"
          @elem{Updated to reflect @racketmodname[web-server/http]
-          version 1.3.}]
+          version 1.3.}
+         #:changed "1.11"
+         @elem{Updated to reflect @racketmodname[web-server/http]
+          version 1.4.}
+         ]
 
 @defmodule/incl[typed/db]
 @defmodule/incl[typed/db/base]

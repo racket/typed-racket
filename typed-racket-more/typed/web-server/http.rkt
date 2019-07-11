@@ -57,14 +57,14 @@
 (require/typed/provide web-server/http/response-structs
                        [#:struct response
                                  ([code : Natural]
-                                  [message : Bytes]
+                                  [message : Bytes] ;; NOT (Option Bytes)
                                   [seconds : Real]
                                   [mime : (Option Bytes)]
                                   [headers : (Listof Header)]
                                   [output : (-> Output-Port Any)])]
                        [response/full
                         (-> Natural
-                            Bytes
+                            (Option Bytes)
                             Real
                             (Option Bytes)
                             (Listof Header)
@@ -73,7 +73,7 @@
                        [response/output
                         (-> (-> Output-Port Any)
                             [#:code Natural]
-                            [#:message Bytes]
+                            [#:message (Option Bytes)]
                             [#:seconds Real]
                             [#:mime-type (Option Bytes)]
                             [#:headers (Listof Header)]
@@ -210,7 +210,7 @@
                        [response/xexpr
                         (-> Any  ;;; it should be `xexpr?`ed value, but `Any` also works well.
                             [#:code Natural]
-                            [#:message Bytes]
+                            [#:message (Option Bytes)]
                             [#:seconds Real]
                             [#:mime-type (Option Bytes)]
                             [#:headers (Listof Header)]

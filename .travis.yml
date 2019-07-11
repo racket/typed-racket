@@ -12,6 +12,14 @@ env:
 - TESTS=extra VARIANT=cs PATH=~/racket/bin:$PATH
 - TESTS=extra PATH=~/racket/bin:$PATH
 
+matrix:
+  allow_failures:
+  - TESTS=unit VARIANT=cs PATH=~/racket/bin:$PATH
+  - TESTS=int  VARIANT=cs PATH=~/racket/bin:$PATH
+  - TESTS=math VARIANT=cs PATH=~/racket/bin:$PATH
+  - TESTS=extra VARIANT=cs PATH=~/racket/bin:$PATH
+  
+
 before_install:
 - "export DISPLAY=:99.0"
 - "sh -e /etc/init.d/xvfb start"

@@ -28,7 +28,9 @@ migrating contract-using Racket programs to Typed Racket is harder.
 
 The current implementation supports most of the data structure
 contracts in the contract documentation, and it also supports most of
-`->i`, `->*`, and `contract-out`.
+`->i`, `->*`, and `contract-out`. (But the `struct/c` form isn't yet
+supported, and things like the `struct` *contract-out-item* may need
+special support from a TR version of `contract-out`).
 
 # Guide-level explanation
 
@@ -91,6 +93,21 @@ lines up, we take the the input type of the first contract type
 (`Integer`) and the output type of the last contract (`Integer`) and
 give the whole contract type `(Contract Any Integer)`.
 
+---
+
+As another example, this is a contract for lists of positive numbers:
+
+    (listof positive?)
+
+Since `positive?` has type `(-> Real Boolean : #:+ Positive-Real)`,
+this list contract has type `(Contract (Listof Real) (Listof
+Positive-Real))`.
+
+The `listof` combinator itself has type `(-> (Contract a b) (Contract
+(Listof a) (Listof b)))`. (Maybe we could give it a more specific type
+with `case->` so that when applied to a `FlatContract`, `listof`
+returns a `FlatContract`.)
+
 ## Contracts on higher-order types
 
 If a function only consumes and produces positive reals, a Racket
@@ -117,23 +134,23 @@ range contract.
 This value flow is reflected in the type of a function contract. For
 our `(->/c positive? positive?)` the type is
 
-    (Contract (-> {2} Positive-Real Real {3})
-              (-> {1} Real Positive-Real {4}))
+    (Contract (-> #|2|#Positive-Real #|3|#Real)
+              (-> #|1|#Real #|4|#Positive-Real))
 
 In the output type of the contract, here a function type, the domain
-type is `Real` (marked `{1}`). This is because after applying the
+type is `Real` (marked `#|1|#`). This is because after applying the
 contract to a function, calling the result with a value will apply the
 domain contract (with input type `Real`) to that value. If the value
 passes the domain contract, we know it is a `Positive-Real` by the
 domain contract's output type, which is reflected in the input type's
-domain contract (marked `{2}`). This means that a function we apply
+domain contract (marked `#|2|#`). This means that a function we apply
 this contract to has to accept `Positive-Real` values.
 
 In the input type of the contract, the range of the type is `Real`
-(marked `{3}`) because applying the contract to a function is only
+(marked `#|3|#`) because applying the contract to a function is only
 allowed if that function returns a value that can flow through the
 range contract (whose input type is `Real`). Finally, in the output
-type of the contract the range type is `Positive-Real` (marked `{4}`)
+type of the contract the range type is `Positive-Real` (marked `#|4|#`)
 because that's the output type of the range contract. This means that
 if we apply this contract to a function, then the resuling function
 returns at least a `Positive-Real` if it returns at all.
@@ -158,16 +175,20 @@ exceptions:
     intersection" and in the thesis this is the `comb` operator.
 
 As far as subtyping goes, `(Contract S T)` and `(FlatContract S T)` is
-contravariant in `S` and covariant in `T`.
+contravariant in `S` and covariant in `T`. And a `FlatContract` type
+is a subtype of a `Contract` type according to the same variance
+conditions.
 
 ## How the feature would be implemented
 
 The MS thesis linked up top gives type rules formalizing what I walked
 through in the guide-level explanation. It also discuss some of the
-implementation techniques used.
+implementation techniques used for macro-based combinators like `->i`.
 
-(The current implementation may have some support for this part of the
-RFC, too.)
+Adding the *types* to TR is just like adding other types: define new
+type constructors with the proper variance, define aliases
+(e.g. `FlatContract` as a union type), extend the parser/pretty
+printer, and add cases to the subtyping procedure.
 
 ## Corner cases
 
@@ -179,9 +200,14 @@ a value of contract type because I haven't defined a way to compile
 those types to contracts.
 
 I haven't properly looked at how these contract types interact with
-polymorphic types. Currently the only way to get primitive contracts
-with such a type are a predicates on values of some polymorphic type,
-e.g. a function like `null?`.
+polymorphic types. I'll update the PR to reject polymorphic types that
+appear in contracts and to reject functions like `null?` (which has a
+polymorphic type) from being used like contracts. (This sounds tricky:
+we want combinators like `listof` to have a function type where
+possible, which currently relies on polymorphism, but we want to
+reject attempts to construct a contract over polymorphic types. At any
+rate, I'll try to reject this polymorphism corner case with a useful
+error message.)
 
 # Drawbacks and Alternatives
 

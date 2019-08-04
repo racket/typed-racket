@@ -66,6 +66,7 @@
 ;; substitute-dots : Listof[Type] Option[type] Name Type -> Type
 ;; implements angle bracket substitution from the formalism (TODO what formalism?)
 ;; substitute-dots : Listof[Type] Option[type] Name Type -> Type
+;; TODO: a generic dotted type would avoid duplication here.
 (define/cond-contract (substitute-dots images rimage name target)
   ((listof Rep?) (or/c #f Rep?) symbol? Rep?  . -> . Rep?)
   (let sub ([target target])

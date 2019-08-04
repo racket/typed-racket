@@ -1123,6 +1123,7 @@
 
 ;; Syntax -> Type
 ;; Parse a (List ...) type
+;; TODO: a generic dotted type would avoid duplication of this code.
 (define (parse-list-type stx)
   (parameterize ([current-orig-stx stx])
     (syntax-parse stx

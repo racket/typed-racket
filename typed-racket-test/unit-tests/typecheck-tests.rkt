@@ -4033,6 +4033,38 @@
                  (f g))
                #:ret (tc-ret Univ)]
 
+       ;; make-do-sequence
+       [tc-e (make-do-sequence
+              (lambda: ()
+                (values (lambda: ([pos : Integer]) : Integer
+                          (values pos))
+                        add1
+                        0
+                        #f
+                        #f
+                        #f)))
+             (-seq -Int)]
+       [tc-e (make-do-sequence
+              (lambda: ()
+                (values (lambda: ([pos : Integer]) : Integer
+                          (values pos))
+                        add1
+                        0
+                        (lambda: ([pos : Integer]) #t)
+                        (lambda: ([v : Integer]) #t)
+                        (lambda: ([pos : Integer] [v : Integer]) #t))))
+             (-seq -Int)]
+       [tc-e (make-do-sequence
+              (lambda: ()
+                (values (lambda: ([pos : Integer]) : (Values Integer Symbol)
+                          (values pos 'dummy))
+                        add1
+                        0
+                        #f
+                        (lambda: ([v1 : Integer] [v2 : Symbol]) #t)
+                        (lambda: ([pos : Integer] [v1 : Integer] [v2 : Symbol]) #t))))
+             (-seq -Int -Symbol)]
+
        ;; integer literals w/ refinements
        [tc-e (ann -1 (Refine [x : Integer] (= x -1)))
              (-refine/fresh x -Int (-eq (-lexp x) (-lexp -1)))]

@@ -78,7 +78,8 @@
                             [#:mime-type (Option Bytes)]
                             [#:headers (Listof Header)]
                             Response)]
-                       [TEXT/HTML-MIME-TYPE Bytes])
+                       [TEXT/HTML-MIME-TYPE Bytes]
+                       [APPLICATION/JSON-MIME-TYPE Bytes])
 
 ;; For backwards compatability:
 ;; these bindings are not and never were

@@ -136,7 +136,7 @@
                             [#:extension (Option String)]
                             ;; yes, these are really different
                             ;; than for typed/net/cookies/server
-                            [#:secure? Any]	 	 	 	 
+                            [#:secure? Any]
                             [#:http-only? Any]
                             Cookie)]
                        [request-id-cookie

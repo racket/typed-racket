@@ -217,4 +217,14 @@
                             [#:headers (Listof Header)]
                             [#:cookies (Listof Cookie)]
                             [#:preamble Bytes]
+                            Response)]
+                       [response/jsexpr
+                        (-> JSExpr?
+                            [#:code Natural]
+                            [#:message (Option Bytes)]
+                            [#:seconds Real]
+                            [#:mime-type (Option Bytes)]
+                            [#:headers (Listof Header)]
+                            [#:cookies (Listof Cookie)]
+                            [#:preamble Bytes]
                             Response)])

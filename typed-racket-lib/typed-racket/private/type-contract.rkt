@@ -439,8 +439,7 @@
                  (not (regexp? v)))
             (flat/sc #`(quote #,v))
             (flat/sc #`(flat-named-contract '#,v (lambda (x) (equal? x '#,v))) v))]
-       [(Base-name/contract: sym ctc)
-        (flat/sc #`(flat-named-contract '#,sym (flat-contract-predicate #,ctc)) sym)]
+       [(Base-name/contract: sym ctc) (flat/sc ctc)]
        [(Distinction: _ _ t) ; from define-new-subtype
         (t->sc t)]
        [(Refinement: par p?)
@@ -1115,8 +1114,7 @@
       (prefix-in t: (types numeric-predicates))))
   (provide (all-defined-out))
 
-  (define-syntax-rule (numeric/sc name body)
-    (flat/sc #'(flat-named-contract 'name body) 'name))
+  (define-syntax-rule (numeric/sc name body) (flat/sc #'body))
 
   (define positive-byte/sc (numeric/sc Positive-Byte (and/c byte? positive?)))
   (define byte/sc (numeric/sc Byte byte?))

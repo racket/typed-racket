@@ -1,5 +1,5 @@
 #;
-(exn-pred exn:fail:contract? #rx".*produced: 3" #rx".*promised: String.*" )
+(exn-pred exn:fail:contract? #rx".*produced: 3" #rx".*promised: string?.*" )
 
 #lang typed/racket/base
 

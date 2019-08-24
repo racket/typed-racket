@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"expected: String.*given: 'not-a-string")
+(exn-pred #rx"expected: string?.*given: 'not-a-string")
 #lang racket
 
 ;; Ensure contracts for inner work correctly

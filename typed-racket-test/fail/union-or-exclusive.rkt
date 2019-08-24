@@ -1,5 +1,5 @@
 #;
-(exn-pred exn:fail:contract? "Real")
+(exn-pred exn:fail:contract? "real?")
 #lang typed/racket #:no-optimize
 
 

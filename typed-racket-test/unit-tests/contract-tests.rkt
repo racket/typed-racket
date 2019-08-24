@@ -2,7 +2,8 @@
 
 (require "test-utils.rkt"
          (for-syntax racket/base
-                     syntax/parse)
+                     syntax/parse
+                     syntax/srcloc)
          (for-template racket/base)
          (private type-contract)
          (rep type-rep values-rep)
@@ -80,19 +81,25 @@
 (define-syntax-rule (t-int arg ...)
   (t-int/check arg ... check-not-exn))
 
-(define (check-re re)
+(define (check-re re loc)
   (λ (thunk)
-    (check-exn
-     (λ (e)
-       (and (exn:fail? e)
-            (regexp-match? re (exn-message e))))
-     thunk)))
+    (with-check-info* (list (make-check-location loc))
+                      (lambda ()
+      (check-exn
+       (λ (e)
+         (and (exn:fail? e)
+              (regexp-match? re (exn-message e))))
+       thunk)))))
 
 ;; (t-int/fail type (-> any any) any #:msg regexp)
 ;; Like t-int, but checks failing cases. Takes a regexp for checking
 ;; the exception message.
-(define-syntax-rule (t-int/fail arg ... #:msg re)
-  (t-int/check arg ... (check-re re)))
+(define-syntax (t-int/fail stx)
+  (syntax-parse stx
+   [(_ arg ... #:msg re)
+    (with-syntax ([loc (build-source-location-list stx)])
+      (quasisyntax/loc stx
+        (t-int/check arg ...  (check-re re 'loc))))]))
 
 ;; tests typed-untyped interaction
 (define-syntax (t-int/check stx)

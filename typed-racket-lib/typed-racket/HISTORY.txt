@@ -1,6 +1,10 @@
+7.4
+- Add Struct-Property, Self, and Imp types.
+- Bug fixes and progress adding support for Racket CS.
 7.3
 - Bug fixes and type updates.
 7.2
+- Add SequenceTop type.
 - Bug fixes and type updates.
 7.1
 - Add immutable vectors.

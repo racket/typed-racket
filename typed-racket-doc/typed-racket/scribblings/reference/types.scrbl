@@ -974,6 +974,31 @@ prefab types with the (implicitly quoted) prefab-key
 
 @history[#:added "1.7"]}
 
+@defform[(Struct-Property ty)]{
+  Internal type that describes a property value that is attached to a
+   structure type.
+
+  @ex[(:print-type prop:input-port)]
+
+  @history[#:added "1.10"]}
+
+@defidform[Self]{
+  Internal type that can only appear in a @racket[Struct-Property] type.
+  Refers to an instance of a structure type that has a value for the property.
+
+  @ex[(:print-type prop:custom-write)]
+
+  @history[#:added "1.10"]}
+
+@defidform[Imp]{
+  Internal type that can only appear in a @racket[Struct-Property] type.
+  In contrast to @racket[Self], refers to another instance created by the
+  same struct constructor.
+
+  @ex[(:print-type prop:equal+hash)]
+
+  @history[#:added "1.10"]}
+
 @defalias[Union U]
 @defalias[Intersection ∩]
 @defalias[→ ->]

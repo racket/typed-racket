@@ -55,15 +55,15 @@ declaration. For example, here is a struct `Point` which has the
 
 In addition, some struct properties requires a function to take not only the
 associated struct instance, but also other instance created by the same struct
-constructor. To construct appropriate type for such a function, we use `Self` to
+constructor. To construct appropriate type for such a function, we use `Imp` to
 specify the implementor type. For example, here is a type annotation for
-`prop:equal` struct property:
+`prop:equal+hash` struct property:
 
 ```racket
-(: prop:equal (Struct-Property (-> Self Imp (-> Any Any Boolean) Boolean)))
+(: prop:equal+hash (Struct-Property (-> Self Imp (-> Any Any Boolean) Boolean)))
 ```
 
-This specifies that the a value of a struct's `prop:equal` property should be a
+This specifies that the a value of a struct's `prop:equal+hash` property should be a
 function, whose second argument will be an instance of the same implementator
 type but not the associated struct instance. Note that `Imp` is only a valid
 type within `Struct-Property` declaration. When defining a struct with a struct
@@ -71,12 +71,12 @@ property whose type features `Imp`, we instead use the name of struct currently
 being defined wherever `Imp` appeared in the struct property's type
 declaration. But for polymorphic struct types, we introduce new type variables
 and use them with type constructors for `Imp`. For example, here is a
-polymorphic struct `Point` which has the `prop:equal` struct property
+polymorphic struct `Point` which has the `prop:equal+hash` struct property
 mentioned above:
 
 ```racket
 (struct (T V) Point ([x : T][y : V])
-  #:property prop:equal
+  #:property prop:equal+hash
   (lambda (A B)
     ([self : (Point T V)]
      [other : (Point A B)]

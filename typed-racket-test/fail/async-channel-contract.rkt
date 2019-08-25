@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"expected: Integer.*given: \"not an integer\"")
+(exn-pred #rx"expected: exact-integer?.*given: \"not an integer\"")
 #lang racket/load
 
 ;; Test typed-untyped interaction with channels

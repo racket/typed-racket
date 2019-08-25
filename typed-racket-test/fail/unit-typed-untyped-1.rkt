@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"u: broke its own contract\n  promised: Integer")
+(exn-pred #rx"u: broke its own contract\n  promised: exact-integer?")
 #lang racket
 
 (module untyped racket

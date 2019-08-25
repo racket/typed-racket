@@ -2,7 +2,8 @@
 
 (require "test-utils.rkt"
          (for-syntax racket/base
-                     syntax/parse)
+                     syntax/parse
+                     syntax/srcloc)
          (for-template racket/base)
          (private type-contract)
          (rep type-rep values-rep)
@@ -80,19 +81,25 @@
 (define-syntax-rule (t-int arg ...)
   (t-int/check arg ... check-not-exn))
 
-(define (check-re re)
+(define (check-re re loc)
   (λ (thunk)
-    (check-exn
-     (λ (e)
-       (and (exn:fail? e)
-            (regexp-match? re (exn-message e))))
-     thunk)))
+    (with-check-info* (list (make-check-location loc))
+                      (lambda ()
+      (check-exn
+       (λ (e)
+         (and (exn:fail? e)
+              (regexp-match? re (exn-message e))))
+       thunk)))))
 
 ;; (t-int/fail type (-> any any) any #:msg regexp)
 ;; Like t-int, but checks failing cases. Takes a regexp for checking
 ;; the exception message.
-(define-syntax-rule (t-int/fail arg ... #:msg re)
-  (t-int/check arg ... (check-re re)))
+(define-syntax (t-int/fail stx)
+  (syntax-parse stx
+   [(_ arg ... #:msg re)
+    (with-syntax ([loc (build-source-location-list stx)])
+      (quasisyntax/loc stx
+        (t-int/check arg ...  (check-re re 'loc))))]))
 
 ;; tests typed-untyped interaction
 (define-syntax (t-int/check stx)
@@ -330,7 +337,7 @@
    (t (-class #:method ([m (-polydots (x) (->... (list) (x x) -Void))])))
    (t (-class #:method ([m (-polyrow (x) (list null null null null)
                                      (-> (-class #:row (-v x)) -Void))])))
-              
+
    ;; units
    ;; These tests do not have sufficient coverage because more
    ;; coverage requires a proper set up of the signature environment.
@@ -342,7 +349,7 @@
          (unit/sc null null null (list integer/sc number/sc)))
    (t-sc (-unit null null null (-values (list)))
          (unit/sc null null null null))
-                            
+
    ;; typed/untyped interaction tests
    (t-int (-poly (a) (-> a a))
           (λ (f) (f 1))
@@ -370,7 +377,7 @@
                  (thread (λ () (channel-put ch 'bad)))
                  ch)
                #:untyped
-               #:msg #rx"promised: String.*produced: 'bad")
+               #:msg #rx"promised: string?.*produced: 'bad")
    (t-int/fail (make-Evt (-> -String -String))
                (λ (x) ((sync x) 'bad))
                (let ([ch (make-channel)])
@@ -379,7 +386,7 @@
                     (channel-put ch (λ (x) (string-append x "x")))))
                  ch)
                #:typed
-               #:msg #rx"expected: String.*given: 'bad")
+               #:msg #rx"expected: string?.*given: 'bad")
    (t-int/fail (make-Evt -String)
                (λ (x) (channel-put x "bad"))
                (make-channel)
@@ -475,7 +482,7 @@
                  (λ (c) (c "bad"))
                  (λ (_) 1)
                  #:typed
-                 #:msg #rx"expected: Integer.*given: \"bad\"")
+                 #:msg #rx"expected: exact-integer?.*given: \"bad\"")
      (t-int/fail (-> int<=42 int<=42)
                  (λ (c) (c 43))
                  (λ (_) 1)
@@ -623,7 +630,7 @@
                  (λ (c) (c "foo"))
                  (λ (_) 42)
                  #:typed
-                 #:msg #rx"expected: Integer.*given: .*\"foo\"")
+                 #:msg #rx"expected: exact-integer?.*given: .*\"foo\"")
      (t-int/fail (-> int=42 int=42)
                  (λ (c) (c 41))
                  (λ (_) 42)
@@ -663,7 +670,7 @@
                  (λ (c) (c "foo"))
                  (λ (_) -1)
                  #:typed
-                 #:msg #rx"expected: Integer.*given: .*\"foo\"")
+                 #:msg #rx"expected: exact-integer?.*given: .*\"foo\"")
      (t-int/fail (-> int<=0or>=100 int<=0or>=100)
                  (λ (c) (c 42))
                  (λ (_) -1)
@@ -678,9 +685,9 @@
            "proposition contract generation not supported for non-flat types")
    (t/fail (-refine/fresh p (-pair Univ Univ) (-not-type (-car-of  (-id-path p)) (-vec Univ)))
            "proposition contract generation not supported for non-flat types")
-   
+
    ;; dependent functions // typed
-   
+
    ;; identity on Integers
    (t-int (dep-> ([x : -Int])
                  (-refine/fresh n -Int (-eq (-lexp n) (-lexp x))))
@@ -733,7 +740,7 @@
                (λ (c) (c 1 0))
                (λ (x y) #t)
                #:typed
-               #:msg #rx"expected:.*(and/c Natural.*).*given:.*0")
+               #:msg #rx"expected:.*(and/c natural?.*).*given:.*0")
    (t-int/fail (-poly (a) (dep-> ([v : (-vec a)]
                                   [n : (-refine/fresh n -Nat (-leq (-lexp n)
                                                                    (-lexp (-vec-len-of (-id-path v)))))])
@@ -741,7 +748,7 @@
                (λ (c) (c (vector 1 2) -1))
                (λ (v n) (vector-ref v n))
                #:typed
-               #:msg #rx"expected:.*(and/c Natural.*).*given:.*-1")
+               #:msg #rx"expected:.*(and/c natural?.*).*given:.*-1")
 
    ;; dependent functions // untyped
    

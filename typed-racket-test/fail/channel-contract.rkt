@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"expected: Integer.*blaming: top-level")
+(exn-pred #rx"expected: exact-integer?.*blaming: top-level")
 #lang racket/load
 
 ;; Test typed-untyped interaction with channels

@@ -15,13 +15,13 @@
 
 (check-equal? ((cast pos-fx-sub1 (Number -> Number)) 5) 4)
 
-(check-exn #rx"expected: Positive-Fixnum\n *given: 0.5"
+(check-exn #rx"expected: fixnum\\?\n *given: 0.5"
            (λ () ((cast pos-fx-sub1 (Number -> Number)) 0.5) 4))
 
-(check-exn #rx"expected: Positive-Fixnum\n *given: \"hello\""
+(check-exn #rx"expected: fixnum\\?\n *given: \"hello\""
            (λ () ((cast pos-fx-sub1 (String -> String)) "hello")))
 
-(check-exn #rx"expected: Positive-Fixnum\n *given: \"hello\""
+(check-exn #rx"expected: fixnum\\?\n *given: \"hello\""
            (λ () ((cast pos-fx-sub1 (Any -> Any)) "hello")))
 
 (test-case "cast on mutator functions"
@@ -48,7 +48,7 @@
   (define b4 (cast b3 (Boxof (U Integer String))))
   (check-equal? (unbox b1) 42)
   (check-equal? (unbox b4) 42)
-  (check-exn #rx"expected: Integer\n *given: \"hi\""
+  (check-exn #rx"expected: exact-integer\\?\n *given: \"hi\""
              (λ () (set-box! b2 "hi")))
   (check-equal? (unbox b1) 42
                 "if the previous test hadn't errored, this would be \"hi\" with type Integer")
@@ -64,7 +64,7 @@
   (define v4 (cast v3 (Vectorof (U Integer String))))
   (check-equal? (vector-ref v1 0) 42)
   (check-equal? (vector-ref v4 0) 42)
-  (check-exn #rx"expected: Integer\n *given: \"hi\""
+  (check-exn #rx"expected: exact-integer\\?\n *given: \"hi\""
              (λ () (vector-set! v2 0 "hi")))
   (check-equal? (vector-ref v1 0) 42
                 "if the previous test hadn't errored, this would be \"hi\" with type Integer")
@@ -82,7 +82,7 @@
   (define s4 (cast s3 (s (U Integer String))))
   (check-equal? (s-i s1) 42)
   (check-equal? (s-i s4) 42)
-  (check-exn #rx"expected: Integer\n *given: \"hi\""
+  (check-exn #rx"expected: exact-integer\\?\n *given: \"hi\""
              (λ () (set-s-i! s2 "hi")))
   (check-equal? (s-i s1) 42
                 "if the previous test hadn't errored, this would be \"hi\" with type Integer")

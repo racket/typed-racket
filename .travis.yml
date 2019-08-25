@@ -5,20 +5,19 @@ language: c
 env:
 - TESTS=unit PLT_TR_CONTRACTS=1 PATH=~/racket/bin:$PATH
 - TESTS=unit VARIANT=cs PATH=~/racket/bin:$PATH
-- TESTS=int  VARIANT=cs PATH=~/racket/bin:$PATH
-- TESTS=int  PATH=~/racket/bin:$PATH
-- TESTS=math  PATH=~/racket/bin:$PATH
+- TESTS=int PATH=~/racket/bin:$PATH
+- TESTS=int VARIANT=cs PATH=~/racket/bin:$PATH
+- TESTS=math PATH=~/racket/bin:$PATH
 - TESTS=math VARIANT=cs PATH=~/racket/bin:$PATH
-- TESTS=extra VARIANT=cs PATH=~/racket/bin:$PATH
 - TESTS=extra PATH=~/racket/bin:$PATH
+- TESTS=extra VARIANT=cs PATH=~/racket/bin:$PATH
 
 matrix:
   allow_failures:
-  - TESTS=unit VARIANT=cs PATH=~/racket/bin:$PATH
-  - TESTS=int  VARIANT=cs PATH=~/racket/bin:$PATH
-  - TESTS=math VARIANT=cs PATH=~/racket/bin:$PATH
-  - TESTS=extra VARIANT=cs PATH=~/racket/bin:$PATH
-  
+    - env: TESTS=unit VARIANT=cs PATH=~/racket/bin:$PATH
+    - env: TESTS=int VARIANT=cs PATH=~/racket/bin:$PATH
+    - env: TESTS=math VARIANT=cs PATH=~/racket/bin:$PATH
+    - env: TESTS=extra VARIANT=cs PATH=~/racket/bin:$PATH
 
 services:
 - xvfb

@@ -975,8 +975,8 @@ prefab types with the (implicitly quoted) prefab-key
 @history[#:added "1.7"]}
 
 @defform[(Struct-Property ty)]{
-  Internal type that describes a property value that is attached to a
-   structure type.
+  Internal type that describes a property that can be attached to a structure
+  type. The property value must match the type @racket[ty].
 
   @ex[(:print-type prop:input-port)]
 
@@ -984,7 +984,8 @@ prefab types with the (implicitly quoted) prefab-key
 
 @defidform[Self]{
   Internal type that can only appear in a @racket[Struct-Property] type.
-  Refers to an instance of a structure type that has a value for the property.
+  A struct property value is attached to an instance of a structure type;
+  the @racket[Self] type refers to this instance.
 
   @ex[(:print-type prop:custom-write)]
 

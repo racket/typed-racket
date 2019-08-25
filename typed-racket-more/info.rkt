@@ -6,7 +6,7 @@
                "base"
 	       "net-lib"
                "net-cookies-lib"
-	       ["web-server-lib" #:version "1.4"]
+	       ["web-server-lib" #:version "1.5"]
                ["db-lib" #:version "1.5"]
                "draw-lib"
                "rackunit-lib"

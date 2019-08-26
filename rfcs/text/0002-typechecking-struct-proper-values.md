@@ -55,9 +55,9 @@ declaration. For example, here is a struct `Point` which has the
 
 In addition, some struct properties requires a function to take not only the
 associated struct instance, but also other instance created by the same struct
-constructor. To construct appropriate type for such a function, we use `Self` to
+constructor. To construct appropriate type for such a function, we use `Imp` to
 specify the implementor type. For example, here is a type annotation for
-`prop:equal` struct property:
+a made-up `prop:equal` struct property (inspired by `prop:equal+hash`):
 
 ```racket
 (: prop:equal (Struct-Property (-> Self Imp (-> Any Any Boolean) Boolean)))

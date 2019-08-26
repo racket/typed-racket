@@ -1,6 +1,9 @@
+7.4
+- Bug fixes and progress adding support for Racket CS.
 7.3
 - Bug fixes and type updates.
 7.2
+- Add SequenceTop type.
 - Bug fixes and type updates.
 7.1
 - Add immutable vectors.

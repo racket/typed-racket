@@ -974,16 +974,24 @@ prefab types with the (implicitly quoted) prefab-key
 
 @history[#:added "1.7"]}
 
-@defform[(StructProperty ty)]{
+@defform[(Struct-Property ty)]{
   Describes a property that can be attached to a structure type.
   The property value must match the type @racket[ty].
 
   @ex[(:print-type prop:input-port)]
 
+  To annotate a new struct property, the type declaration of the property must
+  come before its definition.
+
+  @ex[(: prop:foo (Struct-Property (-> Self Number)))
+      (: foo-pred (-> Any Boolean))
+      (: foo-accessor (-> Any Any))
+      (define-values (prop:foo foo-pred foo-accessor) (make-struct-type-property 'foo))
+     ]
   @history[#:added "1.10"]}
 
 @defidform[Self]{
-  This type can only appear in a @racket[StructProperty] type.
+  This type can only appear in a @racket[Struct-Property] type.
   A struct property value is attached to an instance of a structure type;
   the @racket[Self] type refers to this instance.
 
@@ -992,7 +1000,7 @@ prefab types with the (implicitly quoted) prefab-key
   @history[#:added "1.10"]}
 
 @defidform[Imp]{
-  This type can only appear in a @racket[StructProperty] type.
+  This type can only appear in a @racket[Struct-Property] type.
   An @racket[Imp] value may be a @rtech{structure subtype} of the @racket[Self]
   value, or another instance created by the same struct constructor.
 

@@ -1201,6 +1201,10 @@
                     (subtype* A parent1 t2))))]
           [else (continue<: A t1 t2 obj)])]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: Struct-Property (Struct-Property: ty1))
+   (match t2
+     [(Struct-Property: ty2) (subtype* A ty2 ty1)]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: StructType (StructType: t1*))
    (match t2
      [(StructTypeTop:) A]

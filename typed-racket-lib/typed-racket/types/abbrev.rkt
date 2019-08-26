@@ -11,6 +11,7 @@
          (prefix-in c: (contract-req))
          (rep rep-utils type-rep type-mask prop-rep object-rep values-rep)
          (types numeric-tower)
+         (only-in "utils.rkt" self-var imp-var)
          ;; Using this form so all-from-out works
          "base-abbrev.rkt" "match-expanders.rkt"
 
@@ -43,7 +44,7 @@
 (define (-mvec* . ts) (make-Mutable-HeterogeneousVector ts))
 (define (-vec* . ts) (make-HeterogeneousVector ts))
 (define -future make-Future)
-(define -struct-property make-StructProperty)
+(define -struct-property make-Struct-Property)
 (define -evt make-Evt)
 (define -weak-box make-Weak-Box)
 (define -inst make-Instance)
@@ -76,8 +77,8 @@
                    dty dbound))
 
 ;; Basic types
-(define -Self (make-F (gensym 'self-)))
-(define -Imp (make-F (gensym 'self-imp-)))
+(define -Self (make-F self-var))
+(define -Imp (make-F imp-var))
 (define -Listof (-poly (list-elem) (make-Listof list-elem)))
 (define/decl -Regexp (Un -PRegexp -Base-Regexp))
 (define/decl -Byte-Regexp (Un -Byte-Base-Regexp -Byte-PRegexp))

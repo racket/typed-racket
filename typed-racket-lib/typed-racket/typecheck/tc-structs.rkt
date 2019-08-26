@@ -89,7 +89,7 @@
          (for/list ([p (in-list pnames)]
                     [pval (in-list (attribute props.prop-vals))])
            (match (single-value p)
-             [(tc-result1: (StructProperty: ty))
+             [(tc-result1: (Struct-Property: ty))
               (match-define (F: var) -Self)
               (match-define (F: var-imp) -Imp)
               (match sty

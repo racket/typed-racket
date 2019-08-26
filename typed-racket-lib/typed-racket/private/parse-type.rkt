@@ -27,6 +27,7 @@
            (except-in racket/base case-lambda)
            racket/unit
            "../base-env/colon.rkt"
+           (only-in "../base-env/base-types.rkt" Struct-Property)
            "../base-env/base-types-extra.rkt"
            ;; match on the `case-lambda` binding in the TR primitives
            ;; rather than the one from Racket, which is no longer bound
@@ -54,6 +55,12 @@
 ;; e.g. (Refine [x : τ] ψ) -- x would be added to
 ;; current-term-names when parsing ψ
 (define current-local-term-ids (make-parameter '()))
+
+;; current-in-struct-prop: Paremeter<Boolean>
+;; This parameter is set to #t if (Struct-Property ty) is being parsed.
+;; The typechecker uses this parameter to determine if parsing types
+;; like Self and Imp are inside Struct-Property.
+(define current-in-struct-prop (make-parameter #f))
 
 (define-syntax-rule (with-local-term-names bindings e ...)
   (parameterize ([current-local-term-ids
@@ -137,6 +144,7 @@
 (define-literal-syntax-class #:for-label Mutable-Vector)
 (define-literal-syntax-class #:for-label Vector)
 (define-literal-syntax-class #:for-label Struct)
+(define-literal-syntax-class #:for-label Struct-Property)
 (define-literal-syntax-class #:for-label Struct-Type)
 (define-literal-syntax-class #:for-label Prefab)
 (define-literal-syntax-class #:for-label PrefabTop)
@@ -150,6 +158,8 @@
 (define-literal-syntax-class #:for-label ∩)
 (define-literal-syntax-class #:for-label Intersection)
 (define-literal-syntax-class #:for-label Refine)
+(define-literal-syntax-class #:for-label Self)
+(define-literal-syntax-class #:for-label Imp)
 (define-literal-syntax-class #:for-label not)
 (define-literal-syntax-class #:for-label and)
 (define-literal-syntax-class #:for-label or)
@@ -549,6 +559,13 @@
   (pattern e:expr
            #:attr object -empty-obj))
 
+(define-syntax-class self/imp
+  #:attributes (type)
+  (pattern i:Imp^
+           #:attr type -Imp)
+  (pattern i:Self^
+           #:attr type -Self))
+
 (define-splicing-syntax-class (legacy-full-latent doms)
   #:description "latent propositions and object"
   (pattern (~seq (~optional (~seq #:+ (~var p+ (legacy-prop doms)) ...+) #:defaults ([(p+.prop 1) null]))
@@ -604,6 +621,10 @@
                          "expected a structure type for argument to Struct-Type"
                          "given" v)
             (Un)])]
+      [(:Struct-Property^ t)
+       (make-Struct-Property
+        (parameterize ([current-in-struct-prop #t])
+          (parse-type #'t)))]
       [(:Prefab^ key ts ...)
        #:fail-unless (prefab-key? (syntax->datum #'key)) "expected a prefab key"
        (define num-fields (length (syntax->list #'(ts ...))))
@@ -655,7 +676,7 @@
              (make-Instance v)))]
       [(:Unit^ (:import^ import:id ...)
                (:export^ export:id ...)
-               (~optional (:init-depend^ init-depend:id ...) 
+               (~optional (:init-depend^ init-depend:id ...)
                           #:defaults ([(init-depend 1) null]))
                (~optional result
                           #:defaults ([result #f])))
@@ -858,7 +879,7 @@
                 (with-local-term-names (map cons dep-ids dep-local-ids)
                   (parse-type (list-ref (attribute args.type-stx) idx)))))
             (hash-set! arg-type-dict idx idx-type))
-          
+
           (define (abstract rep)
             (abstract-obj rep (attribute args.local-name)))
           (define dom (for/list ([idx (in-range (length arg-order))])
@@ -1055,15 +1076,21 @@
       [:->^
        (parse-error #:delayed? #t "incorrect use of -> type constructor")
        Err]
-      [id:identifier
+      [id:self/imp
        (cond
-         ;; if it's a type variable, we just produce the corresponding reference (which is in the HT)
-         [(bound-tvar? (syntax-e #'id))
-          (lookup-tvar (syntax-e #'id))]
+         [(current-in-struct-prop) (attribute id.type)]
+         [else (parse-error #:delayed? #t
+                            (~a (syntax-e #'id) " is not allowed outside the type annotation for Struct-Property"))
+               Err])]
+      [id:identifier
+       (define v (syntax-e #'id))
+       (cond
+         [(bound-tvar? v)
+          (lookup-tvar v)]
          ;; if it was in current-indexes, produce a better error msg
-         [(bound-index? (syntax-e #'id))
+         [(bound-index? v)
           (parse-error "type variable must be used with ..."
-                       "variable" (syntax-e #'id))]
+                       "variable" v)]
          ;; if it's a type alias, we expand it (the expanded type is stored in the HT)
          [(lookup-type-alias #'id parse-type (lambda () #f))
           =>
@@ -1075,7 +1102,7 @@
                  (add-disappeared-use (syntax-local-introduce #'id)))
             t)]
          [else
-          (parse-error #:delayed? #t (~a "type name `" (syntax-e #'id) "' is unbound"))
+          (parse-error #:delayed? #t (~a "type name `" v "' is unbound"))
           Err])]
       [(:Opaque^ . rest)
        (parse-error "bad syntax in Opaque")]

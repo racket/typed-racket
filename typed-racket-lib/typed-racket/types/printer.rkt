@@ -638,7 +638,7 @@
     [(ThreadCellTop:) 'ThreadCellTop]
     [(MPairTop:) 'MPairTop]
     [(Prompt-TagTop:) 'Prompt-TagTop]
-    [(StructProperty: ty) `(StructProperty ,(t->s ty))]
+    [(Struct-Property: ty) `(Struct-Property ,(t->s ty))]
     [(Continuation-Mark-KeyTop:) 'Continuation-Mark-KeyTop]
     [(App: rator rands)
      (list* (type->sexp rator) (map type->sexp rands))]
@@ -708,7 +708,11 @@
     [(? Base?) (Base-name type)]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
-    [(F: nm) nm]
+    [(F: nm)
+     (cond
+       [(eq? nm imp-var) "Imp"]
+       [(eq? nm self-var) "Self"]
+       [else nm])]
     [(Param: in out)
      (if (equal? in out)
          `(Parameterof ,(t->s in))

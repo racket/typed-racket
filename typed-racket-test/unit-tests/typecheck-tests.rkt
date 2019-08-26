@@ -58,7 +58,7 @@
 
   (do-standard-inits)
   (print-complex-props? #t)
-  
+
   ;; tr-expand: syntax? -> syntax?
   ;; Expands out a form and annotates it with necesarry TR machinery.
   (define (tr-expand stx)
@@ -527,9 +527,9 @@
         (tc-e (exact->inexact -3) -NegFlonum)
         (tc-e (real->double-flonum 0.0) -FlonumPosZero)
         (tc-e (real->double-flonum -0.0) -FlonumNegZero)
-        #reader tests/racket/maybe-single 
+        #reader tests/racket/maybe-single
         (tc-e (real->double-flonum 0.0f0) -FlonumPosZero)
-        #reader tests/racket/maybe-single 
+        #reader tests/racket/maybe-single
         (tc-e (real->double-flonum -0.0f0) -FlonumNegZero)
         (tc-e (real->double-flonum #e1e-500) -NonNegFlonum)
         (tc-e (real->double-flonum #e-1e-500) -NonPosFlonum)
@@ -537,9 +537,9 @@
         (tc-e (real->double-flonum -3) -NegFlonum)
         (tc-e (real->single-flonum 0.0) -SingleFlonumPosZero)
         (tc-e (real->single-flonum -0.0) -SingleFlonumNegZero)
-        #reader tests/racket/maybe-single 
+        #reader tests/racket/maybe-single
         (tc-e (real->single-flonum 0.0f0) -SingleFlonumPosZero)
-        #reader tests/racket/maybe-single 
+        #reader tests/racket/maybe-single
         (tc-e (real->single-flonum -0.0f0) -SingleFlonumNegZero)
         (tc-e (real->single-flonum #e1e-500) -NonNegSingleFlonum)
         (tc-e (real->single-flonum #e-1e-500) -NonPosSingleFlonum)
@@ -2043,11 +2043,18 @@
 
         ;Structure Type Properties
         (tc-e (make-struct-type-property 'prop)
-              (list -Struct-Type-Property (t:-> Univ -Boolean) (t:-> Univ Univ)))
-        (tc-e (let-values: ((((prop : Struct-Type-Property)
+              (list (-poly (a) (make-Struct-Property a)) (t:-> Univ -Boolean) (t:-> Univ Univ)))
+        (tc-e (let-values: ((((prop : (Struct-Property Any))
                               (pred : (Any -> Any)) (acc : (Any -> Any)))
                              (make-struct-type-property 'prop)))
                (struct-type-property? prop))
+              #:ret (tc-ret -Boolean -true-propset))
+
+        (tc-e (let-values: ((((sub-prop : (Struct-Property Number))
+                              (pred : (Any -> Any)) (acc : (Any -> Any)))
+                             (make-struct-type-property 'prop-any)))
+                (let: ([super-prop : (Struct-Property Integer) sub-prop])
+                  (struct-type-property? super-prop)))
               #:ret (tc-ret -Boolean -true-propset))
 
         ;; Boxes
@@ -4618,8 +4625,8 @@
         [tc-e/t (let: ([x : (Un Flonum Natural) 0.0])
                   (if (not (natural? x)) x 1.0))
                -Flonum]
-        
-        [tc-e 
+
+        [tc-e
          (let ()
            (define-syntax (foo stx)
              #`(if #,(syntax-property #'(#%expression #f) 'typed-racket:ignore-type-information #t)
@@ -5033,7 +5040,7 @@
             '(2 "abc" #(1 "b" x)))
           d0)
         (-lst* (-val 2) (-val "abc") (-ivec* (-val 1) (-val "b") (-val 'x)))]
-       
+
        ;; comparisons must correctly account for if the
        ;; #false result was caused by a NaN (see TR Github issue #747)
        ;; less-than
@@ -5260,7 +5267,7 @@
       (if (single-flonum-available?)
           (test-suite "single-flonum tests"
                       (tc-e/t 34.2f0 -PosSingleFlonumNoNan)
-                      (tc-e/t -34.2f0 -NegSingleFlonumNoNan)                      
+                      (tc-e/t -34.2f0 -NegSingleFlonumNoNan)
                       (tc-e (expt (ann 0.5f0 Single-Flonum) (ann 2 Natural)) -Real)
                       (tc-e (expt
                              (sub1 (gcd (exact-round 1)))
@@ -5277,7 +5284,7 @@
                       )
           (test-suite "single-flonum tests"))
       (if (extflonum-available?)
-          
+
           (test-suite
            "extflonum tests"
            (tc-e/t ;; Github issue #115
@@ -5291,7 +5298,7 @@
                    (define f3 (sequence-ref s3 1))
                    (list f3))
                  (-lst* -ExtFlonum)]
-   
+
            [tc-e
             (for/extflvector ([a (list 0 1 1 2 3)]
                               [b (list 1 1 2 3 5)])
@@ -5302,11 +5309,11 @@
                                [b (list 1 1 2 3 5)])
               (real->extfl (+ a b)))
             -ExtFlVector]
-   
+
            (tc-e (extflexpt 0.5t0 0.3t0) -NonNegExtFlonum)
            (tc-e (extflexpt 0.00000000001t0 100000000000.0t0) -NonNegExtFlonum)
            (tc-e (extflexpt -2.0t0 -0.5t0) -ExtFlonum) ; NaN
-   
+
            (tc-e (extfl->inexact 1t-500) -NonNegFlonum)
            (tc-e (extfl->inexact -1t-500) -NonPosFlonum)
            (tc-e (real->extfl #e1e-8192) -NonNegExtFlonum)
@@ -5319,7 +5326,7 @@
            (tc-l -5#t0 -NegExtFlonum)
            (tc-l -5.0t0 -NegExtFlonum)
            (tc-l -5.1t0 -NegExtFlonum))
-          
+
           (test-suite "extflonum tests"))
 
   (test-suite

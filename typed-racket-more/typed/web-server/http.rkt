@@ -93,7 +93,9 @@
          (only-in "../net/cookies/common.rkt"
                   cookie-name?
                   cookie-value?
-                  [domain-value? valid-domain?]))
+                  [domain-value? valid-domain?])
+         (only-in "../json.rkt"
+                  JSExpr))
 
 (define-type Cookie-Name String)
 (define-type Cookie-Value String)
@@ -217,14 +219,15 @@
                             [#:headers (Listof Header)]
                             [#:cookies (Listof Cookie)]
                             [#:preamble Bytes]
-                            Response)]
+                            Response)])
+
+(require/typed/provide web-server/http/json
                        [response/jsexpr
-                        (-> JSExpr?
+                        (-> JSExpr
                             [#:code Natural]
                             [#:message (Option Bytes)]
                             [#:seconds Real]
                             [#:mime-type (Option Bytes)]
                             [#:headers (Listof Header)]
                             [#:cookies (Listof Cookie)]
-                            [#:preamble Bytes]
                             Response)])

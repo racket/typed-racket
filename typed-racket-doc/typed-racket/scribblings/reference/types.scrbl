@@ -975,15 +975,15 @@ prefab types with the (implicitly quoted) prefab-key
 @history[#:added "1.7"]}
 
 @defform[(Struct-Property ty)]{
-  Internal type that describes a property that can be attached to a structure
-  type. The property value must match the type @racket[ty].
+  Describes a property that can be attached to a structure type.
+  The property value must match the type @racket[ty].
 
   @ex[(:print-type prop:input-port)]
 
   @history[#:added "1.10"]}
 
 @defidform[Self]{
-  Internal type that can only appear in a @racket[Struct-Property] type.
+  This type can only appear in a @racket[Struct-Property] type.
   A struct property value is attached to an instance of a structure type;
   the @racket[Self] type refers to this instance.
 
@@ -992,9 +992,9 @@ prefab types with the (implicitly quoted) prefab-key
   @history[#:added "1.10"]}
 
 @defidform[Imp]{
-  Internal type that can only appear in a @racket[Struct-Property] type.
-  In contrast to @racket[Self], refers to another instance created by the
-  same struct constructor.
+  This type can only appear in a @racket[Struct-Property] type.
+  An @racket[Imp] value may be a @rtech{structure subtype} of the @racket[Self]
+  value, or another instance created by the same struct constructor.
 
   @ex[(:print-type prop:equal+hash)]
 

@@ -21,9 +21,10 @@
 
 
 ;; get the type annotation of this syntax
-;; syntax -> Maybe[Type]
+;; syntax #:infer boolean? #:lookup? boolean? -> Maybe[Type]
 ;; is let-binding really necessary? - remember to record the bugs!
-(define (type-annotation stx #:infer [let-binding #f])
+;; if lookup? is #f, do not search the global env for a type (fix GH issue #849)
+(define (type-annotation stx #:infer [let-binding #f] #:lookup? [lookup? #true])
   (define (pt prop)
     (when (and (identifier? stx)
                let-binding)
@@ -35,13 +36,15 @@
     (if (syntax? prop)
         (parse-type prop)
         (parse-type/id stx prop)))
-  ;(unless let-binding (error 'ohno))
-  ;(printf "in type-annotation:~a\n" (syntax->datum stx))
   (syntax-parse stx
-    [(~or v:type-label^) (pt (attribute v.value))]
-    [i:typed-id^
-     (maybe-finish-register-type stx)
-     (attribute i.type)]
+    [v:type-label^
+     (pt (attribute v.value))]
+    [_:id
+     #:when lookup?
+     (define ty (lookup-type stx #f))
+     (when ty
+       (maybe-finish-register-type stx))
+     ty]
     [_ #f]))
 
 (define-syntax-class type-annotation^

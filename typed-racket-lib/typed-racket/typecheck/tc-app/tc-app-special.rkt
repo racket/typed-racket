@@ -40,13 +40,16 @@
   ;; to provide a better instantiation
   (pattern ((~var op (id-from 'make-sequence 'racket/private/for))
             (~and quo (quote (i:id ...))) arg:expr)
-    #:when (andmap type-annotation (syntax->list #'(i ...)))
+    #:do [(define i-anns
+            (for/list ([id (in-list (syntax-e #'(i ...)))])
+              (type-annotation id #:lookup? #false)))]
+    #:when (andmap values i-anns)
     (match (single-value #'op)
         [(tc-result1: (and t Poly?))
          (tc-expr/check #'quo (ret Univ))
          (tc/funapp #'op #'(quo arg)
                     (instantiate-poly t (list-extend (list Univ Univ)
-                                                     (stx-map type-annotation #'(i ...))
+                                                     i-anns
                                                      Univ))
                     (list (ret Univ) (single-value #'arg))
                     expected)]))

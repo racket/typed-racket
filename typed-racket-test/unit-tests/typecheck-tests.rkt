@@ -5188,6 +5188,14 @@
                                        (-is-type (cons 0 0) (-val #f)))
                                 : (make-Path null (cons 0 0))))
                         -true-propset))
+       (tc-e
+         ;; https://github.com/racket/typed-racket/issues/849
+         (let ()
+           (: x Zero)
+           (define x 0)
+           (for ((x (ann '(A B C) (Sequenceof Symbol))))
+             (void)))
+         -Void)
        )
       #reader tests/racket/maybe-single
       (if (single-flonum-available?)

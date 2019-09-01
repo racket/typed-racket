@@ -150,6 +150,10 @@
      `(make-Continuation-Mark-Keyof ,(type->sexp ty))]
     [(Sequence: tys)
      `(-seq ,@(map type->sexp tys))]
+    [(SequenceDots: tys dty dbound)
+     `(-seq-dots (list ,@(map type->sexp tys))
+                 ,(type->sexp dty)
+                 (quote ,dbound))]
     [(Syntax: ty)
      `(make-Syntax ,(type->sexp ty))]
     [(Listof: elem-ty)

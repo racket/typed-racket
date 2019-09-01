@@ -777,6 +777,8 @@
      `(Refinement ,(t->s parent) ,(syntax-e p?))]
     [(Sequence: ts)
      `(Sequenceof ,@(map t->s ts))]
+    [(SequenceDots: ts dty dbound)
+     `(Sequenceof ,@(map t->s ts) ,(t->s dty) ... ,dbound)]
     [(SequenceTop:) 'SequenceTop]
     [(Error:) 'Error]
     ;[(fld: t a m) `(fld ,(type->sexp t))]

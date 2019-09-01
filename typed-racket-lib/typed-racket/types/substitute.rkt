@@ -44,9 +44,10 @@
   (let sub ([target target])
     (match target
       [(F: name) (hash-ref subst name target)]
-      [(or (RestDots: _     dbound)
-           (ListDots: _     dbound)
-           (ValuesDots: _ _ dbound))
+      [(or (RestDots: _       dbound)
+           (ListDots: _       dbound)
+           (SequenceDots: _ _ dbound)
+           (ValuesDots: _ _   dbound))
        #:when (and (memq dbound names)
                    (not (bound-tvar? dbound)))
        (int-err "substitute used on ... variable ~a in type ~a"
@@ -65,6 +66,7 @@
 ;; substitute-dots : Listof[Type] Option[type] Name Type -> Type
 ;; implements angle bracket substitution from the formalism (TODO what formalism?)
 ;; substitute-dots : Listof[Type] Option[type] Name Type -> Type
+;; TODO: a generic dotted type would avoid duplication here.
 (define/cond-contract (substitute-dots images rimage name target)
   ((listof Rep?) (or/c #f Rep?) symbol? Rep?  . -> . Rep?)
   (let sub ([target target])
@@ -77,6 +79,18 @@
                        ([img (in-list (reverse images))])
                (make-Pair (substitute img name expanded) t)))
            (make-ListDots (sub dty) dbound))]
+      [(SequenceDots: types dty dbound)
+       (if (eq? name dbound)
+           (if rimage
+               -SequenceTop
+               (make-Sequence
+                (append
+                 (map sub types)
+                 ;; We need to recur first, just to expand out any dotted usages of this.
+                 (let ([expanded (sub dty)])
+                   (for/list ([img (in-list images)])
+                     (substitute img name expanded))))))
+           (make-SequenceDots (map sub types) (sub dty) dbound))]
       [(ValuesDots: types dty dbound)
        (cond
          [(eq? name dbound)
@@ -123,6 +137,12 @@
         (if (eq? name dbound) pre-image null)
         (make-ListDots (sub dty)
                        (if (eq? name dbound) image-bound dbound)))]
+      [(SequenceDots: types dty dbound)
+       #:when (eq? name dbound)
+       (make-SequenceDots (append (map sub types)
+                                  pre-image)
+                          (sub dty)
+                          image-bound)]
       [(Arrow: dom (RestDots: dty dbound) kws rng)
        #:when (eq? name dbound)
        (make-Arrow

@@ -4010,6 +4010,61 @@
                  (f (in-hash (hash))))
                #:ret (tc-ret Univ)]
 
+       ;; Dotted sequences
+       [tc-e (let ([f (plambda: (a ...) ([s : (Sequenceof a ... a)])
+                        (define t (in-values-sequence s))
+                        (length (sequence-ref t 0)))])
+               (f (in-parallel '(1) '(two) '(#t))))
+             -Index]
+       [tc-err (let ()
+                 (define x (sequence-ref empty-sequence 0))
+                 x)]
+       [tc-e (sequence-map (inst cons Symbol Symbol) (in-parallel '(foo) '(bar)))
+             (-seq (-pair -Symbol -Symbol))]
+       [tc-e (sequence-map (lambda: ([p : (Pairof Symbol Symbol)]) (values (car p) (cdr p)))
+                           '((foo . bar)))
+             (-seq -Symbol -Symbol)]
+       [tc-e (sequence-filter < (ann (in-parallel '(1 2 3) '(3 2 1)) (Sequenceof Integer Integer)))
+             (-seq -Int -Int)]
+       [tc-err (let ([f (plambda: (a ...) ([p : ((Sequenceof a ... a) -> Any)])
+                          (p '(1 2 3)))]
+                     [g (plambda: (a) ([s : (Sequenceof a)])
+                          (sequence-ref s 0))])
+                 (f g))
+               #:ret (tc-ret Univ)]
+
+       ;; make-do-sequence
+       [tc-e (make-do-sequence
+              (lambda: ()
+                (values (lambda: ([pos : Integer]) : Integer
+                          (values pos))
+                        add1
+                        0
+                        #f
+                        #f
+                        #f)))
+             (-seq -Int)]
+       [tc-e (make-do-sequence
+              (lambda: ()
+                (values (lambda: ([pos : Integer]) : Integer
+                          (values pos))
+                        add1
+                        0
+                        (lambda: ([pos : Integer]) #t)
+                        (lambda: ([v : Integer]) #t)
+                        (lambda: ([pos : Integer] [v : Integer]) #t))))
+             (-seq -Int)]
+       [tc-e (make-do-sequence
+              (lambda: ()
+                (values (lambda: ([pos : Integer]) : (Values Integer Symbol)
+                          (values pos 'dummy))
+                        add1
+                        0
+                        #f
+                        (lambda: ([v1 : Integer] [v2 : Symbol]) #t)
+                        (lambda: ([pos : Integer] [v1 : Integer] [v2 : Symbol]) #t))))
+             (-seq -Int -Symbol)]
+
        ;; integer literals w/ refinements
        [tc-e (ann -1 (Refine [x : Integer] (= x -1)))
              (-refine/fresh x -Int (-eq (-lexp x) (-lexp -1)))]

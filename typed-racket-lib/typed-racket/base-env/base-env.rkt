@@ -1069,55 +1069,57 @@
 ;; Section 4.14 (Sequences and Streams)
 [sequence? (make-pred-ty -SequenceTop)]
 [in-sequences
- (-poly (a) (->* (list) (-seq a) (-seq a)))]
+ (-polydots (a) (->* '() (-seq-dots '() a 'a) (-seq-dots '() a 'a)))]
 [in-cycle
- (-poly (a) (->* (list) (-seq a) (-seq a)))]
+ (-polydots (a) (->* '() (-seq-dots '() a 'a) (-seq-dots '() a 'a)))]
 [in-parallel
- (-poly (a b c)
-   (cl->* (-> (-seq a) (-seq a))
-          (-> (-seq a) (-seq b) (-seq a b))
-          (-> (-seq a) (-seq b) (-seq c) (-seq a b c))))]
+ (-polydots (a) (->... '() ((-seq a) a) (-seq-dots '() a 'a)))]
 [in-values-sequence
- (-poly (a b c)
-   (cl->* (-> (-seq a) (-seq (-lst* a)))
-          (-> (-seq a b) (-seq (-lst* a b)))
-          (-> (-seq a b c) (-seq (-lst* a b c)))))]
+ (-polydots (a) (-> (-seq-dots '() a 'a) (-seq (make-ListDots a 'a))))]
 [in-values*-sequence
- (-poly (a b c)
+ (-polydots (a b c)
    (cl->* (-> (-seq a) (-seq a))
-          (-> (-seq a b) (-seq (-lst* a b)))
-          (-> (-seq a b c) (-seq (-lst* a b c)))))]
+          (-> (-seq-dots (list a b) c 'c) (-seq (-lst* a b #:tail (make-ListDots c 'c))))))]
 [stop-before (-poly (a) ((-seq a) (a . -> . Univ) . -> . (-seq a)))]
 [stop-after (-poly (a) ((-seq a) (a . -> . Univ) . -> . (-seq a)))]
-[make-do-sequence (-poly (a b) ((-> (-values (list (a . -> . b)
-                                                   (a . -> . a)
-                                                   a
-                                                   (Un (a . -> . Univ) (-val #f))
-                                                   (Un (b . -> . Univ) (-val #f))
-                                                   (Un (a b . -> . Univ) (-val #f)))))
-                                . -> . (-seq b)))]
-[sequence-generate (-poly (a) ((-seq a) . -> . (-values (list (-> -Boolean) (-> a)))))]
+[make-do-sequence
+ (-polydots (a b)
+   ((-> (-values (list (a . -> . (make-ValuesDots '() b 'b))
+                       (a . -> . a)
+                       a
+                       (Un (a . -> . Univ) (-val #f))
+                       (Un (->... '() (b b) Univ) (-val #f))
+                       (Un (->... (list a) (b b) Univ) (-val #f)))))
+    . -> . (-seq-dots '() b 'b)))]
+[sequence-generate
+ (-polydots (a) ((-seq-dots '() a 'a) . -> . (-values (list (-> -Boolean) (-> (make-ValuesDots '() a 'a))))))]
 ;; Doesn't work (mu types are single-valued only):
 ;[sequence-generate*  (-poly (a) ((-seq a) . -> . (-mu t (-values (list (Un (-lst a) (-val #f)) t)))))]
 ;; Doesn't render nicely (but seems to work fine):
-[empty-sequence (-poly (a) (-seq a))]
+[empty-sequence (-polydots (a) (-seq-dots '() a 'a))]
 [sequence->list (-poly (a) ((-seq a) . -> . (-lst a)))]
 [sequence-length (-SequenceTop . -> . -Nat)]
-[sequence-ref (-poly (a) ((-seq a) -Integer . -> . a))]
-[sequence-tail (-poly (a) ((-seq a) -Integer . -> . (-seq a)))]
-[sequence-append (-poly (a) (->* (list) (-seq a) (-seq a)))]
-[sequence-map (-poly (a b) ((a . -> . b) (-seq a) . -> . (-seq b)))]
-[sequence-andmap (-poly (a b) ((a . -> . b) (-seq a) . -> . (Un b (-val #t))))]
-[sequence-ormap (-poly (a b) ((a . -> . b) (-seq a) . -> . (Un b (-val #f))))]
-[sequence-for-each (-poly (a) ((a . -> . Univ) (-seq a) . -> . -Void))]
-[sequence-fold (-poly (a b) ((b a . -> . b) b (-seq a) . -> . b))]
-[sequence-count (-poly (a) ((a . -> . Univ) (-seq a) . -> . -Nat))]
-[sequence-filter (-poly (a b) (cl->*
-                                ((asym-pred a Univ (-PS (-is-type 0 b) -tt))
-                                 (-seq a)
-                                 . -> .
-                                 (-seq b))
-                                ((a . -> . Univ) (-seq a) . -> . (-seq a))))]
+[sequence-ref (-polydots (a) ((-seq-dots '() a 'a) -Integer . -> . (make-ValuesDots '() a 'a)))]
+[sequence-tail (-polydots (a) ((-seq-dots '() a 'a) -Integer . -> . (-seq-dots '() a 'a)))]
+[sequence-append (-polydots (a) (->* '() (-seq-dots '() a 'a) (-seq-dots '() a 'a)))]
+; We can't express the full type without multiple dotted type variables:
+[sequence-map (-polydots (a b)
+                (cl->*
+                  ((->... '() (b b) a) (-seq-dots '() b 'b) . -> . (-seq a))
+                  ((-> a (make-ValuesDots '() b 'b)) (-seq a) . -> . (-seq-dots '() b 'b))))]
+[sequence-andmap (-polydots (b a) ((->... '() (a a) b) (-seq-dots '() a 'a) . -> . (Un b (-val #t))))]
+[sequence-ormap (-polydots (b a) ((->... '() (a a) b) (-seq-dots '() a 'a) . -> . (Un b (-val #f))))]
+[sequence-for-each (-polydots (a) ((->... '() (a a) Univ) (-seq-dots '() a 'a) . -> . -Void))]
+[sequence-fold (-polydots (b a) ((->... (list b) (a a) b) b (-seq-dots '() a 'a) . -> . b))]
+[sequence-count (-polydots (a) ((->... '() (a a) Univ) (-seq-dots '() a 'a) . -> . -Nat))]
+[sequence-filter (-polydots (a b c)
+                   (cl->*
+                    ((asym-pred a Univ (-PS (-is-type 0 b) -tt))
+                     (-seq a)
+                     . -> .
+                     (-seq b))
+                    ((->... '() (c c) Univ) (-seq-dots '() c 'c) . -> . (-seq-dots '() c 'c))))]
+; The untyped version works with multi-valued sequences, but we can't express that:
 [sequence-add-between (-poly (a) ((-seq a) a . -> . (-seq a)))]
 
 ;; Section 4.16 (Sets)

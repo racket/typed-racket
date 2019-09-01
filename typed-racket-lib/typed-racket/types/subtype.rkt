@@ -1147,6 +1147,15 @@
      [(SequenceTop:) A]
      [(Sequence: ts2) (subtypes* A ts1 ts2)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: SequenceDots (SequenceDots: ts1 dty1 dbound1))
+   (match t2
+     [(SequenceTop:) A]
+     [(SequenceDots: ts2 dty2 dbound2)
+      #:when (eq? dbound1 dbound2)
+      (subtype-seq A
+                   (subtypes* A ts1 ts2)
+                   (subtype* A dty1 dty2))]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Set (Set: elem1))
    (match t2
      [(Set: elem2) (subtype* A elem1 elem2)]

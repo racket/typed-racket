@@ -5251,6 +5251,10 @@
            (for ((x (ann '(A B C) (Sequenceof Symbol))))
              (void)))
          -Void)
+       (tc-e
+         ;; https://github.com/racket/typed-racket/issues/605
+         (hash 0 1 2 3 4 5 6 7 8 0)
+         (-Immutable-HT -Byte -Byte))
        )
       #reader tests/racket/maybe-single
       (if (single-flonum-available?)

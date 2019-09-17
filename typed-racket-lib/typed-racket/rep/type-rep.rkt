@@ -714,7 +714,7 @@
 ;; Structs
 ;;************************************************************
 
-(def-structural StructProperty ([elem #:invariant]))
+(def-structural Struct-Property ([elem #:contravariant]))
 
 
 (def-rep fld ([t Type?] [acc identifier?] [mutable? boolean?])
@@ -732,7 +732,7 @@
                   [proc (or/c #f Fun?)]
                   [poly? boolean?]
                   [pred-id identifier?]
-                  [properties (box/c (listof StructProperty?))])
+                  [properties (box/c (listof Struct-Property?))])
   [#:frees (f) (combine-frees (map f (append (if proc (list proc) null)
                                              (if parent (list parent) null)
                                              (unbox properties)

@@ -5,7 +5,7 @@
          (utils tc-utils)
          "substitute.rkt" "tc-result.rkt" "tc-error.rkt"
          (except-in "base-abbrev.rkt" -> ->*)
-         (rep free-variance) 
+         (rep free-variance)
          racket/match
          racket/set
          racket/list
@@ -99,7 +99,13 @@
 (define to-be-abstr
   (make-weak-hash))
 
-(provide to-be-abstr)
+(define self-var (gensym 'self-))
+(define imp-var (gensym 'imp-))
+
+(provide to-be-abstr
+         self-var
+         imp-var)
+
 
 ;; has-optional-args? : (Listof arr) -> Boolean
 ;; Check if the given arrs meet the necessary conditions to be printed
@@ -142,7 +148,7 @@
  [instantiate-poly ((or/c Poly? PolyDots? PolyRow?) (listof Rep?)
                     . -> . Rep?)]
  [instantiate-poly-dotted
-  (PolyDots? (listof Rep?) Rep? symbol? . -> . Rep?)] 
+  (PolyDots? (listof Rep?) Rep? symbol? . -> . Rep?)]
  [fv (Rep? . -> . (listof symbol?))]
  [fi (Rep? . -> . (listof symbol?))]
  [fv/list ((listof Rep?) . -> . (set/c symbol?))]
@@ -153,4 +159,3 @@
                    (any/c)
                    any/c)]
  )
-

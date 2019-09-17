@@ -1233,9 +1233,9 @@
        [(Un (one-of/c #f 'can-impersonate) (-> Univ (-lst Univ)))
         (-lst (-pair -Struct-Type-Property (-> Univ Univ)))
         Univ]
-       (-values (list -Struct-Type-Property (-> Univ B) (-> Univ Univ))))]
+       (-values (list (-poly (a) (-struct-property a)) (-> Univ B) (-> Univ Univ))))]
 
-[struct-type-property? (make-pred-ty -Struct-Type-Property)]
+[struct-type-property? (make-pred-ty (-struct-property -Bottom))]
 [struct-type-property-accessor-procedure? (-> Univ B)]
 
 ;; Section 5.6 (Structure Utilities)

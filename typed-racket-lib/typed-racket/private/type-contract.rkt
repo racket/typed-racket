@@ -713,7 +713,7 @@
             (fail #:reason (~a "cannot import structure types from"
                                "untyped code"))
             (struct-type/sc null))]
-       [(StructProperty: s) (struct-property/sc (t->sc s))]
+       [(Struct-Property: s) (struct-property/sc (t->sc s))]
        [(Prefab: key (list (app t->sc fld/scs) ...)) (prefab/sc key fld/scs)]
        [(PrefabTop: key)
         (flat/sc #`(struct-type-make-predicate

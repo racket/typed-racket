@@ -1,5 +1,5 @@
 #;
-(exn-pred "Type Checker: Type \\(StructProperty \\(-> Self Any\\)\\) could not be converted to a contract: contract generation not supported for Self")
+(exn-pred "Type Checker: Type \\(Struct-Property \\(-> Self Any\\)\\) could not be converted to a contract: contract generation not supported for Self")
 #lang racket
 (require errortrace)
 
@@ -9,6 +9,6 @@
   (define yyy 10))
 
 (module ty-foo typed/racket
-  (require/typed (submod ".." foo) [prop:hi (StructProperty (-> Self Any))])
+  (require/typed (submod ".." foo) [prop:hi (Struct-Property (-> Self Any))])
   (struct bar () #:property prop:hi (λ ([self : bar])
                                       (display (format "instance bar\n" )))))

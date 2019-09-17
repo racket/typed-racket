@@ -845,6 +845,8 @@
           (Immutable-HashTable: t1 t2))
          ;; for immutable hash tables, covariant
          (% cset-meet (cg s1 t1) (cg s2 t2))]
+        [((Struct-Property: t1) (Struct-Property: t2))
+         (cg t2 t1)]
         [((Mutable-HashTable: s1 s2)
           (Mutable-HashTable: t1 t2))
          ;; for mutable hash tables, invariant

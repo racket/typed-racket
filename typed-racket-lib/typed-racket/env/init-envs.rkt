@@ -265,7 +265,7 @@
                    (box (list ,@(map type->sexp (unbox properties))))
                    )]
     [(StructType: struct) `(make-StructType ,(type->sexp struct))]
-    [(StructProperty: ty) `(make-StructProperty ,(type->sexp ty))]
+    [(Struct-Property: ty) `(make-Struct-Property ,(type->sexp ty))]
     [(Prefab: key flds)
      `(make-Prefab (quote ,key)
                    (list ,@(map type->sexp flds)))]

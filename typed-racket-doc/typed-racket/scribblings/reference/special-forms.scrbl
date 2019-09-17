@@ -69,7 +69,7 @@ result of @racket[_loop] (and thus the result of the entire
 expression as well as the final expression in @racket[body]).
 Type annotations are optional.
 
-@ex[(: filter-even : (-> (Listof Natural) (Listof Natural) (Listof Natural)))
+@ex[(: filter-even (-> (Listof Natural) (Listof Natural) (Listof Natural)))
     (define (filter-even lst accum)
       (if (null? lst)
           accum
@@ -488,7 +488,7 @@ the type:
 
 Evaluates to a predicate for the type @racket[t], with the type
 @racket[(Any -> Boolean : t)]. @racket[t] may not contain function types, or
-types that may refer to mutable data such as @racket[(Vectorof Integer)].} 
+types that may refer to mutable data such as @racket[(Vectorof Integer)].}
 
 @defform[(define-predicate name t)]{
 Equivalent to @racket[(define name (make-predicate t))].

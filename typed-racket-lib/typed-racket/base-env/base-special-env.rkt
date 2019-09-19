@@ -262,7 +262,7 @@
   [(make-template-identifier 'in-bytes-lines 'racket/private/for)
    (->opt [-Input-Port -Symbol] (-seq -Bytes))]
   ;; in-directory
-  [(make-template-identifier '*in-directory 'racket/private/for)
+  [(make-template-identifier 'in-directory 'racket/private/for)
    (->opt [(Un (-val #f) -Pathlike) (-> -Path Univ)] (-seq -Path))]
   ;; in-producer
   [(make-template-identifier 'in-producer 'racket/private/for)

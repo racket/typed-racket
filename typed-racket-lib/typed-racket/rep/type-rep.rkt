@@ -21,6 +21,7 @@
          "base-union.rkt"
          racket/match racket/list
          syntax/id-table
+         syntax/id-set
          racket/contract
          racket/lazy-require
          racket/unsafe/undefined
@@ -68,7 +69,10 @@
          instantiate-obj
          abstract-obj
          substitute-names
+         set-struct-property-pred!
          DepFun/ids:
+         Exist-names:
+         Struct-Property?
          (rename-out [Union:* Union:]
                      [Intersection:* Intersection:]
                      [make-Intersection* make-Intersection]
@@ -89,7 +93,11 @@
                      [Poly-body* Poly-body]
                      [PolyDots-body* PolyDots-body]
                      [PolyRow-body* PolyRow-body]
-                     [Intersection-prop* Intersection-prop]))
+                     [Intersection-prop* Intersection-prop]
+                     [Struct-Property* make-Struct-Property]
+                     [Struct-Property:* Struct-Property:]
+                     [Exist* make-Exist]
+                     [Exist:* Exist:]))
 
 (define (resolvable? x)
   (or (Mu? x)
@@ -507,6 +515,7 @@
       body]
      [else (make-Mu body)])])
 
+
 ;; n is how many variables are bound here
 ;; body is a type
 (def-type Poly ([n exact-nonnegative-integer?]
@@ -542,6 +551,14 @@
 (def-type Opaque ([pred identifier?])
   #:base
   [#:custom-constructor (make-Opaque (normalize-id pred))])
+
+;; body is a type
+(def-type Exist ([n exact-nonnegative-integer?]
+                 [body Type?])
+  #:no-provide
+  [#:frees (f) (f body)]
+  [#:fmap (f) (make-Exist n (f body))]
+  [#:for-each (f) (f body)])
 
 
 
@@ -714,7 +731,42 @@
 ;; Structs
 ;;************************************************************
 
-(def-structural Struct-Property ([elem #:contravariant]))
+(def-type Struct-Property
+  ([elem Type?]
+   ;; when a struct type property is created in a typed module, its type
+   ;; annotation comes first. The pred-id is set during typechecking
+   ;; `(make-struct-type-property p)`
+
+   ;; when a struct type property is annotated via require/typed, the pred-id is
+   ;; immediately set.
+   [pred-id (box/c (or/c identifier? false/c))]) 
+  #:no-provide
+  [#:frees (f) (f elem)]
+  [#:fmap (f) (make-Struct-Property (f elem) pred-id)]
+  [#:for-each (f) (f elem)]
+  [#:custom-constructor
+   (define p (unbox pred-id))
+   (make-Struct-Property elem (box (if (not p) #f (normalize-id p))))])
+
+(define (Struct-Property* elem pred-id)
+  (make-Struct-Property elem (box pred-id)))
+
+(define (set-struct-property-pred! spty pred-id)
+  (set-box! (Struct-Property-pred-id spty) pred-id))
+
+(define-match-expander Struct-Property:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ elem pred-id)
+       #'(? Struct-Property?
+            (app (λ (t)
+                   (list (Struct-Property-elem t)
+                         (unbox (Struct-Property-pred-id t))))
+                 (list elem pred-id)))])))
+
+(def-type Has-Struct-Property ([name identifier?])
+  #:base
+  [#:custom-constructor (make-Has-Struct-Property (normalize-id name))])
 
 
 (def-rep fld ([t Type?] [acc identifier?] [mutable? boolean?])
@@ -732,10 +784,9 @@
                   [proc (or/c #f Fun?)]
                   [poly? boolean?]
                   [pred-id identifier?]
-                  [properties (box/c (listof Struct-Property?))])
+                  [properties (free-id-set/c identifier?)])
   [#:frees (f) (combine-frees (map f (append (if proc (list proc) null)
                                              (if parent (list parent) null)
-                                             (unbox properties)
                                              flds)))]
   [#:fmap (f) (make-Struct name
                            (and parent (f parent))
@@ -743,12 +794,11 @@
                            (and proc (f proc))
                            poly?
                            pred-id
-                           (box (map f (unbox properties))))]
+                           properties)]
   [#:for-each (f)
    (when parent (f parent))
    (for-each f flds)
-   (when proc (f proc))
-   (for-each f (unbox properties))]
+   (when proc (f proc))]
   ;; This should eventually be based on understanding of struct properties.
   [#:mask (mask-union mask:struct mask:procedure)]
   [#:custom-constructor
@@ -1558,7 +1608,6 @@
 ;;************************************************************
 
 
-
 ;; the 'smart' constructor
 (define (Mu* name body)
   (let ([v (make-Mu (abstract-type body name))])
@@ -1873,6 +1922,48 @@
             (app merge-class/row
                  (list row-pat inits-pat fields-pat
                        methods-pat augments-pat init-rest-pat)))])))
+
+;;***************************************************************
+;; Smart Constructors for Exist structs
+;;***************************************************************
+(define (Exist* names body)
+  (cond
+    [(null? names) body]
+    [else (define v (make-Exist (length names) (abstract-type body names)))
+          (hash-set! type-var-name-table v names)
+          v]))
+
+;; the 'smart' destructor
+(define (Exist-body* names t)
+  (match t
+    [(Exist: n body)
+     (unless (= (length names) n)
+       (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
+     (instantiate-type body (map make-F names))]))
+
+
+(define-match-expander Exist-names:
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ nps bp)
+       #'(? Exist?
+            (app (lambda (t)
+                   (let* ([n (Exist-n t)]
+                          [syms (hash-ref type-var-name-table t (λ _ (build-list n (λ _ (gensym)))))])
+                     (list syms (Exist-body* syms t))))
+                 (list nps bp)))])))
+
+(define-match-expander Exist:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ nps bp)
+       #'(? Exist?
+            (app (lambda (t) (let* ([n (Exist-n t)]
+                                    [syms (cond
+                                            [(hash-ref type-var-name-table t #f) => (λ (names) (map gensym names))]
+                                            [else (build-list n (λ _ (gensym)))])])
+                               (list syms (Exist-body* syms t))))
+                 (list nps bp)))])))
 
 
 ;;***************************************************************

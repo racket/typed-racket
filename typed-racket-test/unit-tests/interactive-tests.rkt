@@ -98,7 +98,15 @@
       (begin (: x String)
              (define x "foo")))
     (test-form #rx"^$"
-      (struct foo ()))
+               (struct foo ()))
+
+    
+    (test-form #rx"^$"
+               (begin
+                 (: prop (Struct-Property (-> Self Number)))
+                 (: pred (-> Any Boolean : (Has-Struct-Property prop)))
+                 (: acc (Exist (X) (-> (Has-Struct-Property prop) (-> X Number) : X)))
+                 (define-values (prop pred acc) (make-struct-type-property 'prop))))
 
     ;; Make sure that optimized expressions work
     (test-form #rx"Flonum"

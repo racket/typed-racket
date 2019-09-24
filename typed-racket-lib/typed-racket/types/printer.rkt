@@ -7,6 +7,7 @@
          racket/pretty
          racket/list
          racket/set
+         syntax/id-set
          (except-in (path-up "utils/utils.rkt") infer)
          (path-up "rep/type-rep.rkt" "rep/prop-rep.rkt" "rep/object-rep.rkt"
                   "rep/core-rep.rkt" "rep/values-rep.rkt" "rep/fme-utils.rkt"
@@ -638,7 +639,8 @@
     [(ThreadCellTop:) 'ThreadCellTop]
     [(MPairTop:) 'MPairTop]
     [(Prompt-TagTop:) 'Prompt-TagTop]
-    [(Struct-Property: ty) `(Struct-Property ,(t->s ty))]
+    [(Struct-Property: ty pred-id) `(Struct-Property ,(t->s ty))]
+    [(Has-Struct-Property: sym) `(Has-Struct-Property ,(syntax-e sym))]
     [(Continuation-Mark-KeyTop:) 'Continuation-Mark-KeyTop]
     [(App: rator rands)
      (list* (type->sexp rator) (map type->sexp rands))]
@@ -655,11 +657,11 @@
     [(? improper-tuple? t)
      `(List* ,@(map type->sexp (improper-tuple-elems t)))]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]
-    [(Struct: nm par (list (fld: t _ _) ...) proc _ _ property-tys)
+    [(Struct: nm par (list (fld: t _ _) ...) proc _ _ properties)
      `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
         ,(map t->s t)
         ,@(if proc (list (t->s proc)) null)
-        ,@(list (map t->s (unbox property-tys))))]
+        ,@(free-id-set->list properties))]
     [(? Fun?)
      (parameterize ([current-print-type-fuel
                      (sub1 (current-print-type-fuel))])
@@ -733,6 +735,8 @@
     ;; FIXME: should this print constraints too
     [(PolyRow-names: names _ body)
      `(All (,(car names) #:row) ,(t->s body))]
+    [(Exist-names: n body)
+     `(Exist ,n ,(t->s body))]
     ;; x1 --> ()
     [(Mu-unsafe:
       (Syntax: (Union: (== (Un -Number -Boolean -Symbol -String))

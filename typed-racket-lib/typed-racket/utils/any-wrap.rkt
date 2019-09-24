@@ -72,9 +72,9 @@
 ;;         (-> Val Neg-Party Val)))
 (define ((late-neg-projection #:on-opaque on-opaque) b)
   (define (fail neg-party v)
-    (raise-blame-error 
+    (raise-blame-error
      (blame-swap b) #:missing-party neg-party
-     v 
+     v
      "Attempted to use a higher-order value passed as `Any` in untyped code: ~v" v))
   
   (define (wrap-struct neg-party s seen [inspector (current-inspector)])
@@ -144,9 +144,9 @@
       ;;  (for/hasheq ([(k v) (in-hash v)]) (values k v))]
       ;; [(? hasheqv? (? immutable?))
       ;;  (for/hasheqv ([(k v) (in-hash v)]) (values k v))]
-      
-      [(? (λ (e) 
-            (and (hash? e) (immutable? e) 
+
+      [(? (λ (e)
+            (and (hash? e) (immutable? e)
                  (not (hash-eqv? e)) (not (hash-eq? e)))))
        (for/hash ([(k v) (in-hash v)]) (values (any-wrap/traverse k neg-party seen/v)
                                                (any-wrap/traverse v neg-party seen/v)))]
@@ -163,7 +163,7 @@
                                                 blame+neg-party
                                                 (any-wrap/traverse v neg-party seen/v))))) ;; ref
                                  (lambda (h k n)
-                                   (if (immutable? v) 
+                                   (if (immutable? v)
                                        (values k n)
                                        (fail neg-party v))) ;; set
                                  (lambda (h v) v) ;; remove
@@ -191,7 +191,7 @@
        (chaperone-struct
         v
         promise-forcer
-        (λ (_ proc) 
+        (λ (_ proc)
           (chaperone-procedure
            proc
            (λ (promise)

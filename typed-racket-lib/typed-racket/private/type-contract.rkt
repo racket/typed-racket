@@ -7,15 +7,16 @@
  syntax/parse
  (rep type-rep prop-rep object-rep fme-utils)
  (utils tc-utils prefab identifier)
- (env type-name-env row-constraint-env)
+ (env type-name-env row-constraint-env lexical-env)
  (rep core-rep rep-utils free-ids type-mask values-rep
-      base-types numeric-base-types)
+      base-types numeric-base-types free-variance)
  (types resolve utils printer match-expanders union subtype)
  (prefix-in t: (types abbrev numeric-tower subtype))
  (private parse-type syntax-properties)
  racket/match racket/syntax racket/list
  racket/format
  racket/string
+ racket/set
  syntax/flatten-begin
  (only-in (types abbrev) -Bottom -Boolean)
  (static-contracts instantiate structures combinators constraints)
@@ -184,6 +185,7 @@
       typed-racket/utils/sealing-contract
       typed-racket/utils/promise-not-name-contract
       typed-racket/utils/simple-result-arrow
+      typed-racket/utils/eq-contract
       racket/sequence
       racket/contract/parametric))
 
@@ -307,6 +309,7 @@
     ((both) (triple-both trip))))
 (define (same sc)
   (triple sc sc sc))
+
 
 (define (type->static-contract type init-fail
                                #:typed-side [typed-side #t])
@@ -475,8 +478,9 @@
                [safe-spp/sc (flat/sc #'struct-predicate-procedure?/c)]
                [optimized/sc (if (from-typed? typed-side)
                                  unsafe-spp/sc
-                                 safe-spp/sc)])
-          (or/sc optimized/sc (t->sc/fun t)))]
+                                 safe-spp/sc)]
+               [spt-pred-procedure?/sc (flat/sc #'struct-type-property-predicate-procedure?)])
+          (or/sc optimized/sc spt-pred-procedure?/sc (t->sc/fun t)))]
        [(? Fun? t) (t->sc/fun t)]
        [(? DepFun? t) (t->sc/fun t)]
        [(Set: t) (set/sc (t->sc t))]
@@ -524,15 +528,44 @@
        ;; TODO: this is not quite right for case->
        [(Prompt-Tagof: s (Fun: (list (Arrow: ts _ _ _))))
         (prompt-tag/sc (map t->sc ts) (t->sc s))]
-       [(F: v) #:when (string-prefix? (symbol->string v) "self-")
-               (fail #:reason "contract generation not supported for Self")]
-       ;; TODO
+       [(Exist: (list n) (Fun: (list li-arrs ...)))
+        (define (occur? t)
+          (if (or (not t) (empty? t)) #f
+              (set-member? (free-vars-names (free-vars* t)) n)))
+
+        (define (err)
+          (fail #:reason
+                "contract generation only supports Exist Type in this form: (Exist (X) (-> ty1 ... (-> X ty ... ty2) : X))"))
+        
+        (define (get-dom-rng li-arrs)
+          (match li-arrs
+            [(list (Arrow: (list dom) rst kw
+                           (Values: (list (Result: (and (Fun: (list (Arrow: (list-rest (F: n1) a ... _) rst_i kw_i r))) rng)
+                                                   (PropSet: (TypeProp: _ (F: n1)) _) _)))))
+             #:when (and (not (ormap occur? (list rst kw rst_i kw_i)))
+                         (eq? n1 n))
+             (values dom rng)]
+            [_ (err)]))
+        
+        (define-values (dom rng) (get-dom-rng li-arrs))
+        (define/with-syntax name n)
+        (define lhs (t->sc/neg dom))
+        (define eq-name (flat/sc #'(eq/c name)))
+        (define rhs (t->sc rng #:recursive-values (hash-set recursive-values n
+                                                            (same eq-name))))
+        (exist/sc (list #'name) lhs rhs)]
        [(F: v)
-        (triple-lookup
-         (hash-ref recursive-values v
-                   (λ () (error 'type->static-contract
-                                "Recursive value lookup failed. ~a ~a" recursive-values v)))
-         typed-side)]
+        (cond
+          [(string-prefix? (symbol->string v) "self-")
+           (if (not (from-untyped? typed-side))
+               ;; if self is in negative position, we can't generate a contract yet. 
+               (fail #:reason "contract generation not supported for Self")
+               any/sc)]
+          [else (triple-lookup
+                 (hash-ref recursive-values v
+                           (λ () (error 'type->static-contract
+                                        "Recursive value lookup failed. ~a ~a" recursive-values v)))
+                 typed-side)])]
        [(BoxTop:) (only-untyped box?/sc)]
        [(ChannelTop:) (only-untyped channel?/sc)]
        [(Async-ChannelTop:) (only-untyped async-channel?/sc)]
@@ -696,7 +729,31 @@
             (fail #:reason (~a "cannot import structure types from"
                                "untyped code"))
             (struct-type/sc null))]
-       [(Struct-Property: s) (struct-property/sc (t->sc s))]
+       [(Struct-Property: s _) (struct-property/sc (t->sc s))]
+       [(Has-Struct-Property: orig-id)
+        ;; we can't call syntax-local-value/immediate in has-struct-property case in parse-type
+        (define-values (a prop-name) (syntax-local-value/immediate orig-id (λ () (values #t orig-id))))
+        (match-define (Struct-Property: _ pred?) (lookup-id-type/lexical prop-name))
+        ;; if original-name is only set when the type is added via require/typed
+        
+        ;; the original-name of `prop-name` is its original referece in the unexpanded program.
+        (define real-prop-var (or (syntax-property prop-name 'original-name) prop-name))
+
+        ;; a property is wrapped so we need its original reference
+        (define real-pred-var (or (syntax-property pred? 'original-name) (syntax-e pred?)))
+        
+        ;; the `pred?` could be provided to a property through require/typed, 
+        ;; so we need to check if it is produced by the property
+        (flat/sc #`(flat-named-contract '#,real-pred-var
+                                        (lambda (x)
+                                          (if (not (struct-type-property-predicate-procedure? #,pred? #,real-prop-var))
+                                              (raise-arguments-error 'struct-property
+                                                                     "predicate does not match property"
+                                                                     "predicate"
+                                                                     #,pred?
+                                                                     "property"
+                                                                     #,real-prop-var)
+                                              (#,pred? x)))))]
        [(Prefab: key (list (app t->sc fld/scs) ...)) (prefab/sc key fld/scs)]
        [(PrefabTop: key)
         (flat/sc #`(struct-type-make-predicate
@@ -769,6 +826,7 @@
      ;; Try to generate a single `->*' contract if possible.
      ;; This allows contracts to be generated for functions with both optional and keyword args.
      ;; (and don't otherwise require full `case->')
+
      (define conv (match-lambda [(Keyword: kw kty _) (list kw (t->sc/neg kty))]))
      (define (partition-kws kws) (partition (match-lambda [(Keyword: _ _ mand?) mand?]) kws))
      (define (process-dom dom*)  (if method? (cons any/sc dom*) dom*))

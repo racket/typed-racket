@@ -54,7 +54,8 @@
                   #:maker (attribute t.maker)
                   #:extra-maker (attribute t.extra-maker)
                   #:type-only (attribute t.type-only)
-                  #:prefab? (attribute t.prefab))]
+                  #:prefab? (attribute t.prefab)
+                  #:properties (attribute t.properties))]
       [t:typed-struct/exec
        (tc/struct null #'t.nm #'t.type-name
                   (syntax->list #'(t.fields ...)) (syntax->list #'(t.types ...))
@@ -191,6 +192,10 @@
       [_ (list)])))
 
 
+(define-syntax-class sp-creator
+  #:attributes (name)
+  #:literals (#%plain-app make-struct-type-property)
+  (pattern (#%plain-app make-struct-type-property (quote a)) #:attr name #'a))
 
 ;; tc-toplevel/pass1.5 : syntax? -> (listof def-binding?)
 ;; Handles `define-values` that still need types synthesized. Runs after
@@ -303,6 +308,18 @@
        #:do [(register-ignored! #'expr)]
        'no-type]
 
+      ;; handle definitions that use make-struct-type-property 
+      [(define-values (prop prop-pred prop-ref) expr:sp-creator)
+       #:do [(register-ignored! #'expr)]
+
+       (define vars (list #'prop #'prop-pred #'prop-ref))
+       (define ts (for/list ([s (in-list vars)])
+                    (type-annotation s #:infer #t)))
+       (check-below (tc/make-struct-type-property #'prop
+                                                  (second vars)
+                                                  (first ts))
+                    (ret ts))
+       'no-type]
       ;; definitions just need to typecheck their bodies
       [(define-values () expr)
        (tc-expr/check #'expr (ret empty))

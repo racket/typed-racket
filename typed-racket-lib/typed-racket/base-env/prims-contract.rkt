@@ -12,7 +12,7 @@
 ;;
 ;; - their implementations (under the same names) are defined at phase
 ;;   0 using `define` in the main module
-;; 
+;;
 ;; - the `forms` submodule uses `lazy-require` to load the
 ;;   implementations of the forms
 
@@ -24,7 +24,7 @@
 
 (module forms racket/base
   (require (for-syntax racket/lazy-require racket/base))
-  (begin-for-syntax 
+  (begin-for-syntax
     (lazy-require [(submod "..")
                    (require/opaque-type
                     require-typed-signature
@@ -81,6 +81,7 @@
          racket/struct-info
          syntax/struct
          syntax/location
+         "../utils/require-contract.rkt"
          (for-template "../utils/any-wrap.rkt")
          "../utils/tc-utils.rkt"
          "../private/syntax-properties.rkt"
@@ -223,7 +224,7 @@
                   ;; need this indirection since `hidden` may expand
                   ;; to a different identifier that TR doesn't know about
                   #,(ignore #'(define hidden2 hidden))
-                  (rename-without-provide nm.nm hidden2)
+                  (rename-without-provide nm.nm hidden2 hidden)
                   #,(internal #'(require/typed-internal hidden2 ty . sm))))])]))
   (values (r/t-maker #t #f) (r/t-maker #f #f) (r/t-maker #f #t))))
 

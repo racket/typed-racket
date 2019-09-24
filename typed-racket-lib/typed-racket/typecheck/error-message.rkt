@@ -8,6 +8,7 @@
          racket/dict
          racket/match
          racket/set
+         racket/format
          (types utils subtype resolve)
          (utils tc-utils)
          (rep type-rep)
@@ -58,6 +59,10 @@
      (class-mismatch r1 r2)]
     [((Instance: (app resolve (? Class? c1))) (Instance: (app resolve (? Class? c2))))
      (class-mismatch c1 c2 #t)]
+    [((Has-Struct-Property: prop-name) (Struct: n2 _ _ _ _ _ _))
+     (type-mismatch t1 t2 (format "struct ~a doesn't have the property ~a"
+                                  (syntax-e n2)
+                                  (syntax-e prop-name)))]
     ;; Don't call this with resolved types since we may want to print
     ;; the type alias name instead of the actual type
     [(_ _) (type-mismatch t1 t2)]))

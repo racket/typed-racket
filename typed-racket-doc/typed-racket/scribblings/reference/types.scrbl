@@ -863,6 +863,13 @@ functions and continuation mark functions.
                 0
                 (add1 (list-length (cdr lst)))))
           (list-length (list 1 2 3))]}
+          
+@defform*[[(Exist (a ...) t)]]{ is an existential type where fresh variables
+@racket[a ...] may appear in @racket[t].  Currently there are no packing or
+unpacking expression for @racket[(Exist (A) t)]. If @racket[t] is a function
+type and @racket[a ...] appear in the return type, unpacking is done
+automatically when the function is applied. Note that existential types are
+currently only used to type accessors for @racket[Struct-Property]}
 
 @defform[(Values t ...)]{is the type of a sequence of multiple values, with
 types @racket[t ...].  This can only appear as the return type of a
@@ -985,8 +992,8 @@ prefab types with the (implicitly quoted) prefab-key
   come before its definition.
 
   @ex[(: prop:foo (Struct-Property (-> Self Number)))
-      (: foo-pred (-> Any Boolean))
-      (: foo-accessor (-> Any Any))
+      (: foo-pred (-> Any Boolean : (Has-Struct-Property prop:foo)))
+      (: foo-accessor (Exist (X) (-> (Has-Struct-Property prop:foo) (-> X Number) : X)))
       (define-values (prop:foo foo-pred foo-accessor) (make-struct-type-property 'foo))
      ]
   @history[#:added "1.10"]}
@@ -1008,6 +1015,11 @@ prefab types with the (implicitly quoted) prefab-key
   @ex[(:print-type prop:equal+hash)]
 
   @history[#:added "1.10"]}
+
+@defform[(Has-Struct-Property prop)]{
+  This type describes an instance of a
+  structure type associcated with a @racket[Struct-Property] named @racket[prop].
+}
 
 @defalias[Union U]
 @defalias[Intersection ∩]

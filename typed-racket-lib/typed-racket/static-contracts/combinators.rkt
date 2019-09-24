@@ -25,4 +25,5 @@
  "combinators/struct.rkt"
  "combinators/structural.rkt"
  "combinators/symbolic-object.rkt"
+ "combinators/exist.rkt"
  "combinators/unit.rkt")

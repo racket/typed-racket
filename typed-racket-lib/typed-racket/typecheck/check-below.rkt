@@ -187,6 +187,5 @@
      (unless (subtype t1 t2)
        (expected-but-got t2 t1))
      expected]
-    
-    [(a b) (int-err "unexpected input for check-below: ~a ~a" a b)]))
 
+    [(a b) (int-err "unexpected input for check-below: ~a ~a" a b)]))

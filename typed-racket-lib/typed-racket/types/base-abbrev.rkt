@@ -346,3 +346,9 @@
      (let ([var (-v var)])
        (make-PolyRow (list 'var) consts ty))]))
 
+;; abbreviation for existential types
+(define-syntax -exist
+  (syntax-rules ()
+    [(_ (vars ...) ty)
+     (let ([vars (-v vars)] ...)
+       (make-Exist (list 'vars ...) ty))]))

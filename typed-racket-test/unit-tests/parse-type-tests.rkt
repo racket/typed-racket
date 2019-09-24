@@ -341,6 +341,14 @@
    [(Prefab foo String) (-prefab 'foo -String)]
    [FAIL (Prefab (foo 0) String)]
 
+   ;;; Struct Type Properties
+   [(Struct-Property Number) (-struct-property -Number #f)]
+   [(Struct-Property (-> Number Number)) (-struct-property (t:-> -Number -Number) #f)]
+   [(Struct-Property (-> Self Number)) (-struct-property (t:-> -Self -Number) #f)]
+   [FAIL (-> Self Number)]
+
+   [(Exist (X) (-> Number (-> X Number) : X)) (-exist (X) (t:-> -Number (t:-> X -Number) : (-PS (-is-type 0 X) (-not-type 0 X))))]
+
    ;;; Classes
    [(Class) (-class)]
    [(Class (init [x Number] [y Number]))

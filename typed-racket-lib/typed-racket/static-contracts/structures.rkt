@@ -94,7 +94,7 @@
   ;; Takes a static contract and traverses it.  Each sub part should be called with supplied function.
   ;; The variance argument should be how the sub part relates to the static contract.
   [sc-traverse sc f]
-  ;; sc->contract: static-contract? (static-contract? -> contract?) -> contract?
+  ;; sc->contract: static-contract? (static-contract? variance/c -> contract?) -> contract?
   ;; Takes a static contract and returns the corresponding contract.
   ;; The function argument should be used for sub parts of the static contract.
   [sc->contract sc f]

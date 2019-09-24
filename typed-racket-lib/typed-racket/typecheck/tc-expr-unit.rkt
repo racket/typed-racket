@@ -469,5 +469,3 @@
     [(? hash? hash-val) (tc-hash find-stx-type hash-val expected-type)]
     [(? prefab-struct-key prefab-val) (tc-prefab find-stx-type prefab-val expected-type)]
     [_ Univ]))
-
-

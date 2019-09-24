@@ -29,7 +29,7 @@
     (when (and (identifier? stx)
                let-binding)
       (define t1 (parse-type/id stx prop))
-      (define t2 (lookup-type stx (lambda () #f)))      
+      (define t2 (lookup-type stx (lambda () #f)))
       (when (and t2 (not (equal? t1 t2)))
         (maybe-finish-register-type stx)
         (tc-error/delayed #:stx stx "Duplicate type annotation of ~a for ~a, previous was ~a" t1 (syntax-e stx) t2)))

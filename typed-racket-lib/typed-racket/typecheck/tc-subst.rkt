@@ -98,7 +98,7 @@
        (define new-prop-ty (intersect prop-ty o-ty o))
        (cond
          [(Bottom? new-prop-ty) -ff]
-         [(subtype o-ty prop-ty) -tt]
+         [(and (not (F? prop-ty))  (subtype o-ty prop-ty)) -tt]
          [(Empty? o) -tt]
          [else (-is-type o new-prop-ty)])]
       [(NotTypeProp: (Path: flds (cons (== lvl) (app lookup (? pair? entry))))

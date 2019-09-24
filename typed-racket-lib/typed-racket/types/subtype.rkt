@@ -2,6 +2,7 @@
 (require (except-in "../utils/utils.rkt" infer)
          racket/match racket/function racket/lazy-require
          racket/list
+         syntax/id-set
          (contract-req)
          (rep type-rep prop-rep object-rep
               core-rep type-mask values-rep rep-utils
@@ -23,6 +24,7 @@
 (lazy-require
  ("../infer/infer.rkt" (infer))
  ("prop-ops.rkt" (-and))
+ ("../env/lexical-env.rkt" [lookup-id-type/lexical])
  ("../typecheck/tc-subst.rkt" (instantiate-obj+simplify))
  ("../typecheck/tc-envops.rkt" (env+ implies-in-env?)))
 
@@ -573,6 +575,7 @@
         -Subprocess
         -Will-Executor))
 
+
 (define event-univ-types (list -Place -Base-Place-Channel))
 (define num-seq-types (list -Byte -Index -NonNegFixnum -Nat))
 (define log-vect-type (make-HeterogeneousVector
@@ -797,6 +800,7 @@
    (match t2
      [(Evt: result2) (subtype* A result1 result2)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: Exist (Exist: _ _)) #f]
   [(case: F (F: var1))
    (match t2
      ;; tvars are equal if they are the same variable
@@ -810,6 +814,11 @@
      ;; special case when t1 can be collapsed into simpler arrow
      [((? DepFun? dfun) (app collapsable-arrows? (? Arrow? arrow1)))
       (arrow-subtype-dfun* A arrow1 dfun)]
+     [((Exist: (list n) body) (list arr1))
+      (match-define (F: self-var) -Self)
+      (define n-arrow (subst self-var (make-F n) arr1))
+      (match-define (Fun: (list arrow2)) body)
+      (arrow-subtype* A n-arrow arrow2)]
      [((Fun: arrows2) _)
       (cond
         [(null? arrows1) #f]
@@ -1162,7 +1171,7 @@
      [(SequenceTop:) A]
      [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _ _))
+  [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _ properties))
    (match t2
      ;; Avoid resolving things that refer to different structs.
      ;; Saves us from non-termination
@@ -1192,6 +1201,12 @@
      [(StructTop: (Struct: nm2 _ _ _ _ _ _))
       #:when (free-identifier=? nm1 nm2)
       A]
+     [(Has-Struct-Property: prop-name)
+      (cond
+        [(free-id-set-member? properties prop-name)
+         (match (lookup-id-type/lexical prop-name)
+           [(? Struct-Property?) A])]
+        [else #f])]
      [(Val-able: (? (negate struct?) _)) #f]
      ;; subtyping on structs follows the declared hierarchy
      [_ (cond
@@ -1201,9 +1216,9 @@
                     (subtype* A parent1 t2))))]
           [else (continue<: A t1 t2 obj)])]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: Struct-Property (Struct-Property: ty1))
+  [(case: Struct-Property (Struct-Property: ty1 _))
    (match t2
-     [(Struct-Property: ty2) (subtype* A ty2 ty1)]
+     [(Struct-Property: ty2 _) (subtype* A ty2 ty1)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: StructType (StructType: t1*))
    (match t2

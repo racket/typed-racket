@@ -281,6 +281,8 @@
    [(-mu x (Un -Number (-lst* x -Symbol x))) -Sexp]
    [t1a (unfold t1a)]
    [(unfold t1a) t1a]
+   [(-> -Number (-> -Self -Number)) (-exist (x) (-> -Number (-> x -Number)))]
+   [FAIL (-exist (x) (-> -Number (-> x -Number))) (-> -Number (-> -Self -Number))]
    ;; simple list types
    [(make-Listof -Number) (make-Listof Univ)]
    [(make-Listof -Number) (make-Listof -Number)]

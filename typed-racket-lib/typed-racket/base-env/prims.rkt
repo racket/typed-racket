@@ -802,26 +802,24 @@ the typed racket language.
   (syntax-case stx ()
     [(name for ann T K #:length n-expr #:fill fill-expr (clauses ...) body-expr)
      (syntax/loc stx
-       (call/ec
-        (ann (λ (break)
-               (define n n-expr)
-               (define: vs : T (make-vector n fill-expr))
-               (define i 0)
-               (for (clauses ...)
-                 (unsafe-vector-set! vs i body-expr)
-                 (set! i (unsafe-fx+ i 1))
-                 (when (i . unsafe-fx>= . n) (break vs)))
-               vs)
-             K)))]
+       (ann (let ()
+              (define n n-expr)
+              (define: vs : T (make-vector n fill-expr))
+              (define i 0)
+              (for (clauses ... #:break (i . unsafe-fx= . n))
+                (unsafe-vector-set! vs i body-expr))
+              vs)
+            T))]
     [(name for ann T K #:length n-expr (clauses ...) body-expr)
      (syntax/loc stx
        (let ([n n-expr])
          (define vs
-           (call/ec
-            (ann (λ (break)
+            (ann (let ()
                    (define: vs : T (vector))
                    (define i 0)
-                   (for (clauses ...)
+                   (unless (and (fixnum? n) (exact-nonnegative-integer? n))
+                     (raise-argument-error 'name '"exact-nonnegative-integer?" n))
+                   (for (clauses ... #:break (unsafe-fx= i n))
                      (define v body-expr)
                      ;; can't use `unsafe-fx=` here
                      ;; if `n` is larger than a fixnum, this is unsafe, and we
@@ -832,10 +830,9 @@ the typed racket language.
                      (cond [(= i 0)  (define: new-vs : T (make-vector n v))
                                               (set! vs new-vs)]
                            [else  (unsafe-vector-set! vs i v)])
-                     (set! i (unsafe-fx+ i 1))
-                     (when (i . unsafe-fx>= . n) (break vs)))
+                     (set! i (unsafe-fx+ i 1)))
                    vs)
-                 K)))
+                 T))
          (cond [(= (vector-length vs) n)  vs]
                [else
                 ;; Only happens when n > 0 and vs = (vector)

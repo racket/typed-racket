@@ -12,21 +12,23 @@
 ;;
 ;; - their implementations (under the same names) are defined at phase
 ;;   0 using `define` in the main module
-;; 
+;;
 ;; - the `forms` submodule uses `lazy-require` to load the
 ;;   implementations of the forms
 
 
 (provide require/opaque-type require-typed-struct-legacy require-typed-struct
+         require/predicate-type
          require/typed-legacy require/typed require/typed/provide
          require-typed-struct/provide core-cast make-predicate define-predicate
          require-typed-signature)
 
 (module forms racket/base
   (require (for-syntax racket/lazy-require racket/base))
-  (begin-for-syntax 
+  (begin-for-syntax
     (lazy-require [(submod "..")
                    (require/opaque-type
+                    require/predicate-type
                     require-typed-signature
                     require-typed-struct-legacy
                     require-typed-struct
@@ -39,6 +41,7 @@
          #'(begin (provide (rename-out [names id] ...))
                   (define-syntax (names stx) (id stx)) ...))]))
   (def require/opaque-type
+        require/predicate-type
         require-typed-signature
         require-typed-struct-legacy
         require-typed-struct
@@ -166,10 +169,17 @@
     (pattern [(~or (~datum opaque) #:opaque) opaque ty:id pred:id #:name-exists]
              #:with opt #'(#:name-exists)))
 
+  (define-syntax-class type/predicate-clause
+    #:attributes (ty pred opt)
+    (pattern [#:type/predicate ty:id pred:id]
+             #:with opt #'()))
+
   (define-syntax-class (clause legacy unsafe? lib)
    #:attributes (spec)
    (pattern oc:opaque-clause #:attr spec
      #`(require/opaque-type oc.ty oc.pred #,lib #,@(if unsafe? #'(unsafe-kw) #'()) . oc.opt))
+   (pattern tpc:type/predicate-clause #:attr spec
+     #`(require/predicate-type tpc.ty tpc.pred #,lib #,@(if unsafe? #'(unsafe-kw) #'()) . tpc.opt))
    (pattern (~var strc (struct-clause legacy)) #:attr spec
      #`(require-typed-struct strc.nm (strc.tvar ...)
                              (strc.body ...) strc.constructor-parts ...
@@ -250,6 +260,11 @@
               (provide (struct-out name))
               (require/typed/provide lib other-clause ...))]
     [(_ lib (~and clause [#:opaque t:id pred:id])
+        other-clause ...)
+     #'(begin (require/typed lib clause)
+              (provide t pred)
+              (require/typed/provide lib other-clause ...))]
+    [(_ lib (~and clause [#:type/predicate t:id pred:id])
         other-clause ...)
      #'(begin (require/typed lib clause)
               (provide t pred)
@@ -401,6 +416,33 @@
            #,(if (attribute ne)
                  (internal (syntax/loc stx (define-type-alias-internal ty (Opaque pred))))
                  (syntax/loc stx (define-type-alias ty (Opaque pred))))
+           #,(if (attribute unsafe)
+                 (ignore #'(define pred-cnt any/c)) ; unsafe- shouldn't generate contracts
+                 (ignore #'(define pred-cnt
+                             (or/c struct-predicate-procedure?/c
+                                   (any-wrap-warning/c . c-> . boolean?)))))
+           #,(ignore #'(require/contract pred hidden pred-cnt lib)))))]))
+
+(define (require/predicate-type stx)
+  (define-syntax-class unsafe-id
+    (pattern (~literal unsafe-kw)))
+  (syntax-parse stx
+    [_ #:when (eq? 'module-begin (syntax-local-context))
+       ;; it would be inconvenient to find the correct #%module-begin here, so we rely on splicing
+       #`(begin #,stx (begin))]
+    [(_ ty:id pred:id lib (~optional unsafe:unsafe-id))
+     (with-syntax ([hidden (generate-temporary #'pred)])
+       ;; this is needed because this expands to the contract directly without
+       ;; going through the normal `make-contract-def-rhs` function.
+       (set-box! include-extra-requires? #t)
+       (quasisyntax/loc stx
+         (begin
+           ;; register the identifier for the top-level (see require/typed)
+           #,@(if (eq? (syntax-local-context) 'top-level)
+                  (list #'(define-syntaxes (hidden) (values)))
+                  null)
+           #,(internal #'(require/typed-internal hidden (Any -> Boolean : #:+ (Type/Predicate pred))))
+           #,(syntax/loc stx (define-type-alias ty (Type/Predicate pred)))
            #,(if (attribute unsafe)
                  (ignore #'(define pred-cnt any/c)) ; unsafe- shouldn't generate contracts
                  (ignore #'(define pred-cnt

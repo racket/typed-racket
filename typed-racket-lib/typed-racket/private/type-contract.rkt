@@ -536,6 +536,11 @@
         (promise/sc (t->sc t))]
        [(Opaque: p?)
         (flat/sc #`(flat-named-contract (quote #,(syntax-e p?)) #,p?))]
+       [(Type/Predicate: p?)
+        ; TODO:
+        ;   make it error on `make-predicate`,
+        ;   but work on `make-positive-predicate`, `cast`, and type-untyped boundaries
+        (flat/sc #`(flat-named-contract (quote #,(syntax-e p?)) #,p?))]
        [(Continuation-Mark-Keyof: t)
         (continuation-mark-key/sc (t->sc t))]
        ;; TODO: this is not quite right for case->

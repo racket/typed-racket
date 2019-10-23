@@ -255,6 +255,7 @@ The primary use of is for the reflective operation @racket[unit?]}
             [#:struct (name parent) ([f : t] ...)
                  struct-option ...]
             [#:opaque t pred]
+            [#:type/predicate t pred]
 	    [#:signature name ([id : t] ...)]]
  [maybe-renamed id
                 (orig-id new-id)]

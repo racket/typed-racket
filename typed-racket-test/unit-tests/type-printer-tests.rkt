@@ -67,6 +67,7 @@
 
     (check-prints-as? -Custodian "Custodian")
     (check-prints-as? (make-Opaque #'integer?) "(Opaque integer?)")
+    (check-prints-as? (make-Type/Predicate #'integer?) "(Type/Predicate integer?)")
     (check-prints-as? (make-Immutable-Vector -Nat) "(Immutable-Vectorof Nonnegative-Integer)")
     (check-prints-as? (make-Mutable-Vector -Nat) "(Mutable-Vectorof Nonnegative-Integer)")
     (check-prints-as? (make-Vector -Nat) "(Vectorof Nonnegative-Integer)")

@@ -54,4 +54,9 @@
         other-clause ...)
      #'(begin (unsafe-require/typed lib clause)
               (provide t pred)
+              (unsafe-require/typed/provide lib other-clause ...))]
+    [(_ lib (~and clause [#:type/predicate t:id pred:id])
+        other-clause ...)
+     #'(begin (unsafe-require/typed lib clause)
+              (provide t pred)
               (unsafe-require/typed/provide lib other-clause ...))]))

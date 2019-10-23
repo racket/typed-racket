@@ -31,6 +31,7 @@
     #:attributes (form outer-form)
     (pattern :simple-clause)
     (pattern :opaque-clause)
+    (pattern :type/predicate-clause)
     (pattern :struct-clause))
 
   (define-syntax-class simple-clause
@@ -48,6 +49,19 @@
                                 (make-pred-ty (make-Opaque #'pred)))
                  (register-type-name (quote-syntax type)
                                      (make-Opaque #'pred)))
+             #:with outer-form #'(begin
+                                   (define-syntax type type-name-error)
+                                   (provide type pred))))
+
+  (define-syntax-class type/predicate-clause
+    #:description "[#:type/predicate type pred]"
+    (pattern [#:type/predicate type:id pred:id]
+             #:with form
+             #'(begin
+                 (register-type (quote-syntax id)
+                                (asym-pred Univ B (-PS (-is-type 0 (make-Type/Predicate #'pred)) -tt)))
+                 (register-type-name (quote-syntax type)
+                                     (make-Type/Predicate #'pred)))
              #:with outer-form #'(begin
                                    (define-syntax type type-name-error)
                                    (provide type pred))))
@@ -100,7 +114,8 @@
                              typed-racket/env/global-env typed-racket/env/type-alias-env
                              typed-racket/types/struct-table typed-racket/types/abbrev
                              typed-racket/typecheck/tc-structs
-                             (only-in typed-racket/rep/type-rep make-Name make-Opaque)
+                             (only-in typed-racket/rep/type-rep make-Name make-Opaque
+                                      make-Type/Predicate)
                              (rename-in racket/private/sort [sort raw-sort]))
                     ;; FIXME: add a switch to turn contracts on for testing
                     binding.form ...)))

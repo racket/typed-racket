@@ -148,6 +148,9 @@
    ;; Opaque
    [(make-Opaque x1) (make-Opaque x2)]
    [FAIL (make-Opaque #'a) (make-Opaque #'b)]
+   ;; Type/Predicate
+   [(make-Type/Predicate x1) (make-Type/Predicate x2)]
+   [FAIL (make-Type/Predicate #'a) (make-Type/Predicate #'b)]
    ;; Refinement
    [(make-Refinement A x1) (make-Refinement A x2)]
    ;[(make-Refinement t1a x1) (make-Refinement t1b x1)]

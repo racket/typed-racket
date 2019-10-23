@@ -4,7 +4,8 @@
 
 (require
  (except-in typed-racket/base-env/prims
-            require/typed require/opaque-type require-typed-struct require/typed/provide)
+            require/typed require/opaque-type require-typed-struct require/typed/provide
+            require/predicate-type)
  typed-racket/base-env/base-types-extra
  (for-syntax racket/base syntax/parse syntax/struct
              syntax/parse/experimental/template))
@@ -37,25 +38,32 @@
                #:with opt #'())
       (pattern [(~or #:opaque (~datum opaque)) ty:id pred:id #:name-exists]
                #:with opt #'(#:name-exists)))
+    (define-syntax-class type/predicate-clause
+      #:attributes (ty pred opt)
+      (pattern [#:type/predicate ty:id pred:id]
+               #:with opt #'()))
     (define-splicing-syntax-class struct-option
       (pattern (~seq #:constructor-name cname:id))
       (pattern (~seq #:extra-constructor-name extra-cname:id)))
     (values
-     (syntax-parser 
-       [(_ lib (~or sc:simple-clause strc:struct-clause oc:opaque-clause) ...)
+     (syntax-parser
+       [(_ lib (~or sc:simple-clause strc:struct-clause oc:opaque-clause tpc:type/predicate-clause) ...)
         (template
          (begin
            (require/opaque-type oc.ty oc.pred lib . oc.opt) ...
+           (require/predicate-type tpc.ty tpc.pred lib . tpc.opt) ...
            (require/typed sc.nm sc.ty lib) ...
            (require-typed-struct strc.nm (strc.body ...) (?@ . strc.opts) ... lib) ...))]
        [(_ nm:opt-rename ty lib (~optional [~seq #:struct-maker parent]) ...)
-        #'(require (only-in lib nm.spec))]) 
+        #'(require (only-in lib nm.spec))])
      (syntax-parser
-       [(_ lib (~or sc:simple-clause strc:struct-clause oc:opaque-clause) ...)
+       [(_ lib (~or sc:simple-clause strc:struct-clause oc:opaque-clause tpc:type/predicate-clause) ...)
         (template
          (begin
            (require/opaque-type oc.ty oc.pred lib . oc.opt) ...
            (provide oc.pred) ...
+           (require/predicate-type tpc.ty tpc.pred lib . tpc.opt) ...
+           (provide tpc.pred) ...
            (require/typed sc.nm sc.ty lib) ...
            (provide sc.nm) ...
            (require-typed-struct strc.nm (strc.body ...) (?@ . strc.opts) ... lib) ...
@@ -65,6 +73,9 @@
                  (provide nm.nm))]))))
 
 (define-syntax-rule (require/opaque-type ty pred lib . _)
+  (require (only-in lib pred)))
+
+(define-syntax-rule (require/predicate-type ty pred lib . _)
   (require (only-in lib pred)))
 
 (define-syntax (require-typed-struct stx)

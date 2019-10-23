@@ -139,6 +139,7 @@
 (define-literal-syntax-class #:for-label Union)
 (define-literal-syntax-class #:for-label All)
 (define-literal-syntax-class #:for-label Opaque)
+(define-literal-syntax-class #:for-label Type/Predicate)
 (define-literal-syntax-class #:for-label Parameter)
 (define-literal-syntax-class #:for-label Immutable-Vector)
 (define-literal-syntax-class #:for-label Mutable-Vector)
@@ -789,6 +790,8 @@
        (parse-all-type stx)]
       [(:Opaque^ p?:id)
        (make-Opaque #'p?)]
+      [(:Type/Predicate^ p?:id)
+       (make-Type/Predicate #'p?)]
       [(:Distinction^ name:id unique-id:id rep-ty:expr)
        (-Distinction (syntax-e #'name) (syntax-e #'unique-id) (parse-type #'rep-ty))]
       [(:Parameter^ t)
@@ -1106,6 +1109,8 @@
           Err])]
       [(:Opaque^ . rest)
        (parse-error "bad syntax in Opaque")]
+      [(:Type/Predicate^ . rest)
+       (parse-error "bad syntax in Type/Predicate")]
       [(:U^ . rest)
        (parse-error "bad syntax in Union")]
       [(:Rec^ . rest)

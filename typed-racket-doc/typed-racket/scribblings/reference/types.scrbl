@@ -1020,4 +1020,9 @@ prefab types with the (implicitly quoted) prefab-key
 @defform[(Opaque t)]{A type constructed using the @racket[#:opaque]
 clause of @racket[require/typed].}
 
+@defform[(Type/Predicate pred-id)]{
+  A type constructed using the @racket[#:type/predicate] clause of
+  @racket[require/typed].
+}
+
 @(close-eval the-eval)

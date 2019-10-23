@@ -611,6 +611,7 @@ optionally-renamed identifier.
             [#:struct maybe-tvars (name-id parent) ([f : t] ...)
                  struct-option ...]
             [#:opaque t pred]
+            [#:type/predicate t pred]
 	    [#:signature name ([id : t] ...)]]
  [maybe-renamed id
                 (orig-id new-id)]
@@ -663,6 +664,11 @@ Opaque types must be required lexically before they are used.
                    [sync (Evt -> Any)])
     evt?
     (sync (alarm-evt (+ 100 (current-inexact-milliseconds))))]
+
+@index["type/predicate"]{The fifth case} defines a new type @racket[t]
+to represent values which have passed @racket[pred] at any point.
+@racket[pred] is imported from module @racket[m] with type
+@racket[(Any -> Boolean : #:+ t)].
 
 @index["signature"]{The @racket[#:signature] keyword} registers the required
 signature in the signature environment. For more information on the use of

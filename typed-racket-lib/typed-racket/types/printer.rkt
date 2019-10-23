@@ -655,6 +655,7 @@
     [(? improper-tuple? t)
      `(List* ,@(map type->sexp (improper-tuple-elems t)))]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]
+    [(Type/Predicate: pred) `(Type/Predicate ,(syntax->datum pred))]
     [(Struct: nm par (list (fld: t _ _) ...) proc _ _ property-tys)
      `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
         ,(map t->s t)

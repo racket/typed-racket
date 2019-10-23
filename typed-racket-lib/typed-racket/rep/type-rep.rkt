@@ -543,6 +543,10 @@
   #:base
   [#:custom-constructor (make-Opaque (normalize-id pred))])
 
+(def-type Type/Predicate ([pred identifier?])
+  #:base
+  [#:custom-constructor (make-Type/Predicate (normalize-id pred))])
+
 
 
 ;;************************************************************

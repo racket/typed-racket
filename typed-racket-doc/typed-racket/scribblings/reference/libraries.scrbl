@@ -287,7 +287,7 @@ following steps are required:
   @item{Determine the data manipulated by the library, and how it will
   be represented in Typed Racket.}
   @item{Specify that data in Typed Racket, using @racket[require/typed]
-  and @racket[#:opaque] and/or @racket[#:struct].}
+  and @racket[#:type/predicate] and/or @racket[#:struct].}
   @item{Use the data types to import the various functions and constants
   of the library.}
   @item{Provide all the relevant identifiers from the new adapter module.}

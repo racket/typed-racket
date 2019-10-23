@@ -47,7 +47,7 @@
         #:methods gen:equal+hash
          [(define (equal-proc s1 s2 recur)
             (and ;; have to make sure identifiers are compared by free-id=?
-                 ;; because of struct predicates, opaque, etc.
+                 ;; because of struct predicates, opaque, type/predicate, etc.
                  (stx-equal? (simple-contract-syntax s1)
                              (simple-contract-syntax s2))
                  (recur (simple-contract-kind s1)

@@ -275,6 +275,8 @@
                 (list ,@(map type->sexp rands)))]
     [(Opaque: pred)
      `(make-Opaque (quote-syntax ,pred))]
+    [(Type/Predicate: pred)
+     `(make-Type/Predicate (quote-syntax ,pred))]
     [(Refinement: parent pred)
      `(make-Refinement ,(type->sexp parent) (quote-syntax ,pred))]
     [(Mu-maybe-name: n (? Type? b))

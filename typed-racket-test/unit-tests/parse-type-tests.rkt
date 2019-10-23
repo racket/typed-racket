@@ -291,8 +291,10 @@
          #:msg "Index 2 used in"]
 
    [(Opaque foo?) (make-Opaque #'foo?)]
+   [(Type/Predicate foo?) (make-Type/Predicate #'foo?)]
    ;; PR 14122
    [FAIL (Opaque 3)]
+   [FAIL (Type/Predicate 3)]
 
    ;; struct types
    [(Struct-Type arity-at-least) (make-StructType (resolve -Arity-At-Least))]

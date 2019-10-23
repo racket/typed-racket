@@ -487,11 +487,26 @@ the type:
 @defform[(make-predicate t)]{
 
 Evaluates to a predicate for the type @racket[t], with the type
-@racket[(Any -> Boolean : t)]. @racket[t] may not contain function types, or
-types that may refer to mutable data such as @racket[(Vectorof Integer)].}
+@racket[(Any -> Boolean : t)]. @racket[t] may not contain function types,
+@racket[Type/Predicate] types, or types that may refer to mutable data
+such as @racket[(Vectorof Integer)].
+
+If the type @racket[t] includes @racket[Type/Predicate] types,
+@racket[make-positive-predicate] should be used instead.}
 
 @defform[(define-predicate name t)]{
-Equivalent to @racket[(define name (make-predicate t))].
+Equivalent to @racket[(define name (make-predicate t))].}
+
+@defform[(make-positive-predicate t)]{
+
+Evaluates to a predicate for the type @racket[t], with the type
+@racket[(Any -> Boolean : #:+ t)]. @racket[t] may not contain function types, or
+types that may refer to mutable data such as @racket[(Vectorof Integer)].
+
+@racket[make-positive-predicate] does work with @racket[Type/Predicate] types.}
+
+@defform[(define-positive-predicate name t)]{
+Equivalent to @racket[(define name (make-positive-predicate t))].}
 
 @section{Type Annotation and Instantiation}
 

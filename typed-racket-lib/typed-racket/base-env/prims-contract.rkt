@@ -21,6 +21,7 @@
          require/predicate-type
          require/typed-legacy require/typed require/typed/provide
          require-typed-struct/provide core-cast make-predicate define-predicate
+         make-positive-predicate define-positive-predicate
          require-typed-signature)
 
 (module forms racket/base
@@ -33,7 +34,8 @@
                     require-typed-struct-legacy
                     require-typed-struct
                     require/typed-legacy require/typed require/typed/provide
-                    require-typed-struct/provide core-cast make-predicate define-predicate)]))
+                    require-typed-struct/provide core-cast make-predicate define-predicate
+                    make-positive-predicate define-positive-predicate)]))
   (define-syntax (def stx)
     (syntax-case stx ()
       [(_ id ...)
@@ -46,7 +48,8 @@
         require-typed-struct-legacy
         require-typed-struct
         require/typed-legacy require/typed require/typed/provide
-        require-typed-struct/provide make-predicate define-predicate)
+        require-typed-struct/provide make-predicate define-predicate
+        make-positive-predicate define-positive-predicate)
 
   ;; Expand `cast` to a `core-cast` with an extra `#%expression` in order
   ;; to prevent the contract generation pass from executing too early
@@ -284,6 +287,8 @@
 ;; Conversion of types to contracts
 ;;  define-predicate
 ;;  make-predicate
+;;  define-positive-predicate
+;;  make-positive-predicate
 ;;  cast
 
 ;; Helpers to construct syntax for contract definitions
@@ -327,6 +332,7 @@
 (define (make-predicate stx)
   (syntax-parse stx
     [(_ ty:expr)
+     ; TODO: make it error on Type/Predicate types
      (define name (syntax-local-lift-expression
                    (make-contract-def-rhs #'ty #t #f)))
      (define (check-valid-type _)
@@ -339,6 +345,40 @@
           type)))
      #`(#,(external-check-property #'#%expression check-valid-type)
         #,(ignore-some/expr #`(flat-contract-predicate #,name) #'(Any -> Boolean : ty)))]))
+
+
+(define (define-positive-predicate stx)
+  (syntax-parse stx
+    [(_ name:id ty:expr)
+     #`(begin
+         ;; We want the value bound to name to have a nice object name. Using the built in mechanism
+         ;; of define has better performance than procedure-rename.
+         #,(ignore
+            (syntax/loc stx
+              (define name
+                (let ([pred (make-positive-predicate ty)])
+                  (lambda (x) (pred x))))))
+         ;; not a require, this is just the unchecked declaration syntax
+         #,(internal (syntax/loc stx (require/typed-internal name (Any -> Boolean : #:+ ty)))))]))
+
+
+(define (make-positive-predicate stx)
+  (syntax-parse stx
+    [(_ ty:expr)
+     ; TODO: make it work with Type/Predicate types, unlike make-predicate
+     (define name (syntax-local-lift-expression
+                   (make-contract-def-rhs #'ty #t #f)))
+     (define (check-valid-type _)
+       (define type (parse-type #'ty))
+       (define vars (fv type))
+       ;; If there was an error don't create another one
+       (unless (or (Error? type) (null? vars))
+         (tc-error/delayed
+          "Type ~a could not be converted to a predicate because it contains free variables."
+          type)))
+     #`(#,(external-check-property #'#%expression check-valid-type)
+        #,(ignore-some/expr #`(flat-contract-predicate #,name) #'(Any -> Boolean : #:+ ty)))]))
+
 
 ;; wrapped above in the `forms` submodule
 (define (core-cast stx)

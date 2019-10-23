@@ -154,7 +154,7 @@
 (define (type-stxs->ids+defs type-stxs typed-side)
   (for/lists (_1 _2) ([t (in-list type-stxs)])
     (define ctc-id (generate-temporary))
-    (define contract-def `#s(contract-def ,t #f #f ,typed-side))
+    (define contract-def `#s(contract-def ,t #f #f #f ,typed-side))
     (values ctc-id
             #`(define-values (#,ctc-id)
                 #,(contract-def-property

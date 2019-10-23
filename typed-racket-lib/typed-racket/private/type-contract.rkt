@@ -50,7 +50,11 @@
           #t)]
     [_ #f]))
 
-(struct contract-def (type flat? maker? typed-side) #:prefab)
+;; The exact? field determines whether the contract must decide
+;; exactly whether the value has the type.
+;;  - flat? true and exact? true must generate (-> Any Boolean : type)
+;;  - flat? true and exact? false can generate (-> Any Boolean : #:+ type)
+(struct contract-def (type flat? exact? maker? typed-side) #:prefab)
 
 ;; get-contract-def-property : Syntax -> (U False Contract-Def)
 ;; Checks if the given syntax needs to be fixed up for contract generation
@@ -83,7 +87,8 @@
 ;; (such as mutually recursive class types).
 (define (generate-contract-def stx cache sc-cache)
   (define prop (get-contract-def-property stx))
-  (match-define (contract-def type-stx flat? maker? typed-side) prop)
+  ;; TODO: deal with exact? differently for Type/Predicate and Opaque
+  (match-define (contract-def type-stx flat? exact? maker? typed-side) prop)
   (define *typ (if type-stx (parse-type type-stx) t:-Dead-Code))
   (define kind (if (and type-stx flat?) 'flat 'impersonator))
   (syntax-parse stx #:literals (define-values)

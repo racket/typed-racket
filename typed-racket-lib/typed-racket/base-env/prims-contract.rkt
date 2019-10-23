@@ -217,7 +217,7 @@
               ;; define `cnt*` to be fixed up later by the module type-checking
               (define cnt*
                 (syntax-local-lift-expression
-                 (make-contract-def-rhs #'ty #f (attribute parent))))
+                 (make-contract-def-rhs #'ty #f #f (attribute parent))))
               (quasisyntax/loc stx
                 (begin
                   ;; register the identifier so that it has a binding (for top-level)
@@ -292,13 +292,17 @@
 ;;  cast
 
 ;; Helpers to construct syntax for contract definitions
-;; make-contract-def-rhs : Type-Stx Boolean Boolean -> Syntax
-(define (make-contract-def-rhs type flat? maker?)
-  (define contract-def `#s(contract-def ,type ,flat? ,maker? untyped))
+;; make-contract-def-rhs : Type-Stx Boolean Boolean Boolean -> Syntax
+;; The exact? argument determines whether the contract must decide
+;; exactly whether the value has the type.
+;;  - flat? true and exact? true must generate (-> Any Boolean : type)
+;;  - flat? true and exact? false can generate (-> Any Boolean : #:+ type)
+(define (make-contract-def-rhs type flat? exact? maker?)
+  (define contract-def `#s(contract-def ,type ,flat? ,exact? ,maker? untyped))
   (contract-def-property #'#f (λ () contract-def)))
 
-;; make-contract-def-rhs/from-typed : Id Boolean Boolean -> Syntax
-(define (make-contract-def-rhs/from-typed id flat? maker?)
+;; make-contract-def-rhs/from-typed : Id Boolean Boolean Boolean -> Syntax
+(define (make-contract-def-rhs/from-typed id flat? exact? maker?)
   (contract-def-property
    #'#f
    ;; This function should only be called after the type-checking pass has finished.
@@ -311,7 +315,7 @@
          (if types
              #`(U #,@types)
              #f)))
-     `#s(contract-def ,type-stx ,flat? ,maker? typed))))
+     `#s(contract-def ,type-stx ,flat? ,exact? ,maker? typed))))
 
 
 (define (define-predicate stx)
@@ -332,9 +336,9 @@
 (define (make-predicate stx)
   (syntax-parse stx
     [(_ ty:expr)
-     ; TODO: make it error on Type/Predicate types
+     ; passing #t for exact? makes it error on Type/Predicate types
      (define name (syntax-local-lift-expression
-                   (make-contract-def-rhs #'ty #t #f)))
+                   (make-contract-def-rhs #'ty #t #t #f)))
      (define (check-valid-type _)
        (define type (parse-type #'ty))
        (define vars (fv type))
@@ -365,9 +369,9 @@
 (define (make-positive-predicate stx)
   (syntax-parse stx
     [(_ ty:expr)
-     ; TODO: make it work with Type/Predicate types, unlike make-predicate
+     ; passing #f for exact? makes it work with Type/Predicate types
      (define name (syntax-local-lift-expression
-                   (make-contract-def-rhs #'ty #t #f)))
+                   (make-contract-def-rhs #'ty #t #f #f)))
      (define (check-valid-type _)
        (define type (parse-type #'ty))
        (define vars (fv type))
@@ -404,10 +408,10 @@
             #'v]
            [else
             (define new-ty-ctc (syntax-local-lift-expression
-                                (make-contract-def-rhs #'ty #f #f)))
+                                (make-contract-def-rhs #'ty #f #f #f)))
             (define existing-ty-id new-ty-ctc)
             (define existing-ty-ctc (syntax-local-lift-expression
-                                     (make-contract-def-rhs/from-typed existing-ty-id #f #f)))
+                                     (make-contract-def-rhs/from-typed existing-ty-id #f #f #f)))
             (define (store-existing-type existing-type)
               (check-no-free-vars existing-type #'v)
               (cast-table-add! existing-ty-id (datum->syntax #f existing-type #'v)))

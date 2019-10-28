@@ -127,8 +127,11 @@
               (values (unsafe-fl/ (unsafe-fl+ (unsafe-fl* a c)
                                               (unsafe-fl* b d))
                                   cm)
-                      (unsafe-fl/ (unsafe-fl- (unsafe-fl* b c)
-                                              (unsafe-fl* a d))
+                      (unsafe-fl/ (if swap?
+                                      (unsafe-fl- (unsafe-fl* a d)
+                                                  (unsafe-fl* b c))
+                                      (unsafe-fl- (unsafe-fl* b c)
+                                                  (unsafe-fl* a d)))
                                   cm)))
             (let* ([den   (unsafe-fl+ d (unsafe-fl* c r))]
                    [i     (if swap?

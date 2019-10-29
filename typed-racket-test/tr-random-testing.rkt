@@ -20,6 +20,10 @@
 (b:init) (n:init)
 (define-namespace-anchor anch)
 
+;; this works around racket/racket#2865
+(define (safe-arithmetic-shift a b)
+  (if (> b 100000) b (arithmetic-shift a b)))
+
 (define-language tr-arith
   [n real]
   ;; randomly generate F, not E, because literal numbers self-evaluate
@@ -109,7 +113,7 @@
      (lcm I*)
      (lcm I* I*)
      (lcm I* I* I*)
-     (arithmetic-shift I* I*)
+     (safe-arithmetic-shift I* I*)
      (bitwise-and I* ...)
      (bitwise-ior I* ...)
      (bitwise-xor I* ...)
@@ -217,9 +221,11 @@
   (writeln sexp rcs-in)
   (flush-output rcs-in)
   (define result (read rcs-out))
-  (if (string? result)
-      (error 'racketcs-eval result)
-      result))
+  (match result
+    [(? pair?)       (error 'racketcs-eval (~a result))]
+    [(vector r s) #;(unless (equal? s sexp)
+                    (printf "not equal!!! \n~s \n~s\n" s sexp))
+                  r]))
 
 (define (simplify-expanded e)
   (match e
@@ -240,17 +246,48 @@
   (define tr-result
     (with-handlers
         ;; did Racket error too?
-        ([exn? (λ (e) (when racket-failed?
-                        (set! both-failed? #t)))])
+      ([exn? (λ (e)
+               (when racket-failed?
+                 (set! both-failed? #t))
+               e)])
       (tr-eval sexp)))
   (or both-failed?
       (and (not racket-failed?)
            ;; for NaN, which is not = to itself
            (or (equal? racket-result tr-result)
                (begin (printf "not same result untyped: ~s typed: ~s\n" racket-result tr-result)
-                      (printf "expanded typed code is: ~s\n"
+                      #;(printf "expanded typed code is: ~s\n"
                               (simplify-expanded (tr-eval `(syntax->datum (expand (quote (#%top-interaction . ,sexp)))))))
                       #f)))))
+
+(define (same-result? a b)
+  (or (equal? a b)
+      ;; ok for inexact numbers to differ by a small amount (RacketCS is often more precise)
+      ;; FIXME: this doesn't handle cases where we get inf or nan on one side
+      (and (real? a) (real? b) (inexact? a) (inexact? b)
+           (< (abs (- a b)) (/ b 1000000)))
+      ;; racketcs doesn't have single flonums
+      (and (single-flonum? a) (flonum? b)
+           (< (abs (- (real->double-flonum b))) (/ b 1000000)))
+      (and (eq? a +nan.f) (eq? b +nan.0))
+      (and (eq? a +inf.f) (eq? b +inf.0))
+      (and (eq? a -inf.f) (eq? b -inf.0))
+      ;; same for complex inexact
+      (and (complex? a) (complex? b) (not (real? a)) (not (real? b))
+           (same-result? (real-part a) (real-part b))
+           (same-result? (imag-part a) (imag-part b)))
+      ;; RacketCS does not have mixed-exactness complex numbers
+      (and (complex? a) (complex? b) (not (real? a)) (not (real? b))
+           (inexact? (real-part b)) (inexact? (imag-part b))
+           (equal? (exact->inexact (real-part a)) (real-part b))
+           (equal? (exact->inexact (imag-part a)) (imag-part b)))))
+
+(define (contains-real->single-flonum? s)
+  (let loop ([s s])
+    (match s
+      ['real->single-flonum #t]
+      [(cons a b) (or (loop a) (loop b))]
+      [_ #f])))
 
 (define (same-result-as-racketcs? sexp [verbose? #f])
   (define racket-failed?   #f)
@@ -268,16 +305,25 @@
                        ;;   process every ~200 tests
                        (eprintf "broken pipe, aborting\n")
                        (raise e))] ; just give up on the rest of this run
-                    [(lambda (e) (and (exn:fail:unsupported? e)
-                                      (regexp-match "single-flonum" (exn-message e))))
+                    [(lambda (e) (regexp-match "real->single-flonum: unsupported" (exn-message e)))
                      ;; ignore this test case
                      (lambda _ (set! both-failed? #t))]
-                    [exn? (λ (e) (when racket-failed?
-                                   (set! both-failed? #t)))])
-      (racketcs-eval sexp)))
+                    [exn? (λ (e) (if racket-failed?
+                                     (set! both-failed? #t)
+                                     e))])
+      (racketcs-eval sexp)
+      #;
+      (if (contains-real->single-flonum? sexp)
+          (begin (printf "contains real->single-flonum ~s\n" sexp)
+                 (set! both-failed? #t))
+          )))
   (or both-failed?
       (and (not racket-failed?)
-           (equal? racket-result racketcs-result))))
+           (if (same-result? racket-result racketcs-result)
+               #t
+               (begin (printf "not same as cs: racket: ~s racketcs: ~s\n"
+                              racket-result racketcs-result)
+                      #f)))))
 
 (define num-exceptions 0)
 
@@ -298,7 +344,7 @@
            #f) ; go on and check properties
          (and (right-type? sexp verbose?)
               (same-result-as-untyped? sexp verbose?)
-              (if racketcs-available?
+              (if #f #;racketcs-available?
                   (same-result-as-racketcs? sexp verbose?)
                   #t))))))
 

@@ -1626,7 +1626,7 @@
              (-NonNegSignFlonum -Flonum . -> . -NonNegFlonum)
              (-PosReal -NonNegFlonum . -> . (Un -NonNegFlonum -One))
              (-NonNegFlonum -Flonum . -> . -Flonum)
-             (-NonNegFlonum -Real . -> . (Un -NonNegFlonum -One))
+             (-NonNegSignFlonum -Real . -> . (Un -NonNegFlonum -One))
              ;; even integer exponents can give complex results
              ;; too large exponents turn into infinities, and (expt -inf.0 -inf.0) => nan.0+nan.0i
              ;; so no narrower cases for those. fixnums are ok, though

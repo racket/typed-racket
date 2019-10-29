@@ -173,6 +173,7 @@
          #`[(#,res-real #,res-imag)
             (values (unsafe-fl/ #,a #,c)
                     (unsafe-fl/ #,b #,c))]]
+
         [first-arg-real?
          (unbox-one-float-complex-/ a c d res-real res-imag)]
         [else
@@ -198,25 +199,26 @@
     #`(let* ([cm    (unsafe-flabs #,c)]
              [dm    (unsafe-flabs #,d)]
              [swap? (unsafe-fl< cm dm)]
-             [a     #,a] ; don't swap with `b` (`0`) here, but handle below
+             [a     #,a]  ; don't swap with `b` (`0`) here, but handle below
              [c     (if swap? #,d #,c)]
              [d     (if swap? #,c #,d)]
              [r     (unsafe-fl/ c d)])
         (if (or (eqv? r +inf.0) (eqv? r -inf.0))
             (let ([cm (unsafe-fl+ (unsafe-fl* c c) (unsafe-fl* d d))])
-              (if swap?
-                  (values (unsafe-fl/ (unsafe-fl* a d) cm)
-                          (unsafe-fl/ (unsafe-fl* a c)
-                                      cm))
-                  (values (unsafe-fl/ (unsafe-fl* a c) cm)
-                          (unsafe-fl/ (unsafe-fl* -1.0 (unsafe-fl* a d))
-                                      cm))))
+              (values (unsafe-fl/ (if swap?
+                                       (unsafe-fl* a d)
+                                       (unsafe-fl* a c))
+                                  cm)
+                      (unsafe-fl/ (if swap?
+                                      (unsafe-fl* -1.0 (unsafe-fl* a c))
+                                      (unsafe-fl* -1.0 (unsafe-fl* a d)))
+                                  cm)))
             (let* ([den   (unsafe-fl+ d (unsafe-fl* c r))]
                    [i     (if swap?
                               (unsafe-fl/ (unsafe-fl* -1.0 (unsafe-fl* a r)) den)
-                              (unsafe-fl/ (unsafe-fl* -1.0 a) den))]
-                   [j     (if swap? a (unsafe-fl* a r))])
-              (values (unsafe-fl/ j den) i)))))
+                              (unsafe-fl/ (unsafe-fl* -1.0 a) den))])
+              (values (unsafe-fl/ (if swap? a (unsafe-fl* a r)) den)
+                      i)))))
   #`[(#,res-real #,res-imag)
      (cond [(unsafe-fl= #,d 0.0) #,d=0-case]
            [(unsafe-fl= #,c 0.0) #,c=0-case]
@@ -386,6 +388,7 @@
                   (loop (car rs) (car is) (cdr e1) (cdr e2) (cdr rs) (cdr is)
                         (cons (unbox-one-complex-/ a b (car e1) (car e2) (car rs) (car is))
                               res))))))
+
   (pattern (#%plain-app op:/^ c1:unboxed-float-complex-opt-expr) ; unary /
     #:when (subtypeof? this-syntax -FloatComplex)
     #:with (real-binding imag-binding) (binding-names)

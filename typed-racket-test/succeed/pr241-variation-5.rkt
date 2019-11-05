@@ -14,14 +14,15 @@
   (for-syntax racket/extflonum))
 
 (begin-for-syntax
+  (define (->fl n) (if (single-flonum-available?) (real->single-flonum n) n))
   (define-syntax-rule (ext e)
     (if (extflonum-available?)
-        '(e)
+        `(e)
         null))
 
   (define-syntax-rule (single e)
     (if (single-flonum-available?)
-        '(e)
+        `(e)
         null)))
 
 ;; When #t, print a warning if some base-types do not have tests
@@ -72,9 +73,8 @@
     (close-input-port _err)
     sp)
   choice-evt]
- #reader tests/racket/maybe-single
- ,@(single [Single-Flonum-Complex 1f0+1f0i add1])
- ,@(single [ExtFlonum-Zero 0.0t0 extflround])
+ ,@(single [Single-Flonum-Complex ,(make-rectangular (->fl 1f0) (->fl 1f0)) add1])
+ ,@(ext [ExtFlonum-Zero 0.0t0 extflround])
  ,@(ext [ExtFlonum-Negative-Zero -0.0t0 extflround])
  ,@(ext [ExtFlonum-Positive-Zero +0.0t0 extflround])
  [Complex 0 add1]
@@ -89,34 +89,23 @@
  [Positive-Real 1 add1]
  [Real-Zero 0 add1]
  [Inexact-Real (exact->inexact 1/3) add1]
- #reader tests/racket/maybe-single
- ,@(single [Single-Flonum 1.0f0 add1])
+ ,@(single [Single-Flonum ,(->fl 1.0f0) add1])
  [Nonpositive-Inexact-Real (- (exact->inexact 1/3)) add1]
- #reader tests/racket/maybe-single
- ,@(single [Nonpositive-Single-Flonum -1.0f0 add1])
- #reader tests/racket/maybe-single
- [Negative-Inexact-Real -1.0f0 add1]
- #reader tests/racket/maybe-single
- ,@(single [Negative-Single-Flonum -1.0f0 add1])
- #reader tests/racket/maybe-single
- ,@(single [Positive-Single-Flonum +1.0f0 add1])
+ ,@(single [Nonpositive-Single-Flonum ,(->fl -1.0f0) add1])
+ [Negative-Inexact-Real ,(->fl -1.0f0) add1]
+ ,@(single [Negative-Single-Flonum ,(->fl -1.0f0) add1])
+ ,@(single [Positive-Single-Flonum ,(->fl +1.0f0) add1])
  [Nonnegative-Inexact-Real (exact->inexact 1/3) add1]
- #reader tests/racket/maybe-single
- ,@(single [Nonnegative-Single-Flonum 1.0f0 add1])
- #reader tests/racket/maybe-single
- [Positive-Inexact-Real 1.0f0 add1]
+ ,@(single [Nonnegative-Single-Flonum ,(->fl 1.0f0) add1])
+ [Positive-Inexact-Real ,(->fl 1.0f0) add1]
  [Inexact-Real-Nan +nan.0 zero?]
  [Inexact-Real-Zero 0.0 add1]
  [Inexact-Real-Negative-Zero -0.0 add1]
  [Inexact-Real-Positive-Zero 0.0 add1]
- #reader tests/racket/maybe-single
- ,@(single [Single-Flonum-Nan +nan.f add1])
- #reader tests/racket/maybe-single
- ,@(single [Single-Flonum-Zero 0f0 add1])
- #reader tests/racket/maybe-single
- ,@(single [Single-Flonum-Negative-Zero -0f0 add1])
- #reader tests/racket/maybe-single
- ,@(single [Single-Flonum-Positive-Zero 0f0 add1])
+ ,@(single [Single-Flonum-Nan ,(->fl +nan.f) add1])
+ ,@(single [Single-Flonum-Zero ,(->fl 0f0) add1])
+ ,@(single [Single-Flonum-Negative-Zero ,(->fl -0f0) add1])
+ ,@(single [Single-Flonum-Positive-Zero ,(->fl 0f0) add1])
  [Float 1.0 add1]
  [Flonum 1.0 add1]
  [Nonpositive-Float -1.0 add1]

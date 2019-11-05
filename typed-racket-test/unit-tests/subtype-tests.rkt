@@ -325,14 +325,15 @@
    [FAIL (make-Mutable-HeterogeneousVector (list t1a t1b)) (make-Immutable-HeterogeneousVector (list t1b t1a))]
    ))
 
+(define (->fl v) (if (single-flonum-available?) (real->single-flonum v) v))
+
 (define single-flonum-tests/racket
-  #reader tests/racket/maybe-single
   (subtyping-tests
    "Single flonum set theoretic (Traditional Racket)"
-   [(-val 0.0f0) -SingleFlonum]
-   [(-val -0.0f0) -SingleFlonum]
-   [(-val 1.0f0) -SingleFlonum]
-   [(-val -34.2f0) -NegSingleFlonum]))
+   [(-val (->fl 0.0f0)) -SingleFlonum]
+   [(-val (->fl -0.0f0)) -SingleFlonum]
+   [(-val (->fl 1.0f0)) -SingleFlonum]
+   [(-val (->fl -34.2f0)) -NegSingleFlonum]))
 
 (define single-flonum-tests/racketcs
   (subtyping-tests

@@ -182,7 +182,7 @@
                       [d-s (syntax-property (ignore (quasisyntax/loc stx
                                                       (struct #,@(attribute nm.new-spec) (fs.fld ...)
                                                         . opts.untyped)))
-                                            'tc-struct #'nm.name)]
+                                            'tc-struct #'type)]
                       [prop-vals (quasisyntax/loc stx
                                    (define prop-val-li (list #,@(attribute opts.prop-val))))]
                       [stx-err-fun (if (not (free-identifier=? #'nm.name #'type))

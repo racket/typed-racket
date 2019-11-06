@@ -107,3 +107,9 @@
            10)
    (lambda #:∀ (A B) ([self : (equal-foo-two A B)] [conv : (-> Any Integer)]) : Integer
            10)))
+
+(struct a-struct-with-construct-id ([x : Number])
+  #:constructor-name ACons
+  #:property prop:custom-write
+  (lambda ([self : a-struct-with-construct-id] [p : Output-Port] [m : (U Boolean 1 0)]) : Void
+          (displayln (+ (a-struct-with-construct-id-x self) 20))))

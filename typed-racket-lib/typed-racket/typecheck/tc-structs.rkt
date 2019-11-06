@@ -85,7 +85,7 @@
          (#%plain-app values args-v ...)))
      (let ([pnames (attribute props.prop-names)])
        (unless (null? pnames)
-         (define sty (lookup-type name))
+         (define sty (lookup-type-name name))
          (for/list ([p (in-list pnames)]
                     [pval (in-list (attribute props.prop-vals))])
            (match (single-value p)
@@ -93,18 +93,16 @@
               (match-define (F: var) -Self)
               (match-define (F: var-imp) -Imp)
               (match sty
-                ;; since polymorphic types appear in the form of function applications in type error messages,
-                ;; we use Arrow instead of Struct Rep.
-                [(Poly-names: names (Fun: (list (Arrow: dom _ _ (Values: (list (Result: sty _ _)))))))
+                [(Struct: _ _ _ _ _ _ _)
+                 (tc-expr/check pval (ret (subst var-imp sty (subst var sty ty))))]
+                [(Poly-names: names sty)
                  (let* ([v (subst var sty ty)]
                         [v (for/fold ([res sty]
                                       #:result (subst var-imp res v))
                                      ([n names])
                              (subst n (make-F (gensym n)) res))]
                         [v (ret v)])
-                   (extend-tvars names (tc-expr/check pval v)))]
-                [(Fun: (list (Arrow: dom _ _ (Values: (list (Result: sty _ _))))))
-                 (tc-expr/check pval (ret (subst var-imp sty (subst var sty ty))))])]
+                   (extend-tvars names (tc-expr/check pval v)))])]
               [(tc-result1: ty)
                (tc-error "expected a struct type property but got ~a" ty)]))))]
     [(define-syntaxes (nm ...) . rest) (void)]))

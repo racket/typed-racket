@@ -25,15 +25,19 @@ Documentation
 
 The documentation is also bundled in your local copy of Typed Racket.
 
----
 
-Copyright (c) 2010-2015 PLT Design Inc.
+License
+-------
 
-This package is distributed under the GNU Lesser General Public
-License (LGPL).  This means that you can link this package into proprietary
-applications, provided you follow the rules stated in the LGPL.  You
-can also modify this package; if you distribute a modified version,
-you must distribute it under the terms of the LGPL, which in
-particular means that you must release the source code for the
-modified software.  See http://www.gnu.org/copyleft/lesser.html
-for more information.
+Racket, including these packages, is free software, see [LICENSE]
+for more details.
+
+By making a contribution, you are agreeing that your contribution
+is licensed under the [Apache 2.0] license and the [MIT] license.
+
+[MIT]: https://github.com/racket/racket/blob/master/racket/src/LICENSE-MIT.txt
+[Apache 2.0]: https://www.apache.org/licenses/LICENSE-2.0.txt
+[pull request]: https://github.com/racket/typed-racket/pulls
+[issue]: https://github.com/racket/typed-racket/issues
+[development mailing list]: https://lists.racket-lang.org
+[LICENSE]: LICENSE

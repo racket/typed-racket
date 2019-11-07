@@ -1,6 +1,4 @@
 #lang typed/racket/base
 (require/typed file/md5
-               [md5 (case->
-                      ((U Bytes String Input-Port) -> Bytes)
-                      ((U Bytes String Input-Port) Boolean -> Bytes))])
+               [md5 ((U Bytes Input-Port) -> Bytes)])
 (provide md5)

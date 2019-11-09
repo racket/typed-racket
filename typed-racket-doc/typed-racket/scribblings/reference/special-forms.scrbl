@@ -262,26 +262,34 @@ Like the above, except they are not yet supported by the typechecker.
 }
 
 @deftogether[[
-@defform[(for/lists type-ann-maybe ([id : t] ...)
+@defform[(for/lists type-ann-maybe ([id : t] ... maybe-result)
            (for-clause ...)
            expr ...+)]
-@defform[(for/fold  type-ann-maybe ([id : t init-expr] ...)
+@defform[(for/fold  type-ann-maybe ([id : t init-expr] ... maybe-result)
            (for-clause ...)
-           expr ...+)]]]{
+           expr ...+)
+         #:grammar
+         ([maybe-result (code:line)
+                        (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts. Unlike the above,
 @racket[#:when] clauses can be used freely with these.
+@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
 }
 
 @deftogether[[
 @defform[(for* void-ann-maybe (for-clause ...)
            expr ...+)]
-@defform[(for*/lists type-ann-maybe ([id : t] ...)
+@defform[(for*/lists type-ann-maybe ([id : t] ... maybe-result)
            (for-clause ...)
            expr ...+)]
-@defform[(for*/fold  type-ann-maybe ([id : t init-expr] ...)
+@defform[(for*/fold  type-ann-maybe ([id : t init-expr] ... maybe-result)
            (for-clause ...)
-           expr ...+)]]]{
+           expr ...+)
+         #:grammar
+         ([maybe-result (code:line)
+                        (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts.
+@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
 }
 
 @defform/subs[(do : u ([id : t init-expr step-expr-maybe] ...)

@@ -398,19 +398,19 @@ the typed racket language.
 (define-syntax (for/lists: stx)
   (syntax-parse stx
     [(_ a1:optional-standalone-annotation*
-        (var:optionally-annotated-formal ...)
+        (var:optionally-annotated-formal ... (~optional result:result-clause))
         clause:for-clauses
         a2:optional-standalone-annotation*
         c ...)
      (define all-typed? (andmap values (attribute var.ty)))
      (define for-stx
        (quasisyntax/loc stx
-          (for/lists (var.ann-name ...)
+          (for/lists (var.ann-name ... (~@ . (~? result ())))
             (clause.expand ... ...)
             c ...)))
      ((attribute a1.annotate)
       ((attribute a2.annotate)
-       (if all-typed?
+       (if (and all-typed? (not (attribute result)))
            (add-ann
             for-stx
             #'(values var.ty ...))
@@ -425,12 +425,12 @@ the typed racket language.
      (define all-typed? (andmap values (attribute accum.ty)))
      (define for-stx
        (quasisyntax/loc stx
-         (for/fold ((accum.ann-name accum.init) ...)
+         (for/fold ((accum.ann-name accum.init) ... (~@ . (~? accum.result ())))
                    (clause.expand ... ...)
            c ...)))
      ((attribute a1.annotate)
       ((attribute a2.annotate)
-       (if all-typed?
+       (if (and all-typed? (not (attribute accum.result)))
            (add-ann
             for-stx
             #'(values accum.ty ...))
@@ -476,37 +476,37 @@ the typed racket language.
 (define-syntax (for*/lists: stx)
   (syntax-parse stx
     [(_ a1:optional-standalone-annotation*
-        ((var:optionally-annotated-name) ...)
+        ((var:optionally-annotated-name) ... (~optional result:result-clause))
         clause:for-clauses
         a2:optional-standalone-annotation*
         c ...)
      (define all-typed? (andmap values (attribute var.ty)))
      (define for-stx
        (quasisyntax/loc stx
-         (for/lists (var.ann-name ...)
+         (for/lists (var.ann-name ... (~@ . (~? result ())))
              (clause.expand* ... ...)
            c ...)))
      ((attribute a1.annotate)
       ((attribute a2.annotate)
-       (if all-typed?
+       (if (and all-typed? (not (attribute result)))
            (add-ann for-stx #'(values var.ty ...))
            for-stx)))]))
 (define-syntax (for*/fold: stx)
   (syntax-parse stx #:literals (:)
     [(_ a1:optional-standalone-annotation*
-        ((var:optionally-annotated-name init:expr) ...)
+        ((var:optionally-annotated-name init:expr) ... (~optional result:result-clause))
         clause:for-clauses
         a2:optional-standalone-annotation*
         c ...)
      (define all-typed? (andmap values (attribute var.ty)))
      (define for-stx
        (quasisyntax/loc stx
-         (for/fold ((var.ann-name init) ...)
+         (for/fold ((var.ann-name init) ... (~@ . (~? result ())))
              (clause.expand* ... ...)
            c ...)))
      ((attribute a1.annotate)
       ((attribute a2.annotate)
-       (if all-typed?
+       (if (and all-typed? (not (attribute result)))
            (add-ann for-stx #'(values var.ty ...))
            for-stx)))]))
 

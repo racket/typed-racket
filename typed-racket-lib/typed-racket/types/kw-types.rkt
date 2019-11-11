@@ -238,32 +238,35 @@
       [(_ _ non-kw:id ... . rst:id) 0]))
   (define non-kw-argc raw-non-kw-argc)
   (define mand-non-kw-argc (- non-kw-argc opt-non-kw-argc))
-  (match ft
-    [(Fun: arrs)
-     (cond [(positive? (length arrs))
-            ;; assumption: only one arr is needed, since the types for
-            ;; the actual domain are the same
-            (match-define (Arrow: doms _ _ rng) (car arrs))
-            (define kw-length
-              (- (length doms) (+ non-kw-argc (if rest? 1 0))))
-            (define kw-args (take doms kw-length))
-            (define actual-kws (compute-kws mand-keywords keywords kw-args))
-            (define other-args (drop doms kw-length))
-            (define-values (mand-args opt-and-rest-args)
-              (split-at other-args mand-non-kw-argc))
-            (define rest-type
-              (and rest? (last opt-and-rest-args)))
-            (define opt-types (take opt-and-rest-args opt-non-kw-argc))
-            (define opt-types-count (length opt-types))
-            (make-Fun
-             (for/list ([to-take (in-range (add1 opt-types-count))])
-               (-Arrow (append mand-args
-                               (take opt-types to-take))
-                       (erase-props/Values rng)
-                       #:kws actual-kws
-                       #:rest (if (= to-take opt-types-count) rest-type #f))))]
-           [else (int-err "unsupported arrs in keyword function type")])]
-    [_ (int-err "unsupported keyword function type")]))
+  (let loop ([ft ft])
+    (match ft
+      [(Fun: arrs)
+       (cond [(positive? (length arrs))
+              ;; assumption: only one arr is needed, since the types for
+              ;; the actual domain are the same
+              (match-define (Arrow: doms _ _ rng) (car arrs))
+              (define kw-length
+                (- (length doms) (+ non-kw-argc (if rest? 1 0))))
+              (define kw-args (take doms kw-length))
+              (define actual-kws (compute-kws mand-keywords keywords kw-args))
+              (define other-args (drop doms kw-length))
+              (define-values (mand-args opt-and-rest-args)
+                (split-at other-args mand-non-kw-argc))
+              (define rest-type
+                (and rest? (last opt-and-rest-args)))
+              (define opt-types (take opt-and-rest-args opt-non-kw-argc))
+              (define opt-types-count (length opt-types))
+              (make-Fun
+               (for/list ([to-take (in-range (add1 opt-types-count))])
+                 (-Arrow (append mand-args
+                                 (take opt-types to-take))
+                         (erase-props/Values rng)
+                         #:kws actual-kws
+                         #:rest (if (= to-take opt-types-count) rest-type #f))))]
+             [else (int-err "unsupported arrs in keyword function type")])]
+      [(Poly-names: names f) (make-Poly names (loop f))]
+      [(PolyDots-names: names f) (make-PolyDots names (loop f))]
+      [_ (int-err "unsupported keyword function type")])))
 
 ;; check-kw-arity : LambdaKeywords Type -> Void
 ;;
@@ -402,24 +405,27 @@
       ;; have been any optional arguments
       [(arg:id ... . rst:id) 0]))
   (define mand-argc (- raw-argc opt-argc))
-  (match ft
-    [(Fun: arrs)
-     (cond [(= 1 (length arrs))
-            (match-define (Arrow: doms _ _ rng) (car arrs))
-            (define-values (mand-args opt-and-rest-args)
-              (split-at doms mand-argc))
-            (define rest-type
-              (and rest? (last opt-and-rest-args)))
-            (define opt-types (take opt-and-rest-args opt-argc))
-            (define opt-types-len (length opt-types))
-            (make-Fun
-             (for/list ([how-many-opt-args (in-range (add1 opt-types-len))])
-               (-Arrow (append mand-args (take opt-types how-many-opt-args))
-                       rng
-                       #:rest (and (= how-many-opt-args opt-types-len)
-                                   rest-type))))]
-           [else (int-err "unsupported arrs in keyword function type")])]
-    [_ (int-err "unsupported keyword function type")]))
+  (let loop ([ft ft])
+    (match ft
+      [(Fun: arrs)
+       (cond [(= 1 (length arrs))
+              (match-define (Arrow: doms _ _ rng) (car arrs))
+              (define-values (mand-args opt-and-rest-args)
+                (split-at doms mand-argc))
+              (define rest-type
+                (and rest? (last opt-and-rest-args)))
+              (define opt-types (take opt-and-rest-args opt-argc))
+              (define opt-types-len (length opt-types))
+              (make-Fun
+               (for/list ([how-many-opt-args (in-range (add1 opt-types-len))])
+                 (-Arrow (append mand-args (take opt-types how-many-opt-args))
+                         rng
+                         #:rest (and (= how-many-opt-args opt-types-len)
+                                     rest-type))))]
+             [else (int-err "unsupported arrs in keyword function type")])]
+      [(Poly-names: names f) (make-Poly names (loop f))]
+      [(PolyDots-names: names f) (make-PolyDots names (loop f))]
+      [_ (int-err "unsupported keyword function type")])))
 
 ;; partition-kws : (Listof Keyword) -> (values (Listof Keyword) (Listof Keyword))
 ;; Partition keywords by whether they are mandatory or not

@@ -2839,10 +2839,12 @@
              #:ret (ret -String #f #f)]
        [tc-e ((inst (tr:lambda #:forall (A ...) (x . [rst : A ... A]) rst) String) 'a "foo")
              (-lst* -String)]
-       #| FIXME: does not work yet, TR thinks the type variable is unbound
        [tc-e (inst (tr:lambda #:forall (A) (x [y : A] [z : String "z"]) y) String)
              #:ret (tc-ret (->opt Univ -String [-String] -String) -true-propset)]
-       |#
+       [tc-e (inst (tr:lambda #:forall (A) (x #:y [y : A] [z : String "z"]) y) String)
+             #:ret (tc-ret (->optkey Univ [-String] #:y -String #t -String))]
+       [tc-e (inst (tr:lambda #:forall (A) (x #:y [y : A] #:z [z : String "z"]) y) String)
+             #:ret (tc-ret (->key Univ #:y -String #t #:z -String #f -String))]
 
        ;; test `define` with mixed type annotations
        [tc-e (let () (tr:define y "bar")

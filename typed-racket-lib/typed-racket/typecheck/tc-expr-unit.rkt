@@ -305,14 +305,16 @@
                    (~and _ (~bind [(mand-kw 1) '()])))
               (quote (all-kw:keyword ...))
               . rst))))
-       (ret (kw-unconvert (tc-expr/t #'fun)
+       (define p (plambda-property form))
+       (ret (kw-unconvert (tc-expr/t (plambda-property #'fun p))
                           (syntax->list #'(formals ...))
                           (syntax->datum #'(mand-kw ...))
                           (syntax->datum #'(all-kw ...))))]
       [(~and opt:opt-lambda^
              (let-values ([(f) fun])
                (case-lambda (formals . cl-body) ...)))
-       (ret (opt-unconvert (tc-expr/t #'fun)
+       (define p (plambda-property form))
+       (ret (opt-unconvert (tc-expr/t (plambda-property #'fun p))
                            (syntax->list #'(formals ...))))]
       ;; let
       [(let-values bindings . body)

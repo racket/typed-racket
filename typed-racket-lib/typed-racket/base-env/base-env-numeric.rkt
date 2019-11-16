@@ -134,6 +134,9 @@
       (fx-from-cases
        (-> -Int -Zero -Fixnum : -true-propset : (-arg-path 0))
        (-One -One . -> . -Zero)
+       (-Byte>1 -One . -> . -PosByte)
+       (-Index>1 -One . -> . -PosIndex)
+       (-Int>1 -One . -> . -PosFixnum)
        (-PosByte -One . -> . -Byte)
        (-PosIndex -One . -> . -Index)
        (-PosInt -One . -> . -NonNegFixnum)

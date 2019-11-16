@@ -1105,6 +1105,10 @@
 
     (-> N -Zero N : -true-propset : (-arg-path 0))
     (-> -One -One -Zero)
+    (-> -Byte>1 -One -PosByte)
+    (-> -Index>1 -One -PosIndex)
+    (-> -Fixnum>1 -One -PosFixnum)
+    (-> -Int>1 -One -PosInt)
     (-> -PosByte -One -Byte)
     (-> -PosIndex -One -Index)
     (-> -PosFixnum -One -NonNegFixnum)
@@ -1291,6 +1295,10 @@
 
 [sub1 (from-cases
        (-> -One -Zero)
+       (-> -Byte>1 -PosByte)
+       (-> -Index>1 -PosIndex)
+       (-> -Fixnum>1 -PosFixnum)
+       (-> -Int>1 -Pos)
        (-> -PosByte -Byte)
        (-> -PosIndex -Index)
        (-> -Index -Fixnum)

@@ -162,7 +162,8 @@
 (define-type Brush-List%
   (Class [find-or-create-brush
           (case->
-           ((U (Instance Color%) String) Brush-Style -> (Option (Instance Brush%))))]))
+           ((Instance Color%) Brush-Style -> (Instance Brush%))
+           (String Brush-Style -> (Option (Instance Brush%))))]))
 
 (define-type Pen%
   (Class (init [color (U String (Instance Color%)) #:optional]

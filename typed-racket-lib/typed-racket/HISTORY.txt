@@ -1,3 +1,5 @@
+7.5
+- Initial support for struct type properties.
 7.4
 - Bug fixes and progress adding support for Racket CS.
 7.3

@@ -398,8 +398,7 @@
 ;; Future
 ;;---------
 
-(def-structural Future ([t #:covariant])
-  [#:mask mask:future])
+(def-structural Future ([t #:covariant]))
 
 
 ;;---------------

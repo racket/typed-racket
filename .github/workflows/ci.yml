@@ -1,0 +1,23 @@
+on: [push, pull_request]
+name: CI
+jobs:
+  build:
+    name: "Build on Racket '${{ matrix.racket-version }}' (${{ matrix.racket-variant }})"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        racket-version: ["current"]
+        racket-variant: ["regular", "CS"]
+    steps:
+      - uses: actions/checkout@master
+      - uses: Bogdanp/setup-racket@v0.3
+        with:
+          architecture: x64
+          distribution: minimal
+          variant: ${{ matrix.racket-variant }}
+          version: ${{ matrix.racket-version }}
+      - run: sudo raco pkg install --batch --auto typed-racket-lib/ typed-racket-doc/ typed-racket-test/ typed-racket/ typed-racket-more/ typed-racket-compatibility/ source-syntax/
+      - run: racket -l typed-racket-test -- --unit
+      - run: racket -l typed-racket-test -- --int
+      - run: racket -l typed-racket-test -- --opt
+      - run: racket -l typed-racket-test -- --missed-opt

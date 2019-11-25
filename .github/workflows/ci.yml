@@ -16,9 +16,9 @@ jobs:
           distribution: full
           variant: ${{ matrix.racket-variant }}
           version: ${{ matrix.racket-version }}
-      - run: raco pkg install --auto -i --no-setup --skip-installed typed-racket-test
-      - run: raco pkg update --link --batch --auto typed-racket/ typed-racket-lib/ typed-racket-doc/ source-syntax/ typed-racket-more/ typed-racket-compatibility/
-      - run: raco setup --check-pkg-deps typed typed-racket typed-scheme typed-racket-test
+      - run: sudo raco pkg install --auto -i --no-setup --skip-installed typed-racket-test
+      - run: sudo raco pkg update --link --batch --auto typed-racket/ typed-racket-lib/ typed-racket-doc/ source-syntax/ typed-racket-more/ typed-racket-compatibility/
+      - run: sudo raco setup --check-pkg-deps typed typed-racket typed-scheme typed-racket-test
       - run: racket -l typed-racket-test -- --unit
       - run: racket -l typed-racket-test -- --int
       - run: racket -l typed-racket-test -- --opt

@@ -13,11 +13,18 @@ jobs:
       - uses: Bogdanp/setup-racket@v0.3
         with:
           architecture: x64
-          distribution: minimal
+          distribution: full
           variant: ${{ matrix.racket-variant }}
           version: ${{ matrix.racket-version }}
-      - run: sudo raco pkg install --batch --auto typed-racket-lib/ typed-racket-doc/ typed-racket-test/ typed-racket/ typed-racket-more/ typed-racket-compatibility/ source-syntax/
+      - run: |
+             sudo raco pkg install --auto -i --no-setup --skip-installed typed-racket-test
+             racket -l- pkg/dirs-catalog --link --check-metadata pkgs-catalog .
+             echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
+             raco pkg config catalogs >> catalog-config.txt
+             sudo raco pkg config --set catalogs `cat catalog-config.txt`
+             sudo raco pkg update -i --auto --no-setup source-syntax/ typed-racket-lib/ typed-racket-more/ typed-racket-compatibility/ typed-racket-doc/ typed-racket/ typed-racket-test/
+             sudo raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
       - run: racket -l typed-racket-test -- --unit
-      - run: racket -l typed-racket-test -- --int
+      - run: xvfb-run racket -l typed-racket-test -- --int
       - run: racket -l typed-racket-test -- --opt
       - run: racket -l typed-racket-test -- --missed-opt

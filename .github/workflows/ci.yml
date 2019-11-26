@@ -16,7 +16,6 @@ jobs:
           distribution: full
           variant: ${{ matrix.racket-variant }}
           version: ${{ matrix.racket-version }}
-      - run: sudo apt-get install xvfb
       - run: |
              sudo raco pkg install --auto -i --no-setup --skip-installed typed-racket-test
              racket -l- pkg/dirs-catalog --link --check-metadata pkgs-catalog .
@@ -26,6 +25,6 @@ jobs:
              sudo raco pkg update -i --auto --no-setup source-syntax/ typed-racket-lib/ typed-racket-more/ typed-racket-compatibility/ typed-racket-doc/ typed-racket/ typed-racket-test/
              sudo raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
       - run: racket -l typed-racket-test -- --unit
-      - run: xvfb-run --autoservernum racket -l typed-racket-test -- --int
+      - run: xvfb-run racket -l typed-racket-test -- --int
       - run: racket -l typed-racket-test -- --opt
       - run: racket -l typed-racket-test -- --missed-opt

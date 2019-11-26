@@ -5,6 +5,7 @@ jobs:
     name: "Build on Racket '${{ matrix.racket-version }}' (${{ matrix.racket-variant }})"
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         racket-version: ["current"]
         racket-variant: ["regular", "CS"]
@@ -28,3 +29,8 @@ jobs:
       - run: xvfb-run racket -l typed-racket-test -- --int
       - run: racket -l typed-racket-test -- --opt
       - run: racket -l typed-racket-test -- --missed-opt
+      - run: racket -l typed-racket-test/test-docs-complete
+      - run: sudo raco setup math
+      - run: racket -l typed-racket-test -- --math
+      - run: racket -l typed-racket-test/historical-counterexamples
+      - run: racket -l typed-racket-test/tr-random-testing

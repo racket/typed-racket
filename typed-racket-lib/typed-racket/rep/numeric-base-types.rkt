@@ -44,7 +44,7 @@
 ;; bitwise set operations
 ;;
 ;; Note that for numeric Base bits we assume they can be up
-;; to 30 bits (see declarations below), so we use 'unsafe-fx'
+;; to 29 bits (see declarations below), so we use 'unsafe-fx'
 ;; operations since even on 32-bit machines they are all fixnums.
 
 
@@ -81,10 +81,10 @@
 
 (define-base-types
   #:numeric? #t
-  ;; 30 bits is the max for a 2's complement 32-bit fixnum
+  ;; 29 bits is the max for a 2's complement 32-bit fixnum
   ;; (since the numeric tower requires < 30 bits, we can
   ;;  make that the max and use unsafe-fx ops for bit computations)
-  #:max-count 30
+  #:max-count 29
   #:count numeric-count
   #:atom-vector numeric-atom-vector
   #:atom-hash numeric-atom-hash

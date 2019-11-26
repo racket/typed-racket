@@ -99,8 +99,8 @@
      (define count (length name-list))
      (unless (<= count max-mask-size)
        (raise-syntax-error 'declare-type-flags
-                           (format "too many type flags (~a is the max)"
-                                   max-mask-size)
+                           (format "~a is too many type flags (~a is the max)"
+                                   count max-mask-size)
                            stx))
      (with-syntax ([(n ...) (build-list count (λ (n) (arithmetic-shift 1 n)))])
        #`(begin (begin (define name n)
@@ -140,6 +140,7 @@
  mask:thread-cell
  mask:promise ;; huh? (structs can be promises)
  mask:ephemeron
+ mask:future
  mask:other-box
  mask:set
  mask:procedure

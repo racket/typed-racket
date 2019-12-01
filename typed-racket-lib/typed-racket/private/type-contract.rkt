@@ -30,7 +30,9 @@
   (c:contract-out
     [type->static-contract
       (c:parametric->/c (a) ((Type? (c:-> #:reason (c:or/c #f string?) a))
-                             (#:typed-side boolean?) . c:->* . (c:or/c a static-contract?)))]))
+                             (#:typed-side boolean? #:exact? boolean?)
+                             . c:->* .
+                             (c:or/c a static-contract?)))]))
 
 (provide change-contract-fixups
          change-provide-fixups
@@ -50,7 +52,11 @@
           #t)]
     [_ #f]))
 
-(struct contract-def (type flat? maker? typed-side) #:prefab)
+;; The exact? field determines whether the contract must decide
+;; exactly whether the value has the type.
+;;  - flat? true and exact? true must generate (-> Any Boolean : type)
+;;  - flat? true and exact? false can generate (-> Any Boolean : #:+ type)
+(struct contract-def (type flat? exact? maker? typed-side) #:prefab)
 
 ;; get-contract-def-property : Syntax -> (U False Contract-Def)
 ;; Checks if the given syntax needs to be fixed up for contract generation
@@ -83,7 +89,7 @@
 ;; (such as mutually recursive class types).
 (define (generate-contract-def stx cache sc-cache)
   (define prop (get-contract-def-property stx))
-  (match-define (contract-def type-stx flat? maker? typed-side) prop)
+  (match-define (contract-def type-stx flat? exact? maker? typed-side) prop)
   (define *typ (if type-stx (parse-type type-stx) t:-Dead-Code))
   (define kind (if (and type-stx flat?) 'flat 'impersonator))
   (syntax-parse stx #:literals (define-values)
@@ -104,6 +110,7 @@
         ;; unless it's used for with-type
         #:typed-side (from-typed? typed-side)
         #:kind kind
+        #:exact? exact?
         #:cache cache
         #:sc-cache sc-cache
         (type->contract-fail
@@ -124,6 +131,7 @@
     (type->contract type
                     #:typed-side #t
                     #:kind 'impersonator
+                    #:exact? #f
                     #:cache cache
                     #:sc-cache sc-cache
                     ;; FIXME: get rid of this interface, make it functional
@@ -281,17 +289,18 @@
    [(both) 'both]))
 
 ;; type->contract : Type Procedure
-;;                  #:typed-side Boolean #:kind Symbol #:cache Hash
+;;                  #:typed-side Boolean #:kind Symbol #:exact? Boolean #:cache Hash
 ;;                  -> (U Any (List (Listof Syntax) Syntax))
 (define (type->contract ty init-fail
                         #:typed-side [typed-side #t]
                         #:kind [kind 'impersonator]
+                        #:exact? [exact? #t]
                         #:cache [cache (make-hash)]
                         #:sc-cache [sc-cache (make-hash)])
   (let/ec escape
     (define (fail #:reason [reason #f]) (escape (init-fail #:reason reason)))
     (instantiate/optimize
-     (type->static-contract ty #:typed-side typed-side fail
+     (type->static-contract ty #:typed-side typed-side #:exact? exact? fail
                             #:cache sc-cache)
      fail
      kind
@@ -338,6 +347,7 @@
 
 (define (type->static-contract type init-fail
                                #:typed-side [typed-side #t]
+                               #:exact? [exact? #t]
                                #:cache [sc-cache (make-hash)])
   (let/ec return
     (define (fail #:reason reason) (return (init-fail #:reason reason)))
@@ -535,6 +545,10 @@
        [(Promise: t)
         (promise/sc (t->sc t))]
        [(Opaque: p?)
+        (when exact?
+          (eprintf
+           "warning: Opaque predicates cannot be used as exact decisions yes/no:\n  predicate: ~s\n"
+           (syntax-e p?)))
         (flat/sc #`(flat-named-contract (quote #,(syntax-e p?)) #,p?))]
        [(Continuation-Mark-Keyof: t)
         (continuation-mark-key/sc (t->sc t))]

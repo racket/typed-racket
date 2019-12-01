@@ -12,7 +12,7 @@
 ;;
 ;; - their implementations (under the same names) are defined at phase
 ;;   0 using `define` in the main module
-;; 
+;;
 ;; - the `forms` submodule uses `lazy-require` to load the
 ;;   implementations of the forms
 
@@ -20,18 +20,20 @@
 (provide require/opaque-type require-typed-struct-legacy require-typed-struct
          require/typed-legacy require/typed require/typed/provide
          require-typed-struct/provide core-cast make-predicate define-predicate
+         make-positive-predicate define-positive-predicate
          require-typed-signature)
 
 (module forms racket/base
   (require (for-syntax racket/lazy-require racket/base))
-  (begin-for-syntax 
+  (begin-for-syntax
     (lazy-require [(submod "..")
                    (require/opaque-type
                     require-typed-signature
                     require-typed-struct-legacy
                     require-typed-struct
                     require/typed-legacy require/typed require/typed/provide
-                    require-typed-struct/provide core-cast make-predicate define-predicate)]))
+                    require-typed-struct/provide core-cast make-predicate define-predicate
+                    make-positive-predicate define-positive-predicate)]))
   (define-syntax (def stx)
     (syntax-case stx ()
       [(_ id ...)
@@ -43,7 +45,8 @@
         require-typed-struct-legacy
         require-typed-struct
         require/typed-legacy require/typed require/typed/provide
-        require-typed-struct/provide make-predicate define-predicate)
+        require-typed-struct/provide make-predicate define-predicate
+        make-positive-predicate define-positive-predicate)
 
   ;; Expand `cast` to a `core-cast` with an extra `#%expression` in order
   ;; to prevent the contract generation pass from executing too early
@@ -204,7 +207,7 @@
               ;; define `cnt*` to be fixed up later by the module type-checking
               (define cnt*
                 (syntax-local-lift-expression
-                 (make-contract-def-rhs #'ty #f (attribute parent))))
+                 (make-contract-def-rhs #'ty #f #f (attribute parent))))
               (quasisyntax/loc stx
                 (begin
                   ;; register the identifier so that it has a binding (for top-level)
@@ -269,12 +272,18 @@
 ;; Conversion of types to contracts
 ;;  define-predicate
 ;;  make-predicate
+;;  define-positive-predicate
+;;  make-positive-predicate
 ;;  cast
 
 ;; Helpers to construct syntax for contract definitions
-;; make-contract-def-rhs : Type-Stx Boolean Boolean -> Syntax
-(define (make-contract-def-rhs type flat? maker?)
-  (define contract-def `#s(contract-def ,type ,flat? ,maker? untyped))
+;; make-contract-def-rhs : Type-Stx Boolean Boolean Boolean -> Syntax
+;; The exact? argument determines whether the contract must decide
+;; exactly whether the value has the type.
+;;  - flat? true and exact? true must generate (-> Any Boolean : type)
+;;  - flat? true and exact? false can generate (-> Any Boolean : #:+ type)
+(define (make-contract-def-rhs type flat? exact? maker?)
+  (define contract-def `#s(contract-def ,type ,flat? ,exact? ,maker? untyped))
   (contract-def-property #'#f (λ () contract-def)))
 
 ;; make-contract-def-rhs/from-typed : Id Boolean Boolean -> Syntax
@@ -291,7 +300,7 @@
          (if types
              #`(U #,@types)
              #f)))
-     `#s(contract-def ,type-stx ,flat? ,maker? typed))))
+     `#s(contract-def ,type-stx ,flat? #f ,maker? typed))))
 
 
 (define (define-predicate stx)
@@ -312,8 +321,9 @@
 (define (make-predicate stx)
   (syntax-parse stx
     [(_ ty:expr)
+     ; passing #t for exact? makes it produce a warning on Opaque types
      (define name (syntax-local-lift-expression
-                   (make-contract-def-rhs #'ty #t #f)))
+                   (make-contract-def-rhs #'ty #t #t #f)))
      (define (check-valid-type _)
        (define type (parse-type #'ty))
        (define vars (fv type))
@@ -324,6 +334,41 @@
           type)))
      #`(#,(external-check-property #'#%expression check-valid-type)
         #,(ignore-some/expr #`(flat-contract-predicate #,name) #'(Any -> Boolean : ty)))]))
+
+
+(define (define-positive-predicate stx)
+  (syntax-parse stx
+    [(_ name:id ty:expr)
+     #`(begin
+         ;; We want the value bound to name to have a nice object name. Using the built in mechanism
+         ;; of define has better performance than procedure-rename.
+         #,(ignore
+            (syntax/loc stx
+              (define name
+                (let ([pred (make-positive-predicate ty)])
+                  (lambda (x) (pred x))))))
+         ;; not a require, this is just the unchecked declaration syntax
+         #,(internal (syntax/loc stx (require/typed-internal name (Any -> Boolean : #:+ ty)))))]))
+
+
+(define (make-positive-predicate stx)
+  (syntax-parse stx
+    [(_ ty:expr)
+     ; passing #f for exact? makes it work with Opaque types without warning
+     (define name (syntax-local-lift-expression
+                   (make-contract-def-rhs #'ty #t #f #f)))
+     (define (check-valid-type _)
+       (define type (parse-type #'ty))
+       (define vars (fv type))
+       ;; If there was an error don't create another one
+       (unless (or (Error? type) (null? vars))
+         (tc-error/delayed
+          "Type ~a could not be converted to a predicate because it contains free variables."
+          type)))
+     #`(#,(external-check-property #'#%expression check-valid-type)
+        #,(ignore-some/expr #`(flat-contract-predicate #,name) #'(Any -> Boolean : #:+ ty)))]))
+
+
 
 ;; wrapped above in the `forms` submodule
 (define (core-cast stx)
@@ -349,7 +394,7 @@
             #'v]
            [else
             (define new-ty-ctc (syntax-local-lift-expression
-                                (make-contract-def-rhs #'ty #f #f)))
+                                (make-contract-def-rhs #'ty #f #f #f)))
             (define existing-ty-id new-ty-ctc)
             (define existing-ty-ctc (syntax-local-lift-expression
                                      (make-contract-def-rhs/from-typed existing-ty-id #f #f)))
@@ -397,7 +442,7 @@
            #,@(if (eq? (syntax-local-context) 'top-level)
                   (list #'(define-syntaxes (hidden) (values)))
                   null)
-           #,(internal #'(require/typed-internal hidden (Any -> Boolean : (Opaque pred))))
+           #,(internal #'(require/typed-internal hidden (Any -> Boolean : #:+ (Opaque pred))))
            #,(if (attribute ne)
                  (internal (syntax/loc stx (define-type-alias-internal ty (Opaque pred))))
                  (syntax/loc stx (define-type-alias ty (Opaque pred))))

@@ -232,6 +232,7 @@ variants.
 @defform[(for/or   type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/sum type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/product type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for/last type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/set type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/list type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/hash type-ann-maybe (for-clause ...) expr ...+)]
@@ -241,6 +242,7 @@ variants.
 @defform[(for*/or   type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/sum type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/product type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for*/last type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/set type-ann-maybe (for-clause ...) expr ...+)]
 ]]{
 These behave like their non-annotated counterparts, with the exception
@@ -253,10 +255,8 @@ annotated with a @racket[Listof] type. All annotations are optional.
 @deftogether[[
 @defform[(for/and type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for/first type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/last type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/and type-ann-maybe (for-clause ...) expr ...+)]
 @defform[(for*/first type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/last type-ann-maybe (for-clause ...) expr ...+)]
 ]]{
 Like the above, except they are not yet supported by the typechecker.
 }

@@ -94,21 +94,52 @@
                #:color (-opt (Un -String -color)) #f
                #:line-width (-opt -Real) #f
                -pict)]
- [ellipse (-> -Real -Real -pict)]
- [circle (-> -Real -pict)]
+ [ellipse (->key -Real -Real
+                 #:border-color (-opt (Un -String -color)) #f
+                 #:border-width (-opt -Real) #f
+                 -pict)]
+ [circle (->key -Real
+                #:border-color (-opt (Un -String -color)) #f
+                #:border-width (-opt -Real) #f
+                -pict)]
  [filled-ellipse
-  (->key -Real -Real #:draw-border? Univ #f -pict)]
+  (->key -Real -Real
+         #:draw-border? Univ #f
+         #:color (-opt (Un -String -color)) #f
+         #:border-color (-opt (Un -String -color)) #f
+         #:border-width (-opt -Real) #f
+         -pict)]
  [disk
-  (->key -Real #:draw-border? Univ #f -pict)]
- [rectangle (-> -Real -Real -pict)]
+  (->key -Real
+         #:draw-border? Univ #f
+         #:color (-opt (Un -String -color)) #f
+         #:border-color (-opt (Un -String -color)) #f
+         #:border-width (-opt -Real) #f
+         -pict)]
+ [rectangle (->key -Real -Real
+                   #:border-color (-opt (Un -String -color)) #f
+                   #:border-width (-opt -Real) #f
+                   -pict)]
  [filled-rectangle
-  (->key -Real -Real #:draw-border? Univ #f -pict)]
+  (->key -Real -Real
+         #:draw-border? Univ #f
+         #:color (-opt (Un -String -color)) #f
+         #:border-color (-opt (Un -String -color)) #f
+         #:border-width (-opt -Real) #f
+         -pict)]
  [rounded-rectangle
-  (->optkey -Real -Real [-Real] #:angle -Real #f -pict)]
+  (->optkey -Real -Real [-Real]
+            #:angle -Real #f
+            #:border-color (-opt (Un -String -color)) #f
+            #:border-width (-opt -Real) #f
+            -pict)]
  [filled-rounded-rectangle
   (->optkey -Real -Real [-Real]
             #:angle -Real #f
             #:draw-border? Univ #f
+            #:color (-opt (Un -String -color)) #f
+            #:border-color (-opt (Un -String -color)) #f
+            #:border-width (-opt -Real) #f
             -pict)]
  ;; FIXME: add image-snip%
  [bitmap (-> (Un -Pathlike (-inst (parse-type #'Bitmap%))) -pict)]

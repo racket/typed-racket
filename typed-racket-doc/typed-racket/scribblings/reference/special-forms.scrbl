@@ -659,10 +659,11 @@ be used as a predicate in @racket[if] expressions in Typed Racket.
                         [left  : IntTree]
                         [right : IntTree])]))]
 
-@index["opaque"]{The fourth case} defines a new type @racket[t].  @racket[pred], imported from
-module @racket[m], is a predicate for this type.  The type is defined
-as precisely those values to which @racket[pred] produces
-@racket[#t].  @racket[pred] must have type @racket[(Any -> Boolean)].
+@index["opaque"]{The fourth case} defines a new type @racket[t] using the
+function @racket[pred] as a @seclink["Generating_Predicates_Automatically"]{predicate}.
+(Module @racket[m] must provide @racket[pred] and @racket[pred] must have type @racket[(Any -> Boolean)].)
+The type @racket[t] is defined as precisely those values for which @racket[pred] produces
+@racket[#t].
 Opaque types must be required lexically before they are used.
 
 @ex[(require/typed racket/base

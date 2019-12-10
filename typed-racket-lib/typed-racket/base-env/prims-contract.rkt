@@ -306,13 +306,14 @@
 (define (define-predicate stx)
   (syntax-parse stx
     [(_ name:id ty:expr)
+     #:with ty* (syntax-property #'ty 'orig-stx-ctx stx)
      #`(begin
          ;; We want the value bound to name to have a nice object name. Using the built in mechanism
          ;; of define has better performance than procedure-rename.
          #,(ignore
             (syntax/loc stx
               (define name
-                (let ([pred (make-predicate ty)])
+                (let ([pred (make-predicate ty*)])
                   (lambda (x) (pred x))))))
          ;; not a require, this is just the unchecked declaration syntax
          #,(internal (syntax/loc stx (require/typed-internal name (Any -> Boolean : ty)))))]))
@@ -321,9 +322,10 @@
 (define (make-predicate stx)
   (syntax-parse stx
     [(_ ty:expr)
+     #:with ty* (syntax-property #'ty 'orig-stx-ctx (or (syntax-property #'ty 'orig-stx-ctx) stx))
      ; passing #t for exact? makes it produce a warning on Opaque types
      (define name (syntax-local-lift-expression
-                   (make-contract-def-rhs #'ty #t #t #f)))
+                   (make-contract-def-rhs #'ty* #t #t #f)))
      (define (check-valid-type _)
        (define type (parse-type #'ty))
        (define vars (fv type))

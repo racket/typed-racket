@@ -90,6 +90,7 @@
 (define (generate-contract-def stx cache sc-cache)
   (define prop (get-contract-def-property stx))
   (match-define (contract-def type-stx flat? exact? maker? typed-side) prop)
+  (define orig-stx-ctx (and type-stx (syntax-property type-stx 'orig-stx-ctx)))
   (define *typ (if type-stx (parse-type type-stx) t:-Dead-Code))
   (define kind (if (and type-stx flat?) 'flat 'impersonator))
   (syntax-parse stx #:literals (define-values)
@@ -104,18 +105,19 @@
                  ((map fld-t (Struct-flds ty)) #f . t:->* . *typ)])]
              [else *typ]))
      (match-define (list defs ctc)
-       (type->contract
-        typ
-        ;; this value is from the typed side (require/typed, make-predicate, etc)
-        ;; unless it's used for with-type
-        #:typed-side (from-typed? typed-side)
-        #:kind kind
-        #:exact? exact?
-        #:cache cache
-        #:sc-cache sc-cache
-        (type->contract-fail
-         typ type-stx
-         #:ctc-str (if flat? "predicate" "contract"))))
+       (parameterize ([current-syntax-context orig-stx-ctx])
+         (type->contract
+          typ
+          ;; this value is from the typed side (require/typed, make-predicate, etc)
+          ;; unless it's used for with-type
+          #:typed-side (from-typed? typed-side)
+          #:kind kind
+          #:exact? exact?
+          #:cache cache
+          #:sc-cache sc-cache
+          (type->contract-fail
+           typ type-stx
+           #:ctc-str (if flat? "predicate" "contract")))))
      (ignore ; should be ignored by the optimizer
       (quasisyntax/loc stx
         (begin #,@defs (define-values (n) #,ctc))))]
@@ -546,9 +548,21 @@
         (promise/sc (t->sc t))]
        [(Opaque: p?)
         (when exact?
-          (eprintf
-           "warning: Opaque predicates cannot be used as exact decisions yes/no:\n  predicate: ~s\n"
-           (syntax-e p?)))
+          (define stx (current-syntax-context))
+          (display-syntax-warning
+           #f
+           (format
+            (string-append
+             "warning: cannot safely generate exact predicate for Opaque type\n"
+             (case (and (syntax? stx) (pair? (syntax-e stx)) (syntax-e (car (syntax-e stx))))
+               [(define-predicate) "  (consider using define-positive-predicate instead)\n"]
+               [(make-predicate)   "  (consider using make-positive-predicate instead)\n"]
+               [else               "  (consider generating a positive-predicate instead)\n"])
+             "  type: ~a\n"
+             "  pred: ~s\n")
+            type
+            (syntax-e p?))
+           stx))
         (flat/sc #`(flat-named-contract (quote #,(syntax-e p?)) #,p?))]
        [(Continuation-Mark-Keyof: t)
         (continuation-mark-key/sc (t->sc t))]
@@ -1237,3 +1251,13 @@
     [(== t:-NonPosExtFlonum) nonpositive-extflonum/sc]
     [(== t:-ExtFlonum) extflonum/sc]
     [else #f]))
+
+
+
+;; display-syntax-warning is like raise-syntax-error, except that it displays to
+;; stderr and keeps going, instead of raising an exception
+(define (display-syntax-warning name message [expr #f] [sub-expr #f])
+  (define (display-exn e) ((error-display-handler) (exn-message e) e))
+  (with-handlers ([exn:fail:syntax? display-exn])
+    (raise-syntax-error name message expr sub-expr)))
+

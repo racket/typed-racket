@@ -73,6 +73,49 @@ typed/racket
 is a valid use of the @racket[require/typed] form and imports @racket[add1]
 from the @racketmodname[racket/base] library.
 
+
+@subsection{Opaque Types}
+
+The @racket[#:opaque] clause of @racket[require/typed] defines a new type
+ using a predicate from untyped code.
+Suppose we have an untyped distance function that uses
+ pairs of numbers as points:
+
+@racketmod[#:file "distance2.rkt"
+racket
+
+(provide point?
+         distance)
+
+(code:contract A Point is a (cons real real))
+(define (point? x)
+  (and (pair? x)
+       (real? (car x))
+       (real? (cdr x))))
+
+(code:contract distance : Point Point -> real)
+(define (distance p1 p2)
+  (sqrt (+ (sqr (- (car p2) (car p1)))
+           (sqr (- (cdr p2) (cdr p1))))))
+]
+
+A typed module can use @racket[#:opaque] to define a @racket[Point] type as
+ all values that the @racket[point?] predicate returns @racket[#t] for:
+
+@racketmod[#:file "client2.rkt"
+typed/racket
+
+(require/typed "distance2.rkt"
+               [#:opaque Point point?]
+               [distance (-> Point Point Real)])
+
+(define p0 : Point (assert (cons 3 5) point?))
+(define p1 : Point (assert (cons 7 0) point?))
+(distance p0 p1)
+]
+
+
+
 @section{Using Typed Code in Untyped Code}
 
 In the previous subsection, we saw that the use of untyped code from

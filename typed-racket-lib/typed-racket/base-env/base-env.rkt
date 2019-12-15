@@ -2802,6 +2802,8 @@
                 ((Un -TCP-Listener -Port) (-val #t) . -> . (-values (list -String -Index -String -Index))))]
 
 [tcp-port? (asym-pred Univ B (-PS (-is-type 0 (Un -Input-Port -Output-Port)) -tt))]
+[port-number? (Univ . -> . B)]
+[listen-port-number? (Univ . -> . B)]
 
 ;; Section 15.3.2 (racket/udp)
 [udp-open-socket (->opt [(-opt -String) (-opt -Int)] -UDP-Socket)]

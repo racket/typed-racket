@@ -231,3 +231,13 @@
                             [#:headers (Listof Header)]
                             [#:cookies (Listof Cookie)]
                             Response)])
+
+(require/typed/provide web-server/http/empty
+                       [response/empty
+                        (-> [#:code Natural]
+                            [#:message (Option Bytes)]
+                            [#:seconds Real]
+                            [#:mime-type (Option Bytes)]
+                            [#:headers (Listof Header)]
+                            [#:cookies (Listof Cookie)]
+                            Response)])

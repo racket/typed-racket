@@ -1,6 +1,5 @@
 #;#;
 #<<END
-TR missed opt: pr13468.rkt 5:5 (/ (ann 0.0+0.0i Float-Complex) (ann 1 Number)) -- Float-Complex division, potential exact 0s on the rhss -- caused by: 5:42 1
 TR missed opt: pr13468.rkt 8:5 (expt (ann -5.0 Flonum) (ann 2.0 Flonum)) -- unexpected complex type
 TR opt: pr13468.rkt 12:5 (magnitude (ann 0 Zero)) -- unary number
 TR opt: pr13468.rkt 13:5 (magnitude (ann 1 One)) -- unary number
@@ -29,9 +28,6 @@ TR opt: pr13468.rkt 45:5 (real-part (ann -6 Nonpositive-Fixnum)) -- unary number
 TR opt: pr13468.rkt 46:5 (real-part (ann -6 Negative-Fixnum)) -- unary number
 TR opt: pr13468.rkt 47:5 (real-part (ann 6 Fixnum)) -- unary number
 TR opt: pr13468.rkt 49:5 (real-part (ann 6 Positive-Integer)) -- unary number
-TR opt: pr13468.rkt 4:13 6.0+2.3i -- unboxed literal
-TR opt: pr13468.rkt 4:13 6.0+2.3i -- unboxed literal
-TR opt: pr13468.rkt 4:5 (/ (ann 6.0+2.3i Float-Complex)) -- unboxed unary float complex
 TR opt: pr13468.rkt 50:5 (real-part (ann 6 Nonnegative-Integer)) -- unary number
 TR opt: pr13468.rkt 51:5 (real-part (ann -6 Nonpositive-Integer)) -- unary number
 TR opt: pr13468.rkt 52:5 (real-part (ann -6 Negative-Integer)) -- unary number
@@ -46,7 +42,7 @@ TR opt: pr13468.rkt 64:5 (imag-part (ann 5.6 Real)) -- unary number
 END
 #<<END
 -6.0-2.3i
-0.1453136352627755-0.055703560184063944i
+0.1453136352627755-0.05570356018406394i
 0.0+0.0i
 25.0
 0

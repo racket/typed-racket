@@ -675,6 +675,10 @@
                         . -> . (-opt (-pair a b)))))]
 [assf  (-poly (a b) ((a . -> . Univ) (-lst (-pair a b))
                      . -> . (-opt (-pair a b))))]
+[index-of (-poly (a b)
+                 (cl->* ((-lst a) Univ . -> . (-opt -Index))
+                        ((-lst a) b (-> a b Univ)
+                           . -> . (-opt -Index))))]
 
 [list? (make-pred-ty (-lst Univ))]
 [list (-poly (a) (->* '() a (-lst a)))]

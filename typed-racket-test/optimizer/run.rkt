@@ -34,8 +34,8 @@
           ;; skip log comparison on RacketCS
           ;; making program output identical on RacketCS is often worthwhile,
           ;; but optimization logs are too fragile in some cases
-          (check-equal? log expected-log))
-        (check-equal? output expected-output)))))
+          (check-equal? (list (set-subtract log expected-log) (set-subtract expected-log log)) (list (list) (list))))
+        (check-equal? (regexp-split "\n" output) (regexp-split "\n" expected-output))))))
 
 
 (define-runtime-path tests-dir                "./tests")

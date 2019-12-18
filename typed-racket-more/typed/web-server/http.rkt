@@ -237,7 +237,6 @@
                         (-> [#:code Natural]
                             [#:message (Option Bytes)]
                             [#:seconds Real]
-                            [#:mime-type (Option Bytes)]
                             [#:headers (Listof Header)]
                             [#:cookies (Listof Cookie)]
                             Response)])

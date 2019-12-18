@@ -148,21 +148,45 @@
 ;; a function that unwraps their syntax for recursive checks (see
 ;; `find-stx-type` in tc-expr-unit)
 (define (tc-hash check-element hash-inst expected-type)
-  (match (and expected-type (resolve (intersect expected-type (-Immutable-HT Univ Univ))))
-    [(Immutable-HashTable: k v)
-     (let* ([kts (hash-map hash-inst (lambda (x y) (check-element x k)))]
-            [vts (hash-map hash-inst (lambda (x y) (check-element y v)))]
-            [kt (apply Un kts)]
-            [vt (apply Un vts)])
-       (-Immutable-HT (check-below kt k) (check-below vt v)))]
-    [_ #:when (immutable? hash-inst)
-     (let* ([kts (hash-map hash-inst (lambda (x y) (check-element x #f)))]
-            [vts (hash-map hash-inst (lambda (x y) (check-element y #f)))]
-            [kt (generalize (apply Un kts))]
-            [vt (generalize (apply Un vts))])
-       (-Immutable-HT kt vt))]
-    [_ (Un -Mutable-HashTableTop
-           -Weak-HashTableTop)]))
+  (cond
+   [(immutable? hash-inst)
+    (match (and expected-type (resolve (intersect expected-type (-Immutable-HT Univ Univ))))
+     [(Immutable-HashTable: k v)
+      (value->HT check-element hash-inst -Immutable-HT k v)]
+     [_
+      (value->HT check-element hash-inst -Immutable-HT)])]
+   [(hash-weak? hash-inst)
+    (match (and expected-type (resolve (intersect expected-type (-Weak-HT Univ Univ))))
+     [(Weak-HashTable: k v)
+      (value->HT check-element hash-inst -Weak-HT k v)]
+     [_
+      (value->HT check-element hash-inst -Weak-HT)])]
+   [else
+    (match (and expected-type (resolve (intersect expected-type (-Mutable-HT Univ Univ))))
+     [(Mutable-HashTable: k v)
+      (value->HT check-element hash-inst -Mutable-HT k v)]
+     [_
+      (value->HT check-element hash-inst -Mutable-HT)])]))
+
+;; value->HT : check-element? hash? type-constructor? -> type?
+;;           : check-element? hash? type-constructor? type? type? -> type?
+;;  where check-element? = (-> any/c (or/c Type? #f) Type?)
+;;  and type-constructor? = (-> type? type? type?)
+;;
+;; Build a HashTable type from a value, type constructor, and (optionally)
+;;  upper bounds on the key and value types.
+(define value->HT
+  (case-lambda
+   [(check-element h tycon expected-kt expected-vt)
+    (let* ([kts (hash-map h (lambda (x y) (check-element x expected-kt)))]
+           [vts (hash-map h (lambda (x y) (check-element y expected-vt)))]
+           [kt (apply Un kts)]
+           [vt (apply Un vts)])
+      (tycon (check-below kt expected-kt) (check-below vt expected-vt)))]
+   [(check-element h tycon)
+    (let ([kt (generalize (apply Un (map check-element (hash-keys h))))]
+          [vt (generalize (apply Un (map check-element (hash-values h))))])
+      (tycon kt vt))]))
 
 ;; Typecheck a prefab struct literal (or result of syntax-e)
 ;; `check-field` allows prefabs in syntax to be checked by passing

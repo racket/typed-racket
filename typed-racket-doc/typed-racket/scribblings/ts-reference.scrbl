@@ -44,7 +44,7 @@ For technical details, refer to the @secref{tr-bibliography}.
 @include-section["reference/experimental.scrbl"]
 
 @(define (bib-note . str*)
-   (list (linebreak) (linebreak) str* (linebreak) (linebreak))))
+   (list (linebreak) (linebreak) str* (linebreak) (linebreak)))
 
 @(define DLS "Dynamic Languages Symposium")
 @(define SFP "Workshop on Scheme and Functional Programming")

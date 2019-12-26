@@ -4,7 +4,7 @@
          syntax/struct syntax/parse racket/function racket/match racket/list
 
          (prefix-in c: (contract-req))
-         (rep type-rep object-rep free-variance values-rep)
+         (rep free-variance)
          (private parse-type syntax-properties)
          (types abbrev subtype utils resolve substitute struct-table)
          (env global-env type-name-env type-alias-env tvar-env)

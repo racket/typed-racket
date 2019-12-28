@@ -2,7 +2,7 @@
 
 (define collection 'multi)
 
-(define deps '(("base" #:version "7.3.0.11")
+(define deps '(("base" #:version "7.5.0.15")
                "source-syntax"
                "pconvert-lib"
                "compatibility-lib" ;; to assign types

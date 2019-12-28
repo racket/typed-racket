@@ -300,6 +300,7 @@
    [unsafe-bytes-set! (-> -Bytes index-type index-type -Void)]
    [subbytes (cl-> [(-Bytes index-type) -Bytes] [(-Bytes index-type index-type) -Bytes])]
    [bytes-copy! (-Bytes index-type -Bytes [index-type index-type] . ->opt . -Void)]
+   [unsafe-bytes-copy! (-Bytes index-type -Bytes [index-type index-type] . ->opt . -Void)]
    [bytes-fill! (-> -Bytes index-type -Void)]
    [bytes->string/utf-8 (-Bytes [(Un (-val #f) -Char) index-type index-type] . ->opt . -String)]
    [bytes->string/locale (-Bytes [(Un (-val #f) -Char) index-type index-type] . ->opt . -String)]

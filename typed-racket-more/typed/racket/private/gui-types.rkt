@@ -955,7 +955,7 @@
          [get-editor (-> (Instance Text%))]
          [get-field-background (-> (Instance Color%))]
          [get-value (-> String)]
-         [set-field-background ((Instance Color%) -> Void)]
+         [set-field-background ((U #f (Instance Color%)) -> Void)]
          [set-value (String -> Void)]))
 
 (define-type Combo-Field%

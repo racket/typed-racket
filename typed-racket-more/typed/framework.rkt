@@ -51,8 +51,9 @@
  (define -Area<%> (parse-type #'Area<%>))
  (define -Frame:Editor<%> (parse-type #'Frame:Editor<%>))
 
- (define -Color-Prefs:Color-Scheme-Style-Name (-opq #'color-prefs:color-scheme-style-name?))
- (define -Color-Prefs:Known-Color-Scheme-Name (-opq #'color-prefs:known-color-scheme-name?))
+ (define -Color-Prefs:Color-Scheme-Style-Name (parse-type #'Color-Prefs:Color-Scheme-Style-Name))
+ (define -Color-Prefs:Color-Scheme-Color-Name (parse-type #'Color-Prefs:Color-Scheme-Color-Name))
+ (define -Color-Prefs:Known-Color-Scheme-Name (parse-type #'Color-Prefs:Known-Color-Scheme-Name))
  (define -Color-Model:Xyz (-opq #'color-model:xyz?))
  (define -Eventspace (-opq #'eventspace?))
  (define -Handler:Handler (-opq #'handler:handler?))
@@ -159,11 +160,14 @@
  [color-prefs:register-info-based-color-schemes (-> -Void)]
  [color-prefs:set-current-color-scheme (-Symbol . -> . -Void)]
  [color-prefs:get-current-color-scheme-name (-> -Color-Prefs:Color-Scheme-Style-Name)]
- [#:opaque Color-Prefs:Known-Color-Scheme-Name color-prefs:known-color-scheme-name?]
- [#:opaque Color-Prefs:Color-Scheme-Style-Name color-prefs:color-scheme-style-name?]
+ [color-prefs:known-color-scheme-name? (asym-pred Univ -Boolean (-PS (-is-type 0 -Color-Prefs:Known-Color-Scheme-Name) -tt))]
+ [color-prefs:color-scheme-style-name? (asym-pred Univ -Boolean (-PS (-is-type 0 -Color-Prefs:Color-Scheme-Style-Name) -tt))]
+ [color-prefs:color-scheme-color-name? (asym-pred Univ -Boolean (-PS (-is-type 0 -Color-Prefs:Color-Scheme-Color-Name) -tt))]
  [color-prefs:lookup-in-color-scheme
-  ;; TODO less precise than doc
-  (-Color-Prefs:Known-Color-Scheme-Name . -> . (Un -Style-Delta%-Instance -Color%-Instance))]
+  (cl->
+   ((-Color-Prefs:Color-Scheme-Color-Name) -Color%-Instance)
+   ((-Color-Prefs:Color-Scheme-Style-Name) -Style-Delta%-Instance)
+   ((-Color-Prefs:Known-Color-Scheme-Name) (Un -Style-Delta%-Instance -Color%-Instance)))]
  [color-prefs:set-in-color-scheme
   (-Color-Prefs:Known-Color-Scheme-Name
    (Un -Style-Delta%-Instance

@@ -362,5 +362,6 @@
  [the-x-selection-clipboard (-inst (parse-type #'Clipboard<%>))]
  [label-string? (-> Univ -Boolean)]
  [key-code-symbol? (-> Univ -Boolean)]
+ [get-label-background-color (-> -Color%-Obj)]
  ;; 8 Editor functions
  [get-the-snip-class-list (-> (make-Instance (parse-type #'Snip-Class-List<%>)))])

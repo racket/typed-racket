@@ -1835,3 +1835,11 @@
     (Class #:row-var r
            #:implements Text%
            #:implements Text:Line-Numbers<%>)))
+
+(provide Color-Prefs:Known-Color-Scheme-Name
+         Color-Prefs:Color-Scheme-Style-Name Color-Prefs:Color-Scheme-Color-Name)
+(define-type Color-Prefs:Known-Color-Scheme-Name
+  (U Color-Prefs:Color-Scheme-Style-Name Color-Prefs:Color-Scheme-Color-Name))
+(require/typed framework
+ [#:opaque Color-Prefs:Color-Scheme-Style-Name color-prefs:color-scheme-style-name?]
+ [#:opaque Color-Prefs:Color-Scheme-Color-Name color-prefs:color-scheme-color-name?])

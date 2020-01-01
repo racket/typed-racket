@@ -4,7 +4,11 @@
 
 (require (only-in typed/openssl
                   SSL-Client-Context))
-
+;type for contract base-ssl?
+(define-type Base-SSL (U Boolean Symbol SSL-Client-Context))
+;type for contract base-ssl?-tnc
+(define-type Base-SSL-Tnc (U Base-SSL
+                             (List Base-SSL Input-Port Output-Port (-> Port Void))))
 (require/typed/provide net/http-client
   [#:opaque HTTP-Connection http-conn?]
   [http-conn (-> HTTP-Connection)]
@@ -12,12 +16,12 @@
   
   [http-conn-open!
    (->* [HTTP-Connection BString]
-        [#:ssl? (U Boolean Symbol SSL-Client-Context) #:port Positive-Integer]
+        [#:ssl? Base-SSL-Tnc #:port Positive-Integer]
         Void)]
   
   [http-conn-open 
    (->* [BString]
-        [#:ssl? (U Boolean Symbol SSL-Client-Context) #:port Positive-Integer]
+        [#:ssl? Base-SSL-Tnc #:port Positive-Integer]
         HTTP-Connection)]
   
   [http-conn-close! (-> HTTP-Connection Void)]
@@ -42,7 +46,12 @@
   
   [http-sendrecv
    (->* [BString BString]
-        [#:ssl? (U Boolean Symbol SSL-Client-Context) #:port Positive-Integer #:version BString
+        [#:ssl? Base-SSL-Tnc #:port Positive-Integer #:version BString
                 #:method (U BString Symbol) #:headers (Listof BString) #:data (Option BString) 
                 #:content-decode (Listof Symbol)]
-        (values Bytes (Listof Bytes) Input-Port))])
+        (values Bytes (Listof Bytes) Input-Port))]
+
+  [http-conn-CONNECT-tunnel
+   (->* [BString Positive-Fixnum BString Positive-Fixnum]
+        [#:ssl? Base-SSL]
+        (values Base-SSL Input-Port Output-Port (-> Port Void)))])

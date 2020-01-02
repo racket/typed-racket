@@ -32,7 +32,7 @@ the typed racket language.
 
 (provide (except-out (all-defined-out) -let-internal define-for-variants
                      def-redirect
-                     define-for*-variants with-handlers: define-for/acc:-variants
+                     define-for*-variants with-handlers: with-handlers*: define-for/acc:-variants
                      base-for/flvector: base-for/vector -lambda -define -do -let
                      -let* -let*-values -let-values -let/cc -let/ec -letrec -letrec-values)
          (all-from-out "top-interaction.rkt")
@@ -101,6 +101,7 @@ the typed racket language.
                      [-do do]
                      [-do do:]
                      [with-handlers: with-handlers]
+                     [with-handlers*: with-handlers*]
                      [define-typed-struct/exec define-struct/exec:]
                      [define-typed-struct/exec define-struct/exec]))
 
@@ -263,7 +264,7 @@ the typed racket language.
      (syntax/loc stx
        ((plambda: (A ...) (bn ...) . body) e ...))]))
 
-(define-syntax (with-handlers: stx)
+(define-for-syntax ((make-with-handlers untyped-id) stx)
   (syntax-parse stx
     [(_ ([pred? action] ...) . body)
      (with-syntax ([(pred?* ...)
@@ -274,7 +275,10 @@ the typed racket language.
                       (exn-handler-property action idx))]
                    [body* (exn-body #'(let-values () . body))])
        (exn-handlers (quasisyntax/loc stx
-                       (with-handlers ([pred?* action*] ...) body*))))]))
+                       (#,untyped-id ([pred?* action*] ...) body*))))]))
+
+(define-syntax with-handlers: (make-with-handlers #'with-handlers))
+(define-syntax with-handlers*: (make-with-handlers #'with-handlers*))
 
 
 (define-syntax (-do stx)

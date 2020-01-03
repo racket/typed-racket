@@ -320,18 +320,21 @@ the typed racket language.
            ;; Note: these don't ever typecheck
            (pattern (~seq (~and kw (~or #:break #:final)) guard-expr:expr)
                     #:with (expand ...) #'(kw guard-expr)))
+         (define-splicing-syntax-class break-clause
+           (pattern (~seq (~and kw (~or #:break #:final)) guard-expr:expr)
+                    #:with (expand ...) #'(kw guard-expr)))
          (define-syntax-class for-kw
            (pattern #:when
                     #:with replace-with #'when)
            (pattern #:unless
                     #:with replace-with #'unless))
          (syntax-parse clauses
-           [(head:for-clause next:for-clause ... kw:for-kw rest ...)
+           [(head:for-clause next:for-clause ... kw:for-kw guard b:break-clause ... rest ...)
             (add-ann
              (quasisyntax/loc stx
                (for
-                (head.expand ... next.expand ... ...)
-                #,(loop #'(kw rest ...))))
+                (head.expand ... next.expand ... ... kw guard b.expand ... ...)
+                #,(loop #'(rest ...))))
              #'Void)]
            [(head:for-clause ...) ; we reached the end
             (add-ann
@@ -806,8 +809,9 @@ the typed racket language.
               (define n n-expr)
               (define: vs : T (make-vector n fill-expr))
               (define i 0)
-              (for (clauses ... #:break (i . unsafe-fx= . n))
-                (unsafe-vector-set! vs i body-expr))
+              (for (clauses ... #:break (i . >= . n))
+                (unsafe-vector-set! vs i body-expr)
+                (set! i (+ i 1)))
               vs)
             T))]
     [(name for ann T K #:length n-expr (clauses ...) body-expr)
@@ -819,7 +823,8 @@ the typed racket language.
                    (define i 0)
                    (unless (and (fixnum? n) (exact-nonnegative-integer? n))
                      (raise-argument-error 'name '"exact-nonnegative-integer?" n))
-                   (for (clauses ... #:break (unsafe-fx= i n))
+
+                   (for (clauses ... #:break (>= i n))
                      (define v body-expr)
                      ;; can't use `unsafe-fx=` here
                      ;; if `n` is larger than a fixnum, this is unsafe, and we

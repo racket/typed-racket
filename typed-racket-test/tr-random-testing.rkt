@@ -205,6 +205,11 @@
 (define racket-eval (mk-eval 'racket))
 (define tr-eval     (mk-eval 'typed/racket))
 
+(define (reset-evals!)
+  (set! racket-eval (mk-eval 'racket))
+  (set! tr-eval (mk-eval 'typed/racket)))
+
+
 (define-values (bin-dir _1 _2)
   (split-path (find-executable-path (find-system-path 'exec-file))))
 (define racketcs (build-path bin-dir "racketcs"))
@@ -241,12 +246,17 @@
     (with-handlers
         ;; something went wrong, e.g. division by zero
         ;; TR must fail too
-        ([exn? (λ (e) (set! racket-failed? #t))])
+      ([exn? (λ (e)
+               (when (exn:fail:resource? e)
+                 (reset-evals!))
+               (set! racket-failed? #t))])
       (racket-eval sexp)))
   (define tr-result
     (with-handlers
         ;; did Racket error too?
       ([exn? (λ (e)
+               (when (exn:fail:resource? e)
+                 (reset-evals!))
                (when racket-failed?
                  (set! both-failed? #t))
                e)])
@@ -330,7 +340,7 @@
 (define (check-all-reals sexp [verbose? #f])
   ;; because some of the generated expressions compute gigantic bignums, running
   ;; out of resources is expected, so just ignore that case
-  (with-handlers ([exn:fail:resource? values])
+  (with-handlers ([exn:fail:resource? (lambda (e) (reset-evals!) e)])
     (with-limits
      5 max-mem
      (when verbose? (displayln sexp))

@@ -20,6 +20,7 @@
    (define for*-id (racket for*))
    (define mod-beg-id (racket #%module-begin))
    (define with-handlers-id (racket with-handlers))
+   (define with-handlers*-id (racket with-handlers*))
    (define default-continuation-prompt-tag-id
      (racket default-continuation-prompt-tag))
    (define lambda-id (racket lambda))
@@ -724,6 +725,11 @@ Uses outside of a module top-level raise an error.
 
 @defidform[with-handlers]{
 Identical to @|with-handlers-id| from @racketmodname[racket/base]
+but provides additional annotations to assist the typechecker.
+}
+
+@defidform[with-handlers*]{
+Identical to @|with-handlers*-id| from @racketmodname[racket/base]
 but provides additional annotations to assist the typechecker.
 }
 

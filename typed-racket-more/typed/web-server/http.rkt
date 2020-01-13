@@ -31,6 +31,13 @@
                                   [headers : (Listof Header)]
                                   [content : Bytes])
                                  #:extra-constructor-name make-binding:file]
+                       ;; It would be better if we could tell Typed Racket
+                       ;; that `binding:file/port` is a subtype of `binding:file`.
+                       [#:opaque binding:file/port binding:file/port?]
+                       [binding:file/port-in (-> binding:file/port Input-Port)]
+                       [make-binding:file/port
+                        (-> Bytes Bytes (Listof Header) Input-Port
+                            binding:file/port)]
                        [#:struct request
                                  ([method : Bytes]
                                   [uri : URL]
@@ -107,6 +114,10 @@
          Cookie-Value
          Valid-Domain)
 
+;; N.B.: The untyped cookie functions will implicitly convert bytes to
+;; strings on input, partially for compatability, but that doesn't seem
+;; very desirable in a typed context.
+
 (require/typed/provide
  web-server/http/cookie
  [make-cookie
@@ -145,14 +156,14 @@
                         (-> String
                             Bytes
                             Request
-                            [#:timeout Number]
+                            [#:timeout Number] ;; should have been Real
                             [#:shelf-life Real]
                             (Option String))]
                        [valid-id-cookie?
                         (-> Any ;; yes, this is really Any
                             #:name String
                             #:key Bytes
-                            [#:timeout Number]
+                            [#:timeout Number] ;; should have been Real
                             [#:shelf-life Real]
                             (Option String))]
                        [logout-id-cookie

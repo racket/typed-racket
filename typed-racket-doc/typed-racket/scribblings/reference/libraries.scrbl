@@ -255,6 +255,9 @@ and the @racket[URL] and @racket[Path/Param] types from
          #:changed "1.11"
          @elem{Updated to reflect @racketmodname[web-server/http]
           version 1.4.}
+         #:changed "1.13"
+         @elem{Updated to reflect @racketmodname[web-server/http]
+          version 1.6.}
          ]
 
 @defmodule/incl[typed/db]

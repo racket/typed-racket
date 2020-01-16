@@ -15,7 +15,7 @@
   (only-in racket/private/pre-base new-apply-proc)
   compatibility/mlist
   (only-in file/convertible prop:convertible)
-  (only-in mzlib/pconvert-prop prop:print-converter)
+  (only-in mzlib/pconvert-prop prop:print-converter prop:print-convert-constructor-name)
   racket/logging
   racket/private/stx
   (only-in mzscheme make-namespace)
@@ -3503,3 +3503,4 @@
 
 ;; MzLib: Legacy Libraries
 [prop:print-converter (-struct-property (-> -Self (-> Univ Univ) Univ))]
+[prop:print-convert-constructor-name (-struct-property -Symbol)]

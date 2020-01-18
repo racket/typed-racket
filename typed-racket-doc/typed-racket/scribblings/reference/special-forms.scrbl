@@ -732,6 +732,7 @@ but provides additional annotations to assist the typechecker.
 Identical to @|with-handlers*-id| from @racketmodname[racket/base]
 but provides additional annotations to assist the typechecker.
 }
+@history[#:added "1.12"]
 
 @defproc[(default-continuation-prompt-tag) (-> (Prompt-Tagof Any (Any -> Any)))]{
   Identical to @|default-continuation-prompt-tag-id|, but additionally protects

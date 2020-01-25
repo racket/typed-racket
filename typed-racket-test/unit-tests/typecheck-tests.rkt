@@ -5304,7 +5304,7 @@
                       (tc-e (UNSYNTAX #`(expt (make-rectangular 3 -1.7976931348623157e+308) (flacos (real->double-flonum #,(->fl 59.316513f0))))) (t:Un -Flonum -FloatComplex))
                       (tc-e (UNSYNTAX #`(/ (round (exact-round #,(->fl -2.7393196f0))) (real->double-flonum (inexact->exact (real->single-flonum -0.0))))) -Real)
                       (tc-e (UNSYNTAX #`(expt #,(->fl 0.0f0) -3.0)) -Real)
-                      (tc-e (UNSYNTAX #`(expt #,(->fl -8.665778974912815f+107) -677460115195106837726964554590085563061636191189747)) -Number)
+                      (tc-e (UNSYNTAX #`(expt #,(->fl -8.665778974912815f+107) -677460115195106837726964554590085563061636191189747)) -Real)
                       (tc-e (UNSYNTAX #`(expt (sin #,(->fl +inf.f)) +nan.0+nan.0i)) -Number)
                       (tc-e (UNSYNTAX #`(/ (gcd 1 0) #,(->fl 0.0f0) 2.718281828459045)) -Real)
                       (tc-e (UNSYNTAX #`(expt (make-polar (floor #,(->fl 6.468476f+31)) (tanh #,(->fl +nan.f))) +nan.0)) -Number)

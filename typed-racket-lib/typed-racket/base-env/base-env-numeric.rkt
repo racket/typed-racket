@@ -1645,7 +1645,7 @@
              (-NonNegReal -Real . -> . -Real)
              (-InexactReal (Un -NegFixnum -PosFixnum) . -> . -InexactReal)
              (-InexactReal -InexactReal . -> . (Un -InexactReal -InexactComplex))
-             (-Real -Nat . -> . -Real)
+             (-Real -Int . -> . -Real)
              (-FloatComplex -FloatComplex . -> . -FloatComplex)
              (-FloatComplex -Flonum . -> . (Un -FloatComplex -Flonum))
              (-FloatComplex -InexactReal . -> . (Un -FloatComplex -InexactReal))

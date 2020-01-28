@@ -1,3 +1,6 @@
+7.6
+- Remove optimization of float-complex division.
+- Improve `for/...` support.
 7.5
 - Initial support for struct type properties.
 7.4

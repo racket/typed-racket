@@ -85,7 +85,7 @@
  [Float-Complex 1.0+1i add1]
  [Imaginary 0+3i add1]
  [Exact-Imaginary 0+3i add1]
- [Inexact-Imaginary 0+3.0i add1]
+ ,@(ext [Inexact-Imaginary 0+3.0i add1])
  [Exact-Number 0 add1]
  [Real 0 add1]
  [Nonpositive-Real 0 add1]

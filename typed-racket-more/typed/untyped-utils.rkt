@@ -39,13 +39,18 @@
                     [*typed/racket/base (datum->syntax #'from-module-spec
                                                        'typed/racket/base)]
                     [*require (datum->syntax #'from-module-spec
-                                             'require)])
+                                             'require)]
+                    [from-module-spec-for-submod
+                      (syntax-parse #'from-module-spec #:literals (submod)
+                        [(submod (~and base (~or "." "..")) elem ...)
+                         (syntax/loc #'from-module-spec (submod base ".." elem ...))]
+                        [x #'x])])
        (syntax/loc stx
          (begin
            (module typed-module *typed/racket/base ; to bind in `T`s
              (*require typed/racket/base) ; to bind introduced `begin`, etc.
              (begin form ...)
-             (require (only-in from-module-spec
+             (require (only-in from-module-spec-for-submod
                                [name untyped2-name] ...))
              (provide untyped-name ...)
              (: untyped-name T) ...
@@ -54,7 +59,7 @@
            (module untyped-module *racket/base
              (*require racket/base)
              (require typed/untyped-utils
-                      (only-in from-module-spec
+                      (only-in from-module-spec-for-submod
                                [name typed-name] ...)
                       (only-in (submod ".." typed-module)
                                [untyped-name untyped3-name] ...))

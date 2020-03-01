@@ -180,7 +180,7 @@ in performance-sensitive code.
 Typed Racket provides types for most of the bindings provided by @tt{#lang
 racket}; using @racket[require/typed] is unnecessary in these cases.
 
-If you suspect that contracts at a typed-untyped boundary may be have a
+If you suspect that contracts at a typed-untyped boundary may have a
 significant cost in your program, you can investigate further using the
 @seclink["top" #:doc '(lib "contract-profile/scribblings/contract-profile.scrbl")
                #:indirect? #t

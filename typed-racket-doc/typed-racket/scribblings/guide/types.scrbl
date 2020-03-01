@@ -74,7 +74,7 @@ each of these types.
 @section{Types for Functions with Optional or Keyword Arguments}
 
 Racket functions often take optional or keyword arguments in addition
-to standard mandatory arguments. Types for these functions can written
+to standard mandatory arguments. Types for these functions can be written
 concisely using the @racket[->*] type constructor. Here are some
 examples:
 

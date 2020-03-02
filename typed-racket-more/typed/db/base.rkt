@@ -104,7 +104,7 @@
  [bind-prepared-statement (-> Prepared-Statement (Listof SQL-Datum) Statement-Binding)]
  [virtual-statement (-> (U String (-> DBSystem String)) Virtual-Statement)])
 
-(define statement? : (-> Any Boolean : Statement)
+(define statement? : (-> Any Boolean : #:+ Statement)
   (lambda [s]
     (or (string? s)
         (prepared-statement? s)

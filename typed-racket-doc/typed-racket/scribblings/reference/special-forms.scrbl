@@ -497,10 +497,25 @@ the type:
 
 Evaluates to a predicate for the type @racket[t], with the type
 @racket[(Any -> Boolean : t)]. @racket[t] may not contain function types, or
-types that may refer to mutable data such as @racket[(Vectorof Integer)].}
+types that may refer to mutable data such as @racket[(Vectorof Integer)].
+
+If @racket[t] contains any @racket[Opaque] types, @racket[make-predicate] will
+produce a warning. You should use @racket[make-positive-predicate] instead.}
 
 @defform[(define-predicate name t)]{
-Equivalent to @racket[(define name (make-predicate t))].
+Equivalent to @racket[(define name (make-predicate t))].}
+
+@defform[(make-positive-predicate t)]{
+
+Evaluates to a predicate for the type @racket[t], with the type
+@racket[(Any -> Boolean : #:+ t)]. @racket[t] may not contain function types, or
+types that may refer to mutable data such as @racket[(Vectorof Integer)].
+
+@racket[make-positive-predicate] does work with @racket[Opaque] types
+without any warnings.}
+
+@defform[(define-positive-predicate name t)]{
+Equivalent to @racket[(define name (make-positive-predicate t))].}
 
 @section{Type Annotation and Instantiation}
 
@@ -665,7 +680,8 @@ function @racket[pred] as a @seclink["Generating_Predicates_Automatically"]{pred
 (Module @racket[m] must provide @racket[pred] and @racket[pred] must have type
 @racket[(Any -> Boolean)].)
 The type @racket[t] is defined as precisely those values that @racket[pred]
-returns @racket[#t] for.
+has returned @racket[#t] for, with no "take-backs". If @racket[(pred x)] returns @racket[#t]
+once, @racket[x] has type @racket[t] even if it returns @racket[#f] later.
 Opaque types must be required lexically before they are used.
 
 @ex[(require/typed racket/base

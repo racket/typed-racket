@@ -238,6 +238,16 @@
    (t-sc (Un (-lst Univ) (-val #t)) (or/sc (flat/sc #''#t) (listof/sc any-wrap/sc)))
    (t-sc (Un (-val #f) (-val #t) (-lst (-val #f)))
          (or/sc (flat/sc #''#t) (flat/sc #''#f) (listof/sc (flat/sc #''#f))))
+   (t-sc (-pair Univ Univ)
+         (cons/sc any-wrap/sc any-wrap/sc))
+   (t-sc -Null
+         (flat/sc #''()))
+   (t-sc (-pair Univ (-pair Univ -Null))
+         (list/sc any-wrap/sc any-wrap/sc))
+   (t-sc (-lst* -Symbol -String)
+         (list/sc (flat/sc #'symbol?) (flat/sc #'string?)))
+   (t-sc (-lst* -Number -Integer #:tail -Integer)
+         (cons/sc number/sc (cons/sc integer/sc integer/sc)))
 
    (t-int Any-Syntax syntax? #'#'A #:typed) ;; GitHub issue #616
 

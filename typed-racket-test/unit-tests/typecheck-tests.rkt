@@ -53,6 +53,7 @@
     (env lexical-env mvar-env))
   (provide
     test-type-table
+    test-type-of
     test-literal test-literal/fail
     test test/proc test/fail)
 
@@ -157,6 +158,17 @@
         (loop (cdr x))]
        [else
         (void)])))
+
+  ;; test-type-of : syntax? (-> syntax? syntax?) tc-results? -> void?
+  ;; (test-type-of e f t) type-checks the expression e, then asserts that
+  ;; the registered type of (f e) matches type t
+  (define (test-type-of expr getter expected)
+    (let* ([expr (tr-expand expr)]
+           [expr (begin (tc expr #f) expr)]
+           [expr (getter expr)])
+      (define actual (type-of expr))
+      (define test-name (format "(type-of ~a)" (syntax->datum expr)))
+      (check-tc-results actual expected #:name test-name)))
 
   ;; test/fail syntax? tc-results? (or/c string? regexp?) (option/c tc-results?)
   ;;           [(listof (list id type))] -> void?
@@ -330,6 +342,13 @@
          (test-type-table
            (quote-syntax e)
            (list (cons (quote-syntax k) (ret v)) ...))))]))
+
+(define-syntax (tc/type-of stx)
+  (syntax-parse stx
+   [(_ e:expr f t)
+    (quasisyntax/loc stx
+      (test-phase1 e
+        (test-type-of (quote-syntax e) f (ret t))))]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5436,6 +5455,12 @@
      ([vector (t:-> -Symbol -Symbol (-mvec* -Symbol -Symbol))]
       [vector-immutable (t:-> (-val 'A) (-val 'B) (-ivec* (-val 'A) (-val 'B)))]))
 
+    ;; tc-app-lambda
+    (tc/type-of
+      ((lambda (x) x) 'X)
+      (syntax-parser #:literals (#%plain-app) [(#%plain-app fn arg) #'fn])
+      (t:-> (-val 'X) (-values (-val 'X) -true-propset -empty-obj)))
+
     ;; tc-app-list
     ;;; list
     (tc/type-table (ann (list 'A 'B) (List Symbol Symbol))
@@ -5472,20 +5497,24 @@
     ;; tc-app-values
     (tc/type-table (values 0)
      ([values (t:-> (-val 0) (-values (list (-val 0))))]))
-    ;; TODO tests fail because propsets are somehow different (2017-12-06)
-    ;(tc/type-table (values 0 0)
-    ; ([values (t:-> (-val 0) (-val 0) (-values (list (-val 0 ) (-val 0))))]))
-    ;(tc/type-table (call-with-values (λ () 'A) symbol->string)
-    ; ([call-with-values (->* (list (t:-> (-val 'A)) (t:-> -Symbol -String)) -String)]))
-    ;(tc/type-table (call-with-values (λ () "hello") (λ: ((x : String)) "world"))
-    ; ([call-with-values (t:-> (t:-> -String) (t:-> -String -String) -String)]))
-    ;(tc/type-table (call-with-values (λ () (values 0 0)) (λ: ((x : Zero) (y : Zero)) 0))
-    ; ([call-with-values (t:-> (t:-> (-values (list (-val 0) (-val 0))))
-    ;                          (t:-> (-val 0) (-val 0) (-val 0))
-    ;                          (-val 0))]))
-    ;(tc/type-table (call-with-values (λ () (values "a" "b")) (λ: ((x : String) (y : String)) (string-append x y)))
-    ; ([call-with-values (t:-> (t:-> (-values (list -String -String)))
-    ;                          (t:-> -String -String -String)
-    ;                          -String)]))
+    (tc/type-table (values 0 0)
+     ([values (t:-> (-val 0) (-val 0)
+                    (-values (list (-val 0) (-val 0)) (list -true-propset -true-propset) (list -empty-obj -empty-obj)))]))
+    (tc/type-table (call-with-values (λ () 'A) symbol->string)
+     ([call-with-values (->* (list (t:-> (-values (-val 'A) -true-propset -empty-obj))
+                                   (t:-> -Symbol -String))
+                             -String)]))
+    (tc/type-table (call-with-values (λ () "hello") (λ: ((x : String)) "world"))
+     ([call-with-values (t:-> (t:-> (-values -String -true-propset -empty-obj))
+                              (t:-> -String (-values -String -true-propset -empty-obj))
+                              (-values -String -true-propset -empty-obj))]))
+    (tc/type-table (call-with-values (λ () (values 0 0)) (λ: ((x : Zero) (y : Zero)) 0))
+     ([call-with-values (t:-> (t:-> (-values (list (-val 0) (-val 0)) (list -true-propset -true-propset) (list -empty-obj -empty-obj)))
+                              (t:-> (-val 0) (-val 0) (-values (-val 0) -true-propset -empty-obj))
+                              (-values (-val 0) -true-propset -empty-obj))]))
+    (tc/type-table (call-with-values (λ () (values "a" "b")) (λ: ((x : String) (y : String)) (string-append x y)))
+     ([call-with-values (t:-> (t:-> (-values (list -String -String) (list -true-propset -true-propset) (list -empty-obj -empty-obj)))
+                              (t:-> -String -String (-values -String -true-propset -empty-obj))
+                              (-values -String -true-propset -empty-obj))]))
    )
   ))

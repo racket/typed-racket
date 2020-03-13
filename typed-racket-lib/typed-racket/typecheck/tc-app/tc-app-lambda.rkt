@@ -6,7 +6,7 @@
          (prefix-in - (contract-req))
          syntax/parse racket/match racket/list
          racket/sequence
-         (typecheck signatures find-annotation)
+         (typecheck signatures find-annotation tc-metafunctions)
          (types abbrev utils generalize type-table)
          (private type-annotation syntax-properties)
          ;; Needed to construct args to tc/let-values
@@ -35,7 +35,14 @@
    #:fail-unless (= (syntax-length #'(x ...))
                     (syntax-length #'(args ...))) #f
    #:fail-when (andmap type-annotation (syntax->list #'(x ...))) #f
-   (tc/let-values #'((x) ...) #'(args ...) #'body expected))
+   (let* ([res (tc/let-values #'((x) ...) #'(args ...) #'body expected)]
+          [dom-ts
+           (for/list ([arg (in-list (syntax-e #'(args ...)))])
+             (match (type-of arg)
+              [(tc-result1: t) t]))]
+          [cod-t (tc-results->values res)])
+     (add-typeof-expr #'lam (ret (->* dom-ts cod-t)))
+     res))
   ;; inference for ((lambda with dotted rest
   (pattern ((~and lam (#%plain-lambda (x ... . rst:id) . body)) args ...)
    #:fail-when (plambda-property #'lam) #f

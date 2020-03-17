@@ -326,10 +326,9 @@
          (cond [(hash-ref sc-cache key #f)]
                [else
                 (define sc (match type match-clause ...))
-                (define fvs (fv type))
-                ;; Only cache closed terms, otherwise open terms may show up
-                ;; out of context.
-                (unless (or (not (null? fv))
+                (unless (or ;; Only cache closed terms, otherwise open terms may show up
+                            ;; out of context.
+                            (not (null? (fv type)))
                             ;; Don't cache types with applications of Name types because
                             ;; it does the wrong thing for recursive references
                             (has-name-app? type))

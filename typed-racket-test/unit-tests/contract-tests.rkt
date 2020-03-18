@@ -18,6 +18,8 @@
 (provide tests)
 (gen-test-main)
 
+(define (tc-fail #:reason [reason #f])
+  (fail-check (or reason "Type could not be converted to contract")))
 
 (define-syntax-rule (t e)
   (test-case (format "~a" 'e)
@@ -25,8 +27,7 @@
       (with-check-info (('type v))
         (type->contract
           e
-          (λ (#:reason [reason #f])
-            (fail-check (or reason "Type could not be converted to contract"))))))))
+          tc-fail)))))
 
 (define-syntax-rule (t-sc e-t e-sc)
   (test-case (format "~a" '(e-t -> e-sc))
@@ -36,8 +37,7 @@
           (optimize
             (type->static-contract
               t
-              (λ (#:reason [reason #f])
-                (fail-check (or reason "Type could not be converted to contract"))))))
+              tc-fail)))
         (with-check-info (['actual actual])
           (unless (equal? actual sc)
             (fail-check "Static contract didn't match expected")))))))
@@ -118,8 +118,7 @@
              (define ctc-result
                (type->contract type-val
                                #:typed-side typed-side
-                               (λ (#:reason [reason #f])
-                                 (fail-check (or reason "Type could not be converted to contract")))))
+                               tc-fail))
              (match-define (list extra-stxs ctc-stx) ctc-result)
              (define namespace (ctc-namespace))
              (define val (eval (quote val-expr) namespace))
@@ -891,4 +890,23 @@
    (t (-prefab '(box-box #(0)) (-box -Number)))
    (t (-prefab-top 'point 2))
    (t (-prefab-top '(box-box #(0)) 1))
+
+   (test-case "sc-cache hit"
+     (define sc-cache (make-hash))
+     (void
+       (type->contract -Number tc-fail #:typed-side #t #:sc-cache sc-cache))
+     (check-false (hash-empty? sc-cache))
+     (check-not-false (hash-ref sc-cache (cons -Number 'typed) #f)))
+
+   (test-case "sc-cache miss"
+     (define sc-cache (make-hash))
+     (define t
+       ;; cache the full recursive type,
+       ;;  but not any type that depends on the bound variable
+       (-mu X (Un -Null -String (-pair -Symbol X))))
+     (void
+       (type->contract t tc-fail #:typed-side #t #:sc-cache sc-cache))
+     (check-false (hash-empty? sc-cache))
+     (check-not-false (hash-ref sc-cache (cons t 'typed) #f))
+     (check-false (hash-ref sc-cache (cons (-pair -Symbol (-v X)) 'typed) #f)))
    ))

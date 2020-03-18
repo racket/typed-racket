@@ -319,16 +319,15 @@
 ;; a pair of the Type-seq number for a type and 'untyped or 'typed
 (define-syntax (cached-match stx)
   (syntax-case stx ()
-    [(_ sc-cache type-expr typed-side-expr match-clause ...)
+    [(_ sc-cache type-expr typed-side-expr sc-may-have-free-ids? match-clause ...)
      #'(let ([type type-expr]
              [typed-side typed-side-expr])
          (define key (cons type typed-side))
          (cond [(hash-ref sc-cache key #f)]
                [else
                 (define sc (match type match-clause ...))
-                (unless (or ;; Only cache closed terms, otherwise open terms may show up
-                            ;; out of context.
-                            (not (null? (fv type)))
+                (unless (or ;; Only cache closed static contracts
+                            sc-may-have-free-ids?
                             ;; Don't cache types with applications of Name types because
                             ;; it does the wrong thing for recursive references
                             (has-name-app? type))
@@ -388,7 +387,7 @@
             (and/sc sc any-wrap/sc)
             sc))
       (cached-match
-       sc-cache type typed-side
+       sc-cache type typed-side (not (hash-empty? recursive-values))
        ;; Applications of implicit recursive type aliases
        ;;
        ;; We special case this rather than just resorting to standard

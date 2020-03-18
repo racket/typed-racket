@@ -424,12 +424,12 @@
        [(? Union? t)
         (match (normalize-type t)
           [(HashTableTop:)
-           ;; NOTE: this is a special case to make `HashTableTop` produce a flat contract.
+           ;; NOTE: this is a special case to make `HashTableTop` produce a flat contract in casts.
            ;; Without this case:
            ;; - `HashTableTop` would make a chaperone contract
            ;; - because `HashTableTop` is a union containing `(Immutable-HashTable Any Any)`
            ;; - and `Any` makes a chaperone contract
-           hash?/sc]
+           (only-untyped hash?/sc)]
           [(Union-all-flat: elems)
            (apply or/sc (merge-overlapping-scs (map t->sc elems)))]
           [t (t->sc t)])]

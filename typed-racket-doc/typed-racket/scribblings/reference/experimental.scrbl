@@ -31,7 +31,7 @@ file or module.
 
 This is purely a type-level distinction, with no way to distinguish the new type
 from the base type at runtime. Predicates made by @racket[make-predicate]
-won't be able distinguish them properly, so they will return true for all values
+won't be able to distinguish them properly, so they will return true for all values
 that the base type's predicate would return true for. This is usually not what
 you want, so you shouldn't use @racket[make-predicate] with these types.
 
@@ -106,7 +106,7 @@ of the following relations: @racket[<=], @racket[<], @racket[=],
 @racket[>=], @racket[>].
 
 The following logical combinators hold as one would expect
-depending on which of their subcomponents hold hold:
+depending on which of their subcomponents hold:
 @racket[and], @racket[or], @racket[if], @racket[not].
 
 @racket[(when p q)] is equivalent to @racket[(or (not p) (and p q))].

@@ -105,8 +105,9 @@
                ;; doesn't work for looking up types in the optimizer.
                (define new-stx
                  (apply append
-                        (for/list ([form (in-list forms)])
-                          (change-contract-fixups (maybe-optimize (list form))))))
+                        (let ([ctc-cache (make-hash)])
+                          (for/list ([form (in-list forms)])
+                            (change-contract-fixups (maybe-optimize (list form)) ctc-cache)))))
                (kont new-stx result)]))])]))
 
   ;; Trampoline that continues the typechecking process.

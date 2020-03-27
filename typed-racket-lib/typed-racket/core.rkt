@@ -33,6 +33,7 @@
                                              (with-refinements?))])
          (tc-module/full stx pmb-form
           (λ (new-mod pre-before-code pre-after-code)
+            (define ctc-cache (make-hash))
             (with-syntax*
              (;; pmb = #%plain-module-begin
               [(pmb . body2) new-mod]
@@ -40,11 +41,11 @@
               [transformed-body (begin0 (remove-provides #'body2) (do-time "Removed provides"))]
               ;; add the real definitions of contracts on requires
               [transformed-body
-               (begin0 (change-contract-fixups (syntax->list #'transformed-body))
+               (begin0 (change-contract-fixups (syntax->list #'transformed-body) ctc-cache)
                        (do-time "Fixed contract ids"))]
               ;; add the real definitions of contracts on the before- and after-code
-              [(before-code ...) (change-provide-fixups (flatten-all-begins pre-before-code))]
-              [(after-code ...) (begin0 (change-provide-fixups (flatten-all-begins pre-after-code))
+              [(before-code ...) (change-provide-fixups (flatten-all-begins pre-before-code) ctc-cache)]
+              [(after-code ...) (begin0 (change-provide-fixups (flatten-all-begins pre-after-code) ctc-cache)
                                   (do-time "Generated contracts"))]
               ;; potentially optimize the code based on the type information
               [(optimized-body ...) (maybe-optimize #'transformed-body)] ;; has own call to do-time

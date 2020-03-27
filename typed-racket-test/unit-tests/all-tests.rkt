@@ -24,6 +24,7 @@
   "type-equal-tests.rkt"
   "remove-intersect-tests.rkt"
   "static-contract-conversion-tests.rkt"
+  "static-contract-instantiate-tests.rkt"
   "static-contract-optimizer-tests.rkt"
   "parse-type-tests.rkt"
   "subst-tests.rkt"

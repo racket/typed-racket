@@ -19,6 +19,7 @@
           (for/list ([t (in-list ts)]) -tt-propset)
           (for/list ([t (in-list ts)]) -empty-obj)
           dty dbound)]
+    [(AnyValues: p) (-tc-any-results p)]
     [_ (int-err "do-ret fails: ~a" t)]))
 
 (define (tc/apply f args)

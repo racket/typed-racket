@@ -1354,6 +1354,8 @@
         [tc-e/t (ann (lambda (x) x) (All (a) (a -> a)))
                 (-poly (a) (a . t:-> . a))]
         [tc-e (apply values (list 1 2 3)) #:ret (tc-ret (list -One -PosByte -PosByte))]
+        [tc-e (apply values (string->list "")) #:ret (-tc-any-results -tt)]
+        [tc-e (apply values (string->list "abc")) #:ret (-tc-any-results -tt)]
 
         [tc-e/t (ann (if #t 3 "foo") Integer) -Integer]
 

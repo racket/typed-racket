@@ -893,4 +893,18 @@
    (t-int (-val #rx"aa") void #rx"aa" #:untyped)
    (t-int (-val #rx#"bb") void #rx#"bb" #:untyped)
 
+   (t-int -ChannelTop
+          channel-get
+          (let ((ch (make-channel))) (thread (λ () (channel-put ch "ok"))) ch)
+          #:typed)
+   (t-int -ChannelTop
+          channel-get
+          (let ((ch (make-channel))) (thread (λ () (channel-put ch "ok"))) ch)
+          #:untyped)
+   (t-int/fail -ChannelTop
+               (lambda (ch)
+                 (channel-put ch 'error))
+               (make-channel)
+               #:typed
+               #:msg "higher-order value passed as `Any`")
    ))

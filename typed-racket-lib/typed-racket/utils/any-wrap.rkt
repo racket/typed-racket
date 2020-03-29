@@ -171,10 +171,6 @@
                                    (with-contract-continuation-mark
                                     blame+neg-party
                                     (any-wrap/traverse k neg-party seen/v))))] ;; key
-      [(? evt?) (chaperone-evt v (lambda (e) (values e (λ (v)
-                                                         (with-contract-continuation-mark
-                                                          blame+neg-party
-                                                          (any-wrap/traverse v neg-party seen/v))))))]
       [(? set?) (chaperone-hash-set
                  v
                  (λ (s e) e) ; inject
@@ -208,8 +204,14 @@
        (chaperone-channel v
                           (lambda (e) (with-contract-continuation-mark
                                        blame+neg-party
-                                       (values v (any-wrap/traverse v neg-party seen/v))))
-                          (lambda (e) (fail neg-party v)))]
+                                       (values e (lambda (inner-val) (any-wrap/traverse inner-val neg-party seen/v)))))
+                          (lambda (_e _new-val) (fail neg-party v)))]
+      [(? evt?)
+       ;; must come after cases for write-able values that can be used as events
+       (chaperone-evt v (lambda (e) (values e (λ (v)
+                                                (with-contract-continuation-mark
+                                                 blame+neg-party
+                                                 (any-wrap/traverse v neg-party seen/v))))))]
       [_
        (on-opaque v b neg-party)]))
   any-wrap/traverse)

@@ -891,4 +891,18 @@
    (t (-prefab-top 'point 2))
    (t (-prefab-top '(box-box #(0)) 1))
 
+   (t-int -ChannelTop
+          channel-get
+          (let ((ch (make-channel))) (thread (λ () (channel-put ch "ok"))) ch)
+          #:typed)
+   (t-int -ChannelTop
+          channel-get
+          (let ((ch (make-channel))) (thread (λ () (channel-put ch "ok"))) ch)
+          #:untyped)
+   (t-int/fail -ChannelTop
+               (lambda (ch)
+                 (channel-put ch 'error))
+               (make-channel)
+               #:typed
+               #:msg "higher-order value passed as `Any`")
    ))

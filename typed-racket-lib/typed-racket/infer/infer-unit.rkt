@@ -1005,7 +1005,7 @@
                                 #:multiple? [multiple-substitutions? #f]
                                 #:objs [objs '()])
      (((listof symbol?) (listof symbol?) (listof Type?) (listof Type?)
-       (or/c #f Values/c ValuesDots?))
+       (or/c #f Values/c AnyValues? ValuesDots?))
       ((or/c #f Values/c AnyValues? ValuesDots?)
        #:multiple? boolean?
        #:objs (listof OptObject?))

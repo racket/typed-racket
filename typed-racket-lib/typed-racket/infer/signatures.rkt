@@ -52,7 +52,7 @@
                                    ;; rest
                                    (or/c #f Type? Rest?)
                                    ;; range
-                                   (or/c #f Values/c ValuesDots?))
+                                   (or/c #f Values/c AnyValues? ValuesDots?))
                                   ;; [optional] expected type
                                   ((or/c #f Values/c AnyValues? ValuesDots?)
                                    #:objs (listof OptObject?))

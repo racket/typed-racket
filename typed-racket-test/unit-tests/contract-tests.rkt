@@ -890,5 +890,7 @@
    (t (-prefab '(box-box #(0)) (-box -Number)))
    (t (-prefab-top 'point 2))
    (t (-prefab-top '(box-box #(0)) 1))
+   (t-int (-val #rx"aa") void #rx"aa" #:untyped)
+   (t-int (-val #rx#"bb") void #rx#"bb" #:untyped)
 
    ))

@@ -406,7 +406,7 @@
                  ;; requires an equal? check
                  (not (number? v))
                  ;; regexps don't match themselves when used as contracts
-                 (not (regexp? v)))
+                 (not (or (regexp? v) (byte-regexp? v))))
             (flat/sc #`(quote #,v))
             (flat/sc #`(flat-named-contract '#,v (lambda (x) (equal? x '#,v))) v))]
        [(Base-name/contract: sym ctc) (flat/sc ctc)]

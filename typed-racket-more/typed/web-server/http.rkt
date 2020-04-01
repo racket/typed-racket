@@ -243,7 +243,7 @@
                             [#:cookies (Listof Cookie)]
                             Response)])
 
-(require/typed/provide web-server/http/empty
+(require/typed/provide web-server/http
                        [response/empty
                         (-> [#:code Natural]
                             [#:message (Option Bytes)]

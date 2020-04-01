@@ -1286,7 +1286,8 @@
 [values (-polydots (a b) (cl->*
                            (-> (-values null))
                            (->acc (list a) a null)
-                           ((list a) (b b) . ->... . (make-ValuesDots (list (-result a)) b 'b))))]
+                           ((list a) (b b) . ->... . (make-ValuesDots (list (-result a)) b 'b))
+                           (->* (list) Univ ManyUniv)))]
 [call-with-values
   (-polydots (b a)
     (cl->*

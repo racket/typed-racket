@@ -4,7 +4,15 @@
 
 (require typed/pict typed/racket/draw)
 
-(pict-children (blank 50 50))
+(let ((p (blank 50 50)))
+  (pict-draw p)
+  (assert (pict-width p) real?)
+  (assert (pict-height p) real?)
+  (assert (pict-ascent p) real?)
+  (assert (pict-descent p) real?)
+  (assert (pict-children p) list?)
+  (pict-panbox p)
+  (assert (pict-last p) pict-path?))
 
 (blank)
 (blank 1)

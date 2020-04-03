@@ -67,6 +67,7 @@
                  [width : -Real]
                  [height : -Real]
                  [ascent : -Real]
+                 [descent : -Real]
                  [children : (-lst -child)]
                  [panbox : Univ]
                  [last : -pict-path])

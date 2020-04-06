@@ -12,7 +12,8 @@
                      racket/base
                      syntax/parse
                      syntax/stx)
-         (for-syntax (types abbrev numeric-tower prop-ops)))
+         (for-syntax (types abbrev numeric-tower prop-ops))
+         (for-syntax (utils struct-extraction)))
 
 (provide type-environment
          (rename-out [-#%module-begin #%module-begin])
@@ -60,6 +61,7 @@
                                   #:defaults ([extra #f]))
                        (~optional (~and (~seq #:no-provide) (~bind [provide? #f]))
                                   #:defaults ([provide? #t]))]
+             #:when (or (not (attribute provide?)) (validate-fields #'name (syntax-e #'(field ...)) this-syntax))
              #:with form #'(d-s name ([field : type] ...))
              #:with outer-form (if (attribute provide?)
                                    #'(provide (struct-out name))
@@ -71,10 +73,18 @@
                                   #:defaults ([extra #f]))
                        (~optional (~and (~seq #:no-provide) (~bind [provide? #f]))
                                   #:defaults ([provide? #t]))]
+             #:when (or (not (attribute provide?)) (validate-fields #'name (syntax-e #'(field ...)) this-syntax))
              #:with form #'(d-s (name par) ([field : type] ...) (par-type ...))
              #:with outer-form (if (attribute provide?)
                                    #'(provide (struct-out name))
-                                   #'(void)))))
+                                   #'(void))))
+
+  (define (validate-fields name fields ctx)
+    (define who 'type-environment)
+    (define info (extract-struct-info/checked/context name who ctx))
+    (define sels (reverse (cadddr info)))
+    (validate-struct-fields name fields sels who ctx)))
+
 
 (define-syntax (-#%module-begin stx)
   (syntax-parse stx

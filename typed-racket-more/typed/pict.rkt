@@ -77,8 +77,8 @@
                   [dy : -Real]
                   [sx : -Real]
                   [sy : -Real]
-                  [sxy : -Real]
-                  [syx : -Real])
+                  [syx : -Real]
+                  [sxy : -Real])
            #:extra-constructor-name make-child]
  ; 2 Basic Pict Constructors
  [dc (->opt (-> -dc -Real -Real ManyUniv) -Real -Real [-Real -Real] -pict)]

@@ -23,7 +23,8 @@
 (define (validate-struct-fields name fields all-selectors who ctx)
   (define sel-names
     ;; filter super selectors
-    (let ([sel-rx (regexp (format "^~a-(.*)$" (syntax-e name)))])
+    (let* ([name-str (regexp-quote (format "~a" (syntax-e name)))]
+           [sel-rx (regexp (string-append "^" name-str "-(.*)$"))])
       (filter
         values
         (for/list ([sel-id (in-list all-selectors)])

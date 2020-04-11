@@ -512,7 +512,8 @@
   (define sty (mk/inner-struct-type names desc parent-type))
 
   (register-sty! sty names desc)
-  (void (register-struct-bindings! sty names desc #f))
+  (void ;; need the `register-type` side effect, but not the output bindings
+    (register-struct-bindings! sty names desc #f))
   (when kernel-maker
     (register-type kernel-maker (λ () (->* (struct-desc-all-fields desc) sty)))))
 

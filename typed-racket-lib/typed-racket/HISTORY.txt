@@ -1,3 +1,5 @@
+7.7
+- Bug fixes and type updates.
 7.6
 - Remove optimization of float-complex division.
 - Improve `for/...` support.

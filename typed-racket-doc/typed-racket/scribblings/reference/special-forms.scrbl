@@ -390,6 +390,7 @@ those functions.
  [options #:transparent #:mutable #:prefab
           (code:line #:constructor-name constructor-id)
           (code:line #:extra-constructor-name constructor-id)
+          (code:line #:property property-id property-expr)
           (code:line #:type-name type-id)])]{
  Defines a @rtech{structure} with the name @racket[name-id], where the
  fields @racket[f] have types @racket[t], similar to the behavior of @|struct-id|

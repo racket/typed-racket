@@ -177,7 +177,7 @@
                              #,@(if unsafe? #'(unsafe-kw) #'())
                              #,lib))
    (pattern sig:signature-clause #:attr spec
-     #`(require-typed-signature sig.sig-name (sig.var ...) (sig.type ...) #,lib))
+     (quasisyntax/loc #'sig (require-typed-signature sig.sig-name (sig.var ...) (sig.type ...) #,lib)))
    (pattern sc:simple-clause #:attr spec
      #`(require/typed #:internal sc.nm sc.ty #,lib
                       #,@(if unsafe? #'(unsafe-kw) #'()))))

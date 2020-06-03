@@ -341,7 +341,7 @@ The following base types are parametric in their type arguments.
 one element for each of the @racket[t]s, plus a sequence of elements
 corresponding to @racket[trest], where @racket[bound]
   must be an identifier denoting a type variable bound with @racket[...].}
-@defform[(List* t t1 ... s)]{is equivalent to @racket[(Pairof t (List* t1 ... s))].}
+@defform[(List* t t1 ... s)]{is equivalent to @racket[(Pairof t (List* t1 ... s))]. @racket[(List* s)] is equivalent to @racket[s] itself.}
 
 @ex[
 (list 'a 'b 'c)

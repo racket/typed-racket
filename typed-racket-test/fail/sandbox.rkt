@@ -16,6 +16,7 @@
 
 (parameterize ([sandbox-memory-limit #f]
                [sandbox-eval-limits #f]
+               [sandbox-path-permissions (list (list 'read "/"))]
                [sandbox-make-code-inspector make-sandbox-code-inspector])
   (let ([eval (make-evaluator 'racket/base
                               '(module untyped racket/base

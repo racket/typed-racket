@@ -58,6 +58,18 @@
             'pos
             'neg))
 
+(struct contributor (x) #:prefab)
+(struct person-contributor contributor ([a #:mutable] b) #:prefab)
+(struct surname-contributor person-contributor (y z w) #:prefab)
+(define surname-contributor/c
+  (prefab/c '(surname-contributor person-contributor 2 #(0) contributor 1)
+            symbol? (vectorof integer?) any/c any/c any/c string?))
+(define sc1
+  (contract surname-contributor/c
+            (surname-contributor 'x (vector 1) 2 3 4 "w")
+            'pos
+            'neg))
+
 (define tests
   (test-suite
    "Tests for prefab type helpers"
@@ -161,6 +173,14 @@
            (pair 1 (vector "2"))
            'pos
            'neg)))
+   ;; no impersonator contracts on immutable fields
+   (check-exn
+    #rx"a chaperone-contract\\? for the immutable 2nd field"
+    (λ () (contract
+           (prefab/c 'pair integer? (new-∀/c))
+           (pair 1 2)
+           'pos
+           'neg)))
    ;; error when prefab key and struct are a mismatch
    (check-exn exn:fail:contract?
               (λ () (contract
@@ -186,6 +206,7 @@
               (λ () (vector-set! (pair-snd p2)
                                  0
                                  "1")))
+   ;; successful mutations
    (check-not-exn (λ () (vector-set! (pair-snd p1)
                                      0
                                      42)))
@@ -194,6 +215,7 @@
                                      42)))
    (check-equal? (vector-ref (pair-snd p1) 0) 42)
    (check-equal? (vector-ref (pair-snd p2) 0) 42)
+
 
    ;; mutable prefab example
    ;; check contracting bad struct fails
@@ -220,6 +242,7 @@
               (λ () (vector-set! (mpair-snd mp1)
                                  0
                                  "1")))
+   ;; successful mutations
    (check-not-exn (λ () (vector-set! (mpair-snd mp1)
                                      0
                                      42)))
@@ -229,6 +252,52 @@
    (check-equal? (mpair-fst mp1) 0)
    (check-equal? (mpair-snd mp1) (vector 33))
 
+
+
+   ;; prefab w/ parent example
+   ;; check contracting bad struct fails
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'pos (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'neg (blame-negative (exn:fail:contract:blame-object e)))))
+              (λ () (contract surname-contributor/c
+                              (surname-contributor #f #(1) 2 3 4 "w")
+                              'pos
+                              'neg)))
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'pos (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'neg (blame-negative (exn:fail:contract:blame-object e)))))
+              (λ () (contract surname-contributor/c
+                              (surname-contributor 'x #f 2 3 4 "w")
+                              'pos
+                              'neg)))
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'pos (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'neg (blame-negative (exn:fail:contract:blame-object e)))))
+              (λ () (contract surname-contributor/c
+                              (surname-contributor 'x #(1) 2 3 4 #f)
+                              'pos
+                              'neg)))
+   ;; accessing fields
+   (check-equal? (contributor-x sc1) 'x)
+   (check-equal? (person-contributor-a sc1) #(1))
+   (check-equal? (person-contributor-b sc1) 2)
+   (check-equal? (surname-contributor-y sc1) 3)
+   (check-equal? (surname-contributor-z sc1) 4)
+   (check-equal? (surname-contributor-w sc1) "w")
+   ;; violating higher order contract on field value
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'neg (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'pos (blame-negative (exn:fail:contract:blame-object e)))))
+              (λ () (set-person-contributor-a! sc1 'bad)))
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'neg (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'pos (blame-negative (exn:fail:contract:blame-object e)))))
+              (λ () (vector-set! (person-contributor-a sc1) 0 'bad)))
+   ;; successful mutations
+   (check-not-exn (λ () (vector-set! (person-contributor-a sc1) 0 42)))
+   (check-equal? (vector-ref (person-contributor-a sc1) 0) 42)
+   (check-not-exn (λ () (set-person-contributor-a! sc1 #())))
+   (check-equal? (person-contributor-a sc1) #())
 
    ;; contract stronger tests
    (check-true (contract-stronger? (prefab/c 'pair integer? integer?) any/c))

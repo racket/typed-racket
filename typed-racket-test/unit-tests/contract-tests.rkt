@@ -26,7 +26,7 @@
     (let ([v e])
       (with-check-info (('type v))
         (type->contract
-          e
+          v
           tc-fail)))))
 
 (define-syntax-rule (t-sc e-t e-sc)

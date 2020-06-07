@@ -10,22 +10,23 @@
 
 ;; name
 (define (prefab/c-name ctc)
-  (define key (base-prefab/c-key ctc))
-  (define specs (base-prefab/c-field-specs ctc))
-  `(prefab/c ,key ,@(for/list ([spec (in-list specs)])
-                      (contract-name (field-spec-contract spec)))))
+  `(prefab/c ,(prefab-struct-type-key (base-prefab/c-struct-type ctc))
+             ,@(for/list ([spec (in-list (base-prefab/c-field-specs ctc))])
+                 (contract-name (field-spec-contract spec)))))
+
+(define (prefab-struct-type-key prefab-struct-type)
+  (define ctor (struct-type-make-constructor prefab-struct-type))
+  (prefab-struct-key
+   (apply ctor (build-list (procedure-arity ctor) ;; will be int
+                           void))))
 
 ;; flat-first-order
 (define-values [prefab/c-flat-first-order prefab/c-first-order]
   (let ()
     (define ((make-first-order-proc get-predicate) ctc)
-      (define specs
-        (base-prefab/c-field-specs ctc))
-      (define prefab-struct-type
-        (prefab-key->struct-type (base-prefab/c-key ctc)
-                                 (length specs)))
-      (define pred?
-        (struct-type-make-predicate prefab-struct-type))
+      (define specs (base-prefab/c-field-specs ctc))
+      (define prefab-struct-type (base-prefab/c-struct-type ctc))
+      (define pred? (struct-type-make-predicate prefab-struct-type))
       (λ (val)
         (and (pred? val)
              (for/and ([spec (in-list specs)])
@@ -49,8 +50,7 @@
 ;; late-neg-projection
 (define (prefab/c-late-neg-projection whole-ctc)
   (define field-specs (base-prefab/c-field-specs whole-ctc))
-  (define prefab-struct-type (prefab-key->struct-type (base-prefab/c-key whole-ctc)
-                                                      (length field-specs)))
+  (define prefab-struct-type (base-prefab/c-struct-type whole-ctc))
   (define pred? (struct-type-make-predicate prefab-struct-type))
   (λ (b+)
     ;; Prepare projections:
@@ -119,42 +119,46 @@
                        (list* field-accessor chk chap-args))
                    imp-args)])))))
 
-(define (prefab-sub-key? this-key this-field-count that-key that-field-count)
-  ;; TODO this could easily be more complete
-  (and (equal? this-key that-key)
-       (= this-field-count that-field-count)))
+(define (prefab-subtype? this-prefab-type that-prefab-type)
+  (let loop ([this-prefab-type this-prefab-type])
+    (or (equal? this-prefab-type that-prefab-type)
+        (let-values ([(name
+                       init-field-count
+                       auto-field-count
+                       accessor-proc
+                       mutator-proc
+                       immutable-k-list
+                       super-type
+                       skipped?)
+                      (struct-type-info this-prefab-type)])
+          (and super-type
+               (loop super-type))))))
 
 ;; stronger
 (define (prefab/c-stronger this that)
   (cond
     [(not (base-prefab/c? that)) #f]
+    [(not (prefab-subtype? (base-prefab/c-struct-type this)
+                           (base-prefab/c-struct-type that)))
+     #f]
     [else
-     (define this-key (base-prefab/c-key this))
-     (define these-field-specs (base-prefab/c-field-specs this))
-     (define this-field-count (length these-field-specs))
-     (define that-key (base-prefab/c-key that))
-     (define those-field-specs (base-prefab/c-field-specs that))
-     (define that-field-count (length those-field-specs))
-     (cond
-       [(not (prefab-sub-key? this-key this-field-count that-key that-field-count))
-        #f]
-       [else
-        (for/and ([this-field-spec (in-list these-field-specs)]
-                  [that-field-spec (in-list those-field-specs)])
-          (define this-field-contract (field-spec-contract this-field-spec))
-          (define that-field-contract (field-spec-contract that-field-spec))
-          (cond
-            [(field-spec-maybe-mutator this-field-spec)
-             (contract-equivalent? this-field-contract that-field-contract)]
-            [else
-             (contract-stronger? this-field-contract that-field-contract)]))])]))
+     (for/and ([this-field-spec (in-list (base-prefab/c-field-specs this))]
+               [that-field-spec (in-list (base-prefab/c-field-specs that))])
+       (define this-field-contract (field-spec-contract this-field-spec))
+       (define that-field-contract (field-spec-contract that-field-spec))
+       (cond
+         [(field-spec-maybe-mutator this-field-spec)
+          (contract-equivalent? this-field-contract that-field-contract)]
+         [else
+          (contract-stronger? this-field-contract that-field-contract)]))]))
 
 
 ;; equivalent
 (define (prefab/c-equivalent this that)
   (cond
     [(not (and (base-prefab/c? that)
-               (equal? (base-prefab/c-key this) (base-prefab/c-key that))))
+               (equal? (base-prefab/c-struct-type this)
+                       (base-prefab/c-struct-type that))))
      #f]
     [else
      (define these-field-specs (base-prefab/c-field-specs this))
@@ -169,9 +173,7 @@
 ;; generate
 (define ((prefab/c-generate ctc) fuel)
   (define field-specs (base-prefab/c-field-specs ctc))
-  (define total-field-count (length field-specs))
-  (define prefab-struct-type (prefab-key->struct-type (base-prefab/c-key ctc)
-                                                      total-field-count))
+  (define prefab-struct-type (base-prefab/c-struct-type ctc))
   (define constructor (struct-type-make-constructor prefab-struct-type))
   (let loop ([to-gen field-specs]
              [gens '()])
@@ -200,7 +202,7 @@
 ;; necessarily have identifiers corresponding to accessor
 ;; functions for prefabs.
 
-(struct base-prefab/c (key field-specs))
+(struct base-prefab/c (struct-type field-specs))
 
 (struct field-spec (contract accessor maybe-mutator))
 
@@ -275,10 +277,10 @@
                                  [else 2]))))
   (case max-kind
     [(0) (if (ormap field-spec-maybe-mutator field-specs)
-             (prefab/c key field-specs)
-             (flat-prefab/c key field-specs))]
-    [(1) (prefab/c key field-specs)]
-    [else (impersonator-prefab/c key field-specs)]))
+             (prefab/c prefab-struct-type field-specs)
+             (flat-prefab/c prefab-struct-type field-specs))]
+    [(1) (prefab/c prefab-struct-type field-specs)]
+    [else (impersonator-prefab/c prefab-struct-type field-specs)]))
 
 
 (define (build-field-accessors+mutators prefab-struct-type)

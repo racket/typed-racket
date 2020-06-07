@@ -70,6 +70,13 @@
             'pos
             'neg))
 
+
+(struct flag ([on? #:auto #:mutable]) #:prefab)
+(define flag/c
+  (prefab/c '(flag (1 #f)) boolean?))
+(define a-flag
+  (contract flag/c (flag) 'pos 'neg))
+
 (define tests
   (test-suite
    "Tests for prefab type helpers"
@@ -298,6 +305,17 @@
    (check-equal? (vector-ref (person-contributor-a sc1) 0) 42)
    (check-not-exn (λ () (set-person-contributor-a! sc1 #())))
    (check-equal? (person-contributor-a sc1) #())
+
+
+   ;; prefab with #:auto example
+   (check-false (flag-on? a-flag))
+   (check-exn (λ (e) (and (exn:fail:contract:blame? e)
+                          (eq? 'neg (blame-positive (exn:fail:contract:blame-object e)))
+                          (eq? 'pos (blame-negative (exn:fail:contract:blame-object e)))))
+              (λ () (set-flag-on?! a-flag 'bad)))
+   (check-not-exn (λ () (set-flag-on?! a-flag #t)))
+   (check-true (flag-on? a-flag))
+
 
    ;; contract stronger tests
    (check-true (contract-stronger? (prefab/c 'pair integer? integer?) any/c))

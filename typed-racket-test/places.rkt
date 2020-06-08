@@ -35,7 +35,12 @@
 
 (define (dr p)
   (parameterize ([current-namespace (make-base-empty-namespace)])
-    (dynamic-require `(file ,(if (string? p) p (path->string p))) #f)))
+    (let* ([root-module `(file ,(if (string? p) p (path->string p)))]
+           [submodule-test `(submod ,root-module test)]
+           [module-path (if (module-declared? submodule-test #t)
+                            submodule-test
+                            root-module)])
+      (dynamic-require module-path #f))))
 
 
 (define (start-worker get-ch name)

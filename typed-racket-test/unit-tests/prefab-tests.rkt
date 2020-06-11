@@ -76,6 +76,12 @@
   (prefab/c '(flag (1 #f)) boolean?))
 (define a-flag
   (contract flag/c (flag) 'pos 'neg))
+(struct flag* flag (name [preserved? #:auto #:mutable]) #:prefab)
+(define flag*/c
+  (prefab/c '(flag* (1 #f) flag 0 (1 #f))
+            boolean?
+            symbol?
+            boolean?))
 
 (define tests
   (test-suite
@@ -195,7 +201,7 @@
                      (pair 1 2)
                      'pos
                      'neg)))
-  ;; accessing fields
+   ;; accessing fields
    (check-equal? (pair-fst p1) 1)
    (check-equal? (pair-fst p2) 1)
    (check-equal? (pair-snd p1) (vector 2))
@@ -315,7 +321,9 @@
               (λ () (set-flag-on?! a-flag 'bad)))
    (check-not-exn (λ () (set-flag-on?! a-flag #t)))
    (check-true (flag-on? a-flag))
-
+   (check-not-exn (λ () (contract-random-generate flag*/c)))
+   (check-pred symbol?
+               (flag*-name (contract-random-generate flag*/c)))
 
    ;; contract stronger tests
    (check-true (contract-stronger? (prefab/c 'pair integer? integer?) any/c))

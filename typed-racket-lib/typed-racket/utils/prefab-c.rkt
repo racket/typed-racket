@@ -10,7 +10,7 @@
 
 ;; name
 (define (prefab/c-name ctc)
-  `(prefab/c ,(prefab-struct-type-key (base-prefab/c-struct-type ctc))
+  `(prefab/c ',(prefab-struct-type-key (base-prefab/c-struct-type ctc))
              ,@(for/list ([spec (in-list (base-prefab/c-field-specs ctc))])
                  (contract-name (field-spec-contract spec)))))
 
@@ -207,6 +207,7 @@
 (struct field-spec (contract accessor maybe-mutator))
 
 (struct flat-prefab/c base-prefab/c ()
+  #:property prop:custom-write contract-custom-write-property-proc
   #:property prop:flat-contract
   (build-flat-contract-property
    #:name prefab/c-name
@@ -217,6 +218,7 @@
    #:generate prefab/c-generate))
 
 (struct prefab/c base-prefab/c ()
+  #:property prop:custom-write contract-custom-write-property-proc
   #:property prop:chaperone-contract
   (build-chaperone-contract-property
    #:name prefab/c-name
@@ -228,6 +230,7 @@
    #:exercise #f))
 
 (struct impersonator-prefab/c base-prefab/c ()
+  #:property prop:custom-write contract-custom-write-property-proc
   #:property prop:contract
   (build-contract-property
    #:name prefab/c-name

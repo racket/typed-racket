@@ -1253,6 +1253,7 @@
 
 [struct-type-property? (make-pred-ty (-struct-property -Bottom))]
 [struct-type-property-accessor-procedure? (-> Univ B)]
+[struct-type-property-predicate-procedure? (->opt Univ [(-opt (-struct-property -Bottom))] B)]
 
 ;; Section 5.6 (Structure Utilities)
 [struct->vector (Univ . -> . (-vec Univ))]

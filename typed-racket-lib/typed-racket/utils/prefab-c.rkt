@@ -186,6 +186,8 @@
              [(null? gens) (apply constructor args)]
              [else (loop (cdr gens)
                          (cons ((car gens)) args))])))]
+      [(field-spec-auto? (car to-gen))
+       (loop (cdr to-gen) gens)]
       [else
        (define field-contract (field-spec-contract (car to-gen)))
        (define field-gen (contract-random-generate/choose field-contract fuel))
@@ -204,7 +206,7 @@
 
 (struct base-prefab/c (struct-type field-specs))
 
-(struct field-spec (contract accessor maybe-mutator))
+(struct field-spec (contract accessor maybe-mutator auto?))
 
 (struct flat-prefab/c base-prefab/c ()
   #:property prop:custom-write contract-custom-write-property-proc
@@ -261,7 +263,7 @@
   (define field-count (length field-contracts))
   (define prefab-struct-type (prefab-key->struct-type key field-count))
   (define field-specs
-    (let-values ([(accessors mutators)
+    (let-values ([(accessors mutators auto?s)
                   (build-field-accessors+mutators prefab-struct-type)])
       (for ([pos (in-naturals 1)]
             [ctc (in-list field-contracts)]
@@ -271,7 +273,7 @@
         (raise-arg-error (format "a chaperone-contract? for the immutable ~a~a field"
                                  pos (ending pos))
                          pos))
-      (map field-spec field-contracts accessors mutators)))
+      (map field-spec field-contracts accessors mutators auto?s)))
   (define max-kind (for/fold ([kind 0])
                              ([ctc (in-list field-contracts)])
                      (max kind (cond
@@ -289,7 +291,8 @@
 (define (build-field-accessors+mutators prefab-struct-type)
   (let loop ([prefab-struct-type prefab-struct-type]
              [accessors null]
-             [mutators null])
+             [mutators null]
+             [auto?s null])
     (define-values [name
                     init-field-count
                     auto-field-count
@@ -303,12 +306,15 @@
       (+ init-field-count auto-field-count))
     (for/fold ([accessors accessors]
                [mutators mutators]
+               [auto?s auto?s]
                #:result (if super-type
-                            (loop super-type accessors mutators)
-                            (values accessors mutators)))
+                            (loop super-type accessors mutators auto?s)
+                            (values accessors mutators auto?s)))
               ([idx (in-range (sub1 immediate-field-count) -1 -1)])
       (values (cons (make-struct-field-accessor accessor-proc idx)
                     accessors)
               (cons (and (not (memq idx immutable-k-list)) ;; idx is a fixnum
                          (make-struct-field-mutator mutator-proc idx))
-                    mutators)))))
+                    mutators)
+              (cons (>= idx init-field-count)
+                    auto?s)))))

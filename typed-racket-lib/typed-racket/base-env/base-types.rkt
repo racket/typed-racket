@@ -97,6 +97,7 @@
 [Boolean -Boolean]
 [Symbol -Symbol]
 [String -String]
+[Unquoted-Printing-String -Unquoted-Printing-String]
 [Any Univ]
 [Port -Port]
 [Path -Path]

@@ -106,6 +106,9 @@
   [-Char Char #'char? char?]
   [-Symbol Symbol #'symbol? symbol?]
   [-String String #'string? string?]
+  [-Unquoted-Printing-String Unquoted-Printing-String
+                             #'unquoted-printing-string?
+                             unquoted-printing-string?]
   [-Output-Port Output-Port #'output-port? output-port?]
   [-Input-Port Input-Port #'input-port? input-port?]
   [-Bytes Bytes #'bytes? bytes?]

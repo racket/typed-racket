@@ -1315,6 +1315,10 @@
 ;raise-arity-error
 [raise-syntax-error (->opt (-opt Sym) -String [Univ Univ (-lst (-Syntax Univ))] (Un))]
 
+[unquoted-printing-string? (make-pred-ty -Unquoted-Printing-String)]
+[unquoted-printing-string (-> -String -Unquoted-Printing-String)]
+[unquoted-printing-string-value (-> -Unquoted-Printing-String -String)]
+
 [call-with-exception-handler (-poly (a) (-> (-> Univ a) (-> a) a))]
 [uncaught-exception-handler (-Param (-> Univ ManyUniv) (-> Univ ManyUniv))]
 

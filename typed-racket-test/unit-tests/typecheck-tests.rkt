@@ -2654,9 +2654,9 @@
 
        ;; test expansion of in-fxvector and in-flvector in for
        [tc-e (for/list : (Listof Fixnum) ([a (in-fxvector (fxvector 1 2))]) a)
-             (Listof Fixnum)]
+             (-lst -Fixnum)]
        [tc-e (for/list : (Listof Flonum) ([a (in-flvector (flvector 1.0 2.0))]) a)
-             (Listof Flonum)]
+             (-lst -Flonum)]
 
        ;; The typechecker should be able to handle the expansion of
        ;; for/flvector, for*/flvector, for/extflvector, and for*/extflvector

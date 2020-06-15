@@ -3174,7 +3174,7 @@
 [unsafe-struct*-ref top-func]
 [unsafe-struct-set! top-func]
 [unsafe-struct*-set! top-func]
-[unsafe-fxvector-length (-FxVector . -> . -Fixnum)]
+[unsafe-fxvector-length (-FxVector . -> . -Index)]
 [unsafe-fxvector-ref (-FxVector -Fixnum . -> . -Fixnum)]
 
 ;; Section 17.4 (Unsafe Undefined)

@@ -19,7 +19,8 @@
 
 (define overlap-tests
   (over-tests
-   [-Number -Integer #t]))
+   [-Number -Integer #t]
+   [(-val null) (make-ListDots (-v a) 'a) #t]))
 
 (define-syntax (inter-tests stx)
   (syntax-case stx ()

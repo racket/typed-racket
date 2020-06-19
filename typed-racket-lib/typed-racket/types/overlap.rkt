@@ -98,6 +98,7 @@
    [((? Base? t) (? Value? s)) #:no-order (subtype s t)] ;; conservative
    [((Syntax: t) (Syntax: t*)) (overlap? t t*)]
    [((Syntax: _) _) #:no-order #f]
+   [((ListDots: _ _) t2) #:no-order (subtype t2 (-lst Univ))]
    [((? Base?) _) #:no-order #f]
    [((Value: (? pair?)) (Pair: _ _)) #:no-order #t]
    [((Pair: a b) (Pair: a* b*)) (and (overlap? a a*)

@@ -3112,7 +3112,7 @@
 [version (-> -String)]
 [banner (-> -String)]
 
-[current-command-line-arguments (-Param (-vec -String) (-mvec -String))]
+[current-command-line-arguments (-Param (-vec -String) (-vec -String))]
 [current-thread-initial-stack-size (-Param -PosInt -PosInt)]
 [vector-set-performance-stats! (cl->* [-> (-vec -Int) -Void]
                                       [-> (-vec -Int) -False -Void]

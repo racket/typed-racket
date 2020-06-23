@@ -71,7 +71,4 @@
 
   (test-case "object->vector"
     (check-false (immutable? (object->vector (new object%)))))
-
-  (test-case "current-command-line-arguments"
-    (check-false (immutable? (ann (current-command-line-arguments) (Mutable-Vectorof String)))))
 )

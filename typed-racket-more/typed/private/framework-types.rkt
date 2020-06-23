@@ -872,14 +872,12 @@
     (Class #:row-var r #:implements Frame:Searchable<%>
            [edit-menu:find-callback (-> Boolean)]
            [edit-menu:create-find? (-> #t)]
-           ; FIXME: doc says "Overrides <method not found>" from here on
-           [edit-menu:find-again-callback
+           [edit-menu:find-next-callback
             (Menu-Item%-Instance Control-Event%-Instance -> Void)]
-           [edit-menu:create-find-again? (-> #t)]
-           [edit-menu:find-again-backwards-callback
+           [edit-menu:create-find-next? (-> #t)]
+           [edit-menu:find-previous-callback
             (Menu-Item%-Instance Control-Event%-Instance -> Void)]
-           [edit-menu:create-find-again-backwards? (-> #t)]
-           ; end bug doc saying "Overrides <method not found>"
+           [edit-menu:create-find-previous? (-> #t)]
            [edit-menu:create-replace-all? (-> #t)]
            [edit-menu:create-find-case-sensitive? (-> #t)])))
 

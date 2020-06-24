@@ -230,6 +230,7 @@ These are not part of the numeric tower.
 @defidform[Void]
 @defidform[Input-Port]
 @defidform[Output-Port]
+@defidform[Unquoted-Printing-String]
 @defidform[Port]
 @defidform[Path]
 @defidform[Path-For-Some-System]

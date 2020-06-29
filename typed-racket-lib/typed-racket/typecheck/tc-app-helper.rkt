@@ -119,7 +119,7 @@
       [(RestDots: dty dbound)
        (format "~a ~a ... ~a~a" doms-string dty dbound rng-string)]
       [rst
-       (format "~a~a~a"
+       (format "~a ~a~a"
                doms-string
                (match rst
                  [(Rest: (list rst-t)) (format "~a *" rst-t)]

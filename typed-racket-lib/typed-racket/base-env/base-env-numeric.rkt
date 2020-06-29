@@ -754,8 +754,7 @@
 
 [=
  (from-cases
-   (-> -Real -RealZero B : (-PS (-is-type 0 -RealZeroNoNan) (-not-type 0 -RealZeroNoNan)))
-   (-> -RealZero -Real B : (-PS (-is-type 1 -RealZeroNoNan) (-not-type 1 -RealZeroNoNan)))
+  (commutative-equality/strict-prop -Real -RealZeroNoNan)
   (map (lambda (t) (commutative-equality/prop -ExactNumber t))
        (list -One -PosByte -Byte -PosIndex -Index
              -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum -Fixnum

@@ -175,8 +175,8 @@ is the provided type annotation.
 
 @ex[
   (lambda (x . rst) rst)
-  (lambda (x rst : Integer *) rst)
-  (lambda #:forall (A ...) (x rst : A ... A) rst)
+  (lambda (x . [rst : Integer *]) rst)
+  (lambda #:forall (A ...) (x . [rst : A ... A]) rst)
 ]
 }
 
@@ -357,14 +357,14 @@ Like @racket[lambda], optional and keyword arguments are supported.
 
 @ex[
     (define (add [first : Integer]
-                 [rest  : Integer]) : Integer
-      (+ first rest))
+                 [second  : Integer]) : Integer
+      (+ first second))
 
     (define #:forall (A)
             (poly-app [func : (A A -> A)]
                       [first : A]
-                      [rest  : A]) : A
-      (func first rest))]
+                      [second  : A]) : A
+      (func first second))]
 
 The function definition form also allows curried function arguments with
 corresponding type annotations.

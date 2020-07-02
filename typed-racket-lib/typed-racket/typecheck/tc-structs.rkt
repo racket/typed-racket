@@ -172,8 +172,6 @@
 
 
 ;; construct all the various types for structs, and then register the appropriate names
-;; identifier listof[identifier] type listof[fld] listof[Type] boolean ->
-;;  (values Type listof[Type] listof[Type])
 (define/cond-contract (register-sty! sty names desc)
   (c:-> (c:or/c Struct? Prefab?) struct-names? struct-desc? void?)
 
@@ -189,7 +187,7 @@
   (register-type-name type-name
                       (make-Poly (struct-desc-tvars desc) sty)))
 
-;; Register the approriate types to the struct bindings.
+;; Register the appropriate types, return a list of struct bindings
 (define/cond-contract (register-struct-bindings! sty names desc si)
   (c:-> (c:or/c Struct? Prefab?) struct-names? struct-desc? (c:or/c #f struct-info?) (c:listof binding?))
   (match sty
@@ -499,9 +497,6 @@
 
 ;; register a struct type
 ;; convenience function for built-in structs
-;; tc/builtin-struct : identifier Maybe[identifier] Listof[identifier]
-;;                     Listof[Type] Maybe[identifier] Listof[Type]
-;;                     -> void
 ;; FIXME - figure out how to make this lots lazier
 (define/cond-contract (tc/builtin-struct nm parent fld-names tys kernel-maker)
   (c:-> identifier? (c:or/c #f identifier?) (c:listof identifier?)
@@ -517,7 +512,8 @@
   (define sty (mk/inner-struct-type names desc parent-type))
 
   (register-sty! sty names desc)
-  (register-struct-bindings! sty names desc #f)
+  (void ;; need the `register-type` side effect, but not the output bindings
+    (register-struct-bindings! sty names desc #f))
   (when kernel-maker
     (register-type kernel-maker (λ () (->* (struct-desc-all-fields desc) sty)))))
 

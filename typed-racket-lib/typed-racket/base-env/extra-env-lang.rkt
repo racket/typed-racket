@@ -63,7 +63,7 @@
                                   #:defaults ([provide? #t]))
                        d-s-options ...]
              #:when (or (not (attribute provide?)) (validate-fields #'name (syntax-e #'(field ...)) this-syntax))
-             #:with form #'(d-s name ([field : type] ...))
+             #:with form #'(d-s name ([field : type] ...) d-s-options ...)
              #:with outer-form (if (attribute provide?)
                                    #'(provide (struct-out name))
                                    #'(void)))
@@ -76,7 +76,7 @@
                                   #:defaults ([provide? #t]))
                        d-s-options ...]
              #:when (or (not (attribute provide?)) (validate-fields #'name (syntax-e #'(field ...)) this-syntax))
-             #:with form #'(d-s (name par) ([field : type] ...) (par-type ...))
+             #:with form #'(d-s (name par) ([field : type] ...) (par-type ...) d-s-options ...)
              #:with outer-form (if (attribute provide?)
                                    #'(provide (struct-out name))
                                    #'(void))))

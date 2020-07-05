@@ -14,7 +14,7 @@
                "rackunit-typed"
                "snip-lib"
                "typed-racket-lib"
-               ["gui-lib" #:version "1.46"]
+               ["gui-lib" #:version "1.49"]
                "pict-lib"
                "images-lib"
                "racket-index"

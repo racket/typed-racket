@@ -749,7 +749,7 @@
                (λ (c) (c 1 0))
                (λ (x y) #t)
                #:typed
-               #:msg #rx"expected:.*(and/c natural?.*).*given:.*0")
+               #:msg #rx"given:.*0.*and/c.*exact-nonnegative-integer?")
    (t-int/fail (-poly (a) (dep-> ([v : (-vec a)]
                                   [n : (-refine/fresh n -Nat (-leq (-lexp n)
                                                                    (-lexp (-vec-len-of (-id-path v)))))])
@@ -757,7 +757,7 @@
                (λ (c) (c (vector 1 2) -1))
                (λ (v n) (vector-ref v n))
                #:typed
-               #:msg #rx"expected:.*(and/c natural?.*).*given:.*-1")
+               #:msg #rx"expected: natural?.*given:.*-1.*and/c")
 
    ;; dependent functions // untyped
    

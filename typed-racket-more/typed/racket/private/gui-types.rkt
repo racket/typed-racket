@@ -2115,6 +2115,7 @@
          [get-extent
           ((Option (Boxof Real)) (Option (Boxof Real)) -> Void)]
          [get-file ((Option Path) -> (Option Path-String))]
+         [get-file-creator-and-type (-> (Values (Option Bytes) (Option Bytes)))]
          [get-filename
           (->* () ((Option (Boxof Any))) (Option Path-String))]
          [get-flattened-text (-> String)]
@@ -2310,6 +2311,7 @@
          [set-cursor
           (case-> ((Option (Instance Cursor%)) -> Void)
                   ((Option (Instance Cursor%)) Any -> Void))]
+         [set-file-creator-and-type ((Option Bytes) (Option Bytes) -> Void)]
          [set-filename
           (case-> ((Option Path-String) -> Void)
                   ((Option Path-String) Any -> Void))]

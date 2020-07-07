@@ -84,6 +84,8 @@
 ;; Section 4.3 (Numbers)
 ;; These are mostly defined in base-env-numeric.rkt
 
+[single-flonum-available? (-> B)]
+
 ;; Section 4.3.2.7 (Random Numbers)
 [random
   (cl->* (->opt -Int -Int [-Pseudo-Random-Generator] -NonNegFixnum)

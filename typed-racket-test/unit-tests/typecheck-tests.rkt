@@ -288,8 +288,7 @@
                                   (lambda ()
                                     (fail-check (cross-phase-failure-message tf)))))])
                (phase1-eval body ...)))))))))
-(define-for-syntax (->fl* v) (if (single-flonum-available?) (real->single-flonum v) v))
-(define-for-syntax (->fl v) (datum->syntax (current-stx-obj) (if (single-flonum-available?) (real->single-flonum v) v)))
+
 (define-for-syntax current-stx-obj (make-parameter #f))
 
 (define-syntax (UNSYNTAX e) (raise-syntax-error 'UNSYNTAX))
@@ -554,16 +553,12 @@
         (tc-e (exact->inexact -3) -NegFlonum)
         (tc-e (real->double-flonum 0.0) -FlonumPosZero)
         (tc-e (real->double-flonum -0.0) -FlonumNegZero)
-        (tc-e (UNSYNTAX #`(real->double-flonum #,(->fl* 0.0f0))) -FlonumPosZero)
-        (tc-e (UNSYNTAX #`(real->double-flonum #,(->fl* -0.0f0))) -FlonumNegZero)
         (tc-e (real->double-flonum #e1e-500) -NonNegFlonum)
         (tc-e (real->double-flonum #e-1e-500) -NonPosFlonum)
         (tc-e (real->double-flonum 3) -PosFlonum)
         (tc-e (real->double-flonum -3) -NegFlonum)
         (tc-e (real->single-flonum 0.0) -SingleFlonumPosZero)
         (tc-e (real->single-flonum -0.0) -SingleFlonumNegZero)
-        (tc-e (UNSYNTAX #`(real->single-flonum #,(->fl* 0.0f0))) -SingleFlonumPosZero)
-        (tc-e (UNSYNTAX #`(real->single-flonum #,(->fl* -0.0f0))) -SingleFlonumNegZero)
         (tc-e (real->single-flonum #e1e-500) -NonNegSingleFlonum)
         (tc-e (real->single-flonum #e-1e-500) -NonPosSingleFlonum)
         (tc-e (real->single-flonum 1e-300) -NonNegSingleFlonum)
@@ -5296,27 +5291,6 @@
          (hash 0 1 2 3 4 5 6 7 8 0)
          (-Immutable-HT -Byte -Byte))
        )
-      (if (single-flonum-available?)
-          (test-suite "single-flonum tests"
-                      (tc-e/t (UNSYNTAX (->fl 34.2f0)) -PosSingleFlonumNoNan)
-                      (tc-e/t (UNSYNTAX (->fl -34.2f0)) -NegSingleFlonumNoNan)
-                      (tc-e (UNSYNTAX 
-                             #`(expt (ann #,(->fl 0.5f0) Single-Flonum) (ann 2 Natural))) -Real)
-                      (tc-e (UNSYNTAX 
-                             #`(expt
-                                (sub1 (gcd (exact-round 1)))
-                                (- (ceiling (real->double-flonum #,(->fl -2.6897657f0))))))
-                            -Real)
-                      (tc-e (UNSYNTAX #`(expt (make-rectangular 3 -1.7976931348623157e+308) (flacos (real->double-flonum #,(->fl 59.316513f0))))) (t:Un -Flonum -FloatComplex))
-                      (tc-e (UNSYNTAX #`(/ (round (exact-round #,(->fl -2.7393196f0))) (real->double-flonum (inexact->exact (real->single-flonum -0.0))))) -Real)
-                      (tc-e (UNSYNTAX #`(expt #,(->fl 0.0f0) -3.0)) -Real)
-                      (tc-e (UNSYNTAX #`(expt #,(->fl -8.665778974912815f+107) -677460115195106837726964554590085563061636191189747)) -Number)
-                      (tc-e (UNSYNTAX #`(expt (sin #,(->fl +inf.f)) +nan.0+nan.0i)) -Number)
-                      (tc-e (UNSYNTAX #`(/ (gcd 1 0) #,(->fl 0.0f0) 2.718281828459045)) -Real)
-                      (tc-e (UNSYNTAX #`(expt (make-polar (floor #,(->fl 6.468476f+31)) (tanh #,(->fl +nan.f))) +nan.0)) -Number)
-
-                      )
-          (test-suite "single-flonum tests"))
       (if (extflonum-available?)
 
           (test-suite

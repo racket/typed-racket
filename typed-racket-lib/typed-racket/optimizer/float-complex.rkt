@@ -422,15 +422,17 @@
                              [(i) (unsafe-flabs c.imag-binding)])
                  (if (zero? i)
                      r
-                     (if (unsafe-fl< i r)
-                         (let-values ([(q) (unsafe-fl/ i r)])
-                           (unsafe-fl* r
-                                       (unsafe-flsqrt (unsafe-fl+ 1.0
-                                                                  (unsafe-fl* q q)))))
-                         (let-values ([(q) (unsafe-fl/ r i)])
-                           (unsafe-fl* i
-                                       (unsafe-flsqrt (unsafe-fl+ 1.0
-                                                                  (unsafe-fl* q q)))))))))])))
+                     (if (or (unsafe-fl= r +inf.0)(unsafe-fl= i +inf.0))
+                         +inf.0
+                         (if (unsafe-fl< i r)
+                             (let-values ([(q) (unsafe-fl/ i r)])
+                               (unsafe-fl* r
+                                           (unsafe-flsqrt (unsafe-fl+ 1.0
+                                                                      (unsafe-fl* q q)))))
+                             (let-values ([(q) (unsafe-fl/ r i)])
+                               (unsafe-fl* i
+                                           (unsafe-flsqrt (unsafe-fl+ 1.0
+                                                                      (unsafe-fl* q q))))))))))])))
 
 
   (pattern (#%plain-app op:float-complex-op e:expr ...)

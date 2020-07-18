@@ -24,7 +24,7 @@
 ;;;; 2: TCP-like Server Procedures
 (require/typed/provide openssl
   [ssl-listen (->* (Exact-Positive-Integer) ;; port, <= 65535
-                   (Exact-Nonnegative-Integer Boolean (Option String))
+                   (Exact-Nonnegative-Integer Boolean (Option String) (U SSL-Server-Context SSL-Protocol))
                    SSL-Listener)]
   [ssl-close (-> SSL-Listener Void)]
   ;; ssl-listener? provided above

@@ -363,16 +363,11 @@
   (let loop ([ft ft])
     (match ft
       [(Fun: arrs)
-       ;; use the mandatory argument table to remove redundant clauses
-       (define mand-arg-table (calculate-mandatory-args arrs))
        ;; We expect only one of `arrs` to have all optional arguments, but
        ;; accomodate multiple of them
-       (let ([arrs (for*/list ([(arrow _) (in-assoc mand-arg-table)]
+       (let ([arrs (for*/list ([arr (in-list arrs)]
                                [new-arr (in-value
-                                         (opt-convert-arr required-pos
-                                                          optional-pos
-                                                          optional-supplied?
-                                                          arrow))]
+                                         (opt-convert-arr required-pos optional-pos optional-supplied? arr))]
                                #:when new-arr)
                      new-arr)])
          (and (pair? arrs)

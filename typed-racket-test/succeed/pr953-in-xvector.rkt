@@ -17,5 +17,6 @@
 (check-equal? (for/list : (Listof Fixnum) ([i (in-fxvector (fxvector 1 2 3 4) 3 -1 -2)]) i)
               (list 4.0 2.0))
 
-(check-equal? (for/list : (Listof extflonum) ([i (in-extflvector (extflvector 1.0t0 2.0t0 3.0t0 4.0t0) 3 -1 -2)]) i)
-              (list 4.0t0 2.0t0))
+(when (extflonum-available?)
+  (check-equal? (for/list : (Listof extflonum) ([i (in-extflvector (extflvector 1.0t0 2.0t0 3.0t0 4.0t0) 3 -1 -2)]) i)
+                (list 4.0t0 2.0t0)))

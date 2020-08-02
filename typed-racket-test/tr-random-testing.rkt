@@ -165,7 +165,7 @@
            (if (rational? E)
                E
                0)) ; arbitrary
-          racketcs-available?)] ; if so, don't generate single-flonums
+          racketbc-available?)] ; if so, don't generate single-flonums
         [(list? E)
          (map exp->real-exp E)]
         [else
@@ -212,22 +212,22 @@
 
 (define-values (bin-dir _1 _2)
   (split-path (find-executable-path (find-system-path 'exec-file))))
-(define racketcs (build-path bin-dir "racketcs"))
-(define-runtime-path racketcs-harness "./racketcs-eval-server.rkt")
+(define racketbc (build-path bin-dir "racketbc"))
+(define-runtime-path racketbc-harness "./racketbc-eval-server.rkt")
 (define-values (rcs-process rcs-out rcs-in rcs-err)
-  (cond [(file-exists? racketcs)
-         (subprocess #f #f #f racketcs racketcs-harness)]
+  (cond [(file-exists? racketbc)
+         (subprocess #f #f #f racketbc racketbc-harness)]
         [else
-         (eprintf "WARNING: did not find racketcs executable\n")
+         (eprintf "WARNING: did not find racketbc executable\n")
          (values #f #f #f #f)]))
-(define racketcs-available? (and rcs-process #t))
+(define racketbc-available? (and rcs-process #t))
 
-(define (racketcs-eval sexp)
+(define (racketbc-eval sexp)
   (writeln sexp rcs-in)
   (flush-output rcs-in)
   (define result (read rcs-out))
   (match result
-    [(? pair?)       (error 'racketcs-eval (~a result))]
+    [(? pair?)       (error 'racketbc-eval (~a result))]
     [(vector r s) #;(unless (equal? s sexp)
                     (printf "not equal!!! \n~s \n~s\n" s sexp))
                   r]))
@@ -299,19 +299,19 @@
       [(cons a b) (or (loop a) (loop b))]
       [_ #f])))
 
-(define (same-result-as-racketcs? sexp [verbose? #f])
+(define (same-result-as-racketbc? sexp [verbose? #f])
   (define racket-failed?   #f)
   (define both-failed?     #f)
   (define racket-result
     (with-handlers ([exn? (λ (e) (set! racket-failed? #t))])
       (racket-eval sexp)))
-  (define racketcs-result
+  (define racketbc-result
     (with-handlers ([exn:fail:filesystem:errno?
                      (λ (e)
                        ;; intermittently ends up with a broken pipe between us
-                       ;; and the racketcs server. I have not been able to
+                       ;; and the racketbc server. I have not been able to
                        ;; narrow it down
-                       ;; TODO instead, could pre-emptively restart racketcs
+                       ;; TODO instead, could pre-emptively restart racketbc
                        ;;   process every ~200 tests
                        (eprintf "broken pipe, aborting\n")
                        (raise e))] ; just give up on the rest of this run
@@ -321,7 +321,7 @@
                     [exn? (λ (e) (if racket-failed?
                                      (set! both-failed? #t)
                                      e))])
-      (racketcs-eval sexp)
+      (racketbc-eval sexp)
       #;
       (if (contains-real->single-flonum? sexp)
           (begin (printf "contains real->single-flonum ~s\n" sexp)
@@ -329,10 +329,10 @@
           )))
   (or both-failed?
       (and (not racket-failed?)
-           (if (same-result? racket-result racketcs-result)
+           (if (same-result? racket-result racketbc-result)
                #t
-               (begin (printf "not same as cs: racket: ~s racketcs: ~s\n"
-                              racket-result racketcs-result)
+               (begin (printf "not same as bc: racketcs: ~s racketbc: ~s\n"
+                              racket-result racketbc-result)
                       #f)))))
 
 (define num-exceptions 0)
@@ -354,8 +354,8 @@
            #f) ; go on and check properties
          (and (right-type? sexp verbose?)
               (same-result-as-untyped? sexp verbose?)
-              (if #f #;racketcs-available?
-                  (same-result-as-racketcs? sexp verbose?)
+              (if #f #;racketbc-available?
+                  (same-result-as-racketbc? sexp verbose?)
                   #t))))))
 
 (define (run-tests)

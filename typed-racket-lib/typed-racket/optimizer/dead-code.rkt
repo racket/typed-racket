@@ -4,6 +4,7 @@
          racket/syntax
          (for-template racket/base)
          "../utils/utils.rkt"
+         (only-in "../utils/tc-utils.rkt" current-type-enforcement-mode guarded)
          (types type-table)
          (optimizer utils logging))
 
@@ -40,9 +41,11 @@
           (quasisyntax/loc/origin this-syntax #'kw
             (if tst-opt thn-opt els-opt))]))
   (pattern ((~and kw lambda) formals . bodies)
+    #:when (eq? guarded (current-type-enforcement-mode))
     #:when (dead-lambda-branch? #'formals)
     #:with opt this-syntax)
   (pattern ((~and kw case-lambda) (formals . bodies) ...)
+    #:when (eq? guarded (current-type-enforcement-mode))
     #:when (for/or ((formals (in-syntax #'(formals ...))))
              (dead-lambda-branch? formals))
     #:with opt

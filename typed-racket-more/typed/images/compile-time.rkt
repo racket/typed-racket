@@ -1,10 +1,12 @@
 #lang typed/racket
+#:no-optimize
 
-(require (for-syntax racket/base racket/class racket/draw))
+(require (for-syntax racket/base racket/class racket/draw)
+         (only-in typed/racket/unsafe unsafe-provide))
 
 (require typed/racket/draw)
 
-(provide compiled-bitmap compiled-bitmap-list)
+(unsafe-provide compiled-bitmap compiled-bitmap-list)
 
 (begin-for-syntax
   (define (save-png bm)

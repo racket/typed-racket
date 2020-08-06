@@ -41,7 +41,7 @@
   #:commit
   #:attributes (len opt)
   (pattern (~and e :opt-expr)
-    #:attr tys (match (type-of #'e)
+    #:attr tys (match (maybe-type-of #'e)
                  [(tc-result1: (HeterogeneousVector: tys)) tys]
                  [_ #f])
     #:when (attribute tys)

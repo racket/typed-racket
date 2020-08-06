@@ -11,7 +11,7 @@
 (define-syntax-class known-length-list-expr
   #:attributes (opt len)
   (pattern (~and e :opt-expr)
-           #:attr tys (match (type-of #'e)
+           #:attr tys (match (maybe-type-of #'e)
                         [(tc-result1: (List: es)) es]
                         [_ #f])
            #:when (attribute tys)

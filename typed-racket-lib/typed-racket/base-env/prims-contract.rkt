@@ -65,6 +65,7 @@
 
 (require (for-template (submod "." forms) "../utils/require-contract.rkt"
                        (submod "../typecheck/internal-forms.rkt" forms)
+                       (only-in "../utils/tc-utils.rkt" current-type-enforcement-mode)
                        "colon.rkt"
                        "top-interaction.rkt"
                        "base-types.rkt"
@@ -81,7 +82,7 @@
          racket/struct-info
          syntax/struct
          syntax/location
-         (for-template "../utils/any-wrap.rkt")
+         (for-template "../utils/any-wrap.rkt" "../utils/transient-contract.rkt")
          "../utils/tc-utils.rkt"
          "../private/syntax-properties.rkt"
          "../private/cast-table.rkt"
@@ -214,7 +215,7 @@
                          (list #'(define-syntaxes (hidden) (values)))
                          null)
                   #,(internal #'(require/typed-internal hidden ty . sm))
-                  #,(ignore #`(require/contract nm.spec hidden #,cnt* lib))))]
+                  #,(ignore #`(require/contract nm.spec hidden #,cnt* lib #,(format "~a" (syntax->datum #'ty))))))]
              [else
               (define/with-syntax hidden2 (generate-temporary #'nm.nm))
               (quasisyntax/loc stx
@@ -325,52 +326,63 @@
 (define (core-cast stx)
   (syntax-parse stx
     [(_ v:expr ty:expr)
-     (define (apply-contract v ctc-expr pos neg)
-       #`(#%expression
-          #,(ignore-some/expr
-             #`(let-values (((val) #,(with-type* v #'Any)))
-                 #,(syntax-property
-                    (quasisyntax/loc stx
-                      (contract
-                       #,ctc-expr
-                       val
-                       '#,pos
-                       '#,neg
-                       #f
-                       (quote-srcloc #,stx)))
-                    'feature-profile:TR-dynamic-check #t))
-             #'ty)))
-
-     (cond [(not (unbox typed-context?)) ; no-check, don't check
-            #'v]
-           [else
-            (define new-ty-ctc (syntax-local-lift-expression
-                                (make-contract-def-rhs #'ty #f #f)))
-            (define existing-ty-id new-ty-ctc)
-            (define existing-ty-ctc (syntax-local-lift-expression
-                                     (make-contract-def-rhs/from-typed existing-ty-id #f #f)))
-            (define (store-existing-type existing-type)
-              (check-no-free-vars existing-type #'v)
-              (cast-table-add! existing-ty-id (datum->syntax #f existing-type #'v)))
-            (define (check-valid-type _)
-              (define type (parse-type #'ty))
-              (check-no-free-vars type #'ty))
-            (define (check-no-free-vars type stx)
-              (define vars (fv type))
-              ;; If there was an error don't create another one
-              (unless (or (Error? type) (null? vars))
-                (tc-error/delayed
-                 #:stx stx
-                 "Type ~a could not be converted to a contract because it contains free variables."
-                 type)))
-            #`(#,(external-check-property #'#%expression check-valid-type)
-               #,(apply-contract
-                  (apply-contract
-                   #`(#,(casted-expr-property #'#%expression store-existing-type)
-                      v)
-                   existing-ty-ctc 'typed-world 'cast)
-                  new-ty-ctc 'cast 'typed-world))])]))
-
+     (define te-mode (current-type-enforcement-mode))
+     (case te-mode
+       [(erasure #f) ; no-check, don't check
+        #'v]
+       [(guarded transient)
+        (define new-ty-ctc (syntax-local-lift-expression
+                            (make-contract-def-rhs #'ty #f #f)))
+        (define existing-ty-id new-ty-ctc)
+        (define existing-ty-ctc (syntax-local-lift-expression
+                                 (make-contract-def-rhs/from-typed existing-ty-id #f #f)))
+        (define (store-existing-type existing-type)
+          (check-no-free-vars existing-type #'v)
+          (cast-table-add! existing-ty-id (datum->syntax #f existing-type #'v)))
+        (define (check-valid-type _)
+          (define type (parse-type #'ty))
+          (check-no-free-vars type #'ty))
+        (define (check-no-free-vars type stx)
+          (define vars (fv type))
+          ;; If there was an error don't create another one
+          (unless (or (Error? type) (null? vars))
+            (tc-error/delayed
+             #:stx stx
+             "Type ~a could not be converted to a contract because it contains free variables."
+             type)))
+        (cond
+          [(eq? guarded te-mode)
+           (define (apply-contract v ctc-expr pos neg)
+             #`(#%expression
+                #,(ignore-some/expr
+                   #`(let-values (((val) #,(with-type* v #'Any)))
+                       #,(syntax-property
+                          (quasisyntax/loc stx
+                            (contract
+                             #,ctc-expr
+                             val
+                             '#,pos
+                             '#,neg
+                             #f
+                             (quote-srcloc #,stx)))
+                          'feature-profile:TR-dynamic-check #t))
+                   #'ty)))
+           #`(#,(external-check-property #'#%expression check-valid-type)
+              #,(apply-contract
+                 (apply-contract
+                  #`(#,(casted-expr-property #'#%expression store-existing-type)
+                     v)
+                  existing-ty-ctc 'typed-world 'cast)
+                 new-ty-ctc 'cast 'typed-world))]
+          [else
+           (define ty-str (format "~a" (syntax->datum #'ty))) ;;bg need to parse-type ?
+           (define ctx (quote-srcloc stx))
+           #`(#,(external-check-property #'#%expression check-valid-type)
+              #,(ignore-some/expr
+                  #`(#%plain-app transient-assert
+                                 (#,(casted-expr-property #'#%expression store-existing-type) v)
+                                 #,new-ty-ctc '#,ty-str '#,ctx)
+                  #'ty))])])]))
 
 
 (define (require/opaque-type stx)
@@ -397,12 +409,18 @@
            #,(if (attribute ne)
                  (internal (syntax/loc stx (define-type-alias-internal ty (Opaque pred))))
                  (syntax/loc stx (define-type-alias ty (Opaque pred))))
-           #,(if (attribute unsafe)
-                 (ignore #'(define pred-cnt any/c)) ; unsafe- shouldn't generate contracts
-                 (ignore #'(define pred-cnt
-                             (or/c struct-predicate-procedure?/c
-                                   (any-wrap-warning/c . c-> . boolean?)))))
-           #,(ignore #'(require/contract pred hidden pred-cnt lib)))))]))
+           #,(ignore
+               (with-syntax ((ctc (case (and (not (attribute unsafe)) ; unsafe- shouldn't generate contracts
+                                             (current-type-enforcement-mode))
+                                    ((guarded)
+                                     #'(or/c struct-predicate-procedure?/c
+                                             ((make-any-wrap-warning/c) . c-> . boolean?)))
+                                    ((transient)
+                                     #'(procedure-arity-includes/c 1))
+                                    (else
+                                      #'any/c))))
+                 #'(define pred-cnt ctc)))
+           #,(ignore #`(require/contract pred hidden pred-cnt lib "(-> Any Boolean)")))))]))
 
 
 
@@ -548,13 +566,26 @@
                                                        (id-drop orig-sels orig-muts num-fields)))
                                            (struct-info-list new-sels new-muts)))))))
 
-                         (define-syntax nm
-                              (if id-is-ctor?
-                                  (make-struct-info-self-ctor #'internal-maker si)
-                                  si))
+                         #,(ignore
+                             ;; provide the static struct info directly, unlike other define-syntax forms
+                             ;; this is similar to the struct quad code in `typecheck/provide-handling.rkt`
+                             #'(begin
+                                 (define-syntax nm
+                                   (if id-is-ctor?
+                                     (make-struct-info-self-ctor #'internal-maker si)
+                                     si))
+                                 (provide nm)))
 
                          (dtsi* (tvar ...) spec type (body ...) #:maker maker-name #:type-only)
-                         #,(ignore #'(require/contract pred hidden (or/c struct-predicate-procedure?/c (c-> any-wrap/c boolean?)) lib))
+                         #,(ignore
+                             (with-syntax ((ctc (case (current-type-enforcement-mode)
+                                                  ((guarded)
+                                                   #'(or/c struct-predicate-procedure?/c (c-> any-wrap/c boolean?)))
+                                                  ((transient)
+                                                   #'(procedure-arity-includes/c 1))
+                                                  (else
+                                                   #'any/c))))
+                               #'(require/contract pred hidden ctc lib "(-> Any Boolean)")))
                          #,(internal #'(require/typed-internal hidden (Any -> Boolean : type)))
                          (require/typed #:internal (maker-name real-maker) type lib
                                         #:struct-maker parent

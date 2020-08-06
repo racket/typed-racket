@@ -6,11 +6,12 @@
 
 (require "simple.rkt" "structural.rkt"
          (for-template racket/base racket/list racket/set racket/promise
-                       racket/class racket/unit racket/async-channel))
+                       racket/class racket/unit racket/async-channel racket/future))
 (provide (all-defined-out))
 
 (define identifier?/sc (flat/sc #'identifier?))
 (define box?/sc (flat/sc #'box?))
+(define weak-box?/sc (flat/sc #'weak-box?))
 (define syntax?/sc (flat/sc #'syntax?))
 (define promise?/sc (flat/sc #'promise?))
 
@@ -41,8 +42,15 @@
 (define thread-cell?/sc (flat/sc #'thread-cell?))
 (define prompt-tag?/sc (flat/sc #'continuation-prompt-tag?))
 (define continuation-mark-key?/sc (flat/sc #'continuation-mark-key?))
+(define sequence?/sc (flat/sc #'sequence?))
+(define evt?/sc (flat/sc #'evt?))
+(define parameter?/sc (flat/sc #'parameter?))
+(define ephemeron?/sc (flat/sc #'ephemeron?))
+(define future?/sc (flat/sc #'future?))
+(define procedure?/sc (flat/sc #'procedure?))
 
 (define class?/sc (flat/sc #'class?))
 (define unit?/sc (flat/sc #'unit?))
 
 (define struct-type?/sc (flat/sc #'struct-type?))
+

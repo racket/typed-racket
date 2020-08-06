@@ -20,7 +20,7 @@
     [(_ name:id typed-name:id untyped-name:id)
      (syntax/loc stx
        (define-syntax name
-         (make-typed-renaming #'typed-name #'untyped-name)))]))
+         (make-typed-renaming #'typed-name #'untyped-name guarded)))]))
 
 (define-for-syntax (freshen ids)
   (stx-map (lambda (id) ((make-syntax-introducer) id)) ids))

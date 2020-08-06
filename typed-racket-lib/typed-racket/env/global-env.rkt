@@ -51,7 +51,7 @@
            (define t* (if (box? t) (unbox t) t))
            (unless (equal? type t*)
              (tc-error/delayed #:stx id "Duplicate type annotation of ~a for ~a, previous was ~a" type (syntax-e id) t*)))]
-        [else (free-id-table-set! the-mapping id (box type))]))
+        [else (register-type id (box type))]))
 
 ;; add a bunch of types to the mapping
 ;; listof[id] listof[type] -> void
@@ -63,7 +63,7 @@
 ;; identifier -> type
 (define (lookup-type id [fail-handler (λ () (lookup-fail id))])
   (define v (free-id-table-ref the-mapping id fail-handler))
-  (cond [(box? v) (unbox v)] 
+  (cond [(box? v) (unbox v)]
         [(procedure? v) (define t (v)) (register-type id t) t]
         [else v]))
 

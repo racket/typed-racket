@@ -5,6 +5,7 @@
 
 (require "test-utils.rkt" "evaluator.rkt"
          rackunit
+         (except-in racket/class private)
          (for-syntax
            syntax/parse
            racket/base
@@ -41,4 +42,13 @@
     (let ([vector-1 (sc->contract (vector-length/sc 1))])
       (check-true (vector-1 '#(1)))
       (check-false (vector-1 '#()))
-      (check-false (vector-1 '())))))
+      (check-false (vector-1 '())))
+    (let* ((chk-cls-0 (sc->contract (make-class-shape/sc '((i . t)) '((f . t)) '((p . t)) '((a . t)))))
+           (pre-cls (class object% (super-new) (define/pubment (a x) 42)))
+           (cls-0 (class pre-cls (super-new) (init i) (field (f 0)) (define/public (p x) (void)) (define/augment (a x) (void)))))
+      (check-true (chk-cls-0 cls-0))
+      (check-false (chk-cls-0 (class object% (super-new)))))
+    (let ((obj-0 (sc->contract (make-object-shape/sc '(f) '(m)))))
+      (check-true (obj-0 (new (class object% (super-new) (field (f 0)) (define/public (m x) (void))))))
+      (check-false (obj-0 (new (class object% (super-new) (field (f 0)))))))
+    ))

@@ -10,10 +10,11 @@
          (for-syntax racket/base)
          (for-template racket/base))
 (lazy-require [typed-racket/optimizer/optimizer (optimize-top)])
+(lazy-require [typed-racket/defender/defender (defend-top)])
 (lazy-require [typed-racket/typecheck/tc-toplevel (tc-module)])
 (lazy-require [typed-racket/typecheck/toplevel-trampoline (tc-toplevel-start)])
 
-(provide maybe-optimize init-current-type-names
+(provide maybe-optimize maybe-defend init-current-type-names
          tc-module/full
          tc-toplevel/full)
 
@@ -38,6 +39,16 @@
           (do-time "Optimized")))
       body))
 
+(define (maybe-defend body-stx ctc-cache)
+  (case (current-type-enforcement-mode)
+    [(transient)
+     (do-time "Starting defender")
+     (define-values [extra-def* body+] (defend-top body-stx ctc-cache))
+     (do-time "End defender")
+     (values extra-def* body+)]
+    [else
+     (values #f body-stx)]))
+
 ;; -> Promise<Dict<Name, Type>>
 ;; initialize the type names for printing
 (define (init-current-type-names)
@@ -50,8 +61,8 @@
 
 (define-logger online-check-syntax)
 
-(define (tc-setup orig-stx stx expand-ctxt do-expand stop-forms k)
-  (set-box! typed-context? #t)
+(define (tc-setup te-mode orig-stx stx expand-ctxt do-expand stop-forms k)
+  (set-box! typed-context? te-mode)
   ;(start-timing (syntax-property stx 'enclosing-module-name))
   (with-handlers
       (#;[(λ (e) (and (exn:fail? e) (not (exn:fail:syntax? e)) (not (exn:fail:filesystem? e))))
@@ -84,15 +95,15 @@
       (k expanded-stx))))
 
 ;; for top-level use
-(define (tc-toplevel/full orig-stx stx)
-  (tc-setup orig-stx stx 'top-level
+(define (tc-toplevel/full te-mode orig-stx stx)
+  (tc-setup te-mode orig-stx stx 'top-level
             local-expand/capture* (kernel-form-identifier-list)
             (λ (head-expanded-stx)
               (do-time "Trampoline the top-level checker")
               (tc-toplevel-start (or (orig-module-stx) orig-stx) head-expanded-stx))))
 
-(define (tc-module/full orig-stx stx k)
-  (tc-setup orig-stx stx 'module-begin local-expand (list #'module*)
+(define (tc-module/full te-mode orig-stx stx k)
+  (tc-setup te-mode orig-stx stx 'module-begin local-expand (list #'module*)
             (λ (fully-expanded-stx)
               (do-time "Starting `checker'")
               (parameterize ([orig-module-stx (or (orig-module-stx) orig-stx)]

@@ -4,9 +4,10 @@
          racket/match
          (for-template racket/base racket/unsafe/ops racket/list)
          (for-syntax racket/base syntax/parse racket/syntax)
+         (only-in "../utils/tc-utils.rkt" current-type-enforcement-mode)
          "../utils/utils.rkt"
          (rep type-rep)
-         (types type-table utils base-abbrev resolve subtype)
+         (types type-table utils abbrev resolve subtype)
          (typecheck typechecker)
          (optimizer utils logging))
 
@@ -28,7 +29,7 @@
   (subtypeof? e (-pair Univ Univ)))
 ;; can't do the above for mpairs, as they are invariant
 (define (has-mpair-type? e)
-  (match (type-of e) ; type of the operand
+  (match (maybe-type-of e) ; type of the operand
     [(tc-result1: (MPair: _ _)) #t]
     [_ #f]))
 
@@ -134,7 +135,7 @@
     (let-values
         ([(t res)
           (for/fold ([t   (match (type-of #'e.arg)
-                            [(tc-result1: t) t])]
+                            [(tc-result1: t) (static-type->dynamic-type t)])]
                      [res #'e.arg])
               ([accessor (in-list (reverse (syntax->list #'e.alt)))])
             (cond
@@ -156,3 +157,26 @@
               (values t ; stays unsafe from now on
                       #`(#,accessor #,res))]))])
       res)))
+
+(define (static-type->dynamic-type type)
+  ;; simple: forget all type structure except list spines
+  (define te-mode (current-type-enforcement-mode))
+  (case te-mode
+    ((guarded)
+     type)
+    ((transient)
+     (match type
+      [(Listof: _)
+       (-lst Univ)]
+      [(Pair: _ t-cdr)
+       (let cdr-loop ((t t-cdr))
+         (match t
+          [(Pair: _ t-cdr)
+           (-pair Univ (cdr-loop t-cdr))]
+          [tail
+           (-pair Univ (if (eq? tail -Null) -Null Univ))]))]
+      [(app resolve (Pair: _ _))
+       (-pair Univ Univ)]
+      [_
+        Univ]))
+    (else (raise-optimizer-context-error te-mode))))

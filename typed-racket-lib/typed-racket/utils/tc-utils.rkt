@@ -38,6 +38,12 @@ don't depend on any other portion of the system
          int-err
 
          typed-context?
+         current-type-enforcement-mode
+         type-enforcement-mode?
+         guarded
+         transient
+         erasure
+
          make-env
          id-from?
          id-from
@@ -280,22 +286,42 @@ don't depend on any other portion of the system
           (current-continuation-marks))))
 
 ;; are we currently expanding in a typed module (or top-level form)?
+;; (box/c (or/c #t #f type-enforcement-mode?))
 (define typed-context? (box #f))
+
+(define guarded 'guarded)
+(define transient 'transient)
+(define erasure 'erasure)
+
+(define (type-enforcement-mode? x)
+  (and (symbol? x)
+       (or (eq? x guarded)
+           (eq? x transient)
+           (eq? x erasure))))
+
+;; if we are in a typed module, how do we enforce types?
+;; (or/c #f type-enforcement-mode?)
+(define (current-type-enforcement-mode)
+  (case (unbox typed-context?)
+    ((#true guarded) guarded)
+    ((transient) transient)
+    ((erasure) erasure)
+    (else #f)))
 
 ;; environment constructor
 (define-syntax (make-env stx)
   (define-syntax-class spec
     #:transparent
-    #:attributes (ty id)
-    (pattern [nm:identifier ~! ty]
+    #:attributes (ty id trusted-pos)
+    (pattern [nm:identifier ~! ty (~optional trusted-pos #:defaults ([trusted-pos #'#f]))]
              #:fail-when (and (not (list? (identifier-template-binding #'nm))) #'nm)
              "not a bound identifier"
              #:with id #'(quote-syntax nm))
-    (pattern [e:expr ty]
+    (pattern [e:expr ty (~optional trusted-pos #:defaults ([trusted-pos #'#f]))]
              #:with id #'e))
   (syntax-parse stx
     [(_ e:spec ...)
-     #'(list (list e.id e.ty) ...)]))
+     #'(list (list e.id e.ty e.trusted-pos) ...)]))
 
 ;; id: identifier
 ;; sym: a symbol
@@ -309,3 +335,4 @@ don't depend on any other portion of the system
 (define-syntax-class (id-from sym mod)
   (pattern i:id
            #:fail-unless (id-from? #'i sym mod) #f))
+

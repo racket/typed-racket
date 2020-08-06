@@ -110,7 +110,7 @@
 
 ;; Name = Symbol
 
-;; Type is defined in rep-utils.rkt
+;; Type is defined in core-rep.rkt
 
 ;; this is ONLY used when a type error ocurrs
 ;; FIXME: add a safety so this type can literally

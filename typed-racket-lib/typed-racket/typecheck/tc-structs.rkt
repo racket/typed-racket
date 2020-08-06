@@ -7,7 +7,7 @@
          (rep free-variance)
          (private parse-type syntax-properties)
          (types abbrev subtype utils resolve substitute struct-table)
-         (env global-env type-name-env type-alias-env tvar-env)
+         (env global-env type-name-env type-alias-env tvar-env transient-env)
          (utils tc-utils prefab identifier)
          (typecheck typechecker def-binding internal-forms error-message)
          (for-syntax syntax/parse racket/base)
@@ -185,7 +185,8 @@
   (register-alias type-name)
   (register-alias (struct-names-struct-name names))
   (register-type-name type-name
-                      (make-Poly (struct-desc-tvars desc) sty)))
+                      (make-Poly (struct-desc-tvars desc) sty))
+  (register-transient-trusted-positive! (struct-names-predicate names)))
 
 ;; Register the appropriate types, return a list of struct bindings
 (define/cond-contract (register-struct-bindings! sty names desc si)

@@ -3,9 +3,11 @@
 ;; This module provides helper macros for `require/typed`
 
 (require racket/contract/region racket/contract/base
+         "transient-contract.rkt"
          syntax/location
          (for-syntax racket/base
-                     syntax/parse))
+                     syntax/parse
+                     (only-in "tc-utils.rkt" current-type-enforcement-mode)))
 
 (provide require/contract define-ignored rename-without-provide)
 
@@ -51,17 +53,23 @@
              #:with orig-nm-r ((make-syntax-introducer) #'nm)))
 
   (syntax-parse stx
-    [(require/contract nm:renameable hidden:id cnt lib)
+    [(require/contract nm:renameable hidden:id cnt lib orig-ty-str)
      #`(begin (require (only-in lib [nm.orig-nm nm.orig-nm-r]))
               (rename-without-provide nm.nm hidden)
 
               (define-ignored hidden
-                (contract cnt
-                          #,(get-alternate #'nm.orig-nm-r)
-                          '(interface for #,(syntax->datum #'nm.nm))
-                          (current-contract-region)
-                          (quote nm.nm)
-                          (quote-srcloc nm.nm))))]))
+                #,(case (current-type-enforcement-mode)
+                    [(guarded)
+                     #`(contract cnt
+                                 #,(get-alternate #'nm.orig-nm-r)
+                                 '(interface for #,(syntax->datum #'nm.nm))
+                                 (current-contract-region)
+                                 (quote nm.nm)
+                                 (quote-srcloc nm.nm))]
+                    [(transient)
+                     #`(#%plain-app transient-assert #,(get-alternate #'nm.orig-nm-r) cnt 'orig-ty-str (quote-srcloc nm.nm))]
+                    [else
+                     (get-alternate #'nm.orig-nm-r)])))]))
 
 ;; identifier -> identifier
 ;; get the alternate field of the renaming, if it exists

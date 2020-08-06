@@ -27,7 +27,7 @@
 
 (define pkg-desc "tests for \"typed-racket\"")
 
-(define pkg-authors '(samth stamourv endobson asumu "andmkent@iu.edu"))
+(define pkg-authors '(samth stamourv endobson asumu "andmkent@iu.edu" ben))
 
 (define version "1.10")
 
@@ -46,6 +46,7 @@
 (define compile-omit-paths
   '("succeed"
     "fail"
+    "transient" "t-succeed" "t-fail"
     "xfail"
     "optimizer" ;; FIXME: should be improved by stamourv
     "tr-random-testing.rkt" ;; Requires recompiling all of redex when rebuilding TR tests

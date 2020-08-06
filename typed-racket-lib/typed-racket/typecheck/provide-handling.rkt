@@ -49,7 +49,7 @@
   (define mapping (make-free-id-table))
 
   ;; quad/c in the signatures corresponds to four values:
-  ;; (values syntax? syntax? identfier? (listof (list/c identifier? identifier?))
+  ;; (values syntax? syntax? identifier? (listof (list/c identifier? identifier?)))
   ;; First return value is a syntax object of definitions, which will go in
   ;;    the #%contract-defs submodule
   ;; Second is a syntax object of definitions to go in the main module, including 
@@ -150,23 +150,27 @@
         (cons (list #'export-id internal-id)
               (apply append constr-aliases aliases)))))
 
-
   ;; mk-syntax-quad : identifier? identifier? -> quad/c
   (define (mk-syntax-quad internal-id new-id)
-    (with-syntax* ([id internal-id]
-                   [export-id new-id]
-                   [untyped-id (freshen-id #'id)])
-      (values
-       #`(begin)
-       ;; There's no need to put this macro in the submodule since it
-       ;; has no dependencies.
-       #`(begin 
-           (define-syntax (untyped-id stx)
-             (tc-error/stx stx "Macro ~a from typed module used in untyped code" 'untyped-id))
-           (define-syntax export-id
-             (make-typed-renaming #'id #'untyped-id)))
-       new-id
-       (list (list #'export-id #'id)))))
+    (case (current-type-enforcement-mode)
+      [(guarded)
+       (with-syntax* ([id internal-id]
+                      [export-id new-id]
+                      [untyped-id (freshen-id #'id)])
+         (values
+          #`(begin)
+          ;; There's no need to put this macro in the submodule since it
+          ;; has no dependencies.
+          #`(begin
+              (define-syntax (untyped-id stx)
+                (tc-error/stx stx "Macro ~a from typed module used in untyped code" 'untyped-id))
+              (define-syntax export-id
+                (make-typed-renaming #'id #'untyped-id '#,(current-type-enforcement-mode))))
+          new-id
+          (list (list #'export-id #'id))))]
+      [else ;(transient erasure)
+       ;; export the syntax
+       (mk-ignored-quad internal-id)]))
 
   ;; mk-value-quad : identifier? identifier? (or/c Type #f) -> quad/c
   (define (mk-value-quad internal-id new-id ty)
@@ -186,7 +190,7 @@
        ;; For the main module
        #`(begin (define-syntax local-untyped-id (#,mk-redirect-id (quote-syntax untyped-id)))
                 (define-syntax export-id
-                  (make-typed-renaming #'id #'local-untyped-id)))
+                  (make-typed-renaming #'id #'local-untyped-id '#,(current-type-enforcement-mode))))
        new-id
        null)))
 

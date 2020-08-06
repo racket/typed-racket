@@ -17,7 +17,11 @@
          (utils tc-utils)
          (only-in (rep type-rep) Type?)
          (typecheck renamer)
-         (except-in (types utils abbrev kw-types) -> ->* one-of/c))
+         (except-in (types utils abbrev kw-types) -> ->* one-of/c)
+         (for-template
+           (only-in racket/contract/private/provide
+             provide/contract-info?
+             provide/contract-info-original-id)))
 
 (require-for-cond-contract (rep object-rep core-rep))
 
@@ -95,6 +99,15 @@
                                                  Err))
                                    (register-type i t)
                                    t)]
+                             [(and (let* ([fail (λ () #f)]
+                                          [v (syntax-local-value i fail)]
+                                          [orig-id (and (provide/contract-info? v)
+                                                        (provide/contract-info-original-id v))])
+                                     (and (identifier? orig-id)
+                                          (lookup-type orig-id fail))))
+                              => (λ (orig-t)
+                                   (register-type i orig-t)
+                                   orig-t)]
                              [else ((or fail lookup-fail) i)]))))))
 
 (define (lookup-obj-type/lexical obj [env (lexical-env)] #:fail [fail #f])

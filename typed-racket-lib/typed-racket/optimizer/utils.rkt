@@ -23,7 +23,9 @@
          define-unsafe-syntax-class
          define-literal-syntax-class
          define-merged-syntax-class
-         syntax/loc/origin quasisyntax/loc/origin)
+         syntax/loc/origin quasisyntax/loc/origin
+         raise-optimizer-context-error
+         maybe-type-of)
 
 ;; for tracking both origin and source location information
 (define-syntax-rule (syntax/loc/origin loc op body)
@@ -36,11 +38,11 @@
 
 ;; is the syntax object s's type a subtype of t?
 (define (subtypeof? s t)
-  (match (type-of s)
+  (match (maybe-type-of s)
     [(tc-result1: (== t (lambda (x y) (subtype y x)))) #t] [_ #f]))
 ;; similar, but with type equality
 (define (isoftype? s t)
-  (match (type-of s)
+  (match (maybe-type-of s)
          [(tc-result1: (== t)) #t] [_ #f]))
 
 ;; generates a table matching safe to unsafe promitives
@@ -115,7 +117,7 @@
 (define-syntax-class (typed-expr predicate)
   #:attributes (opt)
   (pattern (~and e :opt-expr)
-           #:when (match (type-of #'e)
+           #:when (match (maybe-type-of #'e)
                     [(tc-result1: (? predicate)) #t]
                     [_ #f])))
 
@@ -129,11 +131,11 @@
     #:attr val (syntax-e #'v)
     #:with opt this-syntax)
   (pattern (~and e :opt-expr)
-    #:when (match (type-of #'e)
+    #:when (match (maybe-type-of #'e)
              [(tc-result1: (Val-able: _))
               #t]
              [_ #f])
-    #:attr val (match (type-of #'e)
+    #:attr val (match (maybe-type-of #'e)
                  [(tc-result1: (Val-able: v)) v]
                  [_ #f])))
 
@@ -156,3 +158,13 @@
     #:with (sub-exprs ...) #'(e)]
   [pattern (set! _ e:expr)
     #:with (sub-exprs ...) #'(e)])
+
+
+(define (raise-optimizer-context-error te-mode)
+  (define msg
+    (format "cannot optimize in ~s context" (if te-mode "erasure" "untyped")))
+  (raise-arguments-error 'optimize-top msg))
+
+(define maybe-type-of
+  (let ((fail (lambda () #false)))
+    (lambda (e) (type-of e fail))))

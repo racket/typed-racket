@@ -2,6 +2,7 @@
 
 ;; This module defines Typed Racket's main base type environment.
 
+(begin
 (require
  (for-template
   (except-in racket -> ->* one-of/c class)
@@ -51,6 +52,8 @@
           make-StructType
           -StructTypeTop
           make-ListDots))
+
+(define needs-transient-check #false))
 
 ;; Racket Reference
 ;; Section 4.1 (Equality)
@@ -505,135 +508,135 @@
 [car   (-poly (a b)
               (cl->*
                (->acc (list (-pair a b)) a (list -car))
-               (->* (list (-lst a)) a)))]
+               (->* (list (-lst a)) a))) needs-transient-check]
 [cdr   (-poly (a b)
               (cl->*
                (->acc (list (-pair a b)) b (list -cdr))
-               (->* (list (-lst a)) (-lst a))))]
+               (->* (list (-lst a)) (-lst a)))) needs-transient-check]
 
 ;; these type signatures do not cover all valid uses of these pair accessors
 [caar (-poly (a b c)
              (cl->* [->acc (list (-pair (-pair a b) c)) a (list -car -car)]
                     [-> (-lst (-pair a b)) a]
                     [-> (-pair (-lst a) b) a]
-                    [-> (-lst (-lst a)) a]))]
+                    [-> (-lst (-lst a)) a])) needs-transient-check]
 [cdar (-poly (a b c)
              (cl->* [->acc (list (-pair (-pair a b) c)) b (list -cdr -car)]
                     [-> (-lst (-pair a b)) b]
                     [-> (-pair (-lst a) b) (-lst a)]
-                    [-> (-lst (-lst a)) (-lst a)]))]
+                    [-> (-lst (-lst a)) (-lst a)])) needs-transient-check]
 [cadr (-poly (a b c)
              (cl->* [->acc (list (-pair a (-pair b c))) b (list -car -cdr)]
-                    [-> (-lst a) a]))]
+                    [-> (-lst a) a])) needs-transient-check]
 [cddr  (-poly (a b c)
               (cl->* [->acc (list (-pair a (-pair b c))) c (list -cdr -cdr)]
-                     [-> (-lst a) (-lst a)]))]
+                     [-> (-lst a) (-lst a)])) needs-transient-check]
 
 [caaar (-poly (a b c d)
               (cl->* [->acc (list (-pair (-pair (-pair a b) c) d)) a (list -car -car -car)]
-                     [-> (-lst (-lst (-lst a))) a]))]
+                     [-> (-lst (-lst (-lst a))) a])) needs-transient-check]
 [cdaar (-poly (a b c d)
               (cl->* [->acc (list (-pair (-pair (-pair a b) c) d)) b (list -cdr -car -car)]
-                     [-> (-lst (-lst (-lst a))) (-lst a)]))]
+                     [-> (-lst (-lst (-lst a))) (-lst a)])) needs-transient-check]
 [cadar (-poly (a b c d)
               (cl->* [->acc (list (-pair (-pair a (-pair b c)) d)) b (list -car -cdr -car)]
-                     [-> (-lst (-lst a)) a]))]
+                     [-> (-lst (-lst a)) a])) needs-transient-check]
 [cddar (-poly (a b c d)
               (cl->* [->acc (list (-pair (-pair a (-pair b c)) d)) c (list -cdr -cdr -car)]
-                     [-> (-lst (-lst a)) (-lst a)]))]
+                     [-> (-lst (-lst a)) (-lst a)])) needs-transient-check]
 [caadr (-poly (a b c d)
               (cl->* [->acc (list (-pair a (-pair (-pair b c) d))) b (list -car -car -cdr)]
-                     [-> (-lst (-lst a)) a]))]
+                     [-> (-lst (-lst a)) a])) needs-transient-check]
 [cdadr (-poly (a b c d)
               (cl->* [->acc (list (-pair a (-pair (-pair b c) d))) c (list -cdr -car -cdr)]
-                     [-> (-lst (-lst a)) (-lst a)]))]
+                     [-> (-lst (-lst a)) (-lst a)])) needs-transient-check]
 [caddr  (-poly (a b c d)
               (cl->* [->acc (list (-pair a (-pair b (-pair c d)))) c (list -car -cdr -cdr)]
-                     [-> (-lst a) a]))]
+                     [-> (-lst a) a])) needs-transient-check]
 [cdddr (-poly (a b c d)
               (cl->* [->acc (list (-pair a (-pair b (-pair c d)))) d (list -cdr -cdr -cdr)]
-                     [-> (-lst a) (-lst a)]))]
+                     [-> (-lst a) (-lst a)])) needs-transient-check]
 
 [caaaar (-poly (a b c d e)
                (cl->* [->acc (list (-pair (-pair (-pair (-pair a b) c) d) e)) a (list -car -car -car -car)]
-                      [-> (-lst (-lst (-lst (-lst a)))) a]))]
+                      [-> (-lst (-lst (-lst (-lst a)))) a])) needs-transient-check]
 [cdaaar (-poly (a b c d e)
                (cl->* [->acc (list (-pair (-pair (-pair (-pair a b) c) d) e)) b (list -cdr -car -car -car)]
-                      [-> (-lst (-lst (-lst (-lst a)))) (-lst a)]))]
+                      [-> (-lst (-lst (-lst (-lst a)))) (-lst a)])) needs-transient-check]
 [cadaar (-poly (a b c d e)
                (cl->* [->acc (list (-pair (-pair (-pair a (-pair b c)) d) e)) b (list -car -cdr -car -car)]
-                      [-> (-lst (-lst (-lst a))) a]))]
+                      [-> (-lst (-lst (-lst a))) a])) needs-transient-check]
 [cddaar (-poly (a b c d e)
                (cl->* [->acc (list (-pair (-pair (-pair b (-pair b c)) d) e)) c (list -cdr -cdr -car -car)]
-                      [-> (-lst (-lst (-lst a))) (-lst a)]))]
+                      [-> (-lst (-lst (-lst a))) (-lst a)])) needs-transient-check]
 [caadar (-poly (a b c d e)
                (cl->* [->acc (list (-pair (-pair a (-pair (-pair b c) d)) e)) b (list -car -car -cdr -car)]
-                      [-> (-lst (-lst (-lst a))) a]))]
+                      [-> (-lst (-lst (-lst a))) a])) needs-transient-check]
 [cdadar (-poly (a b c d e)
                (cl->* [->acc (list (-pair (-pair a (-pair (-pair b c) d)) e)) c (list -cdr -car -cdr -car)]
-                      [-> (-lst (-lst (-lst a))) (-lst a)]))]
+                      [-> (-lst (-lst (-lst a))) (-lst a)])) needs-transient-check]
 [caddar (-poly (a b c d e)
                (cl->* [->acc (list (-pair (-pair a (-pair b (-pair c d))) e)) c (list -car -cdr -cdr -car)]
-                      [-> (-lst (-lst a)) a]))]
+                      [-> (-lst (-lst a)) a])) needs-transient-check]
 [cdddar (-poly (a b c d e)
                (cl->* [->acc (list (-pair (-pair a (-pair b (-pair c d))) e)) d (list -cdr -cdr -cdr -car)]
-                      [-> (-lst (-lst a)) (-lst a)]))]
+                      [-> (-lst (-lst a)) (-lst a)])) needs-transient-check]
 [caaadr (-poly (a b c d e)
                (cl->* [->acc (list (-pair a (-pair (-pair (-pair b c) d) e))) b (list -car -car -car -cdr)]
-                      [-> (-lst (-lst (-lst a))) a]))]
+                      [-> (-lst (-lst (-lst a))) a])) needs-transient-check]
 [cdaadr (-poly (a b c d e)
                (cl->* [->acc (list (-pair a (-pair (-pair (-pair b c) d) e))) c (list -cdr -car -car -cdr)]
-                      [-> (-lst (-lst (-lst a))) (-lst a)]))]
+                      [-> (-lst (-lst (-lst a))) (-lst a)])) needs-transient-check]
 [cadadr (-poly (a b c d e)
                (cl->* [->acc (list (-pair a (-pair (-pair b (-pair c d)) e))) c (list -car -cdr -car -cdr)]
-                      [-> (-lst (-lst a)) a]))]
+                      [-> (-lst (-lst a)) a])) needs-transient-check]
 [cddadr (-poly (a b c d e)
                (cl->* [->acc (list (-pair a (-pair (-pair b (-pair c d)) e))) d (list -cdr -cdr -car -cdr)]
-                      [-> (-lst (-lst a)) (-lst a)]))]
+                      [-> (-lst (-lst a)) (-lst a)])) needs-transient-check]
 [caaddr (-poly (a b c d e)
                (cl->* [->acc (list (-pair a (-pair b (-pair (-pair c d) e)))) c (list -car -car -cdr -cdr)]
-                      [-> (-lst (-lst a)) a]))]
+                      [-> (-lst (-lst a)) a])) needs-transient-check]
 [cdaddr (-poly (a b c d e)
                (cl->* [->acc (list (-pair a (-pair b (-pair (-pair c d) e)))) d (list -cdr -car -cdr -cdr)]
-                      [-> (-lst (-lst a)) (-lst a)]))]
+                      [-> (-lst (-lst a)) (-lst a)])) needs-transient-check]
 [cadddr (-poly (a b c d e)
                (cl->* [->acc (list (-pair a (-pair b (-pair c (-pair d e))))) d (list -car -cdr -cdr -cdr)]
-                      [-> (-lst a) a]))]
+                      [-> (-lst a) a])) needs-transient-check]
 [cddddr (-poly (a b c d e)
                (cl->* [->acc (list (-pair a (-pair b (-pair c (-pair d e))))) e (list -cdr -cdr -cdr -cdr)]
-                      [-> (-lst a) (-lst a)]))]
+                      [-> (-lst a) (-lst a)])) needs-transient-check]
 
 [first (-poly (a b)
               (cl->*
                (->acc (list (-pair a (-lst b))) a (list -car))
-               (->* (list (-lst a)) a)))]
+               (->* (list (-lst a)) a))) needs-transient-check]
 [second (-poly (a r t)
                (cl->* [->acc (list (-lst* a r #:tail (-lst t))) r (list -car -cdr)]
-                      [->* (list (-lst a)) a]))]
+                      [->* (list (-lst a)) a])) needs-transient-check]
 [third (-poly (a b r t)
               (cl->* [->acc (list (-lst* a b r #:tail (-lst t))) r (list -car -cdr -cdr)]
-                     [->* (list (-lst a)) a]))]
+                     [->* (list (-lst a)) a])) needs-transient-check]
 [fourth  (-poly (a b c r t)
               (cl->* [->acc (list (-lst* a b c r #:tail (-lst t))) r (list -car -cdr -cdr -cdr)]
-                     [->* (list (-lst a)) a]))]
+                     [->* (list (-lst a)) a])) needs-transient-check]
 [fifth   (-poly (a b c d r t)
               (cl->* [->acc (list (-lst* a b c d r #:tail (-lst t))) r (list -car -cdr -cdr -cdr -cdr)]
-                     [->* (list (-lst a)) a]))]
+                     [->* (list (-lst a)) a])) needs-transient-check]
 [sixth   (-poly (a b c d e r t)
               (cl->* [->acc (list (-lst* a b c d e r #:tail (-lst t))) r (list -car -cdr -cdr -cdr -cdr -cdr)]
-                     [->* (list (-lst a)) a]))]
+                     [->* (list (-lst a)) a])) needs-transient-check]
 [seventh (-poly (a b c d e f r t)
               (cl->* [->acc (list (-lst* a b c d e f r #:tail (-lst t))) r (list -car -cdr -cdr -cdr -cdr -cdr -cdr)]
-                     [->* (list (-lst a)) a]))]
+                     [->* (list (-lst a)) a])) needs-transient-check]
 [eighth  (-poly (a b c d e f g r t)
               (cl->* [->acc (list (-lst* a b c d e f g r #:tail (-lst t))) r (list -car -cdr -cdr -cdr -cdr -cdr -cdr -cdr)]
-                     [->* (list (-lst a)) a]))]
+                     [->* (list (-lst a)) a])) needs-transient-check]
 [ninth   (-poly (a b c d e f g h r t)
               (cl->* [->acc (list (-lst* a b c d e f g h r #:tail (-lst t))) r (list -car -cdr -cdr -cdr -cdr -cdr -cdr -cdr -cdr)]
-                     [->* (list (-lst a)) a]))]
+                     [->* (list (-lst a)) a])) needs-transient-check]
 [tenth   (-poly (a b c d e f g h i r t)
               (cl->* [->acc (list (-lst* a b c d e f g h i r #:tail (-lst t))) r (list -car -cdr -cdr -cdr -cdr -cdr -cdr -cdr -cdr -cdr)]
-                     [->* (list (-lst a)) a]))]
+                     [->* (list (-lst a)) a])) needs-transient-check]
 [rest (-poly (a b)
              (cl->*
               (->acc (list (-pair a (-lst b))) (-lst b) (list -cdr))
@@ -675,7 +678,7 @@
           (cl->* (Univ (-lst a) . -> . (-opt (-ne-lst a)))
                  (b (-lst a) (-> b a Univ)
                        . -> . (-opt (-ne-lst a)))))]
-[findf (-poly (a) ((a . -> . B) (-lst a) . -> . (-opt a)))]
+[findf (-poly (a) ((a . -> . B) (-lst a) . -> . (-opt a))) needs-transient-check]
 
 [assq  (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
 [assv  (-poly (a b) (Univ (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
@@ -709,11 +712,11 @@
  (-poly (a b c d)
         (cl-> [((a b . -> . b) b (-lst a)) b]
               [((a b c . -> . c) c (-lst a) (-lst b)) c]
-              [((a b c d . -> . d) d (-lst a) (-lst b) (-lst c)) d]))]
+              [((a b c d . -> . d) d (-lst a) (-lst b) (-lst c)) d])) needs-transient-check]
 [foldr  (-poly (a b c d)
                (cl-> [((a b . -> . b) b (-lst a)) b]
                      [((a b c . -> . c) c (-lst a) (-lst b)) c]
-                     [((a b c d . -> . d) d (-lst a) (-lst b) (-lst c)) d]))]
+                     [((a b c d . -> . d) d (-lst a) (-lst b) (-lst c)) d])) needs-transient-check]
 [filter (-poly (a b) (cl->*
                       ((asym-pred a Univ (-PS (-is-type 0 b) -tt))
                        (-lst a)
@@ -758,7 +761,7 @@
                (-> (asym-pred b Univ (-PS (-is-type 0 a) -tt)) (-lst b) (-values (list (-lst a) (-lst b))))
                (-> (-> a Univ) (-lst a) (-values (list (-lst a) (-lst a))))))]
 
-[last   (-poly (a) ((-lst a) . -> . a))]
+[last   (-poly (a) ((-lst a) . -> . a)) needs-transient-check]
 [add-between (-poly (a b) ((-lst a) b
                            #:splice? -Boolean #f
                            #:before-first (-lst b) #f
@@ -824,8 +827,8 @@
                              (-> (-lst a) -Nat (-seq (-lst a)))))]
 [permutations (-poly (a) (-> (-lst a) (-lst (-lst a))))]
 [in-permutations (-poly (a) (-> (-lst a) (-seq (-lst a))))]
-[argmin (-poly (a) ((a . -> . -Real) (-lst a) . -> . a))]
-[argmax (-poly (a) ((a . -> . -Real) (-lst a) . -> . a))]
+[argmin (-poly (a) ((a . -> . -Real) (-lst a) . -> . a)) needs-transient-check]
+[argmax (-poly (a) ((a . -> . -Real) (-lst a) . -> . a)) needs-transient-check]
 [group-by (-poly (a b) (->opt (-> a b) (-lst a) [(-> b b Univ)] (-lst (-lst a))))]
 [cartesian-product (-polydots (a) (->... '() ((-lst a) a) (-lst (make-ListDots a 'a))))]
 [remf (-poly (a) (-> (-> a Univ) (-lst a) (-lst a)))]
@@ -838,10 +841,10 @@
 [mcons (-poly (a b) (-> a b (-mpair a b)))]
 [mcar (-poly (a b)
              (cl->* (-> (-mpair a b) a)
-                    (-> (-mlst a) a)))]
+                    (-> (-mlst a) a))) needs-transient-check]
 [mcdr (-poly (a b)
              (cl->* (-> (-mpair a b) b)
-                    (-> (-mlst a) (-mlst a))))]
+                    (-> (-mlst a) (-mlst a)))) needs-transient-check]
 [set-mcar! (-poly (a b)
                   (cl->* (-> (-mpair a b) a -Void)
                          (-> (-mlst a) a -Void)))]
@@ -850,10 +853,10 @@
                          (-> (-mlst a) (-mlst a) -Void)))]
 [unsafe-mcar (-poly (a b)
                     (cl->* (-> (-mpair a b) a)
-                           (-> (-mlst a) a)))]
+                           (-> (-mlst a) a))) needs-transient-check]
 [unsafe-mcdr (-poly (a b)
                     (cl->* (-> (-mpair a b) b)
-                           (-> (-mlst a) (-mlst a))))]
+                           (-> (-mlst a) (-mlst a)))) needs-transient-check]
 [unsafe-set-mcar! (-poly (a b)
                          (cl->* (-> (-mpair a b) a -Void)
                                 (-> (-mlst a) a -Void)))]
@@ -878,8 +881,8 @@
 [vector-immutable (-poly (a) (->* (list) a (-ivec a)))]
 [vector->immutable-vector (-poly (a) (-> (-vec a) (-ivec a)))]
 [vector-fill! (-poly (a) (-> (-vec a) a -Void))]
-[vector-argmax (-poly (a) (-> (-> a -Real) (-vec a) a))]
-[vector-argmin (-poly (a) (-> (-> a -Real) (-vec a) a))]
+[vector-argmax (-poly (a) (-> (-> a -Real) (-vec a) a)) needs-transient-check]
+[vector-argmin (-poly (a) (-> (-> a -Real) (-vec a) a)) needs-transient-check]
 [vector-memq (-poly (a) (-> Univ (-vec a) (-opt -Index)))]
 [vector-memv (-poly (a) (-> Univ (-vec a) (-opt -Index)))]
 [vector-member (-poly (a) (Univ (-vec a) . -> . (-opt -Index)))]
@@ -926,16 +929,16 @@
 [box-immutable (-poly (a) (a . -> . (-box a)))]
 [unbox (-poly (a) (cl->*
                    ((-box a) . -> . a)
-                   (-BoxTop . -> . Univ)))]
+                   (-BoxTop . -> . Univ))) needs-transient-check]
 [set-box! (-poly (a) ((-box a) a . -> . -Void))]
 [box-cas! (-poly (a) ((-box a) a a . -> . -Boolean))]
 [unsafe-unbox (-poly (a) (cl->*
                           ((-box a) . -> . a)
-                          (-BoxTop . -> . Univ)))]
+                          (-BoxTop . -> . Univ))) needs-transient-check]
 [unsafe-set-box! (-poly (a) ((-box a) a . -> . -Void))]
 [unsafe-unbox* (-poly (a) (cl->*
                            ((-box a) . -> . a)
-                           (-BoxTop . -> . Univ)))]
+                           (-BoxTop . -> . Univ))) needs-transient-check]
 [unsafe-set-box*! (-poly (a) ((-box a) a . -> . -Void))]
 [unsafe-box*-cas! (-poly (a) ((-box a) a a . -> . -Boolean))]
 [box? (make-pred-ty -BoxTop)]
@@ -969,8 +972,8 @@
                        [((-HT a b) a (-> c)) (Un b c)]
                        [(-HashTableTop a) Univ]
                        [(-HashTableTop a (-val #f)) Univ]
-                       [(-HashTableTop a (-> c)) Univ]))]
-[hash-ref! (-poly (a b) (-> (-HT a b) a (-> b) b))]
+                       [(-HashTableTop a (-> c)) Univ])) needs-transient-check]
+[hash-ref! (-poly (a b) (-> (-HT a b) a (-> b) b)) needs-transient-check]
 [hash-has-key? (-HashTableTop Univ . -> . B)]
 [hash-update! (-poly (a b)
                      (cl-> [((-HT a b) a (-> b b)) -Void]
@@ -1046,9 +1049,9 @@
 [unsafe-immutable-hash-iterate-next
   (-poly (a b) ((-Immutable-HT a b) -Integer . -> . (Un (-val #f) -Integer)))]
 [unsafe-immutable-hash-iterate-key
-  (-poly (a b) ((-Immutable-HT a b) -Integer . -> . a))]
+  (-poly (a b) ((-Immutable-HT a b) -Integer . -> . a)) needs-transient-check]
 [unsafe-immutable-hash-iterate-value
-  (-poly (a b) ((-Immutable-HT a b) -Integer . -> . b))]
+  (-poly (a b) ((-Immutable-HT a b) -Integer . -> . b)) needs-transient-check]
 [unsafe-immutable-hash-iterate-pair
   (-poly (a b) ((-Immutable-HT a b) -Integer . -> . (-pair a b)))]
 [unsafe-immutable-hash-iterate-key+value
@@ -1059,9 +1062,9 @@
 [unsafe-mutable-hash-iterate-next
   (-poly (a b) ((-Mutable-HT a b) -Integer . -> . (Un (-val #f) -Integer)))]
 [unsafe-mutable-hash-iterate-key
-  (-poly (a b) ((-Mutable-HT a b) -Integer . -> . a))]
+  (-poly (a b) ((-Mutable-HT a b) -Integer . -> . a)) needs-transient-check]
 [unsafe-mutable-hash-iterate-value
-  (-poly (a b) ((-Mutable-HT a b) -Integer . -> . b))]
+  (-poly (a b) ((-Mutable-HT a b) -Integer . -> . b)) needs-transient-check]
 [unsafe-mutable-hash-iterate-pair
   (-poly (a b) ((-Mutable-HT a b) -Integer . -> . (-pair a b)))]
 [unsafe-mutable-hash-iterate-key+value
@@ -1072,9 +1075,9 @@
 [unsafe-weak-hash-iterate-next
   (-poly (a b) ((-Weak-HT a b) -Integer . -> . (Un (-val #f) -Integer)))]
 [unsafe-weak-hash-iterate-key
-  (-poly (a b) ((-Weak-HT a b) -Integer . -> . a))]
+  (-poly (a b) ((-Weak-HT a b) -Integer . -> . a)) needs-transient-check]
 [unsafe-weak-hash-iterate-value
-  (-poly (a b) ((-Weak-HT a b) -Integer . -> . b))]
+  (-poly (a b) ((-Weak-HT a b) -Integer . -> . b)) needs-transient-check]
 [unsafe-weak-hash-iterate-pair
   (-poly (a b) ((-Weak-HT a b) -Integer . -> . (-pair a b)))]
 [unsafe-weak-hash-iterate-key+value
@@ -1117,7 +1120,7 @@
 [empty-sequence (-polydots (a) (-seq-dots '() a 'a))]
 [sequence->list (-poly (a) ((-seq a) . -> . (-lst a)))]
 [sequence-length (-SequenceTop . -> . -Nat)]
-[sequence-ref (-polydots (a) ((-seq-dots '() a 'a) -Integer . -> . (make-ValuesDots '() a 'a)))]
+[sequence-ref (-polydots (a) ((-seq-dots '() a 'a) -Integer . -> . (make-ValuesDots '() a 'a))) needs-transient-check]
 [sequence-tail (-polydots (a) ((-seq-dots '() a 'a) -Integer . -> . (-seq-dots '() a 'a)))]
 [sequence-append (-polydots (a) (->* '() (-seq-dots '() a 'a) (-seq-dots '() a 'a)))]
 ; We can't express the full type without multiple dotted type variables:
@@ -1128,7 +1131,7 @@
 [sequence-andmap (-polydots (b a) ((->... '() (a a) b) (-seq-dots '() a 'a) . -> . (Un b (-val #t))))]
 [sequence-ormap (-polydots (b a) ((->... '() (a a) b) (-seq-dots '() a 'a) . -> . (Un b (-val #f))))]
 [sequence-for-each (-polydots (a) ((->... '() (a a) Univ) (-seq-dots '() a 'a) . -> . -Void))]
-[sequence-fold (-polydots (b a) ((->... (list b) (a a) b) b (-seq-dots '() a 'a) . -> . b))]
+[sequence-fold (-polydots (b a) ((->... (list b) (a a) b) b (-seq-dots '() a 'a) . -> . b)) needs-transient-check]
 [sequence-count (-polydots (a) ((->... '() (a a) Univ) (-seq-dots '() a 'a) . -> . -Nat))]
 [sequence-filter (-polydots (a b c)
                    (cl->*
@@ -1147,7 +1150,7 @@
 [set-empty? (-poly (e) (-> (-list-or-set e) B))]
 [set-count (-poly (e) (-> (-list-or-set e) -Index))]
 [set-member? (-poly (e) (-> (-list-or-set e) e B))]
-[set-first (-poly (e) (-> (-list-or-set e) e))]
+[set-first (-poly (e) (-> (-list-or-set e) e)) needs-transient-check]
 [set-rest (-poly (e) (set-abs -set (-> (-set e) (-set e))))]
 [set-add (-poly (e) (set-abs -set (-> (-set e) e (-set e))))]
 [set-remove (-poly (e) (set-abs -set (-> (-set e) Univ (-set e))))]
@@ -1307,7 +1310,7 @@
   (-polydots (b a)
     (cl->*
      ((-> (make-ValuesDots null a 'a)) (null (a a) . ->... . b) . -> .  b)
-     ((-> ManyUniv) ((list) Univ . ->* . b) . -> . b)))]
+     ((-> ManyUniv) ((list) Univ . ->* . b) . -> . b))) needs-transient-check]
 
 ;; Section 10.2
 [raise (cl->* ((Un -Flat -Exn) . -> . (Un))
@@ -1347,7 +1350,7 @@
 
 ;; Section 10.3 (Delayed Evaluation)
 [promise? (make-pred-ty (-Promise Univ))]
-[force (-poly (a) (->acc (list (-Promise a)) a (list -force)))]
+[force (-poly (a) (->acc (list (-Promise a)) a (list -force))) needs-transient-check]
 [promise-forced? (-poly (a) (-> (-Promise a) B))]
 [promise-running? (-poly (a) (-> (-Promise a) B))]
 
@@ -1358,12 +1361,12 @@
     (-> (-> b) (make-Prompt-Tagof b (-> (-> d) d)) (Un b d))
     (-> (-> b) (make-Prompt-Tagof b (->... '() (c c) d)) (->... '() (c c) d)
         (Un b d))
-    (-> (-> b) Univ)))]
+    (-> (-> b) Univ))) needs-transient-check]
 [abort-current-continuation
  (-polydots (a b d e c)
    (cl->*
     (->... (list (make-Prompt-Tagof b (->... '() (c c) d))) (c c) e)
-    (->... (list (make-Prompt-Tagof b (->... '() (c c) ManyUniv))) (c c) e)))]
+    (->... (list (make-Prompt-Tagof b (->... '() (c c) ManyUniv))) (c c) e))) needs-transient-check]
 [make-continuation-prompt-tag
  (-poly (a b) (->opt [Sym] (make-Prompt-Tagof a b)))]
 ;; default-continuation-prompt-tag is defined in "base-contracted.rkt"
@@ -1372,13 +1375,13 @@
    (cl->* (-> (-> (-> (Un)) (-values null)) (-values null))
           (-> (-> (->... (list a) (c c) (Un))
                   (make-ValuesDots (list (-result b)) c 'c))
-              (make-ValuesDots (list (-result (Un a b))) c 'c))))]
+              (make-ValuesDots (list (-result (Un a b))) c 'c)))) needs-transient-check]
 [call/cc
  (-polydots (a b c)
    (cl->* (-> (-> (-> (Un)) (-values null)) (-values null))
           (-> (-> (->... (list a) (c c) (Un))
                   (make-ValuesDots (list (-result b)) c 'c))
-              (make-ValuesDots (list (-result (Un a b))) c 'c))))]
+              (make-ValuesDots (list (-result (Un a b))) c 'c)))) needs-transient-check]
 [call-with-composable-continuation
  (-polydots (b c a)
    (-> ;; takes a continuation and should return the same
@@ -1387,25 +1390,25 @@
        (make-Prompt-Tagof b c)
        ;; the continuation's input is the same as the
        ;; return type here
-       (make-ValuesDots '() a 'a)))]
+       (make-ValuesDots '() a 'a))) needs-transient-check]
 [call-with-escape-continuation
  (-polydots (a b c)
    (cl->* (-> (-> (-> (Un)) (-values null)) (-values null))
           (-> (-> (->... (list a) (c c) (Un))
                   (make-ValuesDots (list (-result b)) c 'c))
-              (make-ValuesDots (list (-result (Un a b))) c 'c))))]
+              (make-ValuesDots (list (-result (Un a b))) c 'c)))) needs-transient-check]
 [call/ec
  (-polydots (a b c)
    (cl->* (-> (-> (-> (Un)) (-values null)) (-values null))
           (-> (-> (->... (list a) (c c) (Un))
                   (make-ValuesDots (list (-result b)) c 'c))
-              (make-ValuesDots (list (-result (Un a b))) c 'c))))]
-[call-with-continuation-barrier (-poly (a) (-> (-> a) a))]
+              (make-ValuesDots (list (-result (Un a b))) c 'c)))) needs-transient-check]
+[call-with-continuation-barrier (-poly (a) (-> (-> a) a)) needs-transient-check]
 [continuation-prompt-available? (-> -Prompt-TagTop B)]
 [continuation?
  (asym-pred Univ B (-PS (-is-type 0 top-func) -tt))]
 [continuation-prompt-tag? (make-pred-ty -Prompt-TagTop)]
-[dynamic-wind (-poly (a) (-> (-> ManyUniv) (-> a) (-> ManyUniv) a))]
+[dynamic-wind (-poly (a) (-> (-> ManyUniv) (-> a) (-> ManyUniv) a)) needs-transient-check]
 
 ;; Section 10.5 (Continuation Marks)
 ;; continuation-marks needs type for continuations as other
@@ -1438,9 +1441,9 @@
          (->opt (-opt -Cont-Mark-Set) (make-Continuation-Mark-Keyof a)
                 [b -Prompt-TagTop]
                 (Un a b))
-         (->opt (-opt -Cont-Mark-Set) Univ [Univ -Prompt-TagTop] Univ)))]
+         (->opt (-opt -Cont-Mark-Set) Univ [Univ -Prompt-TagTop] Univ))) needs-transient-check]
 [call-with-immediate-continuation-mark
- (-poly (a) (->opt Univ (-> Univ a) [Univ] a))]
+ (-poly (a) (->opt Univ (-> Univ a) [Univ] a)) needs-transient-check]
 [continuation-mark-key? (make-pred-ty -Continuation-Mark-KeyTop)]
 [continuation-mark-set? (make-pred-ty -Cont-Mark-Set)]
 [make-continuation-mark-key
@@ -1463,7 +1466,7 @@
 [thread? (make-pred-ty -Thread)]
 [current-thread (-> -Thread)]
 [thread/suspend-to-kill (-> (-> Univ) -Thread)]
-[call-in-nested-thread (-poly (a) (->opt (-> a) [-Custodian] a))]
+[call-in-nested-thread (-poly (a) (->opt (-> a) [-Custodian] a)) needs-transient-check]
 
 ;; Section 11.1.2
 [thread-suspend (-Thread . -> . -Void)]
@@ -1484,7 +1487,7 @@
 [thread-send
  (-poly (a) (cl->* (-> -Thread Univ -Void)
                    (-> -Thread Univ (-val #f) (-opt -Void))
-                   (-> -Thread Univ (-> a) (Un -Void a))))]
+                   (-> -Thread Univ (-> a) (Un -Void a)))) needs-transient-check]
 [thread-receive (-> Univ)]
 [thread-try-receive (-> Univ)]
 [thread-receive-evt (-> (-mu x (-evt x)))]
@@ -1492,20 +1495,20 @@
 
 ;; Section 11.2.1
 [evt? (make-pred-ty (-evt Univ))]
-[sync (-poly (a) (->* '() (-evt a) a))]
+[sync (-poly (a) (->* '() (-evt a) a)) needs-transient-check]
 [sync/timeout
  (-poly (a b)
    (cl->*
     (->* (list (-val #f)) (-evt a) a)
     (->* (list -NonNegReal) (-evt a) (-opt a))
-    (->* (list (-> b)) (-evt a) (Un a b))))]
-[sync/enable-break (-poly (a) (->* '() (-evt a) a))]
+    (->* (list (-> b)) (-evt a) (Un a b)))) needs-transient-check]
+[sync/enable-break (-poly (a) (->* '() (-evt a) a)) needs-transient-check]
 [sync/timeout/enable-break
  (-poly (a b)
    (cl->*
     (->* (list (-val #f)) (-evt a) a)
     (->* (list -NonNegReal) (-evt a) (-opt a))
-    (->* (list (-> b)) (-evt a) (Un a b))))]
+    (->* (list (-> b)) (-evt a) (Un a b)))) needs-transient-check]
 [choice-evt (-poly (a) (->* '() (-evt a) (-evt a)))]
 [wrap-evt (-poly (a b) (-> (-evt a) (-> a b) (-evt b)))]
 [handle-evt (-poly (a b) (-> (-evt a) (-> a b) (-evt b)))]
@@ -1532,8 +1535,8 @@
 ;; Section 11.2.2
 [make-channel (-poly (a) (-> (-channel a)))]
 [channel? (make-pred-ty -ChannelTop)]
-[channel-get (-poly (a) ((-channel a) . -> . a))]
-[channel-try-get (-poly (a) ((-channel a) . -> . (Un a (-val #f))))]
+[channel-get (-poly (a) ((-channel a) . -> . a)) needs-transient-check]
+[channel-try-get (-poly (a) ((-channel a) . -> . (Un a (-val #f)))) needs-transient-check]
 [channel-put (-poly (a) ((-channel a) a . -> . -Void))]
 [channel-put-evt (-poly (a) (-> (-channel a) a (-mu x (-evt x))))]
 [channel-put-evt? (asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt))]
@@ -1552,18 +1555,18 @@
    (cl->* (->... (list -Semaphore (->... '() [a a] b))
                  [a a] b)
           (->... (list -Semaphore (->... '() [a a] b) (-opt (-> b)))
-                 [a a] b)))]
+                 [a a] b))) needs-transient-check]
 [call-with-semaphore/enable-break
  (-polydots (b a)
    (cl->* (->... (list -Semaphore (->... '() [a a] b))
                  [a a] b)
           (->... (list -Semaphore (->... '() [a a] b) (-opt (-> b)))
-                 [a a] b)))]
+                 [a a] b))) needs-transient-check]
 
 ;; Section 11.3.1 (Thread Cells)
 [thread-cell? (make-pred-ty -ThreadCellTop)]
 [make-thread-cell (-poly (a) (->opt a [Univ] (-thread-cell a)))]
-[thread-cell-ref (-poly (a) (-> (-thread-cell a) a))]
+[thread-cell-ref (-poly (a) (-> (-thread-cell a) a)) needs-transient-check]
 [thread-cell-set! (-poly (a) (-> (-thread-cell a) a -Void))]
 [current-preserved-thread-cell-values
  (cl->* (-> Univ) (-> Univ -Void))]
@@ -1581,12 +1584,12 @@
 [parameter-procedure=? (-poly (a b c d) (-> (-Param a b) (-Param c d) B))]
 
 [current-parameterization (-> -Parameterization)]
-[call-with-parameterization (-poly (a) (-> -Parameterization (-> a) a))]
+[call-with-parameterization (-poly (a) (-> -Parameterization (-> a) a)) needs-transient-check]
 [parameterization? (make-pred-ty -Parameterization)]
 
 ;; Section 11.4 (Futures)
 [future (-poly (A) ((-> A) . -> . (-future A)))]
-[touch (-poly (A) ((-future A) . -> . A))]
+[touch (-poly (A) ((-future A) . -> . A)) needs-transient-check]
 [futures-enabled? (-> -Boolean)]
 [current-future (-> (-opt (-future Univ)))]
 [future? (make-pred-ty (-future Univ))]
@@ -1925,20 +1928,20 @@
         (-values (list -Input-Port -Output-Port)))]
 
 
-[call-with-input-file (-poly (a) (-Pathlike (-Input-Port . -> . a) #:mode (Un (-val 'binary) (-val 'text)) #f . ->key .  a))]
+[call-with-input-file (-poly (a) (-Pathlike (-Input-Port . -> . a) #:mode (Un (-val 'binary) (-val 'text)) #f . ->key .  a)) needs-transient-check]
 [call-with-output-file (-poly (a) (-Pathlike (-Output-Port . -> . a)
                                    #:exists (one-of/c 'error 'append 'update 'replace 'truncate 'truncate/replace) #f
                                    #:mode (one-of/c 'binary 'text) #f
-                                   . ->key .  a))]
+                                   . ->key .  a)) needs-transient-check]
 
-[call-with-input-file* (-poly (a) (-Pathlike (-Input-Port . -> . a) #:mode (Un (-val 'binary) (-val 'text)) #f . ->key .  a))]
+[call-with-input-file* (-poly (a) (-Pathlike (-Input-Port . -> . a) #:mode (Un (-val 'binary) (-val 'text)) #f . ->key .  a)) needs-transient-check]
 [call-with-output-file* (-poly (a) (-Pathlike (-Output-Port . -> . a)
                                    #:exists (one-of/c 'error 'append 'update 'replace 'truncate 'truncate/replace) #f
                                    #:mode (one-of/c 'binary 'text) #f
-                                   . ->key .  a))]
+                                   . ->key .  a)) needs-transient-check]
 
 [with-input-from-file
- (-poly (a) (->key -Pathlike (-> a) #:mode (one-of/c 'binary 'text) #f a))]
+ (-poly (a) (->key -Pathlike (-> a) #:mode (one-of/c 'binary 'text) #f a)) needs-transient-check]
 [with-output-to-file
  (-poly (a) (->key -Pathlike (-> a)
                    #:exists (one-of/c 'error 'append 'update 'can-update
@@ -1946,7 +1949,7 @@
                            'must-truncate 'truncate/replace)
                    #f
                    #:mode (one-of/c 'binary 'text) #f
-                   a))]
+                   a)) needs-transient-check]
 |#
 
 [port-try-file-lock? (-> (Un -Input-Port -Output-Port) (one-of/c 'shared 'exclusive) B)]
@@ -2035,14 +2038,14 @@
 [call-with-input-string
  (-polydots (a)
    (-> -String (-> -Input-Port (make-ValuesDots '() a 'a))
-       (make-ValuesDots '() a 'a)))]
+       (make-ValuesDots '() a 'a))) needs-transient-check]
 [call-with-input-bytes
  (-polydots (a)
    (-> -Bytes (-> -Input-Port (make-ValuesDots '() a 'a))
-       (make-ValuesDots '() a 'a)))]
+       (make-ValuesDots '() a 'a))) needs-transient-check]
 
-[with-input-from-string (-poly (a) (-> -String (-> a) a))]
-[with-input-from-bytes (-poly (a) (-> -Bytes (-> a) a))]
+[with-input-from-string (-poly (a) (-> -String (-> a) a)) needs-transient-check]
+[with-input-from-bytes (-poly (a) (-> -Bytes (-> a) a)) needs-transient-check]
 
 ;; Section 13.1.10.2
 [input-port-append  (->* (list Univ) -Input-Port -Input-Port)]
@@ -2574,7 +2577,7 @@
 
 [make-custodian-box (-poly (a) (-> -Custodian a (make-CustodianBox a)))]
 [custodian-box? (make-pred-ty (-poly (a) (make-CustodianBox a)))]
-[custodian-box-value (-poly (a) (-> (make-CustodianBox a) a))]
+[custodian-box-value (-poly (a) (-> (make-CustodianBox a) a)) needs-transient-check]
 
 ;; Section 14.8 (Thread Groups)
 [make-thread-group (->opt [-Thread-Group] -Thread-Group)]
@@ -2784,7 +2787,7 @@
   (a)
   (let ([funarg* (-Path (one-of/c 'file 'dir 'link) a . -> . (-values (list a Univ)))]
         [funarg (-Path (one-of/c 'file 'dir 'link) a . -> . a)])
-     ((Un funarg funarg*) a [(-opt -Pathlike) Univ]. ->opt . a)))]
+     ((Un funarg funarg*) a [(-opt -Pathlike) Univ]. ->opt . a))) needs-transient-check]
 
 [make-directory* (-> -Pathlike -Void)]
 [make-parent-directory* (-> -Pathlike -Void)]
@@ -3068,13 +3071,13 @@
    (->* (list (-> (make-HeterogeneousVector (list -Symbol -String Univ (-opt -Symbol))) Univ)
               (-> (make-ValuesDots null a 'a)))
         (-opt (one-of/c 'none 'fatal 'error 'warning 'info 'debug))
-        (make-ValuesDots null a 'a)))]
+        (make-ValuesDots null a 'a))) needs-transient-check]
 [with-logging-to-port
  (-polydots (a)
    (->* (list -Output-Port (-> (make-ValuesDots null a 'a))
               (one-of/c 'none 'fatal 'error 'warning 'info 'debug))
         (-opt -Symbol)
-        (make-ValuesDots null a 'a)))]
+        (make-ValuesDots null a 'a))) needs-transient-check]
 
 ;; Section 15.6 (Time)
 [seconds->date (cl->* (-Integer . -> . -Date)
@@ -3141,7 +3144,7 @@
                   [(-> -String Univ)
                    ;; Still permits unknown-proc args that accept rest arguments
                    (-> -String Univ)]
-                  b))))]
+                  b)))) needs-transient-check]
 
 ;; Section 16.1 (Weak Boxes)
 [make-weak-box (-poly (a) (-> a (-weak-box a)))]
@@ -3149,13 +3152,13 @@
  (-poly (a b)
    (cl->* (-> (-weak-box a) (-opt a))
           (-> (-weak-box a) b (Un b a))
-          (->opt -Weak-BoxTop [Univ] Univ)))]
+          (->opt -Weak-BoxTop [Univ] Univ))) needs-transient-check]
 [weak-box? (make-pred-ty -Weak-BoxTop)]
 
 ;; Section 16.2 (Ephemerons)
 [make-ephemeron (-poly (k v) (-> k v (make-Ephemeron v)))]
 [ephemeron? (make-pred-ty (make-Ephemeron Univ))]
-[ephemeron-value (-poly (v) (-> (make-Ephemeron v) (Un (-val #f) v)))]
+[ephemeron-value (-poly (v) (-> (make-Ephemeron v) (Un (-val #f) v))) needs-transient-check]
 
 ;; Section 16.3 (Wills and Executors)
 [make-will-executor (-> -Will-Executor)]
@@ -3182,15 +3185,15 @@
 [unsafe-car (-poly (a b)
                    (cl->*
                     (->acc (list (-pair a b)) a (list -car))
-                    (->* (list (-lst a)) a)))]
+                    (->* (list (-lst a)) a))) needs-transient-check]
 [unsafe-cdr (-poly (a b)
                    (cl->*
                     (->acc (list (-pair a b)) b (list -cdr))
-                    (->* (list (-lst a)) (-lst a))))]
+                    (->* (list (-lst a)) (-lst a)))) needs-transient-check]
 [unsafe-vector-length (-VectorTop . -> . -Index)]
 [unsafe-vector*-length (-VectorTop . -> . -Index)]
-[unsafe-struct-ref top-func]
-[unsafe-struct*-ref top-func]
+[unsafe-struct-ref top-func needs-transient-check]
+[unsafe-struct*-ref top-func needs-transient-check]
 [unsafe-struct-set! top-func]
 [unsafe-struct*-set! top-func]
 [unsafe-fxvector-length (-FxVector . -> . -Index)]
@@ -3292,7 +3295,7 @@
    (->optkey -Pathlike [(-> -Input-Port (Un))] #:mode (one-of/c 'binary 'text) #f (-lst Univ))
    (->optkey -Pathlike [(-> -Input-Port a)] #:mode (one-of/c 'binary 'text) #f (-lst a)))))
 [call-with-atomic-output-file
- (-poly (a) (->opt -Pathlike (-> -Output-Port -Path a) [(-opt -Security-Guard)] a))]
+ (-poly (a) (->opt -Pathlike (-> -Output-Port -Path a) [(-opt -Security-Guard)] a)) needs-transient-check]
 (get-preference
  (let ((use-lock-type Univ)
        (timeout-lock-there-type (-opt (-> -Path Univ)))
@@ -3375,7 +3378,7 @@
    #:max-delay
    -Real
    #f
-   a)))
+   a)) needs-transient-check)
 (sort
  (-poly
   (a b)
@@ -3399,7 +3402,7 @@
    (->optkey (-lst a) ((-> b b Univ))
              #:key (-> a b) #f
              #:default (-> c) #f
-             (Un a c)))))
+             (Un a c)))) needs-transient-check)
 (remove-duplicates
  (-poly
   (a b)
@@ -3431,7 +3434,7 @@
   #f
   (-values (list -Input-Port -Output-Port))))
 (call-with-input-file
-    (-poly (a) (->key -Pathlike (-> -Input-Port a) #:mode (Un (-val 'binary) (-val 'text)) #f a)))
+    (-poly (a) (->key -Pathlike (-> -Input-Port a) #:mode (Un (-val 'binary) (-val 'text)) #f a)) needs-transient-check)
 (call-with-output-file
     (-poly (a)
      (->key
@@ -3443,8 +3446,8 @@
       #:mode
       (one-of/c 'binary 'text)
       #f
-      a)))
-(call-with-input-file* (-poly (a) (->key -Pathlike (-> -Input-Port a) #:mode (Un (-val 'binary) (-val 'text)) #f a)))
+      a)) needs-transient-check)
+(call-with-input-file* (-poly (a) (->key -Pathlike (-> -Input-Port a) #:mode (Un (-val 'binary) (-val 'text)) #f a)) needs-transient-check)
 (call-with-output-file*
  (-poly
   (a)
@@ -3457,8 +3460,8 @@
    #:mode
    (one-of/c 'binary 'text)
    #f
-   a)))
-(with-input-from-file (-poly (a) (->key -Pathlike (-> a) #:mode (Un (-val 'binary) (-val 'text)) #f a)))
+   a)) needs-transient-check)
+(with-input-from-file (-poly (a) (->key -Pathlike (-> a) #:mode (Un (-val 'binary) (-val 'text)) #f a)) needs-transient-check)
 (with-output-to-file
     (-poly
      (a)
@@ -3471,7 +3474,7 @@
       #:mode
       (one-of/c 'binary 'text)
       #f
-      a)))
+      a)) needs-transient-check)
 (port->lines
  (->optkey [-Input-Port]
            #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f

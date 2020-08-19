@@ -78,7 +78,7 @@
   ;; normalise-inputs
   [(make-template-identifier 'normalise-inputs 'racket/private/for)
    (-poly (a)
-          (-> -Symbol -String (-> a -Boolean) (-> a -Nat) a -Nat (Un (-val #f) -Nat) -Nat (-values (list a -Index -Index -Index))))]
+          (-> -Symbol -String (-> a -Boolean) (-> a -Nat) a -Nat (Un (-val #f) -Int) -Int (-values (list a -Index -Index -Index))))]
   ;; make-sequence
   [(make-template-identifier 'make-sequence 'racket/private/for)
    (-polydots (a b)

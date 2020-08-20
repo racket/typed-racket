@@ -1370,16 +1370,18 @@
 ;; default-continuation-prompt-tag is defined in "base-contracted.rkt"
 [call-with-current-continuation
  (-polydots (a b c)
-   (cl->* (-> (-> (-> (Un)) (-values null)) (-values null))
-          (-> (-> (->... (list a) (c c) (Un))
-                  (make-ValuesDots (list (-result b)) c 'c))
-              (make-ValuesDots (list (-result (Un a b))) c 'c))))]
+   (cl->* (->opt (-> (-> (Un)) (-values null)) (-Prompt-TagTop) (-values null))
+          (->opt (-> (->... (list a) (c c) (Un))
+                     (make-ValuesDots (list (-result b)) c 'c))
+                 (-Prompt-TagTop)
+                 (make-ValuesDots (list (-result (Un a b))) c 'c))))]
 [call/cc
  (-polydots (a b c)
-   (cl->* (-> (-> (-> (Un)) (-values null)) (-values null))
-          (-> (-> (->... (list a) (c c) (Un))
-                  (make-ValuesDots (list (-result b)) c 'c))
-              (make-ValuesDots (list (-result (Un a b))) c 'c))))]
+   (cl->* (->opt (-> (-> (Un)) (-values null)) (-Prompt-TagTop) (-values null))
+          (->opt (-> (->... (list a) (c c) (Un))
+                     (make-ValuesDots (list (-result b)) c 'c))
+                 (-Prompt-TagTop)
+                 (make-ValuesDots (list (-result (Un a b))) c 'c))))]
 [call-with-composable-continuation
  (-polydots (b c a)
    (-> ;; takes a continuation and should return the same

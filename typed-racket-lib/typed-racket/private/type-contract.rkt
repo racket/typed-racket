@@ -527,7 +527,7 @@
         (continuation-mark-key/sc (t->sc t))]
        ;; TODO: this is not quite right for case->
        [(Prompt-Tagof: s (Fun: (list (Arrow: ts _ _ _))))
-        (prompt-tag/sc (map t->sc ts) (t->sc s))]
+        (prompt-tag/sc (map t->sc ts) (list (t->sc s)))]
        [(Exist: (list n) (Fun: (list li-arrs ...)))
         (define (occur? t)
           (if (or (not t) (empty? t)) #f

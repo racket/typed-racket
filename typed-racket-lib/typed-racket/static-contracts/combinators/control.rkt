@@ -35,7 +35,11 @@
      (define (sc->constraints v f)
        (merge-restricts* 'chaperone (map f (pt-seq->list (combinator-args v)))))])
 
-(struct pt-seq (vals call-cc))
+(struct pt-seq (vals call-cc)
+  #:inspector (make-inspector)
+  #:property prop:sequence
+  (lambda (s)
+    (append (pt-seq-vals s) (pt-seq-call-cc s))))
 
 (define (prompt-tag/sc vals call-cc)
   (prompt-tag-combinator (pt-seq vals call-cc)))

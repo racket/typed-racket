@@ -36,7 +36,7 @@
        (merge-restricts* 'chaperone (map f (pt-seq->list (combinator-args v)))))])
 
 (struct pt-seq (vals call-cc)
-  #:inspector (make-inspector)
+  #:transparent
   #:property prop:sequence
   (lambda (s)
     (append (pt-seq-vals s) (pt-seq-call-cc s))))

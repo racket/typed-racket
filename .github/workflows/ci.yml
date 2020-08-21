@@ -11,7 +11,7 @@ jobs:
         racket-variant: ["regular", "CS"]
     steps:
       - uses: actions/checkout@master
-      - uses: Bogdanp/setup-racket@v0.3
+      - uses: Bogdanp/setup-racket@v0.10
         with:
           architecture: x64
           distribution: full

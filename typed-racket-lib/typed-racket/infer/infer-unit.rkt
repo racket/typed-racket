@@ -753,7 +753,7 @@
          (define type
            (for/or ([t (in-list (list -Byte -Index -NonNegFixnum -Nat))])
              (and (subtype S t) t)))
-         (cgen/seq context (seq (list type) -null-end) ts*)]
+         (and type (cgen/seq context (seq (list type) -null-end) ts*))]
         [((or (Mutable-HashTable: k v)
               (Immutable-HashTable: k v)
               (Weak-HashTable: k v))

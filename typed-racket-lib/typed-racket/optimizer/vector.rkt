@@ -79,7 +79,7 @@
                          #`(when (immutable? new-v)
                              (op new-v i.opt new.opt ...)) ; produces the correct error message
                          #'(begin))
-                   (op.unsafe v.opt i.opt new.opt ...)))
+                   (op.unsafe new-v i.opt new.opt ...)))
 
   ;; we can do the bounds checking separately, to eliminate some of the checks
   (pattern (#%plain-app op:vector-op v:opt-expr i:fixnum-expr new:opt-expr ...)

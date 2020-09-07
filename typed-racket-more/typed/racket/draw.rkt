@@ -161,6 +161,7 @@
             [-LoadFileKind (Un (-inst (parse-type #'Color%)) (-val #f)) Univ]
             #:backing-scale -Real #f
             #:try-@2x? Univ #f
+            #:get-data-from-file? Univ #f
             (-inst (parse-type #'Bitmap%)))]
  [recorded-datum->procedure
   (-> Univ (-> (-inst (parse-type #'DC<%>)) -Void))]

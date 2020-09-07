@@ -63,12 +63,17 @@
                  (List (U Path-String Input-Port)
                        Any (Option (Instance Color%)) Any
                        Real)
+                 (List (U Path-String Input-Port)
+                       Any (Option (Instance Color%)) Any
+                       Real
+                       Any)
                  (List Bytes Integer Integer)))
    [get-argb-pixels
     (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
          [Any Any #:unscaled? Any]
          Void)]
    [get-backing-scale (-> Positive-Real)]
+   [get-data-from-file (-> (Option (Vector LoadFileKind (Option (Instance Color%)) Bytes)))]
    [get-depth (-> Exact-Nonnegative-Integer)]
    [get-handle (-> Any)]
    [get-height (-> Exact-Positive-Integer)]
@@ -76,11 +81,12 @@
    [get-width (-> Exact-Positive-Integer)]
    [has-alpha-channel? (-> Boolean)]
    [is-color? (-> Boolean)]
-   [load-file (case->
-               ((U String Path Input-Port) -> Boolean)
-               ((U String Path Input-Port) LoadFileKind -> Boolean)
-               ((U String Path Input-Port) LoadFileKind (Option (Instance Color%)) -> Boolean)
-               ((U String Path Input-Port) LoadFileKind (Option (Instance Color%)) Any -> Boolean))]
+   [load-file (->* ((U String Path Input-Port))
+                   (LoadFileKind
+                    (Option (Instance Color%))
+                    Any
+                    #:save-data-from-file? Any)
+                   Boolean)]
    [make-dc (-> (Instance Bitmap-DC%))]
    [ok? (-> Boolean)]
    [save-file (case->

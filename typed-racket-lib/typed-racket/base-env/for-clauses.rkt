@@ -6,20 +6,24 @@
 
 (provide (all-defined-out))
 
+(define-syntax-class no-opt-expr
+  (pattern e0:expr
+           #:with e (syntax-property #'e0 'for:no-implicit-optimization #t)))
+
 ;; intersperses "#:when #t" clauses to emulate the for* variants' semantics
 (define-splicing-syntax-class for-clause
   #:description "for clause"
   ;; single-valued seq-expr
-  (pattern (~and c (var:optionally-annotated-name seq-expr:expr))
+  (pattern (~and c (var:optionally-annotated-name seq-expr:no-opt-expr))
            #:with (expand ...) #`(#,(syntax/loc #'c
-                                      (var.ann-name seq-expr)))
+                                      (var.ann-name seq-expr.e)))
            #:with (expand* ...) #'(expand ... #:when '#t))
   ;; multi-valued seq-expr
-  (pattern (~and c ((v:optionally-annotated-formal ...) seq-expr:expr))
-           #:with (expand ...) (list (syntax/loc #'c
-                                       ((v.ann-name ...) seq-expr)))
+  (pattern (~and c ((v:optionally-annotated-formal ...) seq-expr:no-opt-expr))
+           #:with (expand ...) (list (quasisyntax/loc #'c
+                                       ((v.ann-name ...) seq-expr.e)))
            #:with (expand* ...) (list (quasisyntax/loc #'c
-                                        ((v.ann-name ...) seq-expr))
+                                        ((v.ann-name ...) seq-expr.e))
                                       #'#:when #''#t))
   (pattern (~seq (~and kw (~or #:when #:unless #:break #:final)) guard:expr)
            #:with (expand ...) (list #'kw #'guard)

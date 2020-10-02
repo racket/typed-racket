@@ -315,11 +315,11 @@ the typed racket language.
            ;; single-valued seq-expr
            ;; unlike the definitions in for-clauses.rkt, this does not include
            ;; #:when clauses, which are handled separately here
-           (pattern (~seq (var:optionally-annotated-name seq-expr:expr))
-                    #:with (expand ...) #'((var.ann-name seq-expr)))
+           (pattern (~seq (var:optionally-annotated-name seq-expr:no-opt-expr))
+                    #:with (expand ...) #'((var.ann-name seq-expr.e)))
            ;; multi-valued seq-expr
-           (pattern ((v:optionally-annotated-formal ...) seq-expr:expr)
-                    #:with (expand ...) #'(((v.ann-name ...) seq-expr)))
+           (pattern ((v:optionally-annotated-formal ...) seq-expr:no-opt-expr)
+                    #:with (expand ...) #'(((v.ann-name ...) seq-expr.e)))
            ;; break-clause, pass it directly
            ;; Note: these don't ever typecheck
            (pattern (~seq (~and kw (~or #:break #:final)) guard-expr:expr)

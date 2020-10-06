@@ -2522,6 +2522,7 @@
           (case-> (Real Real -> (Option (Instance Snip%)))
                   (Real Real (Option (Instance Snip%))
                    -> (Option (Instance Snip%))))]
+         [get-area-selectable (-> Boolean)]
          [get-center (-> (Values Real Real))]
          [get-dragable (-> Boolean)]
          [get-scroll-step (-> Nonnegative-Real)]
@@ -2558,6 +2559,7 @@
          [remove-selected ((Instance Snip%) -> Void)]
          [resize ((Instance Snip%) Real Real -> Void)]
          [set-after ((Instance Snip%) (Option (Instance Snip%)) -> Void)]
+         [set-area-selectable (Any -> Void)]
          [set-before ((Instance Snip%) (Option (Instance Snip%)) -> Void)]
          [set-dragable (Any -> Void)]
          [set-scroll-step (Real -> Void)]

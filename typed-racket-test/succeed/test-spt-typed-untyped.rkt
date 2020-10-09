@@ -4,7 +4,7 @@
   (provide prop:foo foo?)
   (: prop:foo (Struct-Property (-> Self Number)))
   (: foo? (-> Any Boolean : (Has-Struct-Property prop:foo)))
-  (: foo-ref (Exist (X) (-> (Has-Struct-Property prop:foo) (-> X Number) : X)))
+  (: foo-ref (Some (X) (-> (Has-Struct-Property prop:foo) (-> X Number) : X)))
   (define-values (prop:foo foo? foo-ref) (make-struct-type-property 'foo))
 
   (provide bar bar1 foo-ref)

@@ -2333,7 +2333,7 @@
 [prop:custom-write (-struct-property (-> -Self -Output-Port (Un B (-val 1) (-val 0)) ManyUniv)
                                      #'custom-write?)]
 [custom-write? (-> Univ B : (-has-struct-property prop:custom-write))]
-[custom-write-accessor (-exist (me) (-> (-has-struct-property prop:custom-write) (-> me -Output-Port (Un B (-val 1) (-val 0)) ManyUniv) : me))]
+[custom-write-accessor (-some (me) (-> (-has-struct-property prop:custom-write) (-> me -Output-Port (Un B (-val 1) (-val 0)) ManyUniv) : me))]
 
 [prop:custom-print-quotable (-struct-property (Un (-val 'self)
                                                   (-val 'never)

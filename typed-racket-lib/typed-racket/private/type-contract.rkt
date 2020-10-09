@@ -528,14 +528,14 @@
        ;; TODO: this is not quite right for case->
        [(Prompt-Tagof: s (Fun: (list (Arrow: ts _ _ _))))
         (prompt-tag/sc (map t->sc ts) (list (t->sc s)))]
-       [(Exist: (list n) (Fun: (list li-arrs ...)))
+       [(Some: (list n) (Fun: (list li-arrs ...)))
         (define (occur? t)
           (if (or (not t) (empty? t)) #f
               (set-member? (free-vars-names (free-vars* t)) n)))
 
         (define (err)
           (fail #:reason
-                "contract generation only supports Exist Type in this form: (Exist (X) (-> ty1 ... (-> X ty ... ty2) : X))"))
+                "contract generation only supports Some Type in this form: (Some (X) (-> ty1 ... (-> X ty ... ty2) : X))"))
         
         (define (get-dom-rng li-arrs)
           (match li-arrs

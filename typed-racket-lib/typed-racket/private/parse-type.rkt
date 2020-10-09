@@ -57,8 +57,8 @@
 
 ;; current-in-struct-prop: Parameter<Boolean>
 ;; This parameter is set to #t if (Struct-Property ty) is being parsed.
-;; The typechecker uses this parameter to determine if parsing types
-;; like Self and Imp are inside Struct-Property.
+;; The typechecker uses this parameter to determine if parsing Self
+;; is inside Struct-Property.
 (define current-in-struct-prop (make-parameter #f))
 
 (define-syntax-rule (with-local-term-names bindings e ...)
@@ -160,7 +160,6 @@
 (define-literal-syntax-class #:for-label Refine)
 (define-literal-syntax-class #:for-label Self)
 (define-literal-syntax-class #:for-label Exist)
-(define-literal-syntax-class #:for-label Imp)
 (define-literal-syntax-class #:for-label not)
 (define-literal-syntax-class #:for-label and)
 (define-literal-syntax-class #:for-label or)
@@ -565,10 +564,8 @@
   (pattern e:expr
            #:attr object -empty-obj))
 
-(define-syntax-class self/imp
+(define-syntax-class self
   #:attributes (type)
-  (pattern i:Imp^
-           #:attr type -Imp)
   (pattern i:Self^
            #:attr type -Self))
 
@@ -1099,7 +1096,7 @@
       [:->^
        (parse-error #:delayed? #t "incorrect use of -> type constructor")
        Err]
-      [id:self/imp
+      [id:self
        (cond
          [(current-in-struct-prop) (attribute id.type)]
          [else (parse-error (~a (syntax-e #'id) " is not allowed outside the type annotation for Struct-Property"))])]

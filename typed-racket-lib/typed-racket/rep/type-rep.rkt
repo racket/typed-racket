@@ -71,7 +71,7 @@
          substitute-names
          set-struct-property-pred!
          DepFun/ids:
-         Exist-names:
+         Some-names:
          Struct-Property?
          (rename-out [Union:* Union:]
                      [Intersection:* Intersection:]
@@ -96,8 +96,8 @@
                      [Intersection-prop* Intersection-prop]
                      [Struct-Property* make-Struct-Property]
                      [Struct-Property:* Struct-Property:]
-                     [Exist* make-Exist]
-                     [Exist:* Exist:]))
+                     [Some* make-Some]
+                     [Some:* Some:]))
 
 (define (resolvable? x)
   (or (Mu? x)
@@ -553,11 +553,11 @@
   [#:custom-constructor (make-Opaque (normalize-id pred))])
 
 ;; body is a type
-(def-type Exist ([n exact-nonnegative-integer?]
+(def-type Some ([n exact-nonnegative-integer?]
                  [body Type?])
   #:no-provide
   [#:frees (f) (f body)]
-  [#:fmap (f) (make-Exist n (f body))]
+  [#:fmap (f) (make-Some n (f body))]
   [#:for-each (f) (f body)])
 
 
@@ -1924,45 +1924,45 @@
                        methods-pat augments-pat init-rest-pat)))])))
 
 ;;***************************************************************
-;; Smart Constructors for Exist structs
+;; Smart Constructors for Some structs
 ;;***************************************************************
-(define (Exist* names body)
+(define (Some* names body)
   (cond
     [(null? names) body]
-    [else (define v (make-Exist (length names) (abstract-type body names)))
+    [else (define v (make-Some (length names) (abstract-type body names)))
           (hash-set! type-var-name-table v names)
           v]))
 
 ;; the 'smart' destructor
-(define (Exist-body* names t)
+(define (Some-body* names t)
   (match t
-    [(Exist: n body)
+    [(Some: n body)
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
      (instantiate-type body (map make-F names))]))
 
 
-(define-match-expander Exist-names:
+(define-match-expander Some-names:
   (lambda (stx)
     (syntax-case stx ()
       [(_ nps bp)
-       #'(? Exist?
+       #'(? Some?
             (app (lambda (t)
-                   (let* ([n (Exist-n t)]
+                   (let* ([n (Some-n t)]
                           [syms (hash-ref type-var-name-table t (λ _ (build-list n (λ _ (gensym)))))])
-                     (list syms (Exist-body* syms t))))
+                     (list syms (Some-body* syms t))))
                  (list nps bp)))])))
 
-(define-match-expander Exist:*
+(define-match-expander Some:*
   (lambda (stx)
     (syntax-case stx ()
       [(_ nps bp)
-       #'(? Exist?
-            (app (lambda (t) (let* ([n (Exist-n t)]
+       #'(? Some?
+            (app (lambda (t) (let* ([n (Some-n t)]
                                     [syms (cond
                                             [(hash-ref type-var-name-table t #f) => (λ (names) (map gensym names))]
                                             [else (build-list n (λ _ (gensym)))])])
-                               (list syms (Exist-body* syms t))))
+                               (list syms (Some-body* syms t))))
                  (list nps bp)))])))
 
 

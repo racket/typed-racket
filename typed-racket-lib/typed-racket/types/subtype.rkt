@@ -800,7 +800,6 @@
    (match t2
      [(Evt: result2) (subtype* A result1 result2)]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: Exist (Exist: _ _)) #f]
   [(case: F (F: var1))
    (match t2
      ;; tvars are equal if they are the same variable
@@ -814,7 +813,7 @@
      ;; special case when t1 can be collapsed into simpler arrow
      [((? DepFun? dfun) (app collapsable-arrows? (? Arrow? arrow1)))
       (arrow-subtype-dfun* A arrow1 dfun)]
-     [((Exist: (list n) body) (list arr1))
+     [((Some: (list n) body) (list arr1))
       (match-define (F: self-var) -Self)
       (define n-arrow (subst self-var (make-F n) arr1))
       (match-define (Fun: (list arrow2)) body)
@@ -1171,6 +1170,7 @@
      [(SequenceTop:) A]
      [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: Some (Some: _ _)) #f]  
   [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _ properties))
    (match t2
      ;; Avoid resolving things that refer to different structs.

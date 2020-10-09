@@ -10,4 +10,4 @@
   (require/typed (submod ".." untyped)
     [foo? (-> Any Boolean)]
     [prop:foo (Struct-Property (-> Self Number) foo?)]
-    [foo-ref (Exist (X) (-> (Has-Struct-Property prop:foo) (-> X Number) : X))]))
+    [foo-ref (Some (X) (-> (Has-Struct-Property prop:foo) (-> X Number) : X))]))

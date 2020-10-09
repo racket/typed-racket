@@ -347,7 +347,7 @@
    [(Struct-Property (-> Self Number)) (-struct-property (t:-> -Self -Number) #f)]
    [FAIL (-> Self Number)]
 
-   [(Exist (X) (-> Number (-> X Number) : X)) (-exist (X) (t:-> -Number (t:-> X -Number) : (-PS (-is-type 0 X) (-not-type 0 X))))]
+   [(Some (X) (-> Number (-> X Number) : X)) (-some (X) (t:-> -Number (t:-> X -Number) : (-PS (-is-type 0 X) (-not-type 0 X))))]
 
    ;;; Classes
    [(Class) (-class)]

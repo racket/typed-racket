@@ -735,8 +735,8 @@
     ;; FIXME: should this print constraints too
     [(PolyRow-names: names _ body)
      `(All (,(car names) #:row) ,(t->s body))]
-    [(Exist-names: n body)
-     `(Exist ,n ,(t->s body))]
+    [(Some-names: n body)
+     `(Some ,n ,(t->s body))]
     ;; x1 --> ()
     [(Mu-unsafe:
       (Syntax: (Union: (== (Un -Number -Boolean -Symbol -String))

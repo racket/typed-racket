@@ -21,7 +21,8 @@
 (define-other-types
   -> ->* case-> U Union ∩ Intersection Rec All Opaque Immutable-Vector Mutable-Vector Vector
   Parameterof List List* Class Object Row Unit Values AnyValues Instance Refinement
-  pred Struct Struct-Type Prefab PrefabTop Distinction Sequenceof Refine Self Struct-Property Has-Struct-Property Exist)
+  pred Struct Struct-Type Prefab PrefabTop Distinction Sequenceof Refine Self Struct-Property Has-Struct-Property Some)
+
 
 (define-other-props
   Top Bot !)

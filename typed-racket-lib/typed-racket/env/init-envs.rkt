@@ -266,7 +266,7 @@
                                                   `(quote-syntax ,p)))))]
     [(StructType: struct) `(make-StructType ,(type->sexp struct))]
     [(Struct-Property: ty pred-id) `(make-Struct-Property ,(type->sexp ty) (quote-syntax ,pred-id))]
-    [(Exist-names: ns body) `(make-Exist (list ,@(map (λ (i) `(quote ,i)) ns)) ,(type->sexp body))]
+    [(Some-names: ns body) `(make-Some (list ,@(map (λ (i) `(quote ,i)) ns)) ,(type->sexp body))]
     [(Has-Struct-Property: sym) `(make-Has-Struct-Property (quote-syntax ,sym))]
     [(Prefab: key flds)
      `(make-Prefab (quote ,key)

@@ -2,7 +2,7 @@
 
 (: prop:foo (Struct-Property (-> Self Number)))
 (: _1 (-> Any Boolean : (Has-Struct-Property prop:foo)))
-(: _2 (Exist (A) (-> (Has-Struct-Property prop:foo) (-> A Number) : A)))
+(: _2 (Some (A) (-> (Has-Struct-Property prop:foo) (-> A Number) : A)))
 (define-values (prop:foo _1 _2) (make-struct-type-property 'foo))
 
 (struct use-foo () #:property prop:foo (λ ([this : use-foo]) 10))

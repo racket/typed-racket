@@ -159,7 +159,7 @@
 (define-literal-syntax-class #:for-label Intersection)
 (define-literal-syntax-class #:for-label Refine)
 (define-literal-syntax-class #:for-label Self)
-(define-literal-syntax-class #:for-label Exist)
+(define-literal-syntax-class #:for-label Some)
 (define-literal-syntax-class #:for-label not)
 (define-literal-syntax-class #:for-label and)
 (define-literal-syntax-class #:for-label or)
@@ -802,10 +802,10 @@
        (parse-quoted-type #'t)]
       [(:All^ . rest)
        (parse-all-type stx)]
-      [(:Exist^ (x:id ...) . t:omit-parens)
+      [(:Some^ (x:id ...) . t:omit-parens)
        (define names (map syntax-e (syntax->list #'(x ...))))
        (extend-tvars names
-                     (make-Exist names
+                     (make-Some names
                                  (parse-type #'t.type)))]
       [(:Opaque^ p?:id)
        (make-Opaque #'p?)]

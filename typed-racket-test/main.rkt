@@ -2,6 +2,7 @@
 
 (require rackunit rackunit/text-ui racket/file
          racket/port rackunit/log
+         racket/string
          compiler/compiler setup/setup racket/promise
          racket/match syntax/modcode
          racket/promise racket/runtime-path
@@ -45,13 +46,14 @@
 
 (define-runtime-path src-dir ".")
 
-(define (mk-tests dir test #:error [error? #f])
+(define (mk-tests dir test #:error [error? #f] #:exclude [excl ""] )
   (lambda ()
     (define path (build-path src-dir dir))
     (define prms
       (for/list ([i (in-naturals)]
                  [p (directory-list path)]
                  #:when (scheme-file? p)
+                 #:unless (and (not (equal? excl "")) (string-contains? (path->string p) excl))
 		 ;; skip backup files
 		 #:when (not (regexp-match #rx".*~" (path->string p))))
         (define p* (build-path path p))
@@ -83,10 +85,14 @@
             (force prm))))))
     (make-test-suite dir tests)))
 
-(define succ-tests (mk-tests "succeed"
+
+
+(define (int-tests [excl ""])
+  (define succ-tests (mk-tests "succeed"
                              (lambda (p thnk) 
-                               (check-not-exn thnk))))
-(define fail-tests (mk-tests "fail"
+                               (check-not-exn thnk))
+                             #:exclude excl))
+  (define fail-tests (mk-tests "fail"
                              (lambda (p thnk)
                                (define-values (pred info) (exn-pred p))
                                (parameterize ([error-display-handler void])
@@ -94,8 +100,7 @@
                                   (['predicates info])
                                   (check-exn pred thnk))))
                              #:error #t))
-
-(define (int-tests)
+  
   (test-suite "Integration tests"
               (succ-tests)
               (fail-tests)))
@@ -183,6 +188,7 @@
   (define missed-opt? (make-parameter #f))
   (define bench? (make-parameter #f))
   (define math? (make-parameter #f))
+  (define excl (make-parameter ""))
   (define single (make-parameter #f))
   (current-namespace (make-base-namespace))
   (command-line
@@ -197,6 +203,7 @@
    ["--just" path "run only this test" (single (just-one path))]
    ["--nightly" "for the nightly builds" (begin (nightly? #t) (unit? #t) (opt? #t) (missed-opt? #t) (places 1))]
    ["--all" "run all tests" (begin (unit? #t) (int? #t) (opt? #t) (missed-opt? #t) (bench? #t) (math? #t))]
+   ["--excl" test "exclude tests" (excl test)]
    ["-j" num "number of places to use" 
     (let ([n (string->number num)])
       (places (and (integer? n) (> n 1) n)))]
@@ -214,7 +221,7 @@
                            (make-test-suite
                             "Typed Racket Tests"
                             (append (if (unit?)       (list unit-tests)                  '())
-                                    (if (int?)        (list (int-tests))                 '())
+                                    (if (int?)        (list (int-tests (excl)))          '())
                                     (if (opt?)        (list (optimization-tests))        '())
                                     (if (missed-opt?) (list (missed-optimization-tests)) '())
                                     (if (bench?)      (list (compile-benchmarks))        '())

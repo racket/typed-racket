@@ -3,7 +3,7 @@
 (require
   "../utils/utils.rkt"
   (typecheck signatures possible-domains check-below)
-  (types utils abbrev classes type-table)
+  (types utils abbrev classes type-table resolve)
   (rep type-rep)
   (utils tc-utils)
   (env index-env tvar-env scoped-tvar-env)
@@ -71,7 +71,10 @@
 
 ;; do-normal-inst : Type Syntax -> Type
 ;; Instantiate a normal polymorphic type
-(define (do-normal-inst ty inst)
+(define (do-normal-inst ty* inst)
+  (define ty (if (or (Name? ty*) (Mu? ty*))
+                 (resolve ty*)
+                 ty*))
   (cond
     [(not (or (Poly? ty) (PolyDots? ty)))
      (tc-error/expr #:return -Bottom "Cannot instantiate non-polymorphic type ~a"

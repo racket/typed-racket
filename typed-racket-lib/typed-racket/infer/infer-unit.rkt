@@ -927,7 +927,7 @@
                    [(? variance:co?) (i-subst null)]
                    [(? variance:contra?) (i-subst/starred null Univ)]
                    ;; TODO figure out if there is a better subst here
-                   [(? variance:inv) (i-subst null)]))))
+                   [(? variance:inv?) (i-subst null)]))))
      S))
   (define (build-subst m)
     (match m

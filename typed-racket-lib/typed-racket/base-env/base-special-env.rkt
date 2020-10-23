@@ -78,25 +78,24 @@
           (-> -Symbol -String (-> a -Boolean) (-> a -Nat) a -Nat (Un (-val #f) -Nat) -Nat (-values (list a -Index -Index -Index))))]
   ;; make-sequence
   [(make-template-identifier 'make-sequence 'racket/private/for)
-   (-poly (a b)
+   (-polydots (a b)
           (let ([seq-vals
-                 (lambda (a)
+                 (lambda (a b)
                    (-values (list
-                             (-> Univ (-values a))
+                             (-> Univ (-values-dots (list a) b 'b))
                              (Un (-> Univ Univ) (-val #f))
                              (-> Univ Univ)
                              Univ
                              (Un (-> Univ Univ) (-val #f))
-                             (Un (->* a Univ) (-val #f))
-                             (Un (->* (cons Univ a) Univ) (-val #f)))))])
+                             (Un (->... (list a) (b b) Univ) (-val #f))
+                             (Un (->... (list Univ a) (b b) Univ) (-val #f)))))])
             (cl->*
-             (-> Univ -Byte         (seq-vals (list -Byte)))
-             (-> Univ -Index        (seq-vals (list -Index)))
+             (-> Univ -Byte         (seq-vals -Byte b))
+             (-> Univ -Index        (seq-vals -Index b))
              ;; Generous. Negative numbers aren't allowed.
-             (-> Univ -Fixnum       (seq-vals (list -NonNegFixnum)))
-             (-> Univ -Int          (seq-vals (list -Nat)))
-             (-> Univ (-seq a) (seq-vals (list a)))
-             (-> Univ (-seq a b) (seq-vals (list a b))))))]
+             (-> Univ -Fixnum       (seq-vals -NonNegFixnum b))
+             (-> Univ -Int          (seq-vals -Nat b))
+             (->* (list Univ (-seq-dots (list a) b 'b)) (seq-vals a b)))))]
   ;; check-range
   [(make-template-identifier 'check-range 'racket/private/for)
    (-> Univ Univ Univ -Void)]

@@ -1059,7 +1059,7 @@
      [(Param: in2 out2) (subtype-seq A
                                      (subtype* in2 in1)
                                      (subtype* out1 out2))]
-     [_ (subtype* A (cl->* (t-> out1) (t-> in1 -Void)) t2)]
+     [(Fun: _) (subtype* A (cl->* (t-> out1) (t-> in1 -Void)) t2)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Poly (Poly: names b1))
    (match t2

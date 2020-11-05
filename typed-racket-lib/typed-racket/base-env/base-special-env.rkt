@@ -72,6 +72,10 @@
           (->opt -SingleFlonum -Real [-SingleFlonum] (-lst -SingleFlonum))
           (->opt -InexactReal -Real [-InexactReal] (-lst -InexactReal))
           (->opt -Real -Real [-Real] (-lst -Real)))]
+  ;; unsafe-normalise-inputs
+  [(make-template-identifier 'unsafe-normalise-inputs 'racket/private/for)
+   (-poly (a)
+          (-> (-> a -Nat) a -Nat (Un (-val #f) -Nat) -Nat (-values (list a -Index -Index -Index))))]
   ;; normalise-inputs
   [(make-template-identifier 'normalise-inputs 'racket/private/for)
    (-poly (a)

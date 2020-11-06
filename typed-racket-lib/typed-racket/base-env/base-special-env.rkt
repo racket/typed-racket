@@ -17,15 +17,14 @@
 (provide make-template-identifier)
 
 (define (make-template-identifier what where)
-  (let ([name (module-path-index-resolve (module-path-index-join where #f))])
-    (parameterize ([current-namespace (make-empty-namespace)])
-      (namespace-attach-module (current-namespace) ''#%kernel)
-      (parameterize ([current-module-declare-name name])
-        (eval `(,#'module any '#%kernel
-                 (#%provide ,what)
-                 (define-values (,what) #f))))
-      (namespace-require `(for-template ,name))
-      (namespace-syntax-introduce (datum->syntax #f what)))))
+  (define s
+    (syntax-binding-set-extend
+     (syntax-binding-set)
+     what
+     (sub1
+      (variable-reference->module-base-phase (#%variable-reference)))
+     (module-path-index-join where #f)))
+  (syntax-binding-set->syntax s what))
 
 
 (define-initial-env initialize-special

@@ -684,7 +684,22 @@ the typed racket language.
        (if (attribute return.type)
            #`(ann last-e #,(attribute return.type))
            #'last-e))
-     (define d (syntax/loc stx (λ formals.erased e ... last-e*)))
+
+     ;; if the lambda form being checked is a polymorphic function, tag its
+     ;; parameters with property `from-lambda'. 
+     (define (maybe-set-from-lambda type-vars formals)
+       (cond
+         [(and type-vars (stx-list? formals))
+          (stx-map (lambda (x)
+                     (from-plambda-property x #t))
+                   formals)]
+         [type-vars (from-plambda-property formals #t)]
+         [else formals]))
+
+     (define d (with-syntax ([erase-formals (maybe-set-from-lambda
+                                             (attribute vars.type-vars)
+                                             (attribute formals.erased))])
+                 (syntax/loc stx (λ erase-formals e ... last-e*))))
      (define d/prop
        (if (attribute formals.kw-property)
            (kw-lambda-property d (attribute formals.kw-property))

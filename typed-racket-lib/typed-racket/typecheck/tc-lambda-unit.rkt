@@ -43,14 +43,28 @@
 ;; (i.e. (append positional (or id '())) but syntax)
 (struct formals (positional rest syntax) #:transparent)
 
-(define (make-formals stx)
+
+;; When expanding a keyword or optional lambda, Racket adds into the expanded
+;; code more lambdas, where syntax objects for the original lambda's parameters
+;; are reused. Since Typed Racket stores type information stored in the syntax
+;; objects, when the orginal lambda is a polymorphic function, that information
+;; might carry out-of-scope type variables. In this case, we need to remove it
+;; from parameter syntax objects.
+;;
+;; not-in-poly is #t if the original TR function is polymorphic. 
+(define (make-formals stx [not-in-poly #t])
+  (define (maybe-remove a)
+    (if (and not-in-poly (from-plambda-property a))
+        (syntax-property-remove a 'type-label)
+        a))
+
   (let loop ([s stx] [acc null])
     (cond
-      [(pair? s) (loop (cdr s) (cons (car s) acc))]
+      [(pair? s) (loop (cdr s) (cons (maybe-remove (car s)) acc))]
       [(null? s) (formals (reverse acc) #f stx)]
-      [(pair? (syntax-e s)) (loop (stx-cdr s) (cons (stx-car s) acc))]
+      [(pair? (syntax-e s)) (loop (stx-cdr s) (cons (maybe-remove (stx-car s)) acc))]
       [(null? (syntax-e s)) (formals (reverse acc) #f stx)]
-      [else (formals (reverse acc) s stx)])))
+      [else (formals (reverse acc) (maybe-remove s) stx)])))
 
 ;; Currently no support for objects representing the rest argument
 (define (formals->objects f)
@@ -621,7 +635,7 @@
        (tc-error/expr #:return dep-fun-ty
                       "Dependent functions must have a single arity.")])))
 
-(define (tc/mono-lambda/type formalss bodies expected)
+(define (tc/mono-lambda/type formalss bodies expected [not-in-poly #t])
   (match expected
     [(tc-result1:(? DepFun? dep-fun-ty))
      (tc/dep-lambda formalss bodies dep-fun-ty)]
@@ -629,7 +643,7 @@
         (tc/mono-lambda
          (for/list ([f (in-syntax formalss)]
                     [b (in-syntax bodies)])
-           (cons (make-formals f) b))
+           (cons (make-formals f not-in-poly) b))
          expected))]))
 
 (define (plambda-prop stx)
@@ -678,7 +692,7 @@
       [_
         (define remaining-layers (remove-poly-layer tvarss-list))
         (if (null? remaining-layers)
-            (tc/mono-lambda/type formals bodies expected)
+            (tc/mono-lambda/type formals bodies expected #f)
             (tc/plambda form remaining-layers formals bodies expected))]))
   ;; check the bodies appropriately
   ;; and make both annotated and declared type variables point to the

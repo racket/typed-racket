@@ -364,27 +364,33 @@
 
   (define extra-constructor (struct-names-extra-constructor names))
 
+  (define constructor-type (poly-wrapper (->* all-fields poly-base)))
+  
   (define constructor-binding
     (make-def-binding (struct-names-constructor names)
-                      (poly-wrapper (->* all-fields poly-base))))
-  (define constructor-bindings
-    (cons constructor-binding
-          (if extra-constructor
-              (list (make-def-binding extra-constructor
-                                      (poly-wrapper (->* all-fields poly-base))))
-              null)))
+                      constructor-type))
+
+  (define-values (constructor-bindings bindings^)
+    (let ([extra-constructor-bindings
+           (if extra-constructor (list (make-def-binding extra-constructor
+                                                         constructor-type))
+               null)])
+      (values (cons constructor-binding extra-constructor-bindings)
+              (append (cons (make-def-struct-stx-binding (struct-names-type-name names)
+                                                         si
+                                                         (def-binding-ty constructor-binding))
+                            extra-constructor-bindings)
+                      bindings))))
 
   (for ([b (in-list (append constructor-bindings bindings))])
     (register-type (binding-name b) (def-binding-ty b)))
-
+    
   (append
-    (if (free-identifier=? (struct-names-type-name names)
-                           (struct-names-constructor names))
+   (if (free-identifier=? (struct-names-type-name names)
+                          (struct-names-constructor names))
       null
       (list constructor-binding))
-   (cons
-     (make-def-struct-stx-binding (struct-names-type-name names) si (def-binding-ty constructor-binding))
-     bindings)))
+   bindings^))
 
 
 

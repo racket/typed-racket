@@ -378,7 +378,7 @@
       (values (cons constructor-binding extra-constructor-bindings)
               (append (cons (make-def-struct-stx-binding (struct-names-type-name names)
                                                          si
-                                                         (def-binding-ty constructor-binding))
+                                                         constructor-type)
                             extra-constructor-bindings)
                       bindings))))
 

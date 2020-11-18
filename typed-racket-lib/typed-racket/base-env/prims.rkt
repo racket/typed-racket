@@ -762,7 +762,7 @@ the typed racket language.
            #'last-body))
      (define-values (defined-id rhs)
        (normalize-definition
-        #`(define formals.erased body ... last-body*)
+        (syntax/loc stx (define formals.erased body ... last-body*))
         #'-lambda
         #t #t))
      ;; insert in type variables if necessary

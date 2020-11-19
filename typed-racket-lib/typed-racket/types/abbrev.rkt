@@ -7,6 +7,7 @@
 (require "../utils/utils.rkt"
          (utils prefab identifier)
          racket/list
+         racket/lazy-require
          syntax/id-set
          racket/match
          (prefix-in c: (contract-req))
@@ -24,6 +25,7 @@
 
          (for-syntax racket/base syntax/parse))
 
+(lazy-require ("subtype.rkt" (subtype)))
 (provide (all-defined-out)
          (all-from-out "base-abbrev.rkt" "match-expanders.rkt"))
 
@@ -188,11 +190,21 @@
 (define/decl -false-propset (-PS -ff -tt))
 
 (define (opt-fn args opt-args result #:rest [rest #f] #:kws [kws null])
-  (apply cl->* (for/list ([i (in-range (add1 (length opt-args)))])
+  (define ret (for/list ([i (in-range (add1 (length opt-args)))])
                  (make-Fun (list (-Arrow (append args (take opt-args i))
                                          result ;; only the LAST arrow gets the rest arg
                                          #:rest (and (= i (length opt-args)) rest)
-                                         #:kws kws))))))
+                                         #:kws kws)))))
+  (define ret^ (append ret (cond
+                             [rest
+                              (match-define (Rest: (list ty tys ...)) rest)
+                              (list (make-Fun (list (-Arrow
+                                                     (dropf-right opt-args (lambda (x) (subtype ty x)))
+                                                     result
+                                                     #:rest rest
+                                                     #:kws kws))))]
+                             [else null])))
+  (apply cl->* ret^))
 
 (define-syntax-rule (->opt args ... [opt ...] res)
   (opt-fn (list args ...) (list opt ...) res))

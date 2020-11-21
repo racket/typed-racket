@@ -11,7 +11,7 @@
                     [->* t:->*]
                     [one-of/c t:one-of/c])
          (private type-annotation syntax-properties)
-         (types resolve type-table subtype)
+         (types resolve type-table)
          (typecheck signatures tc-metafunctions tc-subst)
          (env lexical-env tvar-env index-env scoped-tvar-env)
          (utils tc-utils)
@@ -639,28 +639,12 @@
   (match expected
     [(tc-result1:(? DepFun? dep-fun-ty))
      (tc/dep-lambda formalss bodies dep-fun-ty)]
-    [_
-     (define arrs (tc/mono-lambda
-                   (for/list ([f (in-syntax formalss)]
-                              [b (in-syntax bodies)])
-                     (cons (make-formals f not-in-poly) b))
-                   expected))
-     
-     (define (maybe-new-arrow arrs)
-       (append arrs (match arrs
-                      [(or (? empty?) (list _)) null]
-                      [(app last (Arrow: dom (and (Rest: (list ty tys ...)) rst) kws rng))
-                       (define new-doms (dropf-right dom (lambda (x) (subtype ty x))))
-                       (if (equal? (length new-doms) dom)
-                           null
-                           (list (make-Arrow new-doms
-                                             rst
-                                             kws
-                                             rng)))]
-                      [_ null])))
-     (define arrs^ (maybe-new-arrow arrs))
-     (make-Fun arrs^)]))
-
+    [_ (make-Fun
+        (tc/mono-lambda
+         (for/list ([f (in-syntax formalss)]
+                    [b (in-syntax bodies)])
+           (cons (make-formals f not-in-poly) b))
+         expected))]))
 
 (define (plambda-prop stx)
   (define d (plambda-property stx))

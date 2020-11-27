@@ -590,6 +590,30 @@
    (cons portable-fixnum? -NonNegFixnum)
    (cons values -Nat)))
 
+(define (maybe-refined-arrows-subtype A arrows1 arrows2)
+  (define (extract arrows)
+    (apply Un (for/list ([arr (in-list arrows)])
+                (match arr
+                  [(Arrow: (list) #f _ _) -Null]
+                  [(Arrow: (list) (Rest: (list rst)) _ _) (-lst rst)]
+                  [(Arrow: dom (Rest: (list rst)) _ _) (-lst (apply Un rst dom))]
+                  [(Arrow: dom #f _ _) (-lst (apply Un dom))]))))
+
+  (subtype* A (extract arrows2) (extract arrows1))
+  ;; For arg types, 
+  ;; () | 
+  ;; Integer |
+  ;; Integer Integer |
+  ;; Integer Integer | Natural *
+  ;; ----------------------------
+  ;; () | Natural *
+  ;; ------------------------
+  ;; The question becomes to
+  ;; -----------------------
+  ;; (Listof Natural)   <=? (U NULL (List Integer) (List Integer Integer) (List* Integer Integer (Listof Natural)))
+  #;
+  #f)
+
 
 (define-rep-switch (subtype-cases A (#:switch t1) t2 obj)
   ;; NOTE: keep these in alphabetical order
@@ -821,11 +845,13 @@
      [((Fun: arrows2) _)
       (cond
         [(null? arrows1) #f]
-        [else (for/fold ([A A])
-                        ([a2 (in-list arrows2)]
-                         #:break (not A))
-                (for/or ([a1 (in-list arrows1)])
-                  (arrow-subtype* A a1 a2)))])]
+        [else (let/ec escape
+                (for/fold ([A A])
+                          ([a2 (in-list arrows2)]
+                           #:break (and (not A) (escape #f)))
+                  (for/or ([a1 (in-list arrows1)])
+                    (arrow-subtype* A a1 a2)))
+                (maybe-refined-arrows-subtype A arrows1 arrows2))])]
      [((? DepFun? dfun) _)
       (for/or ([a1 (in-list arrows1)])
         (arrow-subtype-dfun* A a1 dfun))]

@@ -592,14 +592,34 @@
 
 (define (maybe-refined-arrows-subtype A arrows1 arrows2)
   (define (extract arrows)
-    (apply Un (for/list ([arr (in-list arrows)])
-                (match arr
-                  [(Arrow: (list) #f _ _) -Null]
-                  [(Arrow: (list) (Rest: (list rst)) _ _) (-lst rst)]
-                  [(Arrow: dom (Rest: (list rst)) _ _) (-lst (apply Un rst dom))]
-                  [(Arrow: dom #f _ _) (-lst (apply Un dom))]))))
+    (for/list ([arr (in-list arrows)])
+      (match-define (Arrow: dom rst _ rng) arr)
+      (define res (match* (dom rst)
+                    [((list) #f) -Null]
+                    [((list) (Rest: (list rst))) (-lst rst)]
+                    [(dom (Rest: (list rst)))
+                     (apply -lst*
+                            ;; if an arguments' type is a super type of the rest's,
+                            ;; absorb it into the latter.
+                            ;; TODO: rewrite the comment later.
+                            ;; or should we make a normalize function and then call it here?
+                            (foldl (lambda (t1 acc) 
+                                     (if (subtype rst t1) acc
+                                         (cons t1 acc)))
+                                   null
+                                   dom)
+                            #:tail (-lst rst))]
+                    [(dom #f) (apply -lst* dom)]))
+      (cons res rng)))
+  
+  (for*/or ([i (in-list (extract arrows2))]
+            [j (in-list (extract arrows1))])
+    (and (subtype* A (car i) (car j))
+         (subtype* A (cdr j) (cdr i))))
 
-  (subtype* A (extract arrows2) (extract arrows1))
+  #;#;
+  (eprintf "~a ~n~a ~n" (extract arrows2) (extract arrows1))
+  (and (subtype* A (extract arrows2) (extract arrows1)))
   ;; For arg types, 
   ;; () | 
   ;; Integer |

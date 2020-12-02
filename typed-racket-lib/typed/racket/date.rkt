@@ -4,6 +4,8 @@
  racket/date
  [date->seconds (case-> (date -> Integer)
                         (date Any -> Integer))]
+ [date*->seconds (case-> (date -> Real)
+                         (date Any -> Real))]
  [date->string (case-> (date -> String)
                        (date Any -> String))]
  [current-date (-> date)]

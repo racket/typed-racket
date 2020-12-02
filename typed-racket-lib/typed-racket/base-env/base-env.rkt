@@ -1346,6 +1346,8 @@
 [exn:srclocs? (-> Univ B : (-has-struct-property prop:exn:srclocs))]
 [exn:srclocs-accessor (-> Univ (-lst Univ))] ;TODO
 
+[srcloc->string (-> -Srcloc -String)]
+
 ;; Section 10.3 (Delayed Evaluation)
 [promise? (make-pred-ty (-Promise Univ))]
 [force (-poly (a) (->acc (list (-Promise a)) a (list -force)))]
@@ -1982,40 +1984,63 @@
 
 ;; Section 13.1.9
 [make-input-port
- (let ([specials-func (-> (-opt -Integer) (-opt -Integer) (-opt -Integer) (-opt -Integer) Univ)])
-   (->opt Univ
-          (Un (-> -Bytes (Un -Nat (-val eof) specials-func (-evt Univ)))
-              -Input-Port)
-          (Un (-> -Bytes -Nat (-opt (-evt Univ))
-                  (Un -Nat (-val eof) specials-func (-evt Univ) (-val #f)))
-              -Input-Port
-              (-val #f))
-          (-> Univ)
-          [(-opt (-> (-evt Univ)))
-           (-opt (-> -PosInt (-evt Univ) (-evt Univ) Univ))
-           (-opt (-> (-values (list (-opt -Integer) (-opt -Integer) (-opt -Integer)))))
-           (-> Univ)
-           (Un -Integer -Port (-val #f) (-> (-opt -Integer)))
-           (-opt (cl->* (-> (one-of/c 'block 'none) Univ)
-                        (-> (-opt (one-of/c 'block 'none)))))]
-          -Input-Port))]
+ (let ([specials-func (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)]
+       [get-location-func (-> (-values (list (-opt -PosInt) (-opt -Nat) (-opt -PosInt))))]
+       [commit-func (-> -PosInt (-mu x (-evt x)) (-evt Univ) Univ)]
+       [initial-position (Un -PosInt -Port (-val #f) (-> (-opt -PosInt)))]
+       [buffer-mode (cl->* (-> (one-of/c 'block 'none) Univ)
+                           (-> (-opt (one-of/c 'block 'none))))])
+   (cl->* (->opt Univ
+                 -Input-Port
+                 -Input-Port
+                 (-> Univ)
+                 [(-opt (-> (-mu x (-evt x))))
+                  (-opt commit-func)
+                  (-opt get-location-func)
+                  (-> Univ)
+                  initial-position
+                  (-opt buffer-mode)]
+                 -Input-Port)
+          (->opt Univ
+                 (-> -Bytes (Un -Nat (-val eof) -Input-Port
+                                (-mu x (-evt (Un x -Nat (-val eof) -Input-Port)))))
+                 (-val #f)
+                 (-> Univ)
+                 [(-val #f)
+                  (-val #f)
+                  (-opt get-location-func)
+                  (-> Univ)
+                  initial-position
+                  (-opt buffer-mode)]
+                 -Input-Port)
+          (->opt Univ
+                 (-> -Bytes (Un -Nat (-val eof) specials-func
+                                (-mu x (-evt (Un x -Nat (-val eof) specials-func -Input-Port)))))
+                 (-> -Bytes -Nat (-opt (-mu x (-evt x)))
+                     (Un -Nat (-val eof) specials-func (-evt Univ) (-val #f)))
+                 (-> Univ)
+                 [(-opt (-> (-mu x (-evt x))))
+                  (-opt commit-func)
+                  (-opt get-location-func)
+                  (-> Univ)
+                  initial-position
+                  (-opt buffer-mode)]
+                 -Input-Port)))]
 [make-output-port
  (->opt Univ
         (-evt Univ)
         (Un (-> -Bytes -Nat -Nat -Boolean -Boolean
-                (Un -Integer (-val #f) (-evt Univ)))
+                (Un -Integer (-val #f) -Output-Port (-evt Univ)))
             -Output-Port)
         (-> Univ)
         [(-opt (Un -Output-Port (-> Univ -Boolean -Boolean Univ)))
          (-opt (-> -Bytes -Nat -Nat (-evt Univ)))
          (-opt (-> Univ (-evt Univ)))
-         (-opt (-> (-values (list (-opt -Integer)
-                                  (-opt -Integer)
-                                  (-opt -Integer)))))
+         (-opt (-> (-values (list (-opt -PosInt) (-opt -Nat) (-opt -PosInt)))))
          (-> Univ)
-         (Un -Integer -Port (-val #f) (-> (-opt -Integer)))
-         (-opt (cl->* (-> (one-of/c 'block 'none) Univ)
-                      (-> (-opt (one-of/c 'block 'none)))))]
+         (Un -PosInt -Port (-val #f) (-> (-opt -PosInt)))
+         (-opt (cl->* (-> (one-of/c 'block 'line 'none) Univ)
+                      (-> (-opt (one-of/c 'block 'line 'none)))))]
         -Output-Port)]
 
 ;; Section 13.1.10
@@ -2053,16 +2078,16 @@
 [input-port-append  (->* (list Univ) -Input-Port -Input-Port)]
 
 [make-input-port/read-to-peek
- (let ([specials-func (-> (-opt -Integer) (-opt -Integer) (-opt -Integer) (-opt -Integer) Univ)])
+ (let ([specials-func (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)])
    (->opt Univ
           (-> -Bytes (Un -Nat (-val eof) specials-func (-evt -Zero)))
           (Un (-> -Bytes -Nat (-> -Bytes -Nat (Un -Nat (-val eof) specials-func (-evt -Zero) (-val #f)))
                   (Un -Nat (-val eof) specials-func (-evt -Zero) (-val #f)))
               (-val #f))
           (-> Univ)
-          [(-opt (-> (-values (list (-opt -Integer) (-opt -Integer) (-opt -Integer)))))
+          [(-opt (-> (-values (list (-opt -PosInt) (-opt -Nat) (-opt -PosInt)))))
            (-> Univ)
-           -Integer
+           -PosInt
            (-opt (cl->* (-> (one-of/c 'block 'none) Univ)
                         (-> (-opt (one-of/c 'block 'none)))))
            Univ
@@ -2095,7 +2120,7 @@
 ;; Section 13.1.10.3
 [eof-evt (-> -Input-Port (-evt (-val eof)))]
 [read-bytes-evt (-> -Nat -Input-Port (-evt (Un -Bytes (-val eof))))]
-;read-bytes!-evt (need progress event support)
+[read-bytes!-evt (-> -Bytes -Input-Port (-evt (Un -Nat (-val eof))))]
 [read-bytes-avail!-evt
  (-> -Bytes -Input-Port (-evt (Un -Nat (-val eof))))]
 [read-string-evt (-> -Nat -Input-Port (-evt (Un -String (-val eof))))]
@@ -2107,12 +2132,13 @@
  (-> -Input-Port
      (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one)
      (-evt (Un -Bytes (-val eof))))]
-;peek-bytes-evt (ditto progress event)
-;peek-bytes!-evt
-;peek-bytes-avail!-evt
-;peek-string-evt
-;peek-string!-evt
-;regexp-match-evt
+
+[peek-bytes-evt (-> -Nat -Nat (-opt (-mu x (-evt x))) -Input-Port (-evt (Un -Bytes (-val eof))))]
+[peek-bytes!-evt (-> -Bytes -Nat (-opt (-mu x (-evt x))) -Input-Port (-evt (Un -Nat (-val eof))))]
+[peek-bytes-avail!-evt (-> -Bytes -Nat (-opt (-mu x (-evt x))) -Input-Port (-evt (Un -Nat (-val eof))))]
+[peek-string-evt (-> -Nat -Nat (-opt (-mu x (-evt x))) -Input-Port (-evt (Un -String (-val eof))))]
+[peek-string!-evt (-> -String -Nat (-opt (-mu x (-evt x))) -Input-Port (-evt (Un -Nat (-val eof))))]
+[regexp-match-evt (-> (Un -String -Bytes -Regexp -Byte-Regexp) -Input-Port (-evt (-opt (-pair -Bytes (-lst (-opt -Bytes))))))]
 
 ;; Section 13.1.10.4
 
@@ -2140,9 +2166,9 @@
 
 [peek-string! (->opt -String -Nat [-Input-Port -Nat -Nat] (Un -PosInt (-val eof)))]
 [peek-bytes! (->opt -Bytes -Nat [-Input-Port -Nat -Nat] (Un -PosInt (-val eof)))]
-[peek-bytes-avail! (->opt -Bytes -Nat [(-val #f) -Input-Port -Nat -Nat] (Un -Nat (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
-[peek-bytes-avail!* (->opt -Bytes -Nat [(-val #f) -Input-Port -Nat -Nat] (Un -Nat (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
-[peek-bytes-avail!/enable-break (->opt -Bytes -Nat [(-val #f) -Input-Port -Nat -Nat] (Un -Nat (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
+[peek-bytes-avail! (->opt -Bytes -Nat [(-opt (-mu x (-evt x))) -Input-Port -Nat -Nat] (Un -Nat (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
+[peek-bytes-avail!* (->opt -Bytes -Nat [(-opt (-mu x (-evt x))) -Input-Port -Nat -Nat] (Un -Nat (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
+[peek-bytes-avail!/enable-break (->opt -Bytes -Nat [(-opt (-mu x (-evt x))) -Input-Port -Nat -Nat] (Un -Nat (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
 
 [read-char-or-special (->opt [-Input-Port] Univ)]
 [read-byte-or-special (->opt [-Input-Port] Univ)]
@@ -2152,11 +2178,10 @@
 [peek-char-or-special (->opt [-Input-Port -Nat] Univ)]
 [peek-byte-or-special (->opt [-Input-Port -Nat] Univ)]
 
-;port-progress-evt TODO event
-
+[port-progress-evt (->opt [-Input-Port] (-mu x (-evt x)))]
 [port-provides-progress-evts? (-> -Input-Port B)]
 
-[port-commit-peeked (->opt -Nat Univ Univ [-Input-Port] B)]
+[port-commit-peeked (->opt -Nat (-mu x (-evt x)) (-evt Univ) [-Input-Port] B)]
 
 [byte-ready? (->opt [-Input-Port] B)]
 [char-ready? (->opt [-Input-Port] B)]
@@ -2180,8 +2205,8 @@
 
 ;; Need event type before we can include these
 ;;write-special-avail*
-;;write-bytes-avail-evt
-;;write-special-evt
+[write-bytes-avail-evt (->opt -Bytes [-Output-Port -Nat -Nat] (-evt -Nat))]
+[write-special-evt (->opt Univ [-Output-Port] (-evt B))]
 ;;
 [port-writes-atomic? (-Output-Port . -> . -Boolean)]
 [port-writes-special? (-Output-Port . -> . -Boolean)]
@@ -2760,6 +2785,7 @@
 
 ;; Section 15.2.3
 [current-directory (-Param -Pathlike -Path)]
+[current-directory-for-user (-Param -Pathlike -Path)]
 [current-drive (-> -Path)]
 
 [directory-exists? (-> -Pathlike B)]
@@ -3088,8 +3114,8 @@
         (make-ValuesDots null a 'a)))]
 
 ;; Section 15.6 (Time)
-[seconds->date (cl->* (-Integer . -> . -Date)
-                      (-Integer Univ . -> . -Date))]
+[seconds->date (cl->* (-Real . -> . -Date)
+                      (-Real Univ . -> . -Date))]
 [current-seconds (-> -Integer)]
 [current-milliseconds (-> -Fixnum)]
 [current-inexact-milliseconds (-> -Flonum)]
@@ -3214,7 +3240,11 @@
 ;; Section 18.2 (Libraries and Collections)
 [find-library-collection-paths (->opt [(-lst -Pathlike) (-lst -Pathlike)] (-lst -Path))]
 [find-library-collection-links (-> (-lst (-opt -Path)))]
-[collection-file-path (->* (list -Pathlike) -Pathlike -Path)]
+[collection-file-path
+ (-poly (a)
+        (cl->*
+         (->optkey -Pathlike -Pathlike [] #:rest -Pathlike #:check-compiled? Univ #f -Path)
+         (->optkey -Pathlike -Pathlike [] #:rest -Pathlike #:fail (-String . -> . a) #f #:check-compiled? Univ #f (Un a -Path))))]
 [collection-path (->* (list) -Pathlike -Path)]
 [current-library-collection-paths (-Param (-lst -Path) (-lst -Path))]
 [current-library-collection-links

@@ -590,6 +590,62 @@
    (cons portable-fixnum? -NonNegFixnum)
    (cons values -Nat)))
 
+(define (maybe-refined-arrows-subtype A arrows1 arrows2)
+  (let/ec k 
+    (define (extract arrows)
+      (for/list ([arr (in-list arrows)])
+        (match-define (Arrow: dom rst kw rng) arr)
+        (unless (null? kw) (k #f))
+        (define res (match* (dom rst)
+                      [((list) #f ) -Null]
+                      [((list) (Rest: (list rst))) (-lst rst)]
+                      [(dom (Rest: (list rst)))
+                       (apply -lst*
+                              ;; if an arguments' type is a super type of the rest's,
+                              ;; absorb it into the latter.
+                              ;; TODO: rewrite the comment later.
+                              ;; or should we make a normalize function and then call it here?
+                              (foldl (lambda (t1 acc) 
+                                       (if (subtype rst t1) (cons rst acc)
+                                           (cons t1 acc)))
+                                     null
+                                     dom)
+                              #:tail (-lst rst))]
+                      [(dom #f) (apply -lst* dom)]
+                      ;; remove the default case
+                      [(_ _) (k #f)]))
+        (cons res rng)))
+    
+    (for/and ([i (in-list (extract arrows2))])
+      (for/and ([j (in-list (extract arrows1))])
+        (and (subtype* A (car j) (car i))
+             (subtype* A (cdr j) (cdr i))))))
+
+  #;#;
+  (eprintf "~a ~n~a ~n" (extract arrows2) (extract arrows1))
+  (and (subtype* A (extract arrows2) (extract arrows1)))
+  ;; For arg types, 
+  ;; () | 
+  ;; Integer |
+  ;; Integer Integer |
+  ;; Integer Integer | Natural *
+  ;; ----------------------------
+  ;; () | Natural *
+  ;; ------------------------
+  ;; The question becomes
+  ;; -----------------------
+  ;; 0,1,2 .......        | 0 or 1 or >= 2
+  ;; (Listof Natural)   <=? (Μu X (U Null (Pairof Integer Null) (Pairof Integer (Pairof Integer X))
+  ;;                        (U NULL (List Integer) (List* Integer Integer (Listof Natural)))
+  ;; to show t_f >= t_g
+  ;; normally, we say t_param_f <= t_param_g, t_ret_f >= t_ret_g
+  ;; 
+  ;; (f null)            (g_0 null)
+  ;; (f '(1))            (g_1 '(1))
+  ;; (f '(1 2))          (g_2 '(1 2))
+  ;; (f '(1 2 3))        (g_3 '(1 2 3))
+  #f)
+
 
 (define-rep-switch (subtype-cases A (#:switch t1) t2 obj)
   ;; NOTE: keep these in alphabetical order
@@ -821,11 +877,14 @@
      [((Fun: arrows2) _)
       (cond
         [(null? arrows1) #f]
-        [else (for/fold ([A A])
-                        ([a2 (in-list arrows2)]
-                         #:break (not A))
-                (for/or ([a1 (in-list arrows1)])
-                  (arrow-subtype* A a1 a2)))])]
+        [else (let/ec k1
+                (for/fold ([A A]
+                           #:result (when A (k1 A)))
+                          ([a2 (in-list arrows2)]
+                           #:break (not A))
+                  (for/or ([a1 (in-list arrows1)])
+                    (arrow-subtype* A a1 a2)))
+                (maybe-refined-arrows-subtype A arrows1 arrows2))])]
      [((? DepFun? dfun) _)
       (for/or ([a1 (in-list arrows1)])
         (arrow-subtype-dfun* A a1 dfun))]

@@ -1012,9 +1012,10 @@
        (set! ts (append ts* ts))
        (for ([t* (in-list ts*)])
          (set! elems (hash-set elems t* #t)))]
-      [t (set! m (mask-union m (mask t)))
-         (set! ts (cons t ts))
-         (set! elems (hash-set elems t #t))]))
+      [t
+       (set! m (mask-union m (mask t)))
+       (set! ts (cons t ts))
+       (set! elems (hash-set elems t #t))]))
   ;; process the input arguments
   (process! base-arg)
   (for-each process! args)

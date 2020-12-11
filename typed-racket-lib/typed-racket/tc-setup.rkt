@@ -50,14 +50,14 @@
 
 (define-logger online-check-syntax)
 
-(define (tc-setup orig-stx stx expand-ctxt do-expand stop-forms k)
+(define (tc-setup orig-stx stx expand-ctxt do-expand stop-forms k #:delay-errors? [delay-errors^? #t])
   (set-box! typed-context? #t)
   ;(start-timing (syntax-property stx 'enclosing-module-name))
   (with-handlers
       (#;[(λ (e) (and (exn:fail? e) (not (exn:fail:syntax? e)) (not (exn:fail:filesystem? e))))
           (λ (e) (tc-error "Internal Typed Racket Error : ~a" e))])
     (parameterize (;; do we report multiple errors
-                   [delay-errors? #t]
+                   [delay-errors? delay-errors^?]
                    ;; do we print the fully-expanded syntax?
                    [print-syntax? #f]
                    ;; this parameter is just for printing types
@@ -91,7 +91,7 @@
               (do-time "Trampoline the top-level checker")
               (tc-toplevel-start (or (orig-module-stx) orig-stx) head-expanded-stx))))
 
-(define (tc-module/full orig-stx stx k)
+(define (tc-module/full orig-stx stx k #:delay-errors? [delay-errors^? #t])
   (tc-setup orig-stx stx 'module-begin local-expand (list #'module*)
             (λ (fully-expanded-stx)
               (do-time "Starting `checker'")
@@ -100,4 +100,5 @@
                 (call-with-values (λ () (tc-module fully-expanded-stx))
                   (λ results
                     (do-time "Typechecking Done")
-                    (apply k fully-expanded-stx results)))))))
+                    (apply k fully-expanded-stx results)))))
+            #:delay-errors? delay-errors^?))

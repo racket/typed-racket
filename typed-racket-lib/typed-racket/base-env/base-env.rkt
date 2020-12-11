@@ -3422,7 +3422,7 @@
   (a b)
   (cl->*
    (->key (-lst a) (-> a a -Boolean) #:key (-opt (-> a a)) #f #:cache-keys? -Boolean #f (-lst a))
-   (->key (-lst a) (-> b b -Boolean) #:key (-opt (-> a b)) #f #:cache-keys? -Boolean #f (-lst a)))))
+   (->key (-lst a) (-> b b -Boolean) #:key (-> a b) #t #:cache-keys? -Boolean #f (-lst a)))))
 (check-duplicates
  (-poly
   (a b c)

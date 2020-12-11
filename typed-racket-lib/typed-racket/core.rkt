@@ -23,10 +23,13 @@
                (~or (~and #:optimize    (~bind [opt? #'#t])); kept for backward compatibility
                     (~and #:no-optimize (~bind [opt? #'#f]))))
               (~optional
-               (~and #:with-refinements refinement-reasoning?)))
+               (~and #:with-refinements refinement-reasoning?))
+              (~optional
+               (~and #:no-delay-errors no-delay-errors?)))
          ...
          forms ...)
-     (let ([pmb-form (syntax/loc stx (#%plain-module-begin forms ...))])
+     (let ([pmb-form (syntax/loc stx (#%plain-module-begin forms ...))]
+           [delay-errors^? (or (not (attribute no-delay-errors?)) (delay-errors?))])
        (parameterize ([optimize? (or (and (not (attribute opt?)) (optimize?))
                                      (and (attribute opt?) (syntax-e (attribute opt?))))]
                       [with-refinements? (or (attribute refinement-reasoning?)
@@ -58,7 +61,8 @@
              ;; use the regular %#module-begin from `racket/base' for top-level printing
              (arm #`(#%module-begin 
                      #,(if (unbox include-extra-requires?) extra-requires #'(begin))
-                     before-code ... optimized-body ... after-code ... check-syntax-help)))))))]))
+                     before-code ... optimized-body ... after-code ... check-syntax-help))))
+          #:delay-errors? delay-errors^?)))]))
 
 (define (ti-core stx )
   (current-type-names (init-current-type-names))

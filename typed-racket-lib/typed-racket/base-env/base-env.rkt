@@ -3205,7 +3205,7 @@
 [collect-garbage (cl->*
                   (-> -Void)
                   (-> (Un (-val 'minor) (-val 'major) (-val 'incremental)) -Void))]
-[current-memory-use (-> -Nat)]
+[current-memory-use (->opt [(Un (-val #f) (-val 'cumulative) -Custodian)] -Nat)]
 [dump-memory-stats (->* '() Univ Univ)]
 
 [unsafe-char=? (->* (list -Char -Char) -Char B)]

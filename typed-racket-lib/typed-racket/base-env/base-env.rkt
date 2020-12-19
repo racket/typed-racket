@@ -3131,6 +3131,7 @@
 [environment-variables-ref (-> -Environment-Variables -Bytes (-opt -Bytes))]
 [environment-variables-set! (->opt -Environment-Variables -Bytes (-opt -Bytes) [(-> Univ)] Univ)]
 [environment-variables-names (-> -Environment-Variables  (-lst -Bytes))]
+[environment-variables-copy (-> -Environment-Variables -Environment-Variables)]
 [string-environment-variable-name? (asym-pred Univ B (-PS (-is-type 0 -String) -tt))]
 [getenv (-> -String (Un -String (-val #f)))]
 [putenv (-> -String -String B)]

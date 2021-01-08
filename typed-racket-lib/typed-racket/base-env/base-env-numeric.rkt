@@ -1696,6 +1696,7 @@
 
 [log (cl->*
       (-NonNegRat . -> . -Real)
+      (-NonNegRat -NonNegRat . -> . -Real)
       (-FlonumZero . -> . -NegFlonum)
       (-NonNegFlonum . -> . -Flonum)
       (-SingleFlonumZero . -> . -NegSingleFlonum)
@@ -1706,7 +1707,8 @@
       (-FloatComplex . -> . -FloatComplex)
       (-SingleFlonumComplex . -> . -SingleFlonumComplex)
       (-InexactComplex . -> . -InexactComplex)
-      (N . -> . N))]
+      (N . -> . N)
+      (N N . -> . N))]
 [exp (from-cases (-Zero . -> . -One)
                  (map unop
                       (list -Flonum -SingleFlonum -InexactReal -Real

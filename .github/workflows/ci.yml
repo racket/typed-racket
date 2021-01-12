@@ -2,13 +2,14 @@ on: [push, pull_request]
 name: CI
 jobs:
   build:
-    name: "Build on Racket '${{ matrix.racket-version }}' (${{ matrix.racket-variant }})"
+    name: "Build on Racket '${{ matrix.racket-version }}' (${{ matrix.racket-variant }}) Contracts (${{ matrix.enable-contracts}})"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         racket-version: ["current"]
         racket-variant: ["regular", "CS"]
+        enable-contracts: [true, false]
     steps:
       - uses: actions/checkout@master
       - uses: Bogdanp/setup-racket@v0.10
@@ -24,14 +25,28 @@ jobs:
              raco pkg config catalogs >> catalog-config.txt
              sudo raco pkg config --set catalogs `cat catalog-config.txt`
              sudo raco pkg update -i --auto --no-setup source-syntax/ typed-racket-lib/ typed-racket-more/ typed-racket-compatibility/ typed-racket-doc/ typed-racket/ typed-racket-test/
-             sudo raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
-      - run: PLT_TR_CONTRACTS=1 racket -l typed-racket-test -- --unit
+      - run: sudo raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
+        if: ${{ !matrix.enable-contracts }}
+      - run: sudo raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
+        if: ${{ matrix.enable-contracts }}
+        env:
+          PLT_TR_CONTRACTS: 1
+      - run: racket -l typed-racket-test -- --unit
       - run: racket -l typed-racket-test -- --int --excl gui-lang
+        if: ${{ !matrix.enable-contracts }}
       - run: xvfb-run racket -l typed-racket-test -- --just typed-racket-test/succeed/gui-lang.rkt
+        if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test -- --opt
+        if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test -- --missed-opt
+        if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test/test-docs-complete
+        if: ${{ !matrix.enable-contracts }}
       - run: sudo raco setup math
+        if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test -- --math
+        if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test/historical-counterexamples
+        if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test/tr-random-testing
+        if: ${{ !matrix.enable-contracts }}

@@ -25,7 +25,7 @@ jobs:
              sudo raco pkg config --set catalogs `cat catalog-config.txt`
              sudo raco pkg update -i --auto --no-setup source-syntax/ typed-racket-lib/ typed-racket-more/ typed-racket-compatibility/ typed-racket-doc/ typed-racket/ typed-racket-test/
              sudo raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
-      - run: racket -l typed-racket-test -- --unit
+      - run: PLT_TR_CONTRACTS=1 racket -l typed-racket-test -- --unit
       - run: racket -l typed-racket-test -- --int --excl gui-lang
       - run: xvfb-run racket -l typed-racket-test -- --just typed-racket-test/succeed/gui-lang.rkt
       - run: racket -l typed-racket-test -- --opt

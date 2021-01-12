@@ -137,7 +137,8 @@
           (cond
             [(andmap type-annotation arg-list)
              (get-types arg-list #:default Univ)]
-            [(zero? extra-arg-count) arg-tys]
+            [(zero? extra-arg-count)
+             (map (lambda (a t) (get-type a #:default t)) arg-list arg-tys)]
             [(negative? extra-arg-count) (take arg-tys arg-len)]
             [else
              (define tail-tys (match rst

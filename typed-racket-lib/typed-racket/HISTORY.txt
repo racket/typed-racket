@@ -1,3 +1,6 @@
+8.0
+- Improve types for custom ports.
+- Improve handling of sequences in `for` forms.
 7.9
 - Full support for struct type properties, developed by Fred Fu.
 7.8

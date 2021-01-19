@@ -1951,6 +1951,15 @@
                  (let-values ([(m) (tr:lambda (x #:x y) (add1 y))]) m))))
            (send (new c%) m 0 #:x 1))
          -Integer]
+   [tc-e (let ()
+           (define c%
+             (class object% (super-new)
+               (public m)
+               (define-values (m)
+                 (let-values ([(m) (tr:lambda ([x : Integer] #:x [y : String]) : Integer
+                                              (string-length y))]) m))))
+           (send (new c%) m 0 #:x "1"))
+         -Integer]
    ;; This tests a bug that came up while adding support for the test
    ;; cases directly above
    [tc-e (let ()

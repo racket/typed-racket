@@ -840,6 +840,12 @@
         [tc-e/t (let: ([x : (Un 'foo Number) 'foo])
                       (if (eq? 'foo x) 3 x))
                 -Number]
+        [tc-err (let ()
+                  (: f (-> String Integer Number))
+                  (tr:define (f [a : Number] b)
+                             (string-length a))
+                  f)
+                #:ret (tc-ret (t:-> -String -Integer -Number))]
 
         [tc-err (let: ([x : (U String 'foo) 'foo])
                       (if (string=? x 'foo)

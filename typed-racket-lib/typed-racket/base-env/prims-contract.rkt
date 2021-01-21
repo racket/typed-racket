@@ -285,9 +285,9 @@
    (λ ()
      (define type-stx
        (let ([types (cast-table-ref id)])
-         (if types
-             #`(U #,@types)
-             #f)))
+         (cond [(not types) #f]
+               [(null? (cdr types)) (car types)]
+               [else (quasisyntax/loc (car types) (U #,@types))])))
      `#s(contract-def ,type-stx ,flat? ,maker? typed))))
 
 

@@ -525,9 +525,12 @@
                     [-> (-lst (-lst a)) (-lst a)]))]
 [cadr (-poly (a b c)
              (cl->* [->acc (list (-pair a (-pair b c))) b (list -car -cdr)]
+                    [-> (-pair a (-lst b)) b]
                     [-> (-lst a) a]))]
 [cddr  (-poly (a b c)
               (cl->* [->acc (list (-pair a (-pair b c))) c (list -cdr -cdr)]
+                     [-> (-pair a (-lst b)) (-lst b)]
+                     [-> (-pair a (-pair b (-lst c))) (-lst c)]
                      [-> (-lst a) (-lst a)]))]
 
 [caaar (-poly (a b c d)

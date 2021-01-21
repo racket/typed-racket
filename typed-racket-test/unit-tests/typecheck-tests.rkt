@@ -5319,6 +5319,10 @@
          ;; https://github.com/racket/typed-racket/issues/605
          (hash 0 1 2 3 4 5 6 7 8 0)
          (-Immutable-HT -Byte -Byte))
+
+
+       (tc-e (cadr (ann (cons "a" (list 1 2 3)) (Pairof String (Listof Byte))))
+             -Byte)
        )
       (if (extflonum-available?)
 

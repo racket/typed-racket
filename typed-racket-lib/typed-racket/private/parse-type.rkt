@@ -199,20 +199,20 @@
 (define (parse-all-type stx)
   (syntax-parse stx
     [(:All^ (vars:id ... v:id dd:ddd) . t:omit-parens)
-     (define maybe-dup (check-duplicate-identifier (syntax->list #'(vars ... v))))
+     (define maybe-dup (check-duplicates (stx-map syntax-e #'(vars ... v))))
      (when maybe-dup
        (parse-error "duplicate type variable or index"
-                    "variable or index" (syntax-e maybe-dup)))
+                    "variable or index" maybe-dup))
      (let* ([vars (stx-map syntax-e #'(vars ...))]
             [v (syntax-e #'v)])
        (extend-indexes v
          (extend-tvars vars
            (make-PolyDots (append vars (list v)) (parse-type #'t.type)))))]
     [(:All^ (vars:id ...) . t:omit-parens)
-     (define maybe-dup (check-duplicate-identifier (syntax->list #'(vars ...))))
+     (define maybe-dup (check-duplicates (stx-map syntax-e #'(vars ...))))
      (when maybe-dup
        (parse-error "duplicate type variable"
-                    "variable" (syntax-e maybe-dup)))
+                    "variable" maybe-dup))
      (let* ([vars (stx-map syntax-e #'(vars ...))])
        (extend-tvars vars
          (make-Poly vars (parse-type #'t.type))))]

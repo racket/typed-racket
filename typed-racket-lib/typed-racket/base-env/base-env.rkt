@@ -7,6 +7,7 @@
   (except-in racket -> ->* one-of/c class)
   racket/unsafe/ops
   racket/unsafe/undefined
+  racket/hash
   (only-in racket/extflonum floating-point-bytes->extfl extfl->floating-point-bytes)
   ;(only-in rnrs/lists-6 fold-left)
   '#%paramz
@@ -1087,6 +1088,10 @@
 [make-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]
 [make-immutable-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]
 [make-weak-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]
+
+
+[hash-union (-poly (a b) (->* (list (-Immutable-HT a b))  (-HT a b) (-Immutable-HT a b)))]
+[hash-union! (-poly (a b) (->* (list (-Mutable-HT a b))  (-HT a b) -Void))]
 
 ;; Section 4.15 (Sequences and Streams)
 [sequence? (make-pred-ty -SequenceTop)]

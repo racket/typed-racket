@@ -3489,6 +3489,12 @@
         #:ret (tc-ret (-seq (-vec Univ)))
         #:expected (tc-ret (-seq (-vec Univ)))]
 
+       [tc-err
+        (ann (list (symbol->string "10")) (Listof String))
+        #:ret (tc-ret (-lst -String))
+        #:expected (tc-ret (-lst -String))
+        #:msg #rx"expected: Symbol.*given: String.*"]
+
        ;; PR 14557 - apply union of functions with different return values
        [tc-err
         (let ()

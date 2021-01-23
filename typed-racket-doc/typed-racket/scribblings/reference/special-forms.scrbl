@@ -438,7 +438,7 @@ a prefab structure type.
 @defform/subs[#:literals (:)
 (define-struct maybe-type-vars name-spec ([f : t] ...) options ...)
 ([maybe-type-vars code:blank (v ...)]
- [name-spec name-id (code:line name-id parent)]
+ [name-spec name-id (code:line (name-id parent))]
  [options #:transparent #:mutable
           (code:line #:type-name type-id)])]{
 Legacy version of @racket[struct], corresponding to @|define-struct-id|
@@ -447,7 +447,7 @@ from @racketmodname[racket/base].
 
 @defform/subs[#:literals (:)
 (define-struct/exec name-spec ([f : t] ...) [e : proc-t] maybe-type-name)
-([name-spec name-id (code:line name-id parent)]
+([name-spec name-id (code:line (name-id parent))]
  [maybe-type-name (code:line)
                   (code:line #:type-name type-id)])]{
  Like @racket[define-struct], but defines a procedural structure.

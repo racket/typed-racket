@@ -287,7 +287,9 @@ These behave like their non-annotated counterparts. Unlike the above,
            (for-clause ...)
            expr ...+)
          #:grammar
-         ([maybe-result (code:line)
+         ([void-ann-maybe (code:line)
+                          (code:line : Void)]
+          [maybe-result (code:line)
                         (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts.
 @history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]

@@ -68,11 +68,13 @@
          (loop (instantiate-poly t (map (λ (n) Univ) ns)))]
         ;; This clause should raise an error via the check-below test
         [_
-         (cond [;; a redundant test, but it ensures an error message below
-                (not (subtype t (-> prop-type Univ)))
-                (parameterize ([current-orig-stx stx])
-                  (check-below t (-> prop-type Univ)))]
-               [else (int-err "get-range-result: should not happen. type ~a prop ~a"
+         (cond
+           [(subtype t -Bottom)]
+           [;; a redundant test, but it ensures an error message below
+            (not (subtype t (-> prop-type Univ)))
+            (parameterize ([current-orig-stx stx])
+              (check-below t (-> prop-type Univ)))]
+           [else (int-err "get-range-result: should not happen. type ~a prop ~a"
                               t prop-type)])
          (ret (Un))])))
 

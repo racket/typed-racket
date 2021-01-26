@@ -212,6 +212,9 @@
 (define (simple-> doms rng)
   (->* doms rng))
 
+(define (-Inter . ts)
+  (make-Intersection ts))
+
 (define (->acc dom rng path #:var [var (cons 0 0)])
   (define obj (-acc-path path (-id-path var)))
   (make-Fun

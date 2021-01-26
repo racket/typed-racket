@@ -3587,6 +3587,17 @@
          ((if (even? 4) add1 (inst values Integer)) 4)
          -PosIndex]
 
+       [tc-e
+        (let ()
+          (tr:define (foo [a : String]) : Number
+                     10)
+          (procedure-rename foo 'oof))
+        (t:-> -String -Number)]
+
+       [tc-e
+        (procedure->method (tr:lambda ([a : String]) : Number
+                                      10))
+        (t:-> -String -Number : -true-propset)]
        ;; PR 14601
        [tc-err
         (let ()

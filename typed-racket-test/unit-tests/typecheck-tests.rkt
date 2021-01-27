@@ -3673,6 +3673,13 @@
                         [symbol? (lambda (x) (symbol->string x))])
           (raise 'foo))
         #:ret (tc-ret -String)]
+       [tc-err
+        (with-handlers ([exn:fail? (values #f #f)]) (values #t #t))
+        #:ret (tc-ret (list -True -True))
+        #:msg #rx"expected single value, got multiple"]
+       [tc-e
+        (with-handlers ([exn:fail? (error 'hi "error")]) #t)
+        -True]
 
        [tc-err
         (raise (λ ([x : Number]) (add1 x)))]

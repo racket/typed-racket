@@ -74,7 +74,7 @@
   ;; unsafe-normalise-inputs
   [(make-template-identifier 'unsafe-normalise-inputs 'racket/private/for)
    (-poly (a)
-          (-> (-> a -Nat) a -Nat (Un (-val #f) -Nat) -Nat (-values (list a -Index -Index -Index))))]
+          (-> (-> a -Nat) a -Nat (Un (-val #f) -Int) -Int (-values (list a -Index -Index -Index))))]
   ;; normalise-inputs
   [(make-template-identifier 'normalise-inputs 'racket/private/for)
    (-poly (a)

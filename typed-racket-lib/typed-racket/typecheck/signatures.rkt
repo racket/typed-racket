@@ -13,6 +13,7 @@
    [cond-contracted tc-expr/check/t? (syntax? (or/c tc-results/c #f) . -> . (or/c Type? #f))]
    [cond-contracted tc-body/check (syntax? (or/c tc-results/c #f) . -> . full-tc-results/c)]
    [cond-contracted tc-expr/t (syntax? . -> . Type?)]
+   [cond-contracted tc-expr/t* (syntax? . -> . (values Type? boolean?))]
    [cond-contracted single-value ((syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]
    [cond-contracted tc-dep-fun-arg ((syntax?) ((or/c tc-results/c #f)) . ->* . full-tc-results/c)]))
 

@@ -67,6 +67,18 @@
     [(tc-result1: t _ _) t]
     [t (int-err "tc-expr returned ~a, not a single tc-result, for ~a" t (syntax->datum e))]))
 
+;; typecheck an expression. The result contains two values
+;; 1. the type of the expression
+;; 2. whether there are type errors during checking the expression
+;;
+;; Unlike tc-expr/check/t? and tc-expr/check?, this function raises or keeps errors from
+;; checking the expression in the error queue.
+;;
+;; tc-expr/t* : Expr -> (values Type Boolean)
+(define (tc-expr/t* expr)
+  (parameterize ([current-type-error? #f])
+    (values (tc-expr/t expr) (current-type-error?))))
+
 (define (tc-expr/check/t e t)
   (match (tc-expr/check e t)
     [(tc-result1: t) t]))

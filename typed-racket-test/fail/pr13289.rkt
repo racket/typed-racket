@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"fail/pr13289.rkt:9:10:.*in: Natural")
+(exn-pred #rx"fail(/|\\\\)pr13289.rkt:9:10:.*in: Natural")
 #lang typed/racket
 
 ;; This test ensures that the error message for misuse of

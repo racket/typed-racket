@@ -9,7 +9,7 @@
          generate-log tests-dir missed-optimizations-dir)
 
 (define (get-expected-results file)
-  (with-input-from-file file
+  (with-input-from-file file #:mode 'text
     (lambda () ; from the test file
       (read-line) ; skip the #;#;
       (values (for/list ((l (in-lines (open-input-string (read))))) l)
@@ -35,9 +35,7 @@
           ;; making program output identical on RacketCS is often worthwhile,
           ;; but optimization logs are too fragile in some cases
           (check-equal? (list (set-subtract log expected-log) (set-subtract expected-log log)) (list (list) (list))))
-        (check-equal? (regexp-split "\n" output) (regexp-split "\n" (if (eq? (system-type 'os) 'windows)
-                                                                        (regexp-replace* "\r" expected-output "")
-                                                                        expected-output)))))))
+        (check-equal? (regexp-split "\n" output) (regexp-split "\n" expected-output))))))
 
 
 (define-runtime-path tests-dir                "./tests")

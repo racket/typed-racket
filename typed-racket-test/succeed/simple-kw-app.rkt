@@ -1,8 +1,8 @@
 #lang typed/racket
 
-(define filename (if (eq? (system-type 'os) 'windows)
-                     "C:\\windows\\system.ini"
-                     "/dev/null"))
+(define filename (collection-file-path "simple-kw-app.rkt"
+                                       "typed-racket-test"
+                                       "succeed"))
 ((values file->string) filename #:mode 'binary)
 (file->string filename #:mode 'text)
 

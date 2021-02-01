@@ -1091,6 +1091,7 @@
 
 
 [hash-union (-poly (a b) (->* (list (-Immutable-HT a b))  (-HT a b) (-Immutable-HT a b)))]
+[hash-intersect (-poly (a b) (->* (list (-Immutable-HT a b))  (-HT a b) (-Immutable-HT a b)))]
 [hash-union! (-poly (a b) (->* (list (-Mutable-HT a b))  (-HT a b) -Void))]
 
 ;; Section 4.15 (Sequences and Streams)

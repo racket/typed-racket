@@ -74,11 +74,11 @@
   ;; unsafe-normalise-inputs
   [(make-template-identifier 'unsafe-normalise-inputs 'racket/private/for)
    (-poly (a)
-          (-> (-> a -Nat) a -Nat (Un (-val #f) -Nat) -Nat (-values (list a -Index -Index -Index))))]
+          (-> (-> a -Nat) a -Nat (Un (-val #f) -Int) -Int (-values (list a -Index -Index -Index))))]
   ;; normalise-inputs
   [(make-template-identifier 'normalise-inputs 'racket/private/for)
    (-poly (a)
-          (-> -Symbol -String (-> a -Boolean) (-> a -Nat) a -Nat (Un (-val #f) -Nat) -Nat (-values (list a -Index -Index -Index))))]
+          (-> -Symbol -String (-> a -Boolean) (-> a -Nat) a -Nat (Un (-val #f) -Int) -Int (-values (list a -Index -Index -Index))))]
   ;; make-sequence
   [(make-template-identifier 'make-sequence 'racket/private/for)
    (-polydots (a b)
@@ -366,11 +366,11 @@
    (-> -Variable-Reference -Module-Path -Resolved-Module-Path)]
   ;; in-fxvector, in-flvector, in-extflvector
   [(make-template-identifier 'in-fxvector* 'racket/fixnum)
-   (-> -FxVector (-seq -Fixnum))]
+   (->opt -FxVector [-Int (-opt -Int) -Int] (-seq -Fixnum))]
   [(make-template-identifier 'in-flvector* 'racket/flonum)
-   (-> -FlVector (-seq -Flonum))]
+   (->opt -FlVector [-Int (-opt -Int) -Int] (-seq -Flonum))]
   [(make-template-identifier 'in-extflvector* 'racket/extflonum)
-   (-> -ExtFlVector (-seq -ExtFlonum))]
+   (->opt -ExtFlVector [-Int (-opt -Int) -Int] (-seq -ExtFlonum))]
   [(make-template-identifier 'make-namespace-anchor 'racket/private/namespace)
    (-> -Variable-Reference -Namespace-Anchor)]
   [(make-template-identifier 'check-logger-or-false 'racket/private/logger)

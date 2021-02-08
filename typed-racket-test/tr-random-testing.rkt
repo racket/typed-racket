@@ -107,6 +107,10 @@
      (modulo I* I*)
      (remainder I* I*)
      (quotient I* I*)
+     (let-values ([(x y) (quotient/remainder I* I*)])
+       x)
+     (let-values ([(x y) (quotient/remainder I* I*)])
+       y)
      (gcd I*)
      (gcd I* I*)
      (gcd I* I* I*)
@@ -372,13 +376,13 @@
   (printf "seed: ~s~n" seed)
   (flush-output) ; DrDr doesn't print the above if the testing segfaults.
 
-  ;; start with 1000 small, deterministic test cases, to catch regressions
+  ;; start with 2000 small, deterministic test cases, to catch regressions
   (redex-check tr-arith E #:in-order (check-all-reals (term E) verbose?)
-               #:attempts 1000
+               #:attempts 2000
                #:prepare exp->real-exp
                #:keep-going? #t)
   (redex-check tr-arith C #:in-order (check-all-reals (term C) verbose?)
-               #:attempts 1000
+               #:attempts 2000
                #:prepare exp->real-exp
                #:keep-going? #t)
   ;; then switch to purely random to get different ones every run

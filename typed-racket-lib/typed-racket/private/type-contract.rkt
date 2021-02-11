@@ -324,6 +324,17 @@
         (loop t 'both recursive-values))
       (define (t->sc/fun t) (t->sc/function t fail typed-side recursive-values loop #f))
       (define (t->sc/meth t) (t->sc/method t fail typed-side recursive-values loop))
+
+      (define (struct->recursive-sc name-base key flds sc-ctor)
+        (define key* (generate-temporary name-base))
+        (define rv (hash-set recursive-values
+                             key
+                             (recursive-sc-use key*)))
+        (define ftsc (for/list ([ft (in-list flds)])
+                       (t->sc ft #:recursive-values rv)))
+        (recursive-sc (list key*) (list (sc-ctor ftsc))
+                      (recursive-sc-use key*)))
+
       (define (prop->sc p)
         (match p
           [(TypeProp: o (app t->sc tc))
@@ -715,14 +726,9 @@
           [(hash-ref recursive-values nm #f)]
           [proc (fail #:reason "procedural structs are not supported")]
           [poly?
-           (define nm* (generate-temporary #'n*))
-           (define fields
-             (for/list ([fty (in-list flds)])
-               (t->sc fty #:recursive-values (hash-set
-                                              recursive-values
-                                              nm (recursive-sc-use nm*)))))
-           (recursive-sc (list nm*) (list (struct/sc nm (ormap values mut?) fields))
-                         (recursive-sc-use nm*))]
+           (struct->recursive-sc #'n* nm flds
+                                           (lambda (ftsc)
+                                             (struct/sc nm (ormap values mut?) ftsc)))]
           [else (flat/sc #`(flat-named-contract '#,(syntax-e pred?) (lambda (x) (#,pred? x))))])]
        [(StructType: s)
         (if (from-untyped? typed-side)
@@ -754,7 +760,13 @@
                                                                      "property"
                                                                      #,real-prop-var)
                                               (#,pred? x)))))]
-       [(Prefab: key (list (app t->sc fld/scs) ...)) (prefab/sc key fld/scs)]
+       [(Prefab: (and key (list key-sym rst ...)) (list flds ...))
+        (cond
+          [(hash-ref recursive-values key #f)]
+          [else
+           (struct->recursive-sc key-sym key flds
+                                           (lambda (ftsc)
+                                             (prefab/sc key ftsc)))])]
        [(PrefabTop: key)
         (flat/sc #`(struct-type-make-predicate
                     (prefab-key->struct-type (quote #,(abbreviate-prefab-key key))

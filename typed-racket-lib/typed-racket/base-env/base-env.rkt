@@ -2165,10 +2165,10 @@
 ;read-bytes (in index)
 
 ;read-string! (in index)
-[read-bytes! (->opt -Bytes [-Input-Port -Nat -Nat] (Un -PosInt (-val eof)))]
-[read-bytes-avail! (->opt -Bytes [-Input-Port -Nat -Nat] (Un -PosInt (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
+[read-bytes! (->opt -Bytes [-Input-Port -Nat -Nat] (Un -Nat (-val eof)))]
+[read-bytes-avail! (->opt -Bytes [-Input-Port -Nat -Nat] (Un -Nat (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
 [read-bytes-avail!* (->opt -Bytes [-Input-Port -Nat -Nat] (Un -Nat (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
-[read-bytes-avail!/enable-break (->opt -Bytes [-Input-Port -Nat -Nat] (Un -PosInt (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
+[read-bytes-avail!/enable-break (->opt -Bytes [-Input-Port -Nat -Nat] (Un -Nat (-val eof) (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)))]
 
 [peek-string (->opt -Nat -Nat [-Input-Port] (Un -String (-val eof)))]
 [peek-bytes (->opt -Nat -Nat [-Input-Port] (Un -Bytes (-val eof)))]

@@ -62,7 +62,7 @@ cannot tell which argument would act as the specializer based on the type of
 - typecheck implemented method in `defaults` and `fast-defaults`. In each of
   their entries, the type of an implemented method should preserve the subtyping
   property for functions. Specifically, the specializer argument should be of a
-  super type of what the preceding type predicate is true of.
+  super type of what the preceding type predicate is for.
 - typecheck methods in the `fallbacks` section. Note that since Racket does not
   support generic inheritance in any kind or shape, the specializer argument's
   type can only the generic interface type.
@@ -98,7 +98,7 @@ interfaces, we can still express constraints using types in `define/generics`.
 (define-generics eq-able
   (: gen-== (eq-able eq-able . -> . Boolean) )
   (gen-== eq-able e)
-  (: gen-== (eq-able eq-able . -> . Boolean) )
+  (: gen-/= (eq-able eq-able . -> . Boolean) )
   (gen-/= eq-able e)
   #:fallbacks [(define/generic super-== gen-==)
                (define/generic super-/= gen-/=)

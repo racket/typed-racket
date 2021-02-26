@@ -1136,6 +1136,10 @@
                 (+ a b a* b*))
               -Nat]
 
+        [tc-e (sinh (let-values (((x y) (quotient/remainder (exact-round 1) (sqr (exact-round 1)))))
+                      y))
+              -Zero]
+
         [tc-e (raise-type-error 'foo "bar" 5) (t:Un)]
         [tc-e (raise-type-error 'foo "bar" 7 (list 5)) (t:Un)]
 

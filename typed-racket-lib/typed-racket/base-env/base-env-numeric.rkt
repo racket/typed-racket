@@ -694,7 +694,7 @@
   (define-values (quotient-spec remainder-spec quotient/remainder-spec)
     (quotient-reminder-cases
      (list -Zero -Int (list -Zero -Zero))
-     (list -One -One (list -Zero -One))
+     (list -One -One (list -One -Zero))
      ;; division by one is identity, and has no remainder
      (list -PosByte -One (list -PosByte -Zero))
      (list -Byte -One (list -Byte -Zero))

@@ -300,7 +300,8 @@
    (cons
     (make-def-struct-stx-binding (struct-names-type-name names)
                                  si
-                                 (def-binding-ty constructor-binding))
+                                 (def-binding-ty constructor-binding)
+                                 extra-constructor)
     bindings)))
 
 (define/cond-contract (register-non-prefab-bindings! sty names desc si)
@@ -378,7 +379,8 @@
       (values (cons constructor-binding extra-constructor-bindings)
               (append (cons (make-def-struct-stx-binding (struct-names-type-name names)
                                                          si
-                                                         constructor-type)
+                                                         constructor-type
+                                                         extra-constructor)
                             extra-constructor-bindings)
                       bindings))))
 

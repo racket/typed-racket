@@ -10,6 +10,7 @@
          (types struct-table)
          (utils tc-utils)
          (env env-utils)
+         (base-env type-name-error)
          (for-syntax racket/base)
          (for-template racket/base))
 
@@ -85,8 +86,8 @@
        (match-lambda
          [(def-binding _ ty)
           (mk-value-quad internal-id new-id ty)]
-         [(def-struct-stx-binding _ (? struct-info? si) constr-type)
-          (mk-struct-syntax-quad internal-id new-id si constr-type)]
+         [(def-struct-stx-binding _ (? struct-info? si) constr-type extra-ctor-name)
+          (mk-struct-syntax-quad internal-id new-id si constr-type extra-ctor-name)]
          [(def-stx-binding _)
           (mk-syntax-quad internal-id new-id)])]
       ;; otherwise, not defined in this module, not our problem
@@ -94,8 +95,7 @@
 
   ;; mk-struct-syntax-quad : identifier? identifier? struct-info? Type? -> quad/c
   ;; This handles `(provide s)` where `s` was defined with `(struct s ...)`. 
-  (define (mk-struct-syntax-quad internal-id new-id si constr-type)
-    (define type-is-constructor? #t) ;Conservative estimate (provide/contract does the same)
+  (define (mk-struct-syntax-quad internal-id new-id si constr-type extra-ctor-name)
     (match-define (list type-desc constr pred (list accs ...) muts super) (extract-struct-info si))
     (define-values (defns export-defns new-ids aliases)
       (for/lists (defns export-defns new-ids aliases)
@@ -103,6 +103,8 @@
         (if (identifier? e)
             (mk e)
             (mk-ignored-quad e))))
+
+    (define type-is-constructor? (or (free-identifier=? new-id constr) extra-ctor-name))
     ;; Here, we recursively handle all of the identifiers referenced
     ;; in this static struct info.
     (define-values (constr-defn constr-export-defn constr-new-id constr-aliases)
@@ -143,7 +145,8 @@
                                 (list #,@(map (lambda (x) #'#f) accs)) super*)))
                 #,(if type-is-constructor?
                       #'(make-struct-info-self-ctor constr* info)
-                      #'info)))
+                      #'(lambda (stx)
+                          (type-name-error stx)))))
             (define-syntax export-id
               (make-rename-transformer #'protected-id)))
         #'export-id

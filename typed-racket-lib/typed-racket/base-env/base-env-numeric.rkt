@@ -683,7 +683,7 @@
      (-Real . -> . -NonNegReal)))
 
 
-  (define (quotient-reminder-cases . cases)
+  (define (quotient-remainder-cases . cases)
     (for/lists (qs rs qrs)
                ([i (in-list cases)])
       (match-define (list a b (list c d)) i)
@@ -692,7 +692,7 @@
               (-> a b (-values (list c d))))))
 
   (define-values (quotient-spec remainder-spec quotient/remainder-spec)
-    (quotient-reminder-cases
+    (quotient-remainder-cases
      (list -Zero -Int (list -Zero -Zero))
      (list -One -One (list -One -Zero))
      ;; division by one is identity, and has no remainder
@@ -707,6 +707,7 @@
      (list -Fixnum -One (list -Fixnum -Zero))
      (list -Byte -Nat (list -Byte -Byte))
      (list -Byte -Int (list -Fixnum -Byte))
+     (list -Index -Byte (list -Index -Byte))
      (list -Index -Nat (list -Index -Index))
      (list -Index -Int (list -Fixnum -Index))
      (list -NonNegFixnum -Byte (list -NonNegFixnum -Byte))

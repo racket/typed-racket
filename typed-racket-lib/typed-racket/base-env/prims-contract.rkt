@@ -408,30 +408,7 @@
 
 
 (module self-ctor racket/base
-  (require racket/struct-info)
-
-  ;Copied from racket/private/define-struct
-  ;FIXME when multiple bindings are supported
-  (define (self-ctor-transformer orig stx)
-    (define (transfer-srcloc orig stx)
-      (datum->syntax orig (syntax-e orig) stx orig))
-    (syntax-case stx ()
-      [(self arg ...) (datum->syntax stx
-                                     (cons (syntax-property (transfer-srcloc orig #'self)
-                                                            'constructor-for
-                                                            (syntax-local-introduce #'self))
-                                           (syntax-e (syntax (arg ...))))
-                                     stx
-                                     stx)]
-      [_ (transfer-srcloc orig stx)]))
-  (define make-struct-info-self-ctor
-    (let ()
-      (struct struct-info-self-ctor (id info)
-        #:property prop:procedure
-        (lambda (ins stx)
-          (self-ctor-transformer (struct-info-self-ctor-id ins) stx))
-        #:property prop:struct-info (λ (x) (extract-struct-info (struct-info-self-ctor-info x))))
-      struct-info-self-ctor))
+  (require "../utils/utils.rkt")
   (provide make-struct-info-self-ctor))
 
 (require (submod "." self-ctor))

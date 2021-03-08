@@ -10,7 +10,6 @@
          (types struct-table)
          (utils tc-utils)
          (env env-utils)
-         (base-env type-name-error)
          (for-syntax racket/base)
          (for-template racket/base))
 
@@ -86,16 +85,16 @@
        (match-lambda
          [(def-binding _ ty)
           (mk-value-quad internal-id new-id ty)]
-         [(def-struct-stx-binding _ (? struct-info? si) constr-type extra-ctor-name)
-          (mk-struct-syntax-quad internal-id new-id si constr-type extra-ctor-name)]
+         [(def-struct-stx-binding _ (? struct-info? si) constr-type extra-constr-name)
+          (mk-struct-syntax-quad internal-id new-id si constr-type extra-constr-name)]
          [(def-stx-binding _)
           (mk-syntax-quad internal-id new-id)])]
       ;; otherwise, not defined in this module, not our problem
       [else (mk-ignored-quad internal-id)]))
 
-  ;; mk-struct-syntax-quad : identifier? identifier? struct-info? Type? -> quad/c
+  ;; mk-struct-syntax-quad : identifier? identifier? struct-info? Type? (or/c identifier? #f) -> quad/c
   ;; This handles `(provide s)` where `s` was defined with `(struct s ...)`. 
-  (define (mk-struct-syntax-quad internal-id new-id si constr-type extra-ctor-name)
+  (define (mk-struct-syntax-quad internal-id new-id si constr-type extra-constr-name)
     (match-define (list type-desc constr pred (list accs ...) muts super) (extract-struct-info si))
     (define-values (defns export-defns new-ids aliases)
       (for/lists (defns export-defns new-ids aliases)
@@ -104,7 +103,7 @@
             (mk e)
             (mk-ignored-quad e))))
 
-    (define type-is-constructor? (or (free-identifier=? new-id constr) extra-ctor-name))
+    (define type-is-constructor? (and (or (free-identifier=? new-id constr) extra-constr-name) #t))
     ;; Here, we recursively handle all of the identifiers referenced
     ;; in this static struct info.
     (define-values (constr-defn constr-export-defn constr-new-id constr-aliases)
@@ -122,7 +121,8 @@
 
     (with-syntax* ([id internal-id]
                    [export-id new-id]
-                   [protected-id (freshen-id #'id)])
+                   [protected-id (freshen-id #'id)]
+                   [type-is-constr? type-is-constructor?])
       (values
         #`(begin
             #,constr-defn
@@ -143,10 +143,7 @@
             (define-syntax protected-id
               (let ((info (list type-desc* (syntax export-id) pred* (list accs* ...)
                                 (list #,@(map (lambda (x) #'#f) accs)) super*)))
-                #,(if type-is-constructor?
-                      #'(make-struct-info-self-ctor constr* info)
-                      #'(lambda (stx)
-                          (type-name-error stx)))))
+                (make-struct-info-self-ctor constr* info type-is-constr?)))
             (define-syntax export-id
               (make-rename-transformer #'protected-id)))
         #'export-id

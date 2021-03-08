@@ -109,6 +109,8 @@ at least theoretically.
 (define-requirer base-env base-env-out)
 (define-requirer static-contracts static-contracts-out)
 
+(require "../base-env/type-name-error.rkt")
+
 ;; turn contracts on and off - off by default for performance.
 (provide (for-syntax enable-contracts?)
          provide/cond-contract
@@ -230,14 +232,17 @@ at least theoretically.
     [_ (transfer-srcloc orig stx)]))
 
 
-(define make-struct-info-self-ctor
- (let ()
-  (struct struct-info-self-ctor (id info)
-          #:property prop:procedure
-                     (lambda (ins stx)
-                      (self-ctor-transformer (struct-info-self-ctor-id ins) stx))
-          #:property prop:struct-info (λ (x) (extract-struct-info (struct-info-self-ctor-info x))))
-  struct-info-self-ctor))
+(define (make-struct-info-self-ctor id info [flag #t])
+  (let ()
+    (struct struct-info-self-ctor (id info type-is-constr?)
+      #:property prop:procedure
+      (lambda (ins stx)
+        (if (struct-info-self-ctor-type-is-constr? ins)
+            (self-ctor-transformer (struct-info-self-ctor-id ins) stx)
+            (type-name-error stx)))
+      #:property prop:struct-info (λ (x) (extract-struct-info (struct-info-self-ctor-info x))))
+    (struct-info-self-ctor id info flag)))
+
 
 ;; Listof[A] Listof[B] B -> Listof[B]
 ;; pads out t to be as long as s

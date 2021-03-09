@@ -13,10 +13,11 @@ which has been one of the most wanted features.
 
 
 # Guide-level explanation
-There are two parts of the proposal: First, we address typing declarations of
+There are three parts of the proposal: First, we address typing declarations of
 generic interfaces. Then, we show how the type checker checks structs' method
-definitions.
+definitions. Lastly, we present how type checking method application works.
 
+## Declaration of typed generic inferfaces.
 To annotate a generic interface, we introduce a typed counterpart for
 `define/generics`.
 
@@ -24,7 +25,7 @@ To annotate a generic interface, we introduce a typed counterpart for
 (define-generics showable
   (: gen-show (showable . -> . String) )
   (gen-show showable)
-  (: gen-show2 (showable showable . -> . String) )
+  (: gen-show2 (String showable . -> . String) )
   (gen-show2 some-b showable)
   #:defined-predicate tpred ;; (: tpred (-> showable (U 'gen-show 'gen-show2) * Boolean)). Note: No need to generate contracts
   #:defaults
@@ -69,8 +70,11 @@ cannot tell which argument would act as the specializer based on the type of
 - produce a typed immutable hash table that is assigned to `defined-table-id`
   when it is specified. The table's keys have a union type, `(U
   method-id-as-symbol ...)`, and values are simply booleans.
+- produce the type predicate `showable?`, a similar to other fellow predicates in TR,
+  has type `(-> Any Boolean : showable)`
 - #:derive-property, TODO
 
+## Typed method specialization
 For method implementation in a struct's definition, the typechecking process is
 also straightforward
 
@@ -86,13 +90,40 @@ also straightforward
   )
 ```
 
-First, the typechecker ensures every `method-id` in a `#:methods` specification
-is well scoped.  Then it checks if the specializer argument's and return type
-are covariant and if the rest are contraviant.  `define/generic` makes the local
-id `super-show` have the same type of `gen-show`, namely `(-> showable String)`.
+For any structure that implemented generice interfaces, first the typechecker
+ensures every `interface-id` in a `#:methods` specification is well scoped. It
+then checks if every method of `interface-id` is implemented. There are 3
+possibilities of a method to be considered implemented:
+
+1. The method is defined in the `#:methods` specification. Then it checks if the
+specializer and return type are covariant and if the rest are contraviant.
+`define/generic` makes the local id `super-show` have the same type of
+`gen-show`, namely `(-> showable String)`.
+2. The interface includes a well-typed fallback implementation for the method.
+3. In either `#:defaults` or `#:fast-defaults`, there is a type predicate for
+   `T` such that T is a super type of the current structure type.
+
+Note that under the proposed rules, all methods of a generic interface must be
+implemented, which is different from that in Racket. Consider the following code:
+
+```
+(struct fruit (name)
+  #:methods gen:showable
+  [(define (gen-show me)
+     (format "~a" (fruit-name me)))])
+
+(let ([a (fruit "apple")])
+  (when (showable? a)
+    (gen-show2 'whatever a)))
+```
+
+Racket recognizes a `fruit` instance showable, despite that `fruit` lacks
+implementation of `gen-show2`. Then a subsequent call `gen-show2` on that
+instance raises a run-time error. However, TR should reject the program above.
+
 
 Though Racket doesn't support subclass or inheritance between generic
-interfaces, we can still express constraints using types in `define/generics`.
+interfaces, we can still express constraints using types in `define-generics`.
 
 ```
 (define-generics eq-able
@@ -144,6 +175,14 @@ because an `Dummy` instance breaks the contract of `gen-/=`.
 
 However, the typechecker simply rejects the code. Since `Dummy` does not
 implement `gen:eq-able`, it is not of a subtype of `(Intersection eq-able ord-able)`
+
+## Typechecking Generic Method Application
+The typechecker checks calls to a generic method in the same fashion as it does
+to a plain function. Every argument type is checked against the by-position
+parameter type of the method described in its interface definition. For example,
+when checking `(gen-show2 b a)`, the typechecker checks if `a` is of a subtype
+of `showable` and `b` is of a subtype of `String`.
+
 
 # Reference-level explanation
 Add a new prim for `define-generics` that supports the features mentioned in the

@@ -244,7 +244,17 @@ anticipate with their pattern matching, e.g.:
   (eval:error
    (size 42))]
 
+Patterns involving an ellipsis @racket[...] for repetition may generate a 
+@racket[for] loop that requires annotations on variables to type check. 
+The (deliberately obscure) code below does not type check without the type 
+annotation on the match pattern variable @racket[c].
 
+@examples[#:label #f #:eval the-eval
+  (: without-10 : (Listof Integer) -> (Listof Integer))
+  (define (without-10 lst)
+    (match lst
+      [`(10 ,#{c : (Listof Integer)} ...)   c]))
+  
 @section{@racket[is-a?] and Occurrence Typing}
 
 Typed Racket does not use the @racket[is-a?] predicate to refine object types

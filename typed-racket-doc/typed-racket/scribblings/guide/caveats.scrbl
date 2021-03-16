@@ -254,7 +254,7 @@ annotation on the match pattern variable @racket[c].
   (: do-nothing (-> (Listof Integer) (Listof Integer)))
   (define (do-nothing lst)
     (match lst
-      [(list (? number? #{c : (Listof Integer)}) ...)   c]))
+      [(list (? number? #{c : (Listof Integer)}) ...) c]))
   
 @section{@racket[is-a?] and Occurrence Typing}
 

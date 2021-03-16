@@ -250,8 +250,8 @@ The (deliberately obscure) code below does not type check without the type
 annotation on the match pattern variable @racket[c].
 
 @examples[#:label #f #:eval the-eval
-  (: without-10 : (Listof Integer) -> (Listof Integer))
-  (define (without-10 lst)
+  (: skip-a-num : (Listof Integer) -> (Listof Integer))
+  (define (skip-a-num lst)
     (match lst
       [`(,(? number?) ,#{c : (Listof Integer)} ...)   c]))
   

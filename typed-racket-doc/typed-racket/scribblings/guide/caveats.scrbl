@@ -253,7 +253,7 @@ annotation on the match pattern variable @racket[c].
   (: without-10 : (Listof Integer) -> (Listof Integer))
   (define (without-10 lst)
     (match lst
-      [`(10 ,#{c : (Listof Integer)} ...)   c]))
+      [`(,(? number?) ,#{c : (Listof Integer)} ...)   c]))
   
 @section{@racket[is-a?] and Occurrence Typing}
 

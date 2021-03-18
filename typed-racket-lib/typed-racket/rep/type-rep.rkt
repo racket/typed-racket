@@ -160,14 +160,8 @@
 (define-match-expander F:*
   (lambda (stx)
     (syntax-case stx ()
-      [(_ n)
-       #'(? F? (app (lambda (t)
-                      (F-n t))
-                    n))]
-      [(_ n b)
-       #'(? F? (app (lambda (t)
-                      (list (F-n t) (F-bound t)))
-                    (list n b)))])))
+      [(_ n) #'(F: n _)]
+      [(_ n b) #'(F: n b)])))
 
 
 (define Name-table (make-free-id-table))

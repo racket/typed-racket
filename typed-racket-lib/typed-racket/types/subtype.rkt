@@ -805,7 +805,7 @@
   [(case: F (F: var1))
    (match t2
      ;; tvars are equal if they are the same variable
-     [(F: var2) (eq? var1 var2)]
+     [(F: var2) (and (eq? var1 var2) A)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Fun (Fun: arrows1))
    (match* (t2 arrows1)

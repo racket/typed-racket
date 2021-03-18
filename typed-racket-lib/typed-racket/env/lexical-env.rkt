@@ -33,7 +33,7 @@
  [lookup-obj-type/lexical ((Object?) (env? #:fail (or/c #f Type? (-> any/c (or/c Type? #f))))
                                      . ->* .
                                      (or/c Type? #f))]
- [lookup-alias/lexical ((identifier?) (env?) . ->* . (or/c Path? Empty?))])
+ [lookup-alias/lexical ((identifier?) (env?) . ->* . (or/c OptObject? #f))])
 
 ;; used at the top level
 (define (add-props-to-current-lexical! ps)

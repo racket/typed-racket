@@ -88,10 +88,10 @@
 
 (provide/cond-contract
  [struct ->i/sc ([typed-side? boolean?]
-                          [ids (listof identifier?)]
-                          [dom (listof static-contract?)]
-                          [dom-deps (listof (listof identifier?))]
-                          [pre (or/c #f proposition-contract?)]
-                          [pre-deps (listof (listof identifier?))]
-                          [rng (listof static-contract?)]
-                          [rng-deps (listof identifier?)])])
+                 [ids (listof identifier?)]
+                 [dom (listof static-contract?)]
+                 [dom-deps (listof (listof identifier?))]
+                 [pre (or/c #f proposition-contract?)]
+                 [pre-deps (listof identifier?)]
+                 [rng (listof static-contract?)]
+                 [rng-deps (listof identifier?)])])

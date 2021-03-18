@@ -577,7 +577,6 @@
            [_ #f])
          #f
          ;; constrain v to be below T (but don't mention bounds)
-         (eprintf "hi...........~a ~n" v)
          (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
          (if (and maybe-type-bound (subtype maybe-type-bound T obj))
              (singleton maybe-type-bound v (var-demote T (context-bounds context)))
@@ -590,7 +589,6 @@
            [_ #f])
          #f
          (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
-         (eprintf "bye...........~a ~a <: ~a ~n" v S maybe-type-bound)
          ;; constrain v to be above S (but don't mention bounds)
          (if (and maybe-type-bound (subtype S maybe-type-bound obj))
              (singleton (var-promote S (context-bounds context)) v maybe-type-bound)

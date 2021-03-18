@@ -715,7 +715,6 @@
     [(tc-result1: (app resolve (and t (Poly-fresh: ns fresh-ns expected*))))
      ;; make sure the declared and annotated type variable arities match up
      ;; with the expected type variable arity
-     (eprintf "app resolve tc-result ~n")
      (for ([tvars (in-list tvarss)])
        (when (and (pair? tvars) (list? (car tvars)))
          (tc-error

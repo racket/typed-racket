@@ -1680,11 +1680,9 @@
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
      (eprintf "new bounds is ~a ~n" new-bounds)
      (instantiate-type body
-                       
                        (map (lambda (n)
-                              (make-F n 
-                                      (hash-ref new-bounds n #f)
-                                      )) names)
+                              (make-F n (hash-ref new-bounds n #f)))
+                            names)
                        #;
                        (map F* names))]))
 

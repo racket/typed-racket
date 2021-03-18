@@ -1499,8 +1499,8 @@
        (make-PolyRow constraints (rec/lvl body (add1 lvl)))]
       [(PolyDots: n body)
        (make-PolyDots n (rec/lvl body (+ n lvl)))]
-      [(Poly: n bound body)
-       (make-Poly n (rec/lvl body (+ n lvl)))]
+      [(Poly: n bounds body)
+       (make-Poly n bounds (rec/lvl body (+ n lvl)))]
       [_ (Rep-fmap cur rec)])))
 
 
@@ -1678,13 +1678,10 @@
                           (values (list-ref names idx) v)))
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (eprintf "new bounds is ~a ~n" new-bounds)
      (instantiate-type body
                        (map (lambda (n)
                               (make-F n (hash-ref new-bounds n #f)))
-                            names)
-                       #;
-                       (map F* names))]))
+                            names))]))
 
 ;; PolyDots 'smart' constructor
 (define (PolyDots* names body)
@@ -1717,7 +1714,7 @@
 (define (PolyRow-body* names t)
   (match t
     [(PolyRow: constraints body)
-     (instantiate-type body (map  names))]))
+     (instantiate-type body (map F* names))]))
 
 
 ;;***************************************************************
@@ -1982,7 +1979,7 @@
     [(Some: n body)
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-type body (map  names))]))
+     (instantiate-type body (map F* names))]))
 
 
 (define-match-expander Some-names:

@@ -578,9 +578,15 @@
          #f
          ;; constrain v to be below T (but don't mention bounds)
          (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
-         (if (and maybe-type-bound (subtype maybe-type-bound T obj))
-             (singleton maybe-type-bound v (var-demote T (context-bounds context)))
-             #f)]
+         (if maybe-type-bound
+             (if (subtype maybe-type-bound T obj)
+                 (singleton maybe-type-bound
+                            v
+                            (var-demote T (context-bounds context)))
+                 #f)
+             (singleton -Bottom
+                        v
+                        (var-demote T (context-bounds context))))]
 
         [(S (F: (? (inferable-var? context) v)))
          #:return-when
@@ -590,9 +596,15 @@
          #f
          (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
          ;; constrain v to be above S (but don't mention bounds)
-         (if (and maybe-type-bound (subtype S maybe-type-bound obj))
-             (singleton (var-promote S (context-bounds context)) v maybe-type-bound)
-             #f)]
+         (if maybe-type-bound
+             (if (subtype S maybe-type-bound obj)
+                 (singleton (var-demote S (context-bounds context))
+                            v
+                            maybe-type-bound)
+                 #f)
+             (singleton (var-demote S (context-bounds context))
+                        v
+                        Univ))]
 
         ;; recursive names should get resolved as they're seen
         [(s (? Name? t))
@@ -1010,7 +1022,7 @@
  (let ()
    (define/cond-contract (infer X Y S T R [expected #f]
                                 #:multiple? [multiple-substitutions? #f]
-                                #:bounds [bounds '#()]
+                                #:bounds [bounds '#hash()]
                                 #:objs [objs '()])
      (((listof symbol?) (listof symbol?) (listof Type?) (listof Type?)
        (or/c #f Values/c AnyValues? ValuesDots?))

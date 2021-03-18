@@ -714,10 +714,11 @@
     [(? Base?) (Base-name type)]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
-    [(F: nm)
+    [(F: nm bound)
      (cond
        [(eq? nm imp-var) "Imp"]
        [(eq? nm self-var) "Self"]
+       [(Type? bound) (format "~a <: ~a" nm (t->s bound))]
        [else nm])]
     [(Param: in out)
      (if (equal? in out)

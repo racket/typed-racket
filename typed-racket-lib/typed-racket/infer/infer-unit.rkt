@@ -578,8 +578,9 @@
          #f
          ;; constrain v to be below T (but don't mention bounds)
          (eprintf "hi...........~a ~n" v)
-         (if (subtype (hash-ref (context-type-bounds context) v) T obj)
-             (singleton -Bottom v (var-demote T (context-bounds context)))
+         (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
+         (if (and maybe-type-bound (subtype maybe-type-bound T obj))
+             (singleton maybe-type-bound v (var-demote T (context-bounds context)))
              #f)]
 
         [(S (F: (? (inferable-var? context) v)))
@@ -588,10 +589,11 @@
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
-         (eprintf "bye...........~a ~a <: ~a ~n" v S (hash-ref (context-type-bounds context) v))
+         (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
+         (eprintf "bye...........~a ~a <: ~a ~n" v S maybe-type-bound)
          ;; constrain v to be above S (but don't mention bounds)
-         (if (subtype S (hash-ref (context-type-bounds context) v) obj)
-             (singleton (var-promote S (context-bounds context)) v (hash-ref (context-type-bounds context) v))
+         (if (and maybe-type-bound (subtype S maybe-type-bound obj))
+             (singleton (var-promote S (context-bounds context)) v maybe-type-bound)
              #f)]
 
         ;; recursive names should get resolved as they're seen

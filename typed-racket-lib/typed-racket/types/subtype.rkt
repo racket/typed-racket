@@ -802,11 +802,20 @@
    (match t2
      [(Evt: result2) (subtype* A result1 result2)]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: F (F: var1))
-   (match t2
+  [(case: F (F: var1 bound))
+   (match* (t2 bound)
      ;; tvars are equal if they are the same variable
-     [(F: var2) (and (eq? var1 var2) A)]
-     [_ (continue<: A t1 t2 obj)])]
+     [((F: var2) _) (and (eq? var1 var2) A)]
+     [(_ (? Type?)) (subtype* A bound t2 obj)
+      #;
+      (eprintf "t2 is ~a bound is ~a ~n" t2 bound)
+      #;
+      (if bound
+          (let ([ret (subtype* A bound t2 obj)])
+            (eprintf "subtype ret is ~a ~n" ret)
+            ret)
+          (continue<: A t1 t2 obj))]
+     [(_ _ ) (continue<: A t1 t2 obj)])]
   [(case: Fun (Fun: arrows1))
    (match* (t2 arrows1)
      ;; special case when t1 can be collapsed into simpler arrow

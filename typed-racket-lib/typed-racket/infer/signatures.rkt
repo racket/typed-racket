@@ -39,7 +39,8 @@
                            ((or/c #f Values/c AnyValues? ValuesDots?)
                             ;; optional multiple substitutions?
                             #:multiple? boolean?
-                            #:objs (listof OptObject?))
+                            #:objs (listof OptObject?)
+                            #:bounds (hash/c symbol? Type?))
                            . ->* . any)]
    [cond-contracted infer/vararg ((;; variables from the forall
                                    (listof symbol?)
@@ -55,7 +56,8 @@
                                    (or/c #f Values/c AnyValues? ValuesDots?))
                                   ;; [optional] expected type
                                   ((or/c #f Values/c AnyValues? ValuesDots?)
-                                   #:objs (listof OptObject?))
+                                   #:objs (listof OptObject?)
+                                   #:bounds (hash/c symbol? Type?))
                                   . ->* . any)]
    [cond-contracted infer/dots (((listof symbol?)
                                  symbol?

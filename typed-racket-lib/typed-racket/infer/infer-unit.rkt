@@ -48,36 +48,37 @@
 (define-struct/cond-contract context
   ([bounds (listof symbol?)]
    [vars (listof symbol?)]
-   [indices (listof symbol?)]) #:transparent)
+   [indices (listof symbol?)]
+   [type-bounds (hash/c symbol? Type?)]) #:transparent)
 
 (define (context-add-vars ctx vars)
   (match ctx
-    [(context V X Y)
-     (context V (append vars X) Y)]))
+    [(context V X Y TB)
+     (context V (append vars X) Y TB)]))
 
 (define (context-add-var ctx var)
   (match ctx
-    [(context V X Y)
-     (context V (cons var X) Y)]))
+    [(context V X Y TB)
+     (context V (cons var X) Y TB)]))
 
 (define (context-add ctx #:bounds [bounds empty] #:vars [vars empty] #:indices [indices empty])
   (match ctx
-    [(context V X Y)
-     (context (append bounds V) (append vars X) (append indices Y))]))
+    [(context V X Y TB)
+     (context (append bounds V) (append vars X) (append indices Y) TB)]))
 
 (define (inferable-index? ctx bound)
   (match ctx
-    [(context _ _ Y)
+    [(context _ _ Y TB)
      (memq bound Y)]))
 
 (define ((inferable-var? ctx) var)
   (match ctx
-    [(context _ X _)
+    [(context _ X _ TB)
      (memq var X)]))
 
 (define (empty-cset/context ctx)
   (match ctx
-    [(context _ X Y)
+    [(context _ X Y TB)
      (empty-cset X Y)]))
 
 
@@ -474,7 +475,7 @@
 ;; produces a cset which determines a substitution that makes S a subtype of T
 ;; implements the V |-_X S <: T => C judgment from Pierce+Turner, extended with
 ;; the index variables from the TOPLAS paper
-(define/cond-contract (cgen context S T [obj #f])
+(define/cond-contract (cgen context S T [obj #f] [bound #f])
   (->* (context? (or/c Values/c ValuesDots? AnyValues?)
                  (or/c Values/c ValuesDots? AnyValues?))
        ((or/c #f OptObject?))
@@ -483,7 +484,7 @@
   (define/cond-contract (cg S T [obj #f])
    (->* (Type? Type?) ((or/c #f OptObject?))
         (or/c #f cset?))
-   (cgen context S T obj))
+   (cgen context S T obj bound))
   (define/cond-contract (cg/inv S T)
    (Type? Type? . -> . (or/c #f cset?))
    (cgen/inv context S T))
@@ -576,7 +577,10 @@
            [_ #f])
          #f
          ;; constrain v to be below T (but don't mention bounds)
-         (singleton -Bottom v (var-demote T (context-bounds context)))]
+         (eprintf "hi...........~a ~n" v)
+         (if (subtype (hash-ref (context-type-bounds context) v) T obj)
+             (singleton -Bottom v (var-demote T (context-bounds context)))
+             #f)]
 
         [(S (F: (? (inferable-var? context) v)))
          #:return-when
@@ -584,8 +588,11 @@
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
+         (eprintf "bye...........~a ~a <: ~a ~n" v S (hash-ref (context-type-bounds context) v))
          ;; constrain v to be above S (but don't mention bounds)
-         (singleton (var-promote S (context-bounds context)) v Univ)]
+         (if (subtype S (hash-ref (context-type-bounds context) v) obj)
+             (singleton (var-promote S (context-bounds context)) v (hash-ref (context-type-bounds context) v))
+             #f)]
 
         ;; recursive names should get resolved as they're seen
         [(s (? Name? t))
@@ -1003,17 +1010,19 @@
  (let ()
    (define/cond-contract (infer X Y S T R [expected #f]
                                 #:multiple? [multiple-substitutions? #f]
+                                #:bounds [bounds '#()]
                                 #:objs [objs '()])
      (((listof symbol?) (listof symbol?) (listof Type?) (listof Type?)
        (or/c #f Values/c AnyValues? ValuesDots?))
       ((or/c #f Values/c AnyValues? ValuesDots?)
        #:multiple? boolean?
+       #:bounds (hash/c symbol? Type?)
        #:objs (listof OptObject?))
       . ->* . (or/c boolean?
                     substitution/c
                     (cons/c substitution/c
                             (listof substitution/c))))
-     (define ctx (context null X Y))
+     (define ctx (context null X Y bounds))
      (define expected-cset
        (if expected
            (cgen ctx R expected)
@@ -1030,7 +1039,8 @@
 
 ;; like infer, but T-var is the vararg type:
 (define (infer/vararg X Y S T T-var R [expected #f]
-                      #:objs [objs '()])
+                      #:objs [objs '()]
+                      #:bounds [bounds '#hash()])
   (and ((length S) . >= . (length T))
        (let* ([fewer-ts (- (length S) (length T))]
               [new-T (match T-var
@@ -1040,7 +1050,8 @@
                         (append T (repeat-list rst-ts
                                                (quotient fewer-ts (length rst-ts))))]
                        [_ T])])
-         (infer X Y S new-T R expected #:objs objs))))
+         (infer X Y S new-T R expected #:objs objs
+                #:bounds bounds))))
 
 ;; like infer, but dotted-var is the bound on the ...
 ;; and T-dotted is the repeated type
@@ -1055,7 +1066,7 @@
      (generate-dbound-prefix dotted-var T-dotted (length rest-S) #f))
    (define (subst t)
      (substitute-dots (map make-F new-vars) #f dotted-var t))
-   (define ctx (context null (append new-vars X) (list dotted-var)))
+   (define ctx (context null (append new-vars X) (list dotted-var) '#hash()))
 
    (define expected-cset (if expected
                              (cgen ctx (subst R) expected)

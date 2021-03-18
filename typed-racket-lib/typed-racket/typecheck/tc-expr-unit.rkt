@@ -295,34 +295,34 @@
          [_ (tc-expr/check form #f)])]
       ;; opt function def
       [(~and (let-values ([(f) fun]) . body) opt:opt-lambda^)
-	   #:when expected
-	   (define conv-type
-		 (match expected
-		   [(tc-result1: fun-type)
-			(match-define (list required-pos optional-pos optional-supplied?)
-			  (attribute opt.value))
-			(opt-convert fun-type required-pos optional-pos optional-supplied?)]
-		   [_ #f]))
-	   (if conv-type
-		   (begin (tc-expr/check/type #'fun conv-type) (fix-results expected))
-		   (tc-expr/check form #f))]
+       #:when expected
+       (define conv-type
+         (match expected
+           [(tc-result1: fun-type)
+            (match-define (list required-pos optional-pos optional-supplied?)
+              (attribute opt.value))
+            (opt-convert fun-type required-pos optional-pos optional-supplied?)]
+           [_ #f]))
+       (if conv-type
+           (begin (tc-expr/check/type #'fun conv-type) (fix-results expected))
+           (tc-expr/check form #f))]
       [(~and _:kw-lambda^
-			 (let-values ([(f) fun])
-			   (let-values _
-				 (#%plain-app
-				  maker
-				  lambda-for-kws
-				  (case-lambda ; wrapper function
-					(formals . cl-body) ...)
-				  (~or (quote (mand-kw:keyword ...))
-					   (~and _ (~bind [(mand-kw 1) '()])))
-				  (quote (all-kw:keyword ...))
-				  . rst))))
-	   (define p (plambda-property form))
-	   (ret (kw-unconvert (tc-expr/t (plambda-property #'fun p))
-						  (syntax->list #'(formals ...))
-						  (syntax->datum #'(mand-kw ...))
-						  (syntax->datum #'(all-kw ...))))]
+             (let-values ([(f) fun])
+               (let-values _
+                 (#%plain-app
+                  maker
+                  lambda-for-kws
+                  (case-lambda ; wrapper function
+                    (formals . cl-body) ...)
+                  (~or (quote (mand-kw:keyword ...))
+                       (~and _ (~bind [(mand-kw 1) '()])))
+                  (quote (all-kw:keyword ...))
+                  . rst))))
+       (define p (plambda-property form))
+       (ret (kw-unconvert (tc-expr/t (plambda-property #'fun p))
+                          (syntax->list #'(formals ...))
+                          (syntax->datum #'(mand-kw ...))
+                          (syntax->datum #'(all-kw ...))))]
       [(~and opt:opt-lambda^
              (let-values ([(f) fun])
                (case-lambda (formals . cl-body) ...)))

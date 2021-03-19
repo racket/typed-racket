@@ -577,15 +577,14 @@
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
+         ;; constrain v to be below T (but don't mention bounds)
          (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
-         (if maybe-type-bound
-             (if (subtype maybe-type-bound T obj)
-                 (singleton maybe-type-bound
-                            v
-                            (var-demote T (context-bounds context)))
-                 #f)
-             ;; constrain v to be below T (but don't mention bounds)
-             (singleton -Bottom v (var-demote T (context-bounds context))))]
+         (let ([sing (curryr singleton v (var-demote T (context-bounds context)))])
+           (cond
+             [(and maybe-type-bound (subtype maybe-type-bound T obj))
+              (sing maybe-type-bound)]
+             [(not maybe-type-bound) (sing -Bottom)]
+             [else #f]))]
 
         [(S (F: (? (inferable-var? context) v)))
          #:return-when
@@ -600,15 +599,7 @@
              [(and maybe-type-bound (subtype S maybe-type-bound obj))
               (sing maybe-type-bound)]
              [(not maybe-type-bound) (sing Univ)]
-             [else #f]))
-         #;
-         (if maybe-type-bound
-             (if (subtype S maybe-type-bound obj)
-                 (singleton (var-demote S (context-bounds context))
-                            v
-                            maybe-type-bound)
-                 #f)
-             (singleton (var-promote S (context-bounds context)) v Univ))]
+             [else #f]))]
 
         ;; recursive names should get resolved as they're seen
         [(s (? Name? t))

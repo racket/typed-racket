@@ -22,6 +22,7 @@
          "signatures.rkt" "fail.rkt"
          "promote-demote.rkt"
          racket/match
+         (only-in racket/function curry curryr)
          ;racket/trace
          (contract-req)
          (for-syntax
@@ -576,7 +577,6 @@
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
-         ;; constrain v to be below T (but don't mention bounds)
          (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
          (if maybe-type-bound
              (if (subtype maybe-type-bound T obj)
@@ -584,9 +584,8 @@
                             v
                             (var-demote T (context-bounds context)))
                  #f)
-             (singleton -Bottom
-                        v
-                        (var-demote T (context-bounds context))))]
+             ;; constrain v to be below T (but don't mention bounds)
+             (singleton -Bottom v (var-demote T (context-bounds context))))]
 
         [(S (F: (? (inferable-var? context) v)))
          #:return-when
@@ -594,17 +593,22 @@
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
-         (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
          ;; constrain v to be above S (but don't mention bounds)
+         (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
+         (let ([sing (curry singleton (var-promote S (context-bounds context)) v)])
+           (cond
+             [(and maybe-type-bound (subtype S maybe-type-bound obj))
+              (sing maybe-type-bound)]
+             [(not maybe-type-bound) (sing Univ)]
+             [else #f]))
+         #;
          (if maybe-type-bound
              (if (subtype S maybe-type-bound obj)
                  (singleton (var-demote S (context-bounds context))
                             v
                             maybe-type-bound)
                  #f)
-             (singleton (var-demote S (context-bounds context))
-                        v
-                        Univ))]
+             (singleton (var-promote S (context-bounds context)) v Univ))]
 
         ;; recursive names should get resolved as they're seen
         [(s (? Name? t))

@@ -2,6 +2,8 @@
 
 (require rackunit rackunit/text-ui racket/file
          racket/port rackunit/log
+         racket/set
+         racket/path
          racket/string
          compiler/compiler setup/setup racket/promise
          racket/match syntax/modcode
@@ -46,14 +48,15 @@
 
 (define-runtime-path src-dir ".")
 
-(define (mk-tests dir test #:error [error? #f] #:exclude [excl ""] )
+(define (mk-tests dir test #:error [error? #f] #:exclude [excl (set)] )
   (lambda ()
     (define path (build-path src-dir dir))
     (define prms
       (for/list ([i (in-naturals)]
                  [p (directory-list path)]
                  #:when (scheme-file? p)
-                 #:unless (and (not (equal? excl "")) (string-contains? (path->string p) excl))
+                 #:unless (let* ([f (path->string (file-name-from-path p))])
+                              (and (not (set-empty? excl)) (set-member? excl f)))
 		 ;; skip backup files
 		 #:when (not (regexp-match #rx".*~" (path->string p))))
         (define p* (build-path path p))
@@ -87,7 +90,7 @@
 
 
 
-(define (int-tests [excl ""])
+(define (int-tests [excl (set)])
   (define succ-tests (mk-tests "succeed"
                              (lambda (p thnk) 
                                (check-not-exn thnk))
@@ -99,7 +102,8 @@
                                  (with-check-info
                                   (['predicates info])
                                   (check-exn pred thnk))))
-                             #:error #t))
+                             #:error #t
+                             #:exclude excl))
   
   (test-suite "Integration tests"
               (succ-tests)
@@ -188,7 +192,7 @@
   (define missed-opt? (make-parameter #f))
   (define bench? (make-parameter #f))
   (define math? (make-parameter #f))
-  (define excl (make-parameter ""))
+  (define excl (make-parameter (list)))
   (define single (make-parameter #f))
   (current-namespace (make-base-namespace))
   (command-line
@@ -203,14 +207,15 @@
    ["--just" path "run only this test" (single (just-one path))]
    ["--nightly" "for the nightly builds" (begin (nightly? #t) (unit? #t) (opt? #t) (missed-opt? #t) (places 1))]
    ["--all" "run all tests" (begin (unit? #t) (int? #t) (opt? #t) (missed-opt? #t) (bench? #t) (math? #t))]
-   ["--excl" test "exclude tests" (excl test)]
    ["-j" num "number of places to use" 
     (let ([n (string->number num)])
       (places (and (integer? n) (> n 1) n)))]
    ["--gui" "run using the gui"
     (if (gui-available?)
         (exec go)
-        (error "GUI not available"))])
+        (error "GUI not available"))]
+   #:multi
+   ["--excl" test "exclude tests" (excl (set-add (excl) test))])
 
   (start-workers)
 

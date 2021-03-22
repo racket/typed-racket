@@ -22,7 +22,7 @@
          "signatures.rkt" "fail.rkt"
          "promote-demote.rkt"
          racket/match
-         (only-in racket/function curry curryr)
+         (only-in racket/function curry curryr thunk)
          ;racket/trace
          (contract-req)
          (for-syntax
@@ -65,6 +65,7 @@
   (match ctx
     [(context V X Y)
      (context (append bounds V) (append vars X) (append indices Y))]))
+
 
 (define (inferable-index? ctx bound)
   (match ctx
@@ -493,6 +494,21 @@
   ;; this constrains just x (which is a single var)
   (define (singleton S x T)
     (insert empty x S T))
+
+  (define (constrain tvar-a tvar-b #:above above)
+    (match-define (F: var maybe-type-bound) tvar-a)
+    (define-values (default sub sing) (if above
+                                          (values Univ
+                                                  (thunk (subtype tvar-b maybe-type-bound obj))
+                                                  (curry singleton (var-promote tvar-b (context-bounds context)) var))
+                                          (values -Bottom
+                                                  (thunk (subtype maybe-type-bound tvar-b obj))
+                                                  (curryr singleton var (var-demote tvar-b (context-bounds context))))))
+    (cond
+      [(not maybe-type-bound) (sing default)]
+      [(sub) (sing maybe-type-bound)]
+      [else #f]))
+
   ;; FIXME -- figure out how to use parameters less here
   ;;          subtyping doesn't need to use it quite as much
   (define cs (current-seen))
@@ -569,34 +585,24 @@
 
         ;; variables that are in X and should be constrained
         ;; all other variables are compatible only with themselves
-        [((F: (? (inferable-var? context) v) maybe-type-bound) T)
+        [((and (F: (? (inferable-var? context))) S) T)
          #:return-when
          (match T
            ;; fail when v* is an index variable
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
-         ;; constrain v to be below T (but don't mention bounds)
-         (let ([sing (curryr singleton v (var-demote T (context-bounds context)))])
-           (cond
-             [(and maybe-type-bound (subtype maybe-type-bound T obj))
-              (sing maybe-type-bound)]
-             [(not maybe-type-bound) (sing -Bottom)]
-             [else #f]))]
+         ;; constrain S to be below T (but don't mention bounds)
+         (constrain S T #:above #f)]
 
-        [(S (F: (? (inferable-var? context) v) maybe-type-bound))
+        [(S (and (F: (? (inferable-var? context))) T))
          #:return-when
          (match S
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
-         ;; constrain v to be above S (but don't mention bounds)
-         (let ([sing (curry singleton (var-promote S (context-bounds context)) v)])
-           (cond
-             [(and maybe-type-bound (subtype S maybe-type-bound obj))
-              (sing maybe-type-bound)]
-             [(not maybe-type-bound) (sing Univ)]
-             [else #f]))]
+         ;; constrain T to be above S (but don't mention bounds)
+         (constrain T S #:above #t)]
 
         ;; recursive names should get resolved as they're seen
         [(s (? Name? t))

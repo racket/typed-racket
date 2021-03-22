@@ -51,5 +51,30 @@
              #:result (+ x y))
             ([i (in-range 3)]
              [j (in-range 3)])
+   (values (+ x i) (+ y i j)))
+ 27)
+
+(check-equal?
+ (for/foldr ([x : Integer 0]
+             #:result (number->string x))
+            ([y (in-range 3)])
+   (+ x y))
+ "3")
+
+(check-equal?
+ (for/foldr : String
+            ([x : Integer 1]
+             #:result (number->string x))
+            ([y (in-range 3)])
+   (+ x y))
+ "4")
+
+(check-equal?
+ (for*/foldr : Integer
+             ([x : Integer 0]
+              [y : Integer 0]
+              #:result (+ x y))
+             ([i (in-range 3)]
+              [j (in-range 3)])
   (values (+ x i) (+ y i j)))
  27)

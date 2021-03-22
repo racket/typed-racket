@@ -172,6 +172,42 @@
                   (+ acc i j k))
        1998)
 
+(check =
+       (for/foldr: : Integer
+                   ((acc : Integer 0))
+                   ((i : Integer '(1 2 3))
+                    (j : Integer '(10 20 30)))
+                   (+ acc i j))
+       66)
+(check =
+       (for/foldr: ((acc : Integer 0))
+                   ((i : Integer '(1 2 3))
+                    (j : Integer '(10 20 30)))
+                   : Integer
+                   (+ acc i j))
+       66)
+
+(check =
+       (for/foldr: : Integer
+                   ((acc : Integer 0))
+                   ((i : Integer '(1 2 3))
+                    #:when (even? i)
+                    (j : Integer '(10 20 30))
+                    #:when #t
+                    (k : Integer '(100 200 300)))
+                   (+ acc i j k))
+       1998)
+(check =
+       (for/foldr: ((acc : Integer 0))
+                   ((i : Integer '(1 2 3))
+                    #:when (even? i)
+                    (j : Integer '(10 20 30))
+                    #:when #t
+                    (k : Integer '(100 200 300)))
+                   : Integer
+                   (+ acc i j k))
+       1998)
+
 (check string=?
        (with-output-to-string
          (lambda ()
@@ -248,6 +284,44 @@
                     (k : Integer '(100 200 300)))
                    : Integer
                    (+ acc i j k))
+       3996)
+
+(check =
+       (for*/foldr: : Integer
+                    ((acc : Integer 0))
+                    ((i : Integer '(1 2 3))
+                     #:when (even? i)
+                     (j : Integer '(10 20 30))
+                     (k : Integer '(100 200 300)))
+                    (+ acc i j k))
+       1998)
+(check =
+       (for*/foldr: ((acc : Integer 0))
+                    ((i : Integer '(1 2 3))
+                     #:when (even? i)
+                     (j : Integer '(10 20 30))
+                     (k : Integer '(100 200 300)))
+                    : Integer
+                    (+ acc i j k))
+       1998)
+
+(check =
+       (for*/foldr: : Integer
+                    ((acc : Integer 0))
+                    ((i : Integer '(1 2 3))
+                     #:unless (even? i)
+                     (j : Integer '(10 20 30))
+                     (k : Integer '(100 200 300)))
+                    (+ acc i j k))
+       3996)
+(check =
+       (for*/foldr: ((acc : Integer 0))
+                    ((i : Integer '(1 2 3))
+                     #:unless (even? i)
+                     (j : Integer '(10 20 30))
+                     (k : Integer '(100 200 300)))
+                    : Integer
+                    (+ acc i j k))
        3996)
 
 (check =

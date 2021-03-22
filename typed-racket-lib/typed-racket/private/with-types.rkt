@@ -23,10 +23,10 @@
                      default-continuation-prompt-tag
                      for/list for/vector for/hash for/hasheq for/hasheqv
                      for/and for/or for/sum for/product for/lists
-                     for/first for/last for/fold for*/list for*/lists
+                     for/first for/last for/fold for/foldr for*/list for*/lists
                      for*/vector for*/hash for*/hasheq for*/hasheqv for*/and
                      for*/or for*/sum for*/product for*/first for*/last
-                     for*/fold)
+                     for*/fold for*/foldr)
           (base-env prims)
           (prefix-in c: racket/contract/region))
          (for-label racket/base
@@ -74,7 +74,7 @@
                  ;; this is a parameter to avoid dependency issues
                  [current-type-names
                   (lazy
-                    (append 
+                    (append
                      (type-name-env-map (lambda (id ty)
                                           (cons (syntax-e id) ty)))
                      (type-alias-env-map (lambda (id ty)
@@ -186,4 +186,3 @@
      (with-type-helper stx #'body #'(fv.id ...) #'(fv.ty ...) #'(id ...) #'(ty ...) #f #f (syntax-local-context))]
     [(_ :result-ty fv:free-vars . body)
      (with-type-helper stx #'body #'(fv.id ...) #'(fv.ty ...) #'() #'() #'ty #t (syntax-local-context))]))
-

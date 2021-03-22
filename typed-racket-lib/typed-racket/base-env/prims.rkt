@@ -82,6 +82,7 @@ the typed racket language.
                      [for/first: for/first]
                      [for/last: for/last]
                      [for/fold: for/fold]
+                     [for/foldr: for/foldr]
                      [for*: for*]
                      [for*/list: for*/list]
                      [for*/lists: for*/lists]
@@ -96,6 +97,7 @@ the typed racket language.
                      [for*/first: for*/first]
                      [for*/last: for*/last]
                      [for*/fold: for*/fold]
+                     [for*/foldr: for*/foldr]
                      [for/set: for/set]
                      [for*/set: for*/set]
                      [-do do]
@@ -145,7 +147,7 @@ the typed racket language.
   (require "base-contracted.rkt")
   (provide (all-from-out "base-contracted.rkt")))
 
-(begin-for-syntax 
+(begin-for-syntax
   (require racket/runtime-path
            (for-syntax racket/base))
   (define-runtime-module-path-index contract-defs-submod
@@ -160,7 +162,7 @@ the typed racket language.
 
 ;; Lazily loaded b/c they're only used sometimes, so we save a lot
 ;; of loading by not having them when they are unneeded
-(begin-for-syntax 
+(begin-for-syntax
   (lazy-require [syntax/define (normalize-definition)]))
 
 (define-for-syntax (with-type* expr ty)
@@ -441,6 +443,26 @@ the typed racket language.
             for-stx
             #'(values accum.ty ...))
            for-stx)))]))
+(define-syntax (for/foldr: stx)
+  (syntax-parse stx
+    [(_ a1:optional-standalone-annotation*
+        accum:accumulator-bindings
+        clause:for-clauses
+        a2:optional-standalone-annotation*
+        c ...)
+     (define all-typed? (andmap values (attribute accum.ty)))
+     (define for-stx
+       (quasisyntax/loc stx
+         (for/foldr ((accum.ann-name accum.init) ... (~@ . (~? accum.result ())))
+                    (clause.expand ... ...)
+           c ...)))
+     ((attribute a1.annotate)
+      ((attribute a2.annotate)
+       (if (and all-typed? (not (attribute accum.result)))
+           (add-ann
+            for-stx
+            #'(values accum.ty ...))
+           for-stx)))]))
 
 (define-syntax (for*: stx)
   (syntax-parse stx #:literals (: Void)
@@ -514,6 +536,24 @@ the typed racket language.
        (if (and all-typed? (not (attribute result)))
            (add-ann for-stx #'(values var.ty ...))
            for-stx)))]))
+(define-syntax (for*/foldr: stx)
+  (syntax-parse stx #:literals (:)
+                [(_ a1:optional-standalone-annotation*
+                    ((var:optionally-annotated-name init:expr) ... (~optional result:result-clause))
+                    clause:for-clauses
+                    a2:optional-standalone-annotation*
+                    c ...)
+                 (define all-typed? (andmap values (attribute var.ty)))
+                 (define for-stx
+                   (quasisyntax/loc stx
+                     (for/foldr ((var.ann-name init) ... (~@ . (~? result ())))
+                                (clause.expand* ... ...)
+                       c ...)))
+                 ((attribute a1.annotate)
+                  ((attribute a2.annotate)
+                   (if (and all-typed? (not (attribute result)))
+                       (add-ann for-stx #'(values var.ty ...))
+                       for-stx)))]))
 
 (define-for-syntax (define-for/acc:-variant for*? for/folder: for/folder op initial final)
   (lambda (stx)
@@ -686,7 +726,7 @@ the typed racket language.
            #'last-e))
 
      ;; if the lambda form being checked is a polymorphic function, tag its
-     ;; parameters with property `from-lambda'. 
+     ;; parameters with property `from-lambda'.
      (define (maybe-set-from-lambda type-vars formals)
        (cond
          [(and type-vars (stx-list? formals))
@@ -876,7 +916,7 @@ the typed racket language.
                                     (set! vs new-vs)]
                  [else  (unsafe-vector-set! vs i v)])
            (set! i (unsafe-fx+ i 1)))
-         (cond 
+         (cond
           [(= i (vector-length vs)) vs]
           ;; We inline `vector-copy` to avoid a dependency.
           ;; The vector-ref here ensures that we have a well-typed initial element.

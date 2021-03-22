@@ -49,37 +49,36 @@
 (define-struct/cond-contract context
   ([bounds (listof symbol?)]
    [vars (listof symbol?)]
-   [indices (listof symbol?)]
-   [type-bounds (hash/c symbol? Type?)]) #:transparent)
+   [indices (listof symbol?)]) #:transparent)
 
 (define (context-add-vars ctx vars)
   (match ctx
-    [(context V X Y TB)
-     (context V (append vars X) Y TB)]))
+    [(context V X Y)
+     (context V (append vars X) Y)]))
 
 (define (context-add-var ctx var)
   (match ctx
-    [(context V X Y TB)
-     (context V (cons var X) Y TB)]))
+    [(context V X Y)
+     (context V (cons var X) Y)]))
 
 (define (context-add ctx #:bounds [bounds empty] #:vars [vars empty] #:indices [indices empty])
   (match ctx
-    [(context V X Y TB)
-     (context (append bounds V) (append vars X) (append indices Y) TB)]))
+    [(context V X Y)
+     (context (append bounds V) (append vars X) (append indices Y))]))
 
 (define (inferable-index? ctx bound)
   (match ctx
-    [(context _ _ Y TB)
+    [(context _ _ Y)
      (memq bound Y)]))
 
 (define ((inferable-var? ctx) var)
   (match ctx
-    [(context _ X _ TB)
+    [(context _ X _)
      (memq var X)]))
 
 (define (empty-cset/context ctx)
   (match ctx
-    [(context _ X Y TB)
+    [(context _ X Y)
      (empty-cset X Y)]))
 
 
@@ -570,7 +569,7 @@
 
         ;; variables that are in X and should be constrained
         ;; all other variables are compatible only with themselves
-        [((F: (? (inferable-var? context) v)) T)
+        [((F: (? (inferable-var? context) v) maybe-type-bound) T)
          #:return-when
          (match T
            ;; fail when v* is an index variable
@@ -578,7 +577,6 @@
            [_ #f])
          #f
          ;; constrain v to be below T (but don't mention bounds)
-         (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
          (let ([sing (curryr singleton v (var-demote T (context-bounds context)))])
            (cond
              [(and maybe-type-bound (subtype maybe-type-bound T obj))
@@ -586,14 +584,13 @@
              [(not maybe-type-bound) (sing -Bottom)]
              [else #f]))]
 
-        [(S (F: (? (inferable-var? context) v)))
+        [(S (F: (? (inferable-var? context) v) maybe-type-bound))
          #:return-when
          (match S
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
          ;; constrain v to be above S (but don't mention bounds)
-         (define maybe-type-bound (hash-ref (context-type-bounds context) v #f))
          (let ([sing (curry singleton (var-promote S (context-bounds context)) v)])
            (cond
              [(and maybe-type-bound (subtype S maybe-type-bound obj))
@@ -1017,19 +1014,17 @@
  (let ()
    (define/cond-contract (infer X Y S T R [expected #f]
                                 #:multiple? [multiple-substitutions? #f]
-                                #:bounds [bounds '#hash()]
                                 #:objs [objs '()])
      (((listof symbol?) (listof symbol?) (listof Type?) (listof Type?)
        (or/c #f Values/c AnyValues? ValuesDots?))
       ((or/c #f Values/c AnyValues? ValuesDots?)
        #:multiple? boolean?
-       #:bounds (hash/c symbol? Type?)
        #:objs (listof OptObject?))
       . ->* . (or/c boolean?
                     substitution/c
                     (cons/c substitution/c
                             (listof substitution/c))))
-     (define ctx (context null X Y bounds))
+     (define ctx (context null X Y))
      (define expected-cset
        (if expected
            (cgen ctx R expected)
@@ -1046,8 +1041,7 @@
 
 ;; like infer, but T-var is the vararg type:
 (define (infer/vararg X Y S T T-var R [expected #f]
-                      #:objs [objs '()]
-                      #:bounds [bounds '#hash()])
+                      #:objs [objs '()])
   (and ((length S) . >= . (length T))
        (let* ([fewer-ts (- (length S) (length T))]
               [new-T (match T-var
@@ -1057,8 +1051,7 @@
                         (append T (repeat-list rst-ts
                                                (quotient fewer-ts (length rst-ts))))]
                        [_ T])])
-         (infer X Y S new-T R expected #:objs objs
-                #:bounds bounds))))
+         (infer X Y S new-T R expected #:objs objs))))
 
 ;; like infer, but dotted-var is the bound on the ...
 ;; and T-dotted is the repeated type
@@ -1073,7 +1066,7 @@
      (generate-dbound-prefix dotted-var T-dotted (length rest-S) #f))
    (define (subst t)
      (substitute-dots (map make-F new-vars) #f dotted-var t))
-   (define ctx (context null (append new-vars X) (list dotted-var) '#hash()))
+   (define ctx (context null (append new-vars X) (list dotted-var)))
 
    (define expected-cset (if expected
                              (cgen ctx (subst R) expected)

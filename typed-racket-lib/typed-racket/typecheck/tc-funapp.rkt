@@ -192,7 +192,7 @@
          #:expected expected)]
       ;; regular polymorphic functions without dotted rest,
       ;; we do not choose any instantiations with mandatory keyword arguments
-      [(Poly: vars bounds (Fun: arrows))
+      [(Poly: vars (Fun: arrows))
        ;; check there are no RestDots
        #:when (not (for/or ([a (in-list arrows)])
                      (RestDots? (Arrow-rst a))))
@@ -214,8 +214,7 @@
                          (infer/vararg vars null argtys dom rst rng
                                        (and expected
                                             (tc-results->values expected))
-                                       #:objs argobjs
-                                       #:bounds bounds)))
+                                       #:objs argobjs)))
          #:function-type f-type
          #:args-results args-res
          #:expected expected)]

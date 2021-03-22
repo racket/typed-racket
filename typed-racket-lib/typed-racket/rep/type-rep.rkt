@@ -1777,16 +1777,7 @@
                    (let* ([n (Poly-n t)]
                           [syms (build-list n (lambda _ (gensym)))])
                      (list syms (Poly-body* syms t))))
-                 (list nps bp)))]
-      [(_ nps bounds bp)
-       #'(? Poly?
-            (app (lambda (t)
-                   (let* ([n (Poly-n t)]
-                          [syms (build-list n (lambda _ (gensym)))]
-                          [bounds (for/hash ([(idx v) (Poly-bounds t)])
-                                    (values (list-ref syms idx) v))])
-                     (list syms bounds (Poly-body* syms t))))
-                 (list nps bounds bp)))])))
+                 (list nps bp)))])))
 
 ;; This match expander uses the names from the hashtable
 (define-match-expander Poly-names:

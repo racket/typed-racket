@@ -266,7 +266,13 @@ Like the above, except they are not yet supported by the typechecker.
 @defform[(for/lists type-ann-maybe ([id : t] ... maybe-result)
            (for-clause ...)
            expr ...+)]
-@defform[(for/fold  type-ann-maybe ([id : t init-expr] ... maybe-result)
+@defform[(for/fold type-ann-maybe ([id : t init-expr] ... maybe-result)
+           (for-clause ...)
+           expr ...+)
+         #:grammar
+         ([maybe-result (code:line)
+                        (code:line #:result result-expr)])]
+@defform[(for/foldr type-ann-maybe ([id : t init-expr] ... maybe-result)
            (for-clause ...)
            expr ...+)
          #:grammar
@@ -275,7 +281,7 @@ Like the above, except they are not yet supported by the typechecker.
 These behave like their non-annotated counterparts. Unlike the above,
 @racket[#:when] clauses can be used freely with these.
 @history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
-}
+@history[#:changed "1.12" @elem{Added @racket[for/foldr].}]}
 
 @deftogether[[
 @defform[(for* void-ann-maybe (for-clause ...)
@@ -283,7 +289,15 @@ These behave like their non-annotated counterparts. Unlike the above,
 @defform[(for*/lists type-ann-maybe ([id : t] ... maybe-result)
            (for-clause ...)
            expr ...+)]
-@defform[(for*/fold  type-ann-maybe ([id : t init-expr] ... maybe-result)
+@defform[(for*/fold type-ann-maybe ([id : t init-expr] ... maybe-result)
+           (for-clause ...)
+           expr ...+)
+         #:grammar
+         ([void-ann-maybe (code:line)
+                          (code:line : Void)]
+          [maybe-result (code:line)
+                        (code:line #:result result-expr)])]
+@defform[(for*/foldr type-ann-maybe ([id : t init-expr] ... maybe-result)
            (for-clause ...)
            expr ...+)
          #:grammar
@@ -293,7 +307,7 @@ These behave like their non-annotated counterparts. Unlike the above,
                         (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts.
 @history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
-}
+@history[#:changed "1.12" @elem{Added @racket[for*/foldr].}]}
 
 @defform/subs[(do : u ([id : t init-expr step-expr-maybe] ...)
                       (stop?-expr finish-expr ...)
@@ -623,7 +637,7 @@ optionally-renamed identifier.
             [#:struct maybe-tvars (name-id parent) ([f : t] ...)
                  struct-option ...]
             [#:opaque t pred]
-	    [#:signature name ([id : t] ...)]]
+            [#:signature name ([id : t] ...)]]
  [maybe-renamed id
                 (orig-id new-id)]
  [maybe-tvars (code:line)

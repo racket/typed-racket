@@ -402,67 +402,54 @@ the typed racket language.
   (for/first: for/first))
 
 ;; Unlike with the above, the inferencer can handle any number of #:when
-;; clauses with these 2.
-(define-syntax (for/lists: stx)
-  (syntax-parse stx
-    [(_ a1:optional-standalone-annotation*
-        (var:optionally-annotated-formal ... (~optional result:result-clause))
-        clause:for-clauses
-        a2:optional-standalone-annotation*
-        c ...)
-     (define all-typed? (andmap values (attribute var.ty)))
-     (define for-stx
-       (quasisyntax/loc stx
-          (for/lists (var.ann-name ... (~@ . (~? result ())))
-            (clause.expand ... ...)
-            c ...)))
-     ((attribute a1.annotate)
-      ((attribute a2.annotate)
-       (if (and all-typed? (not (attribute result)))
-           (add-ann
-            for-stx
-            #'(values var.ty ...))
-           for-stx)))]))
-(define-syntax (for/fold: stx)
-  (syntax-parse stx
-    [(_ a1:optional-standalone-annotation*
-        accum:accumulator-bindings
-        clause:for-clauses
-        a2:optional-standalone-annotation*
-        c ...)
-     (define all-typed? (andmap values (attribute accum.ty)))
-     (define for-stx
-       (quasisyntax/loc stx
-         (for/fold ((accum.ann-name accum.init) ... (~@ . (~? accum.result ())))
-                   (clause.expand ... ...)
-           c ...)))
-     ((attribute a1.annotate)
-      ((attribute a2.annotate)
-       (if (and all-typed? (not (attribute accum.result)))
-           (add-ann
-            for-stx
-            #'(values accum.ty ...))
-           for-stx)))]))
-(define-syntax (for/foldr: stx)
-  (syntax-parse stx
-    [(_ a1:optional-standalone-annotation*
-        accum:accumulator-bindings
-        clause:for-clauses
-        a2:optional-standalone-annotation*
-        c ...)
-     (define all-typed? (andmap values (attribute accum.ty)))
-     (define for-stx
-       (quasisyntax/loc stx
-         (for/foldr ((accum.ann-name accum.init) ... (~@ . (~? accum.result ())))
-                    (clause.expand ... ...)
-           c ...)))
-     ((attribute a1.annotate)
-      ((attribute a2.annotate)
-       (if (and all-typed? (not (attribute accum.result)))
-           (add-ann
-            for-stx
-            #'(values accum.ty ...))
-           for-stx)))]))
+;; clauses with these 3.
+(define-syntaxes (for/lists:)
+  (let ()
+    (define ((make untyped-name) stx)
+      (syntax-parse stx
+        [(_ a1:optional-standalone-annotation*
+            (var:optionally-annotated-formal ... (~optional result:result-clause))
+            clause:for-clauses
+            a2:optional-standalone-annotation*
+            c ...)
+         (define all-typed? (andmap values (attribute var.ty)))
+         (define for-stx
+           (quasisyntax/loc stx
+             (#,untyped-name (var.ann-name ... (~@ . (~? result ())))
+              (clause.expand ... ...)
+              c ...)))
+         ((attribute a1.annotate)
+          ((attribute a2.annotate)
+           (if (and all-typed? (not (attribute result)))
+               (add-ann
+                for-stx
+                #'(values var.ty ...))
+               for-stx)))]))
+    (values (make #'for/lists))))
+(define-syntaxes (for/fold: for/foldr:)
+  (let ()
+    (define ((make untyped-name) stx)
+      (syntax-parse stx
+        [(_ a1:optional-standalone-annotation*
+            accum:accumulator-bindings
+            clause:for-clauses
+            a2:optional-standalone-annotation*
+            c ...)
+         (define all-typed? (andmap values (attribute accum.ty)))
+         (define for-stx
+           (quasisyntax/loc stx
+             (#,untyped-name ((accum.ann-name accum.init) ... (~@ . (~? accum.result ())))
+              (clause.expand ... ...)
+              c ...)))
+         ((attribute a1.annotate)
+          ((attribute a2.annotate)
+           (if (and all-typed? (not (attribute accum.result)))
+               (add-ann
+                for-stx
+                #'(values accum.ty ...))
+               for-stx)))]))
+    (values (make #'for/fold)
+            (make #'for/foldr))))
 
 (define-syntax (for*: stx)
   (syntax-parse stx #:literals (: Void)
@@ -499,61 +486,50 @@ the typed racket language.
   (for*/or: for*/or)
   (for*/first: for*/first))
 
-;; Like for/lists: and for/fold:, the inferencer can handle these correctly.
-(define-syntax (for*/lists: stx)
-  (syntax-parse stx
-    [(_ a1:optional-standalone-annotation*
-        ((var:optionally-annotated-name) ... (~optional result:result-clause))
-        clause:for-clauses
-        a2:optional-standalone-annotation*
-        c ...)
-     (define all-typed? (andmap values (attribute var.ty)))
-     (define for-stx
-       (quasisyntax/loc stx
-         (for/lists (var.ann-name ... (~@ . (~? result ())))
-             (clause.expand* ... ...)
-           c ...)))
-     ((attribute a1.annotate)
-      ((attribute a2.annotate)
-       (if (and all-typed? (not (attribute result)))
-           (add-ann for-stx #'(values var.ty ...))
-           for-stx)))]))
-(define-syntax (for*/fold: stx)
-  (syntax-parse stx #:literals (:)
-    [(_ a1:optional-standalone-annotation*
-        ((var:optionally-annotated-name init:expr) ... (~optional result:result-clause))
-        clause:for-clauses
-        a2:optional-standalone-annotation*
-        c ...)
-     (define all-typed? (andmap values (attribute var.ty)))
-     (define for-stx
-       (quasisyntax/loc stx
-         (for/fold ((var.ann-name init) ... (~@ . (~? result ())))
-             (clause.expand* ... ...)
-           c ...)))
-     ((attribute a1.annotate)
-      ((attribute a2.annotate)
-       (if (and all-typed? (not (attribute result)))
-           (add-ann for-stx #'(values var.ty ...))
-           for-stx)))]))
-(define-syntax (for*/foldr: stx)
-  (syntax-parse stx #:literals (:)
-                [(_ a1:optional-standalone-annotation*
-                    ((var:optionally-annotated-name init:expr) ... (~optional result:result-clause))
-                    clause:for-clauses
-                    a2:optional-standalone-annotation*
-                    c ...)
-                 (define all-typed? (andmap values (attribute var.ty)))
-                 (define for-stx
-                   (quasisyntax/loc stx
-                     (for/foldr ((var.ann-name init) ... (~@ . (~? result ())))
-                                (clause.expand* ... ...)
-                       c ...)))
-                 ((attribute a1.annotate)
-                  ((attribute a2.annotate)
-                   (if (and all-typed? (not (attribute result)))
-                       (add-ann for-stx #'(values var.ty ...))
-                       for-stx)))]))
+;; Like for/lists:, for/fold: and for/foldr:, the inferencer can handle these correctly.
+(define-syntaxes (for*/lists:)
+  (let ()
+    (define ((make untyped-name) stx)
+      (syntax-parse stx
+        [(_ a1:optional-standalone-annotation*
+            ((var:optionally-annotated-name) ... (~optional result:result-clause))
+            clause:for-clauses
+            a2:optional-standalone-annotation*
+            c ...)
+         (define all-typed? (andmap values (attribute var.ty)))
+         (define for-stx
+           (quasisyntax/loc stx
+             (#,untyped-name (var.ann-name ... (~@ . (~? result ())))
+              (clause.expand* ... ...)
+              c ...)))
+         ((attribute a1.annotate)
+          ((attribute a2.annotate)
+           (if (and all-typed? (not (attribute result)))
+               (add-ann for-stx #'(values var.ty ...))
+               for-stx)))]))
+    (values (make #'for*/lists))))
+(define-syntaxes (for*/fold: for*/foldr:)
+  (let ()
+    (define ((make untyped-name) stx)
+      (syntax-parse stx #:literals (:)
+        [(_ a1:optional-standalone-annotation*
+            ((var:optionally-annotated-name init:expr) ... (~optional result:result-clause))
+            clause:for-clauses
+            a2:optional-standalone-annotation*
+            c ...)
+         (define all-typed? (andmap values (attribute var.ty)))
+         (define for-stx
+           (quasisyntax/loc stx
+             (#,untyped-name ((var.ann-name init) ... (~@ . (~? result ())))
+              (clause.expand* ... ...)
+              c ...)))
+         ((attribute a1.annotate)
+          ((attribute a2.annotate)
+           (if (and all-typed? (not (attribute result)))
+               (add-ann for-stx #'(values var.ty ...))
+               for-stx)))]))
+    (values (make #'for*/fold)
+            (make #'for*/foldr))))
 
 (define-for-syntax (define-for/acc:-variant for*? for/folder: for/folder op initial final)
   (lambda (stx)

@@ -172,7 +172,7 @@ preferred to use of @racket[define:].
               @defidform[for/sum:]
               @defidform[for/vector:])]{
  Aliases for the same iteration forms without a @racket[_:].
-}
+@history[#:changed "1.12" @elem{Added @racket[for/foldr:] and @racket[for*/foldr:].}]}
 @defalias[do: do]
 
 @defidform[define-type-alias]{Equivalent to @racket[define-type].}

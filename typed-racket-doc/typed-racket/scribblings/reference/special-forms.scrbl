@@ -280,8 +280,8 @@ Like the above, except they are not yet supported by the typechecker.
                         (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts. Unlike the above,
 @racket[#:when] clauses can be used freely with these.
-@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
-@history[#:changed "1.12" @elem{Added @racket[for/foldr].}]}
+@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}
+         #:changed "1.12" @elem{Added @racket[for/foldr].}]}
 
 @deftogether[[
 @defform[(for* void-ann-maybe (for-clause ...)
@@ -306,8 +306,8 @@ These behave like their non-annotated counterparts. Unlike the above,
           [maybe-result (code:line)
                         (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts.
-@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
-@history[#:changed "1.12" @elem{Added @racket[for*/foldr].}]}
+@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}
+         #:changed "1.12" @elem{Added @racket[for*/foldr].}]}
 
 @defform/subs[(do : u ([id : t init-expr step-expr-maybe] ...)
                       (stop?-expr finish-expr ...)

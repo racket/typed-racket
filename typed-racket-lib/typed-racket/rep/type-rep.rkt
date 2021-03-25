@@ -1682,7 +1682,7 @@
 
 ;; Poly 'smart' destructor
 (define (Poly-body* names t)
-  (define orig-names (hash-ref type-var-name-table t))
+  (define orig-names (hash-ref type-var-name-table t null))
   (match t
     [(Poly: n bounds body)
      (define new-bounds (for/hash ([(idx v) bounds])

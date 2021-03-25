@@ -39,6 +39,7 @@
 (define (empty-set) '())
 
 (define current-seen (make-parameter (empty-set)))
+(define infered-tvar-map (make-parameter (hash)))
 
 ;; Type Type -> Pair<Seq, Seq>
 ;; construct a pair for the set of seen type pairs
@@ -476,7 +477,7 @@
 ;; produces a cset which determines a substitution that makes S a subtype of T
 ;; implements the V |-_X S <: T => C judgment from Pierce+Turner, extended with
 ;; the index variables from the TOPLAS paper
-(define/cond-contract (cgen context S T [obj #f] [bound #f])
+(define/cond-contract (cgen context S T [obj #f])
   (->* (context? (or/c Values/c ValuesDots? AnyValues?)
                  (or/c Values/c ValuesDots? AnyValues?))
        ((or/c #f OptObject?))
@@ -485,7 +486,7 @@
   (define/cond-contract (cg S T [obj #f])
    (->* (Type? Type?) ((or/c #f OptObject?))
         (or/c #f cset?))
-   (cgen context S T obj bound))
+   (cgen context S T obj))
   (define/cond-contract (cg/inv S T)
    (Type? Type? . -> . (or/c #f cset?))
    (cgen/inv context S T))
@@ -496,7 +497,15 @@
     (insert empty x S T))
 
   (define (constrain tvar-a tvar-b #:above above)
-    (match-define (F: var maybe-type-bound) tvar-a)
+    (define (maybe-type-app t)
+      (match t
+        [(App: t1 (list (F: var))) #:when (hash-has-key? (infered-tvar-map) var)
+                                   (define v (hash-ref (infered-tvar-map) var))
+                                   (-App t1 (list v))]
+        [_ t]))
+
+    (match-define (F: var (app maybe-type-app maybe-type-bound)) tvar-a)
+
     (define-values (default sub sing) (if above
                                           (values Univ
                                                   (thunk (subtype tvar-b maybe-type-bound obj))
@@ -506,7 +515,9 @@
                                                   (curryr singleton var (var-demote tvar-b (context-bounds context))))))
     (cond
       [(not maybe-type-bound) (sing default)]
-      [(sub) (sing maybe-type-bound)]
+      [(sub)
+       (infered-tvar-map (hash-set (infered-tvar-map) var maybe-type-bound))
+       (sing maybe-type-bound)]
       [else #f]))
 
   ;; FIXME -- figure out how to use parameters less here
@@ -983,6 +994,7 @@
         (build-subst md))
       (build-subst (stream-first (cset-maps C)))))
 
+
 ;; context : the context of what to infer/not infer
 ;; S : a list of types to be the subtypes of T
 ;; T : a list of types
@@ -1000,9 +1012,9 @@
           (for/list/fail ([s (in-list S)]
                           [t (in-list T)]
                           [obj (in-list/rest objs #f)])
-                         ;; We meet early to prune the csets to a reasonable size.
-                         ;; This weakens the inference a bit, but sometimes avoids
-                         ;; constraint explosion.
+            ;; We meet early to prune the csets to a reasonable size.
+            ;; This weakens the inference a bit, but sometimes avoids
+            ;; constraint explosion.
             (% cset-meet (cgen context s t obj) expected-cset)))))
 
 
@@ -1048,16 +1060,17 @@
 ;; like infer, but T-var is the vararg type:
 (define (infer/vararg X Y S T T-var R [expected #f]
                       #:objs [objs '()])
-  (and ((length S) . >= . (length T))
-       (let* ([fewer-ts (- (length S) (length T))]
-              [new-T (match T-var
-                       [(? Type? var-t) (list-extend S T var-t)]
-                       [(Rest: rst-ts)
-                        #:when (zero? (remainder fewer-ts (length rst-ts)))
-                        (append T (repeat-list rst-ts
-                                               (quotient fewer-ts (length rst-ts))))]
-                       [_ T])])
-         (infer X Y S new-T R expected #:objs objs))))
+  (parameterize ([infered-tvar-map (hash)])
+    (and ((length S) . >= . (length T))
+         (let* ([fewer-ts (- (length S) (length T))]
+                [new-T (match T-var
+                         [(? Type? var-t) (list-extend S T var-t)]
+                         [(Rest: rst-ts)
+                          #:when (zero? (remainder fewer-ts (length rst-ts)))
+                          (append T (repeat-list rst-ts
+                                                 (quotient fewer-ts (length rst-ts))))]
+                         [_ T])])
+           (infer X Y S new-T R expected #:objs objs)))))
 
 ;; like infer, but dotted-var is the bound on the ...
 ;; and T-dotted is the repeated type

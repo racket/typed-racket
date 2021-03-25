@@ -195,7 +195,9 @@
 
 (define-syntax-class maybe-bounded
   #:datum-literals (<:)
-  (pattern (name:id <: bound:id)))
+  #:attributes (name bound)
+  (pattern (name:id <: bound:expr))
+  (pattern name:id #:attr bound #f))
 
 ;; Syntax -> Type
 ;; Parse a Forall type
@@ -224,9 +226,12 @@
      (when maybe-dup
        (parse-error "duplicate type variable"
                     "variable" (syntax-e maybe-dup)))
-     (define bounds (for/hash ([i (stx-map syntax-e (attribute vars.name))]
-                               [j (attribute vars.bound)])
-                      (values i (parse-type j))))
+     (define bounds (for/fold ([acc (hash)])
+                              ([i (stx-map syntax-e (attribute vars.name))]
+                               [j (attribute vars.bound)]
+                               #:when j)
+                      (hash-set acc i
+                                (extend-tvars (hash-keys acc) (parse-type j)))))
      (let* ([vars (stx-map syntax-e (attribute vars.name))])
        (extend-tvars vars
                      (make-Poly vars (parse-type #'t.type) #:bounds bounds)))]

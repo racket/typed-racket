@@ -7,3 +7,13 @@
 
 
 (a-func 10) ;; pass
+
+
+(struct (A) foo ([a : A]) #:type-name Foo)
+
+(: c-func (All ([X <: Integer] [Y <: (Foo X)])
+               (-> X Y String)))
+(define (c-func a b)
+  (number->string a))
+
+(c-func 10 (foo 10))

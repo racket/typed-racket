@@ -24,6 +24,7 @@
          syntax/id-set
          racket/contract
          racket/lazy-require
+         racket/syntax
          racket/unsafe/undefined
          (for-syntax racket/base
                      racket/syntax
@@ -110,6 +111,7 @@
       (App? x)))
 
 (lazy-require
+ ("../types/substitute.rkt" (subst))
  ("../types/overlap.rkt" (overlap?))
  ("../types/prop-ops.rkt" (-and))
  ("../types/resolve.rkt" (resolve-app))
@@ -1660,28 +1662,37 @@
 ;;
 ;; list<symbol> type #:original-names list<symbol> -> type
 ;;
+
 (define (Poly* names body #:bounds [bounds '#hash()] #:original-names [orig names])
   (if (null? names) body
       (let* ([len (length names)]
-             [new-bounds (let ([max-idx (sub1 len)])
-                           (for/hash ([(n v) bounds])
-                             (values (- max-idx (index-of names n)) v)))]
+             [new-bounds (for/hash ([(n v) bounds])
+                           (values (index-of names n) v))]
              [v (make-Poly len new-bounds (abstract-type body names))])
         (hash-set! type-var-name-table v orig)
         v)))
 
+(define (unsubst ty orig-names names)
+  (for/fold ([acc ty])
+            ([o orig-names]
+             [n names])
+    (subst o (make-F n #f) acc)
+    #;
+    (subst o (make-Name (format-id #f "~a" n) 0 #f) acc)))
+
 ;; Poly 'smart' destructor
 (define (Poly-body* names t)
+  (define orig-names (hash-ref type-var-name-table t))
   (match t
     [(Poly: n bounds body)
      (define new-bounds (for/hash ([(idx v) bounds])
-                          (values (list-ref names idx) v)))
+                          (values (list-ref names idx) (unsubst v orig-names names))))
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
      (instantiate-type body
                        (map (lambda (n)
                               (make-F n (hash-ref new-bounds n #f)))
-                            names))]))
+                        names))]))
 
 ;; PolyDots 'smart' constructor
 (define (PolyDots* names body)

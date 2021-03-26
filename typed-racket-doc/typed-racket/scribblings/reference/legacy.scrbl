@@ -141,6 +141,7 @@ preferred to use of @racket[define:].
               @defidform[for*/flvector:]
               @defidform[for*/extflvector:]
               @defidform[for*/fold:]
+              @defidform[for*/foldr:]
               @defidform[for*/hash:]
               @defidform[for*/hasheq:]
               @defidform[for*/hasheqv:]
@@ -158,6 +159,7 @@ preferred to use of @racket[define:].
               @defidform[for/flvector:]
               @defidform[for/extflvector:]
               @defidform[for/fold:]
+              @defidform[for/foldr:]
               @defidform[for/hash:]
               @defidform[for/hasheq:]
               @defidform[for/hasheqv:]
@@ -170,7 +172,7 @@ preferred to use of @racket[define:].
               @defidform[for/sum:]
               @defidform[for/vector:])]{
  Aliases for the same iteration forms without a @racket[_:].
-}
+@history[#:changed "1.12" @elem{Added @racket[for/foldr:] and @racket[for*/foldr:].}]}
 @defalias[do: do]
 
 @defidform[define-type-alias]{Equivalent to @racket[define-type].}

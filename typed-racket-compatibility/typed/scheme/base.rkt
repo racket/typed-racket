@@ -7,10 +7,10 @@
                          let/cc let/ec do case-lambda
                          for/list for/vector for/hash for/hasheq for/hasheqv
                          for/and for/or for/sum for/product for/lists
-                         for/first for/last for/fold for*/list for*/lists
+                         for/first for/last for/fold for/foldr for*/list for*/lists
                          for*/vector for*/hash for*/hasheq for*/hasheqv for*/and
                          for*/or for*/sum for*/product for*/first for*/last
-                         for*/fold))
+                         for*/fold for*/foldr))
 	   (basics #%module-begin #%top-interaction))
 
 (require typed-racket/base-env/extra-procs

@@ -1691,7 +1691,12 @@
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
      (instantiate-type body
                        (map (lambda (n)
-                              (make-F n (hash-ref new-bounds n #f)))
+                              (define v (match (hash-ref new-bounds n #f)
+                                          [(App: rator (list (F: vb _)))
+                                           #:when (hash-has-key? new-bounds vb)
+                                           (make-App rator (list (hash-ref new-bounds vb)))]
+                                          [_else _else]))
+                              (make-F n v))
                         names))]))
 
 ;; PolyDots 'smart' constructor

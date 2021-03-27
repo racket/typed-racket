@@ -596,7 +596,7 @@
 
         ;; variables that are in X and should be constrained
         ;; all other variables are compatible only with themselves
-        [((and (F: (? (inferable-var? context))) S) T)
+        [((F: (? (inferable-var? context))) T)
          #:return-when
          (match T
            ;; fail when v* is an index variable
@@ -606,7 +606,7 @@
          ;; constrain S to be below T (but don't mention bounds)
          (constrain S T #:above #f)]
 
-        [(S (and (F: (? (inferable-var? context))) T))
+        [(S (F: (? (inferable-var? context))))
          #:return-when
          (match S
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
@@ -621,6 +621,10 @@
            (and t (cg s t obj)))]
         [((? Name? s) t)
          (let ([s (resolve-once s)])
+           (and s (cg s t obj)))]
+
+        [((F: var (? Type? bound)) t)
+         (let ([s (resolve-once bound)])
            (and s (cg s t obj)))]
 
         ;; constrain b1 to be below T, but don't mention the new vars

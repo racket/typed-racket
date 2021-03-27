@@ -17,3 +17,10 @@
   (number->string a))
 
 (c-func 10 (foo 10))
+
+(: d-func (All ([X <: Integer] [Y <: (Foo X)])
+               (-> X Y String)))
+(define (d-func a b)
+  (number->string (foo-a b)))
+
+(d-func 42 (foo 10))

@@ -193,6 +193,11 @@
            (parse-literal-alls #'t.type))]
     [_ null]))
 
+(define-syntax-class maybe-bounded
+  #:datum-literals (<:)
+  #:attributes (name bound)
+  (pattern (name:id <: bound:expr))
+  (pattern name:id #:attr bound #f))
 
 ;; Syntax -> Type
 ;; Parse a Forall type
@@ -215,7 +220,21 @@
                     "variable" (syntax-e maybe-dup)))
      (let* ([vars (stx-map syntax-e #'(vars ...))])
        (extend-tvars vars
-         (make-Poly vars (parse-type #'t.type))))]
+                     (make-Poly vars (parse-type #'t.type))))]
+    [(:All^ (vars:maybe-bounded ...) . t:omit-parens)
+     (define maybe-dup (check-duplicate-identifier (attribute vars.name)))
+     (when maybe-dup
+       (parse-error "duplicate type variable"
+                    "variable" (syntax-e maybe-dup)))
+     (define bounds (for/fold ([acc (hash)])
+                              ([i (stx-map syntax-e (attribute vars.name))]
+                               [j (attribute vars.bound)]
+                               #:when j)
+                      (hash-set acc i
+                                (extend-tvars (hash-keys acc) (parse-type j)))))
+     (let* ([vars (stx-map syntax-e (attribute vars.name))])
+       (extend-tvars vars
+                     (make-Poly vars (parse-type #'t.type) #:bounds bounds)))]
     ;; Next two are row polymorphic cases
     [(:All^ (var:id #:row) . t:omit-parens)
      (add-disappeared-use #'kw)

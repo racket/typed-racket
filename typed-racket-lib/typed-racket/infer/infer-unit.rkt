@@ -22,6 +22,7 @@
          "signatures.rkt" "fail.rkt"
          "promote-demote.rkt"
          racket/match
+         (only-in racket/function curry curryr thunk)
          ;racket/trace
          (contract-req)
          (for-syntax
@@ -38,6 +39,7 @@
 (define (empty-set) '())
 
 (define current-seen (make-parameter (empty-set)))
+(define infered-tvar-map (make-parameter (hash)))
 
 ;; Type Type -> Pair<Seq, Seq>
 ;; construct a pair for the set of seen type pairs
@@ -64,6 +66,7 @@
   (match ctx
     [(context V X Y)
      (context (append bounds V) (append vars X) (append indices Y))]))
+
 
 (define (inferable-index? ctx bound)
   (match ctx
@@ -492,6 +495,31 @@
   ;; this constrains just x (which is a single var)
   (define (singleton S x T)
     (insert empty x S T))
+
+  (define (constrain tvar-a tvar-b #:above above)
+    (define (maybe-type-app t)
+      (match t
+        [(App: t1 (list (F: var))) #:when (hash-has-key? (infered-tvar-map) var)
+                                   (define v (hash-ref (infered-tvar-map) var))
+                                   (-App t1 (list v))]
+        [_ t]))
+
+    (match-define (F: var (app maybe-type-app maybe-type-bound)) tvar-a)
+
+    (define-values (default sub sing) (if above
+                                          (values Univ
+                                                  (thunk (subtype tvar-b maybe-type-bound obj))
+                                                  (curry singleton (var-promote tvar-b (context-bounds context)) var))
+                                          (values -Bottom
+                                                  (thunk (subtype maybe-type-bound tvar-b obj))
+                                                  (curryr singleton var (var-demote tvar-b (context-bounds context))))))
+    (cond
+      [(not maybe-type-bound) (sing default)]
+      [(sub)
+       (infered-tvar-map (hash-set (infered-tvar-map) var maybe-type-bound))
+       (sing maybe-type-bound)]
+      [else #f]))
+
   ;; FIXME -- figure out how to use parameters less here
   ;;          subtyping doesn't need to use it quite as much
   (define cs (current-seen))
@@ -568,24 +596,24 @@
 
         ;; variables that are in X and should be constrained
         ;; all other variables are compatible only with themselves
-        [((F: (? (inferable-var? context) v)) T)
+        [((F: (? (inferable-var? context))) T)
          #:return-when
          (match T
            ;; fail when v* is an index variable
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
-         ;; constrain v to be below T (but don't mention bounds)
-         (singleton -Bottom v (var-demote T (context-bounds context)))]
+         ;; constrain S to be below T (but don't mention bounds)
+         (constrain S T #:above #f)]
 
-        [(S (F: (? (inferable-var? context) v)))
+        [(S (F: (? (inferable-var? context))))
          #:return-when
          (match S
            [(F: v*) (and (bound-index? v*) (not (bound-tvar? v*)))]
            [_ #f])
          #f
-         ;; constrain v to be above S (but don't mention bounds)
-         (singleton (var-promote S (context-bounds context)) v Univ)]
+         ;; constrain T to be above S (but don't mention bounds)
+         (constrain T S #:above #t)]
 
         ;; recursive names should get resolved as they're seen
         [(s (? Name? t))
@@ -593,6 +621,10 @@
            (and t (cg s t obj)))]
         [((? Name? s) t)
          (let ([s (resolve-once s)])
+           (and s (cg s t obj)))]
+
+        [((F: var (? Type? bound)) t)
+         (let ([s (resolve-once bound)])
            (and s (cg s t obj)))]
 
         ;; constrain b1 to be below T, but don't mention the new vars
@@ -966,6 +998,7 @@
         (build-subst md))
       (build-subst (stream-first (cset-maps C)))))
 
+
 ;; context : the context of what to infer/not infer
 ;; S : a list of types to be the subtypes of T
 ;; T : a list of types
@@ -983,9 +1016,9 @@
           (for/list/fail ([s (in-list S)]
                           [t (in-list T)]
                           [obj (in-list/rest objs #f)])
-                         ;; We meet early to prune the csets to a reasonable size.
-                         ;; This weakens the inference a bit, but sometimes avoids
-                         ;; constraint explosion.
+            ;; We meet early to prune the csets to a reasonable size.
+            ;; This weakens the inference a bit, but sometimes avoids
+            ;; constraint explosion.
             (% cset-meet (cgen context s t obj) expected-cset)))))
 
 
@@ -1031,16 +1064,17 @@
 ;; like infer, but T-var is the vararg type:
 (define (infer/vararg X Y S T T-var R [expected #f]
                       #:objs [objs '()])
-  (and ((length S) . >= . (length T))
-       (let* ([fewer-ts (- (length S) (length T))]
-              [new-T (match T-var
-                       [(? Type? var-t) (list-extend S T var-t)]
-                       [(Rest: rst-ts)
-                        #:when (zero? (remainder fewer-ts (length rst-ts)))
-                        (append T (repeat-list rst-ts
-                                               (quotient fewer-ts (length rst-ts))))]
-                       [_ T])])
-         (infer X Y S new-T R expected #:objs objs))))
+  (parameterize ([infered-tvar-map (hash)])
+    (and ((length S) . >= . (length T))
+         (let* ([fewer-ts (- (length S) (length T))]
+                [new-T (match T-var
+                         [(? Type? var-t) (list-extend S T var-t)]
+                         [(Rest: rst-ts)
+                          #:when (zero? (remainder fewer-ts (length rst-ts)))
+                          (append T (repeat-list rst-ts
+                                                 (quotient fewer-ts (length rst-ts))))]
+                         [_ T])])
+           (infer X Y S new-T R expected #:objs objs)))))
 
 ;; like infer, but dotted-var is the bound on the ...
 ;; and T-dotted is the repeated type

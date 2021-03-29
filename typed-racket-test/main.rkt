@@ -192,7 +192,7 @@
   (define missed-opt? (make-parameter #f))
   (define bench? (make-parameter #f))
   (define math? (make-parameter #f))
-  (define excl (make-parameter (list)))
+  (define excl (make-parameter (set)))
   (define single (make-parameter #f))
   (current-namespace (make-base-namespace))
   (command-line

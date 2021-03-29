@@ -24,6 +24,7 @@
          syntax/id-set
          racket/contract
          racket/lazy-require
+         racket/syntax
          racket/unsafe/undefined
          (for-syntax racket/base
                      racket/syntax
@@ -46,6 +47,9 @@
          PolyDots-unsafe:
          Mu? Poly? PolyDots? PolyRow?
          Poly-n
+         F-n
+         F-bound
+         F?
          PolyDots-n
          Class? Row? Row:
          free-vars*
@@ -84,6 +88,8 @@
                      [PolyDots:* PolyDots:]
                      [PolyRow:* PolyRow:]
                      [Mu* make-Mu]
+                     [F* make-F]
+                     [F:* F:]
                      [make-Mu unsafe-make-Mu]
                      [Poly* make-Poly]
                      [PolyDots* make-PolyDots]
@@ -105,6 +111,7 @@
       (App? x)))
 
 (lazy-require
+ ("../types/substitute.rkt" (subst))
  ("../types/overlap.rkt" (overlap?))
  ("../types/prop-ops.rkt" (-and))
  ("../types/resolve.rkt" (resolve-app))
@@ -139,12 +146,25 @@
 
 ;; free type variables
 ;; n is a Name
-(def-type F ([n symbol?])
+(def-type F ([n symbol?]
+             [bound (or/c #f Type?)])
+  #:no-provide
   [#:frees
    [#:vars (_) (single-free-var n)]
    [#:idxs (_) empty-free-vars]]
   [#:fmap (_ #:self self) self]
   [#:for-each (_) (void)])
+
+(define (F* n [bound #f])
+  (make-F n bound))
+
+
+(define-match-expander F:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ n) #'(F: n _)]
+      [(_ n b) #'(F: n b)])))
+
 
 (define Name-table (make-free-id-table))
 
@@ -519,10 +539,14 @@
 ;; n is how many variables are bound here
 ;; body is a type
 (def-type Poly ([n exact-nonnegative-integer?]
+                [bounds (hash/c exact-nonnegative-integer?
+                                Type?
+                                #:immutable #t
+                                #:flat #t)]
                 [body Type?])
   #:no-provide
   [#:frees (f) (f body)]
-  [#:fmap (f) (make-Poly n (f body))]
+  [#:fmap (f) (make-Poly n bounds (f body))]
   [#:for-each (f) (f body)]
   [#:mask (λ (t) (mask (Poly-body t)))])
 
@@ -1456,7 +1480,7 @@
       ;; De Bruijn indices
       [(B: idx) (transform idx lvl cur #f)]
       ;; Type variables
-      [(F: var) (transform var lvl cur #f)]
+      [(F: var _) (transform var lvl cur #f)]
       ;; forms w/ dotted type vars/indices
       [(RestDots: ty d)
        (make-RestDots (rec ty) (transform d lvl d #t))]
@@ -1477,8 +1501,8 @@
        (make-PolyRow constraints (rec/lvl body (add1 lvl)))]
       [(PolyDots: n body)
        (make-PolyDots n (rec/lvl body (+ n lvl)))]
-      [(Poly: n body)
-       (make-Poly n (rec/lvl body (+ n lvl)))]
+      [(Poly: n bounds body)
+       (make-Poly n bounds (rec/lvl body (+ n lvl)))]
       [_ (Rep-fmap cur rec)])))
 
 
@@ -1618,7 +1642,7 @@
 (define (Mu-body* name t)
   (match t
     [(Mu: body)
-     (instantiate-type body (make-F name))]))
+     (instantiate-type body (F* name))]))
 
 ;; unfold : Mu -> Type
 (define/cond-contract (unfold t)
@@ -1638,19 +1662,42 @@
 ;;
 ;; list<symbol> type #:original-names list<symbol> -> type
 ;;
-(define (Poly* names body #:original-names [orig names])
+
+(define (Poly* names body #:bounds [bounds '#hash()] #:original-names [orig names])
   (if (null? names) body
-      (let ([v (make-Poly (length names) (abstract-type body names))])
+      (let* ([len (length names)]
+             [new-bounds (for/hash ([(n v) bounds])
+                           (values (index-of names n) v))]
+             [v (make-Poly len new-bounds (abstract-type body names))])
         (hash-set! type-var-name-table v orig)
         v)))
 
+(define (unsubst ty orig-names names)
+  (for/fold ([acc ty])
+            ([o orig-names]
+             [n names])
+    (subst o (make-F n #f) acc)
+    #;
+    (subst o (make-Name (format-id #f "~a" n) 0 #f) acc)))
+
 ;; Poly 'smart' destructor
 (define (Poly-body* names t)
+  (define orig-names (hash-ref type-var-name-table t null))
   (match t
-    [(Poly: n body)
+    [(Poly: n bounds body)
+     (define new-bounds (for/hash ([(idx v) bounds])
+                          (values (list-ref names idx) (unsubst v orig-names names))))
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-type body (map make-F names))]))
+     (instantiate-type body
+                       (map (lambda (n)
+                              (define v (match (hash-ref new-bounds n #f)
+                                          [(App: rator (list (F: vb _)))
+                                           #:when (hash-has-key? new-bounds vb)
+                                           (make-App rator (list (hash-ref new-bounds vb)))]
+                                          [_else _else]))
+                              (make-F n v))
+                        names))]))
 
 ;; PolyDots 'smart' constructor
 (define (PolyDots* names body)
@@ -1665,7 +1712,7 @@
     [(PolyDots: n body)
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-type body (map make-F names))]))
+     (instantiate-type body (map F* names))]))
 
 
 ;; PolyRow 'smart' constructor
@@ -1683,7 +1730,7 @@
 (define (PolyRow-body* names t)
   (match t
     [(PolyRow: constraints body)
-     (instantiate-type body (map make-F names))]))
+     (instantiate-type body (map F* names))]))
 
 
 ;;***************************************************************
@@ -1939,7 +1986,7 @@
     [(Some: n body)
      (unless (= (length names) n)
        (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-type body (map make-F names))]))
+     (instantiate-type body (map F* names))]))
 
 
 (define-match-expander Some-names:

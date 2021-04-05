@@ -18,10 +18,12 @@
                      syntax/stx
                      racket/list
                      racket/syntax
+                     racket/match
                      racket/struct-info
                      "../typecheck/internal-forms.rkt"
                      "annotate-classes.rkt"
                      "type-name-error.rkt"
+                     "../utils/struct-info.rkt"
                      "../private/parse-classes.rkt"
                      "../private/syntax-properties.rkt"
                      "../typecheck/internal-forms.rkt"))
@@ -117,27 +119,40 @@
       ([type (or (attribute type) #'nm.name)]
        [proc* (with-type* #'proc #'proc-ty)]
        [d-s (ignore-some (syntax/loc stx (define-struct nm (fld.name ...)
-                                      #:property prop:procedure proc*)))]
-       [stx-err-fun (if (not (free-identifier=? #'nm.name #'type))
-                        (syntax/loc stx
-                          (define-syntax type type-name-error))
-                        #'(begin))]
+                                           #:property prop:procedure proc*)))]
        [dtsi (quasisyntax/loc stx (dtsi/exec* () nm type (fld ...) proc-ty))])
-      #'(begin d-s stx-err-fun dtsi))]))
+      #'(begin d-s dtsi))]))
 
 (define-syntaxes (dtsi* dtsi/exec*)
   (let ()
     (define (mk internal-id)
       (lambda (stx)
         (syntax-parse stx
-          [(_ () nm:dtsi-struct-name . rest)
-           (internal (quasisyntax/loc stx
-                       (#,internal-id
-                        #,(struct-info-property #'nm (attribute nm.value)) . rest)))]
-          [(_ (vars:id ...) nm:dtsi-struct-name . rest)
-           (internal (quasisyntax/loc stx
-                       (#,internal-id (vars ...)
-                                      #,(struct-info-property #'nm (attribute nm.value)) . rest)))])))
+          [(_ (vars:id ...) nm:dtsi-struct-name type-name:id . rest)
+           (define def
+             ;; when prop:procedure is supported or define-struct/exec can take type variables,
+             ;; replace the whole if expression with its else branch.
+             (if (stx-null? #'(vars ...))
+                 (quasisyntax/loc stx
+                   (#,internal-id
+                    #,(struct-info-property #'nm (attribute nm.value)) type-name . rest))
+                 (quasisyntax/loc stx
+                   (#,internal-id (vars ...)
+                    #,(struct-info-property #'nm (attribute nm.value)) type-name . rest))))
+           ;; now we can use the structure's name to get the struct's *struct
+           ;; info* when the type name != the struct name, we create a special
+           ;; transfomer binding so the type name can be also used as the struct id
+           (define/with-syntax maybe-type-name-def
+             (cond
+               [(not (free-identifier=? #'nm.name #'type-name))
+                (define/with-syntax si-stx (struct-info->syntax (attribute nm.value)))
+                (ignore (quasisyntax/loc stx
+                          (define-syntax type-name
+                            (make-struct-info+type-wrapper #'nm.name si-stx #'type-name))))]
+               [else
+                #'(begin)]))
+           #`(begin #,(internal def)
+                    maybe-type-name-def)])))
     (values (mk #'define-typed-struct-internal)
             (mk #'define-typed-struct/exec-internal))))
 
@@ -185,10 +200,6 @@
                                             'tc-struct #'type)]
                       [prop-vals (quasisyntax/loc stx
                                    (define prop-val-li (list #,@(attribute opts.prop-val))))]
-                      [stx-err-fun (if (not (free-identifier=? #'nm.name #'type))
-                                       (syntax/loc stx
-                                         (define-syntax type type-name-error))
-                                       #'(begin))]
                       [dtsi (quasisyntax/loc stx
                               (dtsi* (vars.vars ...)
                                      nm.old-spec type (fs.form ...)
@@ -198,7 +209,7 @@
                                      #,@extra-maker
                                      #,@properties
                                      ))])
-         #'(begin d-s stx-err-fun dtsi)))]))
+         #'(begin d-s dtsi)))]))
 
 ;; this has to live here because it's used below
 (define-syntax (define-type-alias stx)

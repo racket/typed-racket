@@ -10,8 +10,7 @@ at least theoretically.
          racket/match
          racket/list
          syntax/parse/define
-         racket/struct-info "timing.rkt"
-         "disarm.rkt")
+         "timing.rkt")
 
 (provide
  ;; optimization
@@ -213,35 +212,6 @@ at least theoretically.
       (syntax-rules ()
         [(_ hd ([i c] ...) . opts)
          (define-struct hd (i ...) . opts)])))
-
-
-(provide make-struct-info-self-ctor)
-;Copied from racket/private/define-struct
-;FIXME when multiple bindings are supported
-(define (self-ctor-transformer orig stx)
-  (define (transfer-srcloc orig stx)
-    (datum->syntax (disarm* orig) (syntax-e orig) stx orig))
-  (syntax-case stx ()
-    [(self arg ...) (datum->syntax stx
-                                   (cons (syntax-property (transfer-srcloc orig #'self)
-                                                          'constructor-for
-                                                          (syntax-local-introduce #'self))
-                                         (syntax-e (syntax (arg ...))))
-                                   stx
-                                   stx)]
-    [_ (transfer-srcloc orig stx)]))
-
-
-(define (make-struct-info-self-ctor id info [flag #t])
-  (let ()
-    (struct struct-info-self-ctor (id info type-is-constr?)
-      #:property prop:procedure
-      (lambda (ins stx)
-        (if (struct-info-self-ctor-type-is-constr? ins)
-            (self-ctor-transformer (struct-info-self-ctor-id ins) stx)
-            (type-name-error stx)))
-      #:property prop:struct-info (λ (x) (extract-struct-info (struct-info-self-ctor-info x))))
-    (struct-info-self-ctor id info flag)))
 
 
 ;; Listof[A] Listof[B] B -> Listof[B]

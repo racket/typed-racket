@@ -9,6 +9,7 @@
          (types base-abbrev abbrev subtype utils resolve substitute struct-table)
          (env global-env type-name-env type-alias-env tvar-env lexical-env)
          (utils tc-utils prefab identifier)
+         (only-in (utils struct-info) maybe-struct-info-wrapper-type)
          (typecheck typechecker def-binding internal-forms error-message tc-subst)
          (for-syntax syntax/parse racket/base)
          (for-template racket/base))
@@ -117,19 +118,29 @@
   (c:-> syntax? c:any/c (values identifier? (c:or/c Name? #f) (c:or/c Mu? Poly? Struct? Prefab? #f)))
   (syntax-parse nm/par
     [v:parent
-      (if (attribute v.par)
-          (let* ([parent0 (parse-type #'v.par)]
-                 [parent (let loop ((parent parent0))
-                               (cond
-                                 ((Name? parent) (loop (resolve-name parent)))
-                                 ((or (Poly? parent) (Mu? parent)
-                                      (if prefab? (Prefab? parent) (Struct? parent)))
-                                  parent)
-                                 (else
-                                  (tc-error/stx #'v.par "parent type not a valid structure name: ~a"
-                                                (syntax->datum #'v.par)))))])
-                (values #'v.name parent0 parent))
-          (values #'v.name #f #f))]))
+     (if (attribute v.par)
+         (let* ([parent-si-ins (syntax-local-value #'v.par (lambda () #f))]
+                [parent0 (parse-type
+                          (cond
+                            ;; maybe-struct-info-wrapper-type only returns
+                            ;; parent's type name when the parent structure
+                            ;; defined either is in a typed module or
+                            ;; imported via require/typed
+                            [(maybe-struct-info-wrapper-type parent-si-ins)]
+                            ;; if the parent struct is a builtin structure like exn,
+                            ;; its structure name is also its type name.
+                            [else #'v.par]))]
+                [parent (let loop ((parent parent0))
+                          (cond
+                            ((Name? parent) (loop (resolve-name parent)))
+                            ((or (Poly? parent) (Mu? parent)
+                                 (if prefab? (Prefab? parent) (Struct? parent)))
+                             parent)
+                            (else
+                             (tc-error/stx #'v.par "parent type not a valid structure name: ~a"
+                                           (syntax->datum #'v.par)))))])
+           (values #'v.name parent0 parent))
+         (values #'v.name #f #f))]))
 
 
 ;; generate struct names given type name, field names
@@ -182,9 +193,10 @@
   ;; that parse-type will map the identifier to this Name type
   (define type-name (struct-names-type-name names))
   (define (register-alias alias)
-    (register-resolved-type-alias
-     alias
-     (make-Name type-name (length (struct-desc-tvars desc)) (Struct? sty))))
+    (register-resolved-type-alias alias
+                                  (make-Name type-name
+                                             (length (struct-desc-tvars desc))
+                                             (Struct? sty))))
   (register-alias type-name)
   (register-alias (struct-names-struct-name names))
   (register-type-name type-name
@@ -299,6 +311,7 @@
        (list constructor-binding))
    (cons
     (make-def-struct-stx-binding (struct-names-type-name names)
+                                 (struct-names-struct-name names)
                                  si
                                  (def-binding-ty constructor-binding)
                                  extra-constructor)
@@ -364,35 +377,24 @@
           null))))
 
   (define extra-constructor (struct-names-extra-constructor names))
-
   (define constructor-type (poly-wrapper (->* all-fields poly-base)))
-  
-  (define constructor-binding
-    (make-def-binding (struct-names-constructor names)
-                      constructor-type))
+  (define struct-binding (make-def-struct-stx-binding (struct-names-struct-name names)
+                                                      (struct-names-type-name names)
+                                                      si
+                                                      constructor-type
+                                                      extra-constructor))
+  (define def-bindings
+    (if extra-constructor
+        (cons (make-def-binding extra-constructor
+                                  constructor-type)
+              bindings)
+        bindings))
 
-  (define-values (constructor-bindings bindings^)
-    (let ([extra-constructor-bindings
-           (if extra-constructor (list (make-def-binding extra-constructor
-                                                         constructor-type))
-               null)])
-      (values (cons constructor-binding extra-constructor-bindings)
-              (append (cons (make-def-struct-stx-binding (struct-names-type-name names)
-                                                         si
-                                                         constructor-type
-                                                         extra-constructor)
-                            extra-constructor-bindings)
-                      bindings))))
-
-  (for ([b (in-list (append constructor-bindings bindings))])
+  (register-type (struct-names-constructor names) constructor-type)
+  (for ([b (in-list def-bindings)])
     (register-type (binding-name b) (def-binding-ty b)))
-    
-  (append
-   (if (free-identifier=? (struct-names-type-name names)
-                          (struct-names-constructor names))
-      null
-      (list constructor-binding))
-   bindings^))
+
+  (cons struct-binding def-bindings))
 
 
 

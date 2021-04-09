@@ -118,7 +118,7 @@
 ;; Generate a contract for a TR provide form
 (define (generate-contract-def/provide stx cache)
   (match-define (list type untyped-id orig-id blame-id)
-                (contract-def/provide-property stx))
+    (contract-def/provide-property stx))
   (define failure-reason #f)
   (define result
     (type->contract type

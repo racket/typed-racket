@@ -1,5 +1,5 @@
 #;
-(exn-pred exn:fail:syntax? #rx"type-check: type name used out of context.*? type: Exp")
+(exn-pred #rx"Exp: identifier for static struct-type information cannot be used as an expression")
 #lang typed/racket/base
 
 (module typed1 typed/racket/base

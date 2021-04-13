@@ -20,7 +20,6 @@
                      racket/syntax
                      racket/match
                      racket/struct-info
-                     "../typecheck/internal-forms.rkt"
                      "annotate-classes.rkt"
                      "type-name-error.rkt"
                      "../utils/struct-info.rkt"
@@ -121,40 +120,59 @@
        [d-s (ignore-some (syntax/loc stx (define-struct nm (fld.name ...)
                                            #:property prop:procedure proc*)))]
        [dtsi (quasisyntax/loc stx (dtsi/exec* () nm type (fld ...) proc-ty))])
-      #'(begin d-s dtsi))]))
+       #'(begin d-s dtsi))]))
 
-(define-syntaxes (dtsi* dtsi/exec*)
-  (let ()
-    (define (mk internal-id)
-      (lambda (stx)
-        (syntax-parse stx
-          [(_ (vars:id ...) nm:dtsi-struct-name type-name:id . rest)
-           (define def
-             ;; when prop:procedure is supported or define-struct/exec can take type variables,
-             ;; replace the whole if expression with its else branch.
-             (if (stx-null? #'(vars ...))
-                 (quasisyntax/loc stx
-                   (#,internal-id
-                    #,(struct-info-property #'nm (attribute nm.value)) type-name . rest))
-                 (quasisyntax/loc stx
-                   (#,internal-id (vars ...)
-                    #,(struct-info-property #'nm (attribute nm.value)) type-name . rest))))
-           ;; now we can use the structure's name to get the struct's *struct
-           ;; info* when the type name != the struct name, we create a special
-           ;; transfomer binding so the type name can be also used as the struct id
-           (define/with-syntax maybe-type-name-def
-             (cond
-               [(not (free-identifier=? #'nm.name #'type-name))
-                (define/with-syntax si-stx (struct-info->syntax (attribute nm.value)))
-                (ignore (quasisyntax/loc stx
-                          (define-syntax type-name
-                            (make-struct-info+type-wrapper #'nm.name si-stx #'type-name))))]
-               [else
-                #'(begin)]))
-           #`(begin #,(internal def)
-                    maybe-type-name-def)])))
-    (values (mk #'define-typed-struct-internal)
-            (mk #'define-typed-struct/exec-internal))))
+(define-for-syntax (mk-maybe-type-name-def stx name type-name si sname-is-constr?)
+  (cond
+    [(not (free-identifier=? name type-name))
+     (define/with-syntax si-stx (struct-info->syntax si))
+     (quasisyntax/loc stx
+       (define-syntax #,type-name
+         (make-struct-info-wrapper* (syntax #,name) si-stx (syntax #,type-name)
+                                    #,sname-is-constr?)))]
+    [else
+     #'(begin)]))
+
+(define-syntax (dtsi* stx)
+  (syntax-parse stx
+    [(_ (vars:id ...) nm:dtsi-struct-name type-name:id (fld ...) rst:dtsi-fields)
+     (define def
+       (quasisyntax/loc stx
+         (define-typed-struct-internal
+           (vars ...)
+           #,(struct-info-property #'nm (attribute nm.value)) type-name (fld ...) . rst)))
+     ;; now we can use the structure's name to get the struct's *struct
+     ;; info* when the type name != the struct name, we create a special
+     ;; transfomer binding so the type name can be also used as the struct id
+     (define/with-syntax maybe-type-name-def
+       (mk-maybe-type-name-def stx #'nm.name #'type-name (attribute nm.value)
+                               ;; the structure's type and name can be used
+                               ;; as its constructors, if
+                               ;; #:extra-constructor-name is set,
+                               ;; #:constructor-name is set or it is the same as
+                               ;; the structure name
+                               (and (or (attribute rst.extra-maker)
+                                        (not (attribute rst.maker))
+                                        (free-identifier=? (attribute rst.maker) #'nm.name))
+                                    #t)))
+
+     #`(begin #,(internal def)
+              maybe-type-name-def)]))
+
+
+(define-syntax (dtsi/exec* stx)
+  (syntax-parse stx
+    [(_ (vars:id ...) nm:dtsi-struct-name type-name:id . rst)
+     (define def
+       (quasisyntax/loc stx
+         (define-typed-struct/exec-internal
+          #,(struct-info-property #'nm (attribute nm.value)) type-name . rst)))
+
+     (define/with-syntax maybe-type-name-def
+       (mk-maybe-type-name-def stx #'nm.name #'type-name (attribute nm.value) #f))
+
+     #`(begin #,(internal def)
+              maybe-type-name-def)]))
 
 
 ;; User-facing macros for defining typed structure types

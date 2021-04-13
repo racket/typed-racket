@@ -11,7 +11,6 @@
          extract-struct-info/checked/context
          validate-struct-fields
          make-struct-info-wrapper*
-         make-struct-info+type-wrapper
          maybe-struct-info-wrapper-type
          struct-info->syntax)
 
@@ -97,18 +96,9 @@
   (λ (x)
     (extract-struct-info (struct-info-wrapper-info x))))
 
-;; struct-info+type-wrapper is used in either of the follow cases:
-;; 1. when a structure's name can also represent the structure type.
-;; 2. when a structure's type name is used as the structure name.
-(struct struct-info+type-wrapper struct-info-wrapper ()
-  #:property prop:procedure
-  (lambda (ins stx)
-    (type-name-error stx))
-  #:extra-constructor-name make-struct-info+type-wrapper)
-
 ;; struct-info+type+self-ctor-wrapper is used when a structure's name works as
 ;; the constructor
-(struct struct-info+type+self-ctor-wrapper struct-info+type-wrapper ()
+(struct struct-info+type+self-ctor-wrapper struct-info-wrapper ()
   #:property prop:procedure
   (lambda (ins stx)
     (self-ctor-transformer (struct-info-wrapper-id ins) stx)))
@@ -122,13 +112,12 @@
       (struct-info-wrapper-type ins)
       #f))
 
-;; create a *-wrapper instance based on sname-is-constr? and type-is-sname?
-(define/cond-contract (make-struct-info-wrapper* id info type [sname-is-constr? #t] [type-is-sname? #t])
-  (c:->* (identifier? struct-info? identifier?) (boolean? boolean?) struct-info-wrapper?)
+;; create a *-wrapper instance based on sname-is-constr?
+(define/cond-contract (make-struct-info-wrapper* id info type [sname-is-constr? #t])
+  (c:->* (identifier? struct-info? identifier?) (boolean?) struct-info-wrapper?)
   (define s-ctor
     (cond
-      [(and (not sname-is-constr?) (not type-is-sname?)) struct-info-wrapper]
-      [(and (not sname-is-constr?)) struct-info+type-wrapper]
+      [(and (not sname-is-constr?)) struct-info-wrapper]
       [else struct-info+type+self-ctor-wrapper]))
   (s-ctor id info type))
 
@@ -139,10 +128,11 @@
         (quasisyntax #,i)))
 
   (match-define (list type-desc constr pred (list accs ...) (list muts ...) super) (extract-struct-info si))
+
   #`(list
      (syntax #,type-desc)
      (syntax #,constr)
      (syntax #,pred)
      (list #,@(map conv accs))
      (list #,@(map conv muts))
-     #,super))
+     #,(conv super)))

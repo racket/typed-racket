@@ -84,6 +84,38 @@ the typechecker learns from the result of applying the function:
 Predicates for all built-in types are annotated with similar propositions
 that allow the type system to reason logically about predicate checks.
 
+@subsection{One-sided Propositions}
+
+Sometimes, a predicate may provide information when it
+succeeds, but not when it fails. For instance, consider this
+function:
+
+@examples[#:no-result #:eval the-eval
+(define (legal-id? s)
+  (and (symbol? s)
+       (not (member s '(cond else if)))))
+]
+
+This function only returns @racket[#t] when given a symbol, so the type of something
+that satisfies this predicate can be refined to Symbol.
+
+However, values that fail this predicate can’t be refined to non-symbols;
+symbols such as @racket['else] also fail to satisfy this predicate.
+
+In cases such as these, it’s possible to provide a proposition that's
+applied only to the ``positive'' assertion. Specifically, this type
+
+@racketblock[
+(: legal-id? (Any -> Boolean : #:+ Symbol))
+ ]
+
+... captures the idea that if this predicate returns @racket[#t],
+the argument is known to be a Symbol, without making any claim at
+all about values for which this predicate returns @racket[#f].
+
+There is a negative form as well, which allows types that specify
+propositions only about values that cause a predicate to return @racket[#f].
+
 @section{Other conditionals and assertions}
 
 @margin-note{After all, these control flow constructs macro-expand

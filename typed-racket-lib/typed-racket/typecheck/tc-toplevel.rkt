@@ -8,7 +8,7 @@
          (types utils abbrev type-table struct-table resolve)
          (private parse-type type-annotation syntax-properties type-contract)
          (env global-env init-envs type-name-env type-alias-env
-              lexical-env env-req mvar-env scoped-tvar-env
+              lexical-env env-req mvar-env scoped-tvar-env struct-name-env
               type-alias-helper signature-env signature-helper)
          (utils tc-utils redirect-contract)
          "provide-handling.rkt" "def-binding.rkt" "tc-structs.rkt"
@@ -525,6 +525,7 @@
                 (require typed-racket/types/numeric-tower typed-racket/env/type-name-env
                          typed-racket/env/global-env typed-racket/env/type-alias-env
                          typed-racket/types/struct-table typed-racket/types/abbrev
+                         typed-racket/env/struct-name-env
                          (rename-in racket/private/sort [sort raw-sort]))
                 #,@(make-env-init-codes)
                 #,@(for/list ([a (in-list aliases)])

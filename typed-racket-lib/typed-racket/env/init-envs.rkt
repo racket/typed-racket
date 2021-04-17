@@ -9,6 +9,7 @@
          "type-alias-env.rkt"
          "mvar-env.rkt"
          "signature-env.rkt"
+         "struct-name-env.rkt"
          (rep core-rep type-rep
               prop-rep rep-utils
               object-rep values-rep
@@ -461,6 +462,11 @@
     type-env-map
     (λ (id ty) #`(register-type #'#,id #,(quote-type ty)))))
 
+(define (struct-name-env-init)
+  (make-init-code
+    struct-name-map
+    (λ (id tname) #`(register-struct-name! #'#,id #'#,tname))))
+
 (define (mvar-env-init-code mvar-env)
   (make-init-code
     (λ (f) (free-id-table-map mvar-env f))
@@ -494,7 +500,8 @@
           (tvariance-env-init-code)
           (mvar-env-init-code mvar-env)
           (signature-env-init-code)
-          (make-struct-table-code)))
+          (make-struct-table-code)
+          (struct-name-env-init)))
 
   ;; get the lifted common expressions for types which need to come first
   (list* (get-extra-type-definitions)

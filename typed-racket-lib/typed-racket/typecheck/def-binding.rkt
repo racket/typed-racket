@@ -83,8 +83,9 @@
         new-id
         (list (list #'export-id #'id)))))])
 
+
 (define-struct (def-struct-stx-binding def-stx-binding)
-  (tname static-info constructor-type extra-constr-name)
+  (sname tname static-info constructor-type extra-constr-name)
   #:transparent
   #:methods gen:providable
   [(define/generic super-mk-quad mk-quad)
@@ -95,7 +96,7 @@
      (define (mk internal-id)
        (make-quad internal-id def-tbl pos-blame-id mk-redirect-id))
 
-     (match-define (def-struct-stx-binding internal-id tname si constr-type extra-constr-name) me)
+     (match-define (def-struct-stx-binding internal-id sname tname si constr-type extra-constr-name) me)
      (match-define (list type-desc constr pred (list accs ...) muts super) (extract-struct-info si))
      (define-values (defns export-defns new-ids aliases)
        (for/lists (defns export-defns new-ids aliases)
@@ -104,7 +105,7 @@
              (mk e)
              (mk-ignored-quad e))))
 
-     (define sname-is-constructor? (and (or extra-constr-name (free-identifier=? internal-id constr)) #t))
+     (define sname-is-constructor? (and (or extra-constr-name (free-identifier=? sname constr)) #t))
      (define type-is-sname? (free-identifier=? tname internal-id))
      ;; Here, we recursively handle all of the identifiers referenced
      ;; in this static struct info.
@@ -112,7 +113,9 @@
        (cond
          [(not (identifier? constr))
           (values #'(begin) #'(begin) #f null)]
-         [(free-identifier=? constr internal-id)
+         ;; avoid generating the quad for constr twice.
+         ;; skip it when the binding is for the type name
+         [(and (free-identifier=? internal-id sname) (free-identifier=? constr internal-id))
           (super-mk-quad (make-def-binding constr constr-type) (generate-temporary constr) def-tbl pos-blame-id mk-redirect-id)]
          [else
           (make-quad constr def-tbl pos-blame-id mk-redirect-id)]))
@@ -145,7 +148,7 @@
             (define-syntax protected-id
               (let ((info (list type-desc* (syntax export-id) pred* (list accs* ...)
                                 (list #,@(map (lambda (x) #'#f) accs)) super*)))
-                (make-struct-info-wrapper* constr* info (syntax type-name) #,sname-is-constructor? #,type-is-sname?)))
+                (make-struct-info-wrapper* constr* info (syntax type-name) #,sname-is-constructor?)))
             (define-syntax export-id
               (make-rename-transformer #'protected-id)))
         #'export-id
@@ -191,8 +194,9 @@
  (struct binding ([name identifier?]))
  (struct (def-binding binding) ([name identifier?] [ty any/c]))
  (struct (def-stx-binding binding) ([name identifier?]))
- (struct (def-struct-stx-binding binding) ([name identifier?] ;; struct's name
-                                           [tname identifier?] ;; struct's type name
+ (struct (def-struct-stx-binding binding) ([name identifier?]
+                                           [sname identifier?]
+                                           [tname identifier?]
                                            [static-info (or/c #f struct-info?)]
                                            [constructor-type any/c]
                                            [extra-constr-name (or/c #f identifier?)])))

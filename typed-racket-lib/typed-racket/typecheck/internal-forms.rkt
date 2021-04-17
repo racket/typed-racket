@@ -33,7 +33,7 @@
   typed-define-values/invoke-unit
   assert-typecheck-failure
   typecheck-failure
-
+  dtsi-fields
   type-alias?
   new-subtype-def?
   typed-struct?

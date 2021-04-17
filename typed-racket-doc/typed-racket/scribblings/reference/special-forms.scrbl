@@ -410,16 +410,37 @@ those functions.
           (code:line #:type-name type-id)])]{
  Defines a @rtech{structure} with the name @racket[name-id], where the
  fields @racket[f] have types @racket[t], similar to the behavior of @|struct-id|
- from @racketmodname[racket/base]. If @racket[type-id] is specified, then it will
- be used for the name of the type associated with instances of the declared
- structure, otherwise @racket[name-id] will be used for both.
-  When @racket[parent] is present, the
-structure is a substructure of @racket[parent].
+ from @racketmodname[racket/base].
 
 @ex[
   (struct camelia-sinensis ([age : Integer]))
   (struct camelia-sinensis-assamica camelia-sinensis ())
 ]
+
+If @racket[type-id] is not specified, @racket[name-id] will be used for the
+name of the type associated with instances of the declared
+structure. Otherwise, @racket[type-id] will be used for the type name, and
+using @racket[name-id] in this case will cause a type error.
+
+@ex[
+  (struct apple () #:type-name BigApple)
+  (ann (apple) BigApple)
+  (eval:error (ann (apple) apple))
+]
+
+@racket[type-id] can be also used as an alias to @racket[name-id], i.e. it will
+be a transformer binding that encapsulates the same structure information as
+@racket[name-id] does.
+
+@ex[
+  (struct avocado ([amount : Integer]) #:type-name Avocado)
+  (struct hass-avocado Avocado ())
+  (struct-copy Avocado (avocado 0) [amount 42])
+]
+
+When @racket[parent] is present, the
+structure is a substructure of @racket[parent].
+
 
 When @racket[maybe-type-vars] is present, the structure is polymorphic in the type
  variables @racket[v]. If @racket[parent] is also a polymorphic struct, then

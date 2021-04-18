@@ -79,10 +79,9 @@
       [(Fun: (list arrow))
        #:when (not (RestDots? (Arrow-rst arrow)))
        (tc/funapp1 f-stx args-stx arrow args-res expected)]
-      [(Exist: _ (Fun: (list arrow rst ...)))
+      [(Some: _ (Fun: (list arrow rst ...)))
        (unless (null? rst)
          (tc-error/fields "currently doesn't support case->" #:delayed? #f))
-       (match-define (list (tc-results: (list (tc-result: t _ o)) _)) args-res)
        (let ([checked-ret (tc/funapp1 f-stx args-stx arrow args-res expected)])
          (match checked-ret
            [(tc-results: (list (tc-result: t (PropSet: p+ p-) o__)) _)

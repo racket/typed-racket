@@ -48,9 +48,7 @@
         [(tc-result1: (and t Poly?))
          (tc-expr/check #'quo (ret Univ))
          (tc/funapp #'op #'(quo arg)
-                    (instantiate-poly t (list-extend (list Univ Univ)
-                                                     i-anns
-                                                     Univ))
+                    (instantiate-poly t i-anns)
                     (list (ret Univ) (single-value #'arg))
                     expected)]))
   ;; special-case for not - flip the props

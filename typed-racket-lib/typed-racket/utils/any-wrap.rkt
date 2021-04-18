@@ -278,7 +278,8 @@
 ;; We can trust that these obey the type (-> Any Boolean).
 (define (struct-predicate-procedure?/c x)
   (and (or (struct-predicate-procedure? x)
-           (cpointer-predicate-procedure? x))
+           (cpointer-predicate-procedure? x)
+           (struct-type-property-predicate-procedure? x))
        (not (impersonator? x))))
 
 (provide any-wrap/c any-wrap-warning/c struct-predicate-procedure?/c)

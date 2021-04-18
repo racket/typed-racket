@@ -266,7 +266,13 @@ Like the above, except they are not yet supported by the typechecker.
 @defform[(for/lists type-ann-maybe ([id : t] ... maybe-result)
            (for-clause ...)
            expr ...+)]
-@defform[(for/fold  type-ann-maybe ([id : t init-expr] ... maybe-result)
+@defform[(for/fold type-ann-maybe ([id : t init-expr] ... maybe-result)
+           (for-clause ...)
+           expr ...+)
+         #:grammar
+         ([maybe-result (code:line)
+                        (code:line #:result result-expr)])]
+@defform[(for/foldr type-ann-maybe ([id : t init-expr] ... maybe-result)
            (for-clause ...)
            expr ...+)
          #:grammar
@@ -274,8 +280,8 @@ Like the above, except they are not yet supported by the typechecker.
                         (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts. Unlike the above,
 @racket[#:when] clauses can be used freely with these.
-@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
-}
+@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}
+         #:changed "1.12" @elem{Added @racket[for/foldr].}]}
 
 @deftogether[[
 @defform[(for* void-ann-maybe (for-clause ...)
@@ -283,15 +289,25 @@ These behave like their non-annotated counterparts. Unlike the above,
 @defform[(for*/lists type-ann-maybe ([id : t] ... maybe-result)
            (for-clause ...)
            expr ...+)]
-@defform[(for*/fold  type-ann-maybe ([id : t init-expr] ... maybe-result)
+@defform[(for*/fold type-ann-maybe ([id : t init-expr] ... maybe-result)
            (for-clause ...)
            expr ...+)
          #:grammar
-         ([maybe-result (code:line)
+         ([void-ann-maybe (code:line)
+                          (code:line : Void)]
+          [maybe-result (code:line)
+                        (code:line #:result result-expr)])]
+@defform[(for*/foldr type-ann-maybe ([id : t init-expr] ... maybe-result)
+           (for-clause ...)
+           expr ...+)
+         #:grammar
+         ([void-ann-maybe (code:line)
+                          (code:line : Void)]
+          [maybe-result (code:line)
                         (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts.
-@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
-}
+@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}
+         #:changed "1.12" @elem{Added @racket[for*/foldr].}]}
 
 @defform/subs[(do : u ([id : t init-expr step-expr-maybe] ...)
                       (stop?-expr finish-expr ...)
@@ -394,16 +410,37 @@ those functions.
           (code:line #:type-name type-id)])]{
  Defines a @rtech{structure} with the name @racket[name-id], where the
  fields @racket[f] have types @racket[t], similar to the behavior of @|struct-id|
- from @racketmodname[racket/base]. If @racket[type-id] is specified, then it will
- be used for the name of the type associated with instances of the declared
- structure, otherwise @racket[name-id] will be used for both.
-  When @racket[parent] is present, the
-structure is a substructure of @racket[parent].
+ from @racketmodname[racket/base].
 
 @ex[
   (struct camelia-sinensis ([age : Integer]))
   (struct camelia-sinensis-assamica camelia-sinensis ())
 ]
+
+If @racket[type-id] is not specified, @racket[name-id] will be used for the
+name of the type associated with instances of the declared
+structure. Otherwise, @racket[type-id] will be used for the type name, and
+using @racket[name-id] in this case will cause a type error.
+
+@ex[
+  (struct apple () #:type-name BigApple)
+  (ann (apple) BigApple)
+  (eval:error (ann (apple) apple))
+]
+
+@racket[type-id] can be also used as an alias to @racket[name-id], i.e. it will
+be a transformer binding that encapsulates the same structure information as
+@racket[name-id] does.
+
+@ex[
+  (struct avocado ([amount : Integer]) #:type-name Avocado)
+  (struct hass-avocado Avocado ())
+  (struct-copy Avocado (avocado 0) [amount 42])
+]
+
+When @racket[parent] is present, the
+structure is a substructure of @racket[parent].
+
 
 When @racket[maybe-type-vars] is present, the structure is polymorphic in the type
  variables @racket[v]. If @racket[parent] is also a polymorphic struct, then
@@ -438,7 +475,7 @@ a prefab structure type.
 @defform/subs[#:literals (:)
 (define-struct maybe-type-vars name-spec ([f : t] ...) options ...)
 ([maybe-type-vars code:blank (v ...)]
- [name-spec name-id (code:line name-id parent)]
+ [name-spec name-id (code:line (name-id parent))]
  [options #:transparent #:mutable
           (code:line #:type-name type-id)])]{
 Legacy version of @racket[struct], corresponding to @|define-struct-id|
@@ -447,7 +484,7 @@ from @racketmodname[racket/base].
 
 @defform/subs[#:literals (:)
 (define-struct/exec name-spec ([f : t] ...) [e : proc-t] maybe-type-name)
-([name-spec name-id (code:line name-id parent)]
+([name-spec name-id (code:line (name-id parent))]
  [maybe-type-name (code:line)
                   (code:line #:type-name type-id)])]{
  Like @racket[define-struct], but defines a procedural structure.
@@ -621,7 +658,7 @@ optionally-renamed identifier.
             [#:struct maybe-tvars (name-id parent) ([f : t] ...)
                  struct-option ...]
             [#:opaque t pred]
-	    [#:signature name ([id : t] ...)]]
+            [#:signature name ([id : t] ...)]]
  [maybe-renamed id
                 (orig-id new-id)]
  [maybe-tvars (code:line)

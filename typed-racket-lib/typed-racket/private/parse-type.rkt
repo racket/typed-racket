@@ -57,8 +57,8 @@
 
 ;; current-in-struct-prop: Parameter<Boolean>
 ;; This parameter is set to #t if (Struct-Property ty) is being parsed.
-;; The typechecker uses this parameter to determine if parsing types
-;; like Self and Imp are inside Struct-Property.
+;; The typechecker uses this parameter to determine if parsing Self
+;; is inside Struct-Property.
 (define current-in-struct-prop (make-parameter #f))
 
 (define-syntax-rule (with-local-term-names bindings e ...)
@@ -159,8 +159,7 @@
 (define-literal-syntax-class #:for-label Intersection)
 (define-literal-syntax-class #:for-label Refine)
 (define-literal-syntax-class #:for-label Self)
-(define-literal-syntax-class #:for-label Exist)
-(define-literal-syntax-class #:for-label Imp)
+(define-literal-syntax-class #:for-label Some)
 (define-literal-syntax-class #:for-label not)
 (define-literal-syntax-class #:for-label and)
 (define-literal-syntax-class #:for-label or)
@@ -200,20 +199,20 @@
 (define (parse-all-type stx)
   (syntax-parse stx
     [(:All^ (vars:id ... v:id dd:ddd) . t:omit-parens)
-     (define maybe-dup (check-duplicate-identifier (syntax->list #'(vars ... v))))
+     (define maybe-dup (check-duplicates (stx-map syntax-e #'(vars ... v))))
      (when maybe-dup
        (parse-error "duplicate type variable or index"
-                    "variable or index" (syntax-e maybe-dup)))
+                    "variable or index" maybe-dup))
      (let* ([vars (stx-map syntax-e #'(vars ...))]
             [v (syntax-e #'v)])
        (extend-indexes v
          (extend-tvars vars
            (make-PolyDots (append vars (list v)) (parse-type #'t.type)))))]
     [(:All^ (vars:id ...) . t:omit-parens)
-     (define maybe-dup (check-duplicate-identifier (syntax->list #'(vars ...))))
+     (define maybe-dup (check-duplicates (stx-map syntax-e #'(vars ...))))
      (when maybe-dup
        (parse-error "duplicate type variable"
-                    "variable" (syntax-e maybe-dup)))
+                    "variable" maybe-dup))
      (let* ([vars (stx-map syntax-e #'(vars ...))])
        (extend-tvars vars
          (make-Poly vars (parse-type #'t.type))))]
@@ -565,10 +564,8 @@
   (pattern e:expr
            #:attr object -empty-obj))
 
-(define-syntax-class self/imp
+(define-syntax-class self
   #:attributes (type)
-  (pattern i:Imp^
-           #:attr type -Imp)
   (pattern i:Self^
            #:attr type -Self))
 
@@ -805,10 +802,10 @@
        (parse-quoted-type #'t)]
       [(:All^ . rest)
        (parse-all-type stx)]
-      [(:Exist^ (x:id ...) . t:omit-parens)
+      [(:Some^ (x:id ...) . t:omit-parens)
        (define names (map syntax-e (syntax->list #'(x ...))))
        (extend-tvars names
-                     (make-Exist names
+                     (make-Some names
                                  (parse-type #'t.type)))]
       [(:Opaque^ p?:id)
        (make-Opaque #'p?)]
@@ -1099,7 +1096,7 @@
       [:->^
        (parse-error #:delayed? #t "incorrect use of -> type constructor")
        Err]
-      [id:self/imp
+      [id:self
        (cond
          [(current-in-struct-prop) (attribute id.type)]
          [else (parse-error (~a (syntax-e #'id) " is not allowed outside the type annotation for Struct-Property"))])]

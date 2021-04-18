@@ -4,7 +4,7 @@
 (require "../../utils/utils.rkt"
          "signatures.rkt"
          "utils.rkt"
-         syntax/parse syntax/stx racket/match racket/sequence
+         syntax/parse syntax/stx racket/match
          (typecheck signatures tc-funapp error-message)
          (types abbrev type-table utils substitute)
          (rep type-rep)
@@ -95,12 +95,18 @@
              [else
               (expected-but-got t (-Tuple (map tc-expr/t args-list)))
               (ret t)])]
+          [(Listof: t*)
+           (for ([arg (in-list args-list)])
+             (tc-expr/check arg (ret t*)))
+           (add-typeof-expr #'op-name (ret (->* '() t* t)))
+           (ret t)]
           [_
            (define vs (map (λ (_) (gensym)) args-list))
            (define l-type (-Tuple (map make-F vs)))
            ;; We want to infer the largest vs that are still under the element types
            (define substs (i:infer vs null (list l-type) (list t) (-values (list (-> l-type Univ)))
                                    #:multiple? #t))
+
            (cond
              [substs
               (define result
@@ -113,8 +119,17 @@
                   (add-typeof-expr #'op-name (ret (->* arg-tys return-ty)))
                   (ret return-ty)))
               (or result
-                  (begin (expected-but-got t (-Tuple (map tc-expr/t args-list)))
-                         (fix-results expected)))]
+                  ;; When arguments to the list function fail to typecheck, the
+                  ;; odds are those argument expressions are ill-typed.  In that
+                  ;; case, we should only report those type errors instead of the error
+                  ;; that the result type of application of list doesn't match
+                  ;; the expected one.
+                  (let-values ([(tys errs) (for/lists (tys errs)
+                                                      ([i (in-list args-list)])
+                                             (tc-expr/t* i))])
+                    (when (andmap not errs)
+                      (expected-but-got t (-Tuple tys)))
+                    (fix-results expected)))]
              [else
               (define arg-tys (map tc-expr/t args-list))
               (define return-ty (-Tuple arg-tys))

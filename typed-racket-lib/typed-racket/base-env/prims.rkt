@@ -82,6 +82,7 @@ the typed racket language.
                      [for/first: for/first]
                      [for/last: for/last]
                      [for/fold: for/fold]
+                     [for/foldr: for/foldr]
                      [for*: for*]
                      [for*/list: for*/list]
                      [for*/lists: for*/lists]
@@ -96,6 +97,7 @@ the typed racket language.
                      [for*/first: for*/first]
                      [for*/last: for*/last]
                      [for*/fold: for*/fold]
+                     [for*/foldr: for*/foldr]
                      [for/set: for/set]
                      [for*/set: for*/set]
                      [-do do]
@@ -145,7 +147,7 @@ the typed racket language.
   (require "base-contracted.rkt")
   (provide (all-from-out "base-contracted.rkt")))
 
-(begin-for-syntax 
+(begin-for-syntax
   (require racket/runtime-path
            (for-syntax racket/base))
   (define-runtime-module-path-index contract-defs-submod
@@ -160,7 +162,7 @@ the typed racket language.
 
 ;; Lazily loaded b/c they're only used sometimes, so we save a lot
 ;; of loading by not having them when they are unneeded
-(begin-for-syntax 
+(begin-for-syntax
   (lazy-require [syntax/define (normalize-definition)]))
 
 (define-for-syntax (with-type* expr ty)
@@ -315,11 +317,11 @@ the typed racket language.
            ;; single-valued seq-expr
            ;; unlike the definitions in for-clauses.rkt, this does not include
            ;; #:when clauses, which are handled separately here
-           (pattern (~seq (var:optionally-annotated-name seq-expr:expr))
-                    #:with (expand ...) #'((var.ann-name seq-expr)))
+           (pattern (~seq (var:optionally-annotated-name seq-expr:no-opt-expr))
+                    #:with (expand ...) #'((var.ann-name seq-expr.e)))
            ;; multi-valued seq-expr
-           (pattern ((v:optionally-annotated-formal ...) seq-expr:expr)
-                    #:with (expand ...) #'(((v.ann-name ...) seq-expr)))
+           (pattern ((v:optionally-annotated-formal ...) seq-expr:no-opt-expr)
+                    #:with (expand ...) #'(((v.ann-name ...) seq-expr.e)))
            ;; break-clause, pass it directly
            ;; Note: these don't ever typecheck
            (pattern (~seq (~and kw (~or #:break #:final)) guard-expr:expr)
@@ -400,47 +402,54 @@ the typed racket language.
   (for/first: for/first))
 
 ;; Unlike with the above, the inferencer can handle any number of #:when
-;; clauses with these 2.
-(define-syntax (for/lists: stx)
-  (syntax-parse stx
-    [(_ a1:optional-standalone-annotation*
-        (var:optionally-annotated-formal ... (~optional result:result-clause))
-        clause:for-clauses
-        a2:optional-standalone-annotation*
-        c ...)
-     (define all-typed? (andmap values (attribute var.ty)))
-     (define for-stx
-       (quasisyntax/loc stx
-          (for/lists (var.ann-name ... (~@ . (~? result ())))
-            (clause.expand ... ...)
-            c ...)))
-     ((attribute a1.annotate)
-      ((attribute a2.annotate)
-       (if (and all-typed? (not (attribute result)))
-           (add-ann
-            for-stx
-            #'(values var.ty ...))
-           for-stx)))]))
-(define-syntax (for/fold: stx)
-  (syntax-parse stx
-    [(_ a1:optional-standalone-annotation*
-        accum:accumulator-bindings
-        clause:for-clauses
-        a2:optional-standalone-annotation*
-        c ...)
-     (define all-typed? (andmap values (attribute accum.ty)))
-     (define for-stx
-       (quasisyntax/loc stx
-         (for/fold ((accum.ann-name accum.init) ... (~@ . (~? accum.result ())))
-                   (clause.expand ... ...)
-           c ...)))
-     ((attribute a1.annotate)
-      ((attribute a2.annotate)
-       (if (and all-typed? (not (attribute accum.result)))
-           (add-ann
-            for-stx
-            #'(values accum.ty ...))
-           for-stx)))]))
+;; clauses with these 3.
+(define-syntaxes (for/lists:)
+  (let ()
+    (define ((make untyped-name) stx)
+      (syntax-parse stx
+        [(_ a1:optional-standalone-annotation*
+            (var:optionally-annotated-formal ... (~optional result:result-clause))
+            clause:for-clauses
+            a2:optional-standalone-annotation*
+            c ...)
+         (define all-typed? (andmap values (attribute var.ty)))
+         (define for-stx
+           (quasisyntax/loc stx
+             (#,untyped-name (var.ann-name ... (~@ . (~? result ())))
+              (clause.expand ... ...)
+              c ...)))
+         ((attribute a1.annotate)
+          ((attribute a2.annotate)
+           (if (and all-typed? (not (attribute result)))
+               (add-ann
+                for-stx
+                #'(values var.ty ...))
+               for-stx)))]))
+    (values (make #'for/lists))))
+(define-syntaxes (for/fold: for/foldr:)
+  (let ()
+    (define ((make untyped-name) stx)
+      (syntax-parse stx
+        [(_ a1:optional-standalone-annotation*
+            accum:accumulator-bindings
+            clause:for-clauses
+            a2:optional-standalone-annotation*
+            c ...)
+         (define all-typed? (andmap values (attribute accum.ty)))
+         (define for-stx
+           (quasisyntax/loc stx
+             (#,untyped-name ((accum.ann-name accum.init) ... (~@ . (~? accum.result ())))
+              (clause.expand ... ...)
+              c ...)))
+         ((attribute a1.annotate)
+          ((attribute a2.annotate)
+           (if (and all-typed? (not (attribute accum.result)))
+               (add-ann
+                for-stx
+                #'(values accum.ty ...))
+               for-stx)))]))
+    (values (make #'for/fold)
+            (make #'for/foldr))))
 
 (define-syntax (for*: stx)
   (syntax-parse stx #:literals (: Void)
@@ -477,43 +486,50 @@ the typed racket language.
   (for*/or: for*/or)
   (for*/first: for*/first))
 
-;; Like for/lists: and for/fold:, the inferencer can handle these correctly.
-(define-syntax (for*/lists: stx)
-  (syntax-parse stx
-    [(_ a1:optional-standalone-annotation*
-        ((var:optionally-annotated-name) ... (~optional result:result-clause))
-        clause:for-clauses
-        a2:optional-standalone-annotation*
-        c ...)
-     (define all-typed? (andmap values (attribute var.ty)))
-     (define for-stx
-       (quasisyntax/loc stx
-         (for/lists (var.ann-name ... (~@ . (~? result ())))
-             (clause.expand* ... ...)
-           c ...)))
-     ((attribute a1.annotate)
-      ((attribute a2.annotate)
-       (if (and all-typed? (not (attribute result)))
-           (add-ann for-stx #'(values var.ty ...))
-           for-stx)))]))
-(define-syntax (for*/fold: stx)
-  (syntax-parse stx #:literals (:)
-    [(_ a1:optional-standalone-annotation*
-        ((var:optionally-annotated-name init:expr) ... (~optional result:result-clause))
-        clause:for-clauses
-        a2:optional-standalone-annotation*
-        c ...)
-     (define all-typed? (andmap values (attribute var.ty)))
-     (define for-stx
-       (quasisyntax/loc stx
-         (for/fold ((var.ann-name init) ... (~@ . (~? result ())))
-             (clause.expand* ... ...)
-           c ...)))
-     ((attribute a1.annotate)
-      ((attribute a2.annotate)
-       (if (and all-typed? (not (attribute result)))
-           (add-ann for-stx #'(values var.ty ...))
-           for-stx)))]))
+;; Like for/lists:, for/fold: and for/foldr:, the inferencer can handle these correctly.
+(define-syntaxes (for*/lists:)
+  (let ()
+    (define ((make untyped-name) stx)
+      (syntax-parse stx
+        [(_ a1:optional-standalone-annotation*
+            ((var:optionally-annotated-name) ... (~optional result:result-clause))
+            clause:for-clauses
+            a2:optional-standalone-annotation*
+            c ...)
+         (define all-typed? (andmap values (attribute var.ty)))
+         (define for-stx
+           (quasisyntax/loc stx
+             (#,untyped-name (var.ann-name ... (~@ . (~? result ())))
+              (clause.expand* ... ...)
+              c ...)))
+         ((attribute a1.annotate)
+          ((attribute a2.annotate)
+           (if (and all-typed? (not (attribute result)))
+               (add-ann for-stx #'(values var.ty ...))
+               for-stx)))]))
+    (values (make #'for*/lists))))
+(define-syntaxes (for*/fold: for*/foldr:)
+  (let ()
+    (define ((make untyped-name) stx)
+      (syntax-parse stx #:literals (:)
+        [(_ a1:optional-standalone-annotation*
+            ((var:optionally-annotated-name init:expr) ... (~optional result:result-clause))
+            clause:for-clauses
+            a2:optional-standalone-annotation*
+            c ...)
+         (define all-typed? (andmap values (attribute var.ty)))
+         (define for-stx
+           (quasisyntax/loc stx
+             (#,untyped-name ((var.ann-name init) ... (~@ . (~? result ())))
+              (clause.expand* ... ...)
+              c ...)))
+         ((attribute a1.annotate)
+          ((attribute a2.annotate)
+           (if (and all-typed? (not (attribute result)))
+               (add-ann for-stx #'(values var.ty ...))
+               for-stx)))]))
+    (values (make #'for*/fold)
+            (make #'for*/foldr))))
 
 (define-for-syntax (define-for/acc:-variant for*? for/folder: for/folder op initial final)
   (lambda (stx)
@@ -684,7 +700,22 @@ the typed racket language.
        (if (attribute return.type)
            #`(ann last-e #,(attribute return.type))
            #'last-e))
-     (define d (syntax/loc stx (λ formals.erased e ... last-e*)))
+
+     ;; if the lambda form being checked is a polymorphic function, tag its
+     ;; parameters with property `from-lambda'.
+     (define (maybe-set-from-lambda type-vars formals)
+       (cond
+         [(and type-vars (stx-list? formals))
+          (stx-map (lambda (x)
+                     (from-plambda-property x #t))
+                   formals)]
+         [type-vars (from-plambda-property formals #t)]
+         [else formals]))
+
+     (define d (with-syntax ([erase-formals (maybe-set-from-lambda
+                                             (attribute vars.type-vars)
+                                             (attribute formals.erased))])
+                 (syntax/loc stx (λ erase-formals e ... last-e*))))
      (define d/prop
        (if (attribute formals.kw-property)
            (kw-lambda-property d (attribute formals.kw-property))
@@ -747,7 +778,7 @@ the typed racket language.
            #'last-body))
      (define-values (defined-id rhs)
        (normalize-definition
-        #`(define formals.erased body ... last-body*)
+        (syntax/loc stx (define formals.erased body ... last-body*))
         #'-lambda
         #t #t))
      ;; insert in type variables if necessary
@@ -861,7 +892,7 @@ the typed racket language.
                                     (set! vs new-vs)]
                  [else  (unsafe-vector-set! vs i v)])
            (set! i (unsafe-fx+ i 1)))
-         (cond 
+         (cond
           [(= i (vector-length vs)) vs]
           ;; We inline `vector-copy` to avoid a dependency.
           ;; The vector-ref here ensures that we have a well-typed initial element.

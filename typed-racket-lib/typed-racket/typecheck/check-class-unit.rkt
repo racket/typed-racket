@@ -269,18 +269,18 @@
   ;; part and typecheck the rest. Let other cases pass through.
   (pattern (#%plain-app (~literal chaperone-procedure)
                         meth (quote #f) (~literal prop:typed-method) (quote #t))
-           #:declare meth (core-method register/method register/self)
-           #:with form #'meth.form)
+           #:with (~var meth^ (core-method register/method register/self)) #'meth
+           #:with form #'meth^.form)
   (pattern (#%plain-app (~literal chaperone-procedure) meth . other-args)
-           #:declare meth (core-method register/method register/self)
-           #:with form #'(#%plain-app chaperone-procedure meth.form . other-args))
+           #:with (~var meth^ (core-method register/method register/self)) #'meth
+           #:with form #'(#%plain-app chaperone-procedure meth^.form . other-args))
   (pattern ((~and head (~or let-values letrec-values))
               ([(meth-name:id) meth] ...)
               meth-name-2:id)
-           #:declare meth (core-method register/method register/self)
+           #:with ((~var meth^ (core-method register/method register/self)) ...) #'(meth ...)
            #:do [(register/method #'meth-name-2)]
            #:with (plam-meth ...)
-                  (for/list ([meth (in-list (syntax->list #'(meth.form ...)))])
+                  (for/list ([meth (in-list (syntax->list #'(meth^.form ...)))])
                     (cond [(plambda-property this-syntax)
                            => (λ (plam) (plambda-property meth plam))]
                           [else meth]))
@@ -290,10 +290,10 @@
   (pattern ((~and head (~or let-values letrec-values))
             ([(meth-name) meth1] ...)
             meth2)
-           #:declare meth1 (core-method register/method register/self)
-           #:declare meth2 (core-method register/method register/self)
+           #:with ((~var meth1^ (core-method register/method register/self)) ...) #'(meth1 ...)
+           #:with (~var meth2^ (core-method register/method register/self)) #'meth2
            #:with form
-                  #'(head ([(meth-name) meth1.form] ...) meth2.form)))
+                  #'(head ([(meth-name) meth1^.form] ...) meth2^.form)))
 
 ;; For detecting field mutations for occurrence typing
 (define-syntax-class (field-assignment local-table)

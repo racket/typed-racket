@@ -17,15 +17,14 @@
 (provide make-template-identifier)
 
 (define (make-template-identifier what where)
-  (let ([name (module-path-index-resolve (module-path-index-join where #f))])
-    (parameterize ([current-namespace (make-empty-namespace)])
-      (namespace-attach-module (current-namespace) ''#%kernel)
-      (parameterize ([current-module-declare-name name])
-        (eval `(,#'module any '#%kernel
-                 (#%provide ,what)
-                 (define-values (,what) #f))))
-      (namespace-require `(for-template ,name))
-      (namespace-syntax-introduce (datum->syntax #f what)))))
+  (define s
+    (syntax-binding-set-extend
+     (syntax-binding-set)
+     what
+     (sub1
+      (variable-reference->module-base-phase (#%variable-reference)))
+     (module-path-index-join where #f)))
+  (syntax-binding-set->syntax s what))
 
 
 (define-initial-env initialize-special
@@ -72,31 +71,34 @@
           (->opt -SingleFlonum -Real [-SingleFlonum] (-lst -SingleFlonum))
           (->opt -InexactReal -Real [-InexactReal] (-lst -InexactReal))
           (->opt -Real -Real [-Real] (-lst -Real)))]
+  ;; unsafe-normalise-inputs
+  [(make-template-identifier 'unsafe-normalise-inputs 'racket/private/for)
+   (-poly (a)
+          (-> (-> a -Nat) a -Nat (Un (-val #f) -Int) -Int (-values (list a -Index -Index -Index))))]
   ;; normalise-inputs
   [(make-template-identifier 'normalise-inputs 'racket/private/for)
    (-poly (a)
-          (-> -Symbol -String (-> a -Boolean) (-> a -Nat) a -Nat (Un (-val #f) -Nat) -Nat (-values (list a -Index -Index -Index))))]
+          (-> -Symbol -String (-> a -Boolean) (-> a -Nat) a -Nat (Un (-val #f) -Int) -Int (-values (list a -Index -Index -Index))))]
   ;; make-sequence
   [(make-template-identifier 'make-sequence 'racket/private/for)
-   (-poly (a b)
+   (-polydots (a b)
           (let ([seq-vals
-                 (lambda (a)
+                 (lambda (a b)
                    (-values (list
-                             (-> Univ (-values a))
+                             (-> Univ (-values-dots (list a) b 'b))
                              (Un (-> Univ Univ) (-val #f))
                              (-> Univ Univ)
                              Univ
                              (Un (-> Univ Univ) (-val #f))
-                             (Un (->* a Univ) (-val #f))
-                             (Un (->* (cons Univ a) Univ) (-val #f)))))])
+                             (Un (->... (list a) (b b) Univ) (-val #f))
+                             (Un (->... (list Univ a) (b b) Univ) (-val #f)))))])
             (cl->*
-             (-> Univ -Byte         (seq-vals (list -Byte)))
-             (-> Univ -Index        (seq-vals (list -Index)))
+             (-> Univ -Byte         (seq-vals -Byte b))
+             (-> Univ -Index        (seq-vals -Index b))
              ;; Generous. Negative numbers aren't allowed.
-             (-> Univ -Fixnum       (seq-vals (list -NonNegFixnum)))
-             (-> Univ -Int          (seq-vals (list -Nat)))
-             (-> Univ (-seq a) (seq-vals (list a)))
-             (-> Univ (-seq a b) (seq-vals (list a b))))))]
+             (-> Univ -Fixnum       (seq-vals -NonNegFixnum b))
+             (-> Univ -Int          (seq-vals -Nat b))
+             (->* (list Univ (-seq-dots (list a) b 'b)) (seq-vals a b)))))]
   ;; check-range
   [(make-template-identifier 'check-range 'racket/private/for)
    (-> Univ Univ Univ -Void)]
@@ -364,11 +366,11 @@
    (-> -Variable-Reference -Module-Path -Resolved-Module-Path)]
   ;; in-fxvector, in-flvector, in-extflvector
   [(make-template-identifier 'in-fxvector* 'racket/fixnum)
-   (-> -FxVector (-seq -Fixnum))]
+   (->opt -FxVector [-Int (-opt -Int) -Int] (-seq -Fixnum))]
   [(make-template-identifier 'in-flvector* 'racket/flonum)
-   (-> -FlVector (-seq -Flonum))]
+   (->opt -FlVector [-Int (-opt -Int) -Int] (-seq -Flonum))]
   [(make-template-identifier 'in-extflvector* 'racket/extflonum)
-   (-> -ExtFlVector (-seq -ExtFlonum))]
+   (->opt -ExtFlVector [-Int (-opt -Int) -Int] (-seq -ExtFlonum))]
   [(make-template-identifier 'make-namespace-anchor 'racket/private/namespace)
    (-> -Variable-Reference -Namespace-Anchor)]
   [(make-template-identifier 'check-logger-or-false 'racket/private/logger)

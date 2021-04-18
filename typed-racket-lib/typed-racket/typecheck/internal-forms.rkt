@@ -33,7 +33,7 @@
   typed-define-values/invoke-unit
   assert-typecheck-failure
   typecheck-failure
-
+  dtsi-fields
   type-alias?
   new-subtype-def?
   typed-struct?
@@ -101,8 +101,16 @@
            #:attr mutable (attribute options.mutable)
            #:attr prefab (attribute options.prefab)
            #:attr type-only (attribute options.type-only)
-           #:attr maker (or (attribute options.maker) #'nm.nm)
-           #:attr extra-maker (attribute options.extra-maker)
+           #:with maker^ (or (attribute options.maker) #'nm.nm)
+           #:attr maker #'maker^
+           #:attr extra-maker (let ([em (attribute options.extra-maker)]
+                                    [m #'maker^])
+                                ;; extra-maker is only assigned to an id if
+                                ;; options.extra-maker is set and is *not* the
+                                ;; same as maker. Otherwise, it is false.  This
+                                ;; assumption simplifies handling the extra
+                                ;; constructor in tc-structs
+                                (and em (not (free-identifier=? em m)) em))
            #:attr properties (attribute options.prop)))
 
 (define-syntax-class dviu-import/export

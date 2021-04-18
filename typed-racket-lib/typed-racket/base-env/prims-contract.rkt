@@ -88,9 +88,9 @@
          "../private/cast-table.rkt"
          "../private/type-contract.rkt"
          "../typecheck/internal-forms.rkt"
-         ;; struct-extraction is actually used at both of these phases
-         "../utils/struct-extraction.rkt"
-         (for-syntax "../utils/struct-extraction.rkt"
+         ;; struct-info is actually used at both of these phases
+         "../utils/struct-info.rkt"
+         (for-syntax "../utils/struct-info.rkt"
                      "type-name-error.rkt")
          (only-in "../utils/utils.rkt" syntax-length)
          (for-template racket/base "ann-inst.rkt"))
@@ -285,9 +285,9 @@
    (λ ()
      (define type-stx
        (let ([types (cast-table-ref id)])
-         (if types
-             #`(U #,@types)
-             #f)))
+         (cond [(not types) #f]
+               [(null? (cdr types)) (car types)]
+               [else (quasisyntax/loc (car types) (U #,@types))])))
      `#s(contract-def ,type-stx ,flat? ,maker? typed))))
 
 
@@ -373,7 +373,6 @@
                   new-ty-ctc 'cast 'typed-world))])]))
 
 
-
 (define (require/opaque-type stx)
   (define-syntax-class unsafe-id
     (pattern (~literal unsafe-kw)))
@@ -406,41 +405,8 @@
            #,(ignore #'(require/contract pred hidden pred-cnt lib)))))]))
 
 
-
-(module self-ctor racket/base
-  (require racket/struct-info)
-
-  ;Copied from racket/private/define-struct
-  ;FIXME when multiple bindings are supported
-  (define (self-ctor-transformer orig stx)
-    (define (transfer-srcloc orig stx)
-      (datum->syntax orig (syntax-e orig) stx orig))
-    (syntax-case stx ()
-      [(self arg ...) (datum->syntax stx
-                                     (cons (syntax-property (transfer-srcloc orig #'self)
-                                                            'constructor-for
-                                                            (syntax-local-introduce #'self))
-                                           (syntax-e (syntax (arg ...))))
-                                     stx
-                                     stx)]
-      [_ (transfer-srcloc orig stx)]))
-  (define make-struct-info-self-ctor
-    (let ()
-      (struct struct-info-self-ctor (id info)
-        #:property prop:procedure
-        (lambda (ins stx)
-          (self-ctor-transformer (struct-info-self-ctor-id ins) stx))
-        #:property prop:struct-info (λ (x) (extract-struct-info (struct-info-self-ctor-info x))))
-      struct-info-self-ctor))
-  (provide make-struct-info-self-ctor))
-
-(require (submod "." self-ctor))
-
-
-
 (define-values (require-typed-struct-legacy require-typed-struct)
  (let ()
-
   (define-splicing-syntax-class (constructor-term legacy struct-name)
    (pattern (~seq) #:fail-when legacy #f #:attr name struct-name #:attr extra #f)
    (pattern (~seq) #:fail-unless legacy #f #:attr name (format-id struct-name "make-~a" struct-name)
@@ -551,7 +517,7 @@
 
                          (define-syntax nm
                               (if id-is-ctor?
-                                  (make-struct-info-self-ctor #'internal-maker si)
+                                  (make-struct-info-wrapper* #'internal-maker si #'type)
                                   si))
 
                          (dtsi* (tvar ...) spec type (body ...) #:maker maker-name #:type-only)
@@ -567,10 +533,6 @@
                                #`(require/typed #:internal (maker-name extra-maker) type lib
                                                 #:struct-maker parent
                                                 #,@(if (attribute unsafe.unsafe?) #'(unsafe-kw) #'()))
-                               #'(begin))
-
-                         #,(if (not (free-identifier=? #'nm #'type))
-                               #'(define-syntax type type-name-error)
                                #'(begin))
 
                          #,@(if (attribute unsafe.unsafe?)

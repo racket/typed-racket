@@ -840,6 +840,12 @@
         [tc-e/t (let: ([x : (Un 'foo Number) 'foo])
                       (if (eq? 'foo x) 3 x))
                 -Number]
+        [tc-err (let ()
+                  (: f (-> String Integer Number))
+                  (tr:define (f [a : Number] b)
+                             (string-length a))
+                  f)
+                #:ret (tc-ret (t:-> -String -Integer -Number))]
 
         [tc-err (let: ([x : (U String 'foo) 'foo])
                       (if (string=? x 'foo)
@@ -1129,6 +1135,10 @@
                            [(b*) (remainder 5 12)])
                 (+ a b a* b*))
               -Nat]
+
+        [tc-e (sinh (let-values (((x y) (quotient/remainder (exact-round 1) (sqr (exact-round 1)))))
+                      y))
+              -Zero]
 
         [tc-e (raise-type-error 'foo "bar" 5) (t:Un)]
         [tc-e (raise-type-error 'foo "bar" 7 (list 5)) (t:Un)]
@@ -3483,6 +3493,12 @@
         #:ret (tc-ret (-seq (-vec Univ)))
         #:expected (tc-ret (-seq (-vec Univ)))]
 
+       [tc-err
+        (ann (list (symbol->string "10")) (Listof String))
+        #:ret (tc-ret (-lst -String))
+        #:expected (tc-ret (-lst -String))
+        #:msg #rx"expected: Symbol.*given: String.*"]
+
        ;; PR 14557 - apply union of functions with different return values
        [tc-err
         (let ()
@@ -3581,6 +3597,17 @@
          ((if (even? 4) add1 (inst values Integer)) 4)
          -PosIndex]
 
+       [tc-e
+        (let ()
+          (tr:define (foo [a : String]) : Number
+                     10)
+          (procedure-rename foo 'oof))
+        (t:-> -String -Number)]
+
+       [tc-e
+        (procedure->method (tr:lambda ([a : String]) : Number
+                                      10))
+        (t:-> -String -Number : -true-propset)]
        ;; PR 14601
        [tc-err
         (let ()
@@ -3650,6 +3677,13 @@
                         [symbol? (lambda (x) (symbol->string x))])
           (raise 'foo))
         #:ret (tc-ret -String)]
+       [tc-err
+        (with-handlers ([exn:fail? (values #f #f)]) (values #t #t))
+        #:ret (tc-ret (list -True -True))
+        #:msg #rx"expected single value, got multiple"]
+       [tc-e
+        (with-handlers ([exn:fail? (error 'hi "error")]) #t)
+        -True]
 
        [tc-err
         (raise (λ ([x : Number]) (add1 x)))]
@@ -5289,6 +5323,10 @@
          ;; https://github.com/racket/typed-racket/issues/605
          (hash 0 1 2 3 4 5 6 7 8 0)
          (-Immutable-HT -Byte -Byte))
+
+
+       (tc-e (cadr (ann (cons "a" (list 1 2 3)) (Pairof String (Listof Byte))))
+             -Byte)
        )
       (if (extflonum-available?)
 

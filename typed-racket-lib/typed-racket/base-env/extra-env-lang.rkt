@@ -13,7 +13,7 @@
                      syntax/parse
                      syntax/stx)
          (for-syntax (types abbrev numeric-tower prop-ops))
-         (for-syntax (utils struct-extraction)))
+         (for-syntax (utils struct-info)))
 
 (provide type-environment
          (rename-out [-#%module-begin #%module-begin])

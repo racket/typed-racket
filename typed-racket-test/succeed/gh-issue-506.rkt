@@ -8,9 +8,7 @@
 (struct b a ())
 (void (list
        (ann (a 1) A)
-       (ann (b 1) A)
-       (ann (a 1) a)
-       (ann (b 1) a)))
+       (ann (b 1) A)))
 
 ; Test with a polymorphic parent also:
 (struct (T) p ([a : T]) #:type-name P)
@@ -18,5 +16,4 @@
 (void (list
        (ann (p 1) (P Integer))
        (ann (q 1) (P Integer))
-       (ann (p 1) (p Integer))
        (ann (q 1) (q Integer))))

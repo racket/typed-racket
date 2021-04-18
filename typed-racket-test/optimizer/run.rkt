@@ -9,7 +9,7 @@
          generate-log tests-dir missed-optimizations-dir)
 
 (define (get-expected-results file)
-  (with-input-from-file file
+  (with-input-from-file file #:mode 'text
     (lambda () ; from the test file
       (read-line) ; skip the #;#;
       (values (for/list ((l (in-lines (open-input-string (read))))) l)

@@ -12,7 +12,7 @@
 (provide exist/sc:)
 
 (provide/cond-contract
- [exist/sc ((listof identifier?) (listof static-contract?) (listof static-contract?) . -> . static-contract?)])
+ [exist/sc ((listof identifier?) static-contract? static-contract? . -> . static-contract?)])
 
 
 (struct exist-combinator combinator ()

@@ -590,6 +590,8 @@
    (cons portable-fixnum? -NonNegFixnum)
    (cons values -Nat)))
 
+(define (valid-prop-name? name properties)
+  (and (free-id-set-member? properties name) (Struct-Property? (lookup-id-type/lexical name))))
 
 (define-rep-switch (subtype-cases A (#:switch t1) t2 obj)
   ;; NOTE: keep these in alphabetical order
@@ -800,11 +802,10 @@
    (match t2
      [(Evt: result2) (subtype* A result1 result2)]
      [_ (continue<: A t1 t2 obj)])]
-  [(case: Exist (Exist: _ _)) #f]
   [(case: F (F: var1))
    (match t2
      ;; tvars are equal if they are the same variable
-     [(F: var2) (eq? var1 var2)]
+     [(F: var2) (and (eq? var1 var2) A)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Fun (Fun: arrows1))
    (match* (t2 arrows1)
@@ -814,7 +815,7 @@
      ;; special case when t1 can be collapsed into simpler arrow
      [((? DepFun? dfun) (app collapsable-arrows? (? Arrow? arrow1)))
       (arrow-subtype-dfun* A arrow1 dfun)]
-     [((Exist: (list n) body) (list arr1))
+     [((Some: (list n) body) (list arr1))
       (match-define (F: self-var) -Self)
       (define n-arrow (subst self-var (make-F n) arr1))
       (match-define (Fun: (list arrow2)) body)
@@ -1060,7 +1061,7 @@
      [(Param: in2 out2) (subtype-seq A
                                      (subtype* in2 in1)
                                      (subtype* out1 out2))]
-     [_ (subtype* A (cl->* (t-> out1) (t-> in1 -Void)) t2)]
+     [(Fun: _) (subtype* A (cl->* (t-> out1) (t-> in1 -Void)) t2)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Poly (Poly: names b1))
    (match t2
@@ -1171,6 +1172,7 @@
      [(SequenceTop:) A]
      [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: Some (Some: _ _)) #f]  
   [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _ properties))
    (match t2
      ;; Avoid resolving things that refer to different structs.
@@ -1201,12 +1203,8 @@
      [(StructTop: (Struct: nm2 _ _ _ _ _ _))
       #:when (free-identifier=? nm1 nm2)
       A]
-     [(Has-Struct-Property: prop-name)
-      (cond
-        [(free-id-set-member? properties prop-name)
-         (match (lookup-id-type/lexical prop-name)
-           [(? Struct-Property?) A])]
-        [else #f])]
+     [(Has-Struct-Property: prop-name) #:when (valid-prop-name? prop-name properties)
+      A]
      [(Val-able: (? (negate struct?) _)) #f]
      ;; subtyping on structs follows the declared hierarchy
      [_ (cond
@@ -1223,6 +1221,11 @@
   [(case: StructType (StructType: t1*))
    (match t2
      [(StructTypeTop:) A]
+     [(Has-Struct-Property: prop-name)
+      (match t1*
+        [(Struct: _ _ _ _ _ _ properties) #:when (valid-prop-name? prop-name properties)
+         A]
+        [else #f])]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Syntax (Syntax: elem1))
    (match t2

@@ -682,6 +682,57 @@
      ((Un -PosReal -NegReal) . -> . -PosReal)
      (-Real . -> . -NonNegReal)))
 
+
+  (define (quotient-remainder-cases . cases)
+    (for/lists (qs rs qrs)
+               ([i (in-list cases)])
+      (match-define (list a b (list c d)) i)
+      (values (-> a b c)
+              (-> a b d)
+              (-> a b (-values (list c d))))))
+
+  (define-values (quotient-spec remainder-spec quotient/remainder-spec)
+    (quotient-remainder-cases
+     (list -Zero -Int (list -Zero -Zero))
+     (list -One -One (list -One -Zero))
+     ;; division by one is identity, and has no remainder
+     (list -PosByte -One (list -PosByte -Zero))
+     (list -Byte -One (list -Byte -Zero))
+     (list -PosIndex -One (list -PosIndex -Zero))
+     (list -Index -One (list -Index -Zero))
+     (list -PosFixnum -One (list -PosFixnum -Zero))
+     (list -NonNegFixnum -One (list -NonNegFixnum -Zero))
+     (list -NegFixnum -One (list -NegFixnum -Zero))
+     (list -NonPosFixnum -One (list -NonPosFixnum -Zero))
+     (list -Fixnum -One (list -Fixnum -Zero))
+     (list -Byte -Nat (list -Byte -Byte))
+     (list -Byte -Int (list -Fixnum -Byte))
+     (list -Index -Byte (list -Index -Byte))
+     (list -Index -Nat (list -Index -Index))
+     (list -Index -Int (list -Fixnum -Index))
+     (list -NonNegFixnum -Byte (list -NonNegFixnum -Byte))
+     (list -NonNegFixnum -NonNegFixnum (list -NonNegFixnum -NonNegFixnum))
+     (list -NonNegFixnum -NonPosFixnum (list -NonPosFixnum -NonNegFixnum))
+     (list -NonPosFixnum -NonNegFixnum (list -NonPosFixnum -NonPosFixnum))
+     (list -NonPosFixnum -NonPosFixnum (list -Nat -NonPosFixnum))
+     (list -NonNegFixnum -Nat (list -NonNegFixnum -NonNegFixnum))
+     (list -NonNegFixnum -Int (list -Fixnum -NonNegFixnum))
+     (list -Nat -Byte (list -Nat -Byte))
+     (list -Nat -Index (list -Nat -Index))
+     (list -Nat -NonNegFixnum (list -Nat -NonNegFixnum))
+     ;; in the following cases, we can't guarantee that the quotient is within
+     ;; fixnum range: (quotient min-fixnum -1) -> max-fixnum + 1
+     (list -NonPosFixnum -Int (list -Int -NonPosFixnum))
+     (list -Fixnum -Int (list -Int -Fixnum))
+     (list -Int -Fixnum (list -Int -Fixnum))
+     (list -Nat -Nat (list -Nat -Nat))
+     (list -Nat -NonPosInt (list -NonPosInt -Nat))
+     (list -Nat -Int (list -Int -Nat))
+     (list -NonPosInt -Nat (list -NonPosInt -NonPosInt))
+     (list -NonPosInt -NonPosInt (list -Nat -NonPosInt))
+     (list -NonPosInt -Int (list -Int -NonPosInt))
+     (list -Int -Int (list -Int -Int))))
+
   ;Check to ensure we fail fast if the flonum bindings change
   (define-namespace-anchor anchor)
   (let ((flonum-ops #'([unsafe-flround    flround]
@@ -1309,36 +1360,10 @@
        (-> -NonPosReal -NegReal)
        (map unop (list -Real -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
 
-[quotient
- (from-cases
-  (-Zero -Int . -> . -Zero)
-  (map (lambda (t) (-> t -One t)) ; division by one is identity
-       (list -PosByte -Byte -PosIndex -Index
-             -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum -Fixnum))
-  (-Byte -Nat . -> . -Byte)
-  (-Byte -Int . -> . -Fixnum) ; may be negative
-  (-Index -Nat . -> . -Index)
-  (-Index -Int . -> . -Fixnum) ; same.
-  ;; we don't have equivalent for fixnums:
-  ;; (quotient min-fixnum -1) -> max-fixnum + 1
-  (commutative-binop -NonNegFixnum -NonPosFixnum -NonPosFixnum)
-  (-NonPosFixnum -NonPosFixnum . -> . -Nat)
-  (-NonNegFixnum -Nat . -> . -NonNegFixnum)
-  (-NonNegFixnum -Int . -> . -Fixnum)
-  (binop -Nat)
-  (commutative-binop -Nat -NonPosInt -NonPosInt)
-  (-NonPosInt -NonPosInt . -> . -Nat)
-  (binop -Int))]
-[remainder ; result has same sign as first arg
- (from-cases
-  (-One -One . -> . -Zero)
-  (map (lambda (t) (list (-> -Nat t t)
-                         (-> t -Int t)))
-       (list -Byte -Index -NonNegFixnum -Nat))
-  (-NonPosFixnum -Int . -> . -NonPosFixnum)
-  (-NonPosInt -Int . -> . -NonPosInt)
-  (commutative-binop -Fixnum -Int)
-  (binop -Int))]
+[quotient (from-cases quotient-spec)]
+
+[remainder (from-cases remainder-spec)]; result has same sign as first arg
+
 [modulo ; result has same sign as second arg
  (from-cases
   (-One -One . -> . -Zero)
@@ -1350,39 +1375,7 @@
   (commutative-binop -Fixnum -Int)
   (binop -Int))]
 ;; should be consistent with quotient and remainder
-[quotient/remainder
- (from-cases
-  (-Zero -Int . -> . (-values (list -Zero -Zero)))
-  (-One -One . -> . (-values (list -Zero -One)))
-  ;; division by one is identity, and has no remainder
-  (map (lambda (t) (t -One . -> . (-values (list t -Zero))))
-       (list -PosByte -Byte -PosIndex -Index
-             -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum -Fixnum))
-  (-Byte -Nat . -> . (-values (list -Byte -Byte)))
-  (-Byte -Int . -> . (-values (list -Fixnum -Byte)))
-  (-Index -Nat . -> . (-values (list -Index -Index)))
-  (-Index -Int . -> . (-values (list -Fixnum -Index)))
-  (-Nat -Byte . -> . (-values (list -Nat -Byte)))
-  (-Nat -Index . -> . (-values (list -Nat -Index)))
-  (-NonNegFixnum -NonNegFixnum . -> . (-values (list -NonNegFixnum -NonNegFixnum)))
-  (-NonNegFixnum -NonPosFixnum . -> . (-values (list -NonPosFixnum -NonNegFixnum)))
-  (-NonPosFixnum -NonNegFixnum . -> . (-values (list -NonPosFixnum -NonPosFixnum)))
-  (-NonPosFixnum -NonPosFixnum . -> . (-values (list -NonNegFixnum -NonPosFixnum)))
-  (-NonNegFixnum -Nat . -> . (-values (list -NonNegFixnum -NonNegFixnum)))
-  (-NonNegFixnum -Int . -> . (-values (list -Fixnum -NonNegFixnum)))
-  (-Nat -NonNegFixnum . -> . (-values (list -Nat -NonNegFixnum)))
-  ;; in the following cases, we can't guarantee that the quotient is within
-  ;; fixnum range: (quotient min-fixnum -1) -> max-fixnum + 1
-  (-NonPosFixnum -Int . -> . (-values (list -Int -NonPosFixnum)))
-  (-Fixnum -Int . -> . (-values (list -Int -Fixnum)))
-  (-Int -Fixnum . -> . (-values (list -Int -Fixnum)))
-  (-Nat -Nat . -> . (-values (list -Nat -Nat)))
-  (-Nat -NonPosInt . -> . (-values (list -NonPosInt -Nat)))
-  (-Nat -Int . -> . (-values (list -Int -Nat)))
-  (-NonPosInt -Nat . -> . (-values (list -NonPosInt -NonPosInt)))
-  (-NonPosInt -NonPosInt . -> . (-values (list -Nat -NonPosInt)))
-  (-NonPosInt -Int . -> . (-values (list -Int -NonPosInt)))
-  (-Int -Int . -> . (-values (list -Int -Int))))]
+[quotient/remainder (from-cases quotient/remainder-spec)]
 
 [arithmetic-shift (cl->* (-Zero -NonPosInt . -> . -Zero)
                          (-Byte -NonPosInt . -> . -Byte)
@@ -1696,6 +1689,7 @@
 
 [log (cl->*
       (-NonNegRat . -> . -Real)
+      (-NonNegRat -NonNegRat . -> . -Real)
       (-FlonumZero . -> . -NegFlonum)
       (-NonNegFlonum . -> . -Flonum)
       (-SingleFlonumZero . -> . -NegSingleFlonum)
@@ -1706,7 +1700,8 @@
       (-FloatComplex . -> . -FloatComplex)
       (-SingleFlonumComplex . -> . -SingleFlonumComplex)
       (-InexactComplex . -> . -InexactComplex)
-      (N . -> . N))]
+      (N . -> . N)
+      (N N . -> . N))]
 [exp (from-cases (-Zero . -> . -One)
                  (map unop
                       (list -Flonum -SingleFlonum -InexactReal -Real

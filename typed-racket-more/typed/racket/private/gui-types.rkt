@@ -1575,7 +1575,7 @@
                 ((Instance Tab-Panel%) (Instance Control-Event%)
                  -> Any)
                 #:optional]
-               [style (Listof (U 'no-border 'deleted))
+               [style (Listof (U 'no-border 'can-reorder 'can-close 'deleted))
                       #:optional]
                [font (Instance Font%) #:optional]
                [enabled Any #:optional]
@@ -1592,6 +1592,8 @@
                [stretchable-height Any #:optional])
          [append (String -> Void)]
          [delete (Integer -> Void)]
+         [on-reorder ((Listof Exact-Nonnegative-Integer) -> Void)]
+         [on-close-request (Exact-Nonnegative-Integer -> Void)]
          [get-item-label (Integer -> String)]
          [get-number (-> Natural)]
          [get-selection (-> (Option Natural))]

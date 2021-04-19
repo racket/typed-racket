@@ -1,3 +1,6 @@
+8.1
+- support for/fold[r]{*,}
+- Bug fixes and improvements for struct name handling
 8.0
 - Improve types for custom ports.
 - Improve handling of sequences in `for` forms.

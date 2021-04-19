@@ -1592,8 +1592,8 @@
                [stretchable-height Any #:optional])
          [append (String -> Void)]
          [delete (Integer -> Void)]
-         [on-reorder (Listof Exact-Nonnegative-Integer)]
-         [on-close-request Exact-Nonnegative-Integer]
+         [on-reorder ((Listof Exact-Nonnegative-Integer) -> Void)]
+         [on-close-request (Exact-Nonnegative-Integer -> Void)]
          [get-item-label (Integer -> String)]
          [get-number (-> Natural)]
          [get-selection (-> (Option Natural))]

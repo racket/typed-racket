@@ -116,7 +116,7 @@
          ;; avoid generating the quad for constr twice.
          ;; skip it when the binding is for the type name
          [(and (free-identifier=? internal-id sname) (free-identifier=? constr internal-id))
-          (super-mk-quad (make-def-binding constr constr-type) (generate-temporary constr) def-tbl pos-blame-id mk-redirect-id)]
+          (super-mk-quad (make-def-binding constr constr-type) (freshen-id constr) def-tbl pos-blame-id mk-redirect-id)]
          [else
           (make-quad constr def-tbl pos-blame-id mk-redirect-id)]))
 
@@ -127,6 +127,13 @@
      (with-syntax* ([id internal-id]
                     [export-id new-id]
                     [protected-id (freshen-id #'id)]
+                    ;; when the struct name is also the constructor name, we put
+                    ;; the former in the struct info, because it is the
+                    ;; exporting binding. Otherwise, we put the latter in the
+                    ;; struct info
+                    [constr-in-si* (if (free-identifier=? new-id constr-new-id)
+                                       new-id
+                                       constr-new-id)]
                     [type-name tname])
        (values
         #`(begin
@@ -146,7 +153,7 @@
             ;; a protected version in the submodule, since that
             ;; wouldn't be accessible by `syntax-local-value`.
             (define-syntax protected-id
-              (let ((info (list type-desc* (syntax export-id) pred* (list accs* ...)
+              (let ((info (list type-desc* (syntax constr-in-si*) pred* (list accs* ...)
                                 (list #,@(map (lambda (x) #'#f) accs)) super*)))
                 (make-struct-info-wrapper* constr* info (syntax type-name) #,sname-is-constructor?)))
             (define-syntax export-id

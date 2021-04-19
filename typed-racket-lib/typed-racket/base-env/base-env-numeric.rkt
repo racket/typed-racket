@@ -135,7 +135,10 @@
        (commutative-binop -NegInt -One -NonPosFixnum)
        (commutative-binop -NegInt -NonPosInt -NegFixnum)
        (-NonPosInt -NonPosInt . -> . -NonPosFixnum)
-       (-Int -Int . -> . -Fixnum))))
+       ;; Binary -Int case to take advantage of type refinement
+       (-Int -Int . -> . -Fixnum)
+       (varop -NonPosFixnum)
+       (varop -Fixnum))))
   (define fx--type
     (lambda ()
       (fx-from-cases

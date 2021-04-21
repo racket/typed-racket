@@ -39,11 +39,11 @@
          #'(begin (provide (rename-out [names id] ...))
                   (define-syntax (names stx) (id stx)) ...))]))
   (def require/opaque-type
-        require-typed-signature
-        require-typed-struct-legacy
-        require-typed-struct
-        require/typed-legacy require/typed require/typed/provide
-        require-typed-struct/provide make-predicate define-predicate)
+       require-typed-signature
+       require-typed-struct-legacy
+       require-typed-struct
+       require/typed-legacy require/typed require/typed/provide
+       require-typed-struct/provide make-predicate define-predicate)
 
   ;; Expand `cast` to a `core-cast` with an extra `#%expression` in order
   ;; to prevent the contract generation pass from executing too early
@@ -448,7 +448,7 @@
                       ;The actual identifier bound to the constructor
                       [real-maker (if (syntax-e #'id-is-ctor?) #'internal-maker #'maker-name)]
                       [extra-maker (and (attribute input-maker.extra)
-                                        (not (bound-identifier=? #'make-name #'nm))
+                                        (not (bound-identifier=? #'maker-name #'nm))
                                         #'maker-name)]
                       [type (if (stx-null? #'(tvar ...))
                                 #'type
@@ -524,7 +524,7 @@
                                   (make-struct-info-wrapper* #'internal-maker si #'type)
                                   si))
 
-                         (dtsi* (tvar ...) spec type (body ...) #:maker maker-name #:type-only)
+                         (dtsi* (tvar ...) spec type (body ...) #:maker maker-name)
                          #,(ignore #'(require/contract pred hidden (or/c struct-predicate-procedure?/c (c-> any-wrap/c boolean?)) lib))
                          #,(internal #`(require/typed-internal hidden (Any -> Boolean :
                                                                            #,(if (stx-null? #'(tvar ...))

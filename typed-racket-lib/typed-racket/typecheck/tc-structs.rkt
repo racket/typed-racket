@@ -59,7 +59,7 @@
 ;; desc : struct-desc
 ;; struct-info : struct-info?
 ;; type-only : Boolean
-(struct parsed-struct (sty names desc struct-info type-only) #:transparent)
+(struct parsed-struct (sty names desc struct-info) #:transparent)
 
 ;; struct-name : Id  (the identifier for the static struct info,
 ;;                    usually the same as the type-name)
@@ -443,15 +443,13 @@
 
 (define (register-parsed-struct-sty! ps)
   (match ps
-    ((parsed-struct sty names desc si type-only)
+    ((parsed-struct sty names desc si)
      (register-sty! sty names desc))))
 
 (define (register-parsed-struct-bindings! ps)
   (match ps
-    ((parsed-struct sty names desc si type-only)
-     (if type-only
-         null
-         (register-struct-bindings! sty names desc si)))))
+    ((parsed-struct sty names desc si)
+     (register-struct-bindings! sty names desc si))))
 
 ;; Listof<Parsed-Struct> -> Void
 ;; Refines the variance of struct types in the name environment
@@ -550,7 +548,6 @@
                    #:maker [maker #f]
                    #:extra-maker [extra-maker #f]
                    #:mutable [mutable #f]
-                   #:type-only [type-only #f]
                    #:prefab? [prefab? #f]
                    #:proc-ty-stx [proc-ty-stx #f]
                    #:properties [properties empty])
@@ -616,7 +613,7 @@
          (define desc
            (struct-desc parent-fields types tvars mutable parent-mutable))
          (parsed-struct (make-Prefab key (append parent-fields types))
-                        names desc (struct-info-property nm/par) #f)]
+                        names desc (struct-info-property nm/par))]
         [else
          (define parent-mutable
            ;; Only valid as long as typed structs must be
@@ -634,7 +631,7 @@
                                                 (extend-tvars tvars
                                                               (extract-proc-ty proc-ty-stx desc fld-names type-name)))))
 
-         (parsed-struct sty names desc (struct-info-property nm/par) type-only)]))
+         (parsed-struct sty names desc (struct-info-property nm/par))]))
 
 ;; register a struct type
 ;; convenience function for built-in structs

@@ -3464,6 +3464,7 @@
 (open-output-file
  (->key
   -Pathlike
+  #:permissions -Nat #f
   #:mode
   (one-of/c 'binary 'text)
   #f
@@ -3474,6 +3475,7 @@
 (open-input-output-file
  (->key
   -Pathlike
+  #:permissions -Nat #f
   #:mode
   (one-of/c 'binary 'text)
   #f

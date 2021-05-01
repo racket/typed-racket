@@ -3496,6 +3496,9 @@
       #:mode
       (one-of/c 'binary 'text)
       #f
+      #:permissions
+      -Nat
+      #f
       a)))
 (call-with-input-file* (-poly (a) (->key -Pathlike (-> -Input-Port a) #:mode (Un (-val 'binary) (-val 'text)) #f a)))
 (call-with-output-file*
@@ -3509,6 +3512,9 @@
    #f
    #:mode
    (one-of/c 'binary 'text)
+   #f
+   #:permissions
+   -Nat
    #f
    a)))
 (with-input-from-file (-poly (a) (->key -Pathlike (-> a) #:mode (Un (-val 'binary) (-val 'text)) #f a)))
@@ -3524,7 +3530,10 @@
       #:mode
       (one-of/c 'binary 'text)
       #f
-      a)))
+      #:permissions
+      -Nat
+      #f
+   a)))
 (port->lines
  (->optkey [-Input-Port]
            #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f

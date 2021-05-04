@@ -1911,6 +1911,7 @@
 [file-position (cl-> [(-Port) -Nat]
                      [(-Port (Un -Integer (-val eof))) -Void])]
 [file-position* (-> -Port (Un -Nat (-val #f)))]
+[file-truncate (-> -Port -Nat -Void)]
 
 ;; Section 13.1.4
 [port-count-lines! (-> (Un -Input-Port -Output-Port) -Void)]
@@ -1970,6 +1971,7 @@
 [port-file-identity (-> (Un -Input-Port -Output-Port) -PosInt)]
 
 ;; Section 13.1.6
+[string-port? (-> -Port B)]
 [open-input-string (->opt -String [Univ] -Input-Port)]
 [open-input-bytes (->opt -Bytes [Univ] -Input-Port)]
 [open-output-string

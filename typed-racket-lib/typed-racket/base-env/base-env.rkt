@@ -3105,7 +3105,7 @@
 [log-level? (->opt -Logger -Log-Level [(-opt -Symbol)] B)]
 
 [log-receiver? (make-pred-ty -Log-Receiver)]
-[make-log-receiver (->opt -Logger -Log-Level [(-opt -Symbol)] -Log-Receiver)]
+[make-log-receiver (->* (list -Logger) (make-Rest (list -Log-Level (-opt -Symbol))) -Log-Receiver)]
 
 ;; Section 15.5.4 (Additional Logging Functions, racket/logging)
 [log-level/c (make-pred-ty (one-of/c 'none 'fatal 'error 'warning 'info 'debug))]

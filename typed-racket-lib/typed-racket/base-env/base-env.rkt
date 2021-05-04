@@ -2126,6 +2126,19 @@
 [transplant-input-port (->opt -Input-Port (-opt (-> (-values (list (-opt -PosInt) (-opt -Nat) (-opt -PosInt))))) -PosInt [Univ (-> ManyUniv)] -Input-Port)]
 [transplant-output-port (->opt -Output-Port (-opt (-> (-values (list (-opt -PosInt) (-opt -Nat) (-opt -PosInt))))) -PosInt [Univ (-> ManyUniv)] -Output-Port)]
 
+[filter-read-input-port
+ (let* ([special-func (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)]
+        [wrap (-mu x (Un (-evt x)
+                         -Nat
+                         special-func
+                         -Input-Port
+                         (-val eof)))]
+        [read-wrap (-> -Bytes wrap wrap)])
+   (-poly (a)
+          (->opt -Input-Port read-wrap
+                 (-> -Bytes -Nat (-opt (-evt a)) (-opt wrap) (-opt wrap))
+                 [Univ] -Input-Port)))]
+
 ;; Section 13.1.10.3
 [eof-evt (-> -Input-Port (-evt (-val eof)))]
 [read-bytes-evt (-> -Nat -Input-Port (-evt (Un -Bytes (-val eof))))]

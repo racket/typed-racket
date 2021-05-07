@@ -164,7 +164,7 @@
   [typed-struct
     (define-typed-struct-internal . :define-typed-struct-body)]
   [typed-struct/exec
-    (define-typed-struct/exec-internal nm type-name ([fields:id : types] ...) proc-type)]
+   (define-typed-struct/exec-internal nm:struct-name type-name ([fields:id : types] ...) proc-type)]
   [typed-require
     (require/typed-internal name type)]
   [typed-require/struct

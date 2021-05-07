@@ -317,6 +317,7 @@
                                  (struct-names-struct-name names)
                                  (struct-names-type-name names)
                                  si
+                                 (binding-name constructor-binding)
                                  (def-binding-ty constructor-binding)
                                  extra-constructor)
     bindings)))
@@ -389,6 +390,7 @@
                                                       struct-name
                                                       type-name
                                                       si
+                                                      constructor-name
                                                       constructor-type
                                                       extra-constructor))
   (define def-bindings
@@ -418,6 +420,7 @@
                struct-name
                type-name
                si
+               constructor-name
                constructor-type
                extra-constructor)))
     def-bindings)))

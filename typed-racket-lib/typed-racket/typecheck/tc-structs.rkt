@@ -381,6 +381,7 @@
           null))))
 
   (define struct-name (struct-names-struct-name names))
+  (define constructor-name (struct-names-constructor names))
   (define type-name (struct-names-type-name names))
   (define extra-constructor (struct-names-extra-constructor names))
   (define constructor-type (poly-wrapper (->* all-fields poly-base)))
@@ -397,25 +398,29 @@
               bindings)
         bindings))
 
-  (register-type (struct-names-constructor names) constructor-type)
-  (for ([b (in-list def-bindings)])
+  (define constructor-binding (make-def-binding constructor-name constructor-type))
+  (for ([b (in-list (cons constructor-binding def-bindings))])
     (register-type (binding-name b) (def-binding-ty b)))
 
-  (cons struct-binding
-        (append
-         (if (free-identifier=? type-name
-                                struct-name)
-             null
-             ;; since type-name is also an syntax transformer that contains the
-             ;; struct info, we generate a struct stx binding for it here
-             (list (make-def-struct-stx-binding
-                    type-name
-                    struct-name
-                    type-name
-                    si
-                    constructor-type
-                    extra-constructor)))
-         def-bindings)))
+  (append
+   (if (free-identifier=? constructor-name struct-name)
+       null
+       (list constructor-binding))
+   (append
+    (list struct-binding)
+    (if (free-identifier=? type-name
+                           struct-name)
+        null
+        ;; since type-name is also an syntax transformer that contains the
+        ;; struct info, we generate a struct stx binding for it here
+        (list (make-def-struct-stx-binding
+               type-name
+               struct-name
+               type-name
+               si
+               constructor-type
+               extra-constructor)))
+    def-bindings)))
 
 
 

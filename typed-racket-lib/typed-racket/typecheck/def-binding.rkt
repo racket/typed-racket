@@ -41,25 +41,25 @@
            identifier? identifier?
            (values syntax? syntax? identifier? (listof (list/c identifier? identifier?))))
      (match-define (def-binding internal-id ty) me)
-      (with-syntax* ([id internal-id]
-                     [untyped-id (freshen-id #'id)]
-                     [local-untyped-id (freshen-id #'id)]
-                     [export-id new-id])
-        (define/with-syntax ctc (generate-temporary 'generated-contract))
-        ;; Create the definitions of the contract and the contracted export.
-        (define/with-syntax definitions
-          (contract-def/provide-property
-           #'(define-values (ctc) #f)
-           (list ty #'untyped-id #'id pos-blame-id)))
-        (values
-         ;; For the submodule
-         #`(begin definitions (provide untyped-id))
-         ;; For the main module
-         #`(begin (define-syntax local-untyped-id (#,mk-redirect-id (quote-syntax untyped-id)))
-                  (define-syntax export-id
-                    (make-typed-renaming #'id #'local-untyped-id)))
-         new-id
-         null)))])
+     (with-syntax* ([id internal-id]
+                    [untyped-id (freshen-id #'id)]
+                    [local-untyped-id (freshen-id #'id)]
+                    [export-id new-id])
+       (define/with-syntax ctc (generate-temporary 'generated-contract))
+       ;; Create the definitions of the contract and the contracted export.
+       (define/with-syntax definitions
+         (contract-def/provide-property
+          #'(define-values (ctc) #f)
+          (list ty #'untyped-id #'id pos-blame-id)))
+       (values
+        ;; For the submodule
+        #`(begin definitions (provide untyped-id))
+        ;; For the main module
+        #`(begin (define-syntax local-untyped-id (#,mk-redirect-id (quote-syntax untyped-id)))
+                 (define-syntax export-id
+                   (make-typed-renaming #'id #'local-untyped-id)))
+        new-id
+        null)))])
 
 (define-struct (def-stx-binding binding) () #:transparent
   #:methods gen:providable
@@ -85,7 +85,7 @@
 
 
 (define-struct (def-struct-stx-binding def-stx-binding)
-  (sname tname static-info constructor-type extra-constr-name)
+  (sname tname static-info constructor-name constructor-type extra-constr-name)
   #:transparent
   #:methods gen:providable
   [(define/generic super-mk-quad mk-quad)
@@ -96,8 +96,8 @@
      (define (mk internal-id)
        (make-quad internal-id def-tbl pos-blame-id mk-redirect-id))
 
-     (match-define (def-struct-stx-binding internal-id sname tname si constr-type extra-constr-name) me)
-     (match-define (list type-desc constr pred (list accs ...) muts super) (extract-struct-info si))
+     (match-define (def-struct-stx-binding internal-id sname tname si constr-name^ constr-type extra-constr-name) me)
+     (match-define (list type-desc _ pred (list accs ...) muts super) (extract-struct-info si))
      (define-values (defns export-defns new-ids aliases)
        (for/lists (defns export-defns new-ids aliases)
                   ([e (in-list (list* type-desc pred super accs))])
@@ -105,20 +105,21 @@
              (mk e)
              (mk-ignored-quad e))))
 
-     (define sname-is-constructor? (and (or extra-constr-name (free-identifier=? sname constr)) #t))
-     (define type-is-sname? (free-identifier=? tname internal-id))
+     (define sname-is-constructor? (and (or extra-constr-name (free-identifier=? sname constr-name^)) #t))
+
+     (define constr-name (or extra-constr-name constr-name^))
      ;; Here, we recursively handle all of the identifiers referenced
      ;; in this static struct info.
      (define-values (constr-defn constr-export-defn constr-new-id constr-aliases)
        (cond
-         [(not (identifier? constr))
+         [(not (identifier? constr-name))
           (values #'(begin) #'(begin) #f null)]
          ;; avoid generating the quad for constr twice.
          ;; skip it when the binding is for the type name
-         [(and (free-identifier=? internal-id sname) (free-identifier=? constr internal-id))
-          (super-mk-quad (make-def-binding constr constr-type) (freshen-id constr) def-tbl pos-blame-id mk-redirect-id)]
+         [(and (free-identifier=? internal-id sname) (free-identifier=? constr-name internal-id))
+          (super-mk-quad (make-def-binding constr-name constr-type) (freshen-id constr-name) def-tbl pos-blame-id mk-redirect-id)]
          [else
-          (make-quad constr def-tbl pos-blame-id mk-redirect-id)]))
+          (make-quad constr-name def-tbl pos-blame-id mk-redirect-id)]))
 
      (define/with-syntax (constr* type-desc* pred* super* accs* ...)
        (for/list ([i (in-list (cons constr-new-id new-ids))])
@@ -179,14 +180,15 @@
 ;; def-tbl, pos-blame-id, and mk-redirect-id
 (define/cond-contract (make-quad internal-id def-tbl pos-blame-id mk-redirect-id)
   (-> identifier? (free-id-table/c identifier? binding? #:immutable #t) identifier? identifier?
-        (values syntax? syntax? identifier? (listof (list/c identifier? identifier?))))
+      (values syntax? syntax? identifier? (listof (list/c identifier? identifier?))))
   (define new-id (freshen-id internal-id))
   (cond
     ;; if it's already done, do nothing
     [(free-id-table-ref (mapping) internal-id
                         ;; if it wasn't there, put it in, and skip this case
                         (λ () (free-id-table-set! (mapping) internal-id new-id) #f))
-     => mk-ignored-quad]
+     => (lambda (n)
+          (mk-ignored-quad n))]
     [(prefab-struct-field-operator? internal-id)
      (mk-ignored-quad internal-id)]
     [(free-id-table-ref def-tbl internal-id #f)
@@ -205,5 +207,6 @@
                                            [sname identifier?]
                                            [tname identifier?]
                                            [static-info (or/c #f struct-info?)]
+                                           [constructor-name identifier?]
                                            [constructor-type any/c]
                                            [extra-constr-name (or/c #f identifier?)])))

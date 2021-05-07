@@ -53,7 +53,6 @@
                   #:mutable (attribute t.mutable)
                   #:maker (attribute t.maker)
                   #:extra-maker (attribute t.extra-maker)
-                  #:type-only (attribute t.type-only)
                   #:prefab? (attribute t.prefab)
                   #:properties (attribute t.properties))]
       [t:typed-struct/exec

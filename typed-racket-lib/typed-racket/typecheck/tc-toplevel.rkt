@@ -3,6 +3,7 @@
 (require (rename-in "../utils/utils.rkt" [infer r:infer])
          racket/syntax syntax/parse syntax/stx syntax/id-table
          racket/list racket/match racket/sequence
+         racket/struct-info
          (prefix-in c: (contract-req))
          (rep core-rep type-rep values-rep)
          (types utils abbrev type-table struct-table resolve)
@@ -57,9 +58,12 @@
                   #:prefab? (attribute t.prefab)
                   #:properties (attribute t.properties))]
       [t:typed-struct/exec
+       (match-define (list* _ extra-maker __) (extract-struct-info (struct-info-property #'t.nm)))
        (tc/struct null #'t.nm #'t.type-name
                   (syntax->list #'(t.fields ...)) (syntax->list #'(t.types ...))
-                  #:proc-ty #'t.proc-type)])))
+                  #:proc-ty #'t.proc-type
+                  #:maker #'t.nm.nm
+                  #:extra-maker extra-maker)])))
 
 
 (define (type-vars-of-struct form)

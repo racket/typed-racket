@@ -155,4 +155,7 @@
 (def-prop AndProp ([ps (listof (or/c OrProp? TypeProp? NotTypeProp? LeqProp?))])
   [#:frees (f) (combine-frees (map f ps))]
   [#:fmap (f) (apply -and (map f ps))]
-  [#:for-each (f) (for-each f ps)])
+  [#:for-each (f) (for-each f ps)]
+  [#:custom-constructor/contract
+   (-> (listof (or/c TrueProp? OrProp? TypeProp? NotTypeProp? LeqProp?)) AndProp?)
+   (make-AndProp (filter (lambda (x) (not (TrueProp? x))) ps))])

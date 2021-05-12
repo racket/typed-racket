@@ -49,9 +49,9 @@
   (begin (define-syntax (?id stx)
            (syntax-parse stx
              [(_ ??header:curried-formals . ??body)
-              (quasisyntax/loc stx
-                (begin (tr:define ??header . ??body)
-                       (?class-kw ??header.fun-name)))]))
+              #`(begin #,(quasisyntax/loc stx
+                          (tr:define ??header . ??body))
+                       (?class-kw ??header.fun-name))]))
          ...))
 
 (define-define/class-kw

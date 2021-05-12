@@ -8,30 +8,25 @@ jobs:
       fail-fast: false
       matrix:
         racket-version: ["current"]
-        racket-variant: ["regular", "CS"]
+        racket-variant: ["BC", "CS"]
         enable-contracts: [true, false]
     steps:
-      - uses: actions/checkout@master
-      - uses: Bogdanp/setup-racket@v0.14
+      - uses: actions/checkout@v2.3.4
+      - uses: Bogdanp/setup-racket@v1.3.1
         with:
           architecture: x64
           distribution: full
           variant: ${{ matrix.racket-variant }}
           version: ${{ matrix.racket-version }}
           dest: '"${HOME}/racketdist-${{ matrix.racket-version }}-${{ matrix.racket-variant }}"'
+          local_catalogs: $GITHUB_WORKSPACE
           sudo: never
-      - name: Add Racket to PATH
-        run: echo "${HOME}/racketdist-${{ matrix.racket-version }}-${{ matrix.racket-variant }}/bin" >> $GITHUB_PATH
       - name: Check Racket version
         run: racket -v
-      - run: |
-             raco pkg config -i --set default-scope installation
-             raco pkg install --auto --no-setup --skip-installed typed-racket-test
-             racket -l- pkg/dirs-catalog --link --check-metadata pkgs-catalog .
-             echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
-             raco pkg config catalogs >> catalog-config.txt
-             raco pkg config --set catalogs `cat catalog-config.txt`
-             raco pkg update --auto --no-setup source-syntax/ typed-racket-lib/ typed-racket-more/ typed-racket-compatibility/ typed-racket-doc/ typed-racket/ typed-racket-test/
+      - name: Register local packages
+        run: |
+          raco pkg install -i --auto --no-setup --skip-installed typed-racket-test
+          raco pkg update --auto --no-setup source-syntax typed-racket-lib typed-racket-more typed-racket-compatibility typed-racket-doc typed-racket typed-racket-test
       - run: raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
         if: ${{ !matrix.enable-contracts }}
       - run: raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme

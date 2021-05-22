@@ -28,6 +28,7 @@
   (let path-type ([path (reverse path)]
                   [t t]
                   [resolved (hash)])
+
     (match* (t path)
       ;; empty path
       [(t (list)) t]
@@ -49,7 +50,7 @@
        (path-type rst t (hash))]
 
       ;; struct ops (non-prefab)
-      [((Struct: _ _ flds _ _ _ _) (cons (StructPE: struct-ty idx) rst))
+      [((app resolve (Struct: _ _ flds _ _ _ _)) (cons (StructPE: struct-ty idx) rst))
        #:when  (subtype t struct-ty)
        (match-let ([(fld: ft _ _) (list-ref flds idx)])
          (path-type rst ft (hash)))]

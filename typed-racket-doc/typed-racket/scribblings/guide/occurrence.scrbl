@@ -193,6 +193,23 @@ interactions, which may include mutations. It is possible to work
 around this by moving the variable inside of a module or into a local
 binding form like @racket[let].
 
+@section{Access to structure fields}
+
+Occurrence typing can work with accessors to immutable structure fields.
+
+@examples[#:no-result #:eval the-eval
+(struct apple ([a : Any]))
+(struct (A) fruit ([a : A]))
+
+(define (f [obj : Any]) : Number
+  (cond
+    [(and (apple? obj) (number? (apple-a obj))) (apple-a obj)]
+    [(and (fruit? obj) (number? (fruit-a obj))) (fruit-a obj)]
+    [else 42]))
+]
+
+
+
 @section{@racket[let]-aliasing}
 
 Typed Racket is able to reason about some cases when variables introduced 

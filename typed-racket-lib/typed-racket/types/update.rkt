@@ -98,8 +98,8 @@
           (match path-elem
             [(CarPE:) (intersect t (-pair (update Univ rst) Univ))]
             [(CdrPE:) (intersect t (-pair Univ (update Univ rst)))]
-            [(SyntaxPE:) (intersect t (-syntax-e (update Univ rst)))]
-            [(ForcePE:) (intersect t (-force (update Univ rst)))]
+            [(SyntaxPE:) (intersect t (-Syntax (update Univ rst)))]
+            [(ForcePE:)  (intersect t (-Promise (update Univ rst)))]
             [(PrefabPE: key idx)
              #:when (not (prefab-key/mutable-fields? key))
              (define field-count (prefab-key->field-count key))

@@ -81,12 +81,13 @@
                                              (env-set-id-type Γ x new-t*)
                                              obj
                                              pt)]
-                       [else
-                        (loop ps
-                              (cons (-is-type obj (path-type pes new-t*)) atoms)
-                              negs
-                              (append new-props new)
-                              (env-set-id-type Γ x new-t*))])]))]
+                       [(path-type pes new-t*) => (lambda (pt)
+                                                    (loop ps
+                                                          (cons (-is-type obj pt) atoms)
+                                                          negs
+                                                          (append new-props new)
+                                                          (env-set-id-type Γ x new-t*)))]
+                       [else #f])]))]
                [(TypeProp: obj pt)
                 (update-obj-pos-type new Γ obj pt)]
                ;; process negative info _after_ positive info so we don't miss anything!

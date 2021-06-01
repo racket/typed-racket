@@ -854,6 +854,7 @@
                [min-height (Option Natural) #:optional]
                [stretchable-width Any #:optional]
                [stretchable-height Any #:optional])
+         [get-gl-client-size (-> (values Natural Natural))]
          [get-scroll-page ((U 'horizontal 'vertical) -> Exact-Positive-Integer)]
          [get-scroll-pos ((U 'horizontal 'vertical) -> Exact-Positive-Integer)]
          [get-scroll-range ((U 'horizontal 'vertical) -> Exact-Positive-Integer)]

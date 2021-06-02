@@ -33,8 +33,6 @@
                                    "base-type-rep.rkt"
                                    "base-union.rkt")
                      Type Prop Object PathElem SomeValues)
-         Struct
-         fld
          Type?
          Mu-maybe-name:
          Vector: Vector?

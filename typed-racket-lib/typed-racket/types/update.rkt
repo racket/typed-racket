@@ -47,28 +47,34 @@
          ;; struct ops
          ;; (NOTE: we assume path elements to mutable fields
          ;;        are never created)
-         [((Struct: nm par flds proc poly pred props)
-           (StructPE: s idx))
+         [((? Struct? t) (StructPE: s idx))
           #:when (subtype t s)
           ;; Note: this updates fields even if they are not polymorphic.
           ;; Because subtyping is nominal and accessor functions do not
           ;; reflect this, this behavior is unobservable except when a
           ;; variable aliases the field in a let binding
-          (match-define-values (lhs (cons (fld: ty acc-id #f) rhs)) (split-at flds idx))
-          (match (update ty rst)
-            [(Bottom:) -Bottom]
-            [ty (let ([flds (append lhs (cons (make-fld ty acc-id #f) rhs))])
-                  (make-Struct nm par flds proc poly pred props))])]
+          (let/ec fail (Struct-update t flds
+                                      (lambda (flds)
+                                        (list-update flds idx
+                                                     (lambda (v)
+                                                       (fld-update v t
+                                                                   (lambda (ty)
+                                                                     (match (update ty rst)
+                                                                       [(Bottom:) (fail -Bottom)]
+                                                                       [ty ty]))))))))]
 
          ;; prefab struct ops
          ;; (NOTE: we assume path elements to mutable fields
          ;;        are never created)
-         [((Prefab: key flds) (PrefabPE: path-key idx))
+         [((and (Prefab: key _) t) (PrefabPE: path-key idx))
           #:when (prefab-key-subtype? key path-key)
-          (match-define-values (lhs (cons fld-ty rhs)) (split-at flds idx))
-          (match (update fld-ty rst)
-            [(Bottom:) -Bottom]
-            [fld-ty (make-Prefab key (append lhs (cons fld-ty rhs)))])]
+          (let/ec fail (Prefab-update t flds
+                                      (lambda (flds)
+                                        (list-update flds idx
+                                                     (lambda (ty)
+                                                       (match (update ty rst)
+                                                         [(Bottom:) (fail -Bottom)]
+                                                         [ty ty]))))))]
 
          ;; class field ops
          ;;

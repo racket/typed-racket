@@ -3577,13 +3577,13 @@
        (sel (λ (t) (-opt (-> (-lst t) t)))))
    (cl->*
     (->optkey -StrRx -StrInput (N ?N -Bytes)
-              #:match-select (sel -String) #f #:gap-select Univ #f
+              #:match-select (sel -String) #f #:gap-select? Univ #f
               (-lst -String))
     (->optkey -BtsRx (Un -StrInput -BtsInput) (N ?N -Bytes)
-              #:match-select (sel -Bytes) #f #:gap-select Univ #f
+              #:match-select (sel -Bytes) #f #:gap-select? Univ #f
               (-lst -Bytes))
     (->optkey -Pattern -BtsInput (N ?N -Bytes)
-              #:match-select (sel -Bytes) #f #:gap-select Univ #f
+              #:match-select (sel -Bytes) #f #:gap-select? Univ #f
               (-lst -Bytes)))))
 (regexp-match-positions*
  (let* ((?outp (-opt -Output-Port))

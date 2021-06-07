@@ -3448,6 +3448,18 @@
   (cl->*
    (->key (-lst a) (-> a a -Boolean) #:key (-opt (-> a a)) #f #:cache-keys? -Boolean #f (-lst a))
    (->key (-lst a) (-> b b -Boolean) #:key (-> a b) #t #:cache-keys? -Boolean #f (-lst a)))))
+(vector-sort
+ (-poly
+  (a b)
+  (cl->*
+   (->optkey (-vec a) (-> a a -Boolean) [-Integer (-opt -Integer)] #:key (-opt (-> a a)) #f #:cache-keys? -Boolean #f (-vec a))
+   (->optkey (-vec a) (-> b b -Boolean) [-Integer (-opt -Integer)] #:key (-> a b) #t #:cache-keys? -Boolean #f (-vec a)))))
+(vector-sort!
+ (-poly
+  (a b)
+  (cl->*
+   (->optkey (-vec a) (-> a a -Boolean) [-Integer (-opt -Integer)] #:key (-opt (-> a a)) #f #:cache-keys? -Boolean #f -Void)
+   (->optkey (-vec a) (-> b b -Boolean) [-Integer (-opt -Integer)] #:key (-> a b) #t #:cache-keys? -Boolean #f -Void))))
 (check-duplicates
  (-poly
   (a b c)

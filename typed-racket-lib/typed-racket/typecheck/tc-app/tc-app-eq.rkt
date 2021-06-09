@@ -3,6 +3,7 @@
 (require "../../utils/utils.rkt"
          "signatures.rkt"
          "utils.rkt"
+         (only-in (infer infer) intersect)
          syntax/parse syntax/stx racket/match racket/unsafe/undefined
          (typecheck signatures tc-funapp)
          (types abbrev prop-ops utils match-expanders)
@@ -63,6 +64,19 @@
      (ret -Boolean (-PS (-is-type o (-val val)) (-not-type o (-val val))))]
     [((tc-result1: (Val-able: (? ok? val))) (tc-result1: t _ o))
      (ret -Boolean (-PS (-is-type o (-val val)) (-not-type o (-val val))))]
+
+    ;; In this case, try to find there is an overlap between t1 and t2
+    [((tc-result1: t1 _ o1) (tc-result1: t2 _ o2))
+     #:when (not (ormap (lambda (a) (id=? comparator a))
+                        (list #'member #'memv #'memq)))
+
+     (define result-t (intersect t1 t2))
+     (if (Bottom? result-t)
+       ;; the overlap doesn't exist so we fall back to other cases.
+       (failure-cont)
+       ;; put the type refinements of o1 and o2 in the true proposition
+       (ret -Boolean (-PS (make-AndProp (list (-is-type o1 result-t) (-is-type o2 result-t)))
+                          -tt)))]
     [((tc-result1: t _ o)
       (or (and (? (lambda _ (id=? #'member comparator)))
                (tc-result1: (List: (list (and ts (Val-able: _)) ...))))
@@ -75,5 +89,3 @@
             (-PS (-is-type o ty)
                  (-not-type o ty))))]
     [(_ _) (ret -Boolean)]))
-
-

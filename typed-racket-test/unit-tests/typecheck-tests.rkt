@@ -1635,8 +1635,21 @@
         (tc-e (eqv? 1 2) -Boolean)
         (tc-e (eq? 1 2) -Boolean)
         (tc-e (equal?/recur 'foo 'bar eq?) -Boolean)
-
-
+        (tc-e (let ([a : (U String False) #f]
+                    [b : String "world"])
+                (if (equal? a b) a
+                    b))
+              -String)
+        (tc-e (let ([a : (U String False) #f]
+                    [b : (U String Boolean) "world"])
+                (if (equal? a b) a
+                    #f))
+              (t:Un -String -False))
+        (tc-err (let ([a : (U String (-> String)) "hi"]
+                      [b : String "world"])
+                  (if (equal? a b) a
+                      (a)))
+                #:ret (tc-ret -String))
 
         (tc-e (shuffle '("a" "b")) (-lst -String))
 

@@ -1676,8 +1676,27 @@
         (tc-e (eqv? 1 2) -Boolean)
         (tc-e (eq? 1 2) -Boolean)
         (tc-e (equal?/recur 'foo 'bar eq?) -Boolean)
-
-
+        (tc-e (let ([a : (U String False) #f]
+                    [b : String "world"])
+                (if (equal? a b) a
+                    b))
+              -String)
+        (tc-e (let ([a : (U String False) #f]
+                    [b : (U String Boolean) "world"])
+                (if (equal? a b) a
+                    #f))
+              (t:Un -String -False))
+        (tc-e (let ([a : (U String Number) 42]
+                    [b : (U String Boolean) "world"])
+                (if (equal? a b) a
+                    "hello"))
+              (t:Un -String))
+        (tc-err (let ([a : (U String (-> String)) "hi"]
+                      [b : String "world"])
+                  (if (equal? a b) a
+                      (a)))
+                #:ret (tc-ret -String)
+                #:msg #rx"Cannot apply expression of type \\(U \\(-> String\\) String\\).*\\(#%app a\\)")
 
         (tc-e (shuffle '("a" "b")) (-lst -String))
 

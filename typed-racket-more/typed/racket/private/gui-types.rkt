@@ -719,6 +719,7 @@
          [on-subwindow-char ((Instance Window<%>) (Instance Key-Event%) -> Boolean)]
          [on-subwindow-event ((Instance Window<%>) (Instance Mouse-Event%) -> Boolean)]
          [on-subwindow-focus ((Instance Window<%>) Any -> Void)]
+         [on-superwindow-activate (Any -> Void)]
          [on-superwindow-enable (Any -> Void)]
          [on-superwindow-show (Any -> Void)]
          [popup-menu ((Instance Popup-Menu%) Natural Natural -> Void)]
@@ -728,7 +729,10 @@
          [set-cursor ((Option (Instance Cursor%)) -> Void)]
          [set-label (String -> Void)]
          [show (Any -> Void)]
-         [warp-pointer (Integer Integer -> Void)]))
+         [warp-pointer (Integer Integer -> Void)]
+         [wheel-event-mode (case->
+                            (-> (U 'one 'integer 'fraction))
+                            (-> (U 'one 'integer 'fraction) Void))]))
 
 (define-type Area-Container<%>
   (Class #:implements Area<%>
@@ -793,7 +797,13 @@
             -> Void))]))
 
 (define-type Subarea<%>
-  (Class #:implements Area<%>))
+  (Class #:implements Area<%>
+         [horiz-margin (case->
+                        (-> Natural)
+                        (-> Natural Void))]
+         [vert-margin (case->
+                       (-> Natural)
+                       (-> Natural Void))]))
 
 (define-type Subwindow<%>
   (Class #:implements Subarea<%>
@@ -809,6 +819,7 @@
          [flush (-> Void)]
          [get-canvas-background (-> (Option (Instance Color%)))]
          [get-dc (-> (Instance DC<%>))]
+         [get-scaled-client-size (-> (values Natural Natural))]
          [min-client-height
           (case-> (-> Natural)
                   (Natural -> Void))]
@@ -843,6 +854,7 @@
                [min-height (Option Natural) #:optional]
                [stretchable-width Any #:optional]
                [stretchable-height Any #:optional])
+         [get-gl-client-size (-> (values Natural Natural))]
          [get-scroll-page ((U 'horizontal 'vertical) -> Exact-Positive-Integer)]
          [get-scroll-pos ((U 'horizontal 'vertical) -> Exact-Positive-Integer)]
          [get-scroll-range ((U 'horizontal 'vertical) -> Exact-Positive-Integer)]
@@ -1575,7 +1587,7 @@
                 ((Instance Tab-Panel%) (Instance Control-Event%)
                  -> Any)
                 #:optional]
-               [style (Listof (U 'no-border 'deleted))
+               [style (Listof (U 'no-border 'can-reorder 'can-close 'deleted))
                       #:optional]
                [font (Instance Font%) #:optional]
                [enabled Any #:optional]
@@ -1592,6 +1604,8 @@
                [stretchable-height Any #:optional])
          [append (String -> Void)]
          [delete (Integer -> Void)]
+         [on-reorder ((Listof Exact-Nonnegative-Integer) -> Void)]
+         [on-close-request (Exact-Nonnegative-Integer -> Void)]
          [get-item-label (Integer -> String)]
          [get-number (-> Natural)]
          [get-selection (-> (Option Natural))]
@@ -1673,11 +1687,15 @@
           (case-> (-> Boolean) (Any -> Void))]
          [get-editor (-> (Option (U (Instance Text%) (Instance Pasteboard%))))]
          [get-line-count (-> (Option Positive-Integer))]
+         [get-scroll-via-copy (-> Boolean)]
+         [set-scroll-via-copy (-> Any Void)]
          [horizontal-inset
           (case-> (-> Positive-Integer)
                   (Positive-Integer -> Void))]
          [lazy-refresh
           (case-> (-> Boolean) (Any -> Void))]
+         [make-bitmap
+          (-> Exact-Positive-Integer Exact-Positive-Integer (Instance Bitmap%))]
          [on-char ((Instance Key-Event%) -> Void)]
          [on-event ((Instance Mouse-Event%) -> Void)]
          [on-focus (Any -> Void)]

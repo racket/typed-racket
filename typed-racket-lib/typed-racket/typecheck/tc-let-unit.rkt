@@ -6,7 +6,7 @@
          (only-in (types abbrev) (-> t:->) [->* t:->*])
          (private type-annotation parse-type syntax-properties)
          (env lexical-env type-alias-helper mvar-env
-              global-env scoped-tvar-env 
+              global-env scoped-tvar-env
               signature-env signature-helper
               type-env-structs)
          (rep prop-rep object-rep type-rep)
@@ -90,7 +90,7 @@
     (values name type aliased-obj prop)))
 
 ;; check-let-body
-;; 
+;;
 ;; Checks that the body has the expected type with the info
 ;; from the newly bound ids appropriately added to the type environment.
 ;;
@@ -100,11 +100,15 @@
 ;; in 'bound-idss'. The info in 'bound-resultss' is what is used to
 ;; extend Γ while typechecking the environment. See the helper
 ;; function 'consolidate-bound-ids-info'.
-(define/cond-contract (check-let-body bound-idss bound-resultss body expected 
+;;
+;; non-bindings : all the rhs exprs that have no bound variables. They can
+;; still carry information to check the body.
+(define/cond-contract (check-let-body bound-idss bound-resultss body non-bindings expected
                                       #:before-check-body [pre-body-thunk void])
   (((listof (listof identifier?))
     (listof (listof tc-result?))
     syntax?
+    (listof syntax?)
     (or/c #f tc-results/c))
    (#:before-check-body (-> any/c))
    . ->* .
@@ -116,6 +120,17 @@
                [obj (in-list aliased-objs)]
                #:when (Empty? obj))
       id))
+  (define props^
+    (let ([any-res (-tc-any-results #f)])
+      (for/fold ([res null])
+        ([e (in-list non-bindings)])
+        (append res (match (tc-expr/check e any-res)
+                        [(tc-any-results: p) (list p)]
+                        [(tc-results: tcrs _)
+                         (map (match-lambda
+                                [(tc-result: _ (PropSet: p+ p-) _)
+                                 (-or p+ p-)])
+                              tcrs)])))))
   ;; extend the lexical environment for checking the body
   ;; with types and potential aliases
   (with-extended-lexical-env
@@ -124,7 +139,7 @@
      #:aliased-objects aliased-objs]
     (erase-identifiers
      (with-lexical-env+props
-       props
+       (append props props^)
        #:expected expected
        ;; if a let rhs does not return, the body isn't checked
        #:unreachable (for ([form (in-list (syntax->list body))])
@@ -182,7 +197,7 @@
   ;; Finalize signatures, by parsing member types
   (finalize-signatures!))
 
-;; The `thunk` argument is run only for its side effects 
+;; The `thunk` argument is run only for its side effects
 ;; It is used to perform additional context-dependent checking
 ;; within the context of a letrec body.
 ;; For example, it is used to typecheck units and ensure that exported
@@ -192,14 +207,14 @@
          [orig-flat-names (apply append namess)]
          [exprs (syntax->list exprs)])
     (register-aliases-and-declarations namess exprs)
-    
+
     ;; First look at the clauses that do not bind the letrec names
     (define all-clauses
       (for/list ([name-lst (in-list namess)]
                  [expr (in-list exprs)])
         (lr-clause name-lst expr)))
 
-    (define-values (ordered-clauses remaining)
+    (define-values (ordered-clauses remaining non-bindings)
       (get-non-recursive-clauses all-clauses orig-flat-names))
 
     (define-values (remaining-names remaining-exprs)
@@ -210,21 +225,28 @@
     ;; Check those and then check the rest in the extended environment
     (check-non-recursive-clauses
      ordered-clauses
-     (λ ()
+     (λ (unreachable?)
        ;; types the user gave.
-       (define given-rhs-types (map (λ (l) (map -tc-result (map get-type l))) remaining-names))
-       (check-let-body
-        remaining-names
-        given-rhs-types
-        body
-        expected
-        #:before-check-body
-        (λ () (begin (for ([expr (in-list remaining-exprs)]
-                           [results (in-list given-rhs-types)])
-                       (match results
-                         [(list (tc-result: ts fs os) ...)
-                          (tc-expr/check expr (ret ts fs os))]))
-                     (check-thunk))))))))
+       (cond
+         [unreachable? (for-each (lambda (i)
+                                   (register-ignored! i))
+                                 (append remaining-exprs (syntax->list body)))
+                       (ret -Bottom)]
+         [else
+          (define given-rhs-types (map (λ (l) (map -tc-result (map get-type l))) remaining-names))
+          (check-let-body
+           remaining-names
+           given-rhs-types
+           body
+           non-bindings
+           expected
+           #:before-check-body
+           (λ () (begin (for ([expr (in-list remaining-exprs)]
+                              [results (in-list given-rhs-types)])
+                          (match results
+                            [(list (tc-result: ts fs os) ...)
+                             (tc-expr/check expr (ret ts fs os))]))
+                        (check-thunk))))])))))
 
 ;; An lr-clause is a
 ;;   (lr-clause (Listof Identifier) Syntax)
@@ -233,9 +255,9 @@
 (struct lr-clause (names expr) #:transparent)
 
 ;; get-non-recursive-clauses : (Listof lr-clause) (Listof Identifier) ->
-;;                             (Listof lr-clause) (Listof lr-clause)
+;;                             (Listof lr-clause) (Listof lr-clause) (Listof Syntax)
 ;; Find letrec-values clauses that do not create variable cycles. Return
-;; both the non-recursive clauses and the remaining recursive ones.
+;; both the non-recursive clauses, the remaining recursive ones and clauses without names.
 (define (get-non-recursive-clauses clauses flat-names)
 
   ;; First, filter out clauses with no names. Don't do cycle checking on
@@ -286,15 +308,16 @@
              (values non-recursive
                      (append (map vertex-data component)
                              remaining))])))
-  (values (append non-recursive non-binding)
-          remaining))
+  (values non-recursive
+          remaining
+          (map lr-clause-expr non-binding)))
 
-;; check-non-recursive-clauses : (Listof lr-clause) (-> tc-results) -> tc-results
+;; check-non-recursive-clauses : (Listof lr-clause) (-> Boolean tc-results) -> tc-results
 ;; Given a list of non-recursive clauses, check the clauses in order then call k
 ;; in the built up environment.
 (define (check-non-recursive-clauses clauses k)
   (let loop ([clauses clauses])
-    (cond [(null? clauses) (k)]
+    (cond [(null? clauses) (k #f)]
           [else
            (match-define (lr-clause names expr) (car clauses))
            (match-define (list (tc-result: ts fs os) ...)
@@ -304,9 +327,27 @@
            (with-extended-lexical-env
              [#:identifiers names
               #:types ts]
-             (substitute-names (loop (cdr clauses))
-                               names
-                               os))])))
+             (with-lexical-env+props
+               (map (match-lambda
+                      [(PropSet: p+ p-) (-or p+ p-)])
+                    fs)
+               #:expected (-tc-any-results #f)
+
+               ;; FIXME: since nonrecurisve and recurive bindings are handled
+               ;; seperately, not in order of their appearances, the typechecker
+               ;; will not report errors in an ill-typed RHS which precedes a
+               ;; nonrecurive binding of type Bottom, e.g.:
+               ;;
+               ;; (letrec ([foo (lambda ([x : Number]) (if (zero? x) 0 (foo (sub1 "String")))]
+               ;;          [_ (error 'hi "")])
+               ;;       42)
+               #:unreachable (begin (for-each (lambda (cl)
+                                                (register-ignored! (lr-clause-expr cl)))
+                                              (cdr clauses))
+                                    (k #t))
+               (substitute-names (loop (cdr clauses))
+                                 names
+                                 os)))])))
 
 ;; this is so match can provide us with a syntax property to
 ;; say that this binding is only called in tail position
@@ -331,7 +372,13 @@
     (register-aliases-and-declarations namess exprs)
 
     ;; the annotated types of the name (possibly using the inferred types)
-    (let ([resultss (for/list ([names (in-list namess)] [e (in-list exprs)])
-                      (get-type/infer names e (tc-expr-t/maybe-expected expected)
-                                      tc-expr/check))])
-      (check-let-body namess resultss body expected))))
+    ;; and collect rhs expressions with no names
+    (define-values (resultss non-bindings)
+      (for/lists (resultss non-bindings #:result (values resultss (filter values non-bindings)))
+                 ([names (in-list namess)] [e (in-list exprs)])
+        (if (null? names)
+            (values null e)
+            (values (get-type/infer names e (tc-expr-t/maybe-expected expected)
+                                    tc-expr/check)
+                    #f))))
+    (check-let-body namess resultss body non-bindings expected)))

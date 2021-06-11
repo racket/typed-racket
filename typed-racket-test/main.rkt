@@ -23,13 +23,12 @@
    (lambda (val)
      (and (exn? val)
           (for/and ([e args])
-                   (cond [(procedure? e) (e val)]
-                         [(number? e)
-                          (and (exn:fail:syntax? val)
-                               (= e (length (exn:fail:syntax-exprs val))))]
-                         [(or (string? e) (regexp? e))
-                          (regexp-match e (exn-message val))]
-                         [else (error 'exn-pred "bad argument" e)]))))
+            (cond [(procedure? e) (e val)]
+                  [(number? e)
+                   (and (exn:fail:syntax? val) (= e (length (exn:fail:syntax-exprs val))))]
+                  [(or (string? e) (regexp? e))
+                   (regexp-match e (exn-message val))]
+                  [else (error 'exn-pred "bad argument" e)]))))
    args))
 
 

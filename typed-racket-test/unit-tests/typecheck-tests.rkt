@@ -635,6 +635,47 @@
                 (t:-> -Number -Number -Number : -true-propset)]
         [tc-e/t (let: ([x : Number 5]) x) -Number]
         [tc-e (let-values ([(x) 4]) (+ x 1)) -PosIndex]
+        [tc-e (let ([n : (U String Number) 10])
+                (let-values ([(t) (begin (when (string? n) (error 'hi "hello")) (values 42))])
+                  (+ n 1)))
+              -Number]
+        [tc-e (let ([n : (U String Number) 10])
+                (let-values ([() (begin (when (string? n) (error 'hi "hello")) (values))])
+                  (+ n 1)))
+              -Number]
+        [tc-e (let ([n : (U String Number) 10])
+                (let-values ([() (begin (when (string? n) (error 'hi "hello")) (values))]
+                             [(a) 10])
+                  (+ n 1)))
+              -Number]
+        [tc-e (let ([n : (U String Number) 10])
+                (letrec-values ([(t) (begin (when (string? n) (error 'hi "hello")) (values 42))])
+                  (+ n 1)))
+              -Number]
+        [tc-e (let ([n : (U String Number) 10])
+                (letrec-values ([() (begin (when (string? n) (error 'hi "hello")) (values))])
+                  (+ n 1)))
+              -Number]
+        [tc-e (let ([n : (U String Number) 10])
+                (letrec-values ([() (begin (when (string? n) (error 'hi "hello")) (values))]
+                                [(a) 10])
+                  (+ n 1)))
+              -Number]
+        [tc-e (let ()
+                (tr:define l : (U False [Listof String])  #f)
+                (unless l
+                  (error 'f ""))
+                (tr:define &^%$ l)
+                (ann l (Listof String)))
+              (make-Listof -String)]
+        [tc-e (letrec-values ([([a : (U String Number)]) (values 10)]
+                              [(b) (error "hello")]
+                              [([foo : (-> Number Number)])
+                               (values (tr:lambda ([y : Number]) : Number
+                                          (if (zero? y) 42
+                                              (foo (sub1 "string")))))])
+                42)
+              -Bottom]
         [tc-e (let-values ([(x y) (values 3 #t)]) (and (= x 1) (not y)))
               #:ret (tc-ret -Boolean -false-propset)]
         [tc-e/t (values 3) -PosByte]
@@ -5323,6 +5364,10 @@
          ;; https://github.com/racket/typed-racket/issues/605
          (hash 0 1 2 3 4 5 6 7 8 0)
          (-Immutable-HT -Byte -Byte))
+
+       (tc-e
+        (regexp-match* #rx"foo" "foobar" #:match-select car #:gap-select? #t)
+        (-lst -String))
 
 
        (tc-e (cadr (ann (cons "a" (list 1 2 3)) (Pairof String (Listof Byte))))

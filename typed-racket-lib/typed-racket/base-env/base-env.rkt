@@ -1911,6 +1911,7 @@
 [file-position (cl-> [(-Port) -Nat]
                      [(-Port (Un -Integer (-val eof))) -Void])]
 [file-position* (-> -Port (Un -Nat (-val #f)))]
+[file-truncate (-> -Port -Nat -Void)]
 
 ;; Section 13.1.4
 [port-count-lines! (-> (Un -Input-Port -Output-Port) -Void)]
@@ -1970,6 +1971,7 @@
 [port-file-identity (-> (Un -Input-Port -Output-Port) -PosInt)]
 
 ;; Section 13.1.6
+[string-port? (-> -Port B)]
 [open-input-string (->opt -String [Univ] -Input-Port)]
 [open-input-bytes (->opt -Bytes [Univ] -Input-Port)]
 [open-output-string
@@ -2125,6 +2127,19 @@
 
 [transplant-input-port (->opt -Input-Port (-opt (-> (-values (list (-opt -PosInt) (-opt -Nat) (-opt -PosInt))))) -PosInt [Univ (-> ManyUniv)] -Input-Port)]
 [transplant-output-port (->opt -Output-Port (-opt (-> (-values (list (-opt -PosInt) (-opt -Nat) (-opt -PosInt))))) -PosInt [Univ (-> ManyUniv)] -Output-Port)]
+
+[filter-read-input-port
+ (let* ([special-func (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)]
+        [wrap (-mu x (Un (-evt x)
+                         -Nat
+                         special-func
+                         -Input-Port
+                         (-val eof)))]
+        [read-wrap (-> -Bytes wrap wrap)])
+   (-poly (a)
+          (->opt -Input-Port read-wrap
+                 (-> -Bytes -Nat (-opt (-evt a)) (-opt wrap) (-opt wrap))
+                 [Univ] -Input-Port)))]
 
 ;; Section 13.1.10.3
 [eof-evt (-> -Input-Port (-evt (-val eof)))]
@@ -3105,7 +3120,7 @@
 [log-level? (->opt -Logger -Log-Level [(-opt -Symbol)] B)]
 
 [log-receiver? (make-pred-ty -Log-Receiver)]
-[make-log-receiver (->opt -Logger -Log-Level [(-opt -Symbol)] -Log-Receiver)]
+[make-log-receiver (opt-fn (list -Logger -Log-Level) (list (-opt -Symbol)) -Log-Receiver #:rest (make-Rest (list -Log-Level (-opt -Symbol))))]
 
 ;; Section 15.5.4 (Additional Logging Functions, racket/logging)
 [log-level/c (make-pred-ty (one-of/c 'none 'fatal 'error 'warning 'info 'debug))]
@@ -3433,6 +3448,18 @@
   (cl->*
    (->key (-lst a) (-> a a -Boolean) #:key (-opt (-> a a)) #f #:cache-keys? -Boolean #f (-lst a))
    (->key (-lst a) (-> b b -Boolean) #:key (-> a b) #t #:cache-keys? -Boolean #f (-lst a)))))
+(vector-sort
+ (-poly
+  (a b)
+  (cl->*
+   (->optkey (-vec a) (-> a a -Boolean) [-Integer (-opt -Integer)] #:key (-opt (-> a a)) #f #:cache-keys? -Boolean #f (-vec a))
+   (->optkey (-vec a) (-> b b -Boolean) [-Integer (-opt -Integer)] #:key (-> a b) #t #:cache-keys? -Boolean #f (-vec a)))))
+(vector-sort!
+ (-poly
+  (a b)
+  (cl->*
+   (->optkey (-vec a) (-> a a -Boolean) [-Integer (-opt -Integer)] #:key (-opt (-> a a)) #f #:cache-keys? -Boolean #f -Void)
+   (->optkey (-vec a) (-> b b -Boolean) [-Integer (-opt -Integer)] #:key (-> a b) #t #:cache-keys? -Boolean #f -Void))))
 (check-duplicates
  (-poly
   (a b c)
@@ -3464,6 +3491,7 @@
 (open-output-file
  (->key
   -Pathlike
+  #:permissions -Nat #f
   #:mode
   (one-of/c 'binary 'text)
   #f
@@ -3474,6 +3502,7 @@
 (open-input-output-file
  (->key
   -Pathlike
+  #:permissions -Nat #f
   #:mode
   (one-of/c 'binary 'text)
   #f
@@ -3494,6 +3523,9 @@
       #:mode
       (one-of/c 'binary 'text)
       #f
+      #:permissions
+      -Nat
+      #f
       a)))
 (call-with-input-file* (-poly (a) (->key -Pathlike (-> -Input-Port a) #:mode (Un (-val 'binary) (-val 'text)) #f a)))
 (call-with-output-file*
@@ -3507,6 +3539,9 @@
    #f
    #:mode
    (one-of/c 'binary 'text)
+   #f
+   #:permissions
+   -Nat
    #f
    a)))
 (with-input-from-file (-poly (a) (->key -Pathlike (-> a) #:mode (Un (-val 'binary) (-val 'text)) #f a)))
@@ -3522,7 +3557,10 @@
       #:mode
       (one-of/c 'binary 'text)
       #f
-      a)))
+      #:permissions
+      -Nat
+      #f
+   a)))
 (port->lines
  (->optkey [-Input-Port]
            #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f
@@ -3551,13 +3589,13 @@
        (sel (λ (t) (-opt (-> (-lst t) t)))))
    (cl->*
     (->optkey -StrRx -StrInput (N ?N -Bytes)
-              #:match-select (sel -String) #f #:gap-select Univ #f
+              #:match-select (sel -String) #f #:gap-select? Univ #f
               (-lst -String))
     (->optkey -BtsRx (Un -StrInput -BtsInput) (N ?N -Bytes)
-              #:match-select (sel -Bytes) #f #:gap-select Univ #f
+              #:match-select (sel -Bytes) #f #:gap-select? Univ #f
               (-lst -Bytes))
     (->optkey -Pattern -BtsInput (N ?N -Bytes)
-              #:match-select (sel -Bytes) #f #:gap-select Univ #f
+              #:match-select (sel -Bytes) #f #:gap-select? Univ #f
               (-lst -Bytes)))))
 (regexp-match-positions*
  (let* ((?outp (-opt -Output-Port))

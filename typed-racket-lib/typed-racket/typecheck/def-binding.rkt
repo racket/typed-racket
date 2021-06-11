@@ -85,7 +85,7 @@
 
 
 (define-struct (def-struct-stx-binding def-stx-binding)
-  (sname tname static-info constructor-type extra-constr-name)
+  (sname tname static-info constructor-name constructor-type extra-constr-name)
   #:transparent
   #:methods gen:providable
   [(define/generic super-mk-quad mk-quad)
@@ -96,8 +96,8 @@
      (define (mk internal-id)
        (make-quad internal-id def-tbl pos-blame-id mk-redirect-id))
 
-     (match-define (def-struct-stx-binding internal-id sname tname si constr-type extra-constr-name) me)
-     (match-define (list type-desc constr pred (list accs ...) muts super) (extract-struct-info si))
+     (match-define (def-struct-stx-binding internal-id sname tname si constructor-name constr-type extra-constr-name) me)
+     (match-define (list type-desc constr^ pred (list accs ...) muts super) (extract-struct-info si))
      (define-values (defns export-defns new-ids aliases)
        (for/lists (defns export-defns new-ids aliases)
                   ([e (in-list (list* type-desc pred super accs))])
@@ -105,7 +105,8 @@
              (mk e)
              (mk-ignored-quad e))))
 
-     (define sname-is-constructor? (and (or extra-constr-name (free-identifier=? sname constr)) #t))
+     (define sname-is-constructor? (and (or extra-constr-name (free-identifier=? sname constructor-name)) #t))
+     (define constr (or extra-constr-name constr^))
      (define type-is-sname? (free-identifier=? tname internal-id))
      ;; Here, we recursively handle all of the identifiers referenced
      ;; in this static struct info.
@@ -116,7 +117,7 @@
          ;; avoid generating the quad for constr twice.
          ;; skip it when the binding is for the type name
          [(and (free-identifier=? internal-id sname) (free-identifier=? constr internal-id))
-          (super-mk-quad (make-def-binding constr constr-type) (generate-temporary constr) def-tbl pos-blame-id mk-redirect-id)]
+          (super-mk-quad (make-def-binding constr constr-type) (freshen-id constr) def-tbl pos-blame-id mk-redirect-id)]
          [else
           (make-quad constr def-tbl pos-blame-id mk-redirect-id)]))
 
@@ -127,6 +128,13 @@
      (with-syntax* ([id internal-id]
                     [export-id new-id]
                     [protected-id (freshen-id #'id)]
+                    ;; when the struct name is also the constructor name, we put
+                    ;; the former in the struct info, because it is the
+                    ;; exporting binding. Otherwise, we put the latter in the
+                    ;; struct info
+                    [constr-in-si* (if (free-identifier=? new-id constr-new-id)
+                                       new-id
+                                       constr-new-id)]
                     [type-name tname])
        (values
         #`(begin
@@ -146,7 +154,7 @@
             ;; a protected version in the submodule, since that
             ;; wouldn't be accessible by `syntax-local-value`.
             (define-syntax protected-id
-              (let ((info (list type-desc* (syntax export-id) pred* (list accs* ...)
+              (let ((info (list type-desc* (syntax constr-in-si*) pred* (list accs* ...)
                                 (list #,@(map (lambda (x) #'#f) accs)) super*)))
                 (make-struct-info-wrapper* constr* info (syntax type-name) #,sname-is-constructor?)))
             (define-syntax export-id
@@ -198,5 +206,6 @@
                                            [sname identifier?]
                                            [tname identifier?]
                                            [static-info (or/c #f struct-info?)]
+                                           [constructor-name identifier?]
                                            [constructor-type any/c]
                                            [extra-constr-name (or/c #f identifier?)])))

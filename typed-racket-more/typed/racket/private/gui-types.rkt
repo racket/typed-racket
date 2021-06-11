@@ -1611,7 +1611,9 @@
          [get-selection (-> (Option Natural))]
          [set ((Listof String) -> Void)]
          [set-item-label (Integer String -> Void)]
-         [set-selection (Integer -> Void)]))
+         [set-selection (Integer -> Void)]
+         (augment [on-reorder ((Listof Exact-Nonnegative-Integer) -> Void)]
+                  [on-close-request (Exact-Nonnegative-Integer -> Void)])))
 
 (define-type Control<%>
   (Class #:implements Subwindow<%>

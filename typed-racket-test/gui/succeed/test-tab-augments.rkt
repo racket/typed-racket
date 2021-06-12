@@ -12,7 +12,8 @@
                 on-close-request-callback)
     (define/augment (on-reorder tab-list)
       (on-reorder-callback tab-list))
-    (define/augment (on-close-request index)
+    (define/override (on-close-request index)
+      (super on-close-request index)
       (on-close-request-callback index))))
 (define tabs : (Instance Tab-Panel-With-Callbacks%)
   (new tab-panel-with-callbacks%

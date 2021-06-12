@@ -147,7 +147,7 @@
                          (delay/thread
                             (define-values (sp out in err)
                               (subprocess #f #f #f (find-executable-path "racket") "-t" p))
-                            (sync/timeout 10 sp)
+                            (sync/timeout 50 sp)
                             (dynamic-wind (lambda _ (void))
                                           (lambda _
                                             (match (subprocess-status sp)
@@ -161,7 +161,7 @@
                                             (close-input-port err)))))))
   (make-test-suite "gui-tests"
                    (for/list ([prm (in-list prm-li)])
-                     (test-case (car prm) (check-not-exn (lambda _ (force (cdr prm))))))))
+                     (test-suite (car prm) (check-not-exn (lambda _ (force (cdr prm))))))))
 
 (define (just-one p*)
   (define-values (path p b) (split-path p*))

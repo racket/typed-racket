@@ -136,6 +136,32 @@
                (parameterize ([current-output-port (open-output-nowhere)])
                  (setup #:collections '(("math")))))))
 
+(define (gui-tests)
+  (define path (build-path src-dir "gui/succeed"))
+  (define prm-li (for/list
+                     ([i (in-naturals)]
+                      [p (in-directory path)]
+                      #:when (and (scheme-file? p)
+                                  (not (regexp-match #rx".*~" (path->string p)))))
+                   (cons (path->string p)
+                         (delay/thread
+                            (define-values (sp out in err)
+                              (subprocess #f #f #f (find-executable-path "racket") "-t" p))
+                            (sync/timeout 10 sp)
+                            (dynamic-wind (lambda _ (void))
+                                          (lambda _
+                                            (match (subprocess-status sp)
+                                              [0 (close-input-port err)]
+                                              ['running (subprocess-kill sp #t)
+                                                        (error (format "~a : timeout" p))]
+                                              [errcode (error (format "STDERR for ~a:~n ~a" p (port->string err)))]))
+                                          (lambda _
+                                            (close-input-port out)
+                                            (close-output-port in)
+                                            (close-input-port err)))))))
+  (make-test-suite "gui-tests"
+                   (for/list ([prm (in-list prm-li)])
+                     (test-case (car prm) (check-not-exn (lambda _ (force (cdr prm))))))))
 
 (define (just-one p*)
   (define-values (path p b) (split-path p*))
@@ -195,6 +221,7 @@
   (define bench? (make-parameter #f))
   (define math? (make-parameter #f))
   (define excl (make-parameter (list)))
+  (define gui? (make-parameter #f))
   (define single (make-parameter #f))
   (current-namespace (make-base-namespace))
   (command-line
@@ -209,6 +236,7 @@
    ["--just" path "run only this test" (single (just-one path))]
    ["--nightly" "for the nightly builds" (begin (nightly? #t) (unit? #t) (opt? #t) (missed-opt? #t) (places 1))]
    ["--all" "run all tests" (begin (unit? #t) (int? #t) (opt? #t) (missed-opt? #t) (bench? #t) (math? #t))]
+   ["--guitests" "run the gui-related tests" (gui? #t)]
    ["-j" num "number of places to use"
     (let ([n (string->number num)])
       (places (and (integer? n) (> n 1) n)))]
@@ -229,6 +257,7 @@
                             "Typed Racket Tests"
                             (append (if (unit?)       (list unit-tests)                  '())
                                     (if (int?)        (list (int-tests (excl)))          '())
+                                    (if (gui?)        (list (gui-tests))                 '())
                                     (if (opt?)        (list (optimization-tests))        '())
                                     (if (missed-opt?) (list (missed-optimization-tests)) '())
                                     (if (bench?)      (list (compile-benchmarks))        '())

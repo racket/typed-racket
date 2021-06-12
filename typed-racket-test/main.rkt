@@ -52,20 +52,23 @@
     (define path (build-path src-dir dir))
     (define prms
       (for/list ([i (in-naturals)]
-                 [p (directory-list path)]
-                 #:when (scheme-file? p)
-                 #:unless (let* ([f (path->string (file-name-from-path p))])
-                              (and (not (set-empty? excl)) (set-member? excl f)))
-		 ;; skip backup files
-		 #:when (not (regexp-match #rx".*~" (path->string p))))
-        (define p* (build-path path p))
-        (define prm (list path p 
+                 ;; potentially, we could put some tests under a subdirectory of
+                 ;; the directory specified by path, so in-directory is more
+                 ;; suitable than directory-list
+                 [p* (in-directory path)]
+                 #:when (and (scheme-file? p*)
+                             ;; skip backup files
+                             (not (regexp-match #rx".*~" (path->string p*)))
+                             (not (set-member? excl (path->string (file-name-from-path p*))))))
+
+        (define p (file-name-from-path p*))
+        (define prm (list path p
                           (if (places)
                               (delay/thread
                                 (begin0 (run-in-other-place p* error?)
                                         (when (zero? (modulo i 10))
                                           (eprintf "."))))
-                              (delay 
+                              (delay
                                 (parameterize ([read-accept-reader #t]
                                                [current-load-relative-directory path]
                                                [current-directory path]
@@ -91,7 +94,7 @@
 
 (define (int-tests [excl (set)])
   (define succ-tests (mk-tests "succeed"
-                             (lambda (p thnk) 
+                             (lambda (p thnk)
                                (check-not-exn thnk))
                              #:exclude excl))
   (define fail-tests (mk-tests "fail"
@@ -103,7 +106,7 @@
                                   (check-exn pred thnk))))
                              #:error #t
                              #:exclude excl))
-  
+
   (test-suite "Integration tests"
               (succ-tests)
               (fail-tests)))
@@ -206,7 +209,7 @@
    ["--just" path "run only this test" (single (just-one path))]
    ["--nightly" "for the nightly builds" (begin (nightly? #t) (unit? #t) (opt? #t) (missed-opt? #t) (places 1))]
    ["--all" "run all tests" (begin (unit? #t) (int? #t) (opt? #t) (missed-opt? #t) (bench? #t) (math? #t))]
-   ["-j" num "number of places to use" 
+   ["-j" num "number of places to use"
     (let ([n (string->number num)])
       (places (and (integer? n) (> n 1) n)))]
    ["--gui" "run using the gui"

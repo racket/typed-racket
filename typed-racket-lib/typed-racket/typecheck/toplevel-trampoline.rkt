@@ -10,7 +10,7 @@
 
 (require "../utils/utils.rkt"
          syntax/parse
-         (private syntax-properties)
+         "../private/syntax-properties.rkt"
          (for-template racket/base))
 
 (provide tc-toplevel-start)
@@ -38,13 +38,25 @@
                        syntax/kerncase
                        syntax/parse
                        syntax/stx
-                       (rep type-rep values-rep)
-                       (optimizer optimizer)
-                       (types utils abbrev printer generalize)
-                       (typecheck tc-toplevel possible-domains)
-                       (private type-contract syntax-properties)
-                       (env mvar-env)
-                       (utils disarm lift utils timing tc-utils arm mutated-vars)))
+                       "../rep/type-rep.rkt"
+                       "../rep/values-rep.rkt"
+                       "../optimizer/optimizer.rkt"
+                       "../types/utils.rkt"
+                       "../types/abbrev.rkt"
+                       "../types/printer.rkt"
+                       "../types/generalize.rkt"
+                       "tc-toplevel.rkt"
+                       "possible-domains.rkt"
+                       "../private/type-contract.rkt"
+                       "../private/syntax-properties.rkt"
+                       "../env/mvar-env.rkt"
+                       "../utils/disarm.rkt"
+                       "../utils/lift.rkt"
+                       "../utils/utils.rkt"
+                       "../utils/timing.rkt"
+                       "../utils/tc-utils.rkt"
+                       "../utils/arm.rkt"
+                       "../utils/mutated-vars.rkt"))
 
   (provide tc-toplevel-trampoline
            tc-toplevel-trampoline/report)

@@ -1,10 +1,14 @@
 #lang racket/unit
 (require "../utils/utils.rkt" racket/match
-         (rep core-rep prop-rep)
-         (types utils prop-ops)
-         (utils tc-utils)
-         (typecheck signatures tc-envops tc-metafunctions)
-         (types type-table))
+         "../rep/core-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../types/utils.rkt"
+         "../types/prop-ops.rkt"
+         "../utils/tc-utils.rkt"
+         "signatures.rkt"
+         "tc-envops.rkt"
+         "tc-metafunctions.rkt"
+         "../types/type-table.rkt")
 
 ;; if typechecking
 (import tc-expr^)

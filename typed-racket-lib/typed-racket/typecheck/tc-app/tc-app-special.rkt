@@ -6,12 +6,15 @@
          syntax/parse racket/match
          syntax/stx
          racket/sequence
-         (typecheck signatures tc-funapp)
-         (types abbrev type-table utils)
-         (private type-annotation)
-         (rep type-rep prop-rep)
-         (utils tc-utils)
-
+         "../signatures.rkt"
+         "../tc-funapp.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/type-table.rkt"
+         "../../types/utils.rkt"
+         "../../private/type-annotation.rkt"
+         "../../rep/type-rep.rkt"
+         "../../rep/prop-rep.rkt"
+         "../../utils/tc-utils.rkt"
          (for-label racket/base racket/bool '#%paramz))
 
 

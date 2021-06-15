@@ -1,7 +1,9 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep object-rep prop-rep fme-utils)
+         "../rep/object-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/fme-utils.rkt"
          (contract-req)
          racket/format
          racket/list

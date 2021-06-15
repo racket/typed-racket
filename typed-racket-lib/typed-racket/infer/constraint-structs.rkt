@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt" racket/stream (contract-req))
 
-(require-for-cond-contract (rep type-rep))
+(require-for-cond-contract "../rep/type-rep.rkt")
 
 ;; S, T types
 ;; represents S <: X <: T (see "Local Type Inference" pg. 12)

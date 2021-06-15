@@ -1,6 +1,7 @@
 #lang racket/base
 (require "../utils/utils.rkt"
-         (utils tc-utils identifier)
+         "../utils/tc-utils.rkt"
+         "../utils/identifier.rkt"
          
          racket/match
          (contract-req)
@@ -12,7 +13,7 @@
          racket/generic
          (only-in racket/unsafe/ops unsafe-struct-ref)
          (for-syntax
-          (utils tc-utils)
+          "../utils/tc-utils.rkt"
           racket/match
           racket/list
           (except-in syntax/parse id identifier keyword)

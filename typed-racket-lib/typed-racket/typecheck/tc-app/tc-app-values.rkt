@@ -4,9 +4,14 @@
          "signatures.rkt"
          "utils.rkt"
          syntax/parse racket/match racket/sequence
-         (typecheck signatures tc-funapp tc-metafunctions)
-         (types base-abbrev abbrev type-table utils)
-         (rep values-rep)
+         "../signatures.rkt"
+         "../tc-funapp.rkt"
+         "../tc-metafunctions.rkt"
+         "../../types/base-abbrev.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/type-table.rkt"
+         "../../types/utils.rkt"
+         "../../rep/values-rep.rkt"
 
          (for-label racket/base))
 

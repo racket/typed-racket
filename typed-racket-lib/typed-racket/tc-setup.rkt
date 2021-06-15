@@ -4,8 +4,13 @@
          syntax/kerncase
          syntax/stx
          racket/pretty racket/promise racket/lazy-require
-         (env type-name-env type-alias-env mvar-env)
-         (utils tc-utils disarm mutated-vars lift)
+         "env/type-name-env.rkt"
+         "env/type-alias-env.rkt"
+         "env/mvar-env.rkt"
+         "utils/tc-utils.rkt"
+         "utils/disarm.rkt"
+         "utils/mutated-vars.rkt"
+         "utils/lift.rkt"
          "standard-inits.rkt"
          (for-syntax racket/base)
          (for-template racket/base))

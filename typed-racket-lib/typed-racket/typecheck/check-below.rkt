@@ -3,11 +3,18 @@
 (require "../utils/utils.rkt"
          racket/match (prefix-in - (contract-req))
          racket/format
-         (env lexical-env)
-         (types utils subtype prop-ops abbrev tc-result)
-         (utils tc-utils)
-         (rep type-rep object-rep prop-rep)
-         (typecheck error-message tc-envops))
+         "../env/lexical-env.rkt"
+         "../types/utils.rkt"
+         "../types/subtype.rkt"
+         "../types/prop-ops.rkt"
+         "../types/abbrev.rkt"
+         "../types/tc-result.rkt"
+         "../utils/tc-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "error-message.rkt"
+         "tc-envops.rkt")
 
 (provide/cond-contract
  [check-below (-->i ([s (t) (if (Type? t)

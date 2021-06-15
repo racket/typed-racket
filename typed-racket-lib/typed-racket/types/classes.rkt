@@ -4,10 +4,11 @@
 ;; working with class/object types and rows
 
 (require "../utils/utils.rkt"
-         (rep type-rep rep-utils)
-         (types resolve)
+         "../rep/type-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "resolve.rkt"
          (prefix-in untyped: racket/class)
-         (except-in (base-env class-clauses)
+         (except-in "../base-env/class-clauses.rkt"
                     private)
          racket/dict
          racket/list
@@ -15,7 +16,7 @@
          syntax/parse
          syntax/stx
          (only-in racket/sequence in-syntax)
-         (for-template (base-env class-clauses)))
+         (for-template "../base-env/class-clauses.rkt"))
 
 (provide Class:
          row-constraints

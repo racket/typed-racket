@@ -1,9 +1,9 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep)
-         (utils tc-utils)
-         (types tc-result)
+         "../rep/type-rep.rkt"
+         "../utils/tc-utils.rkt"
+         "tc-result.rkt"
          "base-abbrev.rkt"
          (prefix-in c: (contract-req))
          racket/match)

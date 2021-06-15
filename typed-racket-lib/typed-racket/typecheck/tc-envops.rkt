@@ -4,17 +4,28 @@
          racket/match racket/list
          (for-syntax racket/base syntax/parse)
          (contract-req)
-         (rep type-rep prop-rep object-rep rep-utils)
-         (utils tc-utils)
+         "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../utils/tc-utils.rkt"
          racket/set
-         (types tc-result resolve update prop-ops subtract path-type)
-         (env type-env-structs lexical-env mvar-env)
-         (only-in (infer infer) intersect)
-         (rename-in (types abbrev)
+         "../types/tc-result.rkt"
+         "../types/resolve.rkt"
+         "../types/update.rkt"
+         "../types/prop-ops.rkt"
+         "../types/subtract.rkt"
+         "../types/path-type.rkt"
+         "../env/type-env-structs.rkt"
+         "../env/lexical-env.rkt"
+         "../env/mvar-env.rkt"
+         (only-in "../infer/infer.rkt" intersect)
+         (rename-in "../types/abbrev.rkt"
                     [-> -->]
                     [->* -->*]
                     [one-of/c -one-of/c])
-         (typecheck tc-metafunctions tc-subst))
+         "tc-metafunctions.rkt"
+         "tc-subst.rkt")
 
 (provide with-lexical-env+props
          with-lexical-env+props-simple

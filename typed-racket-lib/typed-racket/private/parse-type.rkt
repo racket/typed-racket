@@ -2,19 +2,37 @@
 
 ;; This module provides functions for parsing types written by the user
 
-(require (rename-in "../utils/utils.rkt" [infer infer-in])
-         (rep core-rep type-rep object-rep values-rep free-ids rep-utils)
-         (types abbrev utils prop-ops resolve
-                classes signatures
-                subtype path-type numeric-tower)
-         (only-in (infer-in infer) intersect)
-         (utils tc-utils prefab stxclass-util literal-syntax-class
-                identifier)
+(require (except-in "../utils/utils.rkt" infer)
+         "../rep/core-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../rep/free-ids.rkt"
+         "../rep/rep-utils.rkt"
+         "../types/abbrev.rkt"
+         "../types/utils.rkt"
+         "../types/prop-ops.rkt"
+         "../types/resolve.rkt"
+         "../types/classes.rkt"
+         "../types/signatures.rkt"
+         "../types/subtype.rkt"
+         "../types/path-type.rkt"
+         "../types/numeric-tower.rkt"
+         (only-in "../infer/infer.rkt" intersect)
+         "../utils/tc-utils.rkt"
+         "../utils/prefab.rkt"
+         "../utils/stxclass-util.rkt"
+         "../utils/literal-syntax-class.rkt"
+         "../utils/identifier.rkt"
          syntax/stx (prefix-in c: (contract-req))
          syntax/parse racket/sequence
-         (env tvar-env type-alias-env mvar-env
-              lexical-env index-env row-constraint-env
-              signature-env)
+         "../env/tvar-env.rkt"
+         "../env/type-alias-env.rkt"
+         "../env/mvar-env.rkt"
+         "../env/lexical-env.rkt"
+         "../env/index-env.rkt"
+         "../env/row-constraint-env.rkt"
+         "../env/signature-env.rkt"
          racket/dict
          racket/list
          racket/promise

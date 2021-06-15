@@ -7,9 +7,10 @@
          (for-syntax
            syntax/parse
            racket/base
-           (private type-contract)
-           (static-contracts instantiate)
-           (types abbrev numeric-tower)))
+           typed-racket/private/type-contract
+           typed-racket/static-contracts/instantiate
+           typed-racket/types/abbrev
+           typed-racket/types/numeric-tower))
 
 (provide tests)
 (gen-test-main)

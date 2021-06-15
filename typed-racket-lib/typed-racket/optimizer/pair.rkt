@@ -5,10 +5,15 @@
          (for-template racket/base racket/unsafe/ops racket/list)
          (for-syntax racket/base syntax/parse racket/syntax)
          "../utils/utils.rkt"
-         (rep type-rep)
-         (types type-table utils base-abbrev resolve subtype)
-         (typecheck typechecker)
-         (optimizer utils logging))
+         "../rep/type-rep.rkt"
+         "../types/type-table.rkt"
+         "../types/utils.rkt"
+         "../types/base-abbrev.rkt"
+         "../types/resolve.rkt"
+         "../types/subtype.rkt"
+         "../typecheck/typechecker.rkt"
+         "utils.rkt"
+         "logging.rkt")
 
 (provide pair-opt-expr)
 

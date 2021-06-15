@@ -3,18 +3,21 @@
 ;; This module provides helper functions for type aliases
 
 (require "../utils/utils.rkt"
-         (utils tarjan tc-utils)
-         (env type-alias-env type-name-env)
-         (rep type-rep)
-         (private parse-type)
-         (typecheck internal-forms)
-         (types resolve base-abbrev)
+         "../utils/tarjan.rkt"
+         "../utils/tc-utils.rkt"
+         "type-alias-env.rkt"
+         "type-name-env.rkt"
+         "../rep/type-rep.rkt"
+         "../private/parse-type.rkt"
+         "../typecheck/internal-forms.rkt"
+         "../types/resolve.rkt"
+         "../types/base-abbrev.rkt"
          racket/list
          racket/match
          syntax/id-table
          syntax/parse
          (for-template
-          (typecheck internal-forms)
+          "../typecheck/internal-forms.rkt"
           racket/base))
 
 (provide find-strongly-connected-type-aliases

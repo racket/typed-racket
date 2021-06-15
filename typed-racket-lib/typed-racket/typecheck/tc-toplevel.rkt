@@ -1,29 +1,40 @@
 #lang racket/base
 
-(require (rename-in "../utils/utils.rkt" [infer r:infer])
+(require "../utils/utils.rkt"
          racket/syntax syntax/parse syntax/stx syntax/id-table
          racket/list racket/match racket/sequence
          racket/struct-info
          (prefix-in c: (contract-req))
-         (rep core-rep type-rep values-rep)
-         (types utils abbrev type-table struct-table resolve)
-         (private parse-type type-annotation syntax-properties type-contract)
-         (env global-env init-envs type-name-env type-alias-env
-              lexical-env env-req mvar-env scoped-tvar-env struct-name-env
-              type-alias-helper signature-env signature-helper)
-         (utils tc-utils redirect-contract)
+         "../rep/core-rep.rkt" "../rep/type-rep.rkt" "../rep/values-rep.rkt"
+         "../types/utils.rkt" "../types/abbrev.rkt" "../types/type-table.rkt"
+         "../types/struct-table.rkt" "../types/resolve.rkt"
+         "../private/parse-type.rkt"
+         "../private/type-annotation.rkt"
+         "../private/syntax-properties.rkt"
+         "../private/type-contract.rkt"
+         "../env/global-env.rkt"
+         "../env/init-envs.rkt"
+         "../env/type-name-env.rkt"
+         "../env/type-alias-env.rkt"
+         "../env/lexical-env.rkt"
+         "../env/env-req.rkt"
+         "../env/mvar-env.rkt"
+         "../env/scoped-tvar-env.rkt"
+         "../env/struct-name-env.rkt"
+         "../env/type-alias-helper.rkt"
+         "../env/signature-env.rkt"
+         "../env/signature-helper.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/redirect-contract.rkt"
          "provide-handling.rkt" "def-binding.rkt" "tc-structs.rkt"
-         "typechecker.rkt" "internal-forms.rkt"
-         (typecheck provide-handling def-binding tc-structs
-                    typechecker internal-forms
-                    check-below)
+         "typechecker.rkt" "internal-forms.rkt" "check-below.rkt"
          syntax/location
          racket/format
          (for-template
           (only-in syntax/location quote-module-name)
           racket/base
           racket/contract/private/provide
-          (env env-req)))
+          "../env/env-req.rkt"))
 
 (provide/cond-contract
  [tc-module (syntax? . c:-> . (values syntax? syntax?))]

@@ -1,10 +1,11 @@
 #lang racket/base
 (require "../utils/utils.rkt"
          racket/unit (contract-req)
-         (utils unit-utils)
-         (rep type-rep values-rep))
+         "../utils/unit-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt")
 
-(require-for-cond-contract (infer constraint-structs))
+(require-for-cond-contract "constraint-structs.rkt")
 
 (provide (all-defined-out))
 

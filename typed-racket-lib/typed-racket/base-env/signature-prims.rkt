@@ -12,10 +12,10 @@
                      racket/syntax
                      syntax/kerncase
                      "../private/syntax-properties.rkt"
-                     (typecheck internal-forms)
+                     "../typecheck/internal-forms.rkt"
                      syntax/id-table
                      racket/unit-exptime
-                     (utils tc-utils))
+                     "../utils/tc-utils.rkt")
          (only-in racket/unit
                   [define-signature untyped-define-signature]
                   extends)

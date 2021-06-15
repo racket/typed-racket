@@ -9,8 +9,7 @@
 ;; The mapped-to type is used to distinguish type variables bound
 ;; at different scopes
 
-(require "../utils/utils.rkt"
-         (rep type-rep)
+(require "../rep/type-rep.rkt"
          racket/dict)
 
 (provide initial-tvar-env

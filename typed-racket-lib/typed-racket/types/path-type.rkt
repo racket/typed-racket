@@ -3,13 +3,20 @@
 (require "../utils/utils.rkt"
          racket/match racket/set
          (contract-req)
-         (rep object-rep type-rep values-rep)
-         (utils tc-utils prefab)
-         (typecheck renamer)
-         (types subtype resolve numeric-tower)
-         (except-in (types utils abbrev kw-types) -> ->* one-of/c))
+         "../rep/object-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/prefab.rkt"
+         "../typecheck/renamer.rkt"
+         "../types/subtype.rkt"
+         "../types/resolve.rkt"
+         "../types/numeric-tower.rkt"
+         "../types/kw-types.rkt"
+         "../types/utils.rkt"
+         (except-in "../types/abbrev.rkt" -> ->* one-of/c))
 
-(require-for-cond-contract (rep rep-utils))
+(require-for-cond-contract "../rep/rep-utils.rkt")
 
 (provide/cond-contract
  [path-type ((listof PathElem?) Type? . -> . (or/c Type? #f))])

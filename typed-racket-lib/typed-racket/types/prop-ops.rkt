@@ -3,10 +3,21 @@
 (require "../utils/utils.rkt"
          racket/list racket/match
          (prefix-in c: (contract-req))
-         (rep type-rep prop-rep object-rep values-rep rep-utils)
-         (logic ineq)
-         (only-in (infer infer) intersect)
-         (types subtype overlap subtract abbrev tc-result union path-type update))
+         "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../logic/ineq.rkt"
+         (only-in "../infer/infer.rkt" intersect)
+         "subtype.rkt"
+         "overlap.rkt"
+         "subtract.rkt"
+         "abbrev.rkt"
+         "tc-result.rkt"
+         "union.rkt"
+         "path-type.rkt"
+         "update.rkt")
 
 (provide/cond-contract
   [-and (c:->* () #:rest (c:listof Prop?) Prop?)]

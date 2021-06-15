@@ -5,7 +5,7 @@
 (require "../../utils/utils.rkt"
          "../structures.rkt"
          "../constraints.rkt"
-         (utils prefab)
+         "../../utils/prefab.rkt"
          racket/match
          (contract-req)
          (for-template racket/base "../../utils/prefab-c.rkt")

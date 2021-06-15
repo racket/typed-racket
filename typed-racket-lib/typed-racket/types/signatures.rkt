@@ -4,14 +4,14 @@
 ;; checking subtyping and parsing unit types
 
 (require "../utils/utils.rkt"
-         (env signature-env)
-         (rep type-rep)
+         "../env/signature-env.rkt"
+         "../rep/type-rep.rkt"
          syntax/parse
          syntax/id-set
          racket/list
          (only-in racket/set subset?)
          (for-template racket/base
-                       (typecheck internal-forms)))
+                       "../typecheck/internal-forms.rkt"))
 
 (provide check-sub-signatures?
          distinct-signatures?

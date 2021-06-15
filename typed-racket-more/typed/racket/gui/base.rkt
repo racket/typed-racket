@@ -7,7 +7,7 @@
          (subtract-in racket/gui/base
                       racket/draw
                       (except-in racket/snip get-the-snip-class-list))
-         (for-syntax (only-in (rep type-rep)
+         (for-syntax (only-in typed-racket/rep/type-rep
                               make-Instance
                               make-Opaque))
          "../draw.rkt"

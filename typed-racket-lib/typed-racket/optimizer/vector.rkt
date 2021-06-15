@@ -4,9 +4,14 @@
          racket/match racket/flonum racket/extflonum
          (for-template racket/base racket/flonum racket/extflonum racket/unsafe/ops)
          "../utils/utils.rkt"
-         (rep type-rep)
-         (types type-table utils numeric-tower abbrev)
-         (optimizer utils logging fixnum))
+         "../rep/type-rep.rkt"
+         "../types/type-table.rkt"
+         "../types/utils.rkt"
+         "../types/numeric-tower.rkt"
+         "../types/abbrev.rkt"
+         "utils.rkt"
+         "logging.rkt"
+         "fixnum.rkt")
 
 (provide vector-opt-expr)
 

@@ -3,7 +3,7 @@
 ;; Tests for utilities and helpers for the internals of
 ;; class type-checking, parsing, etc.
 
-(require (except-in "test-utils.rkt" private)
+(require "test-utils.rkt"
          racket/class
          rackunit
          syntax/id-table

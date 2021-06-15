@@ -1,8 +1,12 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep values-rep rep-utils free-variance)
-         (types abbrev utils)
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/free-variance.rkt"
+         "../types/abbrev.rkt"
+         "../types/utils.rkt"
          (prefix-in c: (contract-req))
          racket/list racket/match)
 (provide/cond-contract

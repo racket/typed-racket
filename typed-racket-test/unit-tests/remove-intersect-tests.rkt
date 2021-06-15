@@ -1,10 +1,14 @@
 #lang racket/base
 (require "test-utils.rkt"
          (for-syntax racket/base)
-         (r:infer infer)
-         (rep type-rep)
-         (utils prefab)
-         (types abbrev numeric-tower subtype subtract overlap)
+         typed-racket/infer/infer
+         typed-racket/rep/type-rep
+         typed-racket/utils/prefab
+         typed-racket/types/abbrev
+         typed-racket/types/numeric-tower
+         typed-racket/types/subtype
+         typed-racket/types/subtract
+         typed-racket/types/overlap
          rackunit)
 (provide tests)
 (gen-test-main)

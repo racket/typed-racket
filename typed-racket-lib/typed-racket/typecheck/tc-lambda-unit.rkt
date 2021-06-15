@@ -5,16 +5,26 @@
          racket/match syntax/private/id-table
          racket/sequence
          (contract-req)
-         (rep type-rep object-rep rep-utils)
-         (rename-in (types abbrev utils)
+         "../rep/type-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/rep-utils.rkt"
+         (rename-in (combine-in "../types/abbrev.rkt"
+                                "../types/utils.rkt")
                     [-> t:->]
                     [->* t:->*]
                     [one-of/c t:one-of/c])
-         (private type-annotation syntax-properties)
-         (types resolve type-table)
-         (typecheck signatures tc-metafunctions tc-subst)
-         (env lexical-env tvar-env index-env scoped-tvar-env)
-         (utils tc-utils)
+         "../private/type-annotation.rkt"
+         "../private/syntax-properties.rkt"
+         "../types/resolve.rkt"
+         "../types/type-table.rkt"
+         "signatures.rkt"
+         "tc-metafunctions.rkt"
+         "tc-subst.rkt"
+         "../env/lexical-env.rkt"
+         "../env/tvar-env.rkt"
+         "../env/index-env.rkt"
+         "../env/scoped-tvar-env.rkt"
+         "../utils/tc-utils.rkt"
          (for-template racket/base)
          (for-syntax racket/base))
 

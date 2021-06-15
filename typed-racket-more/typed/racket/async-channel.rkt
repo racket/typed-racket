@@ -3,7 +3,7 @@
 ;; This module provides a typed version of racket/async-channel
 
 (require racket/async-channel
-         (for-syntax (only-in (rep type-rep) -Async-ChannelTop)))
+         (for-syntax (only-in typed-racket/rep/type-rep -Async-ChannelTop)))
 
 ;; Section 11.2.4 (Buffered Asynchronous Channels)
 (type-environment

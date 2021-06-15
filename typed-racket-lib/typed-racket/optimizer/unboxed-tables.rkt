@@ -2,7 +2,7 @@
 
 (require syntax/id-table syntax/parse
          "../utils/utils.rkt"
-         (utils tc-utils))
+         "../utils/tc-utils.rkt")
 
 (provide
   add-unboxed-fun!

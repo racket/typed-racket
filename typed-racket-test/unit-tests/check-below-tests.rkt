@@ -3,10 +3,13 @@
 (require "test-utils.rkt"
          rackunit racket/list racket/match racket/format
          syntax/srcloc syntax/location
-         (types abbrev tc-result)
-         (utils tc-utils)
-         (rep prop-rep object-rep type-rep)
-         (typecheck check-below)
+         typed-racket/types/abbrev
+         typed-racket/types/tc-result
+         typed-racket/utils/tc-utils
+         typed-racket/rep/prop-rep
+         typed-racket/rep/object-rep
+         typed-racket/rep/type-rep
+         typed-racket/typecheck/check-below
          (for-syntax racket/base syntax/parse))
 
 (provide tests)

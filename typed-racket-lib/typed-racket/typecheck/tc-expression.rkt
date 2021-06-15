@@ -2,12 +2,21 @@
 
 (require
   "../utils/utils.rkt"
-  (typecheck signatures possible-domains check-below)
-  (types utils abbrev classes type-table resolve)
-  (rep type-rep)
-  (utils tc-utils)
-  (env index-env tvar-env scoped-tvar-env)
-  (private syntax-properties parse-type)
+  "signatures.rkt"
+  "possible-domains.rkt"
+  "check-below.rkt"
+  "../types/utils.rkt"
+  "../types/abbrev.rkt"
+  "../types/classes.rkt"
+  "../types/type-table.rkt"
+  "../types/resolve.rkt"
+  "../rep/type-rep.rkt"
+  "../utils/tc-utils.rkt"
+  "../env/index-env.rkt"
+  "../env/tvar-env.rkt"
+  "../env/scoped-tvar-env.rkt"
+  "../private/syntax-properties.rkt"
+  "../private/parse-type.rkt"
   racket/format
   racket/match
   syntax/stx

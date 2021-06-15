@@ -9,10 +9,11 @@
          (for-template racket/base)
          "../utils/utils.rkt"
          (contract-req)
-         (utils tc-utils struct-info)
-         (types struct-table)
-         (private syntax-properties)
-         (typecheck renamer))
+         "../utils/tc-utils.rkt"
+         "../utils/struct-info.rkt"
+         "../types/struct-table.rkt"
+         "../private/syntax-properties.rkt"
+         "renamer.rkt")
 
 (provide with-fresh-mapping make-quad)
 

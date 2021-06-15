@@ -3,19 +3,24 @@
 ;; Support for defining the initial TR environment
 
 (require "../utils/utils.rkt"
-         (utils tc-utils)
+         "../utils/tc-utils.rkt"
          "global-env.rkt"
          "type-name-env.rkt"
          "type-alias-env.rkt"
          "mvar-env.rkt"
          "signature-env.rkt"
          "struct-name-env.rkt"
-         (rep core-rep type-rep
-              prop-rep rep-utils
-              object-rep values-rep
-              free-variance)
+         "../rep/core-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../rep/free-variance.rkt"
          (for-syntax syntax/parse racket/base)
-         (types abbrev struct-table utils)
+         "../types/abbrev.rkt"
+         "../types/struct-table.rkt"
+         "../types/utils.rkt"
          data/queue
          racket/private/dict racket/list racket/promise
          racket/match

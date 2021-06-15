@@ -3,11 +3,13 @@
 ;; This file contains the definitions for Base types that are not numeric
 ;; (i.e. where number? returns #f for values of the type)
 
-(require "../utils/utils.rkt"
-         (rep rep-utils base-type-rep type-mask core-rep)
+(require "../rep/rep-utils.rkt"
+         "../rep/base-type-rep.rkt"
+         "../rep/type-mask.rkt"
+         "../rep/core-rep.rkt"
          racket/undefined
          racket/unsafe/undefined
-         (types numeric-predicates)
+         "../types/numeric-predicates.rkt"
          racket/extflonum
          ;; for base type contracts and predicates
          ;; use '#%place to avoid the other dependencies of `racket/place`

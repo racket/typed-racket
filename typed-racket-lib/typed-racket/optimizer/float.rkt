@@ -5,9 +5,13 @@
          syntax/id-table
          (for-template racket/base racket/flonum racket/unsafe/ops racket/math)
          "../utils/utils.rkt"
-         (utils tc-utils)
-         (types numeric-tower abbrev)
-         (optimizer utils numeric-utils logging fixnum))
+         "../utils/tc-utils.rkt"
+         "../types/numeric-tower.rkt"
+         "../types/abbrev.rkt"
+         "utils.rkt"
+         "numeric-utils.rkt"
+         "logging.rkt"
+         "fixnum.rkt")
 
 (provide float-opt-expr float-arg-expr int-expr float-op)
 

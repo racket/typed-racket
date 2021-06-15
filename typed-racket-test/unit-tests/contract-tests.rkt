@@ -5,10 +5,14 @@
                      syntax/parse
                      syntax/srcloc)
          (for-template racket/base)
-         (private type-contract)
-         (rep type-rep values-rep)
-         (types abbrev numeric-tower prop-ops)
-         (static-contracts combinators optimize)
+         typed-racket/private/type-contract
+         typed-racket/rep/type-rep
+         typed-racket/rep/values-rep
+         typed-racket/types/abbrev
+         typed-racket/types/numeric-tower
+         typed-racket/types/prop-ops
+         typed-racket/static-contracts/combinators
+         typed-racket/static-contracts/optimize
          (submod typed-racket/private/type-contract numeric-contracts)
          (submod typed-racket/private/type-contract test-exports)
          (only-in racket/contract contract)

@@ -3,9 +3,10 @@
 (require "test-utils.rkt"
          rackunit
          syntax/id-set
-         (rep object-rep type-rep)
-         (env init-envs)
-         (types abbrev))
+         typed-racket/rep/object-rep
+         typed-racket/rep/type-rep
+         typed-racket/env/init-envs
+         typed-racket/types/abbrev)
 
 (provide tests)
 (gen-test-main)

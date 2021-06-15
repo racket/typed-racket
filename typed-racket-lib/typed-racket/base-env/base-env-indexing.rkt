@@ -2,7 +2,8 @@
 
 (require
  "../utils/utils.rkt"
- (types numeric-tower) (env init-envs)
+ "../types/numeric-tower.rkt"
+ "../env/init-envs.rkt"
  "base-env-indexing-abs.rkt")
 
 (define e (indexing -Integer))

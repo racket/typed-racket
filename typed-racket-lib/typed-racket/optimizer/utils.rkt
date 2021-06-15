@@ -7,11 +7,14 @@
          racket/promise
          (for-syntax racket/base syntax/parse racket/syntax)
          "../utils/utils.rkt"
-         (only-in (utils literal-syntax-class)
+         (only-in "../utils/literal-syntax-class.rkt"
            [define-literal-syntax-class define-literal-syntax-class*])
          (for-template racket/base)
-         (types type-table utils subtype match-expanders)
-         (rep type-rep))
+         "../types/type-table.rkt"
+         "../types/utils.rkt"
+         "../types/subtype.rkt"
+         "../types/match-expanders.rkt"
+         "../rep/type-rep.rkt")
 
 (provide *show-optimized-code*
          subtypeof? isoftype?

@@ -28,11 +28,12 @@
                       syntax/flatten-begin
                       syntax/kerncase
                       "../private/syntax-properties.rkt"
-                      (typecheck internal-forms)
+                      "../typecheck/internal-forms.rkt"
                       syntax/id-table
                       racket/unit-exptime
                       syntax/strip-context
-                      (utils tc-utils disarm)
+                      "../utils/tc-utils.rkt"
+                      "../utils/disarm.rkt"
                       syntax/id-table
                       syntax/id-set)
           (prefix-in untyped- (only-in racket/unit
@@ -60,7 +61,7 @@
           "base-types.rkt"
           "base-types-extra.rkt"
           (for-label "colon.rkt")
-          (for-template (rep type-rep))
+          (for-template "../rep/type-rep.rkt")
           (submod "../typecheck/internal-forms.rkt" forms))
 
 (begin-for-syntax

@@ -5,27 +5,54 @@
 (require
  "../utils/utils.rkt"
  syntax/parse
- (rep type-rep prop-rep object-rep fme-utils)
- (utils tc-utils prefab identifier)
- (env type-name-env row-constraint-env lexical-env)
- (rep core-rep rep-utils free-ids type-mask values-rep
-      base-types numeric-base-types free-variance)
- (types resolve utils printer match-expanders union subtype)
- (prefix-in t: (types abbrev numeric-tower subtype))
- (private parse-type syntax-properties)
+ "../rep/type-rep.rkt"
+ "../rep/prop-rep.rkt"
+ "../rep/object-rep.rkt"
+ "../rep/fme-utils.rkt"
+
+ "../utils/tc-utils.rkt"
+ "../utils/prefab.rkt"
+ "../utils/identifier.rkt"
+
+ "../env/type-name-env.rkt"
+ "../env/row-constraint-env.rkt"
+ "../env/lexical-env.rkt"
+
+ "../rep/core-rep.rkt"
+ "../rep/rep-utils.rkt"
+ "../rep/free-ids.rkt"
+ "../rep/type-mask.rkt"
+ "../rep/values-rep.rkt"
+ "../rep/base-types.rkt"
+ "../rep/numeric-base-types.rkt"
+ "../rep/free-variance.rkt"
+ "../types/resolve.rkt"
+ "../types/utils.rkt"
+ "../types/printer.rkt"
+ "../types/match-expanders.rkt"
+ "../types/union.rkt"
+ "../types/subtype.rkt"
+ (prefix-in t: (combine-in "../types/abbrev.rkt"
+                           "../types/numeric-tower.rkt"
+                           "../types/subtype.rkt"))
+ "parse-type.rkt"
+ "syntax-properties.rkt"
  racket/match racket/syntax racket/list
  racket/format
  racket/string
  racket/set
  syntax/flatten-begin
- (only-in (types abbrev) -Bottom -Boolean)
- (static-contracts instantiate structures combinators constraints)
+ (only-in "../types/abbrev.rkt" -Bottom -Boolean)
+ "../static-contracts/instantiate.rkt"
+ "../static-contracts/structures.rkt"
+ "../static-contracts/combinators.rkt"
+ "../static-contracts/constraints.rkt"
  (only-in (submod typed-racket/static-contracts/instantiate internals) compute-constraints)
  ;; TODO make this from contract-req
  (prefix-in c: racket/contract)
  (contract-req)
  (for-syntax racket/base)
- (for-template racket/base racket/contract (utils any-wrap)))
+ (for-template racket/base racket/contract "../utils/any-wrap.rkt"))
 
 (provide
   (c:contract-out
@@ -1159,12 +1186,12 @@
 (module numeric-contracts racket/base
   (require
     "../utils/utils.rkt"
-    (static-contracts combinators)
+    "../static-contracts/combinators.rkt"
     (for-template
       racket/base
       racket/contract
       (submod ".." predicates)
-      (prefix-in t: (types numeric-predicates))))
+      (prefix-in t: "../types/numeric-predicates.rkt")))
   (provide (all-defined-out))
 
   (define-syntax-rule (numeric/sc name body) (flat/sc #'body))

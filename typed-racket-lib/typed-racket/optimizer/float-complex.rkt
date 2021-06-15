@@ -4,9 +4,16 @@
          racket/syntax racket/match syntax/parse/experimental/specialize
          "../utils/utils.rkt" racket/unsafe/ops racket/sequence
          (for-template racket/base racket/math racket/flonum racket/unsafe/ops)
-         (types numeric-tower subtype type-table utils)
-         (optimizer utils numeric-utils logging float unboxed-tables)
-         (utils tc-utils))
+         "../types/numeric-tower.rkt"
+         "../types/subtype.rkt"
+         "../types/type-table.rkt"
+         "../types/utils.rkt"
+         "utils.rkt"
+         "numeric-utils.rkt"
+         "logging.rkt"
+         "float.rkt"
+         "unboxed-tables.rkt"
+         "../utils/tc-utils.rkt")
 
 (provide float-complex-opt-expr
          float-complex-expr

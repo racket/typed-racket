@@ -6,12 +6,20 @@
          (for-syntax racket/base syntax/parse racket/syntax)
          "signatures.rkt"
          "utils.rkt"
-         (utils prefab)
-         (only-in (infer infer) intersect)
-         (types utils abbrev numeric-tower resolve type-table
-                generalize match-expanders)
-         (typecheck signatures check-below)
-         (rep type-rep type-mask rep-utils)
+         "../../utils/prefab.rkt"
+         (only-in "../../infer/infer.rkt" intersect)
+         "../../types/utils.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/numeric-tower.rkt"
+         "../../types/resolve.rkt"
+         "../../types/type-table.rkt"
+         "../../types/generalize.rkt"
+         "../../types/match-expanders.rkt"
+         "../signatures.rkt"
+         "../check-below.rkt"
+         "../../rep/type-rep.rkt"
+         "../../rep/type-mask.rkt"
+         "../../rep/rep-utils.rkt"
          (for-label racket/unsafe/ops racket/base))
 
 (import tc-expr^ tc-app^ tc-literal^)

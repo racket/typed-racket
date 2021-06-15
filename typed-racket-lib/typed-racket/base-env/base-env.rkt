@@ -26,9 +26,11 @@
  "base-structs.rkt"
  racket/file
  (only-in racket/private/pre-base new-apply-proc)
- (only-in (types abbrev) [-Boolean B] [-Symbol Sym] -Flat)
- (only-in (types numeric-tower) [-Number N])
- (only-in (rep type-rep values-rep object-rep)
+ (only-in "../types/abbrev.rkt" [-Boolean B] [-Symbol Sym] -Flat)
+ (only-in "../types/numeric-tower.rkt" [-Number N])
+ (only-in (combine-in "../rep/type-rep.rkt"
+                      "../rep/values-rep.rkt"
+                      "../rep/object-rep.rkt")
           -car
           -cdr
           -force

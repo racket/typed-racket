@@ -4,8 +4,10 @@
          syntax/parse/experimental/specialize
          (for-template racket/base)
          "../utils/utils.rkt"
-         (types abbrev numeric-tower)
-         (optimizer utils logging))
+         "../types/abbrev.rkt"
+         "../types/numeric-tower.rkt"
+         "utils.rkt"
+         "logging.rkt")
 
 (provide number-opt-expr)
 

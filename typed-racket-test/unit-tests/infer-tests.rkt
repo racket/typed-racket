@@ -5,10 +5,16 @@
   racket/list
   (for-syntax racket/base syntax/parse)
   syntax/location syntax/srcloc
-  (rep rep-utils type-rep free-variance values-rep)
-  (r:infer infer promote-demote)
-
-  (types substitute numeric-tower utils abbrev))
+  typed-racket/rep/rep-utils
+  typed-racket/rep/type-rep
+  typed-racket/rep/free-variance
+  typed-racket/rep/values-rep
+  typed-racket/infer/infer
+  typed-racket/infer/promote-demote
+  typed-racket/types/substitute
+  typed-racket/types/numeric-tower
+  typed-racket/types/utils
+  typed-racket/types/abbrev)
 
 (provide tests)
 (gen-test-main)

@@ -1,15 +1,21 @@
 
 #lang racket/unit
 
-(require (rename-in "../../utils/utils.rkt" [infer r:infer])
-         "signatures.rkt"
+(require "signatures.rkt"
          "utils.rkt"
          syntax/parse syntax/stx racket/match racket/set
-         (typecheck signatures tc-app-helper tc-funapp tc-metafunctions)
-         (types abbrev utils substitute subtype type-table)
-         (rep type-rep)
-         (utils tc-utils)
-         (r:infer infer)
+         "../signatures.rkt"
+         "../tc-app-helper.rkt"
+         "../tc-funapp.rkt"
+         "../tc-metafunctions.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/utils.rkt"
+         "../../types/substitute.rkt"
+         "../../types/subtype.rkt"
+         "../../types/type-table.rkt"
+         "../../rep/type-rep.rkt"
+         "../../utils/tc-utils.rkt"
+         "../../infer/infer.rkt"
          (for-label racket/base)
          ;; adjusted -1 since it's provided for-syntax
          (only-in (for-template racket/contract/private/provide)

@@ -4,11 +4,14 @@
          racket/match racket/set
          racket/lazy-require
          (contract-req)
-         (only-in (types base-abbrev) -Tuple* -lst -Null -result ManyUniv)
-         (rep type-rep values-rep rep-utils)
-         (utils tc-utils)
-         (rep rep-utils free-variance)
-         (env tvar-env))
+         (only-in "../types/base-abbrev.rkt" -Tuple* -lst -Null -result ManyUniv)
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../utils/tc-utils.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/free-variance.rkt"
+         "../env/tvar-env.rkt")
 (lazy-require ("union.rkt" (Un)))
 
 (provide subst-all substitute substitute-dots substitute-dotted subst

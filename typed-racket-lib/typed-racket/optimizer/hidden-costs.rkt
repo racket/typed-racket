@@ -3,8 +3,11 @@
 (require syntax/parse racket/sequence
          (for-template racket/base)
          "../utils/utils.rkt"
-         (optimizer utils logging)
-         (types abbrev numeric-tower struct-table))
+         "utils.rkt"
+         "logging.rkt"
+         "../types/abbrev.rkt"
+         "../types/numeric-tower.rkt"
+         "../types/struct-table.rkt")
 
 (provide hidden-cost-log-expr)
 

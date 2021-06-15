@@ -3,9 +3,11 @@
 (require "../utils/utils.rkt")
 
 (require (for-syntax racket/base syntax/parse)
-         (utils tc-utils)
-         (env init-envs)
-         (types abbrev numeric-tower prop-ops))
+         "../utils/tc-utils.rkt"
+         "../env/init-envs.rkt"
+         "../types/abbrev.rkt"
+         "../types/numeric-tower.rkt"
+         "../types/prop-ops.rkt")
 
 (define-syntax (-#%module-begin stx)
   (define-syntax-class clause
@@ -28,5 +30,4 @@
 (provide (rename-out [-#%module-begin #%module-begin])
          require
          (except-out (all-from-out racket/base) #%module-begin)
-         types rep private utils
-         (types-out abbrev numeric-tower prop-ops))
+         (combine-out (all-from-out "../types/abbrev.rkt" "../types/numeric-tower.rkt" "../types/prop-ops.rkt")))

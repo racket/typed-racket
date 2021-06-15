@@ -1,8 +1,13 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep rep-utils type-mask)
-         (types abbrev subtype resolve utils)
+         "../rep/type-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/type-mask.rkt"
+         "abbrev.rkt"
+         "subtype.rkt"
+         "resolve.rkt"
+         "utils.rkt"
          racket/match)
 
 (provide subtract)

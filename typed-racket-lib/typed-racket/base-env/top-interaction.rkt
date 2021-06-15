@@ -41,11 +41,15 @@
     syntax/stx
     syntax/parse
     "../tc-setup.rkt"
-    (private parse-type syntax-properties)
-    (types utils abbrev printer)
-    (typecheck possible-domains typechecker)
-    (rep type-rep)
-    (utils tc-utils)
+    "../private/parse-type.rkt"
+    "../private/syntax-properties.rkt"
+    "../types/utils.rkt"
+    "../types/abbrev.rkt"
+    "../types/printer.rkt"
+    "../typecheck/possible-domains.rkt"
+    "../typecheck/typechecker.rkt"
+    "../rep/type-rep.rkt"
+    "../utils/tc-utils.rkt"
     (for-syntax racket/base syntax/parse)
     (for-template racket/base))
   (provide

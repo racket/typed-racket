@@ -4,8 +4,9 @@
          racket/syntax
          (for-template racket/base)
          "../utils/utils.rkt"
-         (types type-table)
-         (optimizer utils logging))
+         "../types/type-table.rkt"
+         "utils.rkt"
+         "logging.rkt")
 
 (provide dead-code-opt-expr)
 

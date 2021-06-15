@@ -9,10 +9,12 @@
          racket/match
          racket/set
          racket/format
-         (types utils subtype resolve)
-         (utils tc-utils)
-         (rep type-rep)
-         (only-in (types printer) pretty-format-rep))
+         "../types/utils.rkt"
+         "../types/subtype.rkt"
+         "../types/resolve.rkt"
+         "../utils/tc-utils.rkt"
+         "../rep/type-rep.rkt"
+         (only-in "../types/printer.rkt" pretty-format-rep))
 
 (provide/cond-contract [expected-but-got
                         (--> (-or/c Type? string?)

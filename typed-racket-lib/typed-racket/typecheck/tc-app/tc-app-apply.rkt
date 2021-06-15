@@ -4,9 +4,11 @@
          "signatures.rkt"
          "utils.rkt"
          syntax/parse racket/match
-         (typecheck signatures)
-         (types abbrev type-table utils)
-         (rep type-rep)
+         "../signatures.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/type-table.rkt"
+         "../../types/utils.rkt"
+         "../../rep/type-rep.rkt"
 
          (for-label
           racket/base

@@ -6,11 +6,14 @@
          syntax/parse syntax/stx racket/match racket/sequence
          racket/format
          racket/list
-         (typecheck signatures)
-         (types base-abbrev resolve subtype type-table utils)
-         (rep type-rep)
-         (utils tc-utils)
-
+         "../signatures.rkt"
+         "../../types/base-abbrev.rkt"
+         "../../types/resolve.rkt"
+         "../../types/subtype.rkt"
+         "../../types/type-table.rkt"
+         "../../types/utils.rkt"
+         "../../rep/type-rep.rkt"
+         "../../utils/tc-utils.rkt"
          (for-template racket/base)
          (for-label racket/base))
 

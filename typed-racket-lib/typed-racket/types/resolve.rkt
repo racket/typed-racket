@@ -1,10 +1,12 @@
 #lang racket/base
 (require "../utils/utils.rkt")
 
-(require (rep type-rep rep-utils)
-         (env type-name-env)
-         (utils tc-utils)
-         (types utils current-seen)
+(require "../rep/type-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../env/type-name-env.rkt"
+         "../utils/tc-utils.rkt"
+         "utils.rkt"
+         "current-seen.rkt"
          racket/match
          (contract-req)
          racket/format)

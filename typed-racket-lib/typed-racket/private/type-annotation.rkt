@@ -1,12 +1,17 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep)
-         (utils tc-utils)
-         (env global-env mvar-env)
-         (except-in (types subtype abbrev utils generalize)
+         "../rep/type-rep.rkt"
+         "../utils/tc-utils.rkt"
+         "../env/global-env.rkt"
+         "../env/mvar-env.rkt"
+         "../types/subtype.rkt"
+         "../types/utils.rkt"
+           "../types/generalize.rkt"
+         (except-in "../types/abbrev.rkt"
                     -> ->* one-of/c)
-         (private parse-type syntax-properties)
+         "parse-type.rkt"
+         "syntax-properties.rkt"
          (contract-req)
          syntax/parse
          racket/match)

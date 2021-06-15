@@ -4,16 +4,24 @@
 ;; figure 8, pg 8 of "Logical Types for Untyped Languages"
 
 (require "../utils/utils.rkt"
-         (utils tc-utils)
+         "../utils/tc-utils.rkt"
          racket/match
          (contract-req)
-         (env lexical-env)
-         (except-in (types abbrev utils prop-ops subtype
-                           path-type subtract overlap)
-                    -> ->* one-of/c)
-         (only-in (infer infer) intersect restrict)
-         (rep core-rep type-rep object-rep
-              prop-rep rep-utils values-rep))
+         "../env/lexical-env.rkt"
+         "../types/utils.rkt"
+         "../types/prop-ops.rkt"
+         "../types/subtype.rkt"
+         "../types/path-type.rkt"
+         "../types/subtract.rkt"
+         "../types/overlap.rkt"
+         (except-in "../types/abbrev.rkt" -> ->* one-of/c)
+         (only-in "../infer/infer.rkt" intersect restrict)
+         "../rep/core-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/values-rep.rkt")
 
 (provide instantiate-obj+simplify)
 

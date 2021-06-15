@@ -7,7 +7,7 @@
          "signatures.rkt"
          "utils.rkt"
          syntax/parse
-         (typecheck signatures)
+         "../signatures.rkt"
          (for-template racket/base
                        ;; shift -1 because it's provided +1
                        racket/contract/private/provide))

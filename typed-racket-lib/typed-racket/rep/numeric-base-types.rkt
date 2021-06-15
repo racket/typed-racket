@@ -4,13 +4,15 @@
 ;; (i.e. where number? returns #t for values of the type)
 
 
-(require "../utils/utils.rkt"
-         (rep rep-utils base-type-rep type-mask core-rep)
-         (types numeric-predicates)
+(require "../rep/rep-utils.rkt"
+         "../rep/base-type-rep.rkt"
+         "../rep/type-mask.rkt"
+         "../rep/core-rep.rkt"
+         "../types/numeric-predicates.rkt"
          racket/unsafe/ops
          racket/fixnum
          ;; For base type contracts
-         (for-template racket/base racket/contract/base (types numeric-predicates)))
+         (for-template racket/base racket/contract/base "../types/numeric-predicates.rkt"))
 
 (provide portable-fixnum?
          portable-index?

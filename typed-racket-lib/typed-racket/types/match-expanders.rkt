@@ -1,12 +1,15 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep values-rep rep-utils)
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../rep/rep-utils.rkt"
          racket/match
          syntax/parse/define
          racket/set
          racket/unsafe/undefined
-         (types resolve base-abbrev)
+         "resolve.rkt"
+         "base-abbrev.rkt"
          (for-syntax racket/base syntax/parse))
 
 (provide Listof: List: MListof: AnyPoly: AnyPoly-names:

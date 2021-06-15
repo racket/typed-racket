@@ -1,9 +1,13 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep rep-utils)
+         "../rep/type-rep.rkt"
+         "../rep/rep-utils.rkt"
          (prefix-in c: (contract-req))
-         (types subtype base-abbrev resolve current-seen)
+         "subtype.rkt"
+         "base-abbrev.rkt"
+         "resolve.rkt"
+         "current-seen.rkt"
          racket/match
          racket/list)
 

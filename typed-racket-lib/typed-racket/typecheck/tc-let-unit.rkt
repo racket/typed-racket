@@ -1,25 +1,41 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
-         (except-in (types utils abbrev prop-ops overlap type-table)
+         (except-in (combine-in "../types/utils.rkt"
+                                "../types/abbrev.rkt"
+                                "../types/prop-ops.rkt"
+                                "../types/overlap.rkt"
+                                "../types/type-table.rkt")
                     -> ->* one-of/c)
-         (only-in (types abbrev) (-> t:->) [->* t:->*])
-         (private type-annotation parse-type syntax-properties)
-         (env lexical-env type-alias-helper mvar-env
-              global-env scoped-tvar-env
-              signature-env signature-helper
-              type-env-structs)
-         (rep prop-rep object-rep type-rep)
+         (only-in "../types/abbrev.rkt" (-> t:->) [->* t:->*])
+         "../private/type-annotation.rkt"
+         "../private/parse-type.rkt"
+         "../private/syntax-properties.rkt"
+         "../env/lexical-env.rkt"
+         "../env/type-alias-helper.rkt"
+         "../env/mvar-env.rkt"
+         "../env/global-env.rkt"
+         "../env/scoped-tvar-env.rkt"
+         "../env/signature-env.rkt"
+         "../env/signature-helper.rkt"
+         "../env/type-env-structs.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/type-rep.rkt"
          syntax/free-vars
-         (typecheck signatures tc-metafunctions tc-subst internal-forms tc-envops)
-         (utils tarjan)
+         "signatures.rkt"
+         "tc-metafunctions.rkt"
+         "tc-subst.rkt"
+         "internal-forms.rkt"
+         "tc-envops.rkt"
+         "../utils/tarjan.rkt"
          racket/match (contract-req)
          syntax/parse syntax/stx
          syntax/id-table
          ;; For internal type forms
          (for-template (only-in racket/base define-values)))
 
-(require-for-cond-contract (rep type-rep))
+(require-for-cond-contract "../rep/type-rep.rkt")
 
 (import tc-expr^)
 (export tc-let^)

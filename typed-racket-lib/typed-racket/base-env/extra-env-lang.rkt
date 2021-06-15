@@ -7,13 +7,15 @@
 ;; Also see env-lang.rkt
 
 (require "../utils/utils.rkt"
-         (for-syntax (private parse-type))
-         (for-syntax "type-name-error.rkt"
+         (for-syntax "../private/parse-type.rkt"
+                     "type-name-error.rkt"
                      racket/base
                      syntax/parse
-                     syntax/stx)
-         (for-syntax (types abbrev numeric-tower prop-ops))
-         (for-syntax (utils struct-info)))
+                     syntax/stx
+                     "../types/abbrev.rkt"
+                     "../types/numeric-tower.rkt"
+                     "../types/prop-ops.rkt"
+                     "../utils/struct-info.rkt"))
 
 (provide type-environment
          (rename-out [-#%module-begin #%module-begin])
@@ -21,8 +23,7 @@
          (for-syntax parse-type) ; to allow resolution of Name types
          (except-out (all-from-out racket/base) #%module-begin)
          (for-syntax (except-out (all-from-out racket/base) #%module-begin))
-         types rep private utils
-         (for-syntax (types-out abbrev numeric-tower prop-ops)))
+         (for-syntax (combine-out (all-from-out "../types/abbrev.rkt" "../types/numeric-tower.rkt" "../types/prop-ops.rkt"))))
 
 ;; syntax classes for type clauses in the type-environment macro
 (begin-for-syntax

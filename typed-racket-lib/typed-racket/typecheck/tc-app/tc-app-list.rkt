@@ -5,11 +5,16 @@
          "signatures.rkt"
          "utils.rkt"
          syntax/parse syntax/stx racket/match
-         (typecheck signatures tc-funapp error-message)
-         (types abbrev type-table utils substitute)
-         (rep type-rep)
-         (env tvar-env)
-         (prefix-in i: (infer infer))
+         "../signatures.rkt"
+         "../tc-funapp.rkt"
+         "../error-message.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/type-table.rkt"
+         "../../types/utils.rkt"
+         "../../types/substitute.rkt"
+         "../../rep/type-rep.rkt"
+         "../../env/tvar-env.rkt"
+         (prefix-in i: "../../infer/infer.rkt")
 
          (for-label
           racket/base

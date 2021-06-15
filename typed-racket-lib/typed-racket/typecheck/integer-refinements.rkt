@@ -2,8 +2,12 @@
 
 (require "../utils/utils.rkt"
          (prefix-in c: (contract-req))
-         (types abbrev subtype numeric-tower prop-ops)
-         (types tc-result type-table)
+         "../types/abbrev.rkt"
+         "../types/subtype.rkt"
+         "../types/numeric-tower.rkt"
+         "../types/prop-ops.rkt"
+         "../types/tc-result.rkt"
+         "../types/type-table.rkt"
          racket/match
          syntax/private/id-table
          syntax/parse

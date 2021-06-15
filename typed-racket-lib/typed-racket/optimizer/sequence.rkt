@@ -6,9 +6,11 @@
          syntax/parse/experimental/specialize
          (for-template racket/base racket/unsafe/ops)
          "../utils/utils.rkt" "../utils/tc-utils.rkt"
-         (rep type-rep)
-         (types abbrev)
-         (optimizer utils logging float))
+         "../rep/type-rep.rkt"
+         "../types/abbrev.rkt"
+         "utils.rkt"
+         "logging.rkt"
+         "float.rkt")
 
 (provide sequence-opt-expr)
 

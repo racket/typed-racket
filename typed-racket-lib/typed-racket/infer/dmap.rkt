@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt" "fail.rkt"
          "signatures.rkt" "constraint-structs.rkt"
-         (utils tc-utils) 
+         "../utils/tc-utils.rkt"
          (contract-req)
          racket/sequence)
 

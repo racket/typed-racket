@@ -2,7 +2,7 @@
 (require racket/unit
          "../../utils/utils.rkt"
          (contract-req)
-         (utils unit-utils))
+         "../../utils/unit-utils.rkt")
 (require-for-cond-contract syntax/parse/experimental/reflect)
 
 (provide (all-defined-out))

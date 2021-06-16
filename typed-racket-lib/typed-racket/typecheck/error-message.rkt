@@ -43,8 +43,8 @@
 ;; have the same name but are different. Or for types that are too
 ;; long for a subtyping error to be helpful directly.
 (define (expected-but-got t1 t2)
-  (define r1 (resolve t1))
-  (define r2 (resolve t2))
+  (define r1 (if (string? t1) t1 (resolve t1)))
+  (define r2 (if (string? t2) t2 (resolve t2)))
   (match* (r1 r2)
     [((F: s1) (F: s2))
      #:when (string=? (symbol->string s1) (symbol->string s2))

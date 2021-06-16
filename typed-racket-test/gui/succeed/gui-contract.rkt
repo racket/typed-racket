@@ -4,6 +4,9 @@
 ;; reasonable amount of time and space.
 
 (require racket/sandbox)
+(require racket/gui/base)
+(define-namespace-anchor a)
+(define ns (namespace-anchor->namespace a))
 
 (call-with-limits
  120
@@ -14,4 +17,4 @@
                        (provide x))
                      (require 'a)
                      x)
-             (make-base-namespace))))
+             ns)))

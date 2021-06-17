@@ -1,6 +1,7 @@
 #lang racket/base
 (require "../utils/utils.rkt"
          racket/match racket/function racket/lazy-require
+         racket/promise
          racket/list
          syntax/id-set
          (contract-req)
@@ -407,13 +408,42 @@
   (-> (listof (cons/c Type? Type?)) Result? Result?
       any/c)
   (match* (res1 res2)
-    [((Result: t1 (PropSet: p1+ p1-) o1)
-      (Result: t2 (PropSet: p2+ p2-) o2))
+    [((Result: t1 (PropSet: p1+ p1-) o1 0)
+      (Result: t2 (PropSet: p2+ p2-) o2 0))
      (and (or (equal? o1 o2) (Empty? o2) (not o2))
           (subtype-seq A
                        (subtype* t1 t2 o1)
                        (prop-subtype* p1+ p2+)
-                       (prop-subtype* p1- p2-)))]))
+                       (prop-subtype* p1- p2-)))]
+    [((Result: t1 (PropSet: p1+ p1-) o1 m-exi)
+      (Result: t2 (PropSet: p2+ p2-) o2 n-exi))
+     (with-fresh-ids m-exi m-exi-ids
+       (define p-m-vars (delay (map make-F (map syntax-e m-exi-ids))))
+       (with-fresh-ids n-exi n-exi-ids
+         (define vars (map make-F (map syntax-e n-exi-ids)))
+         (define (maybe-sub rep)
+           (cond
+             [(eq? m-exi 0)
+              ;; then the type result may contain Self
+              (subst self-var (car vars) rep)]
+             [(eq? n-exi) rep]
+             [else (for/fold ([acc rep])
+                             ([v1 (in-list vars)]
+                              [v2 (in-list (force p-m-vars))])
+                     (subst v2 v1 acc))]))
+         (let ([p2+ (match* ((> n-exi 0) p2+)
+                      [(#t (TypeProp: o ty))
+                       ;; since `instantiate-prop` doesn't exist, instantiate-type
+                       ;; doesn't take a path rep, and instantiate-obj doesn't
+                       ;; actually instantiate the type of a prop rep, we have to
+                       ;; instantiate the type specifically.
+                       (-is-type o (instantiate-type ty vars))]
+                      [(_ _) p2+])])
+           (and (or (equal? o1 o2) (Empty? o2) (not o2))
+                (subtype-seq A
+                             (subtype* (maybe-sub t1) (instantiate-type t2 vars) o1)
+                             (prop-subtype* (maybe-sub p1+) p2+)
+                             (prop-subtype* p1- p2-))))))]))
 
 ;;************************************************************
 ;; Type Subtyping

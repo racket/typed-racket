@@ -16,7 +16,8 @@
 ;; fields are #f only when the direct result of parsing or annotations
 (def-rep tc-result ([t Type?]
                     [pset (c:or/c PropSet? #f)]
-                    [o (c:or/c OptObject? #f)])
+                    [o (c:or/c OptObject? #f)]
+                    [exi? boolean?])
   #:no-provide
   [#:frees (f)
    (combine-frees (list (f t)
@@ -25,7 +26,8 @@
   [#:fmap (f)
    (make-tc-result (f t)
                    (and pset (f pset))
-                   (and o (f o)))]
+                   (and o (f o))
+                   exi?)]
   [#:for-each (f)
    (f t)
    (when pset (f pset))
@@ -63,7 +65,7 @@
 (define (full-tc-results/c r)
   (match r
     [(tc-any-results: p) (and p #t)]
-    [(tc-results: (list (tc-result: _ pss os) ...) _)
+    [(tc-results: (list (tc-result: _ pss os _) ...) _)
      (and (andmap (λ (x) x) pss)
           (andmap (λ (x) x) os)
           #t)]
@@ -72,18 +74,19 @@
 
 (define-match-expander tc-result:*
   (syntax-rules ()
-   [(_ tp fp op) (tc-result tp fp op)]
-   [(_ tp) (tc-result tp _ _)]))
+    [(_ tp fp op) (tc-result tp fp op _)]
+    [(_ tp fp op exi) (tc-result tp fp op exi)]
+    [(_ tp) (tc-result tp _ _ _)]))
 
 
 (define-match-expander tc-result1:
   (syntax-rules ()
-   [(_ t) (tc-results: (list (tc-result: t _ _)) #f)]
-   [(_ t ps o) (tc-results: (list (tc-result: t ps o)) #f)]))
+   [(_ t) (tc-results: (list (tc-result: t _ _ _)) #f)]
+   [(_ t ps o) (tc-results: (list (tc-result: t ps o _)) #f)]))
 
 (define (tc-results-ts* tc)
   (match tc
-    [(tc-results: (list (tc-result: ts _ _) ...) _) ts]))
+    [(tc-results: (list (tc-result: ts _ _ _) ...) _) ts]))
 
 (define-match-expander Result1:
   (syntax-rules ()
@@ -92,12 +95,12 @@
 
 ;; make-tc-result*: Type? PropSet/c Object? -> tc-result?
 ;; Smart constructor for a tc-result.
-(define (-tc-result type [prop -tt-propset] [object -empty-obj])
+(define (-tc-result type [prop -tt-propset] [object -empty-obj] [existential? #f])
   (cond
     [(or (equal? type -Bottom) (equal? prop -ff-propset))
-     (make-tc-result -Bottom -ff-propset object)]
+     (make-tc-result -Bottom -ff-propset object existential?)]
     [else
-     (make-tc-result type prop object)]))
+     (make-tc-result type prop object existential?)]))
 
 
 ;; convenience function for returning the result of typechecking an expression
@@ -154,19 +157,19 @@
     [(tc-results: ts drst)
      (make-tc-results
       (map (match-lambda
-             [(tc-result: t ps o)
-              (make-tc-result t (fix-props ps) (fix-object o))])
+             [(tc-result: t ps o exi?)
+              (make-tc-result t (fix-props ps) (fix-object o) exi?)])
            ts)
       drst)]))
 
 (define (fix-results/bottom r)
   (match r
     [(tc-any-results: p) (make-tc-any-results (fix-props p -ff))]
-    [(tc-results: (list (tc-result: ts ps os) ...) #f)
+    [(tc-results: (list (tc-result: ts ps os _) ...) #f)
      (ret ts
           (for/list ([p (in-list ps)]) (fix-props p -ff-propset))
           (map fix-object os))]
-    [(tc-results: (list (tc-result: ts ps os) ...) (RestDots: dty dbound))
+    [(tc-results: (list (tc-result: ts ps os _) ...) (RestDots: dty dbound))
      (ret ts
           (for/list ([p (in-list ps)]) (fix-props p -ff-propset))
           (map fix-object os)
@@ -194,7 +197,8 @@
  [-tc-result
   (c:case->
    (Type? . c:-> . tc-result?)
-   (Type? PropSet? OptObject? . c:-> . tc-result?))]
+   (Type? PropSet? OptObject? . c:-> . tc-result?)
+   (Type? PropSet? OptObject? boolean? . c:-> . tc-result?))]
  [tc-result-t (tc-result? . c:-> . Type?)]
  [rename make-tc-results -tc-results
          (c:-> (c:listof tc-result?)

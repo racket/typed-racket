@@ -357,3 +357,16 @@
     [(_ (vars ...) ty)
      (let ([vars (-v vars)] ...)
        (make-Some (list 'vars ...) ty))]))
+
+;; abbreviation for existential type results
+(define-syntax -some-res
+  (syntax-rules (:)
+    [(_ (vars ...) ty : #:+ prop+type)
+     (let* ([n (length '(vars ...))]
+            [vars (-v vars)] ...)
+       (make-Values (list
+                     (make-Result (abstract-type ty (list 'vars ...))
+                                  (-PS (-is-type 0 (abstract-type prop+type (list 'vars ...)))
+                                       -tt)
+                                  -empty-obj
+                                  n))))]))

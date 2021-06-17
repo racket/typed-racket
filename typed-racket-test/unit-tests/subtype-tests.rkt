@@ -289,6 +289,8 @@
    [t1a (unfold t1a)]
    [(unfold t1a) t1a]
    [(-> -Number (-> -Self -Number)) (-some (x) (-> -Number (-> x -Number)))]
+   [(-> Univ (-some-res (x) (-> x -Number) : #:+ x)) (-> Univ (-some-res (x) (-> x Univ) : #:+ x))]
+   [FAIL (-> Univ (-some-res (x) (-> x -Number) : #:+ x)) (-> Univ (-some-res (x) (-> x Univ) : #:+ -Number))]
    [FAIL (-some (x) (-> -Number (-> x -Number))) (-> -Number (-> -Self -Number))]
    ;; simple list types
    [(make-Listof -Number) (make-Listof Univ)]

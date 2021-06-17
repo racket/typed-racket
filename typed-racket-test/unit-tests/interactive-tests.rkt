@@ -105,7 +105,7 @@
                (begin
                  (: prop (Struct-Property (-> Self Number)))
                  (: pred (-> Any Boolean : (Has-Struct-Property prop)))
-                 (: acc (Some (X) (-> (Has-Struct-Property prop) (-> X Number) : X)))
+                 (: acc (-> (Has-Struct-Property prop) (Some (X) (-> X Number) : #:+ X)))
                  (define-values (prop pred acc) (make-struct-type-property 'prop))))
 
     ;; Make sure that optimized expressions work

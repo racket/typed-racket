@@ -15,6 +15,8 @@
          "../types/utils.rkt"
          "../types/subtype.rkt"
          "../types/type-table.rkt"
+         "../env/lexical-env.rkt"
+         "tc-envops.rkt"
          (except-in "../types/abbrev.rkt"
                     -> ->* one-of/c))
 (require-for-cond-contract
@@ -23,9 +25,12 @@
 (provide/cond-contract
   [tc/funapp1
     ((syntax? stx-list? Arrow? (listof tc-results/c) (or/c #f tc-results/c))
-     (#:check boolean?)
+     (#:check boolean?
+      #:existential? boolean?)
      . ->* . full-tc-results/c)])
-(define (tc/funapp1 f-stx args-stx ftype0 arg-ress expected #:check [check? #t])
+(define (tc/funapp1 f-stx args-stx ftype0 arg-ress expected
+                    #:check [check? #t]
+                    #:existential? [existential? #f])
   ;; update tooltip-table with inferred function type
   (add-typeof-expr f-stx (ret (make-Fun (list ftype0))))
   (match* (ftype0 arg-ress)
@@ -75,18 +80,22 @@
                 [arg-res (in-list arg-ress)])
             (parameterize ([current-orig-stx a])
               (check-below arg-res dom-t)))]))
-     (let ([dom-count (length dom)])
-       ;; Currently do nothing with rest args and keyword args
-       ;; as there are no support for them in objects yet.
-       (let-values
-           ([(o-a t-a) (if (= dom-count (length t-a))
-                           (values o-a t-a)
-                           (for/lists (os ts)
-                             ([_ (in-range dom-count)]
-                              [oa (in-list/rest o-a -empty-obj)]
-                              [ta (in-list/rest t-a Univ)])
-                             (values oa ta)))])
-         (values->tc-results rng o-a t-a)))]
+     (let*-values ([(dom-count) (length dom)]
+                   [(o-a t-a) (if (= dom-count (length t-a))
+                                  ;; Currently do nothing with rest args and keyword args
+                                  ;; as there are no support for them in objects yet.
+                                  (values o-a t-a)
+                                  (for/lists (os ts)
+                                             ([_ (in-range dom-count)]
+                                              [oa (in-list/rest o-a -empty-obj)]
+                                              [ta (in-list/rest t-a Univ)])
+                                    (values oa ta)))])
+       (match (values->tc-results rng o-a t-a)
+         [(and (tc-results: (list (tc-result: t (PropSet: p+ _) _ #t)) _) res)
+          #:when (not (equal? p+ -ff))
+          (lexical-env (env+ (lexical-env) (list p+)))
+          res]
+         [res res]))]
     ;; this case should only match if the function type has mandatory keywords
     ;; but no keywords were provided in the application
     [((Arrow: _ _ kws _) _)

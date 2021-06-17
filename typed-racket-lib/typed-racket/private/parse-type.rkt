@@ -79,6 +79,10 @@
 ;; is inside Struct-Property.
 (define current-in-struct-prop (make-parameter #f))
 
+;; This parameter is set to #t when we are paring potential existential type
+;; result for the range of a function type.
+(define parsing-existential-rng? (make-parameter #f))
+
 (define-syntax-rule (with-local-term-names bindings e ...)
   (parameterize ([current-local-term-ids
                   (append bindings (current-local-term-ids))])
@@ -587,6 +591,14 @@
   (pattern i:Self^
            #:attr type -Self))
 
+(define-syntax-class existential-type-result
+  #:attributes (vars t prop-type)
+  (pattern (:Some^ (x:id ...) t)
+           #:attr prop-type #f
+           #:attr vars (syntax->list #'(x ...)))
+  (pattern (:Some^ (x:id ...) t :colon^ #:+ prop-type:expr)
+           #:attr vars (syntax->list #'(x ...))))
+
 (define-splicing-syntax-class sp-arg
   #:attributes (type pred?)
   (pattern i:expr
@@ -824,7 +836,7 @@
        (define names (map syntax-e (syntax->list #'(x ...))))
        (extend-tvars names
                      (make-Some names
-                                 (parse-type #'t.type)))]
+                                (parse-type #'t.type)))]
       [(:Opaque^ p?:id)
        (make-Opaque #'p?)]
       [(:Distinction^ name:id unique-id:id rep-ty:expr)
@@ -1057,6 +1069,26 @@
       (->* (parse-types #'(dom ...))
       (parse-values-type #'rng))]     |#
       ;; use expr to rule out keywords
+      [rng:existential-type-result #:fail-unless
+                                   parsing-existential-rng?
+                                   "extential type results are only allowed in the range of a function type"
+       (define syms (map syntax-e (attribute rng.vars)))
+       (extend-tvars syms
+                     (cond
+                       [(attribute rng.prop-type)
+                        (define body-type (abstract-type (parse-type (attribute rng.t)) syms))
+                        ;; since `abstract-prop` doesn't exist, abstract-type
+                        ;; doesn't take a path rep, and abstract-obj simply
+                        ;; returns the input rep, we have to abstract the type
+                        ;; before packing it into the proposition.
+                        (define prop-type (abstract-type (parse-type (attribute rng.prop-type)) syms))
+                        (make-Result body-type
+                                     (-PS (-is-type 0 prop-type)
+                                          -tt)
+                                     -empty-obj
+                                     (length (attribute rng.vars)))]
+                       [else
+                        (parse-type (attribute rng.t))]))]
       [(~or (:->^ dom:non-keyword-ty ... kws:keyword-tys ... rng)
             (dom:non-keyword-ty ... kws:keyword-tys ... :->^ rng))
        (define doms (syntax->list #'(dom ...)))
@@ -1065,7 +1097,8 @@
                        (parse-type d))])
            (make-Fun
             (list (-Arrow doms
-                          (parse-values-type #'rng)
+                          (parameterize ([parsing-existential-rng? #t])
+                            (parse-values-type #'rng))
                           #:kws (map force (attribute kws.Keyword)))))))]
       ;; This case needs to be at the end because it uses cut points to give good error messages.
       [(~or (:->^ ~! dom:non-keyword-ty ... rng:expr

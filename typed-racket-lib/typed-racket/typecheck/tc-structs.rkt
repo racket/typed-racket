@@ -580,7 +580,7 @@
                                             (-result (make-pred-ty has-spty))
                                             (-result (make-Fun (list (-Arrow (list has-spty) ty
                                                                              #:props (-PS (-is-type 0 -Self)
-                                                                                          (-not-type 0 -Self))))))))
+                                                                                          -tt)))))))
                                              '())]
     [(Struct-Property: ty _) (tc-error "the predicate for ~a should be set manually. use #f instead " (syntax-e prop-name))]
     [_ (tc-error "expected ~a to be a struct type property, got ~a" (syntax-e prop-name) struct-property-ty)]))

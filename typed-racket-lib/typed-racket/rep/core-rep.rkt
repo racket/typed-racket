@@ -14,6 +14,7 @@
          "free-variance.rkt"
          "type-mask.rkt"
          (contract-req)
+         racket/match
          racket/lazy-require
          (for-syntax racket/base racket/syntax
                      syntax/parse))
@@ -27,7 +28,10 @@
          def-values
          def-prop
          def-object
-         def-path-elem)
+         def-path-elem
+         Result?
+         (rename-out [make-Result* make-Result]
+                     [Result:* Result:]))
 
 
 ;;************************************************************
@@ -200,12 +204,35 @@
 ;; struct that other structs inherit from.
 
 
-(def-rep Result ([t Type?] [ps PropSet?] [o OptObject?])
+(def-rep Result ([t Type?]
+                 [ps PropSet?]
+                 [o OptObject?]
+                 ;; the number of the existential quantifiers
+                 [n-existentials number?])
+  #:no-provide
   [#:frees (f) (combine-frees (list (f t) (f ps) (f o)))]
-  [#:fmap (f) (make-Result (f t) (f ps) (f o))]
+  [#:fmap (f) (make-Result (f t) (f ps) (f o) n-existentials)]
   [#:for-each (f) (begin (f t) (f ps) (f o))]
   [#:extras
    #:property prop:custom-print-quotable 'never
    #:methods gen:custom-write
    [(define (write-proc v port write?) (print-result v port write?))]])
+
+
+(define (make-Result* t ps o [n-existentials 0])
+  (make-Result t ps o n-existentials))
+
+(define-match-expander Result:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ t ps o)
+       #'(? Result? (app (lambda (result)
+                           (match-define (Result: type propset object _) result)
+                           (list type propset object))
+                         (list t ps o)))]
+      [(_ t ps o n)
+       #'(? Result? (app (lambda (result)
+                           (match-define (Result: type propset object n-existentials) result)
+                           (list type propset object n-existentials))
+                         (list t ps o n)))])))
 

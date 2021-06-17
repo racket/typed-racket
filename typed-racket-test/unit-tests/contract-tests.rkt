@@ -175,6 +175,10 @@
    (t (-mu x (-Syntax x)))
    (t (-> (-> Univ -Bottom : -ff-propset) -Bottom : -ff-propset))
    (t (-poly (A B) (-> A B (Un A B))))
+   (t (-> Univ (-some-res (X) (-> X -Boolean) : #:+ X)))
+   (t (-some (X) (-> Univ (-> X -Boolean) : (-PS (-is-type 0 X)
+                                                 -tt))))
+   (t (->opt [-Number] (-> (make-Values (list)))))
 
 
    (t/fail ((-poly (a) (-vec a)) . -> . -Symbol)

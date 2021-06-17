@@ -69,6 +69,8 @@
 ;; submod for testing
 (module* test-exports #f (provide type->contract))
 
+
+(define num-existentials (make-parameter 0))
 ;; has-contrat-def-property? : Syntax -> Boolean
 (define (has-contract-def-property? stx)
   (syntax-parse stx
@@ -903,17 +905,32 @@
        (define ((f case->) a)
          (define (convert-arr arr)
            (match arr
-             [(Arrow: dom rst kws (Values: (list (Result: rngs _ _) ...)))
+             [(Arrow: dom rst kws (Values: (list (Result: rngs _ _ n-exis) ...)))
               (let-values ([(mand-kws opt-kws) (partition-kws kws)])
                 ;; Garr, I hate case->!
                 (when (and (not (empty? kws)) case->)
                   (fail #:reason (~a "cannot generate contract for case function type"
                                      " with optional keyword arguments")))
-                (if case->
-                  (arr/sc (process-dom (map t->sc/neg dom))
-                          (and rst (t->sc/neg rst))
-                          (map t->sc rngs))
-                  (function/sc
+                (cond
+                  [case->
+                   (when (ormap (lambda (n-exi)
+                                  (> n-exi 0))
+                                n-exis) 
+                     (fail #:reason (~a "cannot generate contract for case function type with existentials")))
+                   (arr/sc (process-dom (map t->sc/neg dom))
+                           (and rst (t->sc/neg rst))
+                           (map t->sc rngs))]
+                  [(> (car n-exis) 0)
+                   (define n (gensym))
+                   (define/with-syntax name n)
+                   (define lhs (t->sc/neg (car dom)))
+                   (define eq-name (flat/sc #'(eq/c name)))
+                   (define rhs (t->sc (instantiate-type (car rngs) (make-F n))
+                                      #:recursive-values (hash-set recursive-values n
+                                                                   (same eq-name))))
+                   (exist/sc (list #'name) lhs rhs)]
+                  [else
+                   (function/sc
                     (from-typed? typed-side)
                     (process-dom (map t->sc/neg dom))
                     null
@@ -927,7 +944,7 @@
                                    #:recursive-values
                                    (hash-set recursive-values dbound (same any/sc))))]
                       [_ #f])
-                    (map t->sc rngs))))]))
+                    (map t->sc rngs))]))]))
          (handle-arrow-range a (λ () (convert-arr a))))
        (define arities
          (for/list ([t (in-list arrows)]) (length (Arrow-dom t))))

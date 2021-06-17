@@ -355,6 +355,7 @@
    [FAIL (-> Self Number)]
 
    [(Some (X) (-> Number (-> X Number) : X)) (-some (X) (t:-> -Number (t:-> X -Number) : (-PS (-is-type 0 X) (-not-type 0 X))))]
+   [(-> Number (Some (X) (-> X Number) : #:+ X)) (t:-> -Number (-some-res (X) (t:-> X -Number) : #:+ X))]
 
    ;;; Classes
    [(Class) (-class)]

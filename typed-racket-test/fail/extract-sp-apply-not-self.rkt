@@ -5,7 +5,7 @@
 (: prop-ins-to-num (Struct-Property (-> Self Number)))
 (: prop-ins-to-num? : Any -> Boolean : (Has-Struct-Property prop-ins-to-num))
 
-(: prop-ins-to-num-ref (Some (X) (-> (Has-Struct-Property prop-ins-to-num) (-> X Number) : X) ))
+(: prop-ins-to-num-ref (-> (Has-Struct-Property prop-ins-to-num) (Some (X) (-> X Number) : #:+ X)))
 (define-values (prop-ins-to-num prop-ins-to-num? prop-ins-to-num-ref) (make-struct-type-property 'prop-ins-to-num))
 
 ;; (: bar? : Any -> Boolean : (Has-Struct-Property prop-ins-to-num))

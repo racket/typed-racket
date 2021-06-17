@@ -19,32 +19,32 @@
   #:transparent
   #:methods gen:sc
   [(define (sc-map v f)
-     (match-define (exist-combinator (list names lhs rhs)) v)
-     (exist-combinator (list names (f lhs 'invariant) (f rhs 'invariant))))
+     (match-define (exist-combinator (list names doms rngs)) v)
+     (exist-combinator (list names (f doms 'invariant) (f rngs 'invariant))))
    (define (sc-traverse v f)
-     (match-define (exist-combinator (list _ lhs rhs)) v)
-     (f lhs 'invariant)
-     (f rhs 'invariant)
+     (match-define (exist-combinator (list _ doms rngs)) v)
+     (f doms 'invariant)
+     (f rngs 'invariant)
      (void))
    (define (sc->contract v f)
      (match v
-       [(exist-combinator (list names lhs rhs))
+       [(exist-combinator (list names doms rngs))
         (parameterize ([static-contract-may-contain-free-ids? #t])
-          (let ([a (with-syntax ([lhs-stx (f lhs)]
-                                 [rhs-stx (f rhs)]
+          (let ([a (with-syntax ([doms-stx (f doms)]
+                                 [rngs-stx (f rngs)]
                                  [n (car names)])
-                     #'(->i ([n lhs-stx])
+                     #'(->i ([n doms-stx])
                             (_ (n)
-                               rhs-stx)))])
+                               rngs-stx)))])
             a))]))
    (define (sc->constraints v f)
      (simple-contract-restrict 'flat))])
 
 
-(define (exist/sc names lhs rhs)
-  (exist-combinator (list names lhs rhs)))
+(define (exist/sc names doms rngs)
+  (exist-combinator (list names doms rngs)))
 
 (define-match-expander exist/sc:
   (syntax-parser
-    [(_ names lhs rhs rhs-deps)
-     #'(exist-combinator (list names lhs rhs))]))
+    [(_ names doms rngs rngs-deps)
+     #'(exist-combinator (list names doms rngs))]))

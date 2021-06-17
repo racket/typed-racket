@@ -27,9 +27,8 @@
 
 (provide/cond-contract
   [tc/funapp
-   (syntax? stx-list? Type? (c:listof tc-results1/c)
-    (c:or/c #f tc-results/c)
-    . c:-> . full-tc-results/c)])
+   (syntax? stx-list? Type? (c:listof tc-results1/c) (c:or/c #f tc-results/c)
+            . c:-> . full-tc-results/c)])
 
 ;; macro that abstracts the common structure required to iterate over
 ;; the arrs of a polymorphic case lambda trying to infer the correct
@@ -92,12 +91,7 @@
       [(Some: _ (Fun: (list arrow rst ...)))
        (unless (null? rst)
          (tc-error/fields "currently doesn't support case->" #:delayed? #f))
-       (let ([checked-ret (tc/funapp1 f-stx args-stx arrow args-res expected)])
-         (match checked-ret
-           [(tc-results: (list (tc-result: t (PropSet: p+ p-) o__)) _)
-            (lexical-env (env+ (lexical-env) (list p+)))]
-           [_ #f])
-         checked-ret)]
+       (tc/funapp1 f-stx args-stx arrow args-res expected #:existential? #t)]
       [(DepFun: raw-dom raw-pre raw-rng)
        (parameterize ([with-refinements? #t])
          (define subst (for/list ([o (in-list argobjs)]

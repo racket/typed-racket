@@ -1,13 +1,21 @@
 #lang racket/base
 
-(require (rename-in "../utils/utils.rkt" [infer infer-in]))
+(require (only-in "../utils/utils.rkt" contract-req define/cond-contract))
 (require racket/match racket/list
          (contract-req)
-         (infer-in infer)
-         (rep core-rep type-rep prop-rep object-rep values-rep rep-utils)
-         (utils tc-utils prefab)
-         (types resolve subtype subtract)
-         (rename-in (types abbrev)
+         "../infer/infer.rkt"
+         "../rep/core-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/prefab.rkt"
+         "resolve.rkt"
+         "subtype.rkt"
+         "subtract.rkt"
+         (rename-in "abbrev.rkt"
                     [-> -->]
                     [->* -->*]
                     [one-of/c -one-of/c]))

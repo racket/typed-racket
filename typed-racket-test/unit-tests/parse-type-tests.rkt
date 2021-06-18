@@ -7,19 +7,26 @@
            racket/set
            racket/list
            syntax/parse
-           (base-env base-structs)
-           (env tvar-env type-alias-env mvar-env)
-           (utils tc-utils)
-           (private parse-type)
-           (rep type-rep values-rep)
-
+           typed-racket/base-env/base-structs
+           typed-racket/env/tvar-env
+           typed-racket/env/type-alias-env
+           typed-racket/env/mvar-env
+           typed-racket/utils/tc-utils
+           typed-racket/private/parse-type
+           typed-racket/rep/type-rep
+           typed-racket/rep/values-rep
+           typed-racket/types/numeric-tower
+           typed-racket/types/resolve
+           typed-racket/types/prop-ops
            (submod typed-racket/base-env/base-types initialize)
-           (rename-in (types abbrev numeric-tower resolve prop-ops)
+           (rename-in typed-racket/types/abbrev
                       [Un t:Un] [-> t:->] [->* t:->*]))
          (only-in typed-racket/typed-racket do-standard-inits)
-         (base-env base-types base-types-extra colon)
+         typed-racket/base-env/base-types
+         typed-racket/base-env/base-types-extra
+         typed-racket/base-env/colon
          ;; needed for parsing case-lambda/case-> types
-         (only-in (base-env case-lambda) case-lambda)
+         (only-in typed-racket/base-env/case-lambda case-lambda)
          (prefix-in un: (only-in racket/class init init-field field augment))
          (only-in typed/racket/class init init-field field augment)
          (only-in racket/unit import export init-depend)

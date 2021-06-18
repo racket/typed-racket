@@ -3,7 +3,7 @@
 ;; Unit tests for typed units
 
 (require (submod "typecheck-tests.rkt" test-helpers)
-         (except-in "test-utils.rkt" private)
+         "test-utils.rkt"
          (for-syntax racket/base
                      typed-racket/tc-setup
                      typed-racket/utils/tc-utils))
@@ -19,12 +19,20 @@
 (require rackunit
          typed/racket/unit
          (except-in typed-racket/utils/utils private)
-         (except-in (base-env extra-procs prims class-prims
-                              base-types base-types-extra)
+         (except-in (combine-in typed-racket/base-env/extra-procs
+                                typed-racket/base-env/prims
+                                typed-racket/base-env/class-prims
+                                typed-racket/base-env/base-types
+                                typed-racket/base-env/base-types-extra)
                     define lambda λ case-lambda)
-         (prefix-in tr: (only-in (base-env prims) define lambda λ case-lambda))
-         (for-syntax (rep type-rep prop-rep object-rep)
-                     (rename-in (types abbrev numeric-tower prop-ops utils)
+         (prefix-in tr: (only-in typed-racket/base-env/prims define lambda λ case-lambda))
+         (for-syntax typed-racket/rep/type-rep
+                     typed-racket/rep/prop-rep
+                     typed-racket/rep/object-rep
+                     typed-racket/types/numeric-tower
+                     typed-racket/types/prop-ops
+                     typed-racket/types/utils
+                     (rename-in typed-racket/types/abbrev
                                 [Un t:Un]
                                 [-> t:->])))
 

@@ -3,8 +3,11 @@
 (require "test-utils.rkt"
          racket/format
          rackunit
-         (rep rep-utils core-rep type-rep)
-         (types generalize abbrev)
+         typed-racket/rep/rep-utils
+         typed-racket/rep/core-rep
+         typed-racket/rep/type-rep
+         typed-racket/types/generalize
+         typed-racket/types/abbrev
          (for-syntax racket/base syntax/parse))
 
 (provide tests)

@@ -3,11 +3,14 @@
 (begin
   (require
    (for-syntax racket/base racket/syntax syntax/parse)
-   (only-in (rep type-rep values-rep) Type? make-Values)
+   (only-in "../rep/type-rep.rkt" Type?)
+   (only-in "../rep/values-rep.rkt" make-Values)
    racket/list racket/math racket/flonum racket/extflonum racket/unsafe/ops racket/sequence racket/match
    (for-template racket/flonum racket/extflonum racket/fixnum racket/math racket/unsafe/ops racket/base
                  (only-in "../types/numeric-predicates.rkt" index?))
-   (only-in (types abbrev numeric-tower) [-Number N] [-Boolean B] [-Symbol Sym] [-Real R] [-PosInt -Pos]))
+   (only-in (combine-in "../types/abbrev.rkt"
+                        "../types/numeric-tower.rkt")
+            [-Number N] [-Boolean B] [-Symbol Sym] [-Real R] [-PosInt -Pos]))
 
   ;; TODO having definitions only at the top is really inconvenient.
 

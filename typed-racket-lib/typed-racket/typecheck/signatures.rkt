@@ -2,7 +2,7 @@
 (require "../utils/utils.rkt" 
          racket/unit 
          (contract-req)
-         (utils unit-utils) (rep type-rep) (types utils))
+         "../utils/unit-utils.rkt" "../rep/type-rep.rkt" "../types/utils.rkt")
 (provide (all-defined-out))
 
 (define-signature tc-expr^

@@ -2,7 +2,10 @@
 
 (require "test-utils.rkt"
          racket/list racket/format rackunit
-         (static-contracts instantiate optimize combinators structures)
+         typed-racket/static-contracts/instantiate
+         typed-racket/static-contracts/optimize
+         typed-racket/static-contracts/combinators
+         typed-racket/static-contracts/structures
          (for-syntax racket/base syntax/parse))
 
 (provide tests)

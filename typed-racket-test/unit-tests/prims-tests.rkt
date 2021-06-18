@@ -3,8 +3,8 @@
 ;; Tests for Typed Racket primitive macros
 
 (require "test-utils.rkt"
-         (base-env base-types-extra)
-         (base-env prims)
+         typed-racket/base-env/base-types-extra
+         typed-racket/base-env/prims
          rackunit
          syntax/macro-testing)
 

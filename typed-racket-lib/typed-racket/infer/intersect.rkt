@@ -1,9 +1,15 @@
 #lang racket/unit
 
 (require "../utils/utils.rkt"
-         (utils prefab)
-         (rep type-rep object-rep type-mask rep-utils)
-         (types abbrev subtype resolve overlap)
+         "../utils/prefab.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/type-mask.rkt"
+         "../rep/rep-utils.rkt"
+         "../types/abbrev.rkt"
+         "../types/subtype.rkt"
+         "../types/resolve.rkt"
+         "../types/overlap.rkt"
          "signatures.rkt"
          racket/match
          racket/set)

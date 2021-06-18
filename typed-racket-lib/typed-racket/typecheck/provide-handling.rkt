@@ -3,9 +3,9 @@
 (require "../utils/utils.rkt"
          racket/sequence
          syntax/parse
-         (private syntax-properties)
-         (typecheck def-binding)
-         (env env-utils)
+         "../private/syntax-properties.rkt"
+         "def-binding.rkt"
+         "../env/env-utils.rkt"
          (for-syntax racket/base)
          (for-template racket/base))
 

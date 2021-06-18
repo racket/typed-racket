@@ -7,11 +7,13 @@
          ;; dict ops only used for convenient printing
          ;; (e.g. performance is irrelevant)
          (only-in racket/dict dict->list dict-map)
-         (rep core-rep object-rep)
-         (except-in (types abbrev) -> ->* one-of/c)
+         "../rep/core-rep.rkt"
+         "../rep/object-rep.rkt"
+         (except-in "../types/abbrev.rkt" -> ->* one-of/c)
          (for-syntax racket/base syntax/parse))
 
-(require-for-cond-contract (rep type-rep prop-rep))
+(require-for-cond-contract "../rep/type-rep.rkt"
+                           "../rep/prop-rep.rkt")
 
 ;; types is a free-id-table of identifiers to types
 ;; props is a list of known propositions

@@ -9,10 +9,10 @@
          "fme-utils.rkt"
          racket/match
          "rep-utils.rkt"
-         (utils identifier)
+         "../utils/identifier.rkt"
          "core-rep.rkt"
          "free-variance.rkt"
-         (env mvar-env)
+         "../env/mvar-env.rkt"
          (for-syntax racket/base)
          (contract-req))
 

@@ -1,23 +1,37 @@
 #lang racket/unit
 
 
-(require (rename-in "../utils/utils.rkt" [private private-in])
+(require (except-in "../utils/utils.rkt" infer private)
          racket/match (prefix-in - (contract-req))
          "signatures.rkt"
          "check-below.rkt" "../types/kw-types.rkt"
          "integer-refinements.rkt"
-         (types utils abbrev subtype type-table path-type
-                prop-ops overlap resolve generalize tc-result
-                numeric-tower)
-         (private-in syntax-properties parse-type)
-         (rep type-rep prop-rep object-rep)
-         (only-in (infer infer) intersect)
-         (utils tc-utils identifier)
-         (env lexical-env scoped-tvar-env)
+         "../types/utils.rkt"
+         "../types/abbrev.rkt"
+         "../types/subtype.rkt"
+         "../types/type-table.rkt"
+         "../types/path-type.rkt"
+         "../types/prop-ops.rkt"
+         "../types/overlap.rkt"
+         "../types/resolve.rkt"
+         "../types/generalize.rkt"
+         "../types/tc-result.rkt"
+         "../types/numeric-tower.rkt"
+         "../private/syntax-properties.rkt"
+         "../private/parse-type.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/object-rep.rkt"
+         (only-in "../infer/infer.rkt" intersect)
+         "../utils/tc-utils.rkt"
+         "../utils/identifier.rkt"
+         "../env/lexical-env.rkt"
+         "../env/scoped-tvar-env.rkt"
          racket/list
          racket/private/class-internal
          syntax/parse
-         (typecheck internal-forms tc-envops)
+         "internal-forms.rkt"
+         "tc-envops.rkt"
          racket/sequence
          racket/extflonum
          ;; Needed for current implementation of typechecking letrec-syntax+values

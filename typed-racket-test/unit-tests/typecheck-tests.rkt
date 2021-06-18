@@ -30,7 +30,9 @@
 
 (module custom-ret racket/base
   (require typed-racket/utils/utils
-           (rename-in (types prop-ops tc-result) [ret raw-ret]))
+           typed-racket/types/prop-ops
+           (rename-in typed-racket/types/tc-result
+                      [ret raw-ret]))
   (provide tc-ret)
   (define (tc-ret . args)
     (reduce-tc-results/subsumption (apply raw-ret args))))
@@ -40,17 +42,24 @@
   (require
     (submod ".." cross-phase-failure)
     "test-utils.rkt"
-    typed-racket/utils/utils
+    (except-in typed-racket/utils/utils private)
     racket/base racket/match
     syntax/id-table
-    (rep core-rep)
-    (rename-in (types prop-ops tc-result printer subtype) [ret raw-ret])
-    (only-in (types type-table) type-of)
+    typed-racket/rep/core-rep
+    typed-racket/types/prop-ops
+    typed-racket/types/printer
+    typed-racket/types/subtype
+    (rename-in typed-racket/types/tc-result [ret raw-ret])
+    (only-in typed-racket/types/type-table type-of)
     syntax/parse
     (for-template (only-in typed-racket/typed-racket do-standard-inits))
-    (typecheck typechecker check-below tc-metafunctions)
-    (utils mutated-vars tc-utils)
-    (env lexical-env mvar-env))
+    typed-racket/typecheck/typechecker
+    typed-racket/typecheck/check-below
+    typed-racket/typecheck/tc-metafunctions
+    typed-racket/utils/mutated-vars
+    typed-racket/utils/tc-utils
+    typed-racket/env/lexical-env
+    typed-racket/env/mvar-env)
   (provide
     test-type-table
     test-type-of
@@ -225,7 +234,7 @@
 (require
   'cross-phase-failure
   "evaluator.rkt"
-  (except-in "test-utils.rkt" private)
+  "test-utils.rkt"
   'custom-ret
   syntax/location syntax/srcloc
   (for-syntax
@@ -383,19 +392,30 @@
 
   (except-in typed-racket/utils/utils private)
   ;; Needed for bindings of types and TR primitives in expressions
-  (except-in (base-env extra-procs prims base-types base-types-extra)
+  (except-in (combine-in typed-racket/base-env/extra-procs
+                         typed-racket/base-env/prims
+                         typed-racket/base-env/base-types
+                         typed-racket/base-env/base-types-extra)
     define lambda λ case-lambda for/set for*/set)
   ;; For tests that rely on kw/opt properties
-  (prefix-in tr: (only-in (base-env prims) define lambda λ case-lambda))
+  (prefix-in tr: (only-in typed-racket/base-env/prims define lambda λ case-lambda))
   ;; Needed for the `let-name` syntax class before
   (prefix-in r: (only-in racket/base let-values))
   ;; Needed for constructing TR types in expected values
   (for-syntax
-    (rep core-rep type-rep prop-rep object-rep values-rep)
-    (base-env base-structs)
-    (rename-in (types abbrev numeric-tower prop-ops utils resolve)
-               [Un t:Un]
-               [-> t:->])))
+   typed-racket/rep/core-rep
+   typed-racket/rep/type-rep
+   typed-racket/rep/prop-rep
+   typed-racket/rep/object-rep
+   typed-racket/rep/values-rep
+   typed-racket/base-env/base-structs
+   typed-racket/types/numeric-tower
+   typed-racket/types/prop-ops
+   typed-racket/types/utils
+   typed-racket/types/resolve
+   (rename-in typed-racket/types/abbrev
+              [Un t:Un]
+              [-> t:->])))
 
 (begin-for-syntax
   ;; More tests need to be written to use these macros.

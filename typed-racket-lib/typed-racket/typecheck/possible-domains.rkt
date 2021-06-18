@@ -4,8 +4,13 @@
          (contract-req)
          racket/list
          racket/match
-         (rep core-rep type-rep prop-rep values-rep)
-         (except-in (types abbrev subtype tc-result)
+         "../rep/core-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../types/subtype.rkt"
+         "../types/tc-result.rkt"
+         (except-in "../types/abbrev.rkt"
                     -> ->* one-of/c))
 
 (provide possible-domains)

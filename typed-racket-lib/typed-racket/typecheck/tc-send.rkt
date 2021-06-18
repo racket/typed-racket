@@ -5,11 +5,16 @@
 (require "../utils/utils.rkt"
          racket/match syntax/stx racket/syntax
          syntax/parse
-         (env lexical-env)
-         (typecheck signatures tc-funapp tc-metafunctions)
-         (types base-abbrev resolve utils type-table)
-         (rep type-rep)
-         (utils tc-utils)
+         "../env/lexical-env.rkt"
+         "signatures.rkt"
+         "tc-funapp.rkt"
+         "tc-metafunctions.rkt"
+         "../types/base-abbrev.rkt"
+         "../types/resolve.rkt"
+         "../types/utils.rkt"
+         "../types/type-table.rkt"
+         "../rep/type-rep.rkt"
+         "../utils/tc-utils.rkt"
          (for-template racket/base))
 
 (import tc-expr^)

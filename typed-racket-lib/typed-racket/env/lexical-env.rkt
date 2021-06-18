@@ -11,15 +11,20 @@
          (for-syntax syntax/parse racket/base)
          (contract-req)
          racket/match
-         (env type-env-structs global-env)
-         (types numeric-tower path-type)
-         (rep object-rep)
-         (utils tc-utils)
-         (only-in (rep type-rep) Type?)
-         (typecheck renamer)
-         (except-in (types utils abbrev kw-types) -> ->* one-of/c))
+         "../env/type-env-structs.rkt"
+         "../env/global-env.rkt"
+         "../types/numeric-tower.rkt"
+         "../types/path-type.rkt"
+         "../rep/object-rep.rkt"
+         "../utils/tc-utils.rkt"
+         (only-in "../rep/type-rep.rkt" Type?)
+         "../typecheck/renamer.rkt"
+         "../types/utils.rkt"
+         "../types/kw-types.rkt"
+         (except-in "../types/abbrev.rkt" -> ->* one-of/c))
 
-(require-for-cond-contract (rep object-rep core-rep))
+(require-for-cond-contract "../rep/object-rep.rkt"
+                           "../rep/core-rep.rkt")
 
 (provide lexical-env
          add-props-to-current-lexical!

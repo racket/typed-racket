@@ -11,18 +11,32 @@
          syntax/parse
          syntax/stx
          "signatures.rkt"
-         (private parse-type syntax-properties type-annotation)
-         (env lexical-env tvar-env global-env type-alias-helper mvar-env)
-         (base-env annotate-classes)
-         (types utils abbrev subtype resolve generalize)
-         (typecheck check-below internal-forms)
-         (utils tc-utils mutated-vars)
-         (rep object-rep type-rep values-rep)
+         "../private/parse-type.rkt"
+         "../private/syntax-properties.rkt"
+         "../private/type-annotation.rkt"
+         "../env/lexical-env.rkt"
+         "../env/tvar-env.rkt"
+         "../env/global-env.rkt"
+         "../env/type-alias-helper.rkt"
+         "../env/mvar-env.rkt"
+         "../base-env/annotate-classes.rkt"
+         "../types/utils.rkt"
+         "../types/abbrev.rkt"
+         "../types/subtype.rkt"
+         "../types/resolve.rkt"
+         "../types/generalize.rkt"
+         "check-below.rkt"
+         "internal-forms.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/mutated-vars.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
          (for-syntax racket/base)
          (for-template racket/base
                        (submod "internal-forms.rkt" forms)
-                       (private class-literals)
-                       (utils typed-method-property)))
+                       "../private/class-literals.rkt"
+                       "../utils/typed-method-property.rkt"))
 
 (import tc-expr^)
 (export check-class^)

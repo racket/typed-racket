@@ -4,13 +4,34 @@
          syntax/struct syntax/parse racket/function racket/match racket/list syntax/id-set
          syntax/id-table
          (prefix-in c: (contract-req))
-         (rep type-rep free-variance values-rep)
-         (private parse-type syntax-properties)
-         (types base-abbrev abbrev subtype utils resolve substitute struct-table)
-         (env global-env type-name-env type-alias-env tvar-env lexical-env struct-name-env)
-         (utils tc-utils prefab identifier)
-         (only-in (utils struct-info) maybe-struct-info-wrapper-type)
-         (typecheck typechecker def-binding internal-forms error-message tc-subst renamer)
+         "../rep/type-rep.rkt"
+         "../rep/free-variance.rkt"
+         "../rep/values-rep.rkt"
+         "../private/parse-type.rkt"
+         "../private/syntax-properties.rkt"
+         "../types/base-abbrev.rkt"
+         "../types/abbrev.rkt"
+         "../types/subtype.rkt"
+         "../types/utils.rkt"
+         "../types/resolve.rkt"
+         "../types/substitute.rkt"
+         "../types/struct-table.rkt"
+         "../env/global-env.rkt"
+         "../env/type-name-env.rkt"
+         "../env/type-alias-env.rkt"
+         "../env/tvar-env.rkt"
+         "../env/lexical-env.rkt"
+         "../env/struct-name-env.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/prefab.rkt"
+         "../utils/identifier.rkt"
+         (only-in "../utils/struct-info.rkt" maybe-struct-info-wrapper-type)
+         "typechecker.rkt"
+         "def-binding.rkt"
+         "internal-forms.rkt"
+         "error-message.rkt"
+         "tc-subst.rkt"
+         "renamer.rkt"
          (for-syntax syntax/parse racket/base)
          (for-template racket/base))
 

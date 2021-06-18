@@ -2,8 +2,11 @@
 
 (require syntax/parse racket/match
          "../utils/utils.rkt"
-         (types abbrev utils type-table)
-         (optimizer utils logging)
+         "../types/abbrev.rkt"
+         "../types/utils.rkt"
+         "../types/type-table.rkt"
+         "utils.rkt"
+         "logging.rkt"
          (for-template racket/base racket/unsafe/ops))
 
 (provide list-opt-expr)

@@ -1,10 +1,14 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils tc-utils)
-         (types abbrev tc-result utils)
-         (rep core-rep type-rep values-rep)
-         (base-env annotate-classes)
+         "../utils/tc-utils.rkt"
+         "../types/abbrev.rkt"
+         "../types/tc-result.rkt"
+         "../types/utils.rkt"
+         "../rep/core-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../base-env/annotate-classes.rkt"
          racket/list racket/set racket/match
          racket/format racket/string
          syntax/parse)

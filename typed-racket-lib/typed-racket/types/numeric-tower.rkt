@@ -2,12 +2,17 @@
 
 (require "../utils/utils.rkt"
          racket/match
-         (rep core-rep type-rep rep-utils
-              numeric-base-types base-union base-type-rep
-              object-rep prop-rep)
-         (types numeric-predicates)
+         "../rep/core-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/numeric-base-types.rkt"
+         "../rep/base-union.rkt"
+         "../rep/base-type-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "numeric-predicates.rkt"
          ;; For base type contracts
-         (for-template racket/base racket/contract/base (types numeric-predicates)))
+         (for-template racket/base racket/contract/base "numeric-predicates.rkt"))
 
 (provide portable-fixnum? portable-index?
          -Zero -One -PosByte -Byte -PosIndex -Index

@@ -10,8 +10,9 @@
  racket/private/kw racket/file racket/port syntax/parse racket/path
  (for-template (only-in racket/private/kw kw-expander-proc kw-expander-impl)
                racket/base racket/file racket/port racket/path racket/list)
- (env init-envs)
- (types abbrev numeric-tower)
+ "../env/init-envs.rkt"
+ "../types/abbrev.rkt"
+ "../types/numeric-tower.rkt"
  (for-syntax racket/base syntax/parse
              (only-in racket/syntax syntax-local-eval)))
 (provide make-template-identifier)

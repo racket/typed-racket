@@ -1,13 +1,19 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils identifier)
+         "../utils/identifier.rkt"
          racket/match racket/list
-         (except-in (types abbrev utils prop-ops)
+         "../types/utils.rkt"
+         "../types/prop-ops.rkt"
+         (except-in "../types/abbrev.rkt"
                     -> ->* one-of/c)
-         (rep type-rep prop-rep object-rep values-rep rep-utils)
-         (typecheck tc-subst)
-         (logic ineq)
+         "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "tc-subst.rkt"
+         "../logic/ineq.rkt"
          (contract-req))
 
 (provide abstract-results

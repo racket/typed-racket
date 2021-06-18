@@ -9,10 +9,12 @@
          syntax/parse
          "../utils/utils.rkt"
          (contract-req)
-         (rep type-rep)
-         (types utils printer)
-         (typecheck possible-domains tc-metafunctions)
-         (utils tc-utils)
+         "../rep/type-rep.rkt"
+         "utils.rkt"
+         "printer.rkt"
+         "../typecheck/possible-domains.rkt"
+         "../typecheck/tc-metafunctions.rkt"
+         "../utils/tc-utils.rkt"
          (for-template racket/base))
 
 (provide/cond-contract

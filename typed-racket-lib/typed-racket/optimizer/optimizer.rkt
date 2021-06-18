@@ -2,13 +2,25 @@
 
 (require syntax/parse racket/pretty
          "../utils/utils.rkt"
-         (private syntax-properties)
-         (types type-table)
-         (optimizer utils
-                    number fixnum float extflonum float-complex
-                    vector string list pair sequence
-                    box struct dead-code apply unboxed-let
-                    hidden-costs))
+         "../private/syntax-properties.rkt"
+         "../types/type-table.rkt"
+         "utils.rkt"
+         "number.rkt"
+         "fixnum.rkt"
+         "float.rkt"
+         "extflonum.rkt"
+         "float-complex.rkt"
+         "vector.rkt"
+         "string.rkt"
+         "list.rkt"
+         "pair.rkt"
+         "sequence.rkt"
+         "box.rkt"
+         "struct.rkt"
+         "dead-code.rkt"
+         "apply.rkt"
+         "unboxed-let.rkt"
+         "hidden-costs.rkt")
 
 
 (provide optimize-top)

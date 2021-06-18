@@ -2,9 +2,10 @@
 
 (require "test-utils.rkt"
          rackunit racket/format
-         (rep prop-rep)
-         (types abbrev prop-ops)
-         (logic ineq)
+         typed-racket/rep/prop-rep
+         typed-racket/types/abbrev
+         typed-racket/types/prop-ops
+         typed-racket/logic/ineq
          (for-syntax racket/base syntax/parse))
 
 (provide tests)

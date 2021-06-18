@@ -12,8 +12,10 @@
          "../rep/object-rep.rkt"
          "../rep/base-types.rkt"
          "../rep/numeric-base-types.rkt"
-         (rep values-rep rep-utils free-ids)
-         (env mvar-env)
+         "../rep/values-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/free-ids.rkt"
+         "../env/mvar-env.rkt"
          racket/match racket/list (prefix-in c: (contract-req))
          (for-syntax racket/base syntax/parse racket/list)
          ;; For contract predicates

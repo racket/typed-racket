@@ -3,9 +3,10 @@
 (require syntax/parse
          (for-template racket/base racket/unsafe/ops)
          "../utils/utils.rkt"
-         (utils tc-utils)
-         (types struct-table)
-         (optimizer utils logging))
+         "../utils/tc-utils.rkt"
+         "../types/struct-table.rkt"
+         "utils.rkt"
+         "logging.rkt")
 
 (provide struct-opt-expr)
 

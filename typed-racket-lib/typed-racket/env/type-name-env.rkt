@@ -7,10 +7,11 @@
 
 (require syntax/private/id-table
          (contract-req)
-         (env type-alias-env)
-         (utils tc-utils)
-         (rep type-rep free-variance)
-         (types utils))
+         "../env/type-alias-env.rkt"
+         "../utils/tc-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/free-variance.rkt"
+         "../types/utils.rkt")
 
 (provide/cond-contract [register-type-name
                         (->* (identifier?) (Type?) any)]

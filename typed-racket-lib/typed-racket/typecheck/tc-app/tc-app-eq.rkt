@@ -3,12 +3,16 @@
 (require "../../utils/utils.rkt"
          "signatures.rkt"
          "utils.rkt"
-         (only-in (infer infer) intersect)
+         (only-in "../../infer/infer.rkt" intersect)
          syntax/parse syntax/stx racket/match racket/unsafe/undefined
-         (typecheck signatures tc-funapp)
-         (types abbrev prop-ops utils match-expanders)
-         (rep type-rep object-rep)
-
+         "../signatures.rkt"
+         "../tc-funapp.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/prop-ops.rkt"
+         "../../types/utils.rkt"
+         "../../types/match-expanders.rkt"
+         "../../rep/type-rep.rkt"
+         "../../rep/object-rep.rkt"
          (for-label racket/base racket/bool))
 
 (import tc-expr^)

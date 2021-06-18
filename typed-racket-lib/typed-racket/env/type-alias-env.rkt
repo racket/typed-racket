@@ -1,10 +1,9 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         "env-utils.rkt"
+(require "env-utils.rkt"
          syntax/private/id-table
-         (utils tc-utils)
-         (typecheck renamer)
+         "../utils/tc-utils.rkt"
+         "../typecheck/renamer.rkt"
          racket/match)
 
 (provide register-type-alias

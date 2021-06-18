@@ -1,7 +1,6 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         (rep rep-utils))
+(require "../rep/rep-utils.rkt")
 
 (provide (except-out (all-defined-out) seen-mark))
 

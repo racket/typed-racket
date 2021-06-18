@@ -3,8 +3,8 @@
 (require syntax/parse syntax/id-table
          (for-template racket/base racket/flonum racket/fixnum racket/unsafe/ops)
          "../utils/utils.rkt"
-         (types numeric-tower)
-         (optimizer utils))
+         "../types/numeric-tower.rkt"
+         "utils.rkt")
 
 (provide (all-defined-out))
 

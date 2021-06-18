@@ -3,7 +3,8 @@
 (require syntax/parse
          "../utils/utils.rkt"
          (for-template racket/base racket/unsafe/ops)
-         (optimizer utils logging))
+         "utils.rkt"
+         "logging.rkt")
 
 (provide box-opt-expr)
 

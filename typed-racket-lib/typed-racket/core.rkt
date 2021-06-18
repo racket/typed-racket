@@ -3,15 +3,21 @@
 (require (rename-in "utils/utils.rkt")
          (for-syntax racket/base)
          (for-template racket/base)
-         (private with-types type-contract)
+         "private/with-types.rkt"
+         "private/type-contract.rkt"
          (except-in syntax/parse id)
          racket/match racket/syntax
          syntax/flatten-begin
-         (types utils abbrev generalize)
-         (typecheck provide-handling tc-app-helper)
-         (rep type-rep)
-         (for-template (base-env top-interaction))
-         (utils utils tc-utils arm)
+         "types/utils.rkt"
+         "types/abbrev.rkt"
+         "types/generalize.rkt"
+         "typecheck/provide-handling.rkt"
+         "typecheck/tc-app-helper.rkt"
+         "rep/type-rep.rkt"
+         (for-template "base-env/top-interaction.rkt")
+         "utils/utils.rkt"
+         "utils/tc-utils.rkt"
+         "utils/arm.rkt"
          "standard-inits.rkt"
          "tc-setup.rkt")
 

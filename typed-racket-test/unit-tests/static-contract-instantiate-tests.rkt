@@ -8,7 +8,9 @@
          (for-syntax
            syntax/parse
            racket/base
-           (static-contracts instantiate optimize combinators)))
+           typed-racket/static-contracts/instantiate
+           typed-racket/static-contracts/optimize
+           typed-racket/static-contracts/combinators))
 
 (provide tests)
 (gen-test-main)

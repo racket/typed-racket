@@ -4,10 +4,12 @@
          racket/syntax
          "../utils/utils.rkt"
          (prefix-in c: (contract-req))
-         (rep type-rep prop-rep object-rep)
-         (utils tc-utils)
-         (env env-utils)
-         (types abbrev))
+         "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/object-rep.rkt"
+         "../utils/tc-utils.rkt"
+         "../env/env-utils.rkt"
+         "abbrev.rkt")
 
 
 ;; struct-type : what type is this an accessor for?

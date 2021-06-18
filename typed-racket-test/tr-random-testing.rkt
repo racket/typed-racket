@@ -8,12 +8,13 @@
          "random-real.rkt")
 
 (require typed-racket/utils/utils
-         (typecheck typechecker)
-         (utils tc-utils)
-         (types subtype utils))
+         typed-racket/typecheck/typechecker
+         typed-racket/utils/tc-utils
+         typed-racket/types/subtype
+         typed-racket/types/utils)
 
-(require (prefix-in b: (base-env base-env))
-         (prefix-in n: (base-env base-env-numeric)))
+(require (prefix-in b: typed-racket/base-env/base-env)
+         (prefix-in n: typed-racket/base-env/base-env-numeric))
 
 (provide check-all-reals)
 

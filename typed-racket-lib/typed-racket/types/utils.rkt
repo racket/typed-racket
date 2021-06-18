@@ -1,11 +1,12 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep rep-utils)
-         (utils tc-utils)
+         "../rep/type-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../utils/tc-utils.rkt"
          "substitute.rkt" "tc-result.rkt" "tc-error.rkt"
          (except-in "base-abbrev.rkt" -> ->*)
-         (rep free-variance)
+         "../rep/free-variance.rkt"
          racket/match
          racket/set
          racket/list

@@ -1,13 +1,21 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils identifier)
+         "../utils/identifier.rkt"
          racket/match racket/sequence racket/set racket/list
          (contract-req)
-         (typecheck check-below tc-subst tc-metafunctions possible-domains)
-         (utils tc-utils)
-         (rep type-rep prop-rep values-rep)
-         (except-in (types utils abbrev subtype type-table)
+         "check-below.rkt"
+         "tc-subst.rkt"
+         "tc-metafunctions.rkt"
+         "possible-domains.rkt"
+         "../utils/tc-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../types/utils.rkt"
+         "../types/subtype.rkt"
+         "../types/type-table.rkt"
+         (except-in "../types/abbrev.rkt"
                     -> ->* one-of/c))
 (require-for-cond-contract
   syntax/stx)

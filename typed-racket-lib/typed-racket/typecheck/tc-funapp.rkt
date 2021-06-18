@@ -1,17 +1,27 @@
 #lang racket/base
 
-(require (rename-in "../utils/utils.rkt" [infer r:infer])
+(require (except-in "../utils/utils.rkt" infer)
          racket/match racket/list racket/sequence
          (prefix-in c: (contract-req))
-         (utils tc-utils identifier)
-         (env tvar-env lexical-env)
          (for-syntax syntax/parse racket/base)
-         (types utils subtype resolve abbrev
-                substitute classes prop-ops)
-         (typecheck tc-metafunctions tc-app-helper tc-subst tc-envops
-                    check-below)
-         (rep type-rep)
-         (r:infer infer))
+         "../utils/tc-utils.rkt"
+         "../utils/identifier.rkt"
+         "../env/tvar-env.rkt"
+         "../env/lexical-env.rkt"
+         "../types/utils.rkt"
+         "../types/subtype.rkt"
+         "../types/resolve.rkt"
+         "../types/abbrev.rkt"
+         "../types/substitute.rkt"
+         "../types/classes.rkt"
+         "../types/prop-ops.rkt"
+         "tc-metafunctions.rkt"
+         "tc-app-helper.rkt"
+         "tc-subst.rkt"
+         "tc-envops.rkt"
+         "check-below.rkt"
+         "../rep/type-rep.rkt"
+         "../infer/infer.rkt")
 
 (require-for-cond-contract syntax/stx)
 

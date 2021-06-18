@@ -14,9 +14,8 @@
          racket/promise
          (for-syntax syntax/parse racket/base)
          "env-utils.rkt"
-         "../utils/utils.rkt"
-         (utils tc-utils)
-         (rep type-rep))
+         "../utils/tc-utils.rkt"
+         "../rep/type-rep.rkt")
 
 ;; initial signature environment
 (define signature-env (make-free-id-table))

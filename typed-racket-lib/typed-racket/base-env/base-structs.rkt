@@ -2,10 +2,11 @@
 
 (require
  "../utils/utils.rkt"
- (rep type-rep)
- (types abbrev numeric-tower)
- (typecheck tc-structs)
- ;;For tests
+ "../rep/type-rep.rkt"
+ "../types/abbrev.rkt"
+ "../types/numeric-tower.rkt"
+ "../typecheck/tc-structs.rkt"
+;;For tests
  (prefix-in k: '#%kernel))
 
 (require (for-template racket/base (prefix-in k: '#%kernel)))

@@ -6,9 +6,15 @@
          (prefix-in - (contract-req))
          syntax/parse racket/match racket/list
          racket/sequence
-         (typecheck signatures find-annotation tc-metafunctions)
-         (types abbrev utils generalize type-table)
-         (private type-annotation syntax-properties)
+         "../signatures.rkt"
+         "../find-annotation.rkt"
+         "../tc-metafunctions.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/utils.rkt"
+         "../../types/generalize.rkt"
+         "../../types/type-table.rkt"
+         "../../private/type-annotation.rkt"
+         "../../private/syntax-properties.rkt"
          ;; Needed to construct args to tc/let-values
          (for-template racket/base)
          (for-label racket/base))

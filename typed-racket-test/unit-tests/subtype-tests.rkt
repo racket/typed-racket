@@ -1,9 +1,16 @@
 #lang racket/base
 
 (require "test-utils.rkt"
-         (types subtype numeric-tower utils abbrev prop-ops)
-         (rep type-rep values-rep)
-         (env lexical-env init-envs type-env-structs)
+         typed-racket/types/subtype
+         typed-racket/types/numeric-tower
+         typed-racket/types/utils
+         typed-racket/types/abbrev
+         typed-racket/types/prop-ops
+         typed-racket/rep/type-rep
+         typed-racket/rep/values-rep
+         typed-racket/env/lexical-env
+         typed-racket/env/init-envs
+         typed-racket/env/type-env-structs
          rackunit
          (for-syntax racket/base))
 

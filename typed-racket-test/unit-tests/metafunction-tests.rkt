@@ -2,9 +2,16 @@
 
 (require "test-utils.rkt"
          rackunit racket/format
-         (typecheck tc-metafunctions tc-subst)
-         (rep prop-rep type-rep object-rep values-rep)
-         (types abbrev prop-ops tc-result numeric-tower)
+         typed-racket/typecheck/tc-metafunctions
+         typed-racket/typecheck/tc-subst
+         typed-racket/rep/prop-rep
+         typed-racket/rep/type-rep
+         typed-racket/rep/object-rep
+         typed-racket/rep/values-rep
+         typed-racket/types/abbrev
+         typed-racket/types/prop-ops
+         typed-racket/types/tc-result
+         typed-racket/types/numeric-tower
          (for-syntax racket/base syntax/parse))
 
 (provide tests)

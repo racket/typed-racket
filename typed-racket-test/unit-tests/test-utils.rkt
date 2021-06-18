@@ -5,16 +5,14 @@
          racket/gui/dynamic
          typed-racket/utils/utils
          (for-syntax racket/base syntax/parse)
-         (types utils subtype)
-         (utils tc-utils)
-         (typecheck check-below)
-         (rep type-rep)
+         typed-racket/types/utils
+         typed-racket/types/subtype
+         typed-racket/utils/tc-utils
+         typed-racket/typecheck/check-below
+         typed-racket/rep/type-rep
          rackunit rackunit/text-ui)
 
-(provide private typecheck (rename-out [infer r:infer])
-         utils env rep types base-env static-contracts
-         logic
-         (all-defined-out))
+(provide (all-defined-out))
 
 
 ;; checks for equality, modulo #f for prop or obj in

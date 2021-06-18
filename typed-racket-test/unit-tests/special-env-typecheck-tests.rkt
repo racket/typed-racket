@@ -4,23 +4,33 @@
          "evaluator.rkt"
          (for-syntax racket/base)
          (for-template racket/base)
-         (rep type-rep prop-rep object-rep)
+         typed-racket/rep/type-rep
+         typed-racket/rep/prop-rep
+         typed-racket/rep/object-rep
          (for-syntax
-          (rename-in (types utils numeric-tower abbrev prop-ops)
+          typed-racket/types/utils
+          typed-racket/types/numeric-tower
+          typed-racket/types/prop-ops
+          (rename-in typed-racket/types/abbrev
                      [Un t:Un]
                      [-> t:->]))
-         (utils tc-utils utils)
-         (utils mutated-vars)
-
+         typed-racket/utils/tc-utils
+         typed-racket/utils/utils
+         typed-racket/utils/mutated-vars
          rackunit rackunit/text-ui
          syntax/parse
          racket/file racket/port
          syntax/location
          (for-syntax syntax/kerncase syntax/parse racket/syntax
-                     (types abbrev numeric-tower utils)
-                     (utils mutated-vars) (env mvar-env)
-                     (utils tc-utils)
-                     (typecheck typechecker check-below tc-metafunctions))
+                     typed-racket/types/abbrev
+                     typed-racket/types/numeric-tower
+                     typed-racket/types/utils
+                     typed-racket/utils/mutated-vars
+                     typed-racket/env/mvar-env
+                     typed-racket/utils/tc-utils
+                     typed-racket/typecheck/typechecker
+                     typed-racket/typecheck/check-below
+                     typed-racket/typecheck/tc-metafunctions)
          typed-racket/base-env/prims
          typed-racket/base-env/base-types
          (for-syntax typed-racket/standard-inits))

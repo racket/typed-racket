@@ -2,11 +2,17 @@
 
 (require "../utils/utils.rkt"
          racket/match
-         (typecheck signatures check-below)
-         (types abbrev numeric-tower resolve subtype generalize)
-         (rep type-rep)
-         (only-in (infer infer) intersect)
-         (utils stxclass-util prefab)
+         "signatures.rkt"
+         "check-below.rkt"
+         "../types/abbrev.rkt"
+         "../types/numeric-tower.rkt"
+         "../types/resolve.rkt"
+         "../types/subtype.rkt"
+         "../types/generalize.rkt"
+         "../rep/type-rep.rkt"
+         (only-in "../infer/infer.rkt" intersect)
+         "../utils/stxclass-util.rkt"
+         "../utils/prefab.rkt"
          syntax/parse
          racket/extflonum)
 

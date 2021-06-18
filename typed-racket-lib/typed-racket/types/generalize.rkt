@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (rep type-rep)
+         "../rep/type-rep.rkt"
          "abbrev.rkt" "subtype.rkt" "substitute.rkt"
          "numeric-tower.rkt"
          racket/match)

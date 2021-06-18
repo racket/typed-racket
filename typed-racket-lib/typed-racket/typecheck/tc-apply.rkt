@@ -1,12 +1,17 @@
 #lang racket/unit
 
-(require (rename-in "../utils/utils.rkt" [infer r:infer])
-         racket/match racket/list
-         (typecheck signatures tc-app-helper)
-         (types utils abbrev substitute type-table)
-         (utils tc-utils)
-         (rep type-rep core-rep values-rep)
-         (r:infer infer))
+(require racket/match racket/list
+         "signatures.rkt"
+         "tc-app-helper.rkt"
+         "../types/utils.rkt"
+         "../types/abbrev.rkt"
+         "../types/substitute.rkt"
+         "../types/type-table.rkt"
+         "../utils/tc-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/core-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../infer/infer.rkt")
 
 (import tc-expr^ tc-lambda^ tc-let^ tc-app^)
 (export tc-apply^)

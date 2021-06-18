@@ -3,7 +3,7 @@
 ;; Maintain mapping of type variables introduced by literal Alls in type annotations.
 
 (require "../utils/utils.rkt"
-         (private syntax-properties)
+         "../private/syntax-properties.rkt"
          syntax/parse
          syntax/id-table
          racket/match)

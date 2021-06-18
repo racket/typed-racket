@@ -4,13 +4,13 @@
 ;; contract protection, even in typed code.
 
 (require "../utils/utils.rkt"
-         (utils any-wrap)
+         "../utils/any-wrap.rkt"
          (prefix-in c: racket/contract)
          (rename-in
           racket/base
           [default-continuation-prompt-tag -default-continuation-prompt-tag])
          (for-syntax racket/base
-                     (env env-req)))
+                     "../env/env-req.rkt"))
 
 (provide default-continuation-prompt-tag)
 

@@ -10,13 +10,27 @@
 (require "../utils/utils.rkt"
          (except-in
           (combine-in
-           (utils tc-utils prefab identifier)
-           (rep free-variance type-rep prop-rep object-rep
-                values-rep rep-utils type-mask)
-           (types utils abbrev numeric-tower subtype resolve
-                  substitute generalize)
-           (env lexical-env index-env tvar-env)
-           (logic proves))
+           "../utils/tc-utils.rkt"
+           "../utils/prefab.rkt"
+           "../utils/identifier.rkt"
+           "../rep/free-variance.rkt"
+           "../rep/type-rep.rkt"
+           "../rep/prop-rep.rkt"
+           "../rep/object-rep.rkt"
+           "../rep/values-rep.rkt"
+           "../rep/rep-utils.rkt"
+           "../rep/type-mask.rkt"
+           "../types/utils.rkt"
+           "../types/abbrev.rkt"
+           "../types/numeric-tower.rkt"
+           "../types/subtype.rkt"
+           "../types/resolve.rkt"
+           "../types/substitute.rkt"
+           "../types/generalize.rkt"
+           "../env/lexical-env.rkt"
+           "../env/index-env.rkt"
+           "../env/tvar-env.rkt"
+           "../logic/proves.rkt")
           make-env -> ->* one-of/c)
          "constraint-structs.rkt"
          "signatures.rkt" "fail.rkt"

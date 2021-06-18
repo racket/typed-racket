@@ -67,14 +67,25 @@
          syntax/strip-context
          racket/unit-exptime
          "signatures.rkt"
-         (private parse-type syntax-properties type-annotation)
-         (only-in (base-env base-special-env) make-template-identifier)
-         (env lexical-env tvar-env global-env 
-              signature-env)
-         (types utils abbrev subtype resolve generalize signatures)
-         (typecheck check-below internal-forms)
-         (utils tc-utils)
-         (rep type-rep values-rep)
+         "../private/parse-type.rkt"
+         "../private/syntax-properties.rkt"
+         "../private/type-annotation.rkt"
+         (only-in "../base-env/base-special-env.rkt" make-template-identifier)
+         "../env/lexical-env.rkt"
+         "../env/tvar-env.rkt"
+         "../env/global-env.rkt"
+         "../env/signature-env.rkt"
+         "../types/utils.rkt"
+         "../types/abbrev.rkt"
+         "../types/subtype.rkt"
+         "../types/resolve.rkt"
+         "../types/generalize.rkt"
+         "../types/signatures.rkt"
+         "check-below.rkt"
+         "internal-forms.rkt"
+         "../utils/tc-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
          (for-syntax racket/base racket/unit-exptime syntax/parse)
          (for-template racket/base
                        racket/unsafe/undefined

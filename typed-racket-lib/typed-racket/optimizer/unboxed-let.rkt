@@ -6,9 +6,15 @@
          racket/promise
          "../utils/utils.rkt"
          (for-template racket/base)
-         (types numeric-tower utils type-table)
-         (rep type-rep) (env mvar-env)
-         (optimizer utils logging float-complex unboxed-tables))
+         "../types/numeric-tower.rkt"
+         "../types/utils.rkt"
+         "../types/type-table.rkt"
+         "../rep/type-rep.rkt"
+         "../env/mvar-env.rkt"
+         "utils.rkt"
+         "logging.rkt"
+         "float-complex.rkt"
+         "unboxed-tables.rkt")
 
 (provide unboxed-let-opt-expr)
 

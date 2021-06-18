@@ -1,10 +1,15 @@
 #lang racket/base
 
 (require "../utils/utils.rkt"
-         (utils prefab)
-         (rep type-rep rep-utils type-mask)
+         "../utils/prefab.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/type-mask.rkt"
          (prefix-in c: (contract-req))
-         (types abbrev subtype resolve utils)
+         "abbrev.rkt"
+         "subtype.rkt"
+         "resolve.rkt"
+         "utils.rkt"
          racket/match)
 
 

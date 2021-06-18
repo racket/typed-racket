@@ -1,10 +1,10 @@
 #lang racket/base
 
 (require
- "../utils/utils.rkt"
  (for-template racket/base racket/list racket/unsafe/ops racket/flonum racket/extflonum racket/fixnum)
- (utils tc-utils) 
- (rename-in (types abbrev numeric-tower) [-Number N] [-Boolean B] [-Symbol Sym]))
+ "../utils/tc-utils.rkt"
+ (rename-in "../types/abbrev.rkt"  [-Boolean B] [-Symbol Sym])
+ (rename-in "../types/numeric-tower.rkt" [-Number N]))
 
 (provide indexing)
 

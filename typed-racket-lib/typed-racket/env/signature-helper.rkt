@@ -2,12 +2,11 @@
 
 ;; This module provides helper functions for typed signatures
 
-(require "../utils/utils.rkt"
-         syntax/id-set
-         (utils tc-utils)
-         (env signature-env)
-         (rep type-rep)
-         (private parse-type)
+(require syntax/id-set
+         "../utils/tc-utils.rkt"
+         "signature-env.rkt"
+         "../rep/type-rep.rkt"
+         "../private/parse-type.rkt"
          syntax/parse
          racket/list
          racket/match

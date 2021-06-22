@@ -654,6 +654,7 @@ functions and continuation mark functions.
                      mandatory-kw
                      opt-kw]
                 [rng type
+                     (code:line (Some (a ...) type : #:+ proposition))
                      (Values type ...)]
                 [mandatory-kw (code:line keyword type)]
                 [opt-kw [keyword type]]
@@ -746,6 +747,14 @@ functions and continuation mark functions.
 
   @ex[(: add2 (Number -> Number))
       (define (add2 n) (+ n 2))]
+
+  @margin-note{Currently, because explicit packing operations for existential types are
+  not supported, existential type results are only used to annotate accessors
+  for @racket[Struct-Property]}
+  @emph{(Some (a ...) type : #:+ proposition)} for @racket[rng] specifies an
+  @deftech[#:key "Some"]{existential type result}, where the type variables @racket[a ...] may appear
+  in @racket[type] and @racket[opt-proposition]. Unpacking the existential type
+  result is done automatically while checking application of the function.
 }
 
 @;; This is a trick to get a reference to ->* in another manual
@@ -863,14 +872,11 @@ functions and continuation mark functions.
                 0
                 (add1 (list-length (cdr lst)))))
           (list-length (list 1 2 3))]}
-          
-@defform*[[(Some (a ...) t)]]{ is an existential type where fresh variables
-@racket[a ...] may appear in @racket[t].  Currently there are no packing or
-unpacking expression for @racket[(Some (A) t)]. If @racket[t] is a function
-type and @racket[a ...] appear in the return type, unpacking is done
-automatically when the function is applied. Note that existential types are
-currently only used to type accessors for @racket[Struct-Property]}
 
+@defform[(Some (a ...) t)]{
+  See @tech[#:key "Some"]{existential type results}.
+}
+          
 @defform[(Values t ...)]{is the type of a sequence of multiple values, with
 types @racket[t ...].  This can only appear as the return type of a
 function.
@@ -993,7 +999,7 @@ prefab types with the (implicitly quoted) prefab-key
 
   @ex[(: prop:foo (Struct-Property (-> Self Number)))
       (: foo-pred (-> Any Boolean : (Has-Struct-Property prop:foo)))
-      (: foo-accessor (-> (Has-Struct-Property prop:foo) (Some (X) (-> X Number) : X)))
+      (: foo-accessor (-> (Has-Struct-Property prop:foo) (Some (X) (-> X Number) : #:+ X)))
       (define-values (prop:foo foo-pred foo-accessor) (make-struct-type-property 'foo))
      ]
   @history[#:added "1.10"]}

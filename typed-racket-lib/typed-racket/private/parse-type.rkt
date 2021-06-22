@@ -451,8 +451,7 @@
   (pattern (:*^ ~! n:exact-integer o:linear-expression)
            #:attr val (-lexp (list (syntax->datum #'n) (attribute o.val))))
   (pattern o:symbolic-object-w/o-lexp
-           #:attr val (attribute o.val))
-  )
+           #:attr val (attribute o.val)))
 
 
 (define-syntax-class symbolic-object-w/o-lexp
@@ -510,8 +509,7 @@
                             (not (subtype obj-ty -Int)))
            (format "terms in linear expressions must be integers, got ~a for ~a"
                    obj-ty obj)
-           #:attr val (attribute o.val))
-  )
+           #:attr val (attribute o.val)))
 
 ;; [Listof Object?] boolean? -> Object?
 ;; create (+ linear-exps ...) or (- linear-exps ...)

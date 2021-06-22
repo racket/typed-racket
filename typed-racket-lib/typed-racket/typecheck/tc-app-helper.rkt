@@ -91,8 +91,8 @@
                                               [ta (in-list/rest t-a Univ)])
                                     (values oa ta)))])
        (match (values->tc-results rng o-a t-a)
-         [(and (tc-results: (list (tc-result: t (PropSet: p+ _) _ #t)) _) res)
-          #:when (not (equal? p+ -ff))
+         [(and (tc-results: (list (tc-result: t (PropSet: p+ _) _ exi?)) _) res)
+          #:when (and (not (equal? p+ -ff)) (or exi? existential?))
           (lexical-env (env+ (lexical-env) (list p+)))
           res]
          [res res]))]

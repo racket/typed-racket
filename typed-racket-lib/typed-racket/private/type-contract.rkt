@@ -881,24 +881,24 @@
        ;; TODO sufficient condition, but may not be necessary
        [(has-optional-args? arrows)
         (define first-arrow (first arrows))
-       (define last-arrow (last arrows))
-       (define (convert-arrow)
-         (match-define (Arrow: first-dom _ kws
-                               (Values: (list (Result: rngs _ _) ...)))
-           first-arrow)
-         (define rst (Arrow-rst last-arrow))
-         ;; kws and rng same for all arrs
-         (define last-dom (Arrow-dom last-arrow))
-         (define mand-args (map t->sc/neg first-dom))
-         (define opt-args (map t->sc/neg (drop last-dom (length first-dom))))
-         (define-values (mand-kws opt-kws)
-           (let*-values ([(mand-kws opt-kws) (partition-kws kws)])
-             (values (map conv mand-kws)
-                     (map conv opt-kws))))
-         (define range (map t->sc rngs))
-         (define rest (and rst (t->sc/neg rst)))
-         (function/sc (from-typed? typed-side) (process-dom mand-args) opt-args mand-kws opt-kws rest range))
-       (handle-arrow-range first-arrow convert-arrow)]
+        (define last-arrow (last arrows))
+        (define (convert-arrow)
+          (match-define (Arrow: first-dom _ kws
+                                (Values: (list (Result: rngs _ _) ...)))
+            first-arrow)
+          (define rst (Arrow-rst last-arrow))
+          ;; kws and rng same for all arrs
+          (define last-dom (Arrow-dom last-arrow))
+          (define mand-args (map t->sc/neg first-dom))
+          (define opt-args (map t->sc/neg (drop last-dom (length first-dom))))
+          (define-values (mand-kws opt-kws)
+            (let*-values ([(mand-kws opt-kws) (partition-kws kws)])
+              (values (map conv mand-kws)
+                      (map conv opt-kws))))
+          (define range (map t->sc rngs))
+          (define rest (and rst (t->sc/neg rst)))
+          (function/sc (from-typed? typed-side) (process-dom mand-args) opt-args mand-kws opt-kws rest range))
+        (handle-arrow-range first-arrow convert-arrow)]
        [else
         (define/match (convert-single-arrow arr)
           [((Arrow: (list dom) rst kws (Values: (list (Result: rng (PropSet: (TypeProp: _ prop+type) _) _ 0)))))
@@ -948,21 +948,21 @@
                      (and rst (t->sc/neg rst))
                      (map t->sc rngs)))])
 
-       (define arities
-         (for/list ([t (in-list arrows)]) (length (Arrow-dom t))))
+        (define arities
+          (for/list ([t (in-list arrows)]) (length (Arrow-dom t))))
 
-       (define maybe-dup (check-duplicates arities))
-       (when maybe-dup
-         (fail #:reason (~a "function type has two cases of arity " maybe-dup)))
+        (define maybe-dup (check-duplicates arities))
+        (when maybe-dup
+          (fail #:reason (~a "function type has two cases of arity " maybe-dup)))
 
-       (if (= (length arrows) 1)
-           (handle-arrow-range (first arrows)
-                               (lambda ()
-                                 (convert-single-arrow (first arrows))))
-           (case->/sc (map (lambda (arr)
-                             (handle-arrow-range arr (lambda ()
-                                                       (convert-one-arrow-in-many arr))))
-                           arrows)))])]
+        (if (= (length arrows) 1)
+            (handle-arrow-range (first arrows)
+                                (lambda ()
+                                  (convert-single-arrow (first arrows))))
+            (case->/sc (map (lambda (arr)
+                              (handle-arrow-range arr (lambda ()
+                                                        (convert-one-arrow-in-many arr))))
+                            arrows)))])]
     [(DepFun/ids: ids dom pre rng)
      (define (continue)
        (match rng

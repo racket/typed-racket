@@ -906,13 +906,9 @@
            (let-values ([(mand-kws opt-kws) (partition-kws kws)])
              (arr-params->exist/sc opt-exi dom rst kws rng prop+type))]
 
-          [((Arrow: (list dom) rst kws (Values: (list (Result: rng (PropSet: (TypeProp: _ prop+type) _) _ n-exi)))))
-           #:when (> n-exi 0)
-           (let*-values ([(mand-kws opt-kws) (partition-kws kws)]
-                         [(n) (gensym)]
-                         [(var) (make-F n)])
-             (arr-params->exist/sc n dom rst kws (instantiate-type rng var)
-                                   (instantiate-type prop+type var)))]
+          [((Arrow: (list dom) rst kws (Values: (list (ExistentialResult: rng (PropSet: (TypeProp: _ prop+type) _) _ vars)))))
+           (let*-values ([(mand-kws opt-kws) (partition-kws kws)])
+             (arr-params->exist/sc (F-n (car vars)) dom rst kws rng prop+type))]
 
           [((Arrow: dom rst kws (Values: (list (Result: rngs _ _ n-exiss) ...))))
            (define-values (mand-kws opt-kws) (partition-kws kws))

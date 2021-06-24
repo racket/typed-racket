@@ -29,8 +29,11 @@
          def-prop
          def-object
          def-path-elem
+         make-ExitentialResult
          Result?
+         instantiate-result
          (rename-out [make-Result* make-Result]
+                     [ExistentialResult:* ExistentialResult:]
                      [Result:* Result:]))
 
 
@@ -222,17 +225,56 @@
 (define (make-Result* t ps o [n-existentials 0])
   (make-Result t ps o n-existentials))
 
+(lazy-require ["type-rep.rkt" (abstract-type abstract-propset instantiate-propset instantiate-type make-F)])
+
+(define type-var-name-table (make-hash))
+
+(define/cond-contract (make-ExitentialResult exi-syms t ps o)
+  (-> (listof symbol?) Type? PropSet? OptObject? Result?)
+  (define v (make-Result (abstract-type t exi-syms)
+                         (abstract-propset ps exi-syms)
+                         o
+                         (length exi-syms)))
+  (hash-set! type-var-name-table v exi-syms)
+  v)
+
+(define/cond-contract (instantiate-result result)
+  (-> Result? Result?)
+  (match-define (Result: type propset optobject n-existentials) result)
+  (cond
+    [(> n-existentials 0)
+     (define syms (hash-ref type-var-name-table result (build-list n-existentials (lambda _ (gensym)))))
+     (define vars (map make-F syms))
+     (make-Result (instantiate-type type vars) (instantiate-propset propset vars) optobject n-existentials)]
+    [else result]))
+
 (define-match-expander Result:*
   (lambda (stx)
     (syntax-case stx ()
       [(_ t ps o)
        #'(? Result? (app (lambda (result)
-                           (match-define (Result: type propset object _) result)
-                           (list type propset object))
+                           (match-define (Result: type propset optobject _) result)
+                           (list type propset optobject))
                          (list t ps o)))]
       [(_ t ps o n)
        #'(? Result? (app (lambda (result)
-                           (match-define (Result: type propset object n-existentials) result)
-                           (list type propset object n-existentials))
+                           (match-define (Result: type propset optobject n-existentials) result)
+                           (list type propset optobject n-existentials))
                          (list t ps o n)))])))
+
+(define-match-expander ExistentialResult:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ t ps o n)
+       #'(? Result? (app (lambda (result)
+                           (match-define (Result: type propset optobject n-existentials) result)
+                           (define syms (build-list n-existentials (lambda _ (gensym))))
+                           (define vars (map make-F syms))
+                           (list (instantiate-type type vars) (instantiate-propset propset vars) optobject vars))
+                         (list t ps o
+                               (? (lambda (l)
+                                    (and (not (null? l)) l))
+                                  n))))])))
+
+
 

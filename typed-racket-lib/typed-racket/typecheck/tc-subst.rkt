@@ -58,7 +58,7 @@
   (define res->tc-res
     (match-lambda
       [(Result: t ps o n-exi) (-tc-result t ps o (not (zero? n-exi)))]))
-  
+
   (match (instantiate-obj+simplify v subst)
     [(AnyValues: p)
      (-tc-any-results p)]

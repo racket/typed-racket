@@ -2385,16 +2385,17 @@
 ;; Section 13.8
 [prop:custom-write (-struct-property (-> -Self -Output-Port (Un B (-val 1) (-val 0)) ManyUniv)
                                      #'custom-write?)]
-[custom-write? (-> Univ B : (-has-struct-property prop:custom-write))]
-[custom-write-accessor (-some (me) (-> (-has-struct-property prop:custom-write) (-> me -Output-Port (Un B (-val 1) (-val 0)) ManyUniv) : me))]
+[custom-write? (make-pred-ty (-has-struct-property #'prop:custom-write))]
+[custom-write-accessor (-> (-has-struct-property #'prop:custom-write)
+                           (-some-res (me) (-> me -Output-Port (Un B (-val 1) (-val 0)) ManyUniv) : #:+ me))]
 
 [prop:custom-print-quotable (-struct-property (Un (-val 'self)
                                                   (-val 'never)
                                                   (-val 'maybe)
                                                   (-val 'always))
                                               #'custom-print-quotable?)]
-[custom-print-quotable? (-> Univ B : (-has-struct-property prop:custom-print-quotable))]
-[custom-print-quotable-accessor (-> (-has-struct-property prop:custom-print-quotable)
+[custom-print-quotable? (make-pred-ty (-has-struct-property #'prop:custom-print-quotable))]
+[custom-print-quotable-accessor (-> (-has-struct-property #'prop:custom-print-quotable)
                                     (Un (-val 'self)
                                         (-val 'never)
                                         (-val 'maybe)

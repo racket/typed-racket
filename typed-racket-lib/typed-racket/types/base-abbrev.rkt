@@ -365,8 +365,7 @@
      (let* ([n (length '(vars ...))]
             [vars (-v vars)] ...)
        (make-Values (list
-                     (make-Result (abstract-type ty (list 'vars ...))
-                                  (-PS (-is-type 0 (abstract-type prop+type (list 'vars ...)))
-                                       -tt)
-                                  -empty-obj
-                                  n))))]))
+                     (make-ExitentialResult (list 'vars ...) ty
+                                            (-PS (-is-type 0 prop+type)
+                                                 -tt)
+                                            -empty-obj))))]))

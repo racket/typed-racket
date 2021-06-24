@@ -1074,17 +1074,11 @@
        (extend-tvars syms
                      (cond
                        [(attribute rng.prop-type)
-                        (define body-type (abstract-type (parse-type (attribute rng.t)) syms))
-                        ;; since `abstract-prop` doesn't exist, abstract-type
-                        ;; doesn't take a path rep, and abstract-obj simply
-                        ;; returns the input rep, we have to abstract the type
-                        ;; before packing it into the proposition.
-                        (define prop-type (abstract-type (parse-type (attribute rng.prop-type)) syms))
-                        (make-Result body-type
-                                     (-PS (-is-type 0 prop-type)
-                                          -tt)
-                                     -empty-obj
-                                     (length (attribute rng.vars)))]
+                        (make-ExitentialResult syms
+                                               (parse-type (attribute rng.t))
+                                               (-PS (-is-type 0 (parse-type (attribute rng.prop-type)))
+                                                    -tt)
+                                               -empty-obj)]
                        [else
                         (parse-type (attribute rng.t))]))]
       [(~or (:->^ dom:non-keyword-ty ... kws:keyword-tys ... rng)

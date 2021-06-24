@@ -68,6 +68,9 @@
          save-term-var-names!
          instantiate-type
          abstract-type
+         abstract-type-in-prop
+         abstract-propset
+         instantiate-propset
          instantiate-obj
          abstract-obj
          substitute-names
@@ -1434,7 +1437,40 @@
          [else default]))
      (type-var-transform initial instantiate-idx)]))
 
+(define/cond-contract (abstract-type-in-prop initial names-to-abstract)
+  (-> Prop? (or/c symbol? (listof symbol?)) Prop?)
+  (match initial
+    [(? TypeProp? prop) (TypeProp-update prop type
+                                         (lambda (old-ty)
+                                           (abstract-type old-ty names-to-abstract)))]
+    [tp #:when (or (equal? -tt tp) (equal? -ff tp)) tp]
+  ;; TODO finish the function for other types of props
+    [tp tp]))
 
+
+(define/cond-contract (abstract-propset initial names-to-abstract)
+  (-> PropSet? (or/c symbol? (listof symbol?)) PropSet?)
+  (PropSet-update initial thn els
+                  (lambda (old-p+ old-p-)
+                    (values (abstract-type-in-prop old-p+ names-to-abstract)
+                            (abstract-type-in-prop old-p- names-to-abstract)))))
+
+(define/cond-contract (instantiate-type-in-prop initial images)
+  (-> Prop? (or/c Type? (listof Type?)) Prop?)
+  (match initial
+    [(? TypeProp? prop) (TypeProp-update prop type
+                                         (lambda (old-ty)
+                                           (instantiate-type old-ty images)))]
+    [tp #:when (or (equal? -tt tp) (equal? -ff tp)) tp]
+    ;; TODO finish the function for other types of props
+    [tp tp]))
+
+(define/cond-contract (instantiate-propset initial images)
+  (-> PropSet? (or/c Type? (listof Type?)) PropSet?)
+  (PropSet-update initial thn els
+                  (lambda (old-p+ old-p-)
+                    (values (instantiate-type-in-prop old-p+ images)
+                            (instantiate-type-in-prop old-p- images)))))
 
 ;; type-var-transform
 ;;

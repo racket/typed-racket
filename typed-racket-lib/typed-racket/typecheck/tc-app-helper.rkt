@@ -10,6 +10,7 @@
          "possible-domains.rkt"
          "../utils/tc-utils.rkt"
          "../rep/type-rep.rkt"
+         (only-in "../rep/core-rep.rkt" instantiate-result)
          "../rep/prop-rep.rkt"
          "../rep/values-rep.rkt"
          "../types/utils.rkt"
@@ -90,12 +91,19 @@
                                               [oa (in-list/rest o-a -empty-obj)]
                                               [ta (in-list/rest t-a Univ)])
                                     (values oa ta)))])
-       (match (values->tc-results rng o-a t-a)
-         [(and (tc-results: (list (tc-result: t (PropSet: p+ _) _ exi?)) _) res)
-          #:when (and (not (equal? p+ -ff)) (or exi? existential?))
-          (lexical-env (env+ (lexical-env) (list p+)))
-          res]
-         [res res]))]
+       (let ([rng  (match rng
+                     [(Values: (list res))
+                      ;; if the range is an existential result, we need to
+                      ;; instantiate it with the original names so as to make the
+                      ;; error message readable.
+                      (make-Values (list (instantiate-result res)))]
+                     [_ rng])])
+         (match (values->tc-results rng o-a t-a)
+           [(and (tc-results: (list (tc-result: t (PropSet: p+ _) _ exi?)) _) res)
+            #:when (and (not (equal? p+ -ff)) (or exi? existential?))
+            (lexical-env (env+ (lexical-env) (list p+)))
+            res]
+           [res res])))]
     ;; this case should only match if the function type has mandatory keywords
     ;; but no keywords were provided in the application
     [((Arrow: _ _ kws _) _)

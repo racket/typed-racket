@@ -1,5 +1,5 @@
 #;
-(exn-pred "Type Checker: type mismatch")
+(exn-pred "Type Checker: type mismatch.*expected: X.*given: posn")
 #lang typed/racket
 
 (: prop-ins-to-num (Struct-Property (-> Self Number)))

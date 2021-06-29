@@ -24,7 +24,6 @@
   new-subtype-def
   type-refinement
   typed-struct
-  typed-struct/exec
   typed-require
   typed-require/struct
   predicate-assertion
@@ -37,7 +36,6 @@
   type-alias?
   new-subtype-def?
   typed-struct?
-  typed-struct/exec?
   typed-define-signature?
   typed-define-values/invoke-unit?)
 
@@ -60,7 +58,6 @@
                   define-new-subtype-internal
                   define-type-internal
                   define-typed-struct-internal
-                  define-typed-struct/exec-internal
                   assert-predicate-internal
                   declare-refinement-internal
                   :-internal
@@ -163,8 +160,6 @@
     (declare-refinement-internal predicate)]
   [typed-struct
     (define-typed-struct-internal . :define-typed-struct-body)]
-  [typed-struct/exec
-   (define-typed-struct/exec-internal nm:struct-name type-name ([fields:id : types] ...) proc-type)]
   [typed-require
     (require/typed-internal name type)]
   [typed-require/struct

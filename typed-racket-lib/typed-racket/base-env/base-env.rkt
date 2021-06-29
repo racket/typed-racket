@@ -696,11 +696,11 @@
                  (cl->* ((-lst a) Univ . -> . (-opt -Index))
                         ((-lst a) b (-> a b Univ)
                            . -> . (-opt -Index))))]
-[index-where (-poly (a b)
-                    (Univ (-lst a)
-                          (-> a Univ)
-                          . -> .
-                          (-opt -Index)))]
+[index-where (-poly (a)
+                    ((-lst a)
+                     (-> a Univ)
+                     . -> .
+                     (-opt -Index)))]
 
 [list? (make-pred-ty (-lst Univ))]
 [list (-poly (a) (->* '() a (-lst a)))]

@@ -67,20 +67,12 @@
                   #:extra-maker (attribute t.extra-maker)
                   #:type-only (attribute t.type-only)
                   #:prefab? (attribute t.prefab)
-                  #:properties (attribute t.properties))]
-      [t:typed-struct/exec
-       (match-define (list* _ extra-maker __) (extract-struct-info (struct-info-property #'t.nm)))
-       (tc/struct null #'t.nm #'t.type-name
-                  (syntax->list #'(t.fields ...)) (syntax->list #'(t.types ...))
-                  #:proc-ty #'t.proc-type
-                  #:maker #'t.nm.nm
-                  #:extra-maker extra-maker)])))
+                  #:properties (attribute t.properties))])))
 
 
 (define (type-vars-of-struct form)
   (syntax-parse form
-    [t:typed-struct (attribute t.tvars)]
-    [t:typed-struct/exec null]))
+    [t:typed-struct (attribute t.tvars)]))
 
 ;; syntax? -> (listof def-binding?)
 (define (tc-toplevel/pass1 form)
@@ -139,7 +131,7 @@
          (list (make-def-binding #'r.name mk-ty)))]
 
       ;; define-typed-struct (handled earlier)
-      [(~or _:typed-struct _:typed-struct/exec)
+      [_:typed-struct
        (list)]
 
       ;; predicate assertion - needed for define-type b/c or doesn't work
@@ -300,8 +292,8 @@
        ;; uses them to check if struct property values are well-typed.
        (cond
          [(syntax-property #'stx 'tc-struct)
-          => (λ (name)
-               (tc/struct-prop-values #'stx name))])
+          => (λ (tname)
+               (tc/struct-prop-values #'stx tname))])
        'no-type]
 
       ;; this is a form that we mostly ignore, but we check some interior parts
@@ -395,7 +387,7 @@
     (filter-multiple
      forms
      type-alias?
-     (lambda (e) (or (typed-struct? e) (typed-struct/exec? e)))
+     typed-struct?
      parse-syntax-def
      parse-def
      provide?
@@ -659,7 +651,7 @@
   (tc-toplevel/pass1 form)
   (tc-toplevel/pass1.5 form)
   (begin0 (tc-toplevel/pass2 form #f)
-          (report-all-errors)))
+    (report-all-errors)))
 
 ;; handle-define-new-subtype/pass1 : Syntax -> Empty
 (define (handle-define-new-subtype/pass1 form)

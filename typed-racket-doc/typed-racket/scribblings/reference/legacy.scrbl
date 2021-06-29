@@ -131,6 +131,20 @@ preferred to use of @racket[define:].
       (func first rest))]
 }
 
+@defform/subs[#:literals (:)
+(define-struct/exec name-spec ([f : t] ...) [e : proc-t] maybe-type-name)
+([name-spec name-id (code:line (name-id parent))]
+ [maybe-type-name (code:line)
+                  (code:line #:type-name type-id)])]{
+Equivalent to using @racket[define-struct] to define a structure with
+the property @racket[prop:procedure] supplied with the procedure @racket[e] of
+type @racket[proc-t].
+
+@history[#:changed "1.13" @elem{Deprecated}]
+@history[#:changed "1.4" @elem{Added the @racket[#:type-name] option.}]}
+
+
+
 @defalias[struct: struct]
 @defalias[define-struct: define-struct]
 @defalias[define-struct/exec: define-struct/exec]

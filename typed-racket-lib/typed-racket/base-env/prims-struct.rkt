@@ -30,7 +30,7 @@
 (begin-for-syntax
   (lazy-require [syntax/struct (build-struct-names)]))
 
-(provide define-typed-struct -struct define-typed-struct/exec dtsi* dtsi/exec*
+(provide define-typed-struct -struct define-typed-struct/exec dtsi*
          define-type-alias define-new-subtype
          (for-syntax type-name-error))
 
@@ -114,13 +114,9 @@
   (syntax-parse stx #:literals (:)
     [(_ nm:struct-name ((~describe "field specification" [fld:optionally-annotated-name]) ...)
         [proc : proc-ty] (~optional (~seq #:type-name type:id)))
-     (with-syntax*
-      ([type (or (attribute type) #'nm.name)]
-       [proc* (with-type* #'proc #'proc-ty)]
-       [d-s (ignore-some (syntax/loc stx (define-struct nm (fld.name ...)
-                                           #:property prop:procedure proc*)))]
-       [dtsi (quasisyntax/loc stx (dtsi/exec* () nm type (fld ...) proc-ty))])
-       #'(begin d-s dtsi))]))
+     (with-syntax* ([type (or (attribute type) #'nm.name)]
+                    [proc* (with-type* #'proc #'proc-ty)])
+       #'(define-typed-struct nm (fld ...) #:type-name type #:property prop:procedure proc*))]))
 
 (define-for-syntax (mk-maybe-type-name-def stx name type-name si sname-is-constr?)
   (cond
@@ -155,21 +151,6 @@
                                         (not (attribute rst.maker))
                                         (free-identifier=? (attribute rst.maker) #'nm.name))
                                     #t)))
-
-     #`(begin #,(internal def)
-              maybe-type-name-def)]))
-
-
-(define-syntax (dtsi/exec* stx)
-  (syntax-parse stx
-    [(_ (vars:id ...) nm:dtsi-struct-name type-name:id . rst)
-     (define def
-       (quasisyntax/loc stx
-         (define-typed-struct/exec-internal
-          #,(struct-info-property #'nm (attribute nm.value)) type-name . rst)))
-
-     (define/with-syntax maybe-type-name-def
-       (mk-maybe-type-name-def stx #'nm.name #'type-name (attribute nm.value) #f))
 
      #`(begin #,(internal def)
               maybe-type-name-def)]))

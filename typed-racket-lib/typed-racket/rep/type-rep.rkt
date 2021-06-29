@@ -78,11 +78,19 @@
          DepFun/ids:
          Some-names:
          Struct-Property?
+         Struct-name
+         Struct?
+         Struct-flds
+         Struct-subflds
+         Struct-update-proc!
          (rename-out [Union:* Union:]
                      [Intersection:* Intersection:]
                      [make-Intersection* make-Intersection]
                      [Class:* Class:]
                      [Class* make-Class]
+                     [Struct:* Struct:]
+                     [Struct-proc* Struct-proc]
+                     [make-Struct* make-Struct]
                      [Row* make-Row]
                      [Mu:* Mu:]
                      [Poly:* Poly:]
@@ -744,7 +752,7 @@
 
    ;; when a struct type property is annotated via require/typed, the pred-id is
    ;; immediately set.
-   [pred-id (box/c (or/c identifier? false/c))]) 
+   [pred-id (box/c (or/c identifier? false/c))])
   #:no-provide
   [#:frees (f) (f elem)]
   [#:fmap (f) (make-Struct-Property (f elem) pred-id)]
@@ -785,18 +793,26 @@
 ;; pred-id : identifier for the predicate of the struct
 (def-type Struct ([name identifier?]
                   [parent (or/c #f Struct?)]
+                  ;; include all fields from base structures
                   [flds (listof fld?)]
-                  [proc (or/c #f Fun?)]
+                  ;; unless a struct extends a cross-module procedural struct,
+                  ;; we can only put a function type of this box when checking the property value
+                  ;; for prop:procedure, which happens after a Struct rep
+                  ;; instance is created.
+                  [proc (box/c (or/c #f Fun?))]
                   [poly? boolean?]
                   [pred-id identifier?]
                   [properties (free-id-set/c identifier?)])
-  [#:frees (f) (combine-frees (map f (append (if proc (list proc) null)
+  #:no-provide
+  [#:frees (f) (combine-frees (map f (append (let ([bv (unbox proc)])
+                                               (if bv (list bv) null))
                                              (if parent (list parent) null)
                                              flds)))]
   [#:fmap (f) (make-Struct name
                            (and parent (f parent))
                            (map f flds)
-                           (and proc (f proc))
+                           (let ([bv (unbox proc)])
+                             (box (and bv (f bv))))
                            poly?
                            pred-id
                            properties)]
@@ -810,6 +826,36 @@
    (let ([name (normalize-id name)]
          [pred-id (normalize-id pred-id)])
      (make-Struct name parent flds proc poly? pred-id properties))])
+
+
+(define/cond-contract (Struct-proc* sty)
+  (-> Struct? (or/c #f Fun?))
+  (define b (Struct-proc sty))
+  (and b (unbox b)))
+
+;; returns non-inherited fields of a structure
+(define/cond-contract (Struct-subflds sty)
+  (-> Struct? (listof fld?))
+  (define all-flds (Struct-flds sty))
+  (define offset
+    (cond
+      [(Struct-parent sty) => (lambda (psty)
+                                (length (Struct-flds psty)))]
+      [else 0]))
+  (drop all-flds offset))
+
+(define (make-Struct* name parent flds proc poly? pred-id properties)
+  (make-Struct name parent flds (box proc) poly? pred-id properties))
+
+(define (Struct-update-proc! sty ty)
+  (define bv (Struct-proc sty))
+  (set-box! bv ty))
+
+(define-match-expander Struct:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ name parent flds proc poly? pred-id properties)
+       #'(Struct: name parent flds (box proc) poly? pred-id properties)])))
 
 
 (def-type StructTop ([name Struct?])

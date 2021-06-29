@@ -295,10 +295,6 @@
               (tc/funapp f-stx args-stx (subst-all substitution f-ty)
                          args-res expected)]
              [else (fail)])]
-      ;; procedural structs
-      [(Struct: _ _ _ (? Fun? proc-ty) _ _ _)
-       (tc/funapp f-stx #`(#,(syntax/loc f-stx dummy) . #,args-stx) proc-ty
-                  (cons (ret f-type) args-res) expected)]
       ;; parameters are functions too
       [(Param: in out)
        (match argtys

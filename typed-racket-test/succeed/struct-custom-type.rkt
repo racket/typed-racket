@@ -9,4 +9,4 @@
   [(λ (e x) (add1 x)) : (Exec Real -> Real)]
   #:type-name Exec)
 
-((ann (exec) Exec) 3)
+((ann (exec) (Intersection Exec (Real . -> . Real))) 3)

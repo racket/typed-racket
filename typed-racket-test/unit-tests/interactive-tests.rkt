@@ -100,7 +100,7 @@
     (test-form #rx"^$"
                (struct foo ()))
 
-    
+
     (test-form #rx"^$"
                (begin
                  (: prop (Struct-Property (-> Self Number)))
@@ -208,5 +208,4 @@
     (test-form #rx"^$"
       (require 'mod-a))
     (test-form (regexp-quote "Nothing")
-      (:type (Bar Symbol)))
-    ))
+               (:type (Bar Symbol)))))

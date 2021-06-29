@@ -482,16 +482,6 @@ Legacy version of @racket[struct], corresponding to @|define-struct-id|
 from @racketmodname[racket/base].
 @history[#:changed "1.4" @elem{Added the @racket[#:type-name] option.}]}
 
-@defform/subs[#:literals (:)
-(define-struct/exec name-spec ([f : t] ...) [e : proc-t] maybe-type-name)
-([name-spec name-id (code:line (name-id parent))]
- [maybe-type-name (code:line)
-                  (code:line #:type-name type-id)])]{
- Like @racket[define-struct], but defines a procedural structure.
- The procedure @racket[e] is used as the value for @racket[prop:procedure],
- and must have type @racket[proc-t].
-@history[#:changed "1.4" @elem{Added the @racket[#:type-name] option.}]}
-
 @section{Names for Types}
 @defform*[[(define-type name t maybe-omit-def)
            (define-type (name v ...) t maybe-omit-def)]

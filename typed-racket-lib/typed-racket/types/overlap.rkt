@@ -8,7 +8,7 @@
          (prefix-in c: (contract-req))
          "abbrev.rkt"
          "subtype.rkt"
-         "resolve.rkt"
+         "resolve.rkt" 
          "utils.rkt"
          racket/match)
 

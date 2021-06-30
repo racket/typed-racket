@@ -216,9 +216,10 @@
     [(_ rep ins fld ... update-fn)
      (with-syntax ([(new-val ...) (generate-temporaries #'(fld ...))]
                    [(old-val ...) (generate-temporaries #'(fld ...))])
-       #'(begin (match-define (struct* rep ([fld old-val] ...)) ins)
-                (define-values (new-val ...) (update-fn old-val ...))
-                (struct-copy rep ins [fld new-val] ...)))]))
+       #'(let ()
+           (match-define (struct* rep ([fld old-val] ...)) ins)
+           (define-values (new-val ...) (update-fn old-val ...))
+           (struct-copy rep ins [fld new-val] ...)))]))
 
 (define-syntax (Rep-updator stx)
   (syntax-case stx ()

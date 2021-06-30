@@ -27,7 +27,7 @@
 
 (provide/cond-contract
   [tc/funapp
-   (syntax? stx-list? Type? (c:listof tc-results1/c) (c:or/c #f tc-results/c)
+   (syntax? (c:or/c (c:listof syntax?) (c:and/c syntax? stx-list?)) Type? (c:listof tc-results1/c) (c:or/c #f tc-results/c)
             . c:-> . full-tc-results/c)])
 
 ;; macro that abstracts the common structure required to iterate over
@@ -332,6 +332,16 @@
         (string-append "Cannot infer type instantiation for type ~a. Please add "
                        "more type annotations")
         f-type)]
+      [(Intersection: ts^ _)
+       (define li-arr
+         (append-map (match-lambda
+                       [(Fun: (list arrows ...)) arrows]
+                       [_ null])
+                     ts^))
+
+       (if (null? li-arr)
+           (failure-cont)
+           (tc/funapp f-stx args-stx (make-Fun li-arr) args-res expected))]
       [_
        (tc-error/expr
         "Cannot apply expression of type ~a, since it is not a function type"

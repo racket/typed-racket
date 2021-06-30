@@ -883,6 +883,24 @@
                         12))
               -Number]
 
+        ;; test application for function types in intersection types
+        [tc-e/t (let ()
+                  (tr:lambda ([f : (Intersection (-> String Void) (-> String Natural Void))]) : Void
+                             (f "10"))
+                  42)
+                -PosByte]
+
+        [tc-e/t (let ()
+                  (tr:lambda ([f : (Intersection (case->
+                                                  [-> Number Void]
+                                                  [-> Boolean Void])
+                                                 (-> String Void))]) : Void
+                             (f "10")
+                             (f 20)
+                             (f #t))
+                  42)
+                -PosByte]
+
 
         [tc-e null #:ret (tc-ret (-val null) -true-propset (-id-path #'null))]
 

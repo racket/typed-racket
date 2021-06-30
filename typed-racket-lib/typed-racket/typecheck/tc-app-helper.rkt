@@ -25,7 +25,7 @@
 
 (provide/cond-contract
   [tc/funapp1
-    ((syntax? stx-list? Arrow? (listof tc-results/c) (or/c #f tc-results/c))
+   ((syntax? (or/c (listof syntax?) (and/c syntax? stx-list?)) Arrow? (listof tc-results/c) (or/c #f tc-results/c))
      (#:check boolean?
       #:existential? boolean?)
      . ->* . full-tc-results/c)])

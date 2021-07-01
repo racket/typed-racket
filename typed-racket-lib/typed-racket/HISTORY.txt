@@ -1,7 +1,7 @@
 8.2
 - more consistently refine field types of non-polymorphic structs
 - move existential handling to return types
-- propagate control-flow refinements for letrec-values
+- propagate control-flow refinements for let-values and letrec-values
 8.1
 - support for/fold[r]{*,}
 - Bug fixes and improvements for struct name handling

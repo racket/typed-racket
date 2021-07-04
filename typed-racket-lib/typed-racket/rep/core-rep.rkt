@@ -71,6 +71,7 @@
          (begin (struct name ()
                   #:constructor-name mk
                   #:transparent
+                  #:authentic
                   #:property prop:custom-print-quotable 'never
                   #:methods gen:custom-write
                   ;; Note: We eta expand the printer so it is not evaluated until needed.

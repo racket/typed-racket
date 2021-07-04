@@ -481,6 +481,7 @@
         [(extra-defs ...) (if (attribute extras) #'extras #'())]
         [struct-def #'(struct var.name parent ... (flds.ids ...)
                         maybe-transparent ...
+                        #:authentic
                         #:constructor-name constructor-name
                         #:property prop:uid uid-id
                         #:property prop:mask rep-mask-body

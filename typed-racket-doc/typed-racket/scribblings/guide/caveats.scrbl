@@ -100,8 +100,7 @@ illustrates a type for which a predicate can't be generated:
 
 @section{Unsupported features}
 
-Most structure type properties do not work in Typed Racket, including
-support for generic interfaces.
+Typed Racket currently does not support generic interfaces.
 
 @section{Type generalization}
 

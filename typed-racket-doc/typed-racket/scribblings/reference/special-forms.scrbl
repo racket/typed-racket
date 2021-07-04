@@ -804,5 +804,47 @@ Performs type checking of forms entered at the read-eval-print loop.  The
 @racket[#%top-interaction] form also prints the type of @racket[form] after
 type checking.}
 
+@section{Special Structure Type Properties}
+@defthing[prop:procedure struct-type-property?]{
+Unlike many other structure type properties, @racket[prop:procedure] does not
+have predefined types for its property values. When a structure is assocatied
+with @racket[prop:procedure], its constructors' return type is an intersection
+type of the structure type and a function type specified by the property
+value.
+}
+
+@ex[
+(struct animal ([a : Number] [b : (-> Number Number)])
+  #:property prop:procedure
+  (struct-field-index b))
+(animal 2 add1)
+(struct plant ([a : Number])
+  #:property prop:procedure
+  (lambda ([me : plant] [a1 : String]) : Number
+    (+ (plant-a me) (string-length a1))))
+(plant 31)
+]
+
+Like for other structure type properties, when a structure's base structure
+specifies a value for @racket[prop:procedure], the structure inherits that
+value if it does not specify its own value.
+
+@ex[
+(struct cat animal ([c : Number]))
+(cat 2 add1 42)
+(struct a-cat cat ())
+(a-cat 2 add1 42)
+]
+
+Function types for procedural structures do not enforce subtyping relations. A
+substructure can be associcated with a different field index for
+@racket[prop:procedure] or a procedure that has a different arity or takes
+different types arguments from from base structures'
+
+@ex[
+(struct b-cat cat ([d : (-> Number String)])
+   #:property prop:procedure (struct-field-index d))
+(b-cat 2 add1 42 number->string)
+]
 
 @(close-eval the-eval)

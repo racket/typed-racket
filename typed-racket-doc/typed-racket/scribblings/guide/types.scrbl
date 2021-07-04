@@ -157,6 +157,66 @@ Instances of this structure, such as @racket[(point 7 12)], have type @racket[po
 If a struct supertype is provided, then the newly defined type
 is a @tech{subtype} of the parent.
 
+@subsection{Types for Structure Type Properties}
+
+To annotate a new structure type property created by
+@racket[make-struct-type-property], it must be defined via
+@racket[define-values] at the top level or module level:
+
+@examples[#:eval the-eval #:label #f
+    (: prop:foo (Struct-Property (-> Self Number)))
+    (: foo-pred (-> Any Boolean : (Has-Struct-Property prop:foo)))
+    (: foo-accessor (-> (Has-Struct-Property prop:foo)
+                        (Some (X) (-> X Number) : #:+ X)))
+    (define-values (prop:foo foo-pred foo-accessor)
+                   (make-struct-type-property 'foo))]
+
+@racket[Struct-Property] creates a type for a structure type property
+descriptor and its argument is the expected type for property values. In
+particular, when a structure type property expects a function to be applied
+with the receiver, a structure instance the property value is extracted from,
+@racket[Self] is used to denotes the receiver type. For a value in supplied in
+a @racket[struct] definition for such a property, we use the structure type for
+a by-position parameter for @racket[Self]:
+
+@examples[#:eval the-eval #:label #f
+  (eval:no-prompt (struct apple ([a : Number])
+                     #:property prop:foo
+                     (lambda ([me : apple]) : Number
+                         (apple-a me))))
+]
+
+A property @seclink["propositions-and-predicates"]{predicate} tells the
+arguments variable is a @racket[Has-Struct-Property] if the predicate check
+succeeds. @racket[Has-Struct-Property] describes a
+@seclink["Subtyping"]{subtyping} relation between structure types and
+properties attached to them. In the example above, @racket[apple] is a subtype
+of @racket[(Has-Struct-Property prop:foo)]
+
+
+For a property accessor procedure, the argument must have a
+@racket[Has-Struct-Property] type. If a property expects a value to be a
+function called with the receiver, i.e. @racket[Self] appears in the type of
+the corresponding property descriptor, an @tech[#:doc '(lib
+"typed-racket/scribblings/ts-reference.scrbl") #:key "Some"]{existential type
+result} is required. Its quantifier needs to correspond to @racket[Self] and
+also appear in the @racket[proposition]. Such a return type ensures that the
+extracted function cannot be called with another instance of the structure type
+or substructure types other than the receiver:
+
+@examples[#:eval the-eval #:label #f
+  (let ([a1 : apple (apple 42)])
+    ((foo-accessor a1) a1))
+
+  (eval:error
+    (let ([a1 : apple (apple 42)])
+      ((foo-accessor a1) (apple 10))))
+]
+
+Otherwise, the return type should be the same as the type argument to
+@racket[Struct-Property] for the descriptor.
+
+
 @section{Subtyping}
 
 In Typed Racket, all types are placed in a hierarchy, based on what

@@ -755,6 +755,8 @@ functions and continuation mark functions.
   @deftech[#:key "Some"]{existential type result}, where the type variables @racket[a ...] may appear
   in @racket[type] and @racket[opt-proposition]. Unpacking the existential type
   result is done automatically while checking application of the function.
+
+  @history[#:changed "1.12" @elem{Added [#:key "Some"]{existential type results}}]
 }
 
 @;; This is a trick to get a reference to ->* in another manual
@@ -875,8 +877,9 @@ functions and continuation mark functions.
 
 @defform[(Some (a ...) t)]{
   See @tech[#:key "Some"]{existential type results}.
+  @history[#:added "1.10"]
 }
-          
+
 @defform[(Values t ...)]{is the type of a sequence of multiple values, with
 types @racket[t ...].  This can only appear as the return type of a
 function.
@@ -994,14 +997,6 @@ prefab types with the (implicitly quoted) prefab-key
 
   @ex[(:print-type prop:input-port)]
 
-  To annotate a new struct property, the type declaration of the property must
-  come before its definition.
-
-  @ex[(: prop:foo (Struct-Property (-> Self Number)))
-      (: foo-pred (-> Any Boolean : (Has-Struct-Property prop:foo)))
-      (: foo-accessor (-> (Has-Struct-Property prop:foo) (Some (X) (-> X Number) : #:+ X)))
-      (define-values (prop:foo foo-pred foo-accessor) (make-struct-type-property 'foo))
-     ]
   @history[#:added "1.10"]}
 
 @defidform[Self]{

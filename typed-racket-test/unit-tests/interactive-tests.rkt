@@ -198,6 +198,19 @@
     (test-form #rx"not in the given function's range"
       (:query-type/result syntax-local-expand-expression Boolean))
 
+    (test-form-exn (regexp (regexp-quote "expected: (-> john-doe Output-Port (U Boolean One Zero) AnyValues)"))
+      (struct john-doe () #:property prop:custom-write (lambda ([a : Integer] [b : Integer] [c : Integer]) : Void
+                                                         (void))))
+    (test-form #rx"^$"
+      (struct animal ([a : Number] [b : (-> Number Number)]) #:property prop:procedure (struct-field-index b)))
+
+    (test-form #rx"^$"
+      (struct cat animal ([c : Number])))
+
+    (test-form #rx"^$"
+      (struct c-cat cat ([d : (-> Symbol String)]) #:property prop:procedure (struct-field-index d)))
+    (test-form #rx"String"
+      ((c-cat 2 add1 42 symbol->string) 'aabbcc))
     ;; TR GH issues 541 and 532.
     (test-form
      #rx"^$"

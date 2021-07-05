@@ -315,7 +315,7 @@
        #:do [(register-ignored! #'expr)]
        'no-type]
 
-      ;; handle definitions that use make-struct-type-property 
+      ;; handle definitions that use make-struct-type-property
       [(define-values (prop prop-pred prop-ref) expr:sp-creator)
        #:do [(register-ignored! #'expr)]
 
@@ -628,6 +628,10 @@
   (syntax-parse stx
     [(pmb . forms) (begin0 (type-check #'forms) (do-time "finished type checking"))]))
 
+;; [struct-type-name] -> [listof(form)]
+;; stores the forms/expressions before `define-internal-typed-struct`
+(define toplevel-struct-making-tbl (make-free-id-table))
+
 ;; typecheck a top-level form that does not have any
 ;; top-level `begin`s
 ;; used only from #%top-interaction
@@ -639,19 +643,37 @@
       (get-type-alias-info (list form)))
     (register-all-type-aliases alias-names alias-map))
   ;; Handle struct definitions
-  (when (typed-struct? form)
-    (define name (name-of-struct form))
-    (define tvars (type-vars-of-struct form))
-    (register-type-name name)
-    (add-constant-variance! name tvars)
-    (define parsed (parse-typed-struct form))
-    (register-parsed-struct-sty! parsed)
-    (refine-struct-variance! (list parsed))
-    (register-parsed-struct-bindings! parsed))
-  (tc-toplevel/pass1 form)
-  (tc-toplevel/pass1.5 form)
-  (begin0 (tc-toplevel/pass2 form #f)
-    (report-all-errors)))
+  (cond
+    ;; some expanded forms from a struct defintions must be delayed to check.
+    ;; In particular, checking property values must come after the structure type is registered.
+    [(syntax-property form 'tc-struct) => (lambda (type-name)
+                                            (free-id-table-update! toplevel-struct-making-tbl type-name
+                                                                   (lambda (old)
+                                                                     (cons form old))
+                                                                   null)
+                                            'no-type)]
+    [else
+     (when (typed-struct? form)
+       (define name (name-of-struct form))
+       (define tvars (type-vars-of-struct form))
+       (register-type-name name)
+       (add-constant-variance! name tvars)
+       (define parsed (parse-typed-struct form))
+       (register-parsed-struct-sty! parsed)
+       (refine-struct-variance! (list parsed))
+       (register-parsed-struct-bindings! parsed))
+     (define all-forms (cond
+                         [(typed-struct? form)
+                          ;; after a struct type is registered, check the pending forms in order in which they arrived.
+                          (define st-tname (name-of-struct form))
+                          (begin0 (reverse (cons form (free-id-table-ref toplevel-struct-making-tbl st-tname)))
+                            (free-id-table-remove! toplevel-struct-making-tbl st-tname))]
+                         [else (list form)]))
+     (for/last ([form (in-list all-forms)])
+       (tc-toplevel/pass1 form)
+       (tc-toplevel/pass1.5 form)
+       (begin0 (tc-toplevel/pass2 form #f)
+         (report-all-errors)))]))
 
 ;; handle-define-new-subtype/pass1 : Syntax -> Empty
 (define (handle-define-new-subtype/pass1 form)

@@ -193,10 +193,10 @@
                                             (list #'#:property prop))))
                            #'())])
        (with-syntax* ([type (or (attribute opts.type) #'nm.name)]
-                      [d-s (syntax-property (ignore (quasisyntax/loc stx
-                                                      (struct #,@(attribute nm.new-spec) (fs.fld ...)
-                                                        . opts.untyped)))
-                                            'tc-struct #'type)]
+                      [d-s (struct-type-property (ignore (quasisyntax/loc stx
+                                                           (struct #,@(attribute nm.new-spec) (fs.fld ...)
+                                                             . opts.untyped)))
+                                                 #'type)]
                       [prop-vals (quasisyntax/loc stx
                                    (define prop-val-li (list #,@(attribute opts.prop-val))))]
                       [dtsi (quasisyntax/loc stx

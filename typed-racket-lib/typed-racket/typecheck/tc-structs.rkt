@@ -131,13 +131,6 @@
     (mk-substructs-procedural! stn sty new-ty))
   (mk-struct-procedural! base-tname base-sty new-ty))
 
-(define-syntax-class expanded-props
-  #:literals (null list #%plain-app)
-  (pattern null
-           #:with (prop-names ...) #'()
-           #:with (prop-vals ...) #'())
-  (pattern (#%plain-app list (#%plain-app cons prop-names prop-vals) ...)))
-
 
 (define/cond-contract (mk-struct-procedural! stname sty new-ty)
   (c:-> identifier? Struct? Fun? void?)
@@ -162,89 +155,79 @@
                                                                      (lambda (res)
                                                                        (list (make-Result (intersect st-type-name new-ty) prop obj)))))))))])))
 
-(define (tc/struct-prop-values form st-tname)
-  (syntax-parse form
-    #:literals (define-values #%plain-app define-syntaxes begin #%expression let-values quote list cons make-struct-type values null)
-    [(define-values (struct-var r ...)
-       (let-values (((var1 r1 ...)
-                     (let-values ()
-                       (#%expression
-                        (let-values ()
-                          (#%plain-app make-struct-type _name _super-type _init-fcnt _auto-fcnt auto-v props:expanded-props r_args ...))))))
-         (#%plain-app values args-v ...)))
-     (let ([pnames (attribute props.prop-names)])
-       (unless (null? pnames)
-         (define sty (lookup-type-name st-tname))
-         (for/list ([p (in-list pnames)]
-                    [pval (in-list (attribute props.prop-vals))])
-           (parameterize ([current-orig-stx pval])
-             (cond
-               [(equal? (syntax-e p) 'prop:procedure)
-                (syntax-parse pval
-                  [(quote proc-fld:exact-nonnegative-integer)
-                   (define flds (Struct-subflds sty))
-                   (define idx (syntax->datum #'proc-fld))
-                   (cond
-                     [(<= (length flds) idx)
-                      (tc-error/fields "index too large"
-                                       "index" idx
-                                       "maximum allowed index" (sub1 (length flds)))]
-                     [else
-                      (define fld (list-ref flds idx))
-                      (define fld-ty (fld-t fld))
-                      (cond
-                        [(Fun? fld-ty)
-                         (mk-substructs-procedural! st-tname sty fld-ty)]
-                        [else
-                         (tc-error/fields "type mismatch in the field for prop:procedure"
-                                          "expected" "Procedure"
-                                          "given" fld-ty)])])]
-                  [_
-                   (match (single-value pval)
-                     [(tc-result1: (Fun: (list (and (Arrow: (list dom-mes domss ...) _ _ _) arr-li) ...)))
-                      (define maybe-new-ty (for/fold ([ok? #t]
-                                                      [new-arr-li null]
-                                                      #:result (if ok? (make-Fun (reverse new-arr-li))
-                                                                   #f))
-                                                     ([me (in-list dom-mes)]
-                                                      [rst-doms (in-list domss)]
-                                                      [arr (in-list arr-li)])
-                                             (cond
-                                               [(not (type-equiv? me sty))
-                                                (tc-error/fields "type mismatch in the domain of the value for prop:procedure"
-                                                                 "expected" sty
-                                                                 "got" me)
-                                                (values #f new-arr-li)]
-                                               [else
-                                                (values ok?
-                                                        (cons (Arrow-update arr dom (lambda _ rst-doms))
-                                                              new-arr-li))])))
-                      (cond
-                        [maybe-new-ty
-                         (mk-substructs-procedural! st-tname sty maybe-new-ty)]
-                        [else (void)])]
-                     [(tc-result1: ty) (expected-but-got "Procedure or nonnegative integer literal" ty)])])]
-               [else
-                (match (single-value p)
-                  [(tc-result1: (Struct-Property: ty _))
-                   (match-define (F: var) -Self)
-                   (match-define (F: var-imp) -Imp)
-                   (match sty
-                     [(? Struct?)
-                      (tc-expr/check pval (ret (subst var-imp sty (subst var sty ty))))]
-                     [(Poly-names: names sty)
-                      (let* ([v (subst var sty ty)]
-                             [v (for/fold ([res sty]
-                                           #:result (subst var-imp res v))
-                                          ([n names])
-                                  (subst n (make-F (gensym n)) res))]
-                             [v (ret v)])
-                        (extend-tvars names (tc-expr/check pval v)))])]
-                  [(tc-result1: ty)
-                   (tc-error "expected a struct type property but got ~a" ty)])])))))]
 
-    [(define-syntaxes (nm ...) . rest) (void)]))
-
+(define/cond-contract (tc/struct-prop-values st-tname pnames pvals)
+  (c:-> identifier? (c:listof identifier?) (c:listof syntax?) void?)
+  (unless (null? pnames)
+    (define sty (lookup-type-name st-tname))
+    (for ([p (in-list pnames)]
+          [pval (in-list pvals)])
+      (parameterize ([current-orig-stx pval])
+        (cond
+          [(equal? (syntax-e p) 'prop:procedure)
+           (syntax-parse pval
+             [(quote proc-fld:exact-nonnegative-integer)
+              (define flds (Struct-subflds sty))
+              (define idx (syntax->datum #'proc-fld))
+              (cond
+                [(<= (length flds) idx)
+                 (tc-error/fields "index too large"
+                                  "index" idx
+                                  "maximum allowed index" (sub1 (length flds)))]
+                [else
+                 (define fld (list-ref flds idx))
+                 (define fld-ty (fld-t fld))
+                 (cond
+                   [(Fun? fld-ty)
+                    (mk-substructs-procedural! st-tname sty fld-ty)]
+                   [else
+                    (tc-error/fields "type mismatch in the field for prop:procedure"
+                                     "expected" "Procedure"
+                                     "given" fld-ty)])])]
+             [_
+              (match (single-value pval)
+                [(tc-result1: (Fun: (list (and (Arrow: (list dom-mes domss ...) _ _ _) arr-li) ...)))
+                 (define maybe-new-ty (for/fold ([ok? #t]
+                                                 [new-arr-li null]
+                                                 #:result (if ok? (make-Fun (reverse new-arr-li))
+                                                              #f))
+                                                ([me (in-list dom-mes)]
+                                                 [rst-doms (in-list domss)]
+                                                 [arr (in-list arr-li)])
+                                        (cond
+                                          [(not (type-equiv? me sty))
+                                           (tc-error/fields "type mismatch in the domain of the value for prop:procedure"
+                                                            "expected" sty
+                                                            "got" me)
+                                           (values #f new-arr-li)]
+                                          [else
+                                           (values ok?
+                                                   (cons (Arrow-update arr dom (lambda _ rst-doms))
+                                                         new-arr-li))])))
+                 (cond
+                   [maybe-new-ty
+                    (mk-substructs-procedural! st-tname sty maybe-new-ty)]
+                   [else (void)])]
+                [(tc-result1: ty) (expected-but-got "Procedure or nonnegative integer literal" ty)])])]
+          [else
+           (match (single-value p)
+             [(tc-result1: (Struct-Property: ty _))
+              (match-define (F: var) -Self)
+              (match-define (F: var-imp) -Imp)
+              (match sty
+                [(? Struct?)
+                 (tc-expr/check pval (ret (subst var-imp sty (subst var sty ty))))]
+                [(Poly-names: names sty)
+                 (let* ([v (subst var sty ty)]
+                        [v (for/fold ([res sty]
+                                      #:result (subst var-imp res v))
+                                     ([n names])
+                             (subst n (make-F (gensym n)) res))]
+                        [v (ret v)])
+                   (extend-tvars names (tc-expr/check pval v)))])]
+             [(tc-result1: ty)
+              (tc-error "expected a struct type property but got ~a" ty)])
+           (void)])))))
 
 
 ;; parse name field of struct, determining whether a parent struct was specified

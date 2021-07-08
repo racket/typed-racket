@@ -55,6 +55,7 @@
   (external-check typechecker:external-check)
   (casted-expr typechecker:casted-expr) ; Type -> Void, takes the original type of the casted expr
   (with-type typechecker:with-type #:mark)
+  (struct-type struct-type)
   (type-ascription type-ascription)
   (type-inst type-inst)
   (row-inst row-inst)

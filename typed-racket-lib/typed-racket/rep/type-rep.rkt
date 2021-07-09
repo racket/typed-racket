@@ -46,22 +46,15 @@
          -unsafe-intersect
          Mu-unsafe: Poly-unsafe:
          PolyDots-unsafe:
-         Mu? Poly? PolyDots? PolyRow?
-         Poly-n
-         PolyDots-n
-         Class? Row? Row:
          free-vars*
          Name/simple: Name/struct:
          unfold
-         Union?
-         Union-elems
          Union-fmap
          Un
          resolvable?
          Union-all:
          Union-all-flat:
          Union/set:
-         Intersection?
          -refine
          Refine:
          Refine-obj:
@@ -77,10 +70,6 @@
          set-struct-property-pred!
          DepFun/ids:
          Some-names:
-         Struct-Property?
-         Struct-name
-         Struct?
-         Struct-flds
          Struct-subflds
          Struct-update-proc!
          (rename-out [Union:* Union:]
@@ -515,7 +504,7 @@
 
 
 (def-type Mu ([body Type?])
-  #:no-provide
+  #:no-provide (Mu: make-Mu Mu-body)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-Mu (f body))]
   [#:for-each (f) (f body)]
@@ -533,7 +522,7 @@
 ;; body is a type
 (def-type Poly ([n exact-nonnegative-integer?]
                 [body Type?])
-  #:no-provide
+  #:no-provide (Poly: Poly-body make-Poly)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-Poly n (f body))]
   [#:for-each (f) (f body)]
@@ -543,7 +532,7 @@
 ;; there are n-1 'normal' vars and 1 ... var
 (def-type PolyDots ([n exact-nonnegative-integer?]
                     [body Type?])
-  #:no-provide
+  #:no-provide (make-PolyDots PolyDots: PolyDots-body)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-PolyDots n (f body))]
   [#:for-each (f) (f body)]
@@ -554,7 +543,7 @@
 ;; as a set for each of init, field, methods
 (def-type PolyRow ([constraints (list/c list? list? list? list?)]
                    [body Type?])
-  #:no-provide
+  #:no-provide (PolyRow-body make-PolyRow PolyRow:)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-PolyRow constraints (f body))]
   [#:for-each (f) (f body)]
@@ -567,8 +556,8 @@
 
 ;; body is a type
 (def-type Some ([n exact-nonnegative-integer?]
-                 [body Type?])
-  #:no-provide
+                [body Type?])
+  #:no-provide (make-Some Some:)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-Some n (f body))]
   [#:for-each (f) (f body)])
@@ -753,7 +742,7 @@
    ;; when a struct type property is annotated via require/typed, the pred-id is
    ;; immediately set.
    [pred-id (box/c (or/c identifier? false/c))])
-  #:no-provide
+  #:no-provide (make-Struct-Property Struct-Property:)
   [#:frees (f) (f elem)]
   [#:fmap (f) (make-Struct-Property (f elem) pred-id)]
   [#:for-each (f) (f elem)]
@@ -803,7 +792,7 @@
                   [poly? boolean?]
                   [pred-id identifier?]
                   [properties (free-id-set/c identifier?)])
-  #:no-provide
+  #:no-provide (Struct: Struct-proc make-Struct)
   [#:frees (f) (combine-frees (map f (append (let ([bv (unbox proc)])
                                                (if bv (list bv) null))
                                              (if parent (list parent) null)
@@ -952,7 +941,7 @@
                  [base (or/c Bottom? Base? BaseUnion?)]
                  [ts (cons/c Type? (listof Type?))]
                  [elems (hash/c Type? #t #:immutable #t #:flat? #t)])
-  #:no-provide
+  #:no-provide (Union:)
   #:non-transparent
   [#:frees (f) (combine-frees (map f ts))]
   [#:fmap (f) (Union-fmap f base ts)]
@@ -1093,7 +1082,7 @@
                         [prop (and/c Prop? (not/c FalseProp?))]
                         [elems (hash/c Type? #t #:immutable #t #:flat? #t)])
   #:non-transparent
-  #:no-provide
+  #:no-provide (Intersection: make-Intersection Intersection-prop)
   [#:frees (f) (combine-frees (cons (f prop) (map f ts)))]
   [#:fmap (f) (-refine
                (for*/fold ([res Univ])
@@ -1248,7 +1237,7 @@
               [methods (listof (list/c symbol? Type?))]
               [augments (listof (list/c symbol? Type?))]
               [init-rest (or/c Type? #f)])
-  #:no-provide
+  #:no-provide (make-Row)
   [#:frees (f)
    (let ([extract-frees (λ (l) (f (second l)))])
      (combine-frees
@@ -1285,7 +1274,7 @@
 ;;
 (def-type Class ([row-ext (or/c #f F? B? Row?)]
                  [row Row?])
-  #:no-provide
+  #:no-provide (Class: make-Class)
   [#:frees (f)
    (combine-frees
     (append (if row-ext (list (f row-ext)) null)

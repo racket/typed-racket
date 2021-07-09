@@ -2,7 +2,7 @@
 (require "../utils/utils.rkt"
          "../utils/tc-utils.rkt"
          "../utils/identifier.rkt"
-         
+
          racket/match
          (contract-req)
          "free-variance.rkt"
@@ -19,6 +19,7 @@
           (except-in syntax/parse id identifier keyword)
           racket/base
           syntax/id-table
+          syntax/id-set
           (contract-req)
           racket/syntax))
 
@@ -345,7 +346,9 @@
        (~optional [#:mask . rep-mask-body])
        (~optional [#:variances ((~literal list) variances ...)])
        ;; #:no-provide option (i.e. don't provide anything automatically)
-       (~optional (~and #:no-provide no-provide?-kw))
+       (~optional (~seq (~and #:no-provide no-provide?-kw)
+                        (~optional (non-export-ids:id ...)))
+                  #:defaults ([(non-export-ids 1) null]))
        (~optional [#:singleton singleton:id])
        (~optional (~or [#:custom-constructor
                         . (~var constr-def
@@ -370,7 +373,7 @@
      ;; - - - - - - - - - - - - - - -
      ;; Error checking
      ;; - - - - - - - - - - - - - - -
-     
+
      ;; build convenient boolean flags
      (define is-a-type? (and (attribute parent) (eq? 'Type (syntax-e #'parent))))
      ;; singletons cannot have fields or #:no-provide
@@ -468,17 +471,30 @@
             #'(define (Rep-fmap rep f) rep)]
            [else #'(define Rep-fmap fold-spec.def)])]
         ;; how do we pull out the values required to fold this Rep?
-        [rep-mask-body 
+        [rep-mask-body
          (cond
            [(attribute rep-mask-body) #'(let () . rep-mask-body)]
            [else #'mask:unknown])]
         ;; module provided defintions, if any
         [(provides ...)
          (cond
-           [(attribute no-provide?-kw) #'()]
+           [(and (attribute no-provide?-kw) (null? (attribute non-export-ids)))
+            #'()]
            [else
-            #'((provide var.match-expander var.predicate flds.accessors ...)
-               (provide/cond-contract (var.constructor constructor-contract)))])]
+            (define non-exports (immutable-free-id-set (attribute non-export-ids)))
+            (define non-constr-li
+              (filter (lambda (i) (not (free-id-set-member? non-exports i)))
+                      (syntax->list #'(var.match-expander var.predicate flds.accessors ...))))
+            (define/with-syntax constr-provide
+              (if (free-id-set-member? non-exports #'var.constructor)
+                  #'(begin)
+                  #'(provide/cond-contract (var.constructor constructor-contract))))
+            (define/with-syntax nonconstr-provide
+              (if (null? non-constr-li)
+                  #'(begin)
+                  (with-syntax* ([(non-constr ...) non-constr-li])
+                    #'(provide non-constr ...))))
+            #'(constr-provide nonconstr-provide)])]
         [(extra-defs ...) (if (attribute extras) #'extras #'())]
         [struct-def #'(struct var.name parent ... (flds.ids ...)
                         maybe-transparent ...
@@ -526,5 +542,3 @@
               (Rep-updator var.name var.updator)
               provides ...
               (provide uid-id var.updator)))]))]))
-
-

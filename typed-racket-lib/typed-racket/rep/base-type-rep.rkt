@@ -9,14 +9,9 @@
                      syntax/parse))
 
 (provide define-base-types
-         Base?
-         Base-name
-         Base-predicate
-         Base:
          Base-bits:
          Base-predicate:
-         Base-name/contract:
-         Base-bits)
+         Base-name/contract:)
 
 ;;-----------------
 ;; Base Type
@@ -37,7 +32,7 @@
                 [contract syntax?]
                 [predicate procedure?])
   #:base
-  #:no-provide
+  #:no-provide (Base-contract Base-numeric?)
   [#:mask (λ (t) (if (Base-numeric? t)
                      mask:number
                      mask:base))]

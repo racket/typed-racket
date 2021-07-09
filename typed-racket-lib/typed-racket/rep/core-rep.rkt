@@ -212,7 +212,7 @@
                  [o OptObject?]
                  ;; the number of the existential quantifiers
                  [n-existentials number?])
-  #:no-provide
+  #:no-provide (make-Result Result:)
   [#:frees (f) (combine-frees (list (f t) (f ps) (f o)))]
   [#:fmap (f) (make-Result (f t) (f ps) (f o) n-existentials)]
   [#:for-each (f) (begin (f t) (f ps) (f o))]
@@ -275,6 +275,3 @@
                                (? (lambda (l)
                                     (and (not (null? l)) l))
                                   n))))])))
-
-
-

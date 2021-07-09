@@ -21,15 +21,10 @@
          -path-elem-of
          -lexp-add1
          -lexp-sub1
-         LExp-const
          constant-LExp?
          -lexp
          -obj+
          -obj*
-         LExp?
-         LExp-const
-         LExp-terms
-         LExp:
          genobj
          make-id-seq
          id-seq-next
@@ -180,7 +175,7 @@
 (def-object LExp ([const exact-integer?]
                   [terms (hash/c Path? (and/c exact-integer?
                                               (not/c zero?)))])
-  #:no-provide
+  #:no-provide (make-LExp)
   [#:frees (f) (combine-frees (for/list ([x (in-terms-vars terms)]) (f x)))]
   [#:fmap (f)
    ;; applies f to each object p in the terms

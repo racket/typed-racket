@@ -925,4 +925,5 @@
                (make-channel)
                #:typed
                #:msg "higher-order value passed as `Any`")
+   (t-int -NonNegInexactReal void 2.0 #:untyped)
    ))

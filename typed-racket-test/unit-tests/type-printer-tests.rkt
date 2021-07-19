@@ -317,10 +317,9 @@
      (string-append "(All (c a b ...)\n"
                     "  (case->\n"
                     "   (-> (-> a c) (Pairof a (Listof a)) (Pairof c (Listof c)))\n"
-                    "   (-> (-> a b ... b c) (Listof a) (Listof b) ... b (Listof c))))"))
+                     "   (-> (-> a b ... b c) (Listof a) (Listof b) ... b (Listof c))))"))
     (check-pretty-prints-as?
      (-poly (a) (cl->* (-> (-Syntax a) Univ Univ (-Syntax a))
-                       (-> (-Syntax Univ) Univ Univ)))
+                        (-> (-Syntax Univ) Univ Univ)))
      (string-append "(All (a)\n"
                     "  (case-> (-> (Syntaxof a) Any Any (Syntaxof a)) (-> (Syntaxof Any) Any Any)))")))))
-

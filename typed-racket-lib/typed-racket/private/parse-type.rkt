@@ -249,8 +249,8 @@
      (make-PolyRow
       (list var*)
       ;; No constraints listed, so we need to infer the constraints
-      (infer-row-constraints body-type)
-      body-type)]
+      body-type
+      (infer-row-constraints body-type))]
     [(:All^ (var:id #:row constr:row-constraints) . t:omit-parens)
      (add-disappeared-use #'kw)
      (define var* (syntax-e #'var))
@@ -259,8 +259,8 @@
        (extend-tvars (list var*)
          (make-PolyRow
           (list var*)
-          constraints
-          (parse-type #'t.type))))]
+          (parse-type #'t.type)
+          constraints)))]
     [(:All^ (_:id ...) _ _ _ ...) (parse-error "too many forms in body of All type")]
     [(:All^ . rest) (parse-error "bad syntax")]))
 
@@ -808,7 +808,7 @@
                                  [(Mu: _ body) (check body)]
                                  [(Poly: names body) (check body)]
                                  [(PolyDots: names body) (check body)]
-                                 [(PolyRow: _ _ body) (check body)]
+                                 [(PolyRow: _ body _) (check body)]
                                  [(? Type?) (void)]
                                  [(? Rep?) (Rep-for-each check ty)]
                                  [_ (void)]))
@@ -1505,7 +1505,7 @@
       [(? Fun?) #t]
       [(Poly: _ body) (function-type? body)]
       [(PolyDots: _ body) (function-type? body)]
-      [(PolyRow: _ _ body) (function-type? body)]
+      [(PolyRow: _ body _) (function-type? body)]
       [_ #f]))
   (for ([(id pre-type) (in-dict method-types)])
     (define type (car pre-type))

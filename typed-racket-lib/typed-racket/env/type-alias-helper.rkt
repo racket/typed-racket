@@ -70,7 +70,7 @@
     [((Mu: _ body)) (check body)]
     [((Poly: names body)) (check body)]
     [((PolyDots: names body)) (check body)]
-    [((PolyRow: _ _ body)) (check body)]
+    [((PolyRow: _ body _)) (check body)]
     [(_) #t])
   (unless (check type)
     (tc-error/fields
@@ -263,4 +263,3 @@
             (#%plain-app values))
      (values #'nm #'ty (syntax-e #'args))]
     [_ (int-err "not define-type-alias")]))
-

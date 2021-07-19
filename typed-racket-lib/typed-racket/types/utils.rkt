@@ -62,7 +62,7 @@
             [body* (subst-all (make-simple-substitution fixed fixed-tys)
                               body)])
        (substitute-dots rest-tys #f dotted body*))]
-    [(PolyRow: names _ body)
+    [(PolyRow: names body _)
      (unless (= (length types) (length names))
        (int-err "instantiate-poly: wrong number of types: expected ~a, got ~a"
                 (length names) (length types)))

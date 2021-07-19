@@ -39,7 +39,7 @@
     [((Arrow: dom rst (list (Keyword: _ _ #f) ...) rng)
       (list (tc-result1: t-a _ o-a) ...))
      #:when (not (RestDots? rst))
-     
+
      (when check?
        (define extra-arg-count (- (length t-a) (length dom)))
        (cond [(and (not rst) (not (eqv? 0 extra-arg-count)))
@@ -319,12 +319,12 @@
                               msg-rngs)
                       ...)))
          (PolyRow-names:
-          msg-vars _
-          (Fun: (list (Arrow: msg-doms
+          msg-vars (Fun: (list (Arrow: msg-doms
                               msg-rests
                               (list (Keyword: _ _ #f) ...)
                               msg-rngs)
-                      ...))))
+                      ...))
+          _))
      (let ([fcn-string (name->function-str name)])
        (if (and (andmap null? msg-doms)
                 (null? argtypes))
@@ -374,8 +374,8 @@
           (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs) ...)))
          (PolyRow-names:
           msg-vars
-          _
-          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs) ...))))
+          (Fun: (list (Arrow: msg-doms msg-rests kws msg-rngs) ...))
+          _))
      (let ([fcn-string (if name
                            (format "function with keywords ~a" (syntax->datum name))
                            "function with keywords")])
@@ -402,4 +402,3 @@
   (if name
       (format "function `~a'" (syntax->datum name))
       "function"))
-

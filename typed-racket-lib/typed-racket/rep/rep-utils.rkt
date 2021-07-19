@@ -10,6 +10,7 @@
          racket/stxparam
          syntax/parse/define
          syntax/id-table
+         racket/lazy-require
          racket/generic
          (only-in racket/unsafe/ops unsafe-struct-ref)
          (for-syntax
@@ -32,6 +33,9 @@
 ;; Contract and Hash related helpers
 
 (provide-for-cond-contract length>=/c)
+
+(lazy-require ["type-rep.rkt" (abstract-type instantiate-type make-F)])
+(define type-var-name-table (make-hash))
 
 (define-for-cond-contract ((length>=/c len) l)
   (and (list? l)
@@ -319,6 +323,12 @@
                contracts:expr] ...)
              #:with (accessors ...) #'(ids.accessors ...))))
 
+;; Helper for fresh match expanders, creates a
+;; fresh name that prints the same as the original
+(define (fresh-name sym)
+  (string->uninterned-symbol (symbol->string sym)))
+
+
 ;;************************************************************
 ;; def-rep
 ;;************************************************************
@@ -337,6 +347,9 @@
        (~optional [#:parent parent:id])
        ;; base declaration (i.e. no fold/map)
        (~optional (~and #:base base?))
+       (~optional (~seq (~and #:type-binder type-binder-kw?)
+                        (~or (body-fld:id)
+                             (n-vars-fld:id body-fld:id))))
        ;; #:frees spec (how to compute this Rep's free type variables)
        (~optional [#:frees . (~var frees-spec (freesspec #'(flds.ids ...)))])
        ;; #:for-each spec (how to traverse this structure for effect)
@@ -402,6 +415,7 @@
        (raise-syntax-error 'def-rep "non-base reps require #:frees, #:for-each, and #:fmap"
                            #'var))
 
+
      ;; - - - - - - - - - - - - - - -
      ;; Let's build the definitions!
      ;; - - - - - - - - - - - - - - -
@@ -423,10 +437,12 @@
                                      #'(#:transparent))]
         ;; match expander (skips 'meta' fields)
         [mexpdr-def
-         #`(define-match-expander var.match-expander
-             (λ (s)
-               (syntax-parse s
-                 [(_ . pats) (syntax/loc s (var.name . pats))])))]
+         (if (attribute type-binder-kw?)
+             #'(begin)
+             #`(define-match-expander var.match-expander
+                 (λ (s)
+                   (syntax-parse s
+                     [(_ . pats) (syntax/loc s (var.name . pats))]))))]
         ;; Rep generic definitions
         ;; -----------------------
         ;; free var/idx defs
@@ -475,7 +491,103 @@
          (cond
            [(attribute rep-mask-body) #'(let () . rep-mask-body)]
            [else #'mask:unknown])]
-        ;; module provided defintions, if any
+        [(extra-defs ...) (if (attribute extras) #'extras #'())]
+        [(defs-for-binder smart-constr smart-desc smart-ids ...)
+         (cond
+           [(attribute type-binder-kw?)
+            (with-syntax* ([smart-constr (format-id #'var.name "~a*" (attribute var.constructor))]
+                           [smart-destr (attribute var.match-expander)]
+                           [smart-destr-names (format-id #'var.name "~a-names:" #'var.name)]
+                           [smart-destr-fresh (format-id #'var.name "~a-fresh:" #'var.name)]
+                           [smart-destr-unsafe (format-id #'var.name "~a-unsafe:" #'var.name)]
+                           [smart-destr-helper (format-id #'var.name "~a:-helper" #'var.name)]
+                           [smart-destr-maker (format-id #'var.name "~a:-maker" #'var.name)]
+                           [smart-body* (format-id #'var.name "~a-body*" #'var.name)]
+                           [n-var (format-id #'var.name "n-~a" #'var.name)]
+                           [(n-fld-clause ...) (if (attribute n-vars-fld)
+                                                   (list #`[n-vars-fld #,#'n-var])
+                                                   (list))]
+                           [(rst-fld ...) (drop (attribute flds.ids)
+                                                (if (attribute n-vars-fld) 2 1))]
+                           [(rst-fld-pat ...) (generate-temporaries #'(rst-fld ...))]
+                           [(rst-fld-var ...) (generate-temporaries #'(rst-fld ...))]
+                           [default-sym-expr (if (attribute n-vars-fld)
+                                                 #`(lambda _ (build-list #,#'n-var (λ _ (gensym))))
+                                                 #'(lambda _ (list (gensym))))])
+              #`((begin
+                   (define ((smart-destr-helper use-names) t)
+                     (match t
+                       [(struct* var.name (n-fld-clause ... [body-fld body]
+                                                        [rst-fld rst-fld-var] ...))
+                        (define syms (if use-names (hash-ref type-var-name-table t default-sym-expr)
+                                         (default-sym-expr)))
+                        (cond
+                          [(eq? use-names 'fresh)
+                           (define fresh-syms (map fresh-name syms))
+                           (list syms fresh-syms (instantiate-type body (map make-F fresh-syms))
+                                 rst-fld-var ...)]
+                          [(list syms (instantiate-type body (map make-F syms)) rst-fld-var ...)])]))
+
+                   (define-for-syntax ((smart-destr-maker use-names) stx)
+                     (with-syntax ([(np+freshnps (... ...)) (if (eq? use-names 'fresh)
+                                                           #'(np freshnps)
+                                                           #'(np))]
+                                   [use-names use-names])
+                       (syntax-case stx ()
+                         [(_ np+freshnps (... ...) bp rst-fld-pat ...)
+                          #'(? var.predicate
+                               (app (smart-destr-helper (quote use-names))
+                                    (list np+freshnps (... ...) bp rst-fld-pat ...)))])))
+
+                   (define (smart-body* names t)
+                     (match t
+                       [(struct* var.name (n-fld-clause ... [body-fld body]))
+                        #,(if (attribute n-vars-fld)
+                              #'(unless (= (length names) n-var)
+                                  (int-err "Wrong number of names: expected ~a got ~a" n-var (length names)))
+                              #'(begin))
+                        (instantiate-type body (map make-F names))]))
+
+                   (define-match-expander smart-destr-unsafe
+                     (lambda (stx)
+                       (syntax-case stx ()
+                         [(_ flds.ids ...)
+                          #'(struct var.name (flds.ids ...))])))
+
+                   (define-match-expander smart-destr-names
+                     (smart-destr-maker #t))
+
+                   (define-match-expander smart-destr
+                     (smart-destr-maker #f))
+
+                    ;; This match expander creates new fresh names for exploring the body
+                    ;; of the polymorphic type. When lexical scoping of type variables is a concern, you
+                    ;; should use this form.
+
+                   (define-match-expander smart-destr-fresh
+                     (smart-destr-maker 'fresh))
+
+
+                   (define (smart-constr names body #:original-names [orig names] . rst)
+                     (cond
+                       [(null? names) body]
+                       [else
+                        (define v #,(if (attribute n-vars-fld)
+                                        #'(apply var.constructor (length names) (abstract-type body names) rst)
+                                        ;; when names is bound to a single type var, like in the case of Mu
+                                        #'(apply var.constructor (abstract-type body names) rst)))
+                        (hash-set! type-var-name-table v (if (list? orig)
+                                                             orig
+                                                             (list orig)))
+                        v])))
+                 smart-constr
+                 smart-destr
+                 smart-destr-names
+                 smart-destr-fresh
+                 smart-destr-unsafe
+                 smart-body*))]
+           [else #'((begin) #f #f null)])]
+                ;; module provided defintions, if any
         [(provides ...)
          (cond
            [(and (attribute no-provide?-kw) (null? (attribute non-export-ids)))
@@ -484,18 +596,19 @@
             (define non-exports (immutable-free-id-set (attribute non-export-ids)))
             (define non-constr-li
               (filter (lambda (i) (not (free-id-set-member? non-exports i)))
-                      (syntax->list #'(var.match-expander var.predicate flds.accessors ...))))
+                      (append (syntax->list #'(var.match-expander var.predicate flds.accessors ...))
+                              (syntax->list #'(smart-ids ...)))))
             (define/with-syntax constr-provide
-              (if (free-id-set-member? non-exports #'var.constructor)
-                  #'(begin)
-                  #'(provide/cond-contract (var.constructor constructor-contract))))
+              (cond
+                [(free-id-set-member? non-exports #'var.constructor)
+                 #'(begin)]
+                [(attribute type-binder-kw?) #'(provide (rename-out [smart-constr var.constructor]))]
+                [else #'(provide/cond-contract (var.constructor constructor-contract))]))
             (define/with-syntax nonconstr-provide
               (if (null? non-constr-li)
                   #'(begin)
-                  (with-syntax* ([(non-constr ...) non-constr-li])
-                    #'(provide non-constr ...))))
+                  #`(provide #,@non-constr-li)))
             #'(constr-provide nonconstr-provide)])]
-        [(extra-defs ...) (if (attribute extras) #'extras #'())]
         [struct-def #'(struct var.name parent ... (flds.ids ...)
                         maybe-transparent ...
                         #:constructor-name constructor-name
@@ -539,6 +652,7 @@
               struct-def
               constructor-def
               mexpdr-def
+              defs-for-binder
               (Rep-updator var.name var.updator)
               provides ...
               (provide uid-id var.updator)))]))]))

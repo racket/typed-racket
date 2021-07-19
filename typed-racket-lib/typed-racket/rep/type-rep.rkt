@@ -98,7 +98,7 @@
                      [Intersection-prop* Intersection-prop]
                      [Struct-Property* make-Struct-Property]
                      [Struct-Property:* Struct-Property:]
-                     [Some* make-Some]
+                     [make-Some* make-Some]
                      [Some:* Some:]))
 
 (define (resolvable? x)
@@ -558,6 +558,7 @@
 (def-type Some ([n exact-nonnegative-integer?]
                 [body Type?])
   #:no-provide (make-Some Some:)
+  #:type-binder (n body)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-Some n (f body))]
   [#:for-each (f) (f body)])
@@ -1999,44 +2000,7 @@
 ;;***************************************************************
 ;; Smart Constructors for Some structs
 ;;***************************************************************
-(define (Some* names body)
-  (cond
-    [(null? names) body]
-    [else (define v (make-Some (length names) (abstract-type body names)))
-          (hash-set! type-var-name-table v names)
-          v]))
-
 ;; the 'smart' destructor
-(define (Some-body* names t)
-  (match t
-    [(Some: n body)
-     (unless (= (length names) n)
-       (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-type body (map make-F names))]))
-
-
-(define-match-expander Some-names:
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps bp)
-       #'(? Some?
-            (app (lambda (t)
-                   (let* ([n (Some-n t)]
-                          [syms (hash-ref type-var-name-table t (λ _ (build-list n (λ _ (gensym)))))])
-                     (list syms (Some-body* syms t))))
-                 (list nps bp)))])))
-
-(define-match-expander Some:*
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps bp)
-       #'(? Some?
-            (app (lambda (t) (let* ([n (Some-n t)]
-                                    [syms (cond
-                                            [(hash-ref type-var-name-table t #f) => (λ (names) (map gensym names))]
-                                            [else (build-list n (λ _ (gensym)))])])
-                               (list syms (Some-body* syms t))))
-                 (list nps bp)))])))
 
 
 ;;***************************************************************

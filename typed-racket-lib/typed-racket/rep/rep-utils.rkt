@@ -10,6 +10,7 @@
          racket/stxparam
          syntax/parse/define
          syntax/id-table
+         racket/lazy-require
          racket/generic
          (only-in racket/unsafe/ops unsafe-struct-ref)
          (for-syntax
@@ -32,6 +33,9 @@
 ;; Contract and Hash related helpers
 
 (provide-for-cond-contract length>=/c)
+
+(lazy-require ["type-rep.rkt" (abstract-type instantiate-type make-F)])
+(define type-var-name-table (make-hash))
 
 (define-for-cond-contract ((length>=/c len) l)
   (and (list? l)
@@ -337,6 +341,8 @@
        (~optional [#:parent parent:id])
        ;; base declaration (i.e. no fold/map)
        (~optional (~and #:base base?))
+       (~optional (~seq (~and #:type-binder type-binder-kw?)
+                        (n-vars-fld:id body-fld:id)))
        ;; #:frees spec (how to compute this Rep's free type variables)
        (~optional [#:frees . (~var frees-spec (freesspec #'(flds.ids ...)))])
        ;; #:for-each spec (how to traverse this structure for effect)
@@ -401,6 +407,7 @@
                     (not (attribute fold-spec))))
        (raise-syntax-error 'def-rep "non-base reps require #:frees, #:for-each, and #:fmap"
                            #'var))
+
 
      ;; - - - - - - - - - - - - - - -
      ;; Let's build the definitions!
@@ -496,6 +503,46 @@
                     #'(provide non-constr ...))))
             #'(constr-provide nonconstr-provide)])]
         [(extra-defs ...) (if (attribute extras) #'extras #'())]
+        [defs-for-binder
+         (cond
+           [(attribute type-binder-kw?)
+            (define/with-syntax smart-constr (format-id #'var.name "~a*" (attribute var.constructor)))
+            (define/with-syntax smart-destr (format-id #'var.name "~a*" (attribute var.match-expander)))
+            (define/with-syntax smart-destr-names (format-id #'var.name "~a-names:" #'var.name))
+            #'(begin
+                (define-match-expander smart-destr-names
+                  (lambda (stx)
+                    (syntax-case stx ()
+                      [(_ nps bp)
+                       #'(? var.predicate
+                            (app (lambda (t)
+                                   (match-define (struct* var.name ([n-vars-fld n]
+                                                                    [body-fld body]))
+                                     t)
+                                   (define syms (hash-ref type-var-name-table t (λ _ (build-list n (λ _ (gensym))))))
+                                   (list syms (instantiate-type body (map make-F syms))))
+                                 (list nps bp)))])))
+
+                (define-match-expander smart-destr
+                  (lambda (stx)
+                    (syntax-case stx ()
+                      [(_ nps bp)
+                       #'(? var.predicate
+                            (app (lambda (t)
+                                   (match-define (struct* var.name ([n-vars-fld n]
+                                                                    [body-fld body]))
+                                     t)
+                                   (define syms (build-list n (λ _ (gensym))))
+                                   (list syms (instantiate-type body (map make-F syms))))
+                                 (list nps bp)))])))
+
+                (define (smart-constr names body)
+                 (cond
+                   [(null? names) body]
+                   [else (define v (var.constructor (length names) (abstract-type body names)))
+                         (hash-set! type-var-name-table v names)
+                         v])))]
+           [else #'(begin)])]
         [struct-def #'(struct var.name parent ... (flds.ids ...)
                         maybe-transparent ...
                         #:constructor-name constructor-name
@@ -539,6 +586,7 @@
               struct-def
               constructor-def
               mexpdr-def
+              defs-for-binder
               (Rep-updator var.name var.updator)
               provides ...
               (provide uid-id var.updator)))]))]))

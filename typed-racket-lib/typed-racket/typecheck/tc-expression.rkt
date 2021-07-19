@@ -130,7 +130,7 @@
      (tc-error/expr #:return -Bottom "Cannot instantiate non-row-polymorphic type ~a"
                     (cleanup-type ty))]
     [else
-     (match-define (PolyRow: _ constraints _) ty)
+     (match-define (PolyRow: _ _ constraints) ty)
      (check-row-constraints
       row constraints
       (λ (name)
@@ -138,4 +138,3 @@
          (~a "Cannot instantiate row with member " name
              " that the given row variable requires to be absent"))))
      (instantiate-poly ty (list row))]))
-

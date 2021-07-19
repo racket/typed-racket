@@ -61,7 +61,7 @@
 ;; might carry out-of-scope type variables. In this case, we need to remove it
 ;; from parameter syntax objects.
 ;;
-;; not-in-poly is #t if the original TR function is polymorphic. 
+;; not-in-poly is #t if the original TR function is polymorphic.
 (define (make-formals stx [not-in-poly #t])
   (define (maybe-remove a)
     (if (and not-in-poly (from-plambda-property a))
@@ -307,7 +307,7 @@
        #:when (andmap free-identifier=? arg-list (syntax->list #'(j ...)))
        #'fun]
       [_ #f]))
-  
+
   (cond
     [(and (> (free-id-table-count aux-table) 0) (not rest-id))
      (tc/opt-lambda-clause arg-list body aux-table)]
@@ -332,11 +332,11 @@
                     [(? RestDots? rst) rst])]
          ;; Lambda with no rest argument
          [else #f]))
-     (cond 
+     (cond
       ;; special case for un-annotated eta-expansions
       [(and eta-expanded? (not rest-id) (andmap not arg-types)
             ;; FIXME: should also handle polymorphic types
-            ;; but we can't return anything but a (listof arr?) here 
+            ;; but we can't return anything but a (listof arr?) here
             ;; FIXME: misses optimization opportunities in this code
             (match (tc-expr eta-expanded?)
               [(tc-result1: (Fun: arrows))
@@ -596,7 +596,7 @@
      ;; we get (case-> (-> Num Num * Num)
      ;;                (-> Num * Zero))
      ;; which is unsound (i.e. we can upcast an intersection to either
-     ;; type, namely in this case to (-> Num * Zero), and then call 
+     ;; type, namely in this case to (-> Num * Zero), and then call
      ;; it as the identity function on any number, which does not
      ;; always produce the constant 0). In other words, our `case->`
      ;; is really an UNORDERED intersection that we just don't work
@@ -745,7 +745,7 @@
          [else
           (tc-error "Expected a polymorphic function with ..., but function/annotation had no ...")]))
      (make-PolyDots (append ns (list dvar)) (extend-and-loop form ns formals bodies (ret expected*)))]
-    [(tc-result1: (app resolve (and t (PolyRow-fresh: ns fresh-ns constraints expected*))))
+    [(tc-result1: (app resolve (and t (PolyRow-fresh: ns fresh-ns expected* constraints))))
      (for ((tvars (in-list tvarss)))
        (when (and (pair? tvars) (list? (car tvars)))
          (tc-error
@@ -756,9 +756,9 @@
      (make-PolyRow
       #:original-names ns
       fresh-ns
-      constraints
       (extend-and-loop form fresh-ns
-                       formals bodies (ret expected*)))]
+                       formals bodies (ret expected*))
+      constraints)]
     [_
      (define lengths
        (remove-duplicates

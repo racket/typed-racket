@@ -736,7 +736,7 @@
     [(PolyDots-names: (list names ... dotted) body)
      `(All ,(append names (list dotted '...)) ,(t->s body))]
     ;; FIXME: should this print constraints too
-    [(PolyRow-names: names _ body)
+    [(PolyRow-names: names body _)
      `(All (,(car names) #:row) ,(t->s body))]
     [(Some-names: n body)
      `(Some ,n ,(t->s body))]
@@ -761,7 +761,7 @@
                       #t]
                      [_ #f])))
      'Syntax]
-    [(Mu-maybe-name: name (? Type? body))
+    [(Mu-maybe-name: (list name) (? Type? body))
      `(Rec ,name ,(t->s body))]
     [(Mu-unsafe: raw-body)
      (with-printable-names 1 name-ids

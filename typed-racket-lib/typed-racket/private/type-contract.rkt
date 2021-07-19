@@ -603,7 +603,7 @@
        [(? PolyRow?)
         (t->sc/polyrow type fail typed-side recursive-values t->sc)]
 
-       [(Mu: n b)
+       [(Mu: (list n) b)
         (match-define (and n*s (list untyped-n* typed-n* both-n*)) (generate-temporaries (list n n n)))
         (define rv
           (hash-set recursive-values n
@@ -1045,13 +1045,13 @@
 
 ;; Generate a contract for a row-polymorphic function type
 (define (t->sc/polyrow type fail typed-side recursive-values t->sc)
-  (match-define (PolyRow: vs constraints body) type)
+  (match-define (PolyRow: vs body constraints) type)
   (if (not (from-untyped? typed-side))
       (let ((recursive-values (for/fold ([rv recursive-values]) ([v vs])
                                 (hash-set rv v (same any/sc)))))
         (extend-row-constraints vs (list constraints)
           (t->sc body #:recursive-values recursive-values)))
-      (match-let ([(PolyRow-names: vs-nm constraints b) type])
+      (match-let ([(PolyRow-names: vs-nm b constraints) type])
         (unless (is-a-function-type? b)
           (fail #:reason "cannot generate contract for non-function polymorphic type"))
         (let ([temporaries (generate-temporaries vs-nm)])

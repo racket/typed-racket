@@ -400,8 +400,8 @@
    ;; test #:row-var
    [(All (r #:row) (Class #:row-var r))
     (make-PolyRow (list 'r)
-                  (list null null null null)
-                  (-class #:row (make-F 'r)))]
+                  (-class #:row (make-F 'r))
+                  (list null null null null))]
    [FAIL (All (r #:row) (Class #:implements (Class #:row-var r)))]
    [FAIL (All (r #:row) (Class #:implements (Class) #:row-var r))]
    [FAIL (Class #:row-var 5)]
@@ -466,7 +466,7 @@
            ((Class #:row-var r (init y)) -> (Class #:row-var r)))]
    [FAIL (All (r #:row (init x y z) (field f) m n)
            ((Class #:row-var r a b c) -> (Class #:row-var r)))]
-   
+
    ;; parsing tests for Unit types
    ;; These are only simple tests because checking types
    ;; with signatures requires interaction with the Signature

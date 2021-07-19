@@ -86,7 +86,7 @@
       ;; shielded with a check for type indexes/variables/whatever.
       [((Poly: _ body-t) _) (path-type path body-t resolved)]
       [((PolyDots: _ body-t) _) (path-type path body-t resolved)]
-      [((PolyRow: _ _ body-t) _) (path-type path body-t resolved)]
+      [((PolyRow: _ body-t _) _) (path-type path body-t resolved)]
       [((Distinction: _ _ t) _) (path-type path t resolved)]
 
       ;; for private fields in classes

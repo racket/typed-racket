@@ -258,7 +258,7 @@
       ;; Row polymorphism. For now we do really dumb inference that only works
       ;; in very restricted cases, but is probably enough for most cases in
       ;; the Racket codebase. Eventually this should be extended.
-      [(PolyRow: vars constraints (and f-ty (Fun: arrows)))
+      [(PolyRow: vars (and f-ty (Fun: arrows)) constraints)
        ;; check there are no RestDots
        #:when (not (for/or ([a (in-list arrows)])
                      (RestDots? (Arrow-rst a))))

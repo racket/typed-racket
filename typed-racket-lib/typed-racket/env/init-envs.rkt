@@ -285,9 +285,9 @@
      `(make-Opaque (quote-syntax ,pred))]
     [(Refinement: parent pred)
      `(make-Refinement ,(type->sexp parent) (quote-syntax ,pred))]
-    [(Mu-maybe-name: n (? Type? b))
+    [(Mu-maybe-name: (list n) (? Type? b))
      `(make-Mu (quote ,n) ,(type->sexp b))]
-    [(Mu: n b)
+    [(Mu: (list n) b)
      `(make-Mu (quote ,n) ,(type->sexp b))]
     [(Poly-names: ns b)
      `(make-Poly (list ,@(for/list ([n (in-list ns)])
@@ -297,11 +297,11 @@
      `(make-PolyDots (list ,@(for/list ([n (in-list ns)])
                            `(quote ,n)))
                      ,(type->sexp b))]
-    [(PolyRow-names: ns c b)
+    [(PolyRow-names: ns b c)
      `(make-PolyRow (list ,@(for/list ([n (in-list ns)])
                               `(quote ,n)))
-                    (quote ,c)
-                    ,(type->sexp b))]
+                    ,(type->sexp b)
+                    (quote ,c))]
     [(Row: inits fields methods augments init-rest)
      `(make-Row (list ,@(convert-row-clause inits #t))
                 (list ,@(convert-row-clause fields))

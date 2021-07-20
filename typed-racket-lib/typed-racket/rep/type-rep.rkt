@@ -46,22 +46,15 @@
          -unsafe-intersect
          Mu-unsafe: Poly-unsafe:
          PolyDots-unsafe:
-         Mu? Poly? PolyDots? PolyRow?
-         Poly-n
-         PolyDots-n
-         Class? Row? Row:
          free-vars*
          Name/simple: Name/struct:
          unfold
-         Union?
-         Union-elems
          Union-fmap
          Un
          resolvable?
          Union-all:
          Union-all-flat:
          Union/set:
-         Intersection?
          -refine
          Refine:
          Refine-obj:
@@ -77,10 +70,6 @@
          set-struct-property-pred!
          DepFun/ids:
          Some-names:
-         Struct-Property?
-         Struct-name
-         Struct?
-         Struct-flds
          Struct-subflds
          Struct-update-proc!
          (rename-out [Union:* Union:]
@@ -98,7 +87,7 @@
                      [PolyRow:* PolyRow:]
                      [Mu* make-Mu]
                      [make-Mu unsafe-make-Mu]
-                     [Poly* make-Poly]
+                     [make-Poly* make-Poly]
                      [PolyDots* make-PolyDots]
                      [PolyRow* make-PolyRow]
                      [Mu-body* Mu-body]
@@ -109,7 +98,7 @@
                      [Intersection-prop* Intersection-prop]
                      [Struct-Property* make-Struct-Property]
                      [Struct-Property:* Struct-Property:]
-                     [Some* make-Some]
+                     [make-Some* make-Some]
                      [Some:* Some:]))
 
 (define (resolvable? x)
@@ -515,7 +504,7 @@
 
 
 (def-type Mu ([body Type?])
-  #:no-provide
+  #:no-provide (Mu: make-Mu Mu-body)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-Mu (f body))]
   [#:for-each (f) (f body)]
@@ -533,7 +522,8 @@
 ;; body is a type
 (def-type Poly ([n exact-nonnegative-integer?]
                 [body Type?])
-  #:no-provide
+  #:no-provide (Poly: Poly-body make-Poly)
+  #:type-binder (n body)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-Poly n (f body))]
   [#:for-each (f) (f body)]
@@ -543,7 +533,7 @@
 ;; there are n-1 'normal' vars and 1 ... var
 (def-type PolyDots ([n exact-nonnegative-integer?]
                     [body Type?])
-  #:no-provide
+  #:no-provide (make-PolyDots PolyDots: PolyDots-body)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-PolyDots n (f body))]
   [#:for-each (f) (f body)]
@@ -554,7 +544,7 @@
 ;; as a set for each of init, field, methods
 (def-type PolyRow ([constraints (list/c list? list? list? list?)]
                    [body Type?])
-  #:no-provide
+  #:no-provide (PolyRow-body make-PolyRow PolyRow:)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-PolyRow constraints (f body))]
   [#:for-each (f) (f body)]
@@ -567,8 +557,9 @@
 
 ;; body is a type
 (def-type Some ([n exact-nonnegative-integer?]
-                 [body Type?])
-  #:no-provide
+                [body Type?])
+  #:no-provide (make-Some Some:)
+  #:type-binder (n body)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-Some n (f body))]
   [#:for-each (f) (f body)])
@@ -753,7 +744,7 @@
    ;; when a struct type property is annotated via require/typed, the pred-id is
    ;; immediately set.
    [pred-id (box/c (or/c identifier? false/c))])
-  #:no-provide
+  #:no-provide (make-Struct-Property Struct-Property:)
   [#:frees (f) (f elem)]
   [#:fmap (f) (make-Struct-Property (f elem) pred-id)]
   [#:for-each (f) (f elem)]
@@ -803,7 +794,7 @@
                   [poly? boolean?]
                   [pred-id identifier?]
                   [properties (free-id-set/c identifier?)])
-  #:no-provide
+  #:no-provide (Struct: Struct-proc make-Struct)
   [#:frees (f) (combine-frees (map f (append (let ([bv (unbox proc)])
                                                (if bv (list bv) null))
                                              (if parent (list parent) null)
@@ -952,7 +943,7 @@
                  [base (or/c Bottom? Base? BaseUnion?)]
                  [ts (cons/c Type? (listof Type?))]
                  [elems (hash/c Type? #t #:immutable #t #:flat? #t)])
-  #:no-provide
+  #:no-provide (Union:)
   #:non-transparent
   [#:frees (f) (combine-frees (map f ts))]
   [#:fmap (f) (Union-fmap f base ts)]
@@ -1093,7 +1084,7 @@
                         [prop (and/c Prop? (not/c FalseProp?))]
                         [elems (hash/c Type? #t #:immutable #t #:flat? #t)])
   #:non-transparent
-  #:no-provide
+  #:no-provide (Intersection: make-Intersection Intersection-prop)
   [#:frees (f) (combine-frees (cons (f prop) (map f ts)))]
   [#:fmap (f) (-refine
                (for*/fold ([res Univ])
@@ -1248,7 +1239,7 @@
               [methods (listof (list/c symbol? Type?))]
               [augments (listof (list/c symbol? Type?))]
               [init-rest (or/c Type? #f)])
-  #:no-provide
+  #:no-provide (make-Row)
   [#:frees (f)
    (let ([extract-frees (λ (l) (f (second l)))])
      (combine-frees
@@ -1285,7 +1276,7 @@
 ;;
 (def-type Class ([row-ext (or/c #f F? B? Row?)]
                  [row Row?])
-  #:no-provide
+  #:no-provide (Class: make-Class)
   [#:frees (f)
    (combine-frees
     (append (if row-ext (list (f row-ext)) null)
@@ -1712,22 +1703,6 @@
     [t (error 'unfold "not a mu! ~a" t)]))
 
 
-;; Poly 'smart' constructor
-;;
-;; Also keeps track of the original name in a table to recover names
-;; for debugging or to correlate with surface syntax
-;;
-;; Provide #:original-names if the names that you are closing off
-;; are *different* from the names you want recorded in the table.
-;;
-;; list<symbol> type #:original-names list<symbol> -> type
-;;
-(define (Poly* names body #:original-names [orig names])
-  (if (null? names) body
-      (let ([v (make-Poly (length names) (abstract-type body names))])
-        (hash-set! type-var-name-table v orig)
-        v)))
-
 ;; Poly 'smart' destructor
 (define (Poly-body* names t)
   (match t
@@ -1813,56 +1788,6 @@
                                    (list sym (Mu-body* sym t))
                                    (list #f #f))))
                  (list np bp)))])))
-
-;; These match expanders correspond to opening up a type in
-;; locally nameless representation. When the type is opened,
-;; the nameless bound variables are replaced with free
-;; variables with names.
-;;
-;; This match expander wraps the smart constructor
-;; names are generated with gensym
-(define-match-expander Poly:*
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps bp)
-       #'(? Poly?
-            (app (lambda (t)
-                   (let* ([n (Poly-n t)]
-                          [syms (build-list n (lambda _ (gensym)))])
-                     (list syms (Poly-body* syms t))))
-                 (list nps bp)))])))
-
-;; This match expander uses the names from the hashtable
-(define-match-expander Poly-names:
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps bp)
-       #'(? Poly?
-            (app (lambda (t)
-                   (let* ([n (Poly-n t)]
-                          [syms (hash-ref type-var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
-                     (list syms (Poly-body* syms t))))
-                 (list nps bp)))])))
-
-;; Helper for fresh match expanders below, creates a
-;; fresh name that prints the same as the original
-(define (fresh-name sym)
-  (string->uninterned-symbol (symbol->string sym)))
-
-;; This match expander creates new fresh names for exploring the body
-;; of the polymorphic type. When lexical scoping of type variables is a concern, you
-;; should use this form.
-(define-match-expander Poly-fresh:
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps freshp bp)
-       #'(? Poly?
-            (app (lambda (t)
-                   (let* ([n (Poly-n t)]
-                          [syms (hash-ref type-var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))]
-                          [fresh-syms (map fresh-name syms)])
-                     (list syms fresh-syms (Poly-body* fresh-syms t))))
-                 (list nps freshp bp)))])))
 
 ;; This match expander wraps the smart constructor
 ;; names are generated with gensym
@@ -2010,44 +1935,7 @@
 ;;***************************************************************
 ;; Smart Constructors for Some structs
 ;;***************************************************************
-(define (Some* names body)
-  (cond
-    [(null? names) body]
-    [else (define v (make-Some (length names) (abstract-type body names)))
-          (hash-set! type-var-name-table v names)
-          v]))
-
 ;; the 'smart' destructor
-(define (Some-body* names t)
-  (match t
-    [(Some: n body)
-     (unless (= (length names) n)
-       (int-err "Wrong number of names: expected ~a got ~a" n (length names)))
-     (instantiate-type body (map make-F names))]))
-
-
-(define-match-expander Some-names:
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps bp)
-       #'(? Some?
-            (app (lambda (t)
-                   (let* ([n (Some-n t)]
-                          [syms (hash-ref type-var-name-table t (λ _ (build-list n (λ _ (gensym)))))])
-                     (list syms (Some-body* syms t))))
-                 (list nps bp)))])))
-
-(define-match-expander Some:*
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps bp)
-       #'(? Some?
-            (app (lambda (t) (let* ([n (Some-n t)]
-                                    [syms (cond
-                                            [(hash-ref type-var-name-table t #f) => (λ (names) (map gensym names))]
-                                            [else (build-list n (λ _ (gensym)))])])
-                               (list syms (Some-body* syms t))))
-                 (list nps bp)))])))
 
 
 ;;***************************************************************

@@ -323,6 +323,13 @@
                contracts:expr] ...)
              #:with (accessors ...) #'(ids.accessors ...))))
 
+;; Helper for fresh match expanders, creates a
+;; fresh name that prints the same as the original
+(define (fresh-name sym)
+  (string->uninterned-symbol (symbol->string sym)))
+
+
+
 ;;************************************************************
 ;; def-rep
 ;;************************************************************
@@ -509,6 +516,7 @@
             (define/with-syntax smart-constr (format-id #'var.name "~a*" (attribute var.constructor)))
             (define/with-syntax smart-destr (format-id #'var.name "~a*" (attribute var.match-expander)))
             (define/with-syntax smart-destr-names (format-id #'var.name "~a-names:" #'var.name))
+            (define/with-syntax smart-destr-fresh (format-id #'var.name "~a-fresh:" #'var.name))
             #'(begin
                 (define-match-expander smart-destr-names
                   (lambda (stx)
@@ -536,11 +544,29 @@
                                    (list syms (instantiate-type body (map make-F syms))))
                                  (list nps bp)))])))
 
-                (define (smart-constr names body)
+                ;; This match expander creates new fresh names for exploring the body
+                ;; of the polymorphic type. When lexical scoping of type variables is a concern, you
+                ;; should use this form.
+                (define-match-expander smart-destr-fresh
+                  (lambda (stx)
+                    (syntax-case stx ()
+                      [(_ nps freshp bp)
+                       #'(? var.predicate
+                            (app (lambda (t)
+                                   (match-define (struct* var.name ([n-vars-fld n]
+                                                                    [body-fld body]))
+                                     t)
+                                   (define syms (hash-ref type-var-name-table t (λ _ (build-list n (λ _ (gensym))))))
+                                   (define fresh-syms (map fresh-name syms))
+                                   (list syms fresh-syms (instantiate-type body (map make-F fresh-syms))))
+                                 (list nps freshp bp)))])))
+
+
+                (define (smart-constr names body #:original-names [orig names])
                  (cond
                    [(null? names) body]
                    [else (define v (var.constructor (length names) (abstract-type body names)))
-                         (hash-set! type-var-name-table v names)
+                         (hash-set! type-var-name-table v orig)
                          v])))]
            [else #'(begin)])]
         [struct-def #'(struct var.name parent ... (flds.ids ...)

@@ -87,7 +87,7 @@
                      [PolyRow:* PolyRow:]
                      [Mu* make-Mu]
                      [make-Mu unsafe-make-Mu]
-                     [Poly* make-Poly]
+                     [make-Poly* make-Poly]
                      [PolyDots* make-PolyDots]
                      [PolyRow* make-PolyRow]
                      [Mu-body* Mu-body]
@@ -523,6 +523,7 @@
 (def-type Poly ([n exact-nonnegative-integer?]
                 [body Type?])
   #:no-provide (Poly: Poly-body make-Poly)
+  #:type-binder (n body)
   [#:frees (f) (f body)]
   [#:fmap (f) (make-Poly n (f body))]
   [#:for-each (f) (f body)]
@@ -1702,22 +1703,6 @@
     [t (error 'unfold "not a mu! ~a" t)]))
 
 
-;; Poly 'smart' constructor
-;;
-;; Also keeps track of the original name in a table to recover names
-;; for debugging or to correlate with surface syntax
-;;
-;; Provide #:original-names if the names that you are closing off
-;; are *different* from the names you want recorded in the table.
-;;
-;; list<symbol> type #:original-names list<symbol> -> type
-;;
-(define (Poly* names body #:original-names [orig names])
-  (if (null? names) body
-      (let ([v (make-Poly (length names) (abstract-type body names))])
-        (hash-set! type-var-name-table v orig)
-        v)))
-
 ;; Poly 'smart' destructor
 (define (Poly-body* names t)
   (match t
@@ -1803,56 +1788,6 @@
                                    (list sym (Mu-body* sym t))
                                    (list #f #f))))
                  (list np bp)))])))
-
-;; These match expanders correspond to opening up a type in
-;; locally nameless representation. When the type is opened,
-;; the nameless bound variables are replaced with free
-;; variables with names.
-;;
-;; This match expander wraps the smart constructor
-;; names are generated with gensym
-(define-match-expander Poly:*
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps bp)
-       #'(? Poly?
-            (app (lambda (t)
-                   (let* ([n (Poly-n t)]
-                          [syms (build-list n (lambda _ (gensym)))])
-                     (list syms (Poly-body* syms t))))
-                 (list nps bp)))])))
-
-;; This match expander uses the names from the hashtable
-(define-match-expander Poly-names:
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps bp)
-       #'(? Poly?
-            (app (lambda (t)
-                   (let* ([n (Poly-n t)]
-                          [syms (hash-ref type-var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))])
-                     (list syms (Poly-body* syms t))))
-                 (list nps bp)))])))
-
-;; Helper for fresh match expanders below, creates a
-;; fresh name that prints the same as the original
-(define (fresh-name sym)
-  (string->uninterned-symbol (symbol->string sym)))
-
-;; This match expander creates new fresh names for exploring the body
-;; of the polymorphic type. When lexical scoping of type variables is a concern, you
-;; should use this form.
-(define-match-expander Poly-fresh:
-  (lambda (stx)
-    (syntax-case stx ()
-      [(_ nps freshp bp)
-       #'(? Poly?
-            (app (lambda (t)
-                   (let* ([n (Poly-n t)]
-                          [syms (hash-ref type-var-name-table t (lambda _ (build-list n (lambda _ (gensym)))))]
-                          [fresh-syms (map fresh-name syms)])
-                     (list syms fresh-syms (Poly-body* fresh-syms t))))
-                 (list nps freshp bp)))])))
 
 ;; This match expander wraps the smart constructor
 ;; names are generated with gensym

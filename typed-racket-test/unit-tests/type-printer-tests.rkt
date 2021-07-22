@@ -308,12 +308,12 @@
     (check-pretty-prints-as? (-lst -Nat) "(Listof Nonnegative-Integer)")
     (check-pretty-prints-as?
      (-polydots (c a b)
-       (cl->*
-        (-> (-> a c) (-pair a (-lst a)) (-pair c (-lst c)))
-        ((list
-          ((list a) (b b) . ->... . c)
-          (-lst a))
-         ((-lst b) b) . ->... .(-lst c))))
+                (cl->*
+                 (-> (-> a c) (-pair a (-lst a)) (-pair c (-lst c)))
+                 ((list
+                   ((list a) (b b) . ->... . c)
+                   (-lst a))
+                  ((-lst b) b) . ->... .(-lst c))))
      (string-append "(All (c a b ...)\n"
                     "  (case->\n"
                     "   (-> (-> a c) (Pairof a (Listof a)) (Pairof c (Listof c)))\n"

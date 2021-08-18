@@ -302,7 +302,7 @@
              #:with predicate
              (format-id #'name "~a?" (syntax-e #'name))
              #:with updator
-             (format-id #'var.name "~a-update" (syntax-e #'name))))
+             (format-id #'name "~a-update" (syntax-e #'name))))
   ;; structure accessor parsing
   (define-syntax-class (fld-id struct-name)
     #:attributes (name accessors)

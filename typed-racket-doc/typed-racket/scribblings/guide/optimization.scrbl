@@ -100,16 +100,16 @@ As with floating-point literals, float
 literals (such as @racket[1.0+1.0i]) should be preferred over exact
 @tech[#:doc '(lib "scribblings/reference/reference.scrbl") #:key
 "complex numbers"]{complex}
-literals (such as @racket[1+1i]). Note that both parts of a literal must be
-present and
-@tech[#:doc '(lib "scribblings/reference/reference.scrbl") #:key
-"inexact numbers"]{inexact}
-for the literal to be of type
-@racket[Float-Complex]; @racket[0.0+1.0i] is of type
-@racket[Float-Complex] but @racket[+1.0i] is not.
+literals (such as @racket[1+1i]).
+
+
 To get the most of
 Typed Racket's optimizer, you should also favor rectangular
 coordinates over polar coordinates.
+
+Note that on Racket BC, it is possible to have complex numbers where one component is exact and the other is @tech[#:doc '(lib "scribblings/reference/reference.scrbl") #:key
+"inexact numbers"]{inexact}. These values, including literals written @racketvalfont{+1.0i}, do not have the type @racket[Float-Complex]. On Racket CS, such mixed-exactness values do not exist.
+
 
 @subsection{Lists}
 Typed Racket handles potentially empty lists and lists that are known

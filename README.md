@@ -25,6 +25,28 @@ Documentation
 
 The documentation is also bundled in your local copy of Typed Racket.
 
+Directory Guide
+---------------
+
+The directory `rfcs` holds requests for changes to Typed Racket.
+
+The directory `source-syntax` allows the `source-syntax` collection to report
+errors in macro-expanded code by mapping each location in the expanded code to
+the right location in the source file.
+
+The directory `typed-racket` bundles together the Racket content of the two
+directories `typed-racket-doc` and `typed-racket-lib`.
+
+The directory `typed-racket-compatibility` provides Typed Racket under old names
+for backwards compatibility.
+
+The directory `typed-racket-doc` contains Scribble documentation.
+
+The directory `typed-racket-lib` houses the actual implementation of Typed Racket.
+
+The directory `typed-racket-more` has typed interfaces for additional libraries.
+
+The directory `typed-racket-test` has test cases for Typed Racket.
 
 License
 -------

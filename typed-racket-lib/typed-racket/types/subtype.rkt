@@ -989,9 +989,15 @@
    (match t2
      [(? MPairTop?) A]
      [(MPair: t21 t22)
+      (define cmp1 (if (equal? -Null t11)
+                       subtype*
+                       type≡?))
+      (define cmp2 (if (equal? -Null t12)
+                       subtype*
+                       type≡?))
       (subtype-seq A
-                   (type≡? t11 t21)
-                   (type≡? t12 t22))]
+                   (cmp1 t11 t21)
+                   (cmp2 t12 t22))]
      ;; To check that mutable pair is a sequence we check that the cdr
      ;; is both an mutable list and a sequence
      [(SequenceTop:)

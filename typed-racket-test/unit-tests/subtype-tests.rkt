@@ -253,9 +253,13 @@
     [FAIL (-pair -String (-lst -Symbol)) (-seq -String)]
     [FAIL (-pair -String (-vec -String)) (-seq -String)]
     [-Null (-seq -String)]
+    [-Null (-mlst -String)]
     [(-mpair -String -Null) (-seq -String)]
+    [(-mpair -String -Null) (-mlst -String)]
+    [(-mpair -Null -Null) (-mpair (-seq -String) (-seq -String))]
     [(-mlst -String) (-seq -String)]
     [(-mpair -String (-mlst -String)) (-seq -String)]
+    [FAIL (-mpair (-seq -String) (-seq -String)) (-mpair -Null -Null)]
     [FAIL (-mpair -String (-mlst -Symbol)) (-seq -String)]
     [FAIL (-mpair -String (-vec -String)) (-seq -String)]
     [(-mpair -String (-mlst (-val "hello"))) (-seq -String)])
@@ -302,7 +306,7 @@
    ;; from page 7 (my favorite page! But seriously, page 7 of... what???)
    [(-mu t (-> t t)) (-mu s (-> s s))]
    [(-mu s (-> -Number s)) (-mu t (-> -Number (-> -Number t)))]
-    
+
    ;; not subtypes
    [FAIL (-val 'hello) -Number]
    [FAIL (-val #f) -Symbol]
@@ -313,7 +317,7 @@
    [FAIL -Symbol (-val 'Sym)]
    [FAIL (Un -Symbol -Number) (-poly (a) -Number)]
    ;; bugs found
-    
+
    [(-poly (a) (make-Listof (-v a))) (make-Listof (-mu x (Un (make-Listof x) -Number)))]
    [FAIL (make-Listof (-mu x (Un (make-Listof x) -Number))) (-poly (a) (make-Listof a))]
 
@@ -506,7 +510,7 @@
    [(-poly (a) (a . -> . (make-Listof a))) ((-v b) . -> . (make-Listof (-v b)))]
    [(-poly (a) (a . -> . (make-Listof a))) ((-pair -Number (-v b)) . -> . (make-Listof (-pair -Number (-v b))))]
    [FAIL (-poly (a b) (-> a a)) (-poly (a b) (-> a b))]
-    
+
    [(cl->* (-Number . -> . -String) (-Boolean . -> . -String)) ((Un -Boolean -Number) . -> . -String)]
    [(-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))
     (-> Univ -Boolean : -tt-propset)]
@@ -569,7 +573,7 @@
    [FAIL
     (->key -String #:x -Symbol #f #:y -Symbol #f Univ)
     (->optkey -String [-Void] #:x -Symbol #t Univ)]
-   
+
    ;; Proposition subtyping
    [(make-pred-ty (list -Real) -Boolean (Un (-val 0.0) (-val 0)))
     (make-pred-ty (list -Int) -Boolean (-val 0))]

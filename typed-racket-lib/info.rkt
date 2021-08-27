@@ -12,4 +12,4 @@
 
 (define pkg-authors '(samth stamourv))
 
-(define version "1.12")
+(define version "1.14")

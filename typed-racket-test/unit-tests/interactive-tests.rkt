@@ -163,6 +163,20 @@
 
     (test-form #rx"Positive-Index"
       (:print-type (+ 1 1)))
+
+    (test-form #rx"more precisely: Positive-Byte"
+               10)
+
+    (test-form #rx"\\(MPairof String Null\\)\n$"
+               (begin (: a-pair (MPairof String Null))
+                      (define a-pair (mcons "123456" '()))
+                      a-pair))
+    (test-form #rx"\\(Immutable-Vectorof Number\\)\n$"
+               (ann (vector-immutable 10 20 30) (Immutable-Vectorof Number)))
+    (test-form #rx"\\(Mutable-Vector Integer Integer Integer\\)\n$"
+               (vector 10 20 30))
+    (test-form #rx"\\(Mutable-Vectorof Number\\)\n$"
+               (ann (vector 10 20 30) (Mutable-Vectorof Number)))
     (test-form (regexp-quote "(values One One)")
       (:print-type (values 1 1)))
     (test-form-exn #rx":print-type.*applied to arguments"

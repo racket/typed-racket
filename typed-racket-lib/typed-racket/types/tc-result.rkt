@@ -8,9 +8,26 @@
          "../rep/values-rep.rkt"
          "../rep/free-variance.rkt"
          "../utils/tc-utils.rkt"
+         (only-in "numeric-tower.rkt" -Number)
+         racket/lazy-require
          "base-abbrev.rkt"
+         racket/generic
          racket/match
          (prefix-in c: (contract-req)))
+
+
+(provide tcresult-at-toplevel? toplevel-report)
+
+(lazy-require ["../typecheck/possible-domains.rkt" (cleanup-type)]
+              ["generalize.rkt" (generalize)]
+              ["subtype.rkt" (subtype)]
+              ["printer.rkt" (pretty-format-rep)])
+
+(define-generics tcresult-at-toplevel
+  (toplevel-report tcresult-at-toplevel))
+
+(define :print-type-message " ... [Use (:print-type <expr>) to see more.]")
+(define did-I-suggest-:print-type-already? #f)
 
 ;; this structure represents the result of typechecking an expression
 ;; fields are #f only when the direct result of parsing or annotations
@@ -33,6 +50,12 @@
    (when pset (f pset))
    (when o (f o))])
 
+;; Type? -> Type?
+;; call generalize on the input if it is a subtype of Number
+(define (only-generalize-number ty)
+  (if (subtype ty -Number) (generalize ty)
+      ty))
+
 (def-rep tc-results ([tcrs (c:listof tc-result?)]
                      [drst (c:or/c #f RestDots?)])
   #:no-provide
@@ -44,13 +67,61 @@
                     (and drst (f drst)))]
   [#:for-each (f)
    (for-each f tcrs)
-   (when drst (f drst))])
+   (when drst (f drst))]
+  [#:extras
+   #:methods gen:tcresult-at-toplevel
+   [(define/match (toplevel-report me)
+      ;; don't print results of type void
+      [((tc-result1: (== -Void))) #f]
+      [((tc-result1: t))
+       ;; Don't display the whole types at the REPL. Some case-lambda types
+       ;; are just too large to print.
+       ;; Also, to avoid showing too precise types, we generalize types
+       ;; before printing them.
+       (define tc (cleanup-type t))
+       (define tg (only-generalize-number tc))
+       (format "- : ~a~a~a\n"
+               (pretty-format-rep tg #:indent 4)
+               (cond
+                 [(equal? tc tg) ""]
+                 [else (format " [more precisely: ~a]" tc)])
+               (cond [(equal? tc t) ""]
+                     [did-I-suggest-:print-type-already? " ..."]
+                     [else (set! did-I-suggest-:print-type-already? #t)
+                           :print-type-message]))]
+      [((tc-results: (list (tc-result:* t) ...) #f))
+       (define tcs (map cleanup-type t))
+       (define tgs (map only-generalize-number
+                        tcs))
+       (define supertype? (andmap equal? tcs tgs))
+       (define tgs-val (make-Values (map -result tgs)))
+       (define formatted (pretty-format-rep tgs-val #:indent 4))
+       (define indented? (regexp-match? #rx"\n" formatted))
+       (format "- : ~a~a~a\n"
+               formatted
+               (cond [(andmap equal? tgs tcs) ""]
+                     [indented?
+                      (define prompt "[more precisely: ")
+                      (format "\n~a~a]"
+                              prompt
+                              (pretty-format-rep (make-Values (map -result tcs))
+                                                 #:indent (string-length prompt)))]
+                     [else (format " [more precisely: ~a]" (cons 'Values tcs))])
+               ;; did any get pruned?
+               (cond [(andmap equal? t tcs) ""]
+                     [did-I-suggest-:print-type-already? " ..."]
+                     [else (set! did-I-suggest-:print-type-already? #t)
+                           :print-type-message]))]
+      [(x) (int-err "bad type result: ~a" x)])]])
 
 (def-rep tc-any-results ([p (c:or/c Prop? #f)])
   #:no-provide
   [#:frees (f) (if p (f p) empty-free-vars)]
   [#:fmap (f) (make-tc-any-results (and p (f p)))]
-  [#:for-each (f) (when p (f p))])
+  [#:for-each (f) (when p (f p))]
+  [#:extras
+   #:methods gen:tcresult-at-toplevel
+   [(define (toplevel-report me) #f)]])
 
 (define (tc-results/c v)
   (or (tc-results? v)

@@ -8,8 +8,7 @@
 ;; take over and keep head local-expanding until `begin` forms are exhausted,
 ;; at which point the syntax can be fully-expanded and checked normally.
 
-(require "../utils/utils.rkt"
-         syntax/parse
+(require syntax/parse
          "../private/syntax-properties.rkt"
          (for-template racket/base))
 
@@ -32,23 +31,21 @@
                (quote-syntax #,orig-stx) e-last))]))
 
 (module trampolines racket/base
-  (require "../utils/utils.rkt"
-           (for-syntax racket/base
+  (require (for-syntax racket/base
                        racket/match
                        syntax/kerncase
                        syntax/parse
                        syntax/stx
-                       "../rep/type-rep.rkt"
                        "../rep/values-rep.rkt"
                        "../optimizer/optimizer.rkt"
                        "../types/utils.rkt"
                        "../types/abbrev.rkt"
                        "../types/printer.rkt"
-                       "../types/generalize.rkt"
+                       "../types/tc-result.rkt"
                        "tc-toplevel.rkt"
-                       "possible-domains.rkt"
                        "../private/type-contract.rkt"
                        "../private/syntax-properties.rkt"
+                       (only-in "../types/subtype.rkt" subtype)
                        "../env/mvar-env.rkt"
                        "../utils/disarm.rkt"
                        "../utils/lift.rkt"
@@ -131,10 +128,6 @@
             #`(begin #,extra-requires #,@new-stx)
             #`(begin #,@new-stx))))))
 
-  (begin-for-syntax
-    (define did-I-suggest-:print-type-already? #f)
-    (define :print-type-message " ... [Use (:print-type <expr>) to see more.]"))
-
   ;; Trampoline that continues the typechecking process and reports the type
   ;; information to the user.
   (define-syntax (tc-toplevel-trampoline/report stx)
@@ -146,44 +139,7 @@
            ;; 'no-type means the form is not an expression and
            ;; has no meaningful type to print
            ['no-type #f]
-           ;; don't print results of type void
-           [(tc-result1: (== -Void)) #f]
-           ;; don't print results of unknown type
-           [(tc-any-results: f) #f]
-           [(tc-result1: t f o)
-            ;; Don't display the whole types at the REPL. Some case-lambda types
-            ;; are just too large to print.
-            ;; Also, to avoid showing too precise types, we generalize types
-            ;; before printing them.
-            (define tc (cleanup-type t))
-            (define tg (generalize tc))
-            (format "- : ~a~a~a\n"
-                    (pretty-format-rep tg #:indent 4)
-                    (cond [(equal? tc tg) ""]
-                          [else (format " [more precisely: ~a]" tc)])
-                    (cond [(equal? tc t) ""]
-                          [did-I-suggest-:print-type-already? " ..."]
-                          [else (set! did-I-suggest-:print-type-already? #t)
-                                :print-type-message]))]
-           [(tc-results: (list (tc-result: t) ...) #f)
-            (define tcs (map cleanup-type t))
-            (define tgs (map generalize tcs))
-            (define tgs-val (make-Values (map -result tgs)))
-            (define formatted (pretty-format-rep tgs-val #:indent 4))
-            (define indented? (regexp-match? #rx"\n" formatted))
-            (format "- : ~a~a~a\n"
-                    formatted
-                    (cond [(andmap equal? tgs tcs) ""]
-                          [indented?
-                           (format "\n[more precisely: ~a]"
-                                   (pretty-format-rep (make-Values (map -result tcs))
-                                                       #:indent 17))]
-                          [else (format " [more precisely: ~a]" (cons 'Values tcs))])
-                    ;; did any get pruned?
-                    (cond [(andmap equal? t tcs) ""]
-                          [did-I-suggest-:print-type-already? " ..."]
-                          [else (set! did-I-suggest-:print-type-already? #t)
-                                :print-type-message]))]
+           [(? tcresult-at-toplevel?) (toplevel-report result)]
            [x (int-err "bad type result: ~a" x)]))
        (define with-printing
         (with-syntax ([(e ... e-last) new-stx])

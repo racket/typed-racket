@@ -107,6 +107,9 @@ These utilities help interface typed with untyped code, particularly typed
 libraries that use types that cannot be converted into contracts, or export
 syntax transformers that must expand differently in typed and untyped contexts.
 
+@history[#:changed "1.14"
+         @elem{The module moved from @tt{typed-racket-more} to @tt{typed-racket-lib}.}]
+
 @defform*/subs[[(require/untyped-contract maybe-begin module [name subtype] ...)]
                ([maybe-begin code:blank (code:line (begin expr ...))])]{
 Use this form to import typed identifiers whose types cannot be converted into

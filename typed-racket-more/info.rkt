@@ -13,7 +13,7 @@
                "rackunit-gui"
                "rackunit-typed"
                "snip-lib"
-               "typed-racket-lib"
+               ["typed-racket-lib" #:version "1.14"]
                ["gui-lib" #:version "1.49"]
                "pict-lib"
                "images-lib"
@@ -27,4 +27,4 @@
 
 (define pkg-authors '(samth stamourv))
 
-(define version "1.13")
+(define version "1.14")

@@ -153,7 +153,7 @@
 
 (define-internal-classes
   [type-alias
-    (define-type-alias-internal name type args)]
+    (define-type-alias-internal name body params)]
   [new-subtype-def
     (define-new-subtype-internal name (constructor rep-type) #:gen-id gen-id)]
   [type-refinement

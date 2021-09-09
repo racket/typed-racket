@@ -19,16 +19,14 @@
 
 ;; special type names that are not bound to particular types
 (define-other-types
-  -> ->* case-> U Union ∩ Intersection Rec All Opaque Immutable-Vector Mutable-Vector Vector
+  -> ->* case-> Rec All Opaque
   Parameterof List List* Class Object Row Unit Values AnyValues Instance Refinement
   pred Struct Struct-Type Prefab PrefabTop Distinction Sequenceof Refine Self Struct-Property Has-Struct-Property Some)
-
 
 (define-other-props
   Top Bot !)
 
 (provide (rename-out [All ∀]
-                     [U Un]
                      [-> →]
                      [case-> case→]
                      [List Tuple]

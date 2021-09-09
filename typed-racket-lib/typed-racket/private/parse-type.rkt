@@ -9,7 +9,9 @@
          "../rep/values-rep.rkt"
          "../rep/free-ids.rkt"
          "../rep/rep-utils.rkt"
+         "../rep/type-constr.rkt"
          "../types/abbrev.rkt"
+         "user-defined-type-constr.rkt"
          "../types/utils.rkt"
          "../types/prop-ops.rkt"
          "../types/resolve.rkt"
@@ -28,16 +30,19 @@
          syntax/parse racket/sequence
          "../env/tvar-env.rkt"
          "../env/type-alias-env.rkt"
+         "../env/type-constr-env.rkt"
          "../env/mvar-env.rkt"
          "../env/lexical-env.rkt"
          "../env/index-env.rkt"
          "../env/row-constraint-env.rkt"
          "../env/signature-env.rkt"
          racket/dict
+         racket/set
          racket/list
          racket/promise
          racket/format
          racket/match
+         syntax/id-table
          "parse-classes.rkt"
          (for-template "../base-env/base-types-extra.rkt"
                        racket/base)
@@ -51,21 +56,29 @@
            ;; in most TR modules.
            (only-in "../base-env/case-lambda.rkt" case-lambda)))
 
-(provide/cond-contract ;; Parse the given syntax as a type
-                       [parse-type (syntax? . c:-> . Type?)]
-                       ;; Parse the given identifier using the lexical
-                       ;; context of the given syntax object
-                       [parse-type/id (syntax? c:any/c . c:-> . Type?)]
-                       [parse-tc-results (syntax? . c:-> . tc-results/c)]
-                       [parse-literal-alls (syntax? . c:-> . (c:listof (c:or/c (c:listof identifier?) (c:list/c (c:listof identifier?) identifier?))))]
-                       ;; Parse a row, which is only allowed in row-inst
-                       [parse-row (syntax? . c:-> . Row?)])
+(provide/cond-contract
+ ;; Parse the given syntax as a type
+ [parse-type (c:->* (syntax?)
+                    ((free-id-table/c identifier? boolean?))
+                    Type?)]
+ [parse-type-operator-abstraction (c:->* (identifier? (c:listof identifier?) syntax?)
+                                         ((c:or/c (c:-> identifier? boolean?) #f)
+                                          (free-id-table/c identifier? boolean?))
+                                         TypeConstructor?)]
+ [parse-for-effects (c:-> identifier? (c:cons/c (c:listof identifier?) syntax?)
+                          (values (c:listof identifier?)
+                                  (c:listof identifier?)
+                                  boolean?))]
+ [parse-type-or-type-constructor (syntax? . c:-> . (c:or/c Type? TypeConstructor?))]
+ ;; Parse the given identifier using the lexical
+ ;; context of the given syntax object
+ [parse-type/id (syntax? c:any/c . c:-> . Type?)]
+ [parse-tc-results (syntax? . c:-> . tc-results/c)]
+ [parse-literal-alls (syntax? . c:-> . (c:listof (c:or/c (c:listof identifier?) (c:list/c (c:listof identifier?) identifier?))))]
+ ;; Parse a row, which is only allowed in row-inst
+ [parse-row (syntax? . c:-> . Row?)])
 
-(provide star ddd/bound
-         current-referenced-aliases
-         current-referenced-class-parents
-         current-type-alias-name
-         check-type-invariants-while-parsing?)
+(provide star ddd/bound)
 
 ;; current-term-names : Parameter<(Listof Id)>
 ;; names currently "bound" by a type we are parsing
@@ -94,28 +107,6 @@
      => cdr]
     [else #f]))
 
-;; current-type-alias-name : Parameter<(Option Id)>
-;; This parameter stores the name of the type alias that is
-;; being parsed (set in type-alias-helper.rkt), #f if the
-;; parsing is not for a type alias
-(define current-type-alias-name (make-parameter #f))
-
-;; current-referenced-aliases : Parameter<Option<Box<List<Id>>>>
-;; This parameter is used to coordinate with the type-checker to determine
-;; if a type alias should be recursive or not
-;;
-;; interp. the argument is #f if not checking for type aliases.
-;;         Otherwise, it should be a box containing a list of
-;;         identifiers (i.e., type aliases in the syntax)
-(define current-referenced-aliases (make-parameter #f))
-
-;; current-referenced-class-parents : Parameter<Option<Box<List<Id>>>>
-;; This parameter is used to coordinate with the type-checker about
-;; the dependency structure of class types using #:implements
-;;
-;; interp. same as above
-(define current-referenced-class-parents (make-parameter #f))
-
 ;; current-arities : Parameter<(Listof Natural)>
 ;; Represents the stack of function arities in the potentially
 ;; nested function type being parsed. The stack does not include the
@@ -126,13 +117,6 @@
   (parameterize ([current-arities (cons arity (current-arities))])
     e ...))
 
-
-;; code in type-alias-helper.rkt calls `parse-type` for effect to build up
-;; info about how types depend on each other -- during this parsing, we can't
-;; check certain invariant successfully (i.e. when a user writes `(car p)`
-;; `p` is <: (Pair Any Any), etc), so we use this flag to disable/enable
-;; invariant checking while parsing
-(define check-type-invariants-while-parsing? (make-parameter #t))
 
 (define-literal-syntax-class #:for-label car)
 (define-literal-syntax-class #:for-label cdr)
@@ -156,14 +140,9 @@
 (define-literal-syntax-class #:for-label ->*)
 (define-literal-syntax-class #:for-label case->^ (case-> case-lambda))
 (define-literal-syntax-class #:for-label Rec)
-(define-literal-syntax-class #:for-label U)
-(define-literal-syntax-class #:for-label Union)
 (define-literal-syntax-class #:for-label All)
 (define-literal-syntax-class #:for-label Opaque)
 (define-literal-syntax-class #:for-label Parameter)
-(define-literal-syntax-class #:for-label Immutable-Vector)
-(define-literal-syntax-class #:for-label Mutable-Vector)
-(define-literal-syntax-class #:for-label Vector)
 (define-literal-syntax-class #:for-label Struct)
 (define-literal-syntax-class #:for-label Struct-Property)
 (define-literal-syntax-class #:for-label Has-Struct-Property)
@@ -177,8 +156,6 @@
 (define-literal-syntax-class #:for-label Bot)
 (define-literal-syntax-class #:for-label Distinction)
 (define-literal-syntax-class #:for-label Sequenceof)
-(define-literal-syntax-class #:for-label ∩)
-(define-literal-syntax-class #:for-label Intersection)
 (define-literal-syntax-class #:for-label Refine)
 (define-literal-syntax-class #:for-label Self)
 (define-literal-syntax-class #:for-label Some)
@@ -218,7 +195,7 @@
 
 ;; Syntax -> Type
 ;; Parse a Forall type
-(define (parse-all-type stx)
+(define (parse-all-type stx do-parse)
   (syntax-parse stx
     [(:All^ (vars:id ... v:id dd:ddd) . t:omit-parens)
      (define maybe-dup (check-duplicates (stx-map syntax-e #'(vars ... v))))
@@ -229,7 +206,7 @@
             [v (syntax-e #'v)])
        (extend-indexes v
          (extend-tvars vars
-           (make-PolyDots (append vars (list v)) (parse-type #'t.type)))))]
+           (make-PolyDots (append vars (list v)) (do-parse #'t.type)))))]
     [(:All^ (vars:id ...) . t:omit-parens)
      (define maybe-dup (check-duplicates (stx-map syntax-e #'(vars ...))))
      (when maybe-dup
@@ -237,7 +214,7 @@
                     "variable" maybe-dup))
      (let* ([vars (stx-map syntax-e #'(vars ...))])
        (extend-tvars vars
-         (make-Poly vars (parse-type #'t.type))))]
+         (make-Poly vars (do-parse #'t.type))))]
     ;; Next two are row polymorphic cases
     [(:All^ (var:id #:row) . t:omit-parens)
      (add-disappeared-use #'kw)
@@ -245,7 +222,7 @@
      ;; When we're inferring the row constraints, there
      ;; should be no need to extend the constraint environment
      (define body-type
-       (extend-tvars (list var*) (parse-type #'t.type)))
+       (extend-tvars (list var*) (do-parse #'t.type)))
      (make-PolyRow
       (list var*)
       ;; No constraints listed, so we need to infer the constraints
@@ -259,7 +236,7 @@
        (extend-tvars (list var*)
          (make-PolyRow
           (list var*)
-          (parse-type #'t.type)
+          (do-parse #'t.type)
           constraints)))]
     [(:All^ (_:id ...) _ _ _ ...) (parse-error "too many forms in body of All type")]
     [(:All^ . rest) (parse-error "bad syntax")]))
@@ -271,16 +248,16 @@
 
 ;; syntax class for standard keyword syntax (same as contracts), may be
 ;; optional or mandatory depending on where it's used
-(define-splicing-syntax-class plain-kw-tys
+(define-splicing-syntax-class (plain-kw-tys do-parse)
   (pattern (~seq k:keyword t:expr)
-           #:attr mand-kw (delay (make-Keyword (syntax-e #'k) (parse-type #'t) #t))
-           #:attr opt-kw  (delay (make-Keyword (syntax-e #'k) (parse-type #'t) #f))))
+           #:attr mand-kw (delay (make-Keyword (syntax-e #'k) (do-parse #'t) #t))
+           #:attr opt-kw  (delay (make-Keyword (syntax-e #'k) (do-parse #'t) #f))))
 
-(define-splicing-syntax-class keyword-tys
-  (pattern kw:plain-kw-tys #:attr Keyword (attribute kw.mand-kw))
+(define-splicing-syntax-class (keyword-tys do-parse)
+  (pattern (~var kw (plain-kw-tys do-parse))  #:attr Keyword (attribute kw.mand-kw))
   ;; custom optional keyword syntax for TR
   (pattern (~seq [k:keyword t:expr])
-           #:attr Keyword (delay (make-Keyword (syntax-e #'k) (parse-type #'t) #f))))
+           #:attr Keyword (delay (make-Keyword (syntax-e #'k) (do-parse #'t) #f))))
 
 (define-syntax-class non-keyword-ty
   (pattern (k:expr e ...))
@@ -309,10 +286,10 @@
            #:attr deps (syntax->list #'(name dep ...))))
 
 ;; syntax classes for parsing ->* function types
-(define-syntax-class (->*-args mand?)
+(define-syntax-class (->*-args mand? do-parse)
   #:description "type arguments for ->*"
   #:attributes (doms kws)
-  (pattern ((~var dom (->*-dom mand?)) ...)
+  (pattern ((~var dom (->*-dom mand? do-parse)) ...)
            #:do [(define-values (kws doms)
                    ;; would like to use `partition` but we need to traverse multiple
                    ;; lists rather than just checking Keyword? due to laziness
@@ -326,12 +303,12 @@
            #:attr kws (reverse kws)))
 
 ;; parameterized syntax class for parsing ->* domains.
-(define-splicing-syntax-class (->*-dom mand?)
+(define-splicing-syntax-class (->*-dom mand? do-parse)
   #:attributes (kw? result)
   (pattern (~seq k:keyword t:expr)
            #:attr kw? #t
            #:attr result
-           (delay (make-Keyword (syntax-e #'k) (parse-type #'t) mand?)))
+           (delay (make-Keyword (syntax-e #'k) (do-parse #'t) mand?)))
   (pattern t:expr
            #:attr kw? #f
            ;; does not need to be delayed since there's no parsing done
@@ -359,18 +336,18 @@
   #:description "!"
   (pattern (~datum !)))
 
-(define-splicing-syntax-class legacy-simple-latent-prop
+(define-splicing-syntax-class (legacy-simple-latent-prop do-parse)
   #:description "latent prop"
   (pattern (~seq t:expr :@ pe:legacy-path-elem ...)
-           #:attr type (parse-type #'t)
+           #:attr type (do-parse #'t)
            #:attr path (attribute pe.val))
   (pattern t:expr
-           #:attr type (parse-type #'t)
+           #:attr type (do-parse #'t)
            #:attr path '()))
 
-(define (parse-prop stx)
+(define (parse-prop stx do-parse mode)
   (syntax-parse stx
-    [p:proposition (attribute p.val)]))
+    [(~var p (proposition do-parse mode)) (attribute p.val)]))
 
 (define int-comps (list (cons '<= -leq)
                         (cons '< -lt)
@@ -378,36 +355,38 @@
                         (cons '> -gt)
                         (cons '= -eq)))
 
-(define-syntax-class proposition
+(define-syntax-class (proposition do-parse mode)
   #:description "proposition"
   #:attributes (val)
   (pattern :Top^ #:attr val -tt)
   (pattern :Bot^ #:attr val -ff)
-  (pattern (:colon^ o:symbolic-object t:expr)
-           #:attr val (-is-type (attribute o.val) (parse-type #'t)))
-  (pattern (:! o:symbolic-object t:expr)
-           #:attr val (-not-type (attribute o.val) (parse-type #'t)))
-  (pattern (:and^ p:proposition ...)
+  (pattern (:colon^ (~var o (symbolic-object mode)) t:expr)
+           #:attr val (-is-type (attribute o.val) (do-parse #'t)))
+  (pattern (:! (~var o (symbolic-object mode)) t:expr)
+           #:attr val (-not-type (attribute o.val) (do-parse #'t)))
+  (pattern (:and^ (~var p (proposition do-parse mode)) ...)
            #:attr val (apply -and (attribute p.val)))
-  (pattern (:or^ p:proposition ...)
+  (pattern (:or^ (~var p (proposition do-parse mode)) ...)
            #:attr val (apply -or (attribute p.val)))
-  (pattern (:unless^ p1:proposition p2:proposition)
+  (pattern (:unless^ (~var p1 (proposition do-parse mode)) (~var p2 (proposition do-parse mode)))
            #:attr val (-or (attribute p1.val) (attribute p2.val)))
-  (pattern (:when^ p1:proposition p2:proposition)
+  (pattern (:when^ (~var p1 (proposition do-parse mode)) (~var p2 (proposition do-parse mode)))
            #:attr val (-or (negate-prop (attribute p1.val))
                            (-and (attribute p1.val) (attribute p2.val))))
-  (pattern (:if^ p1:proposition p2:proposition p3:proposition)
+  (pattern (:if^ (~var p1 (proposition do-parse mode))
+                 (~var p2 (proposition do-parse mode))
+                 (~var p3 (proposition do-parse mode)))
            #:attr val (let ([tst (attribute p1.val)]
                             [thn (attribute p2.val)]
                             [els (attribute p3.val)])
                         (-or (-and tst thn)
                              (-and (negate-prop tst) els))))
-  (pattern (:not^ p:proposition)
+  (pattern (:not^ (~var p (proposition do-parse mode)))
            #:attr val (negate-prop (attribute p.val)))
   (pattern ((~and comp (~or :<=^ :<^ :>=^ :>^ :=^))
-            obj0:inequality-symbolic-object
-            obj1:inequality-symbolic-object
-            objs:inequality-symbolic-object
+            (~var obj0 (inequality-symbolic-object mode))
+            (~var obj1 (inequality-symbolic-object mode))
+            (~var objs (inequality-symbolic-object mode))
             ...)
            #:attr val
            (let ([mk (cdr (assq (syntax-e #'comp) int-comps))])
@@ -423,38 +402,38 @@
                  [_ (apply -and ps)])))))
 
 
-(define-syntax-class inequality-symbolic-object
+(define-syntax-class (inequality-symbolic-object mode)
   #:description "symbolic object in an inequality"
   #:attributes (val)
-  (pattern o:symbolic-object
+  (pattern (~var o (symbolic-object mode))
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-when (and (check-type-invariants-while-parsing?)
+           #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty -Int)))
            (format "terms in linear constraints must be integers, got ~a for ~a"
                    obj-ty obj)
            #:attr val (attribute o.val)))
 
-(define (parse-obj stx)
+(define (parse-obj stx mode)
   (syntax-parse stx
-    [o:symbolic-object (attribute o.val)]))
+    [(~var o (symbolic-object mode)) (attribute o.val)]))
 
-(define-syntax-class symbolic-object
+(define-syntax-class (symbolic-object mode)
   #:description "symbolic object"
   #:attributes (val)
   (pattern n:exact-integer
            #:attr val (-lexp (syntax->datum #'n)))
-  (pattern (:+^ ls:linear-expression ...)
+  (pattern (:+^ (~var ls (linear-expression mode)) ...)
            #:attr val (combine-linear-expressions (attribute ls.val) #t))
-  (pattern (:-^ ls:linear-expression ...)
+  (pattern (:-^ (~var ls (linear-expression mode)) ...)
            #:attr val (combine-linear-expressions (attribute ls.val) #f))
-  (pattern (:*^ ~! n:exact-integer o:linear-expression)
+  (pattern (:*^ ~! n:exact-integer (~var o (linear-expression mode)))
            #:attr val (-lexp (list (syntax->datum #'n) (attribute o.val))))
-  (pattern o:symbolic-object-w/o-lexp
+  (pattern (~var o (symbolic-object-w/o-lexp mode))
            #:attr val (attribute o.val)))
 
 
-(define-syntax-class symbolic-object-w/o-lexp
+(define-syntax-class (symbolic-object-w/o-lexp mode)
   #:description "symbolic object"
   #:attributes (val)
   (pattern i:id
@@ -466,46 +445,46 @@
            #:attr val (match (local-term-id #'i)
                         [#f (lookup-alias/lexical #'i)]
                         [local-id (lookup-alias/lexical local-id)]))
-  (pattern (:car^ ~! o:symbolic-object-w/o-lexp)
+  (pattern (:car^ ~! (~var o (symbolic-object-w/o-lexp mode)))
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-when (and (check-type-invariants-while-parsing?)
+           #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty (-pair Univ Univ))))
            (format "car expects a pair, but got ~a for ~a"
                    obj-ty obj)
            #:attr val (-car-of (attribute o.val)))
-  (pattern (:cdr^ ~! o:symbolic-object-w/o-lexp)
+  (pattern (:cdr^ ~! (~var o (symbolic-object-w/o-lexp mode)))
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-when (and (check-type-invariants-while-parsing?)
+           #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty (-pair Univ Univ))))
            (format "cdr expects a pair, but got ~a for ~a"
                    obj-ty obj)
            #:attr val (-cdr-of (attribute o.val)))
-  (pattern (:vector-length^ ~! o:symbolic-object-w/o-lexp)
+  (pattern (:vector-length^ ~! (~var o (symbolic-object-w/o-lexp mode)))
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-when (and (check-type-invariants-while-parsing?)
+           #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty -VectorTop)))
            (format "vector-length expects a vector, but got ~a for ~a"
                    obj-ty obj)
            #:attr val (-vec-len-of (attribute o.val))))
 
-(define-syntax-class linear-expression
+(define-syntax-class (linear-expression mode)
   #:description "linear expression"
   #:attributes (val)
   (pattern n:exact-integer
            #:attr val (-lexp (syntax-e (attribute n))))
-  (pattern (:+^ ls:linear-expression ...)
+  (pattern (:+^ (~var ls (linear-expression mode)) ...)
            #:attr val (combine-linear-expressions (attribute ls.val) #t))
-  (pattern (:-^ ls:linear-expression ...)
+  (pattern (:-^ (~var ls (linear-expression mode)) ...)
            #:attr val (combine-linear-expressions (attribute ls.val) #f))
-  (pattern (:*^ ~! coeff:exact-integer l:linear-expression)
+  (pattern (:*^ ~! coeff:exact-integer (~var l (linear-expression mode)))
            #:attr val (-lexp (list (syntax->datum #'coeff) (attribute l.val))))
-  (pattern o:symbolic-object-w/o-lexp
+  (pattern (~var o (symbolic-object-w/o-lexp mode))
            #:do [(define obj (attribute o.val))
                  (define obj-ty (lookup-obj-type/lexical obj))]
-           #:fail-when (and (check-type-invariants-while-parsing?)
+           #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty -Int)))
            (format "terms in linear expressions must be integers, got ~a for ~a"
                    obj-ty obj)
@@ -526,27 +505,27 @@
 
 
 ;; old + deprecated
-(define-syntax-class (legacy-prop doms)
+(define-syntax-class (legacy-prop doms do-parse)
   #:description "proposition"
   #:attributes (prop)
   (pattern :Top^ #:attr prop -tt)
   (pattern :Bot^ #:attr prop -ff)
   ;; Here is wrong check
   (pattern (t:expr :@ ~! pe:legacy-path-elem ... (~var o (legacy-prop-obj doms)))
-           #:attr prop (-is-type (-acc-path (attribute pe.val) (attribute o.obj)) (parse-type #'t)))
+           #:attr prop (-is-type (-acc-path (attribute pe.val) (attribute o.obj)) (do-parse #'t)))
   ;; Here is wrong check
   (pattern (:! t:expr :@ ~! pe:legacy-path-elem ... (~var o (legacy-prop-obj doms)))
-           #:attr prop (-not-type (-acc-path (attribute pe.val) (attribute o.obj)) (parse-type #'t)))
+           #:attr prop (-not-type (-acc-path (attribute pe.val) (attribute o.obj)) (do-parse #'t)))
   (pattern (:! t:expr)
-           #:attr prop (-not-type 0 (parse-type #'t)))
-  (pattern ((~datum and) (~var p (legacy-prop doms)) ...)
+           #:attr prop (-not-type 0 (do-parse #'t)))
+  (pattern ((~datum and) (~var p (legacy-prop doms do-parse)) ...)
            #:attr prop (apply -and (attribute p.prop)))
-  (pattern ((~datum or) (~var p (legacy-prop doms)) ...)
+  (pattern ((~datum or) (~var p (legacy-prop doms do-parse)) ...)
            #:attr prop (apply -or (attribute p.prop)))
-  (pattern ((~literal implies) (~var p1 (legacy-prop doms)) (~var p2 (legacy-prop doms)))
+  (pattern ((~literal implies) (~var p1 (legacy-prop doms do-parse)) (~var p2 (legacy-prop doms do-parse)))
            #:attr prop (-or (negate-prop (attribute p1.prop)) (attribute p2.prop)))
   (pattern t:expr
-           #:attr prop (-is-type 0 (parse-type #'t))))
+           #:attr prop (-is-type 0 (do-parse #'t))))
 
 (define-splicing-syntax-class (legacy-prop-obj doms)
   #:description "prop object"
@@ -606,10 +585,10 @@
            #:attr type #'i
            #:attr pred? #'p))
 
-(define-splicing-syntax-class (legacy-full-latent doms)
+(define-splicing-syntax-class (legacy-full-latent doms do-parse)
   #:description "latent propositions and object"
-  (pattern (~seq (~optional (~seq #:+ (~var p+ (legacy-prop doms)) ...+) #:defaults ([(p+.prop 1) null]))
-                 (~optional (~seq #:- (~var p- (legacy-prop doms)) ...+) #:defaults ([(p-.prop 1) null]))
+  (pattern (~seq (~optional (~seq #:+ (~var p+ (legacy-prop doms do-parse)) ...+) #:defaults ([(p+.prop 1) null]))
+                 (~optional (~seq #:- (~var p- (legacy-prop doms do-parse)) ...+) #:defaults ([(p-.prop 1) null]))
                  (~optional (~seq #:object o:legacy-object)))
            #:attr positive (apply -and (attribute p+.prop))
            #:attr negative (apply -and (attribute p-.prop))
@@ -625,667 +604,860 @@
     [t
      (-val (syntax->datum #'t))]))
 
-(define (parse-type stx)
+(struct parsing-mode () #:transparent)
+(struct synth-mode parsing-mode (name args same-component-pred) #:transparent)
+
+;; This mode is used to build up info about how types depend on each other --
+;; during this parsing, we can't check certain invariant successfully (i.e. when
+;; a user writes `(car p)` `p` is <: (Pair Any Any), etc)
+(struct side-effect-mode parsing-mode
+  (;; This field stores the name of the type alias that is
+   ;; being parsed (set in type-alias-helper.rkt), #f if the
+   ;; parsing is not for a type alias
+   type-alias-name
+
+   ;; This field is used to coordinate with the type-checker to determine
+   ;; if a type alias should be recursive or not
+   ;;
+   ;; interp. it should be a box containing a list of
+   ;;         identifiers (i.e., type aliases in the syntax)
+   referenced-aliases
+
+   ;; Represents whether a user-defined type operation is confirmed to be
+   ;; productive or assumed to be unproductive.
+   (productive? #:mutable)
+
+   ;; This field is used to coordinate with the type-checker about
+   ;; the dependency structure of class types using #:implements
+   ;;
+   ;; interp. same as referenced-aliases
+   referenced-class-parents)
+  #:transparent)
+
+(define INIT-LEVEL 0)
+(define ALWAYS-PRODUCTIVE-LEVEL -1)
+
+;; returns a parsed *type constructor*.
+
+;; name: the name of the constructor
+;; arg-names: the parameters of the constructor
+;; stx : the body of the constructor
+;; opt-in-same-component?: #f or a predicate that helps decide if there is a polymoprhic recursion.
+;; type-op-productivity-map: maps names of constructors to their productivity.
+
+(define (parse-type-operator-abstraction name arg-names stx [opt-in-same-component? #f]
+                                         [type-op-productivity-map (make-immutable-free-id-table)])
+  (define syms (map syntax-e arg-names))
+  (define mode (synth-mode name syms opt-in-same-component?))
+  (define var-kind-level-env
+    (let* ([init-tbl (make-immutable-free-id-table
+                      (free-id-table-map type-op-productivity-map
+                                         (lambda (name v)
+                                           (cons name (if v
+                                                          ALWAYS-PRODUCTIVE-LEVEL
+                                                          INIT-LEVEL)))))])
+      (for/fold ([acc (free-id-table-update init-tbl name (lambda (v) v)
+                                            INIT-LEVEL)])
+                ([an (in-list arg-names)])
+        (free-id-table-set acc an INIT-LEVEL))))
+  (define res (extend-tvars syms
+                            (parse stx INIT-LEVEL
+                                   var-kind-level-env
+                                   #:mode mode)))
+  (make-type-constr (user-defined-type-op syms res)
+                    (length syms)
+                    (free-id-table-ref type-op-productivity-map name #f)))
+
+(define (parse-type-or-type-constructor stx)
+  (parse stx 0 (make-immutable-free-id-table) #:mode #f #:ret-type-op? #t))
+
+;; "traveses" the type syntax to gather information for later use.
+
+;; alias-name: the name of the type/type constructor
+
+;; def := (cons args body). The args is the list of the parameter of the type
+;; constructors. If it is empty, then alias-name refers to a simple abbreviation.
+(define (parse-for-effects alias-name def)
+  (define mode (side-effect-mode alias-name (box null) #t (box null)))
+  (let ([args (car def)])
+    (cond
+      [(null? args)
+       (parse (cdr def) INIT-LEVEL
+              (make-immutable-free-id-table)
+              #:mode mode
+              #:ret-type-op? #t)]
+      [else
+       (define init-tbl (for/fold ([acc (make-immutable-free-id-table (list (cons alias-name INIT-LEVEL)))])
+                                  ([an (in-list args)])
+                          (free-id-table-set acc an INIT-LEVEL)))
+       (extend-tvars (map syntax-e args)
+                     (parse (cdr def) INIT-LEVEL
+                            init-tbl
+                            #:mode mode))]))
+  (values (unbox (side-effect-mode-referenced-aliases mode))
+          (unbox (side-effect-mode-referenced-class-parents mode))
+          (side-effect-mode-productive? mode)))
+
+;; stx: the type syntax is getting parsed.
+
+;; current-level indicates the level of `stx`
+;; with respect to the starting point. It only gets bumped when `parse` sees a
+;; productive type constructor
+
+;; var-level-kind-env maps identifiers (recurisve type names, type constructor
+;; names and parameters) to the level where `parse` sees them.
+
+;; #:mode is either #f, which indicates the function operates in the checking
+;; mode, or instances of synth-mode or for-effects mode.
+;;
+;; if #:ret-type-op? is false, then the return value can not be a type op. This
+;; flag is only toggled on when a type constructor is expected.
+(define (parse stx current-level var-level-kind-env
+               #:mode mode
+               #:ret-type-op? [ret-type-op? #f])
+
+  ;; by default, current-level always increase by one level.  it only stays the
+  ;; same when we see an unproductive constructor.
+  (define (do-parse stx [current-level (add1 current-level)] [var-level-kind-env var-level-kind-env]
+                    #:ret-type-op? [ret-type-op? #f])
+    (parse stx current-level var-level-kind-env
+           #:mode mode
+           #:ret-type-op? ret-type-op?))
+
+  (define (do-parse-multi stx-list [current-level (add1 current-level)] [var-level-kind-env var-level-kind-env]
+                          #:ret-type-op? [ret-type-op? #f])
+    (stx-map (lambda (stx)
+               (do-parse stx current-level var-level-kind-env #:ret-type-op? ret-type-op?))
+             stx-list))
+
   (parameterize ([current-orig-stx stx])
-    (syntax-parse
-        stx
-      [t
-       #:declare t (3d Type?)
-       (attribute t.datum)]
-      [(fst . rst)
-       #:fail-unless (not (syntax->list #'rst)) #f
-       (-pair (parse-type #'fst) (parse-type #'rst))]
-      [(:Class^ e ...)
-       (parse-class-type stx)]
-      [(:Object^ e ...)
-       (parse-object-type stx)]
-      [(:Refinement^ p?:id)
-       (match (lookup-id-type/lexical #'p?)
-         [(and t (Fun: (list (Arrow: (list dom) #f '() _))))
-          (make-Refinement dom #'p?)]
-         [t (parse-error "expected a predicate for argument to Refinement"
-                         "given" t)])]
-      [(:Struct^ t)
-       (let ([v (parse-type #'t)])
+    (define rv
+      (syntax-parse
+          stx
+        [t
+         #:declare t (3d Type?)
+         (attribute t.datum)]
+        [(fst . rst)
+         #:fail-unless (not (syntax->list #'rst)) #f
+         (-pair (do-parse #'fst) (do-parse #'rst))]
+        [(:Class^ e ...)
+         (parse-class-type stx do-parse mode)]
+        [(:Object^ e ...)
+         (parse-object-type stx do-parse)]
+        [(:Refinement^ p?:id)
+         (match (lookup-id-type/lexical #'p?)
+           [(and t (Fun: (list (Arrow: (list dom) #f '() _))))
+            (make-Refinement dom #'p?)]
+           [t (parse-error "expected a predicate for argument to Refinement"
+                           "given" t)])]
+        [(:Struct^ t)
+         (let ([v (do-parse #'t)])
+           (match (resolve v)
+             [(and s (? Struct?)) (make-StructTop s)]
+             [_ (parse-error #:delayed? #t
+                             "expected a structure type for argument to Struct"
+                             "given" v)
+                (Un)]))]
+        [(:Struct-Type^ t)
+         (define v (do-parse #'t))
          (match (resolve v)
-           [(and s (? Struct?)) (make-StructTop s)]
+           [(or (? Struct? s) (? Prefab? s)) (make-StructType s)]
            [_ (parse-error #:delayed? #t
-                           "expected a structure type for argument to Struct"
+                           "expected a structure type for argument to Struct-Type"
                            "given" v)
-              (Un)]))]
-      [(:Struct-Type^ t)
-       (define v (parse-type #'t))
-       (match (resolve v)
-         [(or (? Struct? s) (? Prefab? s)) (make-StructType s)]
-         [_ (parse-error #:delayed? #t
-                         "expected a structure type for argument to Struct-Type"
-                         "given" v)
-            (Un)])]
-      [(:Struct-Property^ t:sp-arg)
-       (make-Struct-Property
-        (parameterize ([current-in-struct-prop #t])
-          (parse-type #'t.type))
-        (attribute t.pred?))]
-      [(:Has-Struct-Property^ t:id)
-       (make-Has-Struct-Property #'t)]
-      [(:Prefab^ key ts ...)
-       #:fail-unless (prefab-key? (syntax->datum #'key)) "expected a prefab key"
-       (define num-fields (length (syntax->list #'(ts ...))))
-       (define new-key (normalize-prefab-key (syntax->datum #'key) num-fields))
-       (unless (= (prefab-key->field-count new-key) num-fields)
-         (parse-error "the number of fields in the prefab key and type disagree"
-                      "key" (prefab-key->field-count new-key)
-                      "fields" num-fields))
-       (make-Prefab new-key (parse-types #'(ts ...)))]
-      [(:PrefabTop^ key count)
-       #:fail-unless (prefab-key? (syntax->datum #'key))
-       "expected a prefab key"
-       #:fail-unless (exact-nonnegative-integer? (syntax->datum #'count))
-       "expected a field count (i.e. an exact nonnegative integer)"
-       (define num-fields (syntax->datum #'count))
-       (define new-key (normalize-prefab-key (syntax->datum #'key) num-fields))
-       (unless (= (prefab-key->field-count new-key) num-fields)
-         (parse-error "the number of fields in the prefab key and type disagree"
-                      "key" (prefab-key->field-count new-key)
-                      "fields" num-fields))
-       (make-PrefabTop new-key)]
-      [(:Refine^ [x:id :colon^ type:expr] prop:expr)
-       ;; x is not in scope for the type
-       (define t (parse-type #'type))
-       ;; create a fresh local name valid for TR type ASTs
-       (define x-local (id->local-id #'x))
-       ;; extend lexical type env with 'x-local' ∈ 't'
-       ;; while we parse 'prop', also record that in this scope,
-       ;; 'x' maps to 'x-local'
-       (define p
-         (with-extended-lexical-env
+              (Un)])]
+        [(:Struct-Property^ t:sp-arg)
+         (make-Struct-Property
+          (parameterize ([current-in-struct-prop #t])
+            (do-parse #'t.type))
+          (attribute t.pred?))]
+        [(:Has-Struct-Property^ t:id)
+         (make-Has-Struct-Property #'t)]
+        [(:Prefab^ key ts ...)
+         #:fail-unless (prefab-key? (syntax->datum #'key)) "expected a prefab key"
+         (define num-fields (length (syntax->list #'(ts ...))))
+         (define new-key (normalize-prefab-key (syntax->datum #'key) num-fields))
+         (unless (= (prefab-key->field-count new-key) num-fields)
+           (parse-error "the number of fields in the prefab key and type disagree"
+                        "key" (prefab-key->field-count new-key)
+                        "fields" num-fields))
+         (make-Prefab new-key (do-parse-multi #'(ts ...)))]
+        [(:PrefabTop^ key count)
+         #:fail-unless (prefab-key? (syntax->datum #'key))
+         "expected a prefab key"
+         #:fail-unless (exact-nonnegative-integer? (syntax->datum #'count))
+         "expected a field count (i.e. an exact nonnegative integer)"
+         (define num-fields (syntax->datum #'count))
+         (define new-key (normalize-prefab-key (syntax->datum #'key) num-fields))
+         (unless (= (prefab-key->field-count new-key) num-fields)
+           (parse-error "the number of fields in the prefab key and type disagree"
+                        "key" (prefab-key->field-count new-key)
+                        "fields" num-fields))
+         (make-PrefabTop new-key)]
+        [(:Refine^ [x:id :colon^ type:expr] prop:expr)
+         ;; x is not in scope for the type
+         (define t (do-parse #'type))
+         ;; create a fresh local name valid for TR type ASTs
+         (define x-local (id->local-id #'x))
+         ;; extend lexical type env with 'x-local' ∈ 't'
+         ;; while we parse 'prop', also record that in this scope,
+         ;; 'x' maps to 'x-local'
+         (define p
+           (with-extended-lexical-env
              [#:identifiers (list x-local)
               #:types (list t)]
-           (with-local-term-names (list (cons #'x x-local))
-             (parse-prop #'prop))))
-       ;; build the refinement type!
-       (define refinement-type (-refine x-local t p))
-       ;; record the name for printing purposes
-       (save-term-var-names! refinement-type (list x-local))
-       ;; and return the refinement type
-       refinement-type]
-      [(:Instance^ t)
-       (let ([v (parse-type #'t)])
-         (if (not (or (F? v) (Mu? v) (Name? v) (Class? v) (Error? v)))
-             (begin (parse-error #:delayed? #t
-                                 "expected a class type for argument to Instance"
-                                 "given" v)
-                    (make-Instance (Un)))
-             (make-Instance v)))]
-      [(:Unit^ (:import^ import:id ...)
-               (:export^ export:id ...)
-               (~optional (:init-depend^ init-depend:id ...)
-                          #:defaults ([(init-depend 1) null]))
-               (~optional result
-                          #:defaults ([result #f])))
-       ;; Lookup an identifier in the signature environment
-       ;; Fail with a parse error, if the lookup returns #f
-       (define (id->sig id)
-         (or (lookup-signature id)
-             (parse-error #:stx id
-                          #:delayed? #f
-                          "Unknown signature used in Unit type"
-                          "signature" (syntax-e id))))
-       (define (import/export-error)
-         (parse-error #:stx stx
-                      #:delayed? #f
-                      "Unit types must import and export distinct signatures"))
-       (define (init-depend-error)
+             (with-local-term-names (list (cons #'x x-local))
+               (parse-prop #'prop do-parse mode))))
+         ;; build the refinement type!
+         (define refinement-type (-refine x-local t p))
+         ;; record the name for printing purposes
+         (save-term-var-names! refinement-type (list x-local))
+         ;; and return the refinement type
+         refinement-type]
+        [(:Instance^ t)
+         (let ([v (do-parse #'t)])
+           (if (not (or (F? v) (Mu? v) (Name? v) (Class? v) (Error? v)))
+               (begin (parse-error #:delayed? #t
+                                   "expected a class type for argument to Instance"
+                                   "given" v)
+                      (make-Instance (Un)))
+               (make-Instance v)))]
+        [(:Unit^ (:import^ import:id ...)
+                 (:export^ export:id ...)
+                 (~optional (:init-depend^ init-depend:id ...)
+                            #:defaults ([(init-depend 1) null]))
+                 (~optional result
+                            #:defaults ([result #f])))
+         ;; Lookup an identifier in the signature environment
+         ;; Fail with a parse error, if the lookup returns #f
+         (define (id->sig id)
+           (or (lookup-signature id)
+               (parse-error #:stx id
+                            #:delayed? #f
+                            "Unknown signature used in Unit type"
+                            "signature" (syntax-e id))))
+         (define (import/export-error)
+           (parse-error #:stx stx
+                        #:delayed? #f
+                        "Unit types must import and export distinct signatures"))
+         (define (init-depend-error)
+           (parse-error
+            #:stx stx
+            #:delayed? #f
+            "Unit type initialization dependencies must be a subset of imports"))
+         (define imports
+           (check-imports/exports (stx-map id->sig #'(import ...)) import/export-error))
+         (define exports
+           (check-imports/exports (stx-map id->sig #'(export ...)) import/export-error))
+         (define init-depends
+           (check-init-depends/imports (stx-map id->sig #'(init-depend ...))
+                                       imports
+                                       init-depend-error))
+         (define res (attribute result))
+         (make-Unit imports
+                    exports
+                    init-depends
+                    (if res (parse-values-type res do-parse do-parse-multi) (-values (list -Void))))]
+        [(:List^ ts ...)
+         (parse-list-type stx
+                          (lambda (stx)
+                            (do-parse stx (add1 current-level)))
+                          (lambda (stx-li)
+                            (do-parse-multi stx-li (add1 current-level))))]
+        [(:List*^ ts ... t)
+         (-Tuple* (do-parse-multi #'(ts ...) (add1 current-level)) (do-parse #'t (add1 current-level)))]
+        [(:cons^ fst rst)
+         (-pair (do-parse #'fst (add1 current-level)) (do-parse #'rst (add1 current-level)))]
+        [(:pred^ t)
+         (make-pred-ty (do-parse #'t))]
+        [((~and :case->^ operator) tys ...)
+         (when (eq? (syntax-e #'operator) 'case-lambda)
+           (log-message
+            (current-logger)
+            'warning
+            (format "~a~a"
+                    "The case-lambda type constructor is deprecated!"
+                    " Please use case-> instead.")
+            stx))
+         (make-Fun
+          (remove-duplicates
+           (apply
+            append
+            (for/list ([ty (in-syntax #'(tys ...))])
+              (let ([t (do-parse ty)])
+                (match t
+                  [(Fun: arrows) arrows]
+                  [_ (parse-error
+                      #:stx ty
+                      "expected a function type for component of case-> type"
+                      "given" t)]))))))]
+        [(:Rec^ x:id t)
+         (let* ([var (syntax-e #'x)])
+           (extend-tvars (list var)
+                         (let ([t* (do-parse #'t current-level
+                                             (free-id-table-set var-level-kind-env #'x current-level))])
+                           (if (memq var (fv t*))
+                               (make-Mu var t*)
+                               t*))))]
+        #;
+        [((~or :U^ :Union^) ts ...)
+         (apply Un (do-parse-multi #'(ts ...)))]
+        [(:quote^ t)
+         (parse-quoted-type #'t)]
+        [(:All^ . rest)
+         (parse-all-type stx (lambda (stx)
+                               (do-parse stx current-level)))]
+        [(:Some^ (x:id ...) . t:omit-parens)
+         (define names (map syntax-e (syntax->list #'(x ...))))
+         (extend-tvars names
+                       (make-Some names
+                                  (do-parse #'t.type current-level)))]
+        [(:Opaque^ p?:id)
+         (make-Opaque #'p?)]
+        [(:Distinction^ name:id unique-id:id rep-ty:expr)
+         (-Distinction (syntax-e #'name) (syntax-e #'unique-id) (do-parse #'rep-ty))]
+        [(:Parameter^ t)
+         (let ([ty (do-parse #'t)])
+           (-Param ty ty))]
+        [(:Parameter^ t1 t2)
+         (-Param (do-parse #'t1) (do-parse #'t2))]
+        [((~and p :Parameter^) args ...)
          (parse-error
           #:stx stx
-          #:delayed? #f
-          "Unit type initialization dependencies must be a subset of imports"))
-       (define imports
-         (check-imports/exports (stx-map id->sig #'(import ...)) import/export-error))
-       (define exports
-         (check-imports/exports (stx-map id->sig #'(export ...)) import/export-error))
-       (define init-depends
-         (check-init-depends/imports (stx-map id->sig #'(init-depend ...))
-                                     imports
-                                     init-depend-error))
-       (define res (attribute result))
-       (make-Unit imports
-                  exports
-                  init-depends
-                  (if res (parse-values-type res) (-values (list -Void))))]
-      [(:List^ ts ...)
-       (parse-list-type stx)]
-      [(:List*^ ts ... t)
-       (-Tuple* (parse-types #'(ts ...)) (parse-type #'t))]
-      [(:Immutable-Vector^ ts ...)
-       (make-Immutable-HeterogeneousVector (parse-types #'(ts ...)))]
-      [(:Mutable-Vector^ ts ...)
-       (make-Mutable-HeterogeneousVector (parse-types #'(ts ...)))]
-      [(:Vector^ ts ...)
-       (make-HeterogeneousVector (parse-types #'(ts ...)))]
-      [(:cons^ fst rst)
-       (-pair (parse-type #'fst) (parse-type #'rst))]
-      [(:pred^ t)
-       (make-pred-ty (parse-type #'t))]
-      [((~and :case->^ operator) tys ...)
-       (when (eq? (syntax-e #'operator) 'case-lambda)
-         (log-message
-          (current-logger)
-          'warning
-          (format "~a~a"
-                  "The case-lambda type constructor is deprecated!"
-                  " Please use case-> instead.")
-          stx))
-       (make-Fun
-        (remove-duplicates
-         (apply
-          append
-          (for/list ([ty (in-syntax #'(tys ...))])
-            (let ([t (parse-type ty)])
-              (match t
-                [(Fun: arrows) arrows]
-                [_ (parse-error
-                    #:stx ty
-                    "expected a function type for component of case-> type"
-                    "given" t)]))))))]
-      [(:Rec^ x:id t)
-       (let* ([var (syntax-e #'x)]
-              [tvar (make-F var)])
-         (extend-tvars (list var)
-                       (let ([t* (parse-type #'t)])
-                         ;; is t in a productive position?
-                         (define productive
-                           (let/ec return
-                             (let check ([ty t*])
-                               (match ty
-                                 [(== tvar) (return #f)]
-                                 [(Union: _ elems) (for-each check elems)]
-                                 [(Intersection: elems prop)
-                                  (for-each check elems)
-                                  (check prop)]
-                                 [(App: rator rands)
-                                  (check (resolve-app rator rands stx))]
-                                 [(Mu: _ body) (check body)]
-                                 [(Poly: names body) (check body)]
-                                 [(PolyDots: names body) (check body)]
-                                 [(PolyRow: _ body _) (check body)]
-                                 [(? Type?) (void)]
-                                 [(? Rep?) (Rep-for-each check ty)]
-                                 [_ (void)]))
-                             #t))
-                         (unless productive
-                           (parse-error
-                            #:stx stx
-                            "recursive types are not allowed directly inside their definition"))
-                         (if (memq var (fv t*))
-                             (make-Mu var t*)
-                             t*))))]
-      [((~or :U^ :Union^) ts ...)
-       (apply Un (parse-types #'(ts ...)))]
-      [((~or :∩^ :Intersection^) ts ...)
-       (for/fold ([ty Univ])
-                 ([t (in-list (parse-types #'(ts ...)))])
-         (intersect ty t))]
-      [(:quote^ t)
-       (parse-quoted-type #'t)]
-      [(:All^ . rest)
-       (parse-all-type stx)]
-      [(:Some^ (x:id ...) . t:omit-parens)
-       (define names (map syntax-e (syntax->list #'(x ...))))
-       (extend-tvars names
-                     (make-Some names
-                                (parse-type #'t.type)))]
-      [(:Opaque^ p?:id)
-       (make-Opaque #'p?)]
-      [(:Distinction^ name:id unique-id:id rep-ty:expr)
-       (-Distinction (syntax-e #'name) (syntax-e #'unique-id) (parse-type #'rep-ty))]
-      [(:Parameter^ t)
-       (let ([ty (parse-type #'t)])
-         (-Param ty ty))]
-      [(:Parameter^ t1 t2)
-       (-Param (parse-type #'t1) (parse-type #'t2))]
-      [((~and p :Parameter^) args ...)
-       (parse-error
-        #:stx stx
-        (~a (syntax-e #'p) " expects one or two type arguments, given "
-            (sub1 (length (syntax->list #'(args ...))))))]
-      [(:Sequenceof^ t ...)
-       (parse-sequence-type stx)]
-      ;; simple dependent functions
-      ;; e.g. (-> ([x : τ] ...+) τ)
-      [(:->^ (args:dependent-fun-arg ...+)
-             ~!
-             (~optional (~seq #:pre (pre-dep-stx:id ...) pre-stx:expr)
-                        #:defaults ([pre-stx #'Top]
-                                    [(pre-dep-stx 1) null]))
-             rng-type:non-keyword-ty
-             (~seq (~optional (~seq #:+ rng-p+:expr))
-                   (~optional (~seq #:- rng-p-:expr))
-                   (~optional (~seq #:object rng-o:expr))))
-       (define pre-deps (syntax->list #'(pre-dep-stx ...)))
-       (cond
-         ;; check for duplicates in arg names
-         [(check-duplicates (attribute args.name) free-identifier=?)
-          => (λ (id) (parse-error (format "~a appears multiple times as an argument id"
-                                          (syntax->datum id))))]
-         ;; check for self-reference in dep lists
-         [(for/or ([deplist (in-list (attribute args.deps))])
-            (and (member (car deplist) (cdr deplist) free-identifier=?)
-                 (car deplist)))
-          => (λ (arg-id) (parse-error (format "Argument ~a depends on itself."
-                                              (syntax->datum arg-id))))]
-         ;; check for non-arg names in arg dep lists and #:pre dep list
-         [(or (for*/or ([deplist (in-list (attribute args.deps))]
-                        [dep (in-list (cdr deplist))])
-                (and (not (assoc dep (attribute args.deps) free-identifier=?))
-                     dep))
-              (for/or ([dep (in-list pre-deps)])
-                (and (not (assoc dep (attribute args.deps) free-identifier=?))
-                     dep)))
-          => (λ (dep-id) (parse-error
-                          (format "unknown dependent variable ~a; not an argument of the function"
-                                  (syntax->datum dep-id))))]
-         ;; check for duplicates in arg dep lists and #:pre dep list
-         [(or (for/or ([deplist (in-list (attribute args.deps))])
-                (and (check-duplicates (cdr deplist) free-identifier=?)
-                     deplist))
-              (and (check-duplicates pre-deps free-identifier=?)
-                   pre-deps))
-          => (λ (deps) (parse-error (format "Repeated identifier(s) in dependency list: ~a"
-                                            (map syntax->datum deps))))]
-         ;; check for cycles in the dep lists
-         [(cycle-in-arg-deps? (attribute args.deps))
-          => (λ (cycle) (parse-error
-                         (apply string-append
-                                " cycle in argument dependencies: "
-                                (format "~a depends on ~a"
-                                        (syntax->datum (first cycle))
-                                        (syntax->datum (second cycle)))
-                                (for/list ([x (in-list (cdr cycle))]
-                                           [y (in-list (cddr cycle))])
-                                  (format ", ~a depends on ~a"
-                                          (syntax->datum x)
-                                          (syntax->datum y))))))]
-         [else
-          ;; end of DepFun-specific error checking =)
-          ;; let's keep going!
-          (define arg-order (arg-deps->idx-order (attribute args.deps)))
-          (define arg-type-dict (make-hasheq))
-          ;; parse argument type syntax in the (dependency based) order
-          (for ([idx (in-list arg-order)])
-            (define dep-ids (cdr (list-ref (attribute args.deps) idx)))
-            (define-values (dep-local-ids dep-local-types)
-              (for/lists (_1 _2)
-                ([dep-id (in-list dep-ids)])
-                (define dep-idx (index-of (attribute args.name) dep-id free-identifier=?))
-                (values (list-ref (attribute args.local-name) dep-idx)
-                        (hash-ref arg-type-dict dep-idx))))
-            (define idx-type
-              (with-extended-lexical-env
+          (~a (syntax-e #'p) " expects one or two type arguments, given "
+              (sub1 (length (syntax->list #'(args ...))))))]
+        [(:Sequenceof^ t ...)
+         (parse-sequence-type stx do-parse do-parse-multi)]
+        ;; simple dependent functions
+        ;; e.g. (-> ([x : τ] ...+) τ)
+        [(:->^ (args:dependent-fun-arg ...+)
+               ~!
+               (~optional (~seq #:pre (pre-dep-stx:id ...) pre-stx:expr)
+                          #:defaults ([pre-stx #'Top]
+                                      [(pre-dep-stx 1) null]))
+               rng-type:non-keyword-ty
+               (~seq (~optional (~seq #:+ rng-p+:expr))
+                     (~optional (~seq #:- rng-p-:expr))
+                     (~optional (~seq #:object rng-o:expr))))
+         (define pre-deps (syntax->list #'(pre-dep-stx ...)))
+         (cond
+           ;; check for duplicates in arg names
+           [(check-duplicates (attribute args.name) free-identifier=?)
+            => (λ (id) (parse-error (format "~a appears multiple times as an argument id"
+                                            (syntax->datum id))))]
+           ;; check for self-reference in dep lists
+           [(for/or ([deplist (in-list (attribute args.deps))])
+              (and (member (car deplist) (cdr deplist) free-identifier=?)
+                   (car deplist)))
+            => (λ (arg-id) (parse-error (format "Argument ~a depends on itself."
+                                                (syntax->datum arg-id))))]
+           ;; check for non-arg names in arg dep lists and #:pre dep list
+           [(or (for*/or ([deplist (in-list (attribute args.deps))]
+                          [dep (in-list (cdr deplist))])
+                  (and (not (assoc dep (attribute args.deps) free-identifier=?))
+                       dep))
+                (for/or ([dep (in-list pre-deps)])
+                  (and (not (assoc dep (attribute args.deps) free-identifier=?))
+                       dep)))
+            => (λ (dep-id) (parse-error
+                            (format "unknown dependent variable ~a; not an argument of the function"
+                                    (syntax->datum dep-id))))]
+           ;; check for duplicates in arg dep lists and #:pre dep list
+           [(or (for/or ([deplist (in-list (attribute args.deps))])
+                  (and (check-duplicates (cdr deplist) free-identifier=?)
+                       deplist))
+                (and (check-duplicates pre-deps free-identifier=?)
+                     pre-deps))
+            => (λ (deps) (parse-error (format "Repeated identifier(s) in dependency list: ~a"
+                                              (map syntax->datum deps))))]
+           ;; check for cycles in the dep lists
+           [(cycle-in-arg-deps? (attribute args.deps))
+            => (λ (cycle) (parse-error
+                           (apply string-append
+                                  " cycle in argument dependencies: "
+                                  (format "~a depends on ~a"
+                                          (syntax->datum (first cycle))
+                                          (syntax->datum (second cycle)))
+                                  (for/list ([x (in-list (cdr cycle))]
+                                             [y (in-list (cddr cycle))])
+                                    (format ", ~a depends on ~a"
+                                            (syntax->datum x)
+                                            (syntax->datum y))))))]
+           [else
+            ;; end of DepFun-specific error checking =)
+            ;; let's keep going!
+            (define arg-order (arg-deps->idx-order (attribute args.deps)))
+            (define arg-type-dict (make-hasheq))
+            ;; parse argument type syntax in the (dependency based) order
+            (for ([idx (in-list arg-order)])
+              (define dep-ids (cdr (list-ref (attribute args.deps) idx)))
+              (define-values (dep-local-ids dep-local-types)
+                (for/lists (_1 _2)
+                           ([dep-id (in-list dep-ids)])
+                  (define dep-idx (index-of (attribute args.name) dep-id free-identifier=?))
+                  (values (list-ref (attribute args.local-name) dep-idx)
+                          (hash-ref arg-type-dict dep-idx))))
+              (define idx-type
+                (with-extended-lexical-env
                   [#:identifiers dep-local-ids
                    #:types dep-local-types]
-                (with-local-term-names (map cons dep-ids dep-local-ids)
-                  (parse-type (list-ref (attribute args.type-stx) idx)))))
-            (hash-set! arg-type-dict idx idx-type))
+                  (with-local-term-names (map cons dep-ids dep-local-ids)
+                    (do-parse (list-ref (attribute args.type-stx) idx)))))
+              (hash-set! arg-type-dict idx idx-type))
 
-          (define (abstract rep)
-            (abstract-obj rep (attribute args.local-name)))
-          (define dom (for/list ([idx (in-range (length arg-order))])
-                              (hash-ref arg-type-dict idx)))
-          (define abstracted-dom (map abstract dom))
-          (define arg-idents (attribute args.name))
-          (define arg-local-idents (attribute args.local-name))
-          ;; type check the pre-condition with the specified args in scope
-          (define abstracted-pre-prop
-            (let-values ([(in-scope-arg-names
-                           in-scope-arg-local-names
-                           in-scope-arg-types)
-                          (for/lists (_1 _2 _3)
-                                     ([arg-id (in-list arg-idents)]
-                                      [arg-local-id (in-list arg-local-idents)]
-                                      [arg-ty (in-list dom)]
-                                      #:when (member arg-id pre-deps free-identifier=?))
-                            (values arg-id arg-local-id arg-ty))])
-              (with-extended-lexical-env
+            (define (abstract rep)
+              (abstract-obj rep (attribute args.local-name)))
+            (define dom (for/list ([idx (in-range (length arg-order))])
+                          (hash-ref arg-type-dict idx)))
+            (define abstracted-dom (map abstract dom))
+            (define arg-idents (attribute args.name))
+            (define arg-local-idents (attribute args.local-name))
+            ;; type check the pre-condition with the specified args in scope
+            (define abstracted-pre-prop
+              (let-values ([(in-scope-arg-names
+                             in-scope-arg-local-names
+                             in-scope-arg-types)
+                            (for/lists (_1 _2 _3)
+                                       ([arg-id (in-list arg-idents)]
+                                        [arg-local-id (in-list arg-local-idents)]
+                                        [arg-ty (in-list dom)]
+                                        #:when (member arg-id pre-deps free-identifier=?))
+                              (values arg-id arg-local-id arg-ty))])
+                (with-extended-lexical-env
                   [#:identifiers in-scope-arg-local-names
                    #:types in-scope-arg-types]
-                (with-local-term-names (map cons
-                                            in-scope-arg-names
-                                            in-scope-arg-local-names)
-                  (abstract (parse-prop #'pre-stx))))))
-          ;; now type check the range
-          (with-extended-lexical-env
+                  (with-local-term-names (map cons
+                                              in-scope-arg-names
+                                              in-scope-arg-local-names)
+                    (abstract (parse-prop #'pre-stx do-parse mode))))))
+            ;; now type check the range
+            (with-extended-lexical-env
               [#:identifiers arg-local-idents
                #:types dom]
-            (with-local-term-names (map cons
-                                        arg-idents
-                                        arg-local-idents)
-              (match (parse-values-type #'rng-type)
-                ;; single value'd return type, propositions/objects allowed
-                [(Values: (list (Result: rng-t _ _)))
-                 (define rng-ps (-PS (or (and (attribute rng-p+)
-                                              (parse-prop #'rng-p+))
-                                         -tt)
-                                     (or (and (attribute rng-p-)
-                                              (parse-prop #'rng-p-))
-                                         -tt)))
-                 (define rng-obj (or (and (attribute rng-o)
-                                          (parse-obj #'rng-o))
-                                     -empty-obj))
-                 (define abstracted-rng-t (abstract rng-t))
-                 (define abstracted-rng-ps (abstract rng-ps))
-                 (define abstracted-rng-obj (abstract rng-obj))
-                 (cond
-                   [(and (equal? dom abstracted-dom)
-                         (equal? rng-t abstracted-rng-t)
-                         (TrueProp? abstracted-pre-prop))
-                    (make-Fun (list (-Arrow dom (-values abstracted-rng-t
-                                                         abstracted-rng-ps
-                                                         abstracted-rng-obj))))]
-                   [else
-                    (make-DepFun
-                     abstracted-dom
-                     abstracted-pre-prop
-                     (-values abstracted-rng-t
-                              abstracted-rng-ps
-                              abstracted-rng-obj))])]
-                ;; multi-valued -- reject if propositions or object present
-                [_ #:when (or (attribute rng-p+)
-                              (attribute rng-p-)
-                              (attribute rng-o))
-                   (parse-error
-                    #:stx stx
-                    "dependent functions returning many values cannot specify latent propositions or objects"
-                    "given" (or (and (attribute rng-p+) (format "#:+ ~a" (syntax->datum #'rng-p+)))
-                                (and (attribute rng-p-) (format "#:- ~a" (syntax->datum #'rng-p-)))
-                                (and (attribute rng-o)  (format "#:object ~a" (syntax->datum #'rng-o)))))]
-                [vals
-                 (define abstracted-rng-vals (abstract vals))
-                 (cond
-                   [(and (equal? dom abstracted-dom)
-                         (equal? vals abstracted-rng-vals)
-                         (TrueProp? abstracted-pre-prop))
-                    (make-Fun (list (-Arrow dom vals)))]
-                   [else
-                    (make-DepFun
-                     abstracted-dom
-                     abstracted-pre-prop
-                     abstracted-rng-vals)])])))])]
-      ;; curried function notation
-      [((~and dom:non-keyword-ty (~not :->^)) ...
-        :->^
-        (~and (~seq rest-dom ...) (~seq (~or _ (~between :->^ 1 +inf.0)) ...)))
-       (define doms (syntax->list #'(dom ...)))
-       (with-arity (length doms)
-         (let ([doms (for/list ([d (in-list doms)])
-                       (parse-type d))])
+              (with-local-term-names (map cons
+                                          arg-idents
+                                          arg-local-idents)
+                (match (parse-values-type #'rng-type do-parse do-parse-multi)
+                  ;; single value'd return type, propositions/objects allowed
+                  [(Values: (list (Result: rng-t _ _)))
+                   (define rng-ps (-PS (or (and (attribute rng-p+)
+                                                (parse-prop #'rng-p+ do-parse mode))
+                                           -tt)
+                                       (or (and (attribute rng-p-)
+                                                (parse-prop #'rng-p- do-parse mode))
+                                           -tt)))
+                   (define rng-obj (or (and (attribute rng-o)
+                                            (parse-obj #'rng-o mode))
+                                       -empty-obj))
+                   (define abstracted-rng-t (abstract rng-t))
+                   (define abstracted-rng-ps (abstract rng-ps))
+                   (define abstracted-rng-obj (abstract rng-obj))
+                   (cond
+                     [(and (equal? dom abstracted-dom)
+                           (equal? rng-t abstracted-rng-t)
+                           (TrueProp? abstracted-pre-prop))
+                      (make-Fun (list (-Arrow dom (-values abstracted-rng-t
+                                                           abstracted-rng-ps
+                                                           abstracted-rng-obj))))]
+                     [else
+                      (make-DepFun
+                       abstracted-dom
+                       abstracted-pre-prop
+                       (-values abstracted-rng-t
+                                abstracted-rng-ps
+                                abstracted-rng-obj))])]
+                  ;; multi-valued -- reject if propositions or object present
+                  [_ #:when (or (attribute rng-p+)
+                                (attribute rng-p-)
+                                (attribute rng-o))
+                     (parse-error
+                      #:stx stx
+                      "dependent functions returning many values cannot specify latent propositions or objects"
+                      "given" (or (and (attribute rng-p+) (format "#:+ ~a" (syntax->datum #'rng-p+)))
+                                  (and (attribute rng-p-) (format "#:- ~a" (syntax->datum #'rng-p-)))
+                                  (and (attribute rng-o)  (format "#:object ~a" (syntax->datum #'rng-o)))))]
+                  [vals
+                   (define abstracted-rng-vals (abstract vals))
+                   (cond
+                     [(and (equal? dom abstracted-dom)
+                           (equal? vals abstracted-rng-vals)
+                           (TrueProp? abstracted-pre-prop))
+                      (make-Fun (list (-Arrow dom vals)))]
+                     [else
+                      (make-DepFun
+                       abstracted-dom
+                       abstracted-pre-prop
+                       abstracted-rng-vals)])])))])]
+        ;; curried function notation
+        [((~and dom:non-keyword-ty (~not :->^)) ...
+                                                :->^
+                                                (~and (~seq rest-dom ...) (~seq (~or _ (~between :->^ 1 +inf.0)) ...)))
+         (define doms (syntax->list #'(dom ...)))
+         (with-arity (length doms)
+           (let ([doms (for/list ([d (in-list doms)])
+                         (do-parse d))])
+             (make-Fun
+              (list (-Arrow doms (do-parse (syntax/loc stx (rest-dom ...))))))))]
+        [(~or (:->^ dom rng :colon^ (~var latent (legacy-simple-latent-prop do-parse)))
+              (dom :->^ rng :colon^ (~var latent (legacy-simple-latent-prop do-parse))))
+         ;; use do-parse instead of parse-values-type because we need to add the props from the pred-ty
+         (with-arity 1
+           (make-pred-ty (list (do-parse #'dom)) (do-parse #'rng) (attribute latent.type)
+                         (-acc-path (attribute latent.path) (-arg-path 0))))]
+        [(~or (:->^ dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rest:non-keyword-ty ddd:star rng)
+              (dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rest:non-keyword-ty ddd:star :->^ rng))
+         (with-arity (length (syntax->list #'(dom ...)))
            (make-Fun
-            (list (-Arrow doms (parse-type (syntax/loc stx (rest-dom ...))))))))]
-      [(~or (:->^ dom rng :colon^ latent:legacy-simple-latent-prop)
-            (dom :->^ rng :colon^ latent:legacy-simple-latent-prop))
-       ;; use parse-type instead of parse-values-type because we need to add the props from the pred-ty
-       (with-arity 1
-         (make-pred-ty (list (parse-type #'dom)) (parse-type #'rng) (attribute latent.type)
-                       (-acc-path (attribute latent.path) (-arg-path 0))))]
-      [(~or (:->^ dom:non-keyword-ty ... kws:keyword-tys ... rest:non-keyword-ty ddd:star rng)
-            (dom:non-keyword-ty ... kws:keyword-tys ... rest:non-keyword-ty ddd:star :->^ rng))
-       (with-arity (length (syntax->list #'(dom ...)))
-         (make-Fun
-          (list (-Arrow
-                 (parse-types #'(dom ...))
-                 (parse-values-type #'rng)
-                 #:rest (parse-type #'rest)
-                 #:kws (map force (attribute kws.Keyword))))))]
-      [(~or (:->^ dom:non-keyword-ty ... rest:non-keyword-ty :ddd/bound rng)
-            (dom:non-keyword-ty ... rest:non-keyword-ty :ddd/bound :->^ rng))
-       (with-arity (length (syntax->list #'(dom ...)))
-         (let* ([bnd (syntax-e #'bound)])
-           (unless (bound-index? bnd)
-             (parse-error
-              #:stx #'bound
-              "used a type variable not bound with ... as a bound on a ..."
-              "variable" bnd))
-           (make-Fun
-            (list
-             (make-arr-dots (parse-types #'(dom ...))
-                            (parse-values-type #'rng)
-                            (extend-tvars (list bnd)
-                                          (parse-type #'rest))
-                            bnd)))))]
-      [(~or (:->^ dom:non-keyword-ty ... rest:non-keyword-ty _:ddd rng)
-            (dom:non-keyword-ty ... rest:non-keyword-ty _:ddd :->^ rng))
-       (with-arity (length (syntax->list #'(dom ...)))
-         (let ([var (infer-index stx)])
-           (make-Fun
-            (list
-             (make-arr-dots (parse-types #'(dom ...))
-                            (parse-values-type #'rng)
-                            (extend-tvars (list var) (parse-type #'rest))
-                            var)))))]
-      #| ;; has to be below the previous one
-      [(dom:expr ... :->^ rng)
-      (->* (parse-types #'(dom ...))
-      (parse-values-type #'rng))]     |#
-      ;; use expr to rule out keywords
-      [rng:existential-type-result #:fail-unless
-                                   parsing-existential-rng?
-                                   "extential type results are only allowed in the range of a function type"
-       (define syms (map syntax-e (attribute rng.vars)))
-       (extend-tvars syms
-                     (cond
-                       [(attribute rng.prop-type)
-                        (make-ExitentialResult syms
-                                               (parse-type (attribute rng.t))
-                                               (-PS (-is-type 0 (parse-type (attribute rng.prop-type)))
-                                                    -tt)
-                                               -empty-obj)]
-                       [else
-                        (parse-type (attribute rng.t))]))]
-      [(~or (:->^ dom:non-keyword-ty ... kws:keyword-tys ... rng)
-            (dom:non-keyword-ty ... kws:keyword-tys ... :->^ rng))
-       (define doms (syntax->list #'(dom ...)))
-       (with-arity (length doms)
-         (let ([doms (for/list ([d (in-list doms)])
-                       (parse-type d))])
-           (make-Fun
-            (list (-Arrow doms
-                          (parameterize ([parsing-existential-rng? #t])
-                            (parse-values-type #'rng))
-                          #:kws (map force (attribute kws.Keyword)))))))]
-      ;; This case needs to be at the end because it uses cut points to give good error messages.
-      [(~or (:->^ ~! dom:non-keyword-ty ... rng:expr
-                  :colon^ (~var latent (legacy-full-latent (syntax->list #'(dom ...)))))
-            (dom:non-keyword-ty ... :->^ rng:expr
-                                ~! :colon^ (~var latent (legacy-full-latent (syntax->list #'(dom ...))))))
-       ;; use parse-type instead of parse-values-type because we need to add the props from the pred-ty
-       (with-arity (length (syntax->list #'(dom ...)))
-         (->* (parse-types #'(dom ...))
-              (parse-type #'rng)
-              : (-PS (attribute latent.positive) (attribute latent.negative))
-              : (attribute latent.object)))]
-      ;; like ->* below but w/ a #:rest-pat present
-      [(:->*^ (~var mand (->*-args #t))
-              (~optional (~var opt (->*-args #f))
-                         #:defaults ([opt.doms null] [opt.kws null]))
-              #:rest-star (rest-types-stx:non-keyword-ty ...)
-              rng)
-       (with-arity (length (attribute mand.doms))
-         (define doms (map parse-type (attribute mand.doms)))
-         (define opt-doms (map parse-type (attribute opt.doms)))
-         (define rest-tys (stx-map parse-type #'(rest-types-stx ...)))
+            (list (-Arrow
+                   (do-parse-multi #'(dom ...))
+                   (parse-values-type #'rng do-parse do-parse-multi)
+                   #:rest (do-parse #'rest)
+                   #:kws (map force (attribute kws.Keyword))))))]
+        [(~or (:->^ dom:non-keyword-ty ... rest:non-keyword-ty :ddd/bound rng)
+              (dom:non-keyword-ty ... rest:non-keyword-ty :ddd/bound :->^ rng))
+         (with-arity (length (syntax->list #'(dom ...)))
+           (let* ([bnd (syntax-e #'bound)])
+             (unless (bound-index? bnd)
+               (parse-error
+                #:stx #'bound
+                "used a type variable not bound with ... as a bound on a ..."
+                "variable" bnd))
+             (make-Fun
+              (list
+               (make-arr-dots (do-parse-multi #'(dom ...))
+                              (parse-values-type #'rng do-parse do-parse-multi)
+                              (extend-tvars (list bnd)
+                                            (do-parse #'rest))
+                              bnd)))))]
+        [(~or (:->^ dom:non-keyword-ty ... rest:non-keyword-ty _:ddd rng)
+              (dom:non-keyword-ty ... rest:non-keyword-ty _:ddd :->^ rng))
+         (with-arity (length (syntax->list #'(dom ...)))
+           (let ([var (infer-index stx)])
+             (make-Fun
+              (list
+               (make-arr-dots (do-parse-multi #'(dom ...))
+                              (parse-values-type #'rng do-parse do-parse-multi)
+                              (extend-tvars (list var) (do-parse #'rest))
+                              var)))))]
+        #| ;; has to be below the previous one
+        [(dom:expr ... :->^ rng)
+        (->* (do-parse-multi #'(dom ...))
+        (parse-values-type #'rng))]     |#
+        ;; use expr to rule out keywords
+        [rng:existential-type-result #:fail-unless
+                                     parsing-existential-rng?
+                                     "extential type results are only allowed in the range of a function type"
+                                     (define syms (map syntax-e (attribute rng.vars)))
+                                     (extend-tvars syms
+                                                   (cond
+                                                     [(attribute rng.prop-type)
+                                                      (make-ExitentialResult syms
+                                                                             (do-parse (attribute rng.t))
+                                                                             (-PS (-is-type 0 (do-parse (attribute rng.prop-type)))
+                                                                                  -tt)
+                                                                             -empty-obj)]
+                                                     [else
+                                                      (do-parse (attribute rng.t))]))]
+        [(~or (:->^ dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rng)
+              (dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... :->^ rng))
+
+         (define doms (syntax->list #'(dom ...)))
+         (with-arity (length doms)
+           (let ([doms (for/list ([d (in-list doms)])
+                         (do-parse d))])
+             (make-Fun
+              (list (-Arrow doms
+                            (parameterize ([parsing-existential-rng? #t])
+                              (parse-values-type #'rng do-parse do-parse-multi))
+                            #:kws (map force (attribute kws.Keyword)))))))]
+        ;; This case needs to be at the end because it uses cut points to give good error messages.
+        [(~or (:->^ ~! dom:non-keyword-ty ... rng:expr
+                    :colon^ (~var latent (legacy-full-latent (syntax->list #'(dom ...)) do-parse)))
+              (dom:non-keyword-ty ... :->^ rng:expr
+                                  ~! :colon^ (~var latent (legacy-full-latent (syntax->list #'(dom ...)) do-parse))))
+         ;; use do-parse instead of parse-values-type because we need to add the props from the pred-ty
+         (with-arity (length (syntax->list #'(dom ...)))
+           (->* (do-parse-multi #'(dom ...) (add1 current-level))
+                (do-parse #'rng (add1 current-level))
+                : (-PS (attribute latent.positive) (attribute latent.negative))
+                : (attribute latent.object)))]
+        ;; like ->* below but w/ a #:rest-pat present
+        [(:->*^ (~var mand (->*-args #t do-parse))
+                (~optional (~var opt (->*-args #f do-parse))
+                           #:defaults ([opt.doms null] [opt.kws null]))
+                #:rest-star (rest-types-stx:non-keyword-ty ...)
+                rng)
+         (with-arity (length (attribute mand.doms))
+           (define doms (map do-parse (attribute mand.doms)))
+           (define opt-doms (map do-parse (attribute opt.doms)))
+           (define rest-tys (stx-map do-parse #'(rest-types-stx ...)))
+           (cond
+             [(< (length rest-tys) 1)
+              (opt-fn doms opt-doms (parse-values-type #'rng do-parse do-parse-multi)
+                      #:kws (map force (append (attribute mand.kws)
+                                               (attribute opt.kws))))]
+             [else
+              (opt-fn doms opt-doms (parse-values-type #'rng  do-parse do-parse-multi)
+                      #:rest (make-Rest rest-tys)
+                      #:kws (map force (append (attribute mand.kws)
+                                               (attribute opt.kws))))]))]
+        [(:->*^ (~var mand (->*-args #t do-parse))
+                (~optional (~var opt (->*-args #f do-parse))
+                           #:defaults ([opt.doms null] [opt.kws null]))
+                rest:optional->*-rest
+                rng)
+         (with-arity (length (attribute mand.doms))
+           (define doms (map do-parse (attribute mand.doms)))
+           (define opt-doms (map do-parse (attribute opt.doms)))
+           (opt-fn doms opt-doms (parse-values-type #'rng do-parse
+                                                    do-parse-multi)
+                   #:rest (and (attribute rest.type)
+                               (make-Rest (list (do-parse (attribute rest.type)))))
+                   #:kws (map force (append (attribute mand.kws)
+                                            (attribute opt.kws)))))]
+        [:->^
+         (parse-error #:delayed? #t "incorrect use of -> type constructor")
+         Err]
+        [id:self
          (cond
-           [(< (length rest-tys) 1)
-            (opt-fn doms opt-doms (parse-values-type #'rng)
-                    #:kws (map force (append (attribute mand.kws)
-                                             (attribute opt.kws))))]
+           [(current-in-struct-prop) (attribute id.type)]
+           [else (parse-error (~a (syntax-e #'id) " is not allowed outside the type annotation for Struct-Property"))])]
+        [id:identifier
+         (define v (syntax-e #'id))
+         (cond
+           [(lookup-type-constructor #'id)
+            =>
+            (lambda (k) k)]
+           [(bound-tvar? v)
+            (cond
+              ;; if parsing is only for side effects, do not check
+              ;; the well kindness of the type variable.
+              [(side-effect-mode? mode)
+               (cond
+                 [(free-id-table-ref var-level-kind-env #'id #f)
+                  =>
+                  (lambda (lvl)
+                    ;; in the for-effect mode, if id is a recurive variable or a
+                    ;; type constructor parameter, then we mark the type
+                    ;; constructor productive or unproductive accordingly
+                    (set-side-effect-mode-productive?! mode (< lvl current-level)))])
+               (lookup-tvar v)]
+              [else
+               (define maybe-lvl (free-id-table-ref var-level-kind-env #'id #f))
+
+               ;; the first disjunctive says in the synthesis mode, we ignore
+               ;; the level check on parameters of the constructor.
+               (if (or (and (synth-mode? mode) (member v (synth-mode-args mode)))
+                       (not maybe-lvl)
+                       (< maybe-lvl current-level))
+                   (lookup-tvar v)
+                   (parse-error "in a productive position"
+                                "variable" v))])]
+           ;; if it was in current-indexes, produce a better error msg
+           [(bound-index? v)
+            (parse-error "type variable must be used with ..."
+                         "variable" v)]
+           ;; if it's a type alias, we expand it (the expanded type is stored in the HT)
+           [(lookup-type-alias #'id do-parse (lambda () #f))
+            =>
+            (lambda (t)
+              (cond
+                ;; in the side-effect mode, do a level check on the type
+                ;; constructor being parsed and record its productivity
+                [(side-effect-mode? mode)
+                 (define alias-box (side-effect-mode-referenced-aliases mode))
+                 (match t
+                   [(Name/simple: n)
+                    #:when (free-identifier=? n (side-effect-mode-type-alias-name mode))
+                    (set-side-effect-mode-productive?! mode (or (< INIT-LEVEL current-level)))]
+                   [_ (void)])
+                 (set-box! alias-box (cons #'id (unbox alias-box)))]
+                ;; in the checking or synthesis mode, do a regular productivity check.
+                [(Name? t)
+                 (define id-sym (syntax-e #'id))
+                 (define maybe-lvl (free-id-table-ref var-level-kind-env #'id #f))
+                 (when (and maybe-lvl (>= maybe-lvl current-level))
+                   (parse-error "not in a productive position"
+                                "variable" id-sym))])
+              (and (syntax-transforming?)
+                   (add-disappeared-use (syntax-local-introduce #'id)))
+              t)]
            [else
-            (opt-fn doms opt-doms (parse-values-type #'rng)
-                    #:rest (make-Rest rest-tys)
-                    #:kws (map force (append (attribute mand.kws)
-                                             (attribute opt.kws))))]))]
-      [(:->*^ (~var mand (->*-args #t))
-              (~optional (~var opt (->*-args #f))
-                         #:defaults ([opt.doms null] [opt.kws null]))
-              rest:optional->*-rest
-              rng)
-       (with-arity (length (attribute mand.doms))
-         (define doms (map parse-type (attribute mand.doms)))
-         (define opt-doms (map parse-type (attribute opt.doms)))
-         (opt-fn doms opt-doms (parse-values-type #'rng)
-                 #:rest (and (attribute rest.type)
-                             (make-Rest (list (parse-type (attribute rest.type)))))
-                 #:kws (map force (append (attribute mand.kws)
-                                          (attribute opt.kws)))))]
-      [:->^
-       (parse-error #:delayed? #t "incorrect use of -> type constructor")
-       Err]
-      [id:self
-       (cond
-         [(current-in-struct-prop) (attribute id.type)]
-         [else (parse-error (~a (syntax-e #'id) " is not allowed outside the type annotation for Struct-Property"))])]
-      [id:identifier
-       (define v (syntax-e #'id))
-       (cond
-         [(bound-tvar? v)
-          (lookup-tvar v)]
-         ;; if it was in current-indexes, produce a better error msg
-         [(bound-index? v)
-          (parse-error "type variable must be used with ..."
-                       "variable" v)]
-         ;; if it's a type alias, we expand it (the expanded type is stored in the HT)
-         [(lookup-type-alias #'id parse-type (lambda () #f))
-          =>
-          (lambda (t)
-            (when (current-referenced-aliases)
-              (define alias-box (current-referenced-aliases))
-              (set-box! alias-box (cons #'id (unbox alias-box))))
-            (and (syntax-transforming?)
-                 (add-disappeared-use (syntax-local-introduce #'id)))
-            t)]
-         [else
-          (parse-error #:delayed? #t (~a "type name `" v "' is unbound"))
-          Err])]
-      [(:Opaque^ . rest)
-       (parse-error "bad syntax in Opaque")]
-      [(:U^ . rest)
-       (parse-error "bad syntax in Union")]
-      [(:Rec^ . rest)
-       (parse-error "bad syntax in Rec")]
-      [(t ... :->^ . rest)
-       (parse-error "bad syntax in ->")]
-      [(id arg args ...)
-       (let loop
-           ([rator (parse-type #'id)]
-            [args (parse-types #'(arg args ...))])
-         (resolve-app-check-error rator args stx)
-         (match rator
-           [(? Name?)
-            (define app (make-App rator args))
-            (register-app-for-checking! app stx)
-            app]
-           [(Poly: _ _) (instantiate-poly rator args)]
-           [(Mu: _ _) (loop (unfold rator) args)]
-           [(Error:) Err]
-           [_ Err]))]
-      [t:atom
-       ;; Integers in a "grey area", that is, integers whose runtime type is
-       ;; platform-dependent, cannot be safely assigned singleton types.
-       ;; Short story: (subtype (-val 10000000000000) -Fixnum) has no safe
-       ;;   answer. It's not a fixnum on 32 bits, and saying it's not a fixnum
-       ;;   causes issues with type-dead code detection.
-       ;; Long story: See email trail for PR13501 and #racket IRC logs from
-       ;;   Feb 11 2013.
-       (let ([val (syntax-e #'t)])
-         (when (and (exact-integer? val)
-                    ;; [min-64bit-fixnum, min-portable-fixnum)
-                    (or (and (>= val (- (expt 2 62)))
-                             (<  val (- (expt 2 30))))
-                        ;; (max-portable-index, max-64bit-fixnum]
-                        (and (>  val (sub1 (expt 2 28)))
-                             (<= val (sub1 (expt 2 62))))))
-           (parse-error "non-portable fixnum singleton types are not valid types"
-                        "given" val))
-         (-val val))]
-      [_ (parse-error "expected a valid type"
-                      "given" (syntax->datum stx))])))
+            (parse-error #:delayed? #t (~a "type name `" v "' is unbound"))
+            Err])]
+        [(:Opaque^ . rest)
+         (parse-error "bad syntax in Opaque")]
+        #;
+        [(:U^ . rest)
+         (parse-error "bad syntax in Union")]
+        [(:Rec^ . rest)
+         (parse-error "bad syntax in Rec")]
+        [(t ... :->^ . rest)
+         (parse-error "bad syntax in ->")]
+        [(id:identifier args ...)
+         (define rator (do-parse #'id current-level
+                                 #:ret-type-op? #t))
+         (define args^ (let ([lvl
+                              (match rator
+                                [(struct* TypeConstructor ([productive? #t]))
+                                 (add1 current-level)]
+                                ;; when checking user-defined type constructors, structure types
+                                ;; defined in the enclosing module have not been registerd yet, so we
+                                ;; need to use Names here.
+                                [(Name: _ _ #t)
+                                 (add1 current-level)]
+                                [_ current-level])])
+                         (do-parse-multi #'(args ...) lvl)))
+         (cond
+           [(not (side-effect-mode? mode))
+            ;; Does not allow polymorphic recursion since both type
+            ;; inference and equirecursive subtyping for polymorphic
+            ;; recursion are difficult.
+            ;;
+            ;; Type inference is known to be undecidable in general, but
+            ;; practical algorithms do exist[1] that do not diverge in
+            ;; practice.
+            ;;
+            ;; It is possible that equirecursive subtyping with polymorphic
+            ;; recursion is as difficult as equivalence of DPDAs[2], which is
+            ;; known to be decidable[3], but good algorithms may not exist.
+            ;;
+            ;; [1] Fritz Henglein. "Type inference with polymorphic recursion"
+            ;;     TOPLAS 1993
+            ;; [2] Marvin Solomon. "Type definitions with parameters"
+            ;;     POPL 1978
+            ;; [3] Geraud Senizergues.
+            ;;     "L(A)=L(B)? decidability results from complete formal systems"
+            ;;     TCS 2001.
+            ;;
+            ;; check-argument : Type Id -> Void
+            ;; Check argument to make sure there's no polymorphic recursion
+            (when (synth-mode? mode)
+              (define (check-argument given-type arg-name)
+                (define ok?
+                  (or (F? given-type)
+                      (not (member arg-name (fv given-type)))))
+                (unless ok?
+                  (tc-error (~a "recursive type cannot be applied at a"
+                                " different type in its recursive invocation"
+                                "\n  type: " rator
+                                "\n  new argument name: " arg-name
+                                "\n  new argument: " given-type
+                                "\n  new arguments...: " args^))))
+              (when (and (synth-mode-same-component-pred mode)
+                         ((synth-mode-same-component-pred mode)
+                          #'id))
+                (for ([rand (in-list args^)]
+                      [var (in-list (synth-mode-args mode))])
+                  (check-argument rand var))))
+            (match rator
+              [(? TypeConstructor?)
+               (with-handlers ([exn:fail:contract:arity:type-constructor?
+                                (lambda (e)
+                                  (match-define (exn:fail:contract:arity:type-constructor _ _ expected given) e)
+                                  (tc-error (~a "wrong number of arguments to type constructor"
+                                                "\n  type: " #'id
+                                                "\n  expected: " expected
+                                                "\n  given: " given
+                                                "\n  arguments...: " #'(args ...))))])
+                 (apply rator args^))]
+              [(? Name?)
+               (resolve-app-check-error rator args^ stx)
+               (define app (make-App rator args^))
+               app]
+              [(Error:) Err]
+              [_ (parse-error "bad syntax in type application: expected a type constructor"
+                              "given a type"
+                              rator)])]
+           [else Err])]
+        [(id args ...)
+         (parse-error "bad syntax in type application: only an identifiers can be used as an operator")]
+        [t:atom
+         ;; Integers in a "grey area", that is, integers whose runtime type is
+         ;; platform-dependent, cannot be safely assigned singleton types.
+         ;; Short story: (subtype (-val 10000000000000) -Fixnum) has no safe
+         ;;   answer. It's not a fixnum on 32 bits, and saying it's not a fixnum
+         ;;   causes issues with type-dead code detection.
+         ;; Long story: See email trail for PR13501 and #racket IRC logs from
+         ;;   Feb 11 2013.
+         (let ([val (syntax-e #'t)])
+           (when (and (exact-integer? val)
+                      ;; [min-64bit-fixnum, min-portable-fixnum)
+                      (or (and (>= val (- (expt 2 62)))
+                               (<  val (- (expt 2 30))))
+                          ;; (max-portable-index, max-64bit-fixnum]
+                          (and (>  val (sub1 (expt 2 28)))
+                               (<= val (sub1 (expt 2 62))))))
+             (parse-error "non-portable fixnum singleton types are not valid types"
+                          "given" val))
+           (-val val))]
+        [_ (parse-error "expected a valid type"
+                        "given" (syntax->datum stx))]))
+
+    (when (and (not ret-type-op?) (TypeConstructor? rv))
+      (parse-error "expected a valid type not a type constructor"
+                   "given" (syntax->datum stx)))
+    rv))
+
+
+;; returns a parsed *type*. A parse error will be raised if the parsed value is
+;; a type constructor
+(define (parse-type stx [type-alias-productivity-map (make-immutable-free-id-table)])
+  (parse stx 0 (make-immutable-free-id-table
+                (free-id-table-map type-alias-productivity-map
+                                   (lambda (k v)
+                                     (cons k (if v
+                                                 ALWAYS-PRODUCTIVE-LEVEL
+                                                 INIT-LEVEL)))))
+         #:mode #f))
+
+(define-syntax-rule (define-parse-container-type fname pattern maker maker^ [lhs rhs] ...)
+  (define (fname stx do-parse do-parse-multi)
+    (parameterize ([current-orig-stx stx])
+      (syntax-parse stx
+        [(pattern tys (... ...) dty :ddd/bound)
+         (let ([var (syntax-e #'bound)])
+           (unless (bound-index? var)
+             (if (bound-tvar? var)
+                 (tc-error/stx #'bound "Used a type variable (~a) not bound with ... as a bound on a ..." var)
+                 (tc-error/stx #'bound "Type variable ~a is unbound" var)))
+           (maker (do-parse-multi #'(tys (... ...)))
+                  (extend-tvars (list var)
+                                (do-parse #'dty))
+                  var))]
+        [(pattern tys (... ...) dty _:ddd)
+         (let ([var (infer-index stx)])
+           (maker (do-parse-multi #'(tys (... ...)))
+                  (extend-tvars (list var)
+                                (do-parse #'dty))
+                  var))]
+        [(pattern tys (... ...))
+         (maker^ (do-parse-multi #'(tys (... ...))))]
+        [lhs (rhs do-parse do-parse-multi)] ...))))
 
 ;; Syntax -> Type
 ;; Parse a (List ...) type
 ;; TODO: a generic dotted type would avoid duplication of this code.
-(define (parse-list-type stx)
-  (parameterize ([current-orig-stx stx])
-    (syntax-parse stx
-      [(:List^ tys ... dty :ddd/bound)
-       (let ([var (syntax-e #'bound)])
-         (unless (bound-index? var)
-           (if (bound-tvar? var)
-               (tc-error/stx #'bound "Used a type variable (~a) not bound with ... as a bound on a ..." var)
-               (tc-error/stx #'bound "Type variable ~a is unbound" var)))
-         (-Tuple* (parse-types #'(tys ...))
-                  (make-ListDots
-                   (extend-tvars (list var)
-                     (parse-type #'dty))
-                   var)))]
-      [(:List^ tys ... dty _:ddd)
-       (let ([var (infer-index stx)])
-         (-Tuple* (parse-types #'(tys ...))
-                  (make-ListDots
-                    (extend-tvars (list var)
-                      (parse-type #'dty))
-                    var)))]
-      [(:List^ tys ...)
-       (-Tuple (parse-types #'(tys ...)))])))
+
+(define-parse-container-type parse-list-type :List^
+                              (lambda (tys dtys var)
+                                (-Tuple* tys (make-ListDots dtys var)))
+                              -Tuple)
 
 ;; Syntax -> Type
 ;; Parse a (Sequenceof ...) type
-(define (parse-sequence-type stx)
-  (parameterize ([current-orig-stx stx])
-    (syntax-parse stx
-      [(:Sequenceof^ tys ... dty :ddd/bound)
-       (let ([var (syntax-e #'bound)])
-         (unless (bound-index? var)
-           (if (bound-tvar? var)
-               (tc-error/stx #'bound "Used a type variable (~a) not bound with ... as a bound on a ..." var)
-               (tc-error/stx #'bound "Type variable ~a is unbound" var)))
-         (-seq-dots (parse-types #'(tys ...))
-                    (extend-tvars (list var)
-                      (parse-type #'dty))
-                    var))]
-      [(:Sequenceof^ tys ... dty _:ddd)
-       (let ([var (infer-index stx)])
-         (-seq-dots (parse-types #'(tys ...))
-                    (extend-tvars (list var)
-                      (parse-type #'dty))
-                    var))]
-      [(:Sequenceof^ tys ...)
-       (apply -seq (parse-types #'(tys ...)))])))
+(define-parse-container-type parse-sequence-type :Sequenceof^ -seq-dots (lambda (args)
+                                                                           (apply -seq args)))
 
 ;; Syntax -> Type
 ;; Parse a (Values ...) or AnyValues type
-(define (parse-values-type stx)
-  (parameterize ([current-orig-stx stx])
-    (syntax-parse stx
-      [((~or :Values^ :values^) tys ... dty :ddd/bound)
-       (let ([var (syntax-e #'bound)])
-         (unless (bound-index? var)
-           (if (bound-tvar? var)
-               (tc-error/stx #'bound "Used a type variable (~a) not bound with ... as a bound on a ..." var)
-               (tc-error/stx #'bound "Type variable ~a is unbound" var)))
-         (-values-dots (parse-types #'(tys ...))
-                       (extend-tvars (list var)
-                         (parse-type #'dty))
-                       var))]
-      [((~or :Values^ :values^) tys ... dty _:ddd)
-       (let ([var (infer-index stx)])
-         (-values-dots (parse-types #'(tys ...))
-                       (extend-tvars (list var)
-                         (parse-type #'dty))
-                       var))]
-      [((~or :Values^ :values^) tys ...)
-       (-values (parse-types #'(tys ...)))]
-      [:AnyValues^ ManyUniv]
-      [t
-       (-values (list (parse-type #'t)))])))
+(define-parse-container-type parse-values-type (~or :Values^ :values^)
+                              -values-dots
+                              -values
+                              [:AnyValues^ (lambda _ ManyUniv)]
+                              [t
+                               (lambda (do-parse _)
+                                 (-values (list (do-parse #'t))))])
 
 ;;; Utilities for (Class ...) type parsing
 
@@ -1346,16 +1518,16 @@
 ;; Syntax -> Type
 ;; Parse a (Object ...) type
 ;; This is an alternative way to write down an Instance type
-(define (parse-object-type stx)
+(define (parse-object-type stx do-parse)
   (syntax-parse stx
     [(kw clause:object-type-clauses)
      (add-disappeared-use #'kw)
      (define fields (map list
                          (stx-map syntax-e #'clause.field-names)
-                         (stx-map parse-type #'clause.field-types)))
+                         (stx-map do-parse #'clause.field-types)))
      (define methods (map list
                           (stx-map syntax-e #'clause.method-names)
-                          (stx-map parse-type #'clause.method-types)))
+                          (stx-map do-parse #'clause.method-types)))
      (check-function-types methods)
      (make-Instance (make-Class #f null fields methods null #f))]))
 
@@ -1380,15 +1552,15 @@
 
 ;; Syntax -> Type
 ;; Parse a (Class ...) type
-(define (parse-class-type stx)
+(define (parse-class-type stx do-parse mode)
   (syntax-parse stx
-    [(kw (~var clause (class-type-clauses parse-type)))
+    [(kw (~var clause (class-type-clauses do-parse)))
      (add-disappeared-use #'kw)
      (define parent-stxs (stx->list #'clause.implements))
      (define parent/init-stx (attribute clause.implements/inits))
-     (define parent/init-type (and parent/init-stx (parse-type parent/init-stx)))
+     (define parent/init-type (and parent/init-stx (do-parse parent/init-stx)))
      (define parent-types
-       (let ([types (map parse-type parent-stxs)])
+       (let ([types (map do-parse parent-stxs)])
          (if parent/init-stx
              (cons parent/init-type types)
              types)))
@@ -1398,10 +1570,10 @@
      (define given-augments (attribute clause.augments))
      (define given-row-var
        (and (attribute clause.row-var)
-            (parse-type (attribute clause.row-var))))
+            (do-parse (attribute clause.row-var))))
      (define given-init-rest
        (and (attribute clause.init-rest)
-            (parse-type (attribute clause.init-rest))))
+            (do-parse (attribute clause.init-rest))))
 
      (cond ;; If an Error type flows into the #:row-var position, a
            ;; delayed error should be raised from the recursive call to
@@ -1415,7 +1587,7 @@
            ;; process isn't looking for recursive type alias references.
            ;; (otherwise the merging process will error)
            [(or (and (null? parent-stxs) (not parent/init-stx))
-                (not (current-referenced-aliases)))
+                (not (side-effect-mode? mode)))
 
             (check-function-types given-methods)
             (check-function-types given-augments)
@@ -1472,10 +1644,10 @@
             ;; With the approximation, we have spurious recursive references
             ;; which may cause more indirection through the Name environment
             ;; or generate worse contracts.
-            (define alias-box (current-referenced-aliases))
-            (set-box! alias-box (cons (current-type-alias-name)
+            (define alias-box (side-effect-mode-referenced-aliases mode))
+            (set-box! alias-box (cons (side-effect-mode-type-alias-name mode)
                                       (unbox alias-box)))
-            (define class-box (current-referenced-class-parents))
+            (define class-box (side-effect-mode-referenced-class-parents mode))
             (set-box! class-box (append (if parent/init-stx
                                             (cons parent/init-stx parent-stxs)
                                             parent-stxs)

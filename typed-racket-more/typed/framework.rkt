@@ -6,7 +6,6 @@
          framework/splash
          (for-syntax (only-in typed-racket/rep/type-rep
                               make-Instance
-                              make-HeterogeneousVector
                               [make-Opaque -opq]))
          "racket/private/gui-types.rkt"
          (for-syntax (submod "racket/private/gui-types.rkt" #%type-decl))
@@ -212,8 +211,8 @@
  [editor:set-current-preferred-font-size (-Nat . -> . -Void)]
  [editor:get-current-preferred-font-size (-> -Nat)]
  [editor:font-size-pref->current-font-size
-  ((make-HeterogeneousVector (list (-HT (-ne-lst (-Tuple (list -Nat -Nat))) -Nat)
-                                   -Nat))
+  ((-vec* (-HT (-ne-lst (-Tuple (list -Nat -Nat))) -Nat)
+          -Nat)
    . -> .
    -Nat)]
  [editor:get-change-font-size-when-monitors-change? (-> -Boolean)]
@@ -660,12 +659,11 @@
  [start-splash
   ((Un -Pathlike
        -Bitmap%-Instance
-       (make-HeterogeneousVector
-        (list
-         (Un (-DC<%>-Instance . -> . -Void)
-             (-DC<%>-Instance -Nat -Nat -Nat -Nat . -> . -Void))
-         -Nat
-         -Nat)))
+       (-vec*
+        (Un (-DC<%>-Instance . -> . -Void)
+            (-DC<%>-Instance -Nat -Nat -Nat -Nat . -> . -Void))
+        -Nat
+        -Nat))
    -String
    -Nat
    []

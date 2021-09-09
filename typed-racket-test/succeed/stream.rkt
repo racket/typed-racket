@@ -3,11 +3,10 @@
 
 (provide Stream stream-cons stream-car stream-cdr empty-stream?)
 
-(define-type Stream
-  (All (A)
-    (Rec S
-      (U Null (Boxof (U (-> (Pair A S))
-                        (Pair A S)))))))
+(define-type (Stream A)
+  (Rec S
+       (U Null (Boxof (U (-> (Pair A S))
+                         (Pair A S))))))
 
 (: empty-stream? : (All (A) ((Stream A) -> Boolean)))
 (define (empty-stream? stream) (null? stream))

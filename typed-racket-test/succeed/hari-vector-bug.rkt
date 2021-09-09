@@ -3,7 +3,7 @@
                           [elems : (Vectorof A)]))
 (define-struct: Mt ())
 
-(define-type-alias Block (All (A) (U Mt (Base A))))
+(define-type-alias (Block A) (U Mt (Base A)))
 
 (: get-base : (All (A) ((Block A) -> (Base A))))
 (define (get-base block)

@@ -927,6 +927,47 @@
              (init [z 0]))
            (void))
          -Void]
+
+   [tc-e (let ()
+           (define-type-alias (AClass a)
+             (Class #:row-var a))
+
+           (define cls1
+             (class object%
+               (init-field [x : Number 0])
+               (super-new)))
+
+           (: test (All (r #:row)
+                      (-> (AClass r)
+                          (AClass r))))
+           (tr:define (test a)
+             a)
+
+           (test cls1)
+           (void))
+         -Void]
+   [tc-e (let ()
+           (define-type-alias (BClass a)
+             (Class (field [z Integer]) #:row-var a))
+
+           (define-type-alias (AClass a)
+             (Class #:row-var a))
+
+           (define cls1
+             (class object%
+               (init-field [x : Number 0])
+               (super-new)))
+
+           (: test (All (r #:row (field z))
+                      (-> (AClass r)
+                          (BClass r))))
+           (tr:define (test a)
+             (class a (super-new)
+               (field [z 42])))
+
+           (test cls1)
+           (void))
+         -Void]
    ;; fails, bad default init value
    [tc-err (class object% (super-new)
              (: z Integer)
@@ -1013,7 +1054,7 @@
                (class cls (super-new)
                  (field [x 5])))
              (row-inst f (Row (field [x Integer]))))
-           #:ret (tc-ret (t:-> (-class 
+           #:ret (tc-ret (t:-> (-class
                               #:row (make-Row null `([x ,-Integer]) null null #f))
                             (-class
                               #:row (make-Row null `([x ,-Integer]) null null #f)
@@ -1107,7 +1148,7 @@
                (class cls (super-new)
                  (field [x 5])))
              (row-inst f (Row (field [x Integer]))))
-           #:ret (tc-ret (t:-> (-class 
+           #:ret (tc-ret (t:-> (-class
                               #:row (make-Row null `([x ,-Integer]) null null #f))
                             (-class
                               #:row (make-Row null `([x ,-Integer]) null null #f)
@@ -2074,7 +2115,7 @@
              (define bsp-trees #f)
              (: m (-> Any))
              (define (m) (set! bsp-trees 5))
-             
+
              (: sync-bsp-trees (-> Integer))
              (define/private (sync-bsp-trees)
                (let ([bsp-trees-val bsp-trees])

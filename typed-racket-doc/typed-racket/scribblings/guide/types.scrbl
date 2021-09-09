@@ -138,12 +138,16 @@ type defintion could also be written like this.
 (define-type BinaryTreeLeaf Number)
 (define-type BinaryTreeNode (Pair BinaryTree BinaryTree))]
 
-Of course, types which directly refer to themselves are not
-permitted. For example, both of these definitions are illegal.
+Of course, all recursive types must pass the contractivity check. In other
+words, types which directly refer to themselves are not permitted. They must be
+used as arguments to productive type constructors, such as @racket[Listof] and
+@racket[Pairof]. For example, of the following definitions, only the last is
+legal.
 
 @examples[#:label #f #:eval the-eval
 (eval:error (define-type BinaryTree BinaryTree))
-(eval:error (define-type BinaryTree (U Number BinaryTree)))]
+(eval:error (define-type BinaryTree (U Number BinaryTree)))
+(define-type BinaryTree (U Number (Listof BinaryTree)))]
 
 @section{Structure Types}
 
@@ -157,7 +161,7 @@ Instances of this structure, such as @racket[(point 7 12)], have type @racket[po
 If a struct supertype is provided, then the newly defined type
 is a @tech{subtype} of the parent.
 
-@subsection{Types for Structure Type Properties}
+@section{Types for Structure Type Properties}
 
 To annotate a new structure type property created by
 @racket[make-struct-type-property], it must be defined via
@@ -255,6 +259,23 @@ For example, @racket[(-> Any String)] is a subtype of @racket[(-> Number
 Typed Racket offers abstraction over types as well as values. This allows
 the definition of functions that use @deftech{parametric polymorphism}.
 
+@subsection{Type Constructors}
+
+Types for built-in collections are created by
+@tr-reference-seclink["built-in-type-constructors"]{built-in type constructors}.
+Users can also define their own type constructors through @racket[define-type].
+
+Note that types and type constructors are different. If a type constructor is
+used in a position where a type, the type checker will report a type error:
+@examples[#:eval the-eval #:label #f
+  (eval:error (ann 10 (Listof Listof)))
+]
+
+Conversely, types cannot be used as type constructors:
+@examples[#:eval the-eval #:label #f
+  (eval:error (ann 10 (Number Number)))
+]
+
 @subsection{Polymorphic Data Structures}
 
 Virtually every Racket program uses lists and other collections.  Fortunately, Typed
@@ -293,7 +314,7 @@ typed/racket
         [else (find v (cdr l))]))
 ]
 
-The first @racket[struct:] defines @racket[None] to be
+The first @racket[struct] defines @racket[None] to be
 a structure with no contents.
 
 The second definition
@@ -302,17 +323,16 @@ The second definition
 (struct (a) Some ([v : a]))
 ]
 
-creates a parameterized type, @racket[Some], which is a structure with
-one element, whose type is that of the type argument to
-@racket[Some].  Here the type parameters (only one, @racket[a], in
-this case) are written before the type name, and can be referred to in
-the types of the fields.
+creates a type constructor, @racket[Some], and defines a namesake structure with
+one element, whose type is that of the type argument to @racket[Some].  Here the
+type parameters (only one, @racket[a], in this case) are written before the type
+name, and can be referred to in the types of the fields.
 
 The type definiton
 @racketblock[
   (define-type (Opt a) (U None (Some a)))
 ]
-creates a parameterized type --- @racket[Opt] is a potential
+creates a type constructor --- @racket[Opt] is a potential
 container for whatever type is supplied.
 
 The @racket[find] function takes a number @racket[v] and list, and

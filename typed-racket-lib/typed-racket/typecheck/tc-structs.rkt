@@ -2,9 +2,11 @@
 
 (require "../utils/utils.rkt"
          syntax/struct syntax/parse racket/function racket/match racket/list syntax/id-set
-         syntax/id-table
+         racket/format syntax/id-table
          (prefix-in c: (contract-req))
          "../rep/type-rep.rkt"
+         "../rep/type-constr.rkt"
+         "struct-type-constr.rkt"
          "../rep/free-variance.rkt"
          "../rep/values-rep.rkt"
          "../private/parse-type.rkt"
@@ -19,6 +21,7 @@
          "../env/global-env.rkt"
          "../env/type-name-env.rkt"
          "../env/type-alias-env.rkt"
+         "../env/type-constr-env.rkt"
          "../env/tvar-env.rkt"
          "../env/lexical-env.rkt"
          "../env/struct-name-env.rkt"
@@ -106,12 +109,12 @@
 ;; If the a struct has a base struct defined in the enclose module, record the
 ;; substructuring relation in the inheritance table.
 (define/cond-contract (register-substructuring! maybe-base-name-rep maybe-base-struct-rep substruct-type-name substruct-set-procedural?)
-  (c:-> (c:or/c Name? #f) (c:or/c #f Struct? Poly?) identifier? boolean? void?)
+  (c:-> (c:or/c identifier? #f) (c:or/c #f Struct? Poly?) identifier? boolean? void?)
   ;; given where register-substructuring! is called currently,
   ;; maybe-base-name-rep and maybe-base-struct-rep should be #f or non-false
   ;; value at the same time
   (when (and maybe-base-name-rep (not substruct-set-procedural?))
-    (match-define (Name/simple: name-id) maybe-base-name-rep)
+    (define name-id maybe-base-name-rep)
     ;; if a base struct rep's proc is already set, it means the base struct is
     ;; imported and the type checker doesn't need to deal with its properties in
     ;; pass 2, thus there is no need to put it in the table.
@@ -232,12 +235,11 @@
 
 ;; parse name field of struct, determining whether a parent struct was specified
 (define/cond-contract (parse-parent nm/par prefab?)
-  (c:-> syntax? c:any/c (values identifier? (c:or/c Name? #f) (c:or/c Mu? Poly? Struct? Prefab? #f)))
+  (c:-> syntax? c:any/c (values identifier? (c:or/c identifier? #f) (c:or/c Poly? Struct? TypeConstructor? Prefab? #f)))
   (syntax-parse nm/par
     [v:parent
      (if (attribute v.par)
-         (let* ([parent0 (parse-type
-                          (cond
+         (let* ([parent0 (cond
                             ;; maybe-struct-info-wrapper-type only returns
                             ;; parent's type name when the parent structure
                             ;; defined either is in a typed module or
@@ -246,11 +248,11 @@
                             [(maybe-struct-info-wrapper-type (syntax-local-value #'v.par (lambda () #f)))]
                             ;; if the parent struct is a builtin structure like exn,
                             ;; its structure name is also its type name.
-                            [else #'v.par]))]
-                [parent (let loop ((parent parent0))
+                            [else #'v.par])]
+                [parent (let loop ((parent (parse-type-or-type-constructor parent0)))
                           (match parent
                             [(? Name?) (loop (resolve-name parent))]
-                            [(or (? Poly?) (? Mu?) (? Struct?)) parent]
+                            [(or (? TypeConstructor?) (? Struct?)) parent]
                             [(? Prefab?) #:when prefab?
                                          parent]
                             [_
@@ -318,8 +320,17 @@
   (register-alias type-name)
   (unless (free-identifier=? type-name struct-name)
     (register-struct-name! struct-name type-name))
+
+  ;; a polymorphic structure makes its name represent two things:
+  ;; the polymorphic stucture type, e.g. foo is an alias to (All (a) (foo a)); (is this really true?/useful)
+  ;; a type constructor to create the monomophic structure types of foo. e.g (foo Integer)
   (register-type-name type-name
-                      (make-Poly (struct-desc-tvars desc) sty)))
+                      (make-Poly (struct-desc-tvars desc) sty))
+  (define sty^ (make-Poly (struct-desc-tvars desc) sty))
+  (unless (empty? (struct-desc-tvars desc))
+    (define ty-op (make-type-constr (struct-type-op sty^)
+                                (length (struct-desc-tvars desc))))
+    (register-type-constructor! type-name ty-op)))
 
 ;; Register the appropriate types, return a list of struct bindings
 (define/cond-contract (register-struct-bindings! sty names desc si)
@@ -557,10 +568,22 @@
                    #:type-only [type-only #f]
                    #:prefab? [prefab? #f]
                    #:properties [properties empty])
-  (define-values (nm parent-name parent) (parse-parent nm/par prefab?))
+  (define-values (nm parent-name parent^) (parse-parent nm/par prefab?))
   ;; create type variables for the new type parameters
   (define tvars (map syntax-e vars))
   (define new-tvars (map make-F tvars))
+  (define parent (match parent^
+                   [(struct* TypeConstructor ([arity expected]))
+                    (define given (length new-tvars))
+                    (unless (<= expected given)
+                      (tc-error (~a "wrong number of arguments to type constructor"
+                                    "\n  type constructor: " (syntax-e parent-name)
+                                    "\n  expected: " expected
+                                    "\n  given: " given
+                                    "\n  arguments...: " new-tvars)))
+                    (apply parent^ (take new-tvars expected))]
+                   [else
+                    parent^]))
 
   (unless prefab?
     (register-substructuring! parent-name parent type-name

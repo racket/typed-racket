@@ -4,7 +4,7 @@
          "evaluator.rkt"
          (for-syntax racket/base)
          (for-template racket/base)
-         typed-racket/rep/type-rep
+         (except-in typed-racket/rep/type-rep Un)
          typed-racket/rep/prop-rep
          typed-racket/rep/object-rep
          (for-syntax

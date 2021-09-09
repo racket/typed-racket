@@ -2,7 +2,7 @@
 
 (require "../types/abbrev.rkt"
          "../types/numeric-tower.rkt"
-         "../rep/type-rep.rkt")
+         (rename-in "../rep/type-rep.rkt" [Un -Un]))
 
 [Complex -Number]
 [Number -Number]
@@ -113,8 +113,8 @@
 [Output-Port -Output-Port]
 [Bytes -Bytes]
 [EOF (-val eof)]
-[Sexpof (-poly (a) (-Sexpof a))]   ;; recursive union of sexps with a
-[Syntaxof (-poly (a) (-Syntax a))] ;; syntax-e yields a
+[Sexpof -Sexpof]   ;; recursive union of sexps with a
+[Syntaxof -Syntax] ;; syntax-e yields a
 [Syntax-E In-Syntax] ;; possible results of syntax-e on "2D" syntax
 [Syntax Any-Syntax]  ;; (Syntaxof Syntax-E): "2D" syntax
 [Datum Syntax-Sexp]  ;; (Sexpof Syntax), datum->syntax yields "2D" syntax
@@ -173,39 +173,47 @@
 
 
 [Listof -Listof]
-[Vectorof (-poly (a) (make-Vector a))]
-[Immutable-Vectorof (-poly (a) (-ivec a))]
-[Mutable-Vectorof (-poly (a) (-mvec a))]
+[Vectorof -vec]
+[Vector -vec*]
+[Immutable-Vectorof -ivec]
+[Immutable-Vector -ivec*]
+[Mutable-Vectorof -mvec]
+[Mutable-Vector -mvec*]
 [FlVector -FlVector]
 [ExtFlVector -ExtFlVector]
 [FxVector -FxVector]
-[Option (-poly (a) (-opt a))]
-[Immutable-HashTable (-poly (a b) (-Immutable-HT a b))]
-[Mutable-HashTable (-poly (a b) (-Mutable-HT a b))]
+[Option -opt]
+[Immutable-HashTable -Immutable-HT]
+[Mutable-HashTable -Mutable-HT]
 [Mutable-HashTableTop -Mutable-HashTableTop]
-[Weak-HashTable (-poly (a b) (-Weak-HT a b))]
+[Weak-HashTable -Weak-HT]
 [Weak-HashTableTop -Weak-HashTableTop]
-[HashTable (-poly (a b) (Un (-Mutable-HT a b) (-Immutable-HT a b) (-Weak-HT a b)))]
-[Promise (-poly (a) (-Promise a))]
-[Pair (-poly (a b) (-pair a b))]
-[Boxof (-poly (a) (make-Box a))]
-[Weak-Boxof (-poly (a) (-weak-box a))]
-[Channelof (-poly (a) (make-Channel a))]
-[Async-Channelof (-poly (a) (make-Async-Channel a))]
-[Ephemeronof (-poly (a) (make-Ephemeron a))]
-[Setof (-poly (e) (make-Set e))]
-[Evtof (-poly (r) (-evt r))]
+[HashTable -HT]
+[Promise -Promise]
+[Pair -pair]
+[Boxof -box]
+[Weak-Boxof -weak-box]
+[Channelof -channel]
+[Async-Channelof -async-channel]
+[Ephemeronof -Ephemeron]
+[Setof -set]
+[Evtof -evt]
 [Continuation-Mark-Set -Cont-Mark-Set]
 [False -False]
 [True -True]
 [Null -Null]
-[Nothing (Un)]
-[Futureof (-poly (a) (-future a))]
-[Pairof (-poly (a b) (-pair a b))]
-[MPairof (-poly (a b) (-mpair a b))]
-[MListof (-poly (a) (-mlst a))]
-[Thread-Cellof (-poly (a) (-thread-cell a))]
-[Custodian-Boxof (-poly (a) (make-CustodianBox a))]
+[Nothing (-Un)]
+[Futureof -future]
+[Pairof -pair]
+[U -Un]
+[Union -Un]
+[∩ -Inter]
+[Intersection -Inter]
+[Un -Un]
+[MPairof -mpair]
+[MListof -MListof]
+[Thread-Cellof -thread-cell]
+[Custodian-Boxof -CustodianBox]
 
-[Continuation-Mark-Keyof (-poly (a) (make-Continuation-Mark-Keyof a))]
-[Prompt-Tagof (-poly (a b) (make-Prompt-Tagof a b))]
+[Continuation-Mark-Keyof -Continuation-Mark-Keyof]
+[Prompt-Tagof -Prompt-Tagof]

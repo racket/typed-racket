@@ -4,13 +4,13 @@
 
 (begin-for-syntax
   (lazy-require [(submod "." implementation)
-                 (:type-impl :print-type-impl :query-type/args-impl :query-type/result-impl)]))
+                 (:type-impl :kind-impl :print-type-impl :query-type/args-impl :query-type/result-impl)]))
 
 (provide
   (for-syntax
     interactive-command?
     interactive-command-procedure)
-  :type :print-type :query-type/args :query-type/result)
+  :type :print-type :query-type/args :query-type/result :kind)
 
 (define-for-syntax (fail _ stx)
   (syntax-case stx ()
@@ -26,6 +26,7 @@
 
 
 (define-syntax :type (interactive-command :type-impl))
+(define-syntax :kind (interactive-command :kind-impl))
 (define-syntax :print-type (interactive-command :print-type-impl))
 (define-syntax :query-type/args (interactive-command :query-type/args-impl))
 (define-syntax :query-type/result (interactive-command :query-type/result-impl))
@@ -49,11 +50,12 @@
     "../typecheck/possible-domains.rkt"
     "../typecheck/typechecker.rkt"
     "../rep/type-rep.rkt"
+    "../rep/type-constr.rkt"
     "../utils/tc-utils.rkt"
     (for-syntax racket/base syntax/parse)
     (for-template racket/base))
   (provide
-    :type-impl :print-type-impl :query-type/args-impl :query-type/result-impl)
+    :type-impl :print-type-impl :query-type/args-impl :query-type/result-impl :kind-impl)
 
   ;; this one doesn't quite fit the pattern of the next three REPL operations, so
   ;; this one isn't defined with a macro as below
@@ -78,6 +80,13 @@
          #`(display #,(format "~a\n~a" type cue)))]
       [form
        (raise-syntax-error #f "must be applied to exactly one argument" #'form)]))
+
+  (define (:kind-impl stx)
+    (syntax-parse stx
+      [(_ k:expr)
+       (define kind (parse-type-or-type-constructor #'k))
+       (define kind-msg (print-kind kind))
+       #`(display #,kind-msg)]))
 
   (define-syntax (define-repl-op stx)
     (syntax-parse stx

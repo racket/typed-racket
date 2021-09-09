@@ -212,33 +212,27 @@
 
 ;; this has to live here because it's used below
 (define-syntax (define-type-alias stx)
-  (define-syntax-class all-vars
-    #:literals (All)
-    #:attributes (poly-vars)
-    (pattern (All (arg:id ...) rest)
-             #:with poly-vars #'(arg ...))
-    (pattern type:expr #:with poly-vars #'()))
-
   (define-splicing-syntax-class omit-define-syntaxes
     #:attributes (omit)
     (pattern #:omit-define-syntaxes #:attr omit #t)
     (pattern (~seq) #:attr omit #f))
 
-  (define-splicing-syntax-class type-alias-full
-     #:attributes (tname type poly-vars omit)
-     (pattern (~seq tname:id (~and type:expr :all-vars) :omit-define-syntaxes))
-     (pattern (~seq (tname:id arg:id ...) body:expr :omit-define-syntaxes)
-       #:with poly-vars #'(arg ...)
-       #:with type (syntax/loc #'body (All (arg ...) body))))
+  (define-splicing-syntax-class type-abbrev
+     #:attributes (tname body omit params)
+    (pattern (~seq tname:id (~and body:expr) :omit-define-syntaxes)
+             #:with params #'())
+    (pattern (~seq (tname:id arg:id ...) body:expr :omit-define-syntaxes)
+             #:with params #'(arg ...)))
+
 
   (syntax-parse stx
-    [(_ :type-alias-full)
+    [(_ :type-abbrev)
      #`(begin
          #,(if (not (attribute omit))
                (ignore (syntax/loc stx (define-syntax tname type-name-error)))
                #'(begin))
          #,(internal (syntax/loc stx
-                       (define-type-alias-internal tname type poly-vars))))]))
+                       (define-type-alias-internal tname body params))))]))
 
 (define-syntax define-new-subtype
   (lambda (stx)

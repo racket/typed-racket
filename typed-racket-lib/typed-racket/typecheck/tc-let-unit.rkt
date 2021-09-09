@@ -195,8 +195,7 @@
   (for/list ([sig-form (in-list (reverse signature-forms))])
     (parse-and-register-signature! sig-form))
 
-  (define-values (alias-names alias-map) (get-type-alias-info type-aliases))
-  (register-all-type-aliases alias-names alias-map)
+  (register-all-type-aliases type-aliases)
 
   (for ([declaration declarations])
     (match-define (list id type) declaration)

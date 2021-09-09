@@ -6,6 +6,7 @@
          racket/struct-info
          (prefix-in c: (contract-req))
          "../rep/core-rep.rkt" "../rep/type-rep.rkt" "../rep/values-rep.rkt"
+         "../rep/type-constr.rkt"
          "../types/utils.rkt" "../types/abbrev.rkt" "../types/type-table.rkt"
          "../types/struct-table.rkt" "../types/resolve.rkt"
          "../private/parse-type.rkt"
@@ -22,6 +23,7 @@
          "../env/scoped-tvar-env.rkt"
          "../env/struct-name-env.rkt"
          "../env/type-alias-helper.rkt"
+         "../env/type-constr-env.rkt"
          "../env/signature-env.rkt"
          "../env/signature-helper.rkt"
          "../utils/tc-utils.rkt"
@@ -114,12 +116,17 @@
       ;; require/typed
       [r:typed-require
        (let ([t (add-extracted-props-to-lexical-env (-id-path #'r.name)
-                                                    (parse-type #'r.type))])
-         (register-type #'r.name t)
+                                                    (parse-type-or-type-constructor #'r.type))])
+
+         ((if (Type? t)
+              register-type
+              register-type-constructor!) #'r.name t)
          (list (make-def-binding #'r.name t)))]
 
       [r:typed-require/struct
-       (let* ([t (parse-type #'r.type)]
+       (let* ([t (if (untyped-struct-poly #'r.type)
+                     (lookup-type-alias #'r.type parse-type)
+                     (parse-type #'r.type))]
               [struct-type (lookup-type-name (Name-id t))]
               [mk-ty (match struct-type
                        [(Poly-names: ns body)
@@ -424,9 +431,6 @@
   (for ([sig-form (in-list signature-defs)])
     (parse-and-register-signature! sig-form))
 
-  (define-values (type-alias-names type-alias-map)
-    (get-type-alias-info type-aliases))
-
   ;; Add the struct names to the type table, but not with a type
   (let ([names (map name-of-struct struct-defs)]
         [type-vars (map type-vars-of-struct struct-defs)])
@@ -438,7 +442,8 @@
     (for-each add-constant-variance! names type-vars))
   (do-time "after adding type names")
 
-  (register-all-type-aliases type-alias-names type-alias-map)
+  (register-all-type-aliases type-aliases)
+
   (finalize-signatures!)
 
   (do-time "starting struct handling")
@@ -481,8 +486,6 @@
           [else (int-err "Two conflicting definitions: ~a ~a" def other-def)]))
       (free-id-table-update h (binding-name def) merge-def-bindings #f)))
   (do-time "computed def-tbl")
-  ;; check that all parsed apps are sensible
-  (check-registered-apps!)
   ;; typecheck the expressions and the rhss of defintions
   ;(displayln "Starting pass2")
   (for-each tc-toplevel/pass2 forms)
@@ -490,7 +493,6 @@
   ;; check that declarations correspond to definitions
   ;; and that any additional parsed apps are sensible
   (check-all-registered-types)
-  (check-registered-apps!)
   ;; log messages to check-syntax to show extra types / arrows before failures
   (log-message online-check-syntax-logger
                'info
@@ -663,9 +665,7 @@
 (define (tc-toplevel-form form)
   ;; Handle type aliases
   (when (type-alias? form)
-    (define-values (alias-names alias-map)
-      (get-type-alias-info (list form)))
-    (register-all-type-aliases alias-names alias-map))
+    (register-all-type-aliases (list form)))
   ;; Handle struct definitions
   (cond
     ;; some expanded forms from a struct defintions must be delayed to check.

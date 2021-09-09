@@ -225,13 +225,12 @@
     [FAIL -Subprocess (-evt -Int)]
     [-Will-Executor (-evt -Will-Executor)]
     [FAIL -Will-Executor (-evt -Int)]
-    [(make-CustodianBox -String) (-evt (make-CustodianBox -String))]
-    [FAIL (make-CustodianBox -String) (-evt -String)]
+    [(-CustodianBox -String) (-evt (-CustodianBox -String))]
+    [FAIL (-CustodianBox -String) (-evt -String)]
     [(-channel -String) (-evt -String)]
     [FAIL (-channel -String) (-evt -Int)]
-    [-Log-Receiver (-evt (make-HeterogeneousVector
-                          (list -Symbol -String Univ
-                                (Un -False -Symbol))))]
+    [-Log-Receiver (-evt (-vec* -Symbol -String Univ
+                                (Un -False -Symbol)))]
     [FAIL -Log-Receiver (-evt -Int)])
    (subtyping-tests
     "Sequence special cases"
@@ -302,7 +301,7 @@
    ;; from page 7 (my favorite page! But seriously, page 7 of... what???)
    [(-mu t (-> t t)) (-mu s (-> s s))]
    [(-mu s (-> -Number s)) (-mu t (-> -Number (-> -Number t)))]
-    
+
    ;; not subtypes
    [FAIL (-val 'hello) -Number]
    [FAIL (-val #f) -Symbol]
@@ -313,26 +312,26 @@
    [FAIL -Symbol (-val 'Sym)]
    [FAIL (Un -Symbol -Number) (-poly (a) -Number)]
    ;; bugs found
-    
+
    [(-poly (a) (make-Listof (-v a))) (make-Listof (-mu x (Un (make-Listof x) -Number)))]
    [FAIL (make-Listof (-mu x (Un (make-Listof x) -Number))) (-poly (a) (make-Listof a))]
 
    ;; HeterogeneousVector
-   [(make-HeterogeneousVector (list t1a)) (-vec t1b)]
-   [(make-HeterogeneousVector (list t1a t1a)) (-vec t1b)]
-   [FAIL (-vec t1b) (make-HeterogeneousVector (list t1a t1a))]
-   [FAIL (make-HeterogeneousVector (list t2)) (-vec t1b)]
-   [FAIL (make-HeterogeneousVector (list t1a t2)) (-vec t1b)]
-   [(make-HeterogeneousVector (list t1a t1b)) (make-HeterogeneousVector (list t1b t1a))]
-   [(make-HeterogeneousVector (list t1a t1b)) (make-HeterogeneousVector (list t1b t1a))]
-   [FAIL (make-HeterogeneousVector (list t1a)) (make-HeterogeneousVector (list t1b t1a))]
-   [FAIL (make-HeterogeneousVector (list t1a t2)) (make-HeterogeneousVector (list t1b t1a))]
-   [FAIL (make-HeterogeneousVector (list t2 t1a)) (make-HeterogeneousVector (list t1b t1a))]
+   [(-vec* t1a) (-vec t1b)]
+   [(-vec* t1a t1a) (-vec t1b)]
+   [FAIL (-vec t1b) (-vec* t1a t1a)]
+   [FAIL (-vec* t2) (-vec t1b)]
+   [FAIL (-vec* t1a t2) (-vec t1b)]
+   [(-vec* t1a t1b) (-vec* t1b t1a)]
+   [(-vec* t1a t1b) (-vec* t1b t1a)]
+   [FAIL (-vec* t1a) (-vec* t1b t1a)]
+   [FAIL (-vec* t1a t2) (-vec* t1b t1a)]
+   [FAIL (-vec* t2 t1a) (-vec* t1b t1a)]
    [(make-Immutable-HeterogeneousVector (list t1a t1b)) (make-Immutable-HeterogeneousVector (list t1b t1a))]
-   [(make-Immutable-HeterogeneousVector (list t1a t1b)) (make-HeterogeneousVector (list t1b t1a))]
+   [(make-Immutable-HeterogeneousVector (list t1a t1b)) (-vec* t1b t1a)]
    [FAIL (make-Immutable-HeterogeneousVector (list t1a t1b)) (make-Mutable-HeterogeneousVector (list t1b t1a))]
    [(make-Mutable-HeterogeneousVector (list t1a t1b)) (make-Mutable-HeterogeneousVector (list t1b t1a))]
-   [(make-Mutable-HeterogeneousVector (list t1a t1b)) (make-HeterogeneousVector (list t1b t1a))]
+   [(make-Mutable-HeterogeneousVector (list t1a t1b)) (-vec* t1b t1a)]
    [FAIL (make-Mutable-HeterogeneousVector (list t1a t1b)) (make-Immutable-HeterogeneousVector (list t1b t1a))]
    ))
 
@@ -506,7 +505,7 @@
    [(-poly (a) (a . -> . (make-Listof a))) ((-v b) . -> . (make-Listof (-v b)))]
    [(-poly (a) (a . -> . (make-Listof a))) ((-pair -Number (-v b)) . -> . (make-Listof (-pair -Number (-v b))))]
    [FAIL (-poly (a b) (-> a a)) (-poly (a b) (-> a b))]
-    
+
    [(cl->* (-Number . -> . -String) (-Boolean . -> . -String)) ((Un -Boolean -Number) . -> . -String)]
    [(-> Univ -Boolean : (-PS (-is-type 0 -Symbol) (-not-type 0 -Symbol)))
     (-> Univ -Boolean : -tt-propset)]
@@ -569,7 +568,7 @@
    [FAIL
     (->key -String #:x -Symbol #f #:y -Symbol #f Univ)
     (->optkey -String [-Void] #:x -Symbol #t Univ)]
-   
+
    ;; Proposition subtyping
    [(make-pred-ty (list -Real) -Boolean (Un (-val 0.0) (-val 0)))
     (make-pred-ty (list -Int) -Boolean (-val 0))]

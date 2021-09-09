@@ -490,8 +490,7 @@
     (filter (syntax-parser [t:type-alias #t] [_ #f])
             (syntax->list (hash-ref parse-info 'initializer-body))))
 
-  (define-values (alias-names alias-map) (get-type-alias-info type-aliases))
-  (register-all-type-aliases alias-names alias-map)
+  (register-all-type-aliases type-aliases)
 
   ;; Prop top level expressions into several groups, each processed
   ;; into appropriate data structures

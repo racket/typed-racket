@@ -22,7 +22,7 @@
 
 #;(f #t)
 
-(define-type-alias idfunty (All (a) (a -> a)))
+(define-type-alias (idfunty a) (a -> a))
 (define-type-alias (idfunty2 a) (a -> a))
 
 (define: g : (idfunty number) (lambda: ([x : number]) x))
@@ -32,4 +32,3 @@
 
 (h f*)
 (h* f*)
-

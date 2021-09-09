@@ -164,6 +164,43 @@
     (test-form #rx"Positive-Index"
       (:print-type (+ 1 1)))
 
+    (test-form #rx"\\*"
+      (:kind Number))
+
+    (test-form #rx"\\*"
+               (:kind (Pairof Number Number)))
+
+    (test-form (regexp-quote "(-o * ... *)") (:kind U))
+    (test-form (regexp-quote "(-o * ... *)") (:kind Union))
+    (test-form (regexp-quote "(-o * ... *)") (:kind Intersection))
+    (test-form (regexp-quote "(-o * ... *)") (:kind ∩))
+    (test-form (regexp-quote "(-> * ... *)") (:kind Vector))
+    (test-form (regexp-quote "(-> * ... *)") (:kind Immutable-Vector))
+    (test-form (regexp-quote "(-> * * *)") (:kind Pairof))
+    (test-form (regexp-quote "(-> * *)") (:kind Listof))
+    (test-form (regexp-quote "(-> * * *)") (:kind MPairof))
+    (test-form (regexp-quote "(-> * *)") (:kind Listof))
+    (test-form (regexp-quote "(-> * *)") (:kind Immutable-Vectorof))
+    (test-form (regexp-quote "(-> * *)") (:kind Mutable-Vectorof))
+    (test-form (regexp-quote "(-o * *)") (:kind Option))
+    (test-form (regexp-quote "(-> * * *)") (:kind Immutable-HashTable))
+    (test-form (regexp-quote "(-> * * *)") (:kind Mutable-HashTable))
+    (test-form (regexp-quote "(-> * *)") (:kind Promise))
+    (test-form (regexp-quote "(-> * *)") (:kind Boxof))
+    (test-form (regexp-quote "(-> * *)") (:kind Channelof))
+    (test-form (regexp-quote "(-> * *)") (:kind Async-Channelof))
+    (test-form (regexp-quote "(-> * *)") (:kind Setof))
+    (test-form (regexp-quote "(-> * *)") (:kind Evtof))
+    (test-form (regexp-quote "(-> * *)") (:kind Futureof))
+    (test-form (regexp-quote "(-> * *)") (:kind MListof))
+    (test-form (regexp-quote "(-> * *)") (:kind Thread-Cellof))
+    (test-form (regexp-quote "(-> * *)") (:kind Weak-Boxof))
+    (test-form (regexp-quote "(-> * *)") (:kind Vectorof))
+    (test-form-not-exn (define-type (Bar a) a))
+    (test-form (regexp-quote "(-o * *)")
+               (:kind Bar))
+
+
     (test-form #rx"more precisely: Positive-Byte"
                10)
 
@@ -231,7 +268,7 @@
      (module mod-a typed/racket
        (provide (all-defined-out))
        (struct Foo ())
-       (define-type Bar (∀ (T) (∩ T Foo)))))
+       (define-type (Bar T) (∩ T Foo))))
     (test-form #rx"^$"
       (require 'mod-a))
     (test-form (regexp-quote "Nothing")

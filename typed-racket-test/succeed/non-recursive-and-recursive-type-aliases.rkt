@@ -9,7 +9,7 @@
 (define-type magic/float Flonum)
 (define-type magic/str String)
 (define-type magic/symbol Symbol)
-(define-type magic/map HashTable)
+(define-type magic/map (All (A B) (HashTable A B)))
 (define-type magic/invokable (magic/any * -> magic/any))
 (define-type magic/any (U magic/int
                           magic/float
@@ -23,4 +23,3 @@
 
 (: f magic/invokable)
 (define f (lambda: (rst : magic/any *) (car rst)))
-

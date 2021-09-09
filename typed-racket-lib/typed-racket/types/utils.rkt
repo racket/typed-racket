@@ -146,8 +146,7 @@
          [_ #f])))
 
 (provide/cond-contract
- [instantiate-poly ((or/c Poly? PolyDots? PolyRow?) (listof Rep?)
-                    . -> . Rep?)]
+ [instantiate-poly ((or/c Poly? PolyDots? PolyRow?) (listof Rep?) . -> . Rep?)]
  [instantiate-poly-dotted
   (PolyDots? (listof Rep?) Rep? symbol? . -> . Rep?)]
  [fv (Rep? . -> . (listof symbol?))]
@@ -158,5 +157,4 @@
  [Rest->Type (-> (or/c #f Rest? RestDots?) Type?)]
  [dom+rst-ref (->* ((listof Type?) (or/c #f Rest? RestDots?) exact-nonnegative-integer?)
                    (any/c)
-                   any/c)]
- )
+                   any/c)])

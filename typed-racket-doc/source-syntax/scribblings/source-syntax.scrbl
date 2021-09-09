@@ -9,7 +9,7 @@
                                 [expanded syntax?]
                                 [#:traverse-now? now? boolean? #f])
          (-> syntax? (or/c syntax? #f))]{
-  Return a procedure that accepts a syntax object from @racket[expanded]
+  Returns a procedure that accepts a syntax object from @racket[expanded]
   and returns the outermost syntax object in @racket[orig] that has the same
   location as the given syntax object.
   If no syntax object in @racket[orig] has the same location as the given syntax

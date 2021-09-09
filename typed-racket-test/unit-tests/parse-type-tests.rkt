@@ -110,7 +110,7 @@
    [(Vectorof (Listof Symbol)) (make-Vector (make-Listof Sym))]
    [(Immutable-Vectorof (Listof Symbol)) (make-Immutable-Vector (make-Listof Sym))]
    [(Mutable-Vectorof (Listof Symbol)) (make-Mutable-Vector (make-Listof Sym))]
-   [(Vector Symbol String) (make-HeterogeneousVector (list Sym -String))]
+   [(Vector Symbol String) (-vec* Sym -String)]
    [(Immutable-Vector Symbol String) (make-Immutable-HeterogeneousVector (list Sym -String))]
    [(Mutable-Vector Symbol String) (make-Mutable-HeterogeneousVector (list Sym -String))]
    [(pred Number) (make-pred-ty N)]
@@ -155,8 +155,16 @@
     (-polydots (a) (t:-> (make-ValuesDots (list) a 'a)))]
    [(-> Number AnyValues) (t:-> N ManyUniv)]
 
+   [(Rec x (U Null (Pair String (Pair Number x))))
+    (-mu x (t:Un -Null (-pair -String (-pair -Number x))))]
+
    ;; PR 14554, non-productive recursive type
    [FAIL (Rec x (All (A #:row) x))]
+   [FAIL (Rec x (All (A) x))]
+   [FAIL (Rec x x)]
+   [FAIL (Rec x (U x Number))]
+
+   [FAIL ((Listof Number) Number) #:msg "bad syntax in type application: only an identifier"]
 
    [(case-lambda (Number -> Boolean) (Number Number -> Number)) (cl-> [(N) B]
                                                                       [(N N) N])]
@@ -189,6 +197,16 @@
    ['(1 2 3) (-Tuple (map -val '(1 2 3)))]
 
    [(Listof Number) (make-Listof  N)]
+   [FAIL (-> Listof Listof)
+         #:msg "expected a valid type not a type constructor"]
+   [FAIL (Pairof Listof Listof)
+         #:msg "expected a valid type not a type constructor"]
+   [FAIL (-> Number Listof)
+         #:msg "expected a valid type not a type constructor"]
+   [FAIL (Any -> Boolean : Listof)
+         #:msg "expected a valid type not a type constructor"]
+   [FAIL (Listof -> Listof : Listof)
+         #:msg "expected a valid type not a type constructor"]
 
    [a (-v a) (dict-set initial-tvar-env 'a (-v a))]
 
@@ -410,8 +428,8 @@
    [FAIL (Class #:implements (Class #:row-var r) #:row-var x)]
    [FAIL (Class #:implements (Class #:row-var r) #:row-var r)]
    [FAIL (All (r #:row)
-           (All (x #:row)
-            (Class #:implements (Class #:row-var r) #:row-var x)))]
+              (All (x #:row)
+                   (Class #:implements (Class #:row-var r) #:row-var x)))]
    [FAIL (All (r #:row) (Class #:implements (Class #:row-var r) #:row-var r))]
    ;; Test #:implements, some of these used to work but now they have to
    ;; refer to type aliases. Testing actual type aliases is hard here though.
@@ -452,20 +470,20 @@
    ;; Test row polymorphic types
    [(All (r #:row) ((Class #:row-var r) -> (Class #:row-var r)))
     (-polyrow (r) (list null null null null)
-      (t:-> (-class #:row r) (-class #:row r)))]
+              (t:-> (-class #:row r) (-class #:row r)))]
    [(Listof (All (r #:row) ((Class #:row-var r) -> (Class #:row-var r))))
     (-lst (-polyrow (r) (list null null null null)
                     (t:-> (-class #:row r) (-class #:row r))))]
    [(All (r #:row (init x y z) (field f) m n)
-      ((Class #:row-var r) -> (Class #:row-var r)))
+         ((Class #:row-var r) -> (Class #:row-var r)))
     (-polyrow (r) (list '(x y z) '(f) '(m n) '())
-      (t:-> (-class #:row r) (-class #:row r)))]
+              (t:-> (-class #:row r) (-class #:row r)))]
    ;; Class types cannot use a row variable that doesn't constrain
    ;; all of its members to be absent in the row
    [FAIL (All (r #:row (init x))
-           ((Class #:row-var r (init y)) -> (Class #:row-var r)))]
+              ((Class #:row-var r (init y)) -> (Class #:row-var r)))]
    [FAIL (All (r #:row (init x y z) (field f) m n)
-           ((Class #:row-var r a b c) -> (Class #:row-var r)))]
+              ((Class #:row-var r a b c) -> (Class #:row-var r)))]
 
    ;; parsing tests for Unit types
    ;; These are only simple tests because checking types
@@ -717,11 +735,11 @@
         Any)
     (dep-> ([x : -Int]
             [y : (-refine/fresh n -Int
-                                    (-leq (-lexp n)
-                                          (-lexp z)))]
+                                (-leq (-lexp n)
+                                      (-lexp z)))]
             [z : (-refine/fresh n -Int
-                                    (-leq (-lexp n)
-                                          (-lexp x)))])
+                                (-leq (-lexp n)
+                                      (-lexp x)))])
            Univ)]
    [(-> ([x : Integer]
          [y : (z) (Refine [n : Integer] (<= n z))]
@@ -886,8 +904,6 @@
              Any)]
    [FAIL (-> ([x : Integer]
               [y : Integer])
-             (Refine [x : Univ] (<= x 42)))]
-
-   ))
+             (Refine [x : Univ] (<= x 42)))]))
 
 ;; FIXME - add tests for parse-values-type, parse-tc-results

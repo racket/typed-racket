@@ -11,6 +11,7 @@
 
 (require "../utils/utils.rkt"
          "rep-utils.rkt"
+         "type-constr.rkt"
          "free-variance.rkt"
          "type-mask.rkt"
          (contract-req)
@@ -64,7 +65,8 @@
   (syntax-parse stx
     [(_ name:id
         #:printer printer:id
-        #:define-form def:id)
+        #:define-form def:id
+        (~optional (#:extra extra ...) #:defaults ([(extra 1) null])))
      (with-syntax ([mk (generate-temporary 'dont-use-me)])
        (quasisyntax/loc
            stx
@@ -72,6 +74,7 @@
                   #:constructor-name mk
                   #:transparent
                   #:property prop:custom-print-quotable 'never
+                  extra ...
                   #:methods gen:custom-write
                   ;; Note: We eta expand the printer so it is not evaluated until needed.
                   [(define (write-proc v port write?) (printer v port write?))])
@@ -96,7 +99,9 @@
 ;;************************************************************
 
 
-(def-rep-class Type #:printer print-type #:define-form def-type)
+(def-rep-class Type #:printer print-type #:define-form def-type
+  (#:extra
+   #:property prop:kind #t))
 
 ;;-----------------
 ;; Universal Type

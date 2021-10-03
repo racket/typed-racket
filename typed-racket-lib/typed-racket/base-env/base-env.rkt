@@ -873,7 +873,9 @@
                          (cl->* (-> (-mpair a b) b -Void)
                                 (-> (-mlst a) (-mlst a) -Void)))]
 [mpair? (make-pred-ty -MPairTop)]
-[mlist (-poly (a) (->* (list) a (-mlst a)))]
+;; mlist is a macro that under the hood uses -mlist, which is annotated in
+;; base-special-env.rkt
+
 [mlength (-poly (a) (-> (-mlst a) -Index))]
 [mreverse! (-poly (a) (-> (-mlst a) (-mlst a)))]
 [mappend (-poly (a) (->* (list) (-mlst a) (-mlst a)))]
@@ -1272,7 +1274,7 @@
 
 [struct-type-property? (make-pred-ty (-struct-property -Bottom #f))]
 [struct-type-property-accessor-procedure? (-> Univ B)]
-[struct-type-property-predicate-procedure? (->opt Univ [(-opt (-struct-property -Bottom))] B)]
+[struct-type-property-predicate-procedure? (->opt Univ [(-opt (-struct-property -Bottom #f))] B)]
 
 ;; Section 5.6 (Structure Utilities)
 [struct->vector (Univ . -> . (-vec Univ))]
@@ -1359,7 +1361,7 @@
 
 ;; Section 10.2.5
 [prop:exn:srclocs (-struct-property (-> -Self (-lst -Srcloc)) #'exn:srclocs?)]
-[exn:srclocs? (-> Univ B : (-has-struct-property prop:exn:srclocs))]
+[exn:srclocs? (make-pred-ty (-has-struct-property #'prop:exn:srclocs))]
 [exn:srclocs-accessor (-> Univ (-lst Univ))] ;TODO
 
 [srcloc->string (-> -Srcloc -String)]
@@ -1756,7 +1758,7 @@
  (Ident . ->opt . [(Un -Int (-val #f))] -Symbol)]
 
 ;; Section 12.4
-[set!-transformer? (-> Univ B : (-has-struct-property prop:set!-transformer))]
+[set!-transformer? (make-pred-ty (-has-struct-property #'prop:set!-transformer))]
 [make-set!-transformer (-> (-> (-Syntax Univ) (-Syntax Univ)) Univ)]
 [set!-transformer-procedure (-> Univ (-> (-Syntax Univ) (-Syntax Univ)))]
 [prop:set!-transformer (-struct-property (Un -Nat
@@ -1764,7 +1766,7 @@
                                                    [(-Self (-Syntax Univ)) (-Syntax Univ)]))
                                          #'set!-transformer?)]
 
-[rename-transformer? (-> Univ B : (-has-struct-property prop:rename-transformer))]
+[rename-transformer? (make-pred-ty (-has-struct-property #'prop:rename-transformer))]
 [make-rename-transformer (->opt (-Syntax Sym) [(-> (-Syntax Sym) (-Syntax Sym))] Univ)]
 [rename-transformer-target (-> Univ (-Syntax Sym))]
 [prop:rename-transformer (-struct-property (Un -Nat (-Syntax Sym) (-> -Self (-Syntax Sym)))
@@ -3624,4 +3626,4 @@
 ;; MzLib: Legacy Libraries
 [prop:print-converter (-struct-property (-> -Self (-> Univ Univ) Univ)
                                         #'print-converter?)]
-[prop:print-convert-constructor-name (-struct-property -Symbol)]
+[prop:print-convert-constructor-name (-struct-property -Symbol #f)]

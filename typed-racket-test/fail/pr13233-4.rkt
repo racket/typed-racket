@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"Expected: One")
+(exn-pred #rx"expected: One")
 #lang typed/racket
 
 ;; test even? filter

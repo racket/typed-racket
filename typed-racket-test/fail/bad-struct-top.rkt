@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"expected a structure type for argument to Struct")
+(exn-pred 2)
 #lang typed/racket
 
 ;; Make sure `Struct` constructor rejects bad arguments

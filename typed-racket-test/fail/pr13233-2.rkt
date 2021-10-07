@@ -1,5 +1,5 @@
 #;
-(exn:pred #rx"Expected Zero, but got (U Nonpositive-Integer Byte-Larger-Than-One Positive-Index-Not-Byte Positive-Fixnum-Not-Index Positive-Integer-Not-Fixnum)")
+(exn-pred #rx"expected: One")
 #lang typed/racket
 
 ;; test odd? filter

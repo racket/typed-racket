@@ -1,5 +1,5 @@
 #;
-(exn:pred (lambda (e) (not (regexp-match? "match:" e))))
+(exn-pred (lambda (e) (not (regexp-match? "match:" (exn-message e)))))
 
 
 #lang typed/racket/base

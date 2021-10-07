@@ -1,5 +1,5 @@
 #;
-(exn:pred (lambda (e) (regexp-match? "duplicate type variable" e)))
+(exn-pred #rx"duplicate type variable")
 #lang typed/racket
 
 ;; don't allow duplicate type variable names

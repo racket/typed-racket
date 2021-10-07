@@ -1,5 +1,5 @@
 #;
-(exn:pred (lambda (e) (regexp-match? "duplicate type variable or index" e)))
+(exn-pred #rx"duplicate type variable or index")
 #lang typed/racket
 
 ;; don't allow duplicate names in indexes and tvars

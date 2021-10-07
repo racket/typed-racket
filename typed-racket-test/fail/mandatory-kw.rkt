@@ -1,5 +1,5 @@
 #;
-(exn:pred (lambda (e) (regexp-match? "Type Checker" e)))
+(exn-pred #rx"Type Checker")
 #lang typed/racket
 
 ;; This should raise a type error and not an internal error

@@ -1,5 +1,6 @@
-#;(exn-pred #rx"Expected a type check error!"
-            #rx"Expected a type check error!")
+#;
+(exn-pred #rx"Expected a type check error!"
+          #rx"Expected a type check error!")
 #lang typed/racket
 
 

@@ -1,5 +1,5 @@
 #;
-(exn:pred (lambda (e) (regexp-match? "Mutation only allowed" e)))
+(exn-pred #rx"mutation only allowed")
 #lang typed/racket
 
 ;; Testing type variable scope

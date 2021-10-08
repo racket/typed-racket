@@ -1,5 +1,5 @@
 #;
-(exn:pred #rx"Bad arguments to function in apply")
+(exn-pred 3)
 #lang typed/racket
 
 ;; Make sure that case-> types with multiple branches that

@@ -1,5 +1,5 @@
 #;
-(exn:pred #rx"Expected Zero, but got (U Negative-Integer Positive-Integer)")
+(exn-pred #rx"expected: Zero")
 #lang typed/racket
 
 ;; test even? filter

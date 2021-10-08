@@ -1,4 +1,5 @@
-#;(exn-pred "type name `fruit' is unbound")
+#;
+(exn-pred "type name `fruit' is unbound")
 #lang typed/racket/base
 
 (module mod1 typed/racket/base

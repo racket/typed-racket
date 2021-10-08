@@ -1,5 +1,5 @@
 #;
-(exn:pred (lambda (e) (regexp-match? "Expected 1 type variables" e)))
+(exn-pred #rx"Expected 1 type variables")
 #lang typed/racket
 
 ;; Testing type variable scope

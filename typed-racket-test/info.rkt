@@ -59,3 +59,6 @@
     ("succeed/hw01.scm" ())
     ("succeed/foo.scm" ())
     ("succeed/batched-queue.scm" ())))
+
+(define license
+  '(Apache-2.0 OR MIT))

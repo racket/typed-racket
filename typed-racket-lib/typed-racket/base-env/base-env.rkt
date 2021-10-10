@@ -2348,18 +2348,14 @@
 ;; Section 13.7.1
 [readtable? (make-pred-ty -Read-Table)]
 [make-readtable
- (cl->*
-  (-> (-opt -Read-Table) -Read-Table)
-  (-> (-opt -Read-Table)
-      (-opt -Char) (Un (one-of/c 'terminating-macro 'non-terminating-macro 'dispatch-macro) -Char)
-      (-> -Char -Input-Port (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)
-      -Read-Table)
-  (-> (-opt -Read-Table)
-      (-opt -Char) (Un (one-of/c 'terminating-macro 'non-terminating-macro 'dispatch-macro) -Char)
-      (-> -Char -Input-Port (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)
-      (-opt -Char) (Un (one-of/c 'terminating-macro 'non-terminating-macro 'dispatch-macro) -Char)
-      (-> -Char -Input-Port (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)
-      -Read-Table))]
+ (->* (list (-opt -Read-Table))
+      (make-Rest
+       (list (-opt -Char)
+             (Un (one-of/c 'terminating-macro 'non-terminating-macro 'dispatch-macro) -Char)
+             (-opt (Un (one-of/c (-> -Char -Input-Port (-opt -PosInt) (-opt -Nat)
+                                     (-opt -PosInt) (-opt -Nat) Univ)
+                                 -Read-Table)))))
+      -Read-Table)]
 
 [readtable-mapping (-> -Read-Table -Char
                        (-values (list

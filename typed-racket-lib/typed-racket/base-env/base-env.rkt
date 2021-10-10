@@ -2349,12 +2349,12 @@
 [readtable? (make-pred-ty -Read-Table)]
 [make-readtable
  (cl->*
-  (-> -Read-Table -Read-Table)
-  (-> -Read-Table
+  (-> (-opt -Read-Table) -Read-Table)
+  (-> (-opt -Read-Table)
       (-opt -Char) (Un (one-of/c 'terminating-macro 'non-terminating-macro 'dispatch-macro) -Char)
       (-> -Char -Input-Port (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)
       -Read-Table)
-  (-> -Read-Table
+  (-> (-opt -Read-Table)
       (-opt -Char) (Un (one-of/c 'terminating-macro 'non-terminating-macro 'dispatch-macro) -Char)
       (-> -Char -Input-Port (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)
       (-opt -Char) (Un (one-of/c 'terminating-macro 'non-terminating-macro 'dispatch-macro) -Char)

@@ -27,3 +27,6 @@
 (define pkg-authors '(samth stamourv))
 
 (define version "1.13")
+
+(define license
+  '(Apache-2.0 OR MIT))

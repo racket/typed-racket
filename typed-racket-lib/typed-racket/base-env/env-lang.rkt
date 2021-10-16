@@ -19,11 +19,11 @@
      #'(#%plain-module-begin
         (begin
           extra
-          (define e
+          (define org-map
             (make-env [id (λ () ty)] ...))
           (define (init)
-           (initialize-type-env e))
-          (provide init)))]
+           (initialize-type-env org-map))
+          (provide init org-map)))]
     [(mb . rest)
      #'(mb (begin) . rest)]))
 

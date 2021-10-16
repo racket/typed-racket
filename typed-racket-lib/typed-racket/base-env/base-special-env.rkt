@@ -381,4 +381,5 @@
        (-opt -Input-Port) (-opt -Output-Port) (-opt -Output-Port) -Place)]
   [(make-template-identifier 'start-place 'racket/place)
    (-> -Symbol -Module-Path -Symbol (-opt -Input-Port) (-opt -Output-Port) (-opt -Output-Port) -Place)]
-  )
+  [(make-template-identifier '-mlist 'compatibility/mlist)
+   (-poly (a) (->* (list) a (-mlst a)))])

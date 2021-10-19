@@ -2352,9 +2352,9 @@
       (make-Rest
        (list (-opt -Char)
              (Un (one-of/c 'terminating-macro 'non-terminating-macro 'dispatch-macro) -Char)
-             (-opt (Un (one-of/c (-> -Char -Input-Port (-opt -PosInt) (-opt -Nat)
-                                     (-opt -PosInt) (-opt -Nat) Univ)
-                                 -Read-Table)))))
+             (Un (-> -Char -Input-Port (-opt -PosInt) (-opt -Nat)
+                     (-opt -PosInt) (-opt -Nat) Univ)
+                 (-opt -Read-Table))))
       -Read-Table)]
 
 [readtable-mapping (-> -Read-Table -Char

@@ -1,5 +1,7 @@
 #lang typed/racket
 
+(define-namespace-anchor anchor)
+
 (parameterize ([current-readtable
                 (make-readtable
                  (current-readtable)
@@ -10,4 +12,5 @@
   (eval
    (with-input-from-string
      "`(+ ~@(list 1 2 3) #\"xyz\" #✓ #✕)"
-     read)))
+     read)
+   (namespace-anchor->namespace anchor)))

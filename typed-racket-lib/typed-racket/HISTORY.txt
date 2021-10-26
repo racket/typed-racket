@@ -1,3 +1,6 @@
+8.3
+- support `prop:procedure`
+- move `typed/untyped-utils` to "typed-racket-lib" from "typed-racket-more"
 8.2
 - more consistently refine field types of non-polymorphic structs
 - move existential handling to return types

@@ -54,7 +54,7 @@ creating new types, and annotating expressions.
 @racket[_type] is a type.
 @racket[_e] is an expression and @racket[_body] is a block.
 
-@defform*[[(let maybe-tvars (binding ...) . body)
+@defform*[[(let maybe-tvars (binding ...) maybe-ret . body)
            (let loop maybe-ret (binding ...) . body)]
           #:grammar
           ([binding [var e]
@@ -64,8 +64,22 @@ creating new types, and annotating expressions.
                         (code:line #:∀ (tvar ...))]
            [maybe-ret (code:line)
                       (code:line : type0)])]{
-Local bindings, like @|let-id|, each with
-associated types.  In the second form, @racket[_type0] is the type of the
+Local bindings, like @|let-id|, each with associated types.
+
+In the first form, @racket[_maybe-ret] can only appear with @racket[_maybe-tvars],
+so if you only want to specify the return type,
+you should set @racket[_maybe-tvars] to @racket[#:forall ()].
+
+@ex[(let ([x : Zero 0]) x)
+    (let #:forall () ([x : Zero 0]) : Natural x)
+    (eval:error (let ([x : Zero 0]) : Natural x))]
+
+If polymorphic type variables are provided, they are bound in the type
+expressions for variable bindings.
+
+@ex[(let #:forall (A) ([x : A 0]) x)]
+
+In the second form, @racket[_type0] is the type of the
 result of @racket[_loop] (and thus the result of the entire
 expression as well as the final expression in @racket[body]).
 Type annotations are optional.
@@ -76,9 +90,9 @@ Type annotations are optional.
           accum
           (let ([first : Natural (car lst)]
                 [rest  : (Listof Natural) (cdr lst)])
-                (if (even? first)
-                    (filter-even rest (cons first accum))
-                    (filter-even rest accum)))))
+            (if (even? first)
+                (filter-even rest (cons first accum))
+                (filter-even rest accum)))))
     (filter-even (list 1 2 3 4 5 6) null)]
 
 @ex[(: filter-even-loop (-> (Listof Natural) (Listof Natural)))
@@ -86,16 +100,11 @@ Type annotations are optional.
       (let loop : (Listof Natural)
            ([accum : (Listof Natural) null]
             [lst   : (Listof Natural) lst])
-           (cond
-             [(null? lst)       accum]
-             [(even? (car lst)) (loop (cons (car lst) accum) (cdr lst))]
-             [else              (loop accum (cdr lst))])))
+        (cond
+          [(null? lst)       accum]
+          [(even? (car lst)) (loop (cons (car lst) accum) (cdr lst))]
+          [else              (loop accum (cdr lst))])))
     (filter-even-loop (list 1 2 3 4))]
-
-If polymorphic type variables are provided, they are bound in the type
-expressions for variable bindings.
-
-@ex[(let #:forall (A) ([x : A 0]) x)]
 }
 
 @deftogether[[
@@ -180,7 +189,7 @@ is the provided type annotation.
 ]
 }
 
-@defform[(λ formals . body)]{
+@defform[(λ maybe-tvars formals maybe-ret . body)]{
 An alias for the same form using @racket[lambda].}
 
 @defform[(case-lambda maybe-tvars [formals body] ...)]{
@@ -207,9 +216,10 @@ To see how to declare a type for @racket[add-map], see the
 
 @section{Loops}
 
-@defform/subs[(for type-ann-maybe (for-clause ...)
-                expr ...+)
-              ([type-ann-maybe code:blank
+@defform/subs[(for void-ann-maybe (for-clause ...) void-ann-maybe expr ...+)
+              ([void-ann-maybe (code:line)
+                               (code:line : Void)]
+               [type-ann-maybe code:blank
                                @code:line[: u]]
                [for-clause [id : t seq-expr]
                            [(binding ...) seq-expr]
@@ -218,33 +228,44 @@ To see how to declare a type for @racket[add-map], see the
                [binding id
                         [id : t]])]{
 Like @|for-id| from @racketmodname[racket/base], but each @racket[id] has the associated type
-@racket[t]. Since the return type is always @racket[Void], annotating
-the return type of a @racket[for] form is optional.
+@racket[t]. The latter @racket[_ann-maybe] will be used first, and then the previous one.
+Since the return type is always @racket[Void],
+annotating the return type of a @racket[for] form is optional.
 Type annotations in clauses are optional for all @racket[for]
 variants.
+
+@ex[(for ([i '()]) i)
+    (for : Void ([i '()]) i)
+    (for ([i '()]) : Void i)
+    (for : Void ([i '()]) : Void i)
+    (eval:error (for ([i '()]) : Any i))
+
+    (for/or : False ([i '()]) : False #f)
+    (for/or : Boolean ([i '()]) : False #f)
+    (eval:error (for/or : False ([i '()]) : Boolean #f))]
 }
 
 @deftogether[[
-@defform[(for/list type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/hash type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/hasheq type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/hasheqv type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/vector type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/or   type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/sum type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/product type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/last type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/set type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/list type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/hash type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/hasheq type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/hasheqv type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/vector type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/or   type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/sum type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/product type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/last type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/set type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for/list type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/hash type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/hasheq type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/hasheqv type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/vector type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/or type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/sum type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/product type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/last type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/set type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/list type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/hash type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/hasheq type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/hasheqv type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/vector type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/or type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/sum type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/product type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/last type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/set type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
 ]]{
 These behave like their non-annotated counterparts, with the exception
 that @racket[#:when] clauses can only appear as the last
@@ -254,60 +275,63 @@ annotated with a @racket[Listof] type. All annotations are optional.
 }
 
 @deftogether[[
-@defform[(for/and type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for/first type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/and type-ann-maybe (for-clause ...) expr ...+)]
-@defform[(for*/first type-ann-maybe (for-clause ...) expr ...+)]
+@defform[(for/and type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for/first type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/and type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
+@defform[(for*/first type-ann-maybe (for-clause ...) type-ann-maybe expr ...+)]
 ]]{
 Like the above, except they are not yet supported by the typechecker.
 }
 
 @deftogether[[
-@defform[(for/lists type-ann-maybe ([id : t] ... maybe-result)
-           (for-clause ...)
+@defform[(for/lists type-ann-maybe
+                    ([id : t] ... maybe-result)
+                    (for-clause ...)
+                    type-ann-maybe
            expr ...+)]
-@defform[(for/fold type-ann-maybe ([id : t init-expr] ... maybe-result)
-           (for-clause ...)
-           expr ...+)
-         #:grammar
-         ([maybe-result (code:line)
-                        (code:line #:result result-expr)])]
-@defform[(for/foldr type-ann-maybe ([id : t init-expr] ... maybe-result)
-           (for-clause ...)
+@defform[(for/fold type-ann-maybe
+                   ([id : t init-expr] ... maybe-result)
+                   (for-clause ...)
+                   type-ann-maybe
+           expr ...+)]
+@defform[(for/foldr type-ann-maybe
+                    ([id : t init-expr] ... maybe-result)
+                    (for-clause ...)
+                    type-ann-maybe
            expr ...+)
          #:grammar
          ([maybe-result (code:line)
                         (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts. Unlike the above,
 @racket[#:when] clauses can be used freely with these.
-@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}
-         #:changed "1.12" @elem{Added @racket[for/foldr].}]}
+@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
+@history[#:changed "1.12" @elem{Added @racket[for/foldr].}]
+}
 
 @deftogether[[
-@defform[(for* void-ann-maybe (for-clause ...)
+@defform[(for* void-ann-maybe (for-clause ...) void-ann-maybe expr ...+)]
+@defform[(for*/lists type-ann-maybe
+                     ([id : t] ... maybe-result)
+                     (for-clause ...)
+                     type-ann-maybe
            expr ...+)]
-@defform[(for*/lists type-ann-maybe ([id : t] ... maybe-result)
-           (for-clause ...)
+@defform[(for*/fold type-ann-maybe
+                    ([id : t init-expr] ... maybe-result)
+                    (for-clause ...)
+                    type-ann-maybe
            expr ...+)]
-@defform[(for*/fold type-ann-maybe ([id : t init-expr] ... maybe-result)
-           (for-clause ...)
+@defform[(for*/foldr type-ann-maybe
+                     ([id : t init-expr] ... maybe-result)
+                     (for-clause ...)
+                     type-ann-maybe
            expr ...+)
          #:grammar
-         ([void-ann-maybe (code:line)
-                          (code:line : Void)]
-          [maybe-result (code:line)
-                        (code:line #:result result-expr)])]
-@defform[(for*/foldr type-ann-maybe ([id : t init-expr] ... maybe-result)
-           (for-clause ...)
-           expr ...+)
-         #:grammar
-         ([void-ann-maybe (code:line)
-                          (code:line : Void)]
-          [maybe-result (code:line)
+         ([maybe-result (code:line)
                         (code:line #:result result-expr)])]]]{
 These behave like their non-annotated counterparts.
-@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}
-         #:changed "1.12" @elem{Added @racket[for*/foldr].}]}
+@history[#:changed "1.11" @elem{Added the @racket[#:result] form.}]
+@history[#:changed "1.12" @elem{Added @racket[for*/foldr].}]
+}
 
 @defform/subs[(do : u ([id : t init-expr step-expr-maybe] ...)
                       (stop?-expr finish-expr ...)

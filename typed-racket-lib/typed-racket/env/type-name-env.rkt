@@ -7,9 +7,10 @@
 
 (require syntax/private/id-table
          (contract-req)
-         "../env/type-alias-env.rkt"
+         "type-alias-env.rkt"
          "../utils/tc-utils.rkt"
          "../rep/type-rep.rkt"
+         "type-constr-env.rkt"
          "../rep/free-variance.rkt"
          "../types/utils.rkt")
 
@@ -73,7 +74,12 @@
   (when (lookup-type-name to (lambda () #f))
     (register-resolved-type-alias
      from
-     (make-Name to 0 #t))))
+     (make-Name to 0 #t)))
+  (cond
+    [(lookup-type-constructor to)
+     =>
+     (lambda (v)
+       (register-type-constructor! from v))]))
 
 
 ;; a mapping from id -> listof[Variance] (where id is the name of the type)
@@ -119,4 +125,3 @@
 (define (add-constant-variance! name vars)
   (unless (or (not vars) (null? vars))
     (register-type-variance! name (map (lambda (_) variance:const) vars))))
-

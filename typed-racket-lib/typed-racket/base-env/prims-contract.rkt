@@ -77,6 +77,7 @@
          syntax/parse/pre
          syntax/stx
          racket/syntax
+         racket/function
          racket/base
          racket/struct-info
          syntax/struct
@@ -449,6 +450,9 @@
                       [extra-maker (and (attribute input-maker.extra)
                                         (not (bound-identifier=? #'make-name #'nm))
                                         #'maker-name)]
+                      [type (if (stx-null? #'(tvar ...))
+                                #'type
+                                (untyped-struct-poly #'type))]
                       ;; the type for a polymorphic use of the struct name
                       [poly-type #`(type tvar ...)]
                       ;; the struct type to use for the constructor/selectors
@@ -522,7 +526,10 @@
 
                          (dtsi* (tvar ...) spec type (body ...) #:maker maker-name #:type-only)
                          #,(ignore #'(require/contract pred hidden (or/c struct-predicate-procedure?/c (c-> any-wrap/c boolean?)) lib))
-                         #,(internal #'(require/typed-internal hidden (Any -> Boolean : type)))
+                         #,(internal #`(require/typed-internal hidden (Any -> Boolean :
+                                                                           #,(if (stx-null? #'(tvar ...))
+                                                                                 #'type
+                                                                                 #`(type #,@(stx-map (const (syntax Any)) #'(tvar ...)))))))
                          (require/typed #:internal (maker-name real-maker) type lib
                                         #:struct-maker parent
                                         #,@(if (attribute unsafe.unsafe?) #'(unsafe-kw) #'()))

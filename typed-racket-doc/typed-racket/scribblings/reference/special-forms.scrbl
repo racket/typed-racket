@@ -487,10 +487,14 @@ from @racketmodname[racket/base].
            (define-type (name v ...) t maybe-omit-def)]
           #:grammar
           [(maybe-omit-def (code:line #:omit-define-syntaxes) (code:line))]]{
+
 The first form defines @racket[name] as type, with the same meaning as
-@racket[t].  The second form is equivalent to
-@racket[(define-type name (All (v ...) t))].  Type names may
-refer to other types defined in the same or enclosing scopes.
+@racket[t].  The second form defines @racket[name] to be a type
+constructor, whose parameters are @racket[v ...] and body is
+@racket[t]. If no parameters are declared, the defined type
+constructor is equivalent to @racket[(define-type name t
+maybe-omit-def)].  Type names may refer to other types defined in the
+same or enclosing scopes.
 
 @ex[(define-type IntStr (U Integer String))
     (define-type (ListofPairs A) (Listof (Pair A A)))]
@@ -512,11 +516,12 @@ back to itself.
       (define even-lst '(1 2))
       even-lst)]
 
-However, the recursive reference may not occur immediately inside
-the type:
+However, the recursive reference is only allowed when it is passed to a productive
+type constructor:
 
 @ex[(eval:error (define-type Foo Foo))
-    (eval:error (define-type Bar (U Bar False)))]
+    (eval:error (define-type Bar (U Bar False)))
+    (define-type Bar (U (Listof Bar) False))]
 }
 
 @section{Generating Predicates Automatically}

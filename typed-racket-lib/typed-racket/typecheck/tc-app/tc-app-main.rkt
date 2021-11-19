@@ -9,7 +9,7 @@
          "../../rep/prop-rep.rkt"
          "../../rep/object-rep.rkt"
          "../../rep/values-rep.rkt"
-         syntax/parse racket/match 
+         syntax/parse racket/match
          syntax/parse/experimental/reflect
          "../signatures.rkt" "../tc-funapp.rkt"
          "../integer-refinements.rkt"
@@ -134,4 +134,3 @@
                         (has-linear-integer-refinements? #'f))
             (tc/funapp #'f #'args f-ty (map tc-dep-fun-arg args*) expected)]
          [_ (tc/funapp #'f #'args f-ty (map single-value args*) expected)]))]))
-

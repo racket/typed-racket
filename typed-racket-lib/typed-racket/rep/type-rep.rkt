@@ -10,7 +10,9 @@
 (require "../utils/tc-utils.rkt"
          "../utils/prefab.rkt"
          "../utils/identifier.rkt"
+         "../env/env-utils.rkt"
          "rep-utils.rkt"
+         "type-constr.rkt"
          "core-rep.rkt"
          "object-rep.rkt"
          "prop-rep.rkt"
@@ -22,9 +24,12 @@
          "numeric-base-types.rkt"
          "base-union.rkt"
          racket/match racket/list
+         racket/format
          syntax/id-table
          syntax/id-set
          racket/contract
+         racket/string
+         (only-in racket/generic define/generic)
          racket/lazy-require
          racket/unsafe/undefined
          (for-syntax racket/base
@@ -45,7 +50,6 @@
          unfold
          Union-fmap
          Un
-         resolvable?
          Union-all:
          Union-all-flat:
          Union/set:
@@ -84,11 +88,6 @@
                      [Struct-Property* make-Struct-Property]
                      [Struct-Property:* Struct-Property:]))
 
-(define (resolvable? x)
-  (or (Mu? x)
-      (Name? x)
-      (App? x)))
-
 (lazy-require
  ("../types/overlap.rkt" (overlap?))
  ("../types/prop-ops.rkt" (-and))
@@ -100,6 +99,7 @@
 ;; the same variables
 (define type-var-name-table (make-hash))
 (define term-var-name-table (make-hash))
+
 
 ;; Name = Symbol
 
@@ -200,11 +200,12 @@
 ;;--------
 ;; Pairs
 ;;--------
-
 ;; left and right are Types
 (def-structural Pair ([left #:covariant]
                       [right #:covariant])
   [#:mask mask:pair])
+
+
 
 ;;----------------
 ;; Mutable Pairs
@@ -454,6 +455,7 @@
   [#:fmap (f) (make-Mutable-HeterogeneousVector (map f elems))]
   [#:for-each (f) (for-each f elems)]
   [#:mask mask:mutable-vector])
+
 
 (define (make-HeterogeneousVector ts)
   (Un (make-Immutable-HeterogeneousVector ts)
@@ -1054,8 +1056,16 @@
               ts
               elems))
 
-(define (Un . args)
+
+(define (Un-fun args)
   (Union-fmap (λ (x) x) -Bottom args))
+
+(define Un (make-type-constr Un-fun
+                         0
+                         #f
+                         #:kind*? #t))
+
+
 
 ;;************************************************************
 ;; Intersection/Refinement

@@ -61,5 +61,17 @@ return a value of type @racket[t].
 ]
 }
 
-@close-eval[the-top-eval]
+@defform[(:kind e)]{Prints the kind of a well-kinded type-level expression
+@racket[e]. When @racket[e] is a type, it prints @racket[*]. When @racket[e] is
+a type constructor, @racket[->] following the open parenthesis in the printed
+result indicates @racket[e] is productive and @racket[-o] indicates otherwise.
 
+@examples[#:eval the-top-eval
+  (:kind Integer)
+  (:kind Listof)
+  (:kind Pairof)
+  (:kind U)
+]
+}
+
+@close-eval[the-top-eval]

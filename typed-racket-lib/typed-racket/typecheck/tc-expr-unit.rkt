@@ -440,6 +440,7 @@
 ;; recursively find the type of either a syntax object or the result of syntax-e
 (define (find-stx-type datum-stx-or-datum [expected-type #f])
   (match datum-stx-or-datum
+
     [(? syntax? (app syntax-e stx-e))
      (match (and expected-type (resolve (intersect expected-type (-Syntax Univ))))
        [(Syntax: t) (-Syntax (find-stx-type stx-e t))]

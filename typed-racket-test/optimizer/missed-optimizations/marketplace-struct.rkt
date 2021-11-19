@@ -87,11 +87,11 @@ END
 (define-type Process		(All (R) (CoProcess R) -> R))
 (define-type (CoProcess R)	(All (State) (process State) -> R))
 
-(: mkProcess : (All (State) ((CoProcess Process) State)))
+(: mkProcess : (CoProcess Process))
 ;; A kind of identity function, taking the components of a process to
 ;; a process.
-(define (mkProcess p)
-  (lambda (k) ((inst k State) p)))
+(define mkProcess
+  (lambda (p) (lambda (k) (k p))))
 
 (: Process-pid : Process -> PID)
 (define (Process-pid wp) ((inst wp PID) process-pid))

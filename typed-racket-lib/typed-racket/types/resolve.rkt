@@ -3,7 +3,10 @@
 
 (require "../rep/type-rep.rkt"
          "../rep/rep-utils.rkt"
+         "../rep/type-constr.rkt"
          "../env/type-name-env.rkt"
+         "../env/type-constr-env.rkt"
+         (only-in "../env/type-alias-env.rkt" complete-name?)
          "../utils/tc-utils.rkt"
          "utils.rkt"
          "current-seen.rkt"
@@ -14,14 +17,17 @@
 (provide resolve-name resolve-app resolvable?
          resolve-app-check-error
          resolver-cache-remove!
-         current-check-polymorphic-recursion
-         register-app-for-checking!
-         check-registered-apps!)
+         current-check-polymorphic-recursion)
 (provide/cond-contract
  [resolve-once (Type? . -> . (or/c Type? #f))]
  [resolve (Type? . -> . Type?)])
 
 (define-struct poly (name vars) #:prefab)
+
+(define (resolvable? x)
+  (or (Mu? x)
+      (complete-name? x)
+      (App? x)))
 
 ;; (Parameter (Option Poly-Rec-Info))
 ;; This parameter controls whether or not the resolving process
@@ -35,47 +41,17 @@
 ;; the type being parsed.
 (define current-check-polymorphic-recursion (make-parameter #f))
 
-(define (resolve-name t)
-  (match t
-    [(Name/simple: (app lookup-type-name t)) (if (Type? t) t #f)]
-    [_ (int-err "resolve-name: not a name ~a" t)]))
+(define (resolve-name t [for-app #f])
+  (match* (for-app t)
+    [(#t (Name/simple: (app lookup-type-constructor (? TypeConstructor? t)))) t]
+    [(_ (Name/simple: (app lookup-type-name t))) (if (Type? t) t #f)]
+    [(_ _) (int-err "resolve-name: not a name ~a" t)]))
 
 (define already-resolving? (make-parameter #f))
-
-;; list of (cons/c App? syntax?) of parsed Apps
-;; during early phase of typechecking,
-;; `check-registered-apps!` consumes these to verify
-;; they are correct
-(define apps-to-check (box '()))
-
-;; registers an App for checking
-;; used while parsing types initially,
-;; once all definitions are loaded, we can verify
-;; Apps are well formed (i.e. take the correct number of args, etc)
-(define (register-app-for-checking! app stx)
-  (set-box! apps-to-check
-            (cons (cons app stx)
-                  (unbox apps-to-check))))
-
-;; checks apps registered with `register-app-for-checking!`
-(define (check-registered-apps!)
-  (for* ([p (in-list (unbox apps-to-check))]
-         [(app stx) (in-pair p)])
-    (match app
-      [(App: (? Name? rator) rands)
-       (resolve-app-check-error rator rands stx)]))
-  (set-box! apps-to-check '()))
 
 (define (resolve-app-check-error rator rands stx)
   (parameterize ([current-orig-stx stx])
     (match rator
-      [(Poly-unsafe: n _)
-       (unless (= n (length rands))
-         (tc-error (~a "wrong number of arguments to polymorphic type"
-                       "\n  type: " rator
-                       "\n  expected: " n
-                       "\n  given: " (length rands)
-                       "\n  arguments...: " rands)))]
       [(Name/struct: n) #:when (and (current-poly-struct)
                                     (free-identifier=? n (poly-name (current-poly-struct))))
        (define poly-num (length (poly-vars (current-poly-struct))))
@@ -98,53 +74,11 @@
                        "\n  type: " rator
                        "\n  expected: " num-args
                        "\n  given: " num-rands
-                       "\n  arguments...: " rands)))
-       ;; Does not allow polymorphic recursion since both type
-       ;; inference and equirecursive subtyping for polymorphic
-       ;; recursion are difficult.
-       ;;
-       ;; Type inference is known to be undecidable in general, but
-       ;; practical algorithms do exist[1] that do not diverge in
-       ;; practice.
-       ;;
-       ;; It is possible that equirecursive subtyping with polymorphic
-       ;; recursion is as difficult as equivalence of DPDAs[2], which is
-       ;; known to be decidable[3], but good algorithms may not exist.
-       ;;
-       ;; [1] Fritz Henglein. "Type inference with polymorphic recursion"
-       ;;     TOPLAS 1993
-       ;; [2] Marvin Solomon. "Type definitions with parameters"
-       ;;     POPL 1978
-       ;; [3] Geraud Senizergues.
-       ;;     "L(A)=L(B)? decidability results from complete formal systems"
-       ;;     TCS 2001.
-       ;;
-       ;; check-argument : Type Id -> Void
-       ;; Check argument to make sure there's no polymorphic recursion
-       (define (check-argument given-type arg-name)
-         (define ok?
-           (or (F? given-type)
-               (not (member (syntax-e arg-name) (fv given-type)))))
-         (unless ok?
-           (tc-error (~a "recursive type cannot be applied at a"
-                         " different type in its recursive invocation"
-                         "\n  type: " rator
-                         "\n  new argument name: " arg-name
-                         "\n  new argument: " given-type
-                         "\n  new arguments...: " rands))))
-       (match (current-check-polymorphic-recursion)
-         [`#s(poly-rec-info ,same-component? ,current-vars)
-          #:when (same-component? name-id)
-          (for* ([rand (in-list rands)]
-                 [var (in-list current-vars)])
-            (check-argument rand var))]
-         [_ (void)])]
-      [(? Mu?) (void)]
-      [(? App?) (void)]
-      [(? Error?) (void)]
+                       "\n  arguments...: " rands)))]
       [_ (tc-error/delayed (~a "type cannot be applied"
                                "\n  type: " rator
                                "\n  arguments...: " rands))])))
+
 
 
 (define (resolve-app rator rands [stx #f])
@@ -154,10 +88,11 @@
     (resolve-app-check-error rator rands orig-stx)
     (match rator
       [(? Name?)
-       (let ([r (resolve-name rator)])
-         (and r (resolve-app r rands stx)))]
-      [(? Poly?) (instantiate-poly rator rands)]
-      [(? Mu?) (resolve-app (unfold rator) rands stx)]
+       (let ([r (resolve-name rator #t)])
+         (and r
+              (if (TypeConstructor? r)
+                  (apply r rands)
+                  (resolve-app r rands stx))))]
       [(App: r r*) (resolve-app (resolve-app r r* (current-orig-stx))
                                 rands
                                 (current-orig-stx))]

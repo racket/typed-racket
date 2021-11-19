@@ -430,6 +430,7 @@
                (lookup-name-sc type typed-side)]
               [else
                (define rv recursive-values)
+               ;; FIXME: need special treatment for type constructors
                (define resolved-name (resolve-once type))
                (register-name-sc type
                                  (λ () (loop resolved-name 'untyped rv))
@@ -887,6 +888,7 @@
                                 (Values: (list (Result: rngs _ _) ...)))
             first-arrow)
           (define rst (Arrow-rst last-arrow))
+
           ;; kws and rng same for all arrs
           (define last-dom (Arrow-dom last-arrow))
           (define mand-args (map t->sc/neg first-dom))

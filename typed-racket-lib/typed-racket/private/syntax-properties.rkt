@@ -55,6 +55,7 @@
   (external-check typechecker:external-check)
   (casted-expr typechecker:casted-expr) ; Type -> Void, takes the original type of the casted expr
   (with-type typechecker:with-type #:mark)
+  (untyped-struct-poly untyped-struct-poly #:mark) ;; whether an untyped struct imported via required/typed is polymorphic
   (struct-type struct-type)
   (type-ascription type-ascription)
   (type-inst type-inst)

@@ -19,18 +19,18 @@
 
 @title[#:tag "type-ref"]{Type Reference}
 
-@defidform[Any]{Any Racket value. All other types are subtypes of @racket[Any].}
+@deftype[Any]{Any Racket value. All other types are subtypes of @racket[Any].}
 
-@defidform[AnyValues]{Any number of Racket values of any type.}
+@deftype[AnyValues]{Any number of Racket values of any type.}
 
-@defidform[Nothing]{The empty type.  No values inhabit this type, and
+@deftype[Nothing]{The empty type.  No values inhabit this type, and
 any expression of this type will not evaluate to a value.}
 
 @section{Base Types}
 
 @(define-syntax-rule
    (defnums (ids ...) . rest)
-   (deftogether ((defidform ids) ...) . rest))
+   (deftogether ((deftype ids) ...) . rest))
 
 @subsection{Numeric Types}
 
@@ -220,63 +220,63 @@ These are not part of the numeric tower.
 @subsection{Other Base Types}
 
 @deftogether[(
-@defidform[Boolean]
-@defidform[True]
-@defidform[False]
-@defidform[String]
-@defidform[Keyword]
-@defidform[Symbol]
-@defidform[Char]
-@defidform[Void]
-@defidform[Input-Port]
-@defidform[Output-Port]
-@defidform[Unquoted-Printing-String]
-@defidform[Port]
-@defidform[Path]
-@defidform[Path-For-Some-System]
-@defidform[Regexp]
-@defidform[PRegexp]
-@defidform[Byte-Regexp]
-@defidform[Byte-PRegexp]
-@defidform[Bytes]
-@defidform[Namespace]
-@defidform[Namespace-Anchor]
-@defidform[Variable-Reference]
-@defidform[Null]
-@defidform[EOF]
-@defidform[Continuation-Mark-Set]
-@defidform[Undefined]
-@defidform[Module-Path]
-@defidform[Module-Path-Index]
-@defidform[Resolved-Module-Path]
-@defidform[Compiled-Module-Expression]
-@defidform[Compiled-Expression]
-@defidform[Internal-Definition-Context]
-@defidform[Pretty-Print-Style-Table]
-@defidform[Special-Comment]
-@defidform[Struct-Type-Property]
-@defidform[Impersonator-Property]
-@defidform[Read-Table]
-@defidform[Bytes-Converter]
-@defidform[Parameterization]
-@defidform[Custodian]
-@defidform[Inspector]
-@defidform[Security-Guard]
-@defidform[UDP-Socket]
-@defidform[TCP-Listener]
-@defidform[Logger]
-@defidform[Log-Receiver]
-@defidform[Log-Level]
-@defidform[Thread]
-@defidform[Thread-Group]
-@defidform[Subprocess]
-@defidform[Place]
-@defidform[Place-Channel]
-@defidform[Semaphore]
-@defidform[FSemaphore]
-@defidform[Will-Executor]
-@defidform[Pseudo-Random-Generator]
-@defidform[Environment-Variables]
+@deftype[Boolean]
+@deftype[True]
+@deftype[False]
+@deftype[String]
+@deftype[Keyword]
+@deftype[Symbol]
+@deftype[Char]
+@deftype[Void]
+@deftype[Input-Port]
+@deftype[Output-Port]
+@deftype[Unquoted-Printing-String]
+@deftype[Port]
+@deftype[Path]
+@deftype[Path-For-Some-System]
+@deftype[Regexp]
+@deftype[PRegexp]
+@deftype[Byte-Regexp]
+@deftype[Byte-PRegexp]
+@deftype[Bytes]
+@deftype[Namespace]
+@deftype[Namespace-Anchor]
+@deftype[Variable-Reference]
+@deftype[Null]
+@deftype[EOF]
+@deftype[Continuation-Mark-Set]
+@deftype[Undefined]
+@deftype[Module-Path]
+@deftype[Module-Path-Index]
+@deftype[Resolved-Module-Path]
+@deftype[Compiled-Module-Expression]
+@deftype[Compiled-Expression]
+@deftype[Internal-Definition-Context]
+@deftype[Pretty-Print-Style-Table]
+@deftype[Special-Comment]
+@deftype[Struct-Type-Property]
+@deftype[Impersonator-Property]
+@deftype[Read-Table]
+@deftype[Bytes-Converter]
+@deftype[Parameterization]
+@deftype[Custodian]
+@deftype[Inspector]
+@deftype[Security-Guard]
+@deftype[UDP-Socket]
+@deftype[TCP-Listener]
+@deftype[Logger]
+@deftype[Log-Receiver]
+@deftype[Log-Level]
+@deftype[Thread]
+@deftype[Thread-Group]
+@deftype[Subprocess]
+@deftype[Place]
+@deftype[Place-Channel]
+@deftype[Semaphore]
+@deftype[FSemaphore]
+@deftype[Will-Executor]
+@deftype[Pseudo-Random-Generator]
+@deftype[Environment-Variables]
 )]{
 These types represent primitive Racket data.
 
@@ -296,7 +296,7 @@ These types represent primitive Racket data.
 ]
 }
 
-@defidform[Path-String]{
+@deftype[Path-String]{
 The union of the @racket[Path] and
 @racket[String] types.  Note that this does not
 match exactly what the predicate @racket[path-string?]
@@ -321,12 +321,10 @@ subtypes of @racket[Boolean], @racket[Symbol] and @racket[Keyword], respectively
 'bar
 ]
 
-@section{Containers}
+@section[#:tag "built-in-type-constructors"]{Base Type Constructors and Supertypes}
 
 
-The following base types are parametric in their type arguments.
-
-@defform[(Pairof s t)]{is the @rtech{pair} containing @racket[s] as the @racket[car]
+@deftypeconstr[(Pairof s t)]{Returns a @rtech{pair} type containing @racket[s] as the @racket[car]
   and @racket[t] as the @racket[cdr]}
 
 @ex[
@@ -335,14 +333,14 @@ The following base types are parametric in their type arguments.
 ]
 
 
-@defform[(Listof t)]{Homogeneous @rtech{lists} of @racket[t]}
-@defform[(List t ...)]{is the type of the list with one element, in order,
+@deftypeconstr[(Listof t)]{Returns the type of a homogeneous @rtech{list} of @racket[t]}
+@deftypeconstr[(List t ...)]{Returns a list type with one element, in order,
   for each type provided to the @racket[List] type constructor.}
-@defform/none[(#,(racket List) t ... trest #,(racket ...) bound)]{is the type of a list with
+@deftypeconstr/none[(#,(racket List) t ... trest #,(racket ...) bound)]{Returns the type of a list with
 one element for each of the @racket[t]s, plus a sequence of elements
 corresponding to @racket[trest], where @racket[bound]
   must be an identifier denoting a type variable bound with @racket[...].}
-@defform[(List* t t1 ... s)]{is equivalent to @racket[(Pairof t (List* t1 ... s))]. @racket[(List* s)] is equivalent to @racket[s] itself.}
+@deftypeconstr[(List* t t1 ... s)]{Is equivalent to @racket[(Pairof t (List* t1 ... s))]. @racket[(List* s)] is equivalent to @racket[s] itself.}
 
 @ex[
 (list 'a 'b 'c)
@@ -351,21 +349,21 @@ corresponding to @racket[trest], where @racket[bound]
 (map symbol->string (list 'a 'b 'c))
 ]
 
-@defform[(MListof t)]{Homogeneous @rtech{mutable lists} of @racket[t].}
-@defform[(MPairof t u)]{@rtech{Mutable pairs} of @racket[t] and @racket[u].}
+@deftypeconstr[(MListof t)]{Returns the type of a homogeneous @rtech{mutable list} of @racket[t].}
+@deftypeconstr[(MPairof t u)]{Returns the type of a @rtech{Mutable pair} of @racket[t] and @racket[u].}
 
-@defidform[MPairTop]{is the type of a @rtech{mutable pair} with unknown
+@deftype[MPairTop]{Is the type of a @rtech{mutable pair} with unknown
   element types and is the supertype of all mutable pair types.
   This type typically appears in programs via the combination of
   occurrence typing and @racket[mpair?].
 @ex[(lambda: ([x : Any]) (if (mpair? x) x (error "not an mpair!")))]
 }
 
-@defform[(Boxof t)]{A @rtech{box} of @racket[t]}
+@deftypeconstr[(Boxof t)]{Returns the type of a @rtech{box} of @racket[t]}
 
 @ex[(box "hello world")]
 
-@defidform[BoxTop]{is the type of a @rtech{box} with an unknown element
+@deftype[BoxTop]{Is the type of a @rtech{box} with an unknown element
   type and is the supertype of all box types. Only read-only box operations
   (e.g. @racket[unbox]) are allowed on values of this type. This type
   typically appears in programs via the combination of occurrence
@@ -373,68 +371,68 @@ corresponding to @racket[trest], where @racket[bound]
 @ex[(lambda: ([x : Any]) (if (box? x) x (error "not a box!")))]
 }
 
-@defform[(Vectorof t)]{Homogeneous @rtech{vectors} of @racket[t]
+@deftypeconstr[(Vectorof t)]{Returns the type of a homogeneous @rtech{vector} list of @racket[t]
  (mutable or immutable).}
-@defform[(Immutable-Vectorof t)]{
- Homogeneous immutable @rtech{vectors} of @racket[t].
+@deftypeconstr[(Immutable-Vectorof t)]{
+ Returns the type of a homogeneous immutable @rtech{vector} of @racket[t].
  @history[#:added "1.9"]}
-@defform[(Mutable-Vectorof t)]{
- Homogeneous mutable @rtech{vectors} of @racket[t].
+@deftypeconstr[(Mutable-Vectorof t)]{
+ Returns the type of a homogeneous mutable @rtech{vector} of @racket[t].
  @history[#:added "1.9"]}
 
-@defform[(Vector t ...)]{is the type of a mutable or immutable vector with one
+@deftypeconstr[(Vector t ...)]{Returns the type of a mutable or immutable vector with one
   element, in order, for each type provided to the @racket[Vector] type constructor.
 
   @ex[(ann (vector 1 'A) (Vector Fixnum 'A))]}
 
-@defform[(Immutable-Vector t ...)]{similar to @racket[(Vector t ...)], but
+@deftypeconstr[(Immutable-Vector t ...)]{Similar to @racket[(Vector t ...)], but
  for immutable vectors.
 
  @ex[(vector-immutable 1 2 3)]
  @history[#:added "1.9"]}
 
-@defform[(Mutable-Vector t ...)]{similar to @racket[(Vector t ...)], but
+@deftypeconstr[(Mutable-Vector t ...)]{Similar to @racket[(Vector t ...)], but
  for mutable vectors.
 
  @ex[(vector 1 2 3)]
  @history[#:added "1.9"]}
 
-@defidform[FlVector]{An @rtech{flvector}.
+@deftype[FlVector]{An @rtech{flvector}.
   @ex[(flvector 1.0 2.0 3.0)]}
-@defidform[ExtFlVector]{An @rtech{extflvector}.
+@deftype[ExtFlVector]{An @rtech{extflvector}.
   @ex[(eval:alts (extflvector 1.0t0 2.0t0 3.0t0)
                  (eval:result @racketresultfont{#<extflvector>}
                               "- : ExtFlVector"
                               ""))]}
-@defidform[FxVector]{An @rtech{fxvector}.
+@deftype[FxVector]{An @rtech{fxvector}.
   @ex[(fxvector 1 2 3)]}
 
-@defidform[VectorTop]{is the type of a @rtech{vector} with unknown length and
+@deftype[VectorTop]{Is the type of a @rtech{vector} with unknown length and
   element types and is the supertype of all vector types.
   Only read-only vector operations (e.g. @racket[vector-ref])
   are allowed on values of this type. This type typically appears in programs
   via the combination of occurrence typing and @racket[vector?].
 @ex[(lambda: ([x : Any]) (if (vector? x) x (error "not a vector!")))]
 }
-@defidform[Mutable-VectorTop]{is the type of a mutable @rtech{vector}
+@deftype[Mutable-VectorTop]{Is the type of a mutable @rtech{vector}
  with unknown length and element types.}
 
 
-@defform[(HashTable k v)]{is the type of a mutable or immutable @rtech{hash table}
+@deftypeconstr[(HashTable k v)]{Returns the type of a mutable or immutable @rtech{hash table}
    with key type @racket[k] and value type @racket[v].
 
-@ex[(make-hash '((a . 1) (b . 2)))]
+@ex[(ann (make-hash '((a . 1) (b . 2))) (HashTable Symbol Integer))]
 }
 
-@defform[(Immutable-HashTable k v)]{
- The type of an immutable @rtech{hash table}
+@deftypeconstr[(Immutable-HashTable k v)]{
+ Returns the type of an immutable @rtech{hash table}
  with key type @racket[k] and value type @racket[v].
 
  @ex[#hash((a . 1) (b . 2))]
  @history[#:added "1.8"]}
 
-@defform[(Mutable-HashTable k v)]{
- The type of a mutable @rtech{hash table}
+@deftypeconstr[(Mutable-HashTable k v)]{
+ Returns the type of a mutable @rtech{hash table}
  that holds keys strongly (see @r-reference-secref{weakbox})
  with key type @racket[k] and value type @racket[v].
 
@@ -442,8 +440,8 @@ corresponding to @racket[trest], where @racket[bound]
  @history[#:added "1.8"]
 }
 
-@defform[(Weak-HashTable k v)]{
- The type of a mutable @rtech{hash table}
+@deftypeconstr[(Weak-HashTable k v)]{
+ Returns the type of a mutable @rtech{hash table}
  that holds keys weakly with key type @racket[k] and value type @racket[v].
 
  @ex[(make-weak-hash '((a . 1) (b . 2)))]
@@ -451,7 +449,7 @@ corresponding to @racket[trest], where @racket[bound]
 }
 
 
-@defidform[HashTableTop]{is the type of a @rtech{hash table} with unknown key
+@deftype[HashTableTop]{Is the type of a @rtech{hash table} with unknown key
   and value types and is the supertype of all hash table types. Only read-only
   hash table operations (e.g.
   @racket[hash-ref]) are allowed on values of this type. This type typically
@@ -460,33 +458,33 @@ corresponding to @racket[trest], where @racket[bound]
 @ex[(lambda: ([x : Any]) (if (hash? x) x (error "not a hash table!")))]
 }
 
-@defidform[Mutable-HashTableTop]{is the type of a mutable @rtech{hash table}
+@deftype[Mutable-HashTableTop]{Is the type of a mutable @rtech{hash table}
   that holds keys strongly with unknown key and value types.}
 
-@defidform[Weak-HashTableTop]{is the type of a mutable @rtech{hash table}
+@deftype[Weak-HashTableTop]{Is the type of a mutable @rtech{hash table}
   that holds keys weakly with unknown key and value types.}
 
-@defform[(Setof t)]{is the type of a @rtech{hash set} of
+@deftypeconstr[(Setof t)]{Returns the type of a @rtech{hash set} of
 @racket[t]. This includes custom hash sets, but not mutable hash set
 or sets that are implemented using @racket[gen:set].
 @ex[(set 0 1 2 3)]
 @ex[(seteq 0 1 2 3)]
 }
 
-@defform[(Channelof t)]{A @rtech{channel} on which only @racket[t]s can be sent.
+@deftypeconstr[(Channelof t)]{Returns the type of a @rtech{channel} on which only @racket[t]s can be sent.
 @ex[
 (ann (make-channel) (Channelof Symbol))
 ]
 }
 
-@defidform[ChannelTop]{is the type of a @rtech{channel} with unknown
+@deftype[ChannelTop]{Is the type of a @rtech{channel} with unknown
   message type and is the supertype of all channel types. This type typically
   appears in programs via the combination of occurrence typing and
   @racket[channel?].
 @ex[(lambda: ([x : Any]) (if (channel? x) x (error "not a channel!")))]
 }
 
-@defform[(Async-Channelof t)]{An @rtech{asynchronous channel} on which only @racket[t]s can be sent.
+@deftypeconstr[(Async-Channelof t)]{Returns the type of an @rtech{asynchronous channel} on which only @racket[t]s can be sent.
 @ex[
 (require typed/racket/async-channel)
 (ann (make-async-channel) (Async-Channelof Symbol))
@@ -494,7 +492,7 @@ or sets that are implemented using @racket[gen:set].
 @history[#:added "1.1"]
 }
 
-@defidform[Async-ChannelTop]{is the type of an @rtech{asynchronous channel} with unknown
+@deftype[Async-ChannelTop]{Is the type of an @rtech{asynchronous channel} with unknown
   message type and is the supertype of all asynchronous channel types. This type typically
   appears in programs via the combination of occurrence typing and
   @racket[async-channel?].
@@ -503,24 +501,24 @@ or sets that are implemented using @racket[gen:set].
 @history[#:added "1.1"]
 }
 
-@defform*[[(Parameterof t)
-           (Parameterof s t)]]{A @rtech{parameter} of @racket[t].  If two type arguments are supplied,
-                                 the first is the type the parameter accepts, and the second is the type returned.
-@ex[current-input-port
-    current-directory]
-}
+@deftypeconstr*[[(Parameterof t)
+                 (Parameterof s t)]]{
 
-@defform[(Promise t)]{A @rtech{promise} of @racket[t].
+Returns the type of a @rtech{parameter} of @racket[t].  If two type arguments
+are supplied, the first is the type the parameter accepts, and the second is the
+type returned.  @ex[current-input-port current-directory]}
+
+@deftypeconstr[(Promise t)]{Returns the type of @rtech{promise} of @racket[t].
  @ex[(delay 3)]}
 
-@defform[(Futureof t)]{A @rtech{future} which produce a value of type @racket[t] when touched.}
+@deftypeconstr[(Futureof t)]{Returns the type of @rtech{future} which produce a value of type @racket[t] when touched.}
 
-@defform[(Sequenceof t t ...)]{A @rtech{sequence} that produces
+@deftypeconstr[(Sequenceof t t ...)]{Returns the type of @rtech{sequence} that produces
  @racket[(Values _t _t ...)] on each iteration. E.g., @racket[(Sequenceof String)]
 is a sequence of strings, @racket[(Sequenceof Number String)] is a sequence which
 produces two values---a number and a string---on each iteration, etc.}
 
-@defidform[SequenceTop]{is the type of a @rtech{sequence} with unknown element
+@deftype[SequenceTop]{Is the type of a @rtech{sequence} with unknown element
   type and is the supertype of all sequences. This type typically
   appears in programs via the combination of ocurrence typing ang
   @racket[sequence?].
@@ -528,32 +526,34 @@ produces two values---a number and a string---on each iteration, etc.}
 @history[#:added "1.10"]
 }
 
-@defform[(Custodian-Boxof t)]{A @rtech{custodian box} of @racket[t].}
-@defform[(Thread-Cellof t)]{A @rtech{thread cell} of @racket[t].}
-@defidform[Thread-CellTop]{is the type of a @rtech{thread cell} with unknown
+@deftypeconstr[(Custodian-Boxof t)]{Returns the type of @rtech{custodian box} of @racket[t].}
+
+@deftypeconstr[(Thread-Cellof t)]{Returns the type of @rtech{thread cell} of @racket[t].}
+
+@deftype[Thread-CellTop]{Is the type of a @rtech{thread cell} with unknown
   element type and is the supertype of all thread cell types. This type typically
   appears in programs via the combination of occurrence typing and
   @racket[thread-cell?].
 @ex[(lambda: ([x : Any]) (if (thread-cell? x) x (error "not a thread cell!")))]
 }
 
-@defform[(Weak-Boxof t)]{
-  The type for a @rtech{weak box} whose value is of type @racket[t].
+@deftypeconstr[(Weak-Boxof t)]{
+  Returns the type for a @rtech{weak box} whose value is of type @racket[t].
 
   @ex[(make-weak-box 5)
       (weak-box-value (make-weak-box 5))]
 }
 
-@defidform[Weak-BoxTop]{is the type of a @rtech{weak box} with an unknown element
+@deftype[Weak-BoxTop]{Is the type of a @rtech{weak box} with an unknown element
   type and is the supertype of all weak box types. This type
   typically appears in programs via the combination of occurrence
   typing and @racket[weak-box?].
 @ex[(lambda: ([x : Any]) (if (weak-box? x) x (error "not a box!")))]
 }
 
-@defform[(Ephemeronof t)]{An @rtech{ephemeron} whose value is of type @racket[t].}
+@deftypeconstr[(Ephemeronof t)]{Returns the type of an @rtech{ephemeron} whose value is of type @racket[t].}
 
-@defform[(Evtof t)]{A @rtech{synchronizable event} whose @rtech{synchronization result}
+@deftypeconstr[(Evtof t)]{A @rtech{synchronizable event} whose @rtech{synchronization result}
   is of type @racket[t].
 
   @ex[always-evt
@@ -563,48 +563,50 @@ produces two values---a number and a string---on each iteration, etc.}
 
 @section{Syntax Objects}
 
-The following types represent @rtech{syntax object}s and their content.
+The following type constructors and types respectively create and represent
+@rtech{syntax object}s and their content.
 
-@defform[(Syntaxof t)]{A syntax object with content of type @racket[t].
+@deftypeconstr[(Syntaxof t)]{Returns the type of syntax object with content of type @racket[t].
 Applying @racket[syntax-e] to a value of type @racket[(Syntaxof t)] produces a
 value of type @racket[t].}
 
-@defidform[Identifier]{A syntax object containing a @rtech{symbol}.  Equivalent
+@deftype[Identifier]{A syntax object containing a @rtech{symbol}.  Equivalent
 to @racket[(Syntaxof Symbol)].}
 
-@defidform[Syntax]{A syntax object containing only @rtech{symbol}s,
+@deftype[Syntax]{A syntax object containing only @rtech{symbol}s,
 @rtech{keyword}s, @rtech{string}s, @rtech{character}s, @rtech{boolean}s,
 @rtech{number}s, @rtech{box}es containing @racket[Syntax], @rtech{vector}s of
 @racket[Syntax], or (possibly improper) @rtech{list}s of @racket[Syntax].
 Equivalent to @racket[(Syntaxof Syntax-E)].}
 
-@defidform[Syntax-E]{The content of syntax objects of type @racket[Syntax].
+@deftype[Syntax-E]{The content of syntax objects of type @racket[Syntax].
 Applying @racket[syntax-e] to a value of type @racket[Syntax] produces a value
 of type @racket[Syntax-E].}
 
-@defform[(Sexpof t)]{The recursive union of @racket[t] with @rtech{symbol}s,
+@deftypeconstr[(Sexpof t)]{Returns the recursive union of @racket[t] with @rtech{symbol}s,
 @rtech{keyword}s, @rtech{string}s, @rtech{character}s, @rtech{boolean}s,
 @rtech{number}s, @rtech{box}es, @rtech{vector}s, and (possibly improper)
 @rtech{list}s.}
 
-@defidform[Sexp]{Applying @racket[syntax->datum] to a value of type
+@deftype[Sexp]{Applying @racket[syntax->datum] to a value of type
 @racket[Syntax] produces a value of type @racket[Sexp].  Equivalent to
 @racket[(Sexpof Nothing)].}
 
-@defidform[Datum]{Applying @racket[datum->syntax] to a value of type
+@deftype[Datum]{Applying @racket[datum->syntax] to a value of type
 @racket[Datum] produces a value of type @racket[Syntax].  Equivalent to
 @racket[(Sexpof Syntax)].}
 
 
 @section{Control}
 
-The following types represent @rtech{prompt tag}s and
-keys for @rtech{continuation mark}s for use with delimited continuation
-functions and continuation mark functions.
+The following type constructors and type respectively create and represent
+@rtech{prompt tag}s and keys for @rtech{continuation mark}s for use with
+delimited continuation functions and continuation mark functions.
 
-@defform[(Prompt-Tagof s t)]{
-  A prompt tag to be used in a continuation prompt whose body
-  produces the type @racket[_s] and whose handler has the type
+@deftypeconstr[(Prompt-Tagof s t)]{
+
+  Returns the type of a prompt tag to be used in a continuation prompt whose
+  body produces the type @racket[_s] and whose handler has the type
   @racket[_t]. The type @racket[_t] must be a function type.
 
   The domain of @racket[_t] determines the type of the values
@@ -614,24 +616,24 @@ functions and continuation mark functions.
   @ex[(make-continuation-prompt-tag 'prompt-tag)]
 }
 
-@defidform[Prompt-TagTop]{is the type of a @rtech{prompt tag} with unknown
+@deftype[Prompt-TagTop]{is the type of a @rtech{prompt tag} with unknown
   body and handler types and is the supertype of all prompt tag types. This type
   typically appears in programs via the combination of occurrence typing
   and @racket[continuation-prompt-tag?].
 @ex[(lambda: ([x : Any]) (if (continuation-prompt-tag? x) x (error "not a prompt tag!")))]
 }
 
-@defform[(Continuation-Mark-Keyof t)]{
-  A continuation mark key that is used for continuation mark
+@deftypeconstr[(Continuation-Mark-Keyof t)]{
+
+  Returns the type of a continuation mark key that is used for continuation mark
   operations such as @racket[with-continuation-mark] and
-  @racket[continuation-mark-set->list]. The type @racket[_t]
-  represents the type of the data that is stored in the
-  continuation mark with this key.
+  @racket[continuation-mark-set->list]. The type @racket[_t] represents the type
+  of the data that is stored in the continuation mark with this key.
 
   @ex[(make-continuation-mark-key 'mark-key)]
 }
 
-@defidform[Continuation-Mark-KeyTop]{is the type of a continuation mark
+@deftype[Continuation-Mark-KeyTop]{Is the type of a continuation mark
   key with unknown element type and is the supertype of all continuation mark key
   types. This type typically appears in programs
   via the combination of occurrence typing and @racket[continuation-mark-key?].
@@ -641,47 +643,47 @@ functions and continuation mark functions.
 
 @section{Other Type Constructors}
 
-@defform*/subs[#:id -> #:literals (|@| * ... ! and or implies car cdr)
-               [(-> dom ... rng opt-proposition)
-                (-> dom ... rest * rng)
-                (-> dom ... rest ooo bound rng)
+@deftypeconstr*/subs[#:id -> #:literals (|@| * ... ! and or implies car cdr)
+                     [(-> dom ... rng opt-proposition)
+                      (-> dom ... rest * rng)
+                      (-> dom ... rest ooo bound rng)
 
-                (dom ... -> rng opt-proposition)
-                (dom ... rest * -> rng)
-                (dom ... rest ooo bound -> rng)]
-               ([ooo #,(racket ...)]
-                [dom type
-                     mandatory-kw
-                     opt-kw]
-                [rng type
-                     (code:line (Some (a ...) type : #:+ proposition))
-                     (Values type ...)]
-                [mandatory-kw (code:line keyword type)]
-                [opt-kw [keyword type]]
-                [opt-proposition (code:line)
-                                 (code:line : type)
-                                 (code:line : pos-proposition
-				              neg-proposition
-					      object)]
-                [pos-proposition (code:line)
-                                 (code:line #:+ proposition ...)]
-                [neg-proposition (code:line)
-                                 (code:line #:- proposition ...)]
-                [object (code:line)
-                        (code:line #:object index)]
-                [proposition Top
-		             Bot
-			     type
-                             (! type)
-                             (type |@| path-elem ... index)
-                             (! type |@| path-elem ... index)
-                             (and proposition ...)
-                             (or proposition ...)
-                             (implies proposition ...)]
-                [path-elem car cdr]
-                [index positive-integer
-                       (positive-integer positive-integer)
-                       identifier])]{
+                      (dom ... -> rng opt-proposition)
+                      (dom ... rest * -> rng)
+                      (dom ... rest ooo bound -> rng)]
+                     ([ooo #,(racket ...)]
+                      [dom type
+                           mandatory-kw
+                           opt-kw]
+                      [rng type
+                           (code:line (Some (a ...) type : #:+ proposition))
+                           (Values type ...)]
+                      [mandatory-kw (code:line keyword type)]
+                      [opt-kw [keyword type]]
+                      [opt-proposition (code:line)
+                                       (code:line : type)
+                                       (code:line : pos-proposition
+				                    neg-proposition
+				      	      object)]
+                      [pos-proposition (code:line)
+                                       (code:line #:+ proposition ...)]
+                      [neg-proposition (code:line)
+                                       (code:line #:- proposition ...)]
+                      [object (code:line)
+                              (code:line #:object index)]
+                      [proposition Top
+		                   Bot
+			           type
+                                   (! type)
+                                   (type |@| path-elem ... index)
+                                   (! type |@| path-elem ... index)
+                                   (and proposition ...)
+                                   (or proposition ...)
+                                   (implies proposition ...)]
+                      [path-elem car cdr]
+                      [index positive-integer
+                             (positive-integer positive-integer)
+                             identifier])]{
   The type of functions from the (possibly-empty)
   sequence @racket[dom ....] to the @racket[rng] type.
 
@@ -766,7 +768,7 @@ functions and continuation mark functions.
    (define ->*-element (racket ->*)))
 @(require 'id-holder)
 
-@defform[#:literals (* ...)
+@deftypeconstr[#:literals (* ...)
          (->* (mandatory-dom ...) optional-doms rest rng)
          #:grammar
          ([mandatory-dom type
@@ -821,14 +823,14 @@ functions and continuation mark functions.
   }
 
 @deftogether[(
-@defidform[Top]
-@defidform[Bot])]{ These are propositions that can be used with @racket[->].
+@deftype[Top]
+@deftype[Bot])]{ These are propositions that can be used with @racket[->].
   @racket[Top] is the propositions with no information.
   @racket[Bot] is the propositions which means the result cannot happen.
 }
 
 
-@defidform[Procedure]{is the supertype of all function types. The @racket[Procedure]
+@deftype[Procedure]{is the supertype of all function types. The @racket[Procedure]
   type corresponds to values that satisfy the @racket[procedure?] predicate.
   Because this type encodes @emph{only} the fact that the value is a procedure, and
   @emph{not} its argument types or even arity, the type-checker cannot allow values
@@ -845,13 +847,13 @@ functions and continuation mark functions.
 }
 
 
-@defform[(U t ...)]{is the union of the types @racket[t ...].
+@deftypeconstr[(U t ...)]{is the union of the types @racket[t ...].
  @ex[(λ ([x : Real]) (if (> 0 x) "yes" 'no))]}
 
-@defform[(∩ t ...)]{is the intersection of the types @racket[t ...].
+@deftypeconstr[(∩ t ...)]{is the intersection of the types @racket[t ...].
  @ex[((λ #:forall (A) ([x : (∩ Symbol A)]) x) 'foo)]}
 
-@defform[(case-> fun-ty ...)]{is a function that behaves like all of
+@deftypeconstr[(case-> fun-ty ...)]{is a function that behaves like all of
   the @racket[fun-ty]s, considered in order from first to last.
  The @racket[fun-ty]s must all be non-dependent function types (i.e. no
  preconditions or dependencies between arguments are currently allowed).
@@ -860,10 +862,11 @@ functions and continuation mark functions.
                      [(Listof Integer) (Listof Integer) -> (Listof Integer)]))]
   For the definition of @racket[add-map] look into @racket[case-lambda:].}
 
-@defform/none[(t t1 t2 ...)]{is the instantiation of the parametric type
+@deftypeform/none[(t t1 t2 ...)]{is the instantiation of the parametric type
   @racket[t] at types @racket[t1 t2 ...]}
-@defform*[[(All (a ...) t)
-           (All (a ... a ooo) t)]]{
+
+@deftypeform*[[(All (a ...) t)
+               (All (a ... a ooo) t)]]{
   is a parameterization of type @racket[t], with
   type variables @racket[a ...].  If @racket[t] is a function type
       constructed with infix @racket[->], the outer pair of parentheses
@@ -875,34 +878,37 @@ functions and continuation mark functions.
                 (add1 (list-length (cdr lst)))))
           (list-length (list 1 2 3))]}
 
-@defform[(Some (a ...) t)]{
+@deftypeform[(Some (a ...) t)]{
   See @tech[#:key "Some"]{existential type results}.
   @history[#:added "1.10"]
 }
 
-@defform[(Values t ...)]{is the type of a sequence of multiple values, with
+@deftypeconstr[(Values t ...)]{
+
+Returns the type of a sequence of multiple values, with
 types @racket[t ...].  This can only appear as the return type of a
 function.
 @ex[(values 1 2 3)]}
 Note that a type variable cannot be instantiated with a @racket[(Values ....)]
 type. For example, the type @racket[(All (A) (-> A))] describes a thunk that
 returns exactly one value.
-@defform/none[v]{where @racket[v] is a number, boolean or string, is the singleton type containing only that value}
-@defform/none[(quote val)]{where @racket[val] is a Racket value, is the singleton type containing only that value}
-@defform/none[i]{where @racket[i] is an identifier can be a reference to a type
+@deftypeform/none[v]{where @racket[v] is a number, boolean or string, is the singleton type containing only that value}
+@deftypeform/none[(quote val)]{where @racket[val] is a Racket value, is the singleton type containing only that value}
+@deftypeform/none[i]{where @racket[i] is an identifier can be a reference to a type
 name or a type variable}
-@defform[(Rec n t)]{is a recursive type where @racket[n] is bound to the
+
+@deftypeform[(Rec n t)]{is a recursive type where @racket[n] is bound to the
 recursive type in the body @racket[t]
 @ex[(define-type IntList (Rec List (Pair Integer (U List Null))))
 
     (define-type (List A) (Rec List (Pair A (U List Null))))]}
 
-@defform[(Struct st)]{is a type which is a supertype of all instances of the
+@deftypeform[(Struct st)]{is a type which is a supertype of all instances of the
 potentially-polymorphic structure type @racket[_st].  Note that structure
 accessors for @racket[_st] will @emph{not} accept @racket[(Struct st)] as an
 argument.}
 
-@defform[(Struct-Type st)]{is a type for the structure type descriptor value
+@deftypeform[(Struct-Type st)]{is a type for the structure type descriptor value
 for the structure type @racket[st]. Values of this type are used with
 reflective operations such as @racket[struct-type-info].
 
@@ -910,14 +916,14 @@ reflective operations such as @racket[struct-type-info].
     (struct-type-info struct:arity-at-least)]
 }
 
-@defidform[Struct-TypeTop]{is the supertype of all types for structure type
+@deftype[Struct-TypeTop]{is the supertype of all types for structure type
 descriptor values. The corresponding structure type is unknown for values of
 this top type.
 
 @ex[(struct-info (arity-at-least 0))]
 }
 
-@defform[(Prefab key type ...)]{Describes a @rtech{prefab}
+@deftypeconstr[(Prefab key type ...)]{Describes a @rtech{prefab}
  structure with the given (implicitly quoted) @emph{prefab
   key} @racket[key] and specified field types.
 
@@ -962,7 +968,7 @@ this top type.
       (employee? '#s((employee person 1) Toby -1))]
 }
 
-@defform[(PrefabTop key field-count)]{Describes all
+@deftypeform[(PrefabTop key field-count)]{Describes all
 prefab types with the (implicitly quoted) prefab-key
  @racket[key] and @racket[field-count] many fields.
 
@@ -991,7 +997,7 @@ prefab types with the (implicitly quoted) prefab-key
 
 @history[#:added "1.7"]}
 
-@defform[(Struct-Property ty)]{
+@deftypeconstr[(Struct-Property ty)]{
   Describes a property that can be attached to a structure type.
   The property value must match the type @racket[ty].
 
@@ -999,7 +1005,7 @@ prefab types with the (implicitly quoted) prefab-key
 
   @history[#:added "1.10"]}
 
-@defidform[Self]{
+@deftype[Self]{
   This type can only appear in a @racket[Struct-Property] type.
   A struct property value is attached to an instance of a structure type;
   the @racket[Self] type refers to this instance.
@@ -1008,7 +1014,7 @@ prefab types with the (implicitly quoted) prefab-key
 
   @history[#:added "1.10"]}
 
-@defidform[Imp]{
+@deftype[Imp]{
   This type can only appear in a @racket[Struct-Property] type.
   An @racket[Imp] value may be a @rtech{structure subtype} of the @racket[Self]
   value, or another instance created by the same struct constructor.
@@ -1017,21 +1023,21 @@ prefab types with the (implicitly quoted) prefab-key
 
   @history[#:added "1.10"]}
 
-@defform[(Has-Struct-Property prop)]{
+@deftypeform[(Has-Struct-Property prop)]{
   This type describes an instance of a
   structure type associcated with a @racket[Struct-Property] named @racket[prop].
 }
 
-@defalias[Union U]
-@defalias[Intersection ∩]
-@defalias[→ ->]
-@defalias[case→ case->]
-@defalias[∀ All]
+@defalias[Union U "type constructor"]
+@defalias[Intersection ∩ "type constructor"]
+@defalias[→ -> "type constructor"]
+@defalias[case→ case-> "type constructor"]
+@defalias[∀ All "type"]
 
 @section{Other Types}
 
-@defform[(Option t)]{Either @racket[t] or @racket[#f]}
-@defform[(Opaque t)]{A type constructed using the @racket[#:opaque]
+@deftypeconstr[(Option t)]{Either @racket[t] or @racket[#f]}
+@deftypeconstr[(Opaque t)]{A type constructed using the @racket[#:opaque]
 clause of @racket[require/typed].}
 
 @(close-eval the-eval)

@@ -145,7 +145,7 @@
    "Contract Tests"
    (t (-Number . -> . -Number))
    (t (-Promise -Number))
-   (t (-set Univ)) 
+   (t (-set Univ))
    (t (make-pred-ty -Symbol))
    (t (->key -Symbol #:key -Boolean #t Univ))
    (t (make-Fun
@@ -156,7 +156,8 @@
    (t (-poly (a) (-> a a)))
    (t (-poly (a) (-mu X (-> a X))))
    (t (-poly (a) (-poly (b) (-> a a))))
-   (t (-poly (a) (-App (-poly (b) (-> a a)) (list -Number))))
+   ;; TODO enable the following test when type level lambdas are supported
+   ;; (t (-poly (a) (-App (-poly (b) (-> a a)) (list -Number))))
 
    (t (-poly (a) -Flonum))
    (t (-poly (a) (-set -Number)))
@@ -768,7 +769,7 @@
                #:msg #rx"expected: natural?.*given:.*-1.*and/c")
 
    ;; dependent functions // untyped
-   
+
    ;; identity on Integers
    (t-int (dep-> ([x : -Int])
                  (-refine/fresh n -Int (-eq (-lexp n) (-lexp x))))

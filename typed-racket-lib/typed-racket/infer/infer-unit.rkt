@@ -661,6 +661,14 @@
         [((Distinction: _ _ S) T)
          (cg S T obj)]
 
+        ;; resolve applications
+        [((App: _ _) _)
+         (let ([S (resolve-once S)])
+           (and S (cg S T obj)))]
+        [(_ (App: _ _))
+         (let ([T (resolve-once T)])
+           (and T (cg S T obj)))]
+
         ;; find *an* element of es which can be made to be a supertype of S
         ;; FIXME: we're using multiple csets here, but I don't think it makes a difference
         ;; not using multiple csets will break for: ???
@@ -776,14 +784,6 @@
         [((Set: t) (SequenceSeq: ts*))
          (cgen/seq context (seq (list t) -null-end) ts*)]
 
-
-        ;; resolve applications
-        [((App: _ _) _)
-         (let ([S (resolve-once S)])
-           (and S (cg S T obj)))]
-        [(_ (App: _ _))
-         (let ([T (resolve-once T)])
-           (and T (cg S T obj)))]
 
         ;; If the struct names don't match, try the parent of S
         ;; Needs to be done after App and Mu in case T is actually the current struct

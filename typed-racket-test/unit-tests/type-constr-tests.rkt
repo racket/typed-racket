@@ -46,13 +46,14 @@
                                                       (immutable-free-id-set)))
                              "*"))
    (test-begin (check-equal? (print-kind (make-type-constr -pair 2)) "(-> * * *)"))
-   (test-begin (check-equal? (print-kind Un) "(-> *... *)"))
+   (test-begin (check-equal? (print-kind Un) "(-o * ... *)"))
    (test-begin (check-exn exn:fail:contract:arity:type-constructor?
                           (lambda ()
                             ((make-type-constr -pair 2) -Number))))
    (begin
      (register-parsed-struct-sty! (tc/struct (list #'X #'Y) #'foo #'foo (list #'a) (list #'X)))
-     (test-begin (check-equal? (print-kind (lookup-type-constructor #'foo)))))))
+     (test-begin (check-equal? (print-kind (lookup-type-constructor #'foo))
+                               "(-> * * *)")))))
 
-
+(provide tests)
 (gen-test-main)

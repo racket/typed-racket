@@ -4,9 +4,9 @@
 
 (define deps '("srfi-lite-lib"
                "base"
-	       "net-lib"
+               "net-lib"
                "net-cookies-lib"
-	       ["web-server-lib" #:version "1.6"]
+               ["web-server-lib" #:version "1.6"]
                ["db-lib" #:version "1.5"]
                "draw-lib"
                "rackunit-lib"
@@ -27,7 +27,7 @@
 
 (define pkg-authors '(samth stamourv))
 
-(define version "1.14")
+(define version "1.15")
 
 (define license
   '(Apache-2.0 OR MIT))

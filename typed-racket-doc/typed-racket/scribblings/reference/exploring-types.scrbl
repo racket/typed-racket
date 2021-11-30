@@ -72,6 +72,8 @@ result indicates @racket[e] is productive and @racket[-o] indicates otherwise.
   (:kind Pairof)
   (:kind U)
 ]
+
+@history[#:added "1.15"]
 }
 
 @close-eval[the-top-eval]

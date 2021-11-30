@@ -1,3 +1,6 @@
+8.4
+- Add a kind system
+- Improve the productivity check for recursive types and type constructors
 8.3
 - support `prop:procedure`
 - move `typed/untyped-utils` to "typed-racket-lib" from "typed-racket-more"
@@ -109,7 +112,7 @@
 - Better keyword support.
 6.0.1
 - Types for classes (including row types, sealing contracts, etc).
-  Still experimental.  
+  Still experimental.
 - Contracts are now optimized; in particular, redundant contracts are omitted
 - Filters work with conditions that raise errors, as in the pattern
   (begin (unless (number? x) (error 'fail))
@@ -120,7 +123,7 @@
 - Type aliases support arbitrary mutual recursion
 - Inform check-syntax about expansion results
 - Add `typed/untyped-utils` library
-- Add `typed/syntax/stx`, `typed/pict`, 
+- Add `typed/syntax/stx`, `typed/pict`,
 - Significant test suite improvments
 - Improved support for `Struct-Type` values
 - Support keyword function definitions without annotation.

@@ -364,7 +364,7 @@
     ;; Most Top types are in the predefined table, the ones here
     ;; are not
     [(StructTop: name) `(make-StructTop ,(type->sexp name))]
-    [(TypeConstructor constr arity kind*? productive?)
+    [(TypeConstructor arity kind*? productive? constr)
      (define constr^ (gen-serialize-type-rep constr type->sexp))
      `(make-type-constr ,constr^ ,arity ,productive? #:kind*? ,kind*?)]))
 
@@ -489,7 +489,7 @@
    kind-env-map
    (lambda (id v)
      ;; TODO: turn this into a function
-     (match-define (TypeConstructor constr arity kind*? productive?) v)
+     (match-define (TypeConstructor arity kind*? productive? constr) v)
      (define constr^ (gen-serialize-type-rep constr type->sexp))
      #`(register-type-constructor! #'#,id
                                    (make-type-constr #,constr^ #,arity #,productive? #:kind*? #,kind*?)))))

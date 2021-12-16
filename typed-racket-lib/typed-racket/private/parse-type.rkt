@@ -69,7 +69,7 @@
                           (values (c:listof identifier?)
                                   (c:listof identifier?)
                                   boolean?))]
- [parse-type-or-type-constructor (syntax? . c:-> . (c:or/c Type? TypeConstructor?))]
+ [parse-type-or-type-constructor (syntax? . c:-> . (c:or/c Type? TypeConstructor? TypeConstructorStub?))]
  ;; Parse the given identifier using the lexical
  ;; context of the given syntax object
  [parse-type/id (syntax? c:any/c . c:-> . Type?)]
@@ -1305,7 +1305,7 @@
                                  #:ret-type-op? #t))
          (define args^ (let ([lvl
                               (match rator
-                                [(struct* TypeConstructor ([productive? #t]))
+                                [(and (? TypeConstructor?) (? type-constr-productive?))
                                  (add1 current-level)]
                                 ;; when checking user-defined type constructors, structure types
                                 ;; defined in the enclosing module have not been registerd yet, so we

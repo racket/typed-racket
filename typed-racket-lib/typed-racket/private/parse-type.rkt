@@ -860,14 +860,12 @@
                     (if res (parse-values-type res do-parse do-parse-multi) (-values (list -Void))))]
         [(:List^ ts ...)
          (parse-list-type stx
-                          (lambda (stx)
-                            (do-parse stx (add1 current-level)))
-                          (lambda (stx-li)
-                            (do-parse-multi stx-li (add1 current-level))))]
+                          do-parse
+                          do-parse-multi)]
         [(:List*^ ts ... t)
-         (-Tuple* (do-parse-multi #'(ts ...) (add1 current-level)) (do-parse #'t (add1 current-level)))]
+         (-Tuple* (do-parse-multi #'(ts ...)) (do-parse #'t))]
         [(:cons^ fst rst)
-         (-pair (do-parse #'fst (add1 current-level)) (do-parse #'rst (add1 current-level)))]
+         (-pair (do-parse #'fst) (do-parse #'rst))]
         [(:pred^ t)
          (make-pred-ty (do-parse #'t))]
         [((~and :case->^ operator) tys ...)

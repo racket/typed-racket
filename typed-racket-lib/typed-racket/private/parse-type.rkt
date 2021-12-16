@@ -118,6 +118,16 @@
     e ...))
 
 
+(define type-constr-stub-tbl (make-hash))
+
+(define (get-type-constr-stub id)
+  (hash-ref type-constr-stub-tbl (syntax->datum id) #f))
+
+(define-syntax-rule (define-literal-type-constr-stub id arity kind* productive?)
+  (begin
+    (define-literal-syntax-class #:for-label id)
+    (hash-set! type-constr-stub-tbl (quote id) (TypeConstructorStub arity kind* productive?))))
+
 (define-literal-syntax-class #:for-label car)
 (define-literal-syntax-class #:for-label cdr)
 (define-literal-syntax-class #:for-label vector-length)
@@ -133,8 +143,8 @@
 (define-literal-syntax-class #:for-label init-depend)
 (define-literal-syntax-class #:for-label Refinement)
 (define-literal-syntax-class #:for-label Instance)
-(define-literal-syntax-class #:for-label List)
-(define-literal-syntax-class #:for-label List*)
+(define-literal-type-constr-stub List 0 #t #t)
+(define-literal-type-constr-stub List* 1 #t #t)
 (define-literal-syntax-class #:for-label pred)
 (define-literal-syntax-class #:for-label ->)
 (define-literal-syntax-class #:for-label ->*)
@@ -1220,12 +1230,6 @@
          (cond
            [(current-in-struct-prop) (attribute id.type)]
            [else (parse-error (~a (syntax-e #'id) " is not allowed outside the type annotation for Struct-Property"))])]
-        [id:List*^
-         #:when ret-type-op?
-         (TypeConstructorStub 1 #t #t)]
-        [id:List^
-         #:when ret-type-op?
-         (TypeConstructorStub 0 #t #t)]
         [id:identifier
          (define v (syntax-e #'id))
          (cond
@@ -1261,6 +1265,9 @@
            [(bound-index? v)
             (parse-error "type variable must be used with ..."
                          "variable" v)]
+           [(and ret-type-op? (get-type-constr-stub #'id))
+            => (lambda (t)
+                 t)]
            ;; if it's a type alias, we expand it (the expanded type is stored in the HT)
            [(lookup-type-alias #'id do-parse (lambda () #f))
             =>

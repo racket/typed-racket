@@ -1222,6 +1222,12 @@
          (cond
            [(current-in-struct-prop) (attribute id.type)]
            [else (parse-error (~a (syntax-e #'id) " is not allowed outside the type annotation for Struct-Property"))])]
+        [id:List*^
+         #:when ret-type-op?
+         (TypeConstructorStub 1 #t #t)]
+        [id:List^
+         #:when ret-type-op?
+         (TypeConstructorStub 0 #t #t)]
         [id:identifier
          (define v (syntax-e #'id))
          (cond

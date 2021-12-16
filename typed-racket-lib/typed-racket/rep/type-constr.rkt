@@ -8,6 +8,7 @@
 (provide print-kind
          make-type-constr
          (struct-out TypeConstructor)
+         (struct-out TypeConstructorStub)
          (struct-out exn:fail:contract:arity:type-constructor))
 
 (define-values (prop:kind kind? kind-acc) (make-struct-type-property 'kind))
@@ -68,11 +69,21 @@
       (TypeConstructor type-maker arity kind*? productive)))
 
 
+(struct TypeConstructorStub [arity kind*? productive?] #:transparent)
+
 (define (print-kind type-or-type-op)
   (match type-or-type-op
     [(struct* TypeConstructor ([arity arity]
                                [kind*? kind*?]
                                [productive? productive?]))
+     (define mandatory-stars (make-list arity "*"))
+     (define all-stars (if kind*? (append mandatory-stars (list "* ..."))
+                           mandatory-stars))
+     (format "(~a ~a *)" (if productive? "->" "-o")
+             (string-join all-stars))]
+    [(struct* TypeConstructorStub ([arity arity]
+                                   [kind*? kind*?]
+                                   [productive? productive?]))
      (define mandatory-stars (make-list arity "*"))
      (define all-stars (if kind*? (append mandatory-stars (list "* ..."))
                            mandatory-stars))

@@ -345,12 +345,13 @@
     [(Arrow: dom #f '() rng)
      `(-Arrow (list ,@(map type->sexp dom))
               ,(type->sexp rng))]
-    [(Arrow: dom rest kws rng)
+    [(Arrow: dom rest kws rng rev?)
      `(make-Arrow
        (list ,@(map type->sexp dom))
        ,(and rest (type->sexp rest))
        (list ,@(map type->sexp kws))
-       ,(type->sexp rng))]
+       ,(type->sexp rng)
+       ,rev?)]
     [(Rest: tys )
      `(make-Rest (list ,@(map type->sexp tys)))]
     [(RestDots: ty db)

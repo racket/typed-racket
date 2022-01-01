@@ -84,6 +84,8 @@
                      [Poly-body* Poly-body]
                      [PolyDots-body* PolyDots-body]
                      [PolyRow-body* PolyRow-body]
+                     [Arrow:* Arrow:]
+                     [make-Arrow* make-Arrow]
                      [Intersection-prop* Intersection-prop]
                      [Struct-Property* make-Struct-Property]
                      [Struct-Property:* Struct-Property:]))
@@ -606,7 +608,10 @@
 (def-rep Arrow ([dom (listof Type?)]
                 [rst (or/c #f Rest? RestDots?)]
                 [kws (and/c (listof Keyword?) keyword-sorted/c)]
-                [rng SomeValues?])
+                [rng SomeValues?]
+                ;; indicates whether the dom comes after rst.
+                [rev? boolean?])
+  #:no-provide (Arrow: make-Arrow)
   [#:frees (f)
    (combine-frees
     (list* (f rng)
@@ -621,12 +626,32 @@
   [#:fmap (f) (make-Arrow (map f dom)
                           (and rst (f rst))
                           (map f kws)
-                          (f rng))]
+                          (f rng)
+                          rev?)]
   [#:for-each (f)
    (for-each f dom)
    (when rst (f rst))
    (for-each f kws)
    (f rng)])
+
+(define (make-Arrow* dom rst kws rng [rev? #f])
+  (make-Arrow dom rst kws rng rev?))
+
+(define-match-expander Arrow:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ dom rst kws rng)
+       #'(? Arrow?
+            (app (lambda (s)
+                   (match-define (Arrow: dom_ rst_ kw_ rng_ _) s)
+                   (list dom_ rst_ kw_ rng_))
+                 (list dom rst kws rng)))]
+      [(_ dom rst kws rng rev?)
+       #'(? Arrow?
+            (app (lambda (s)
+                   (match-define (Arrow: dom_ rst_ kw_ rng_ rev?_) s)
+                   (list dom_ rst_ kw_ rng_ rev?_))
+                 (list dom rst kws rng rev?)))])))
 
 (define/provide (Arrow-min-arity a)
   (length (Arrow-dom a)))
@@ -1635,11 +1660,12 @@
     (match rep
       ;; Functions
       ;; increment the level of the substituted object
-      [(Arrow: dom rst kws rng)
+      [(Arrow: dom rst kws rng rev?)
        (make-Arrow (map rec dom)
                    (and rst (rec rst))
                    (map rec kws)
-                   (rec/inc rng))]
+                   (rec/inc rng)
+                   rev?)]
       [(DepFun: dom pre rng)
        (make-DepFun (for/list ([d (in-list dom)])
                       (rec/inc d))

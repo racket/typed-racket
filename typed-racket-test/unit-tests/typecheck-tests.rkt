@@ -3457,14 +3457,11 @@
         (append* (list (list 10 23)))
         (-lst -PosByte)]
 
-       [tc-e
-        (append* (list (list 10 23)))
-        (-lst -PosByte)]
-
        ;; Issue #1178
-       ;; [tc-e
-       ;;  (append* '(a) '(b) '((c) (d)))
-       ;;  (-lst -Symbol)]
+       [tc-e
+        (append* '(a) '(b) '((c) (d)))
+        #:ret (ret (-lst -Symbol) #f #f)
+        #:expected (ret (-lst -Symbol) #f #f)]
 
        [tc-e
          (case-lambda

@@ -202,7 +202,7 @@
                      (RestDots? (Arrow-rst a))))
        (for/first-valid-inference
            #:in-arrs [a (in-list arrows)]
-           #:arr-match (Arrow: dom rst kws rng)
+           #:arr-match (Arrow: dom rst kws rng rev?)
            #:function-syntax f-stx
            #:args-syntax args-stx
            ;; only try inference if the argument lengths are appropriate
@@ -214,7 +214,11 @@
            ;; in props/objects).
            #:maybe-inferred-substitution
            (begin
-             (let ([rng (subst-dom-objs argtys argobjs rng)])
+             (let ([rng (subst-dom-objs argtys argobjs rng)]
+                   [argtys (cond
+                             [rev? (define-values (rst-args mand-args) (split-at argtys (- (length argtys) (length dom))))
+                                   (append mand-args rst-args)]
+                             [else argtys])])
                (extend-tvars vars
                              (infer/vararg vars null argtys dom rst rng
                                            (and expected

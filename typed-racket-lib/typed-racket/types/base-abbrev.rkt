@@ -145,19 +145,25 @@
                               #:rest [rst #f]
                               #:kws [kws null]
                               #:props [props -tt-propset]
-                              #:object [obj -empty-obj])
+                              #:object [obj -empty-obj]
+                              #:rev? [rev? #f])
   (c:->* ((c:listof Type?) (c:or/c SomeValues? Type?))
          (#:rest (c:or/c #f Type? RestDots? Rest?)
           #:kws (c:listof Keyword?)
           #:props PropSet?
-          #:object OptObject?)
+          #:object OptObject?
+          #:rev? boolean?)
          Arrow?)
   (make-Arrow dom
               (if (Type? rst) (make-Rest (list rst)) rst)
               (sort kws Keyword<?)
               (match rng
                 [(? SomeValues?) rng]
-                [_ (-values rng props obj)])))
+                [_ (-values rng props obj)])
+              rev?))
+
+(define-syntax-rule (tailing-dom->* dom rst rng)
+  (make-Fun (list (-Arrow dom rng #:rest rst #:rev? #t))))
 
 (define-syntax (->* stx)
   (define-syntax-class c

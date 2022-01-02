@@ -824,7 +824,7 @@
  (-polydots (c a b) ((list ((list a) (b b) . ->... . (-lst c)) (-lst a))
                      ((-lst b) b) . ->... .(-lst c)))]
 [append*
- (-poly (a) ((-lst (-lst a)) . -> . (-lst a)))]
+ (-poly (a) (tailing-dom->* (list (-lst (-lst a))) (-lst a) (-lst a)))]
 [flatten
  (Univ . -> . (-lst Univ))]
 [combinations (-poly (a) (cl->*

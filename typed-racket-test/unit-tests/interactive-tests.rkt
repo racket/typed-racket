@@ -272,4 +272,8 @@
     (test-form #rx"^$"
       (require 'mod-a))
     (test-form (regexp-quote "Nothing")
-               (:type (Bar Symbol)))))
+               (:type (Bar Symbol)))
+    (test-form #rx"^$"
+      (require racket/list))
+    (test-form (regexp-quote "(All (a) (-> (Listof a) * (Listof (Listof a)) (Listof a)))")
+               (:print-type append*))))

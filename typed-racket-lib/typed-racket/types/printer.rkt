@@ -353,13 +353,23 @@
 ;; Convert an arr (see type-rep.rkt) to its printable form
 (define (arr->sexp arr)
   (match arr
-    [(Arrow: dom rst kws rng)
+    [(Arrow: dom rst kws rng rev?)
      (define arrow-star? (and (Rest? rst) (> (length (Rest-tys rst)) 1)))
      (define dom-sexps (map type->sexp dom))
+     (define rst-sexp (match rst
+                        [(Rest: (list rst-t)) `(,(type->sexp rst-t) *)]
+                        [(Rest: rst-ts) `(#:rest-star ,(map type->sexp rst-ts))]
+                        [(RestDots: dty dbound)
+                         `(,(type->sexp dty) ... ,dbound)]
+                        [_ null]))
+     (define-values (front back)
+       (if rev?
+           (values rst-sexp dom-sexps)
+           (values dom-sexps rst-sexp)))
      (append
       (if arrow-star?
-          (list '->* dom-sexps)
-          (cons '-> dom-sexps))
+          (list '->* front)
+          (cons '-> front))
       ;; Format keyword types as strings because the square
       ;; brackets are significant for printing. Note that
       ;; as long as the resulting s-expressions are `display`ed
@@ -370,12 +380,7 @@
            (if req?
                (format "~a ~a" k (type->sexp t))
                (format "[~a ~a]" k (type->sexp t)))]))
-      (match rst
-        [(Rest: (list rst-t)) `(,(type->sexp rst-t) *)]
-        [(Rest: rst-ts) `(#:rest-star ,(map type->sexp rst-ts))]
-        [(RestDots: dty dbound)
-         `(,(type->sexp dty) ... ,dbound)]
-        [_ null])
+      back
       (match rng
         [(AnyValues: (? TrueProp?)) '(AnyValues)]
         [(AnyValues: p) `(AnyValues : ,(prop->sexp p))]

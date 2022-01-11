@@ -218,7 +218,7 @@
 (define-values (bin-dir _1 _2)
   (split-path (find-executable-path (find-system-path 'exec-file))))
 (define racketbc (build-path bin-dir "racketbc"))
-(define-runtime-path racketbc-harness "./racketbc-eval-server.rkt")
+(define-runtime-path racketbc-harness "./racket-eval-server.rkt")
 (define-values (rcs-process rcs-out rcs-in rcs-err)
   (cond [(file-exists? racketbc)
          (subprocess #f #f #f racketbc racketbc-harness)]

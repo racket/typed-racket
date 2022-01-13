@@ -6,21 +6,19 @@
                ("base" #:version "6.2.900.16")
                ("typed-racket-lib" #:version "1.10")
                "typed-racket-more"
-               "typed-racket-compatibility"
                "2d"
-               "rackunit-lib"
+               "typed-racket-compatibility"
                "racket-index"
+               "rackunit-lib"
                "compatibility-lib"
-               "math-lib"
-               "racket-test-core"))
+               "racket-test-core"
+               ))
 (define build-deps '("scheme-lib"
                      "base"
                      "racket-benchmarks"
-                     "rackunit-lib"
                      "compiler-lib"
-                     "redex-lib"
                      "htdp-lib"
-                     "sandbox-lib"))
+                     ))
 (define update-implies '("typed-racket-lib"
                          "typed-racket-more"
                          "typed-racket-compatibility"))
@@ -45,12 +43,12 @@
 ;; No need to compile the actual integration tests, just the harness.
 (define compile-omit-paths
   '("succeed"
+    "external"
     "fail"
     "xfail"
+    "racketcs-eval-server.rkt"
     "optimizer" ;; FIXME: should be improved by stamourv
-    "tr-random-testing.rkt" ;; Requires recompiling all of redex when rebuilding TR tests
-    "gui/succeed"
-    ))
+    "gui/succeed"))
 
 (define test-omit-paths '("fail"
                           "xfail"))

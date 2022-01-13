@@ -34,7 +34,7 @@ jobs:
         env:
           PLT_TR_CONTRACTS: 1
       - run: racket -l typed-racket-test -- --unit
-      - run: racket -l typed-racket-test -- --int --excl for-last.rkt
+      - run: racket -l typed-racket-test -- --int
       - run: xvfb-run racket -l typed-racket-test -- --guitests
         if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test -- --opt
@@ -44,10 +44,8 @@ jobs:
       - run: racket -l typed-racket-test/test-docs-complete
         if: ${{ !matrix.enable-contracts }}
       - run: raco setup math
-      - run: racket -l typed-racket-test -- --just typed-racket-test/succeed/for-last.rkt
-      - run: racket -l typed-racket-test -- --math
+      - run: racket -l typed-racket-test -- --external
+      - run: racket -l typed-racket-test/external/historical-counterexamples
         if: ${{ !matrix.enable-contracts }}
-      - run: racket -l typed-racket-test/historical-counterexamples
-        if: ${{ !matrix.enable-contracts }}
-      - run: racket -l typed-racket-test/tr-random-testing
+      - run: racket -l typed-racket-test/external/tr-random-testing
         if: ${{ !matrix.enable-contracts }}

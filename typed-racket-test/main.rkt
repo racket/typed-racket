@@ -9,7 +9,6 @@
          racket/match syntax/modcode
          racket/promise racket/runtime-path
          "unit-tests/all-tests.rkt"
-         "unit-tests/test-utils.rkt"
          "optimizer/run.rkt"
          "places.rkt" "send-places.rkt")
 
@@ -92,12 +91,12 @@
 
 
 
-(define (int-tests [excl (set)])
-  (define succ-tests (mk-tests "succeed"
+(define (int-tests [excl (set)] #:testsuite-dir [testsuite-dir "./"])
+  (define succ-tests (mk-tests (path->string (build-path testsuite-dir "succeed"))
                              (lambda (p thnk)
                                (check-not-exn thnk))
                              #:exclude excl))
-  (define fail-tests (mk-tests "fail"
+  (define fail-tests (mk-tests (path->string (build-path testsuite-dir "fail"))
                              (lambda (p thnk)
                                (define-values (pred info) (exn-pred p))
                                (parameterize ([error-display-handler void])
@@ -209,6 +208,16 @@
          int-tests unit-tests compile-benchmarks compile-math
          optimization-tests missed-optimization-tests)
 
+(define-namespace-anchor ns)
+
+(define (external-tests)
+  (make-test-suite "external tests"
+                   (list
+                    (parameterize ([current-namespace (namespace-anchor->namespace ns)])
+                      (dynamic-require 'typed-racket-test/external/math-typecheck-tests 'tests))
+                    (int-tests #:testsuite-dir "external/"))))
+
+
 (module+ main
   (require racket/vector racket/gui/dynamic rackunit racket/cmdline)
 
@@ -217,6 +226,7 @@
   (define unit? (make-parameter #f))
   (define int? (make-parameter #f))
   (define opt? (make-parameter #f))
+  (define external? (make-parameter #f))
   (define missed-opt? (make-parameter #f))
   (define bench? (make-parameter #f))
   (define math? (make-parameter #f))
@@ -230,6 +240,7 @@
    ["--unit" "run the unit tests" (unit? #t)]
    ["--int" "run the integration tests" (int? #t)]
    ["--opt" "run the optimization tests" (opt? #t)]
+   ["--external" "run the tests depending on external libraries (e.g., math-lib)" (external? #t)]
    ["--missed-opt" "run the missed optimization tests" (missed-opt? #t)]
    ["--benchmarks" "compile the typed benchmarks" (bench? #t)]
    ["--math" "compile the math library" (math? #t)]
@@ -246,7 +257,6 @@
         (error "GUI not available"))]
    #:multi
    ["--excl" test "exclude tests" (excl (set-add (excl) test))])
-
   (start-workers)
 
   (if (and (nightly?) (eq? 'cgc (system-type 'gc)))
@@ -258,11 +268,12 @@
                             (append (if (unit?)       (list unit-tests)                  '())
                                     (if (int?)        (list (int-tests (excl)))          '())
                                     (if (gui?)        (list (gui-tests))                 '())
+                                    (if (external?)   (list (external-tests))                 '())
                                     (if (opt?)        (list (optimization-tests))        '())
                                     (if (missed-opt?) (list (missed-optimization-tests)) '())
                                     (if (bench?)      (list (compile-benchmarks))        '())
                                     (if (math?)       (list (compile-math))              '())))])])
-        (unless (= 0 ((exec) to-run))
+       (unless (= 0 ((exec) to-run))
           (eprintf "Typed Racket Tests did not pass.\n")
           (exit 1)))))
 

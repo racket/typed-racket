@@ -375,7 +375,6 @@
   racket/function
   racket/future
   racket/list
-  racket/math
   racket/match
   racket/path
   racket/place
@@ -542,12 +541,6 @@
               1.0
               x))
           -NonNegFlonum)
-        (tc-e (expt (sqrt (+)) (cosh (flcos (real->double-flonum 0))))
-              -Real)
-        (tc-e (expt
-               (tan (real->double-flonum 6))
-               (lcm (*) (exact-round -1.7976931348623153e+308) 6))
-              -Real)
         (tc-e (exact->inexact (expt 10 (/ -120.0 20))) ; from rsound
               -NonNegInexactReal)
         (tc-e (flexpt 0.5 0.3) -NonNegFlonum)
@@ -555,8 +548,6 @@
         (tc-e (flexpt -2.0 -0.5) -Flonum) ; NaN
 
         (tc-e (let-values ([(x y) (integer-sqrt/remainder 0)]) (+ x y)) -Zero)
-        (tc-e (tanh (ann 0 Nonnegative-Integer)) -NonNegReal)
-        (tc-e (sinh (ann 0 Nonpositive-Integer)) -NonPosReal)
         (tc-e (angle -1) (t:Un -InexactReal -Zero))
         (tc-e (angle 2.3) -Zero)
         (tc-e (magnitude 3/4)
@@ -567,7 +558,6 @@
         (tc-e (min (ann 3 Fixnum) (ann -2 Negative-Fixnum)) -NegFixnum)
         (tc-e (fl/ 1.7976931348623157e+308 -0.0e0) -Flonum)
         (tc-e (exact->inexact (ann 3 Number)) (t:Un -InexactReal -InexactComplex))
-        (tc-e (bitwise-and (exact-round 1.7976931348623157e+308) (exact-round -29)) -Int)
         (tc-e (flexpt -0.0 -1.0) -Flonum)
         (tc-e (exact->inexact 3) -PosFlonum)
         (tc-e (exact->inexact -3) -NegFlonum)
@@ -1231,10 +1221,6 @@
                            [(b*) (remainder 5 12)])
                 (+ a b a* b*))
               -Nat]
-
-        [tc-e (sinh (let-values (((x y) (quotient/remainder (exact-round 1) (sqr (exact-round 1)))))
-                      y))
-              -Zero]
 
         [tc-e (raise-type-error 'foo "bar" 5) (t:Un)]
         [tc-e (raise-type-error 'foo "bar" 7 (list 5)) (t:Un)]
@@ -4795,53 +4781,6 @@
         #:ret (ret -Void #f #f)
         #:msg #rx"type mismatch"]
 
-        ;; pr615 : positive-integer?
-        [tc-e/t (let: ([x : Exact-Rational 3/2])
-                  (if (positive-integer? x) x 0))
-               -Nat]
-        [tc-e/t (let: ([x : Flonum 1.0])
-                  (if (positive-integer? x) x 2.0))
-               -PosFlonum]
-        [tc-e/t (let: ([x : (Un Flonum Positive-Integer) 1.0])
-                  (if (not (positive-integer? x)) x 1.0))
-               -Flonum]
-        ;; pr615 : negative-integer?
-        [tc-e/t (let: ([x : Exact-Rational -3/2])
-                  (if (negative-integer? x) x -5))
-               -NegInt]
-        [tc-e/t (let: ([x : Flonum 1.0])
-                  (if (negative-integer? x) x -2.0))
-               -NegFlonum]
-        [tc-e/t (let: ([x : (Un Flonum Negative-Integer) -1.0])
-                  (if (not (negative-integer? x)) x -1.0))
-               -Flonum]
-        ;; pr615 : nonpositive-integer?
-        [tc-e/t (let: ([x : Exact-Rational -3/2])
-                  (if (nonpositive-integer? x) x 0))
-               -NonPosInt]
-        [tc-e/t (let: ([x : Flonum -1.0])
-                  (if (nonpositive-integer? x) x 0.0))
-               -NonPosFlonum]
-        [tc-e/t (let: ([x : (Un Flonum Negative-Integer) -1.0])
-                  (if (not (nonpositive-integer? x)) x -1.0))
-               -Flonum]
-        ;; pr615 : nonnegative-integer?
-        [tc-e/t (let: ([x : Exact-Rational 3/2])
-                  (if (nonnegative-integer? x) x 0))
-               -Nat]
-        [tc-e/t (let: ([x : Flonum 1.0])
-                  (if (nonnegative-integer? x) x 2.0))
-               -NonNegFlonum]
-        [tc-e/t (let: ([x : (Un Flonum Natural) 1.0])
-                  (if (not (nonnegative-integer? x)) x 1.0))
-               -Flonum]
-        ;; pr615 : natural?
-        [tc-e/t (let: ([x : Real 1])
-                  (if (natural? x) x 1))
-               -Nat]
-        [tc-e/t (let: ([x : (Un Flonum Natural) 0.0])
-                  (if (not (natural? x)) x 1.0))
-               -Flonum]
 
         [tc-e
          (let ()

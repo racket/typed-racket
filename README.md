@@ -1,6 +1,9 @@
 # Typed Racket
 
 [![Build Status](https://travis-ci.org/racket/typed-racket.svg?branch=master)](https://travis-ci.org/racket/typed-racket)
+[![Racket](https://img.shields.io/badge/-Made%20with%20Racket-darkred?logo=racket)](https://racket-lang.org)
+[![Discourse users](https://img.shields.io/discourse/users?label=Discuss%20on%20Racket%20Discourse&logo=racket&server=https%3A%2F%2Fracket.discourse.group)](https://racket.discourse.group/)
+[![Racket Discord](https://img.shields.io/discord/571040468092321801?label=Chat%20on%20Racket%20Discord&logo=racket)](https://discord.gg/6Zq8sH5)
 
 Typed Racket is Racket's gradually-typed sister language which lets you add
 statically-checked type annotations to your programs. For more information,

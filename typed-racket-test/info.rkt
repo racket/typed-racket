@@ -53,6 +53,7 @@
     ))
 
 (define test-omit-paths '("fail"
+                          "external/fail"
                           "xfail"))
 (define test-command-line-arguments
   '(("succeed/priority-queue.scm" ())

@@ -199,13 +199,19 @@
    suite))
 
 
-(define (go tests) (test/gui tests))
+(define (go tests)
+  (if (null? tests)
+      0
+      (test/gui (make-test-suite "Typed Racket Tests"
+                                 tests))))
 (define (go/text tests)
-  (force (delay/thread (run-tests tests 'verbose))))
+  (if (null? tests)
+      0
+      (force (delay/thread (run-tests (make-test-suite "Typed Racket Tests" tests) 'verbose)))))
 
 (provide go go/text just-one places start-workers
          verbose?
-         int-tests unit-tests compile-benchmarks compile-math
+         int-tests compile-benchmarks compile-math
          optimization-tests missed-optimization-tests)
 
 (define-namespace-anchor ns)
@@ -259,21 +265,22 @@
    ["--excl" test "exclude tests" (excl (set-add (excl) test))])
   (start-workers)
 
+  (define unit-test-retcode (if (unit?)
+                                (run-unit-test-suite (places))
+                                0))
+
   (if (and (nightly?) (eq? 'cgc (system-type 'gc)))
       (printf "Skipping Typed Racket tests.\n")
       (let ([to-run (cond [(single) (single)]
                           [else
-                           (make-test-suite
-                            "Typed Racket Tests"
-                            (append (if (unit?)       (list unit-tests)                  '())
-                                    (if (int?)        (list (int-tests (excl)))          '())
-                                    (if (gui?)        (list (gui-tests))                 '())
-                                    (if (external?)   (list (external-tests))                 '())
-                                    (if (opt?)        (list (optimization-tests))        '())
-                                    (if (missed-opt?) (list (missed-optimization-tests)) '())
-                                    (if (bench?)      (list (compile-benchmarks))        '())
-                                    (if (math?)       (list (compile-math))              '())))])])
-       (unless (= 0 ((exec) to-run))
+                           (append (if (int?)        (list (int-tests (excl)))          '())
+                                   (if (gui?)        (list (gui-tests))                 '())
+                                   (if (external?)   (list (external-tests))            '())
+                                   (if (opt?)        (list (optimization-tests))        '())
+                                   (if (missed-opt?) (list (missed-optimization-tests)) '())
+                                   (if (bench?)      (list (compile-benchmarks))        '())
+                                   (if (math?)       (list (compile-math))              '()))])])
+        (unless (and (= unit-test-retcode 0) (= 0 ((exec) to-run)))
           (eprintf "Typed Racket Tests did not pass.\n")
           (exit 1)))))
 

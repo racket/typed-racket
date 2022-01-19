@@ -53,8 +53,8 @@
 (struct fold-result [success failure err names])
 
 ;; This parallel test runner is somewhat unrelated to typed racket and it treats
-;; a test suite as a smallest unit, which is not ideal all, but it gives us a
-;; performance improvement and its implementation is
+;; a test suite as the smallest unit, which is not ideal at all, but it gives us
+;; a performance improvement and its implementation is
 ;; straightforward. Ultimately, we can reuse parts or even all of `start-worker`
 ;; and `run` below to parallize rackunit after instances of test-case and
 ;; test-suite become place-message-allowable

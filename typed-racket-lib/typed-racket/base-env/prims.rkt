@@ -393,8 +393,8 @@ the typed racket language.
          stx
        (begin (define-syntax name (define-for-variant #'untyped-name)) ...))]))
 
-;; for/vector:, for/flvector:, for/and:, for/first: and
-;; for/last:'s expansions can't currently be handled by the typechecker.
+;; for/first: and for/and:'s expansions
+;; can't currently be handled by the typechecker.
 (define-for-variants
   (for/list: for/list)
   (for/and: for/and)

@@ -1342,7 +1342,7 @@
 ;raise-type-error (in index)
 [raise-mismatch-error (-> Sym -String Univ (Un))]
 ;raise-arity-error
-[raise-syntax-error (->opt (-opt Sym) -String [Univ Univ (-lst (-Syntax Univ))] (Un))]
+[raise-syntax-error (->optkey (-opt Sym) -String [Univ Univ (-lst (-Syntax Univ)) -String] #:exn (-> (-lst (-Syntax Univ)) -String -Cont-Mark-Set -Exn) #f (Un))]
 
 [unquoted-printing-string? (make-pred-ty -Unquoted-Printing-String)]
 [unquoted-printing-string (-> -String -Unquoted-Printing-String)]

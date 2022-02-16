@@ -90,7 +90,12 @@
   (match stxs
     [(list stx ...)
      (let ([anns (for/list ([s (in-list stxs)])
-                   (type-annotation s #:infer #t))])
+                   (cond
+                     ;; if the lhs identifier is the rest parameter, its type is
+                     ;; (Listof ty), where ty is the annotated type
+                     [(rst-arg-property s)
+                      (make-Listof (type-annotation s #:infer #t))]
+                     [else (type-annotation s #:infer #t)]))])
        (if (for/and ([a (in-list anns)]) a)
            (match (tc-expr/check expr (ret anns))
              [(tc-results: tcrs _) tcrs])

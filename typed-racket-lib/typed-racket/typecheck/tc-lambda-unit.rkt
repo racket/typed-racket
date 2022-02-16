@@ -96,7 +96,7 @@
 ;;                 and returns the resulting Arrow?.
 ;; arg-names: The identifiers of the positional args
 ;; arg-types: The types of the positional args
-;; rest-arg+type: Either #f for no rest argument or (cons rest-id rest-type)
+;; rest-arg+type: Either #f for no rest argument or (list rest-id rest-type (Listof rest-type))
 ;;                where rest-id is the identifier of the rest arg,
 ;;                and (ListOf rest-type) is the type that identifier would
 ;;                have in the function body
@@ -263,6 +263,7 @@
 (define/cond-contract (tc/opt-lambda-clause arg-list body aux-table)
   (-> (listof identifier?) syntax? free-id-table?
       (listof Arrow?))
+
   ;; arg-types: Listof[Type?]
   (define arg-types
     (for/list ([a (in-list arg-list)])
@@ -276,7 +277,30 @@
                                      ty)]
                                 [else Univ])))))
 
-  (list (tc-lambda-body arg-list arg-types body)))
+
+  (list
+   (match (free-id-table-ref aux-table (last arg-list) #f)
+     [id #:when (and id (rst-arg-property id))
+      ;; when an opt-lambda with a rest parameter is expanded, the resulting
+      ;; expression contains a generated lambda, which is being checked and whose
+      ;; last positional parameter `new-rest` corresponds to the rest parameter of the original
+      ;; function.
+
+      ;; we use `arg-types` to make the arrow consistent with the original type
+      ;; annotation, i.e. `new-rest` needs to have the same type as the original
+      ;; function's the rest parameter. In order to check the function body, we
+      ;; duplicate `arg-types` with the last element changed from `ty` to
+      ;; `(Listof ty`)
+      (Arrow-update
+       (tc-lambda-body arg-list
+                       (list-update arg-types (sub1 (length
+                                                     arg-types))
+                                    (lambda (ty) (make-Listof ty)))
+                       body)
+       dom
+       (lambda (dom)
+         arg-types))]
+     [_ (tc-lambda-body arg-list arg-types body)])))
 
 ;; restrict-to-arity : Arrow? nat -> (or/c #f Arrow?)
 ;; either produces a new arrow which is a subtype of arr with arity n,

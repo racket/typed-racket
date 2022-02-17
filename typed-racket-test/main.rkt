@@ -271,7 +271,7 @@
 
   (if (and (nightly?) (eq? 'cgc (system-type 'gc)))
       (printf "Skipping Typed Racket tests.\n")
-      (let ([to-run (cond [(single) (single)]
+      (let ([to-run (cond [(single) (list (single))]
                           [else
                            (append (if (int?)        (list (int-tests (excl)))          '())
                                    (if (gui?)        (list (gui-tests))                 '())

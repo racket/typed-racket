@@ -35,6 +35,7 @@ jobs:
           PLT_TR_CONTRACTS: 1
       - run: racket -l typed-racket-test -- --unit
       - run: racket -l typed-racket-test -- --int
+      - run: racket -l typed-racket-test -- --just typed-racket-test/succeed/cl.rkt
       - run: xvfb-run racket -l typed-racket-test -- --guitests
         if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test -- --opt

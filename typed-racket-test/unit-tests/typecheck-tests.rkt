@@ -2914,6 +2914,15 @@
              (->optkey Univ [-String] #:rest Univ (make-Values (list (make-Result -String -true-propset -empty-obj))))]
        [tc-e (tr:lambda (x [y : String "a"] . [z : String *]) (string-append y "b"))
              (->optkey Univ [-String] #:rest -String (make-Values (list (make-Result -String -true-propset -empty-obj))))]
+       [tc-e (tr:lambda ([x : String "a"] . [y : Integer *]) : Integer
+                        (+ 10 (list-ref y 0)))
+             (->optkey [-String] #:rest -Integer (make-Values (list (make-Result -Integer -true-propset -empty-obj))))]
+       [tc-err (let ()
+                 (tr:lambda ([opt #f] . [vs : (Vectorof Any) *])
+                            (vector-ref vs 0))
+                 (void))
+               #:ret (tc-ret -Void)
+               #:msg (regexp-quote "given: (Listof (Vectorof Any))")]
        [tc-e (tr:lambda (x y [z : String "a"]) (string-append z "b"))
              (->opt Univ Univ [-String] (make-Values (list (make-Result -String -true-propset -empty-obj))))]
        [tc-e (tr:lambda (w x [y : String "y"] [z : String "z"]) (string-append y z))

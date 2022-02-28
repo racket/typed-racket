@@ -255,12 +255,14 @@
   #:opaque
   (pattern rest:id #:attr form #'rest)
   (pattern (rest:id : type:expr :star)
-           #:attr form (type-label-property #'rest #'type))
+           #:attr form (rst-arg-property (type-label-property #'rest #'type) #t))
   (pattern (rest:id : type:expr bnd:ddd/bound)
            #:attr bound (attribute bnd.bound)
-           #:attr form (type-dotted-property
-                        (type-label-property #'rest #'type)
-                        (attribute bound))))
+           #:attr form (rst-arg-property
+                        (type-dotted-property
+                         (type-label-property #'rest #'type)
+                         (attribute bound))
+                        #t)))
 
 (define-syntax-class lambda-formals
   #:attributes (opt-property kw-property erased)

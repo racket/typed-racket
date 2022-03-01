@@ -33,10 +33,10 @@ the typed racket language.
 (provide (except-out (all-defined-out) -let-internal define-for-variants
                      def-redirect
                      define-for*-variants with-handlers: with-handlers*: define-for/acc:-variants
-                     base-for/flvector: base-for/vector -lambda -define -do -let
+                     base-for/flvector: base-for/vector -define -do -let
                      -let* -let*-values -let-values -let/cc -let/ec -letrec -letrec-values)
          (all-from-out "top-interaction.rkt")
-         (all-from-out "case-lambda.rkt")
+         (all-from-out "prims-lambda.rkt")
          (all-from-out (submod "prims-contract.rkt" forms))
          define-type-alias
          define-new-subtype
@@ -46,11 +46,9 @@ the typed racket language.
          :
          (rename-out [define-typed-struct define-struct:]
                      [define-typed-struct define-struct]
+                     [-lambda lambda]
                      [-struct struct]
                      [-struct struct:]
-                     [lambda: λ:]
-                     [-lambda lambda]
-                     [-lambda λ]
                      [-define define]
                      [-let let]
                      [-let* let*]
@@ -111,7 +109,7 @@ the typed racket language.
          "top-interaction.rkt"
          "base-types.rkt"
          "base-types-extra.rkt"
-         "case-lambda.rkt"
+         (rename-in "prims-lambda.rkt" [lambda -lambda])
          "prims-struct.rkt"
          "ann-inst.rkt"
          racket/unsafe/ops
@@ -168,19 +166,6 @@ the typed racket language.
 (define-for-syntax (with-type* expr ty)
   (with-type #`(ann #,expr #,ty)))
 
-(define-syntax (plambda: stx)
-  (syntax-parse stx
-    [(plambda: tvars:type-variables formals . body)
-     (plambda-property
-       (syntax/loc stx (lambda: formals . body))
-       #'(tvars.vars ...)) ]))
-
-(define-syntax (popt-lambda: stx)
-  (syntax-parse stx
-    [(popt-lambda: tvars:type-variables formals . body)
-     (plambda-property
-       (syntax/loc stx (opt-lambda: formals . body))
-       #'(tvars.vars ...))]))
 
 (define-syntax (pdefine: stx)
   (syntax-parse stx #:literals (:)
@@ -190,16 +175,6 @@ the typed racket language.
          (begin
           (: nm : type)
           (define (nm . formals.ann-formals) . body))))]))
-
-(define-syntax (lambda: stx)
-  (syntax-parse stx
-    [(lambda: formals:annotated-formals . body)
-     (syntax/loc stx (-lambda formals.ann-formals . body))]))
-
-(define-syntax (opt-lambda: stx)
-  (syntax-parse stx
-    [(opt-lambda: formals:opt-lambda-annotated-formals . body)
-     (syntax/loc stx (-lambda formals.ann-formals . body))]))
 
 (define-syntaxes (-let-internal -let* -letrec)
   (let ([mk (lambda (form)
@@ -683,47 +658,6 @@ the typed racket language.
         (quasisyntax/loc stx (#,l/c k.ann-name . body))]))
     (values (mk #'let/cc) (mk #'let/ec))))
 
-
-;; lambda with optional type annotations, uses syntax properties
-(define-syntax (-lambda stx)
-  (syntax-parse stx
-    #:literals (:)
-    [(_ vars:maybe-lambda-type-vars
-        formals:lambda-formals
-        return:return-ann
-        (~describe "body expression or definition" e) ...
-        (~describe "body expression" last-e))
-     ;; Annotate the last expression with the return type. Should be correct
-     ;; since if a function returns, it has to do so through the last expression
-     ;; even with continuations.
-     (define/with-syntax last-e*
-       (if (attribute return.type)
-           #`(ann last-e #,(attribute return.type))
-           #'last-e))
-
-     ;; if the lambda form being checked is a polymorphic function, tag its
-     ;; parameters with property `from-lambda'.
-     (define (maybe-set-from-lambda type-vars formals)
-       (cond
-         [(and type-vars (stx-list? formals))
-          (stx-map (lambda (x)
-                     (from-plambda-property x #t))
-                   formals)]
-         [type-vars (from-plambda-property formals #t)]
-         [else formals]))
-
-     (define d (with-syntax ([erase-formals (maybe-set-from-lambda
-                                             (attribute vars.type-vars)
-                                             (attribute formals.erased))])
-                 (syntax/loc stx (λ erase-formals e ... last-e*))))
-     (define d/prop
-       (if (attribute formals.kw-property)
-           (kw-lambda-property d (attribute formals.kw-property))
-           (opt-lambda-property d (attribute formals.opt-property))))
-     ;; attach a plambda property if necessary
-     (if (attribute vars.type-vars)
-         (plambda-property d/prop (attribute vars.type-vars))
-         d/prop)]))
 
 ;; for backwards compatibility, note that this only accepts formals
 ;; with type annotations and also accepts type variables differently

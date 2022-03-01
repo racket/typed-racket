@@ -73,7 +73,7 @@
 ;;; Helpers
 
 (define-splicing-syntax-class dtsi-fields
-  #:attributes (mutable prefab type-only maker extra-maker [prop 1])
+  #:attributes (mutable prefab type-only maker extra-maker [proc-ty 1] [prop 1])
  (pattern
   (~seq
     (~or (~optional (~and #:mutable (~bind (mutable #t))))
@@ -81,6 +81,7 @@
          (~optional (~and #:type-only (~bind (type-only #t))))
          (~optional (~seq #:extra-maker extra-maker))
          (~optional (~seq #:maker maker))
+         (~optional (~seq #:proc-ty (proc-ty ...)))
          (~seq #:property prop))
     ...)))
 
@@ -91,7 +92,7 @@
 
 (define-syntax-class define-typed-struct-body
   #:attributes (name type-name mutable prefab type-only maker extra-maker nm
-                     (tvars 1) (fields 1) (types 1) properties)
+                     (tvars 1) (fields 1) (types 1) proc-ty properties)
   (pattern ((~optional (tvars:id ...) #:defaults (((tvars 1) null)))
             nm:struct-name type-name:id ([fields:id : types:expr] ...) options:dtsi-fields)
            #:attr name #'nm.nm
@@ -100,6 +101,7 @@
            #:attr type-only (attribute options.type-only)
            #:with maker^ (or (attribute options.maker) #'nm.nm)
            #:attr maker #'maker^
+           #:attr proc-ty (attribute options.proc-ty)
            #:attr extra-maker (let ([em (attribute options.extra-maker)]
                                     [m #'maker^])
                                 ;; extra-maker is only assigned to an id if

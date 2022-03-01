@@ -2,6 +2,9 @@
 
 (require syntax/parse/pre
          racket/private/immediate-default
+         racket/list
+         racket/set
+         racket/match
          "../private/parse-classes.rkt"
          "../private/syntax-properties.rkt"
          (for-label "colon.rkt"))
@@ -188,22 +191,26 @@
   (pattern (~seq) #:attr type-vars #f))
 
 (define-splicing-syntax-class kw-formal
-  #:attributes (form id default type kw)
+  #:attributes (form id default type kw type-form)
   #:literal-sets (colon)
   (pattern (~seq kw:keyword id:id)
            #:with form #'(kw id)
            #:attr default #f
-           #:attr type #f)
+           #:attr type #f
+           #:attr type-form (list #'kw #f))
   (pattern (~seq kw:keyword [id:id default:expr])
            #:with i-id (if (immediate-default? #'default)
                            (optional-immediate-arg-property #'id #true)
                            (optional-non-immediate-arg-property #'id #true))
            #:with form #`(kw [i-id default])
-           #:attr type #f)
+           #:attr type #f
+           #:attr type-form (list #'kw #f))
   (pattern (~seq kw:keyword [id:id : type:expr])
            #:with form #`(kw #,(type-label-property #'id #'type))
-           #:attr default #f)
+           #:attr default #f
+           #:attr type-form (list #'kw #'type))
   (pattern (~seq kw:keyword [id:id : type:expr default:expr])
+           #:attr type-form (list #'kw #'type)
            #:with t-id (type-label-property #'id #'type)
            #:with i-id (if (immediate-default? #'default)
                            (optional-immediate-arg-property #'t-id #true)
@@ -212,22 +219,24 @@
 
 (define-splicing-syntax-class mand-formal
   #:description "lambda argument"
-  #:attributes (form id default type kw)
+  #:attributes (form id default type kw type-form)
   #:literal-sets (colon)
   (pattern id:id
            #:with form #'(id)
            #:attr default #f
            #:attr type #f
+           #:attr type-form #f
            #:attr kw #f)
   (pattern [id:id : type:expr]
            #:with form #`(#,(type-label-property #'id #'type))
            #:attr default #f
+           #:attr type-form #'type
            #:attr kw #f)
   (pattern :kw-formal))
 
 (define-splicing-syntax-class opt-formal
   #:description "optional lambda argument"
-  #:attributes (form id default type kw)
+  #:attributes (form id default type kw type-form)
   #:literal-sets (colon)
   (pattern [id:id default:expr]
            #:with form #`([#,(if (immediate-default? #'default)
@@ -235,6 +244,7 @@
                                  (optional-non-immediate-arg-property #'id #t))
                            default])
            #:attr type #f
+           #:attr type-form #f
            #:attr kw #f)
   (pattern [id:id : type:expr default:expr]
            #:with form #`([#,(let ([t-id (type-label-property #'id #'type)])
@@ -242,7 +252,8 @@
                                    (optional-immediate-arg-property t-id #t)
                                    (optional-non-immediate-arg-property t-id #t)))
                            default])
-           #:attr kw #f)
+           #:attr kw #f
+           #:attr type-form #f)
   (pattern :kw-formal))
 
 (define-syntax-class rest-arg
@@ -265,48 +276,82 @@
                         #t)))
 
 (define-syntax-class lambda-formals
-  #:attributes (opt-property kw-property erased)
+  #:attributes (opt-property kw-property erased mand-tys opt-tys)
   (pattern (~or (mand:mand-formal ... opt:opt-formal ... . rest:rest-arg)
                 (~and (mand:mand-formal ... opt:opt-formal ...)
                       (~bind [rest.form #'()])))
-           #:attr kw-property
-           ;; separate raw keywords into mandatory and optional and
-           ;; put them in a struct for later use by tc-expr
-           (let ([kws (append (attribute mand.kw)
-                              (attribute opt.kw))]
-                 [defaults (append (attribute mand.default)
-                                   (attribute opt.default))])
-             (define-values (mand-kws opt-kws opt-kws-supplied)
-               (for/fold ([mand-kws '()]
-                          [opt-kws '()]
-                          [opt-kws-supplied '()])
-                         ([kw (in-list kws)]
-                          [default (in-list defaults)]
-                          #:when kw)
-                 (if default
-                     (values mand-kws
-                             (cons (syntax-e kw) opt-kws)
-                             (if (immediate-default? default)
-                                 (cons (syntax-e kw) opt-kws-supplied)
-                                 opt-kws-supplied))
-                     (values (cons (syntax-e kw) mand-kws)
-                             opt-kws
-                             opt-kws-supplied))))
-             (define pos-mand-count
-               (for/sum ([kw (in-list kws)]
-                         [default (in-list defaults)]
-                         #:unless default
-                         #:unless kw)
-                 1))
-             (define pos-opt-supplied?s
-               (for/list ([kw (in-list kws)]
-                          [default (in-list defaults)]
-                          #:when default
-                          #:unless kw)
-                 (immediate-default? default)))
-             (and (or (not (null? mand-kws))
-                      (not (null? opt-kws)))
-                  (lambda-kws mand-kws opt-kws opt-kws-supplied pos-mand-count pos-opt-supplied?s)))
+           #:do [(define kw-property
+                   ;; separate raw keywords into mandatory and optional and
+                   ;; put them in a struct for later use by tc-expr
+                   (let ([kws (append (attribute mand.kw)
+                                      (attribute opt.kw))]
+                         [defaults (append (attribute mand.default)
+                                           (attribute opt.default))])
+                     (define-values (mand-kws opt-kws opt-kws-supplied)
+                       (for/fold ([mand-kws '()]
+                                  [opt-kws '()]
+                                  [opt-kws-supplied '()])
+                                 ([kw (in-list kws)]
+                                  [default (in-list defaults)]
+                                  #:when kw)
+                         (if default
+                             (values mand-kws
+                                     (cons (syntax-e kw) opt-kws)
+                                     (if (immediate-default? default)
+                                         (cons (syntax-e kw) opt-kws-supplied)
+                                         opt-kws-supplied))
+                             (values (cons (syntax-e kw) mand-kws)
+                                     opt-kws
+                                     opt-kws-supplied))))
+                     (define pos-mand-count
+                       (for/sum ([kw (in-list kws)]
+                                 [default (in-list defaults)]
+                                 #:unless default
+                                 #:unless kw)
+                         1))
+                     (define pos-opt-supplied?s
+                       (for/list ([kw (in-list kws)]
+                                  [default (in-list defaults)]
+                                  #:when default
+                                  #:unless kw)
+                         (immediate-default? default)))
+                     (and (or (not (null? mand-kws))
+                              (not (null? opt-kws)))
+                          (lambda-kws mand-kws opt-kws opt-kws-supplied pos-mand-count pos-opt-supplied?s))))
+
+                 (define (part-pred pset)
+                   (match-lambda
+                     [(list k _)
+                      #:when (let ()
+                               (set-member? pset (syntax-e k)))
+                      #f]
+                     [_ #t]))
+
+                 (define-values (all-mand-tys all-opt-tys)
+                   (cond
+                     [kw-property
+                      (define-values (mand-kw-set opt-kw-set)
+                        (values
+                         (list->set (lambda-kws-mand kw-property))
+                         (list->set (lambda-kws-opt kw-property))))
+
+                      (define-values (mand-tys^ opt-kw^)
+                        (partition (part-pred opt-kw-set)
+                                   (attribute mand.type-form)))
+
+                      (define-values (opt-tys^ mand-kw^)
+                        (partition (part-pred mand-kw-set)
+                                   (attribute opt.type-form)))
+
+                      (values (append mand-tys^ mand-kw^)
+                              (append opt-tys^ opt-kw^))]
+                     [else
+                      (values (attribute mand.type-form) (attribute opt.type-form))]))]
+           #:attr kw-property kw-property
+           #:attr mand-tys
+           (flatten all-mand-tys)
+           #:attr opt-tys
+           (flatten all-opt-tys)
            #:attr opt-property
            (list (length (attribute mand))
                  (length (attribute opt))

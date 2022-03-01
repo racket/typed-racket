@@ -67,8 +67,7 @@
          substitute-names
          set-struct-property-pred!
          DepFun/ids:
-         Struct-subflds
-         Struct-update-proc!
+         HasArrows:
          (rename-out [Union:* Union:]
                      [Intersection:* Intersection:]
                      [make-Intersection* make-Intersection]
@@ -811,23 +810,8 @@
   (define b (Struct-proc sty))
   (and b (unbox b)))
 
-;; returns non-inherited fields of a structure
-(define/cond-contract (Struct-subflds sty)
-  (-> Struct? (listof fld?))
-  (define all-flds (Struct-flds sty))
-  (define offset
-    (cond
-      [(Struct-parent sty) => (lambda (psty)
-                                (length (Struct-flds psty)))]
-      [else 0]))
-  (drop all-flds offset))
-
 (define (make-Struct* name parent flds proc poly? pred-id properties)
   (make-Struct name parent flds (box proc) poly? pred-id properties))
-
-(define (Struct-update-proc! sty ty)
-  (define bv (Struct-proc sty))
-  (set-box! bv ty))
 
 (define-match-expander Struct:*
   (lambda (stx)
@@ -1787,3 +1771,18 @@
     (syntax-parse stx
       [(_) #'(Name: _ _ #t)]
       [(_ name-pat) #'(Name: name-pat _ #t)])))
+
+
+;;***************************************************************
+;; Helper Match Expanders
+;;***************************************************************
+(define (collect-arrows types)
+  (append-map (match-lambda
+                         [(Fun: (list arrows ...)) arrows]
+                         [_ null])
+              types))
+
+(define-match-expander HasArrows:
+  (lambda (stx)
+    (syntax-parse stx
+      [(_ arrs) #'(app collect-arrows (? pair? arrs))])))

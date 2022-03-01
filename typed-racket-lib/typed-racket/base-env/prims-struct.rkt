@@ -13,6 +13,7 @@
          "colon.rkt"
          "base-types-extra.rkt"
          "ann-inst.rkt"
+         "prims-lambda.rkt"
          (for-syntax racket/base syntax/parse/pre
                      racket/lazy-require
                      syntax/stx
@@ -21,8 +22,10 @@
                      racket/match
                      racket/struct-info
                      "annotate-classes.rkt"
+                     "../rep/core-rep.rkt"
                      "type-name-error.rkt"
                      "../utils/struct-info.rkt"
+                     "../utils/tc-utils.rkt"
                      "../private/parse-classes.rkt"
                      "../private/syntax-properties.rkt"
                      "../typecheck/internal-forms.rkt"))
@@ -68,15 +71,15 @@
              #:with new-spec #'(name)))
 
   (define-splicing-syntax-class maybe-type-vars
-   #:description "optional list of type variables"
-   #:attributes ((vars 1))
-   (pattern (vars:id ...))
-   (pattern (~seq) #:attr (vars 1) null))
+    #:description "optional list of type variables"
+    #:attributes ((vars 1))
+    (pattern (vars:id ...))
+    (pattern (~seq) #:attr (vars 1) null))
 
-  (define-splicing-syntax-class struct-options
+  (define-splicing-syntax-class (struct-options st-name type-vars)
     #:description "typed structure type options"
     #:attributes (guard mutable? transparent? prefab? cname ecname type untyped
-                  [prop 1] [prop-val 1])
+                        [prop 1] proc-ty)
     (pattern (~seq (~or (~optional (~seq (~and #:mutable mutable?)))
                         (~optional (~seq (~and #:transparent transparent?)))
                         (~optional (~seq (~and #:prefab prefab?)))
@@ -91,15 +94,33 @@
                         (~optional (~seq #:guard guard:expr))
                         (~seq #:property prop:expr prop-val:expr))
                    ...)
+             #:do [(define-values (prop-vals proc-tys)
+                     (for/lists (prop-vals
+                                 proc-tys
+                                 #:result (values prop-vals
+                                                  (filter values proc-tys)))
+                               ([val (attribute prop-val)]
+                                [name (attribute prop)])
+                       (cond
+                         [(free-identifier=? name #'prop:procedure)
+                          (define tname (or (attribute type) st-name))
+                          (define sty-stx (if (null? type-vars)
+                                              tname
+                                              (quasisyntax/loc tname
+                                                (#,tname #,@type-vars))))
+                          (maybe-extract-prop-proc-ty-ann sty-stx val)]
+                         [else (values val #f)])))]
+             #:attr proc-ty (if (null? proc-tys) #f
+                                proc-tys)
              #:attr untyped #`(#,@(if (attribute mutable?) #'(#:mutable) #'())
                                #,@(if (attribute transparent?) #'(#:transparent) #'())
                                #,@(if (attribute prefab?) #'(#:prefab) #'())
                                #,@(if (attribute cname) #'(#:constructor-name cname) #'())
                                #,@(if (attribute ecname) #'(#:extra-constructor-name ecname) #'())
                                #,@(if (attribute guard) #'(#:guard guard) #'())
-                               #,@(append* (for/list ([prop (in-list (attribute prop))]
-                                                      [prop-val (in-list (attribute prop-val))])
-                                             (list #'#:property prop prop-val))))))
+                               #,@(append* (for/list ([name (in-list (attribute prop))]
+                                                      [val (in-list prop-vals)])
+                                             (list #'#:property name val))))))
 
   (define-syntax-class dtsi-struct-name
     #:description "struct name (with optional super-struct name)"
@@ -159,7 +180,8 @@
 ;; User-facing macros for defining typed structure types
 (define-syntax (define-typed-struct stx)
   (syntax-parse stx
-    [(_ vars:maybe-type-vars nm:struct-name (fs:fld-spec ...) opts:struct-options)
+    [(_ vars:maybe-type-vars nm:struct-name (fs:fld-spec ...)
+        (~var opts (struct-options (attribute nm.name) (attribute vars.vars))))
      (quasisyntax/loc stx
        (-struct #,@#'vars
                 #,@(if (stx-pair? #'nm)
@@ -176,10 +198,55 @@
                              (second (build-struct-names #'nm.name null #t #t))))
                 . opts))]))
 
+
+;; This function tries to extract the type annotation on a lambda
+;; expression for prop:precedure.
+;;
+;; sty-stx: the syntax that represents a structure type. For a monomorhpic
+;; structure type, sty-stx is the identifier for its name. For a polymorphic
+;; structure type, sty-stx is in the form (structure-name type-vars ...)
+;;
+;; val: the value expression for prop:procedure
+;;
+;;Syntax Expr -> (values Syntax Syntax)
+(define-for-syntax (maybe-extract-prop-proc-ty-ann sty-stx val)
+  (syntax-parse val
+    #:literals (lambda λ ann)
+    [((~or lambda λ) formals:lambda-formals ret-ty:return-ann _)
+     (define mand-tys (attribute formals.mand-tys))
+     (define self-ty (if (car mand-tys)
+                         (car mand-tys)
+                         sty-stx))
+
+     (define (default-any v)
+       (if (not v)
+           Univ
+           v))
+
+     (define (add-any li)
+       (map default-any li))
+
+     (define remaining-tys (cdr mand-tys))
+
+     (define ty-stx
+       (quasisyntax/loc val
+         #,(st-proc-ty-property #`(->* #,(cons self-ty (add-any remaining-tys))
+                                       #,(add-any (attribute formals.opt-tys))
+                                       #,(default-any (attribute ret-ty.type)))
+                                val)))
+     ;; add `ann` to the property value. This ensures we have an expected type
+     ;; and therefore the annotation on the receiver can be omitted when
+     ;; checking the value in pass2.
+     (values (with-type* val ty-stx) ty-stx)]
+    [(ann _ ty)
+     (values val (st-proc-ty-property #'ty val))]
+    [_
+     (values val val)]))
+
 (define-syntax (-struct stx)
   (syntax-parse stx
     [(_ vars:maybe-type-vars nm:struct-name/new (fs:fld-spec ...)
-        opts:struct-options)
+        (~var opts (struct-options (attribute nm.name) (attribute vars.vars))))
      (let ([mutable? (if (attribute opts.mutable?) #'(#:mutable) #'())]
            [prefab? (if (attribute opts.prefab?) #'(#:prefab) #'())]
            [maker (if (attribute opts.cname)
@@ -188,17 +255,16 @@
            [extra-maker (if (attribute opts.ecname)
                             #`(#:extra-maker #,(attribute opts.ecname))
                             #'())]
-           [properties (if (not (empty? (attribute opts.prop)))
-                           #`(#,@(append* (for/list ([prop (in-list (attribute opts.prop))])
-                                            (list #'#:property prop))))
-                           #'())])
+           [proc-ty (if (attribute opts.proc-ty)
+                        #`(#:proc-ty #,(attribute opts.proc-ty))
+                        #'())]
+           [properties #`(#,@(append* (for/list ([prop (in-list (attribute opts.prop))])
+                                        (list #'#:property prop))))])
        (with-syntax* ([type (or (attribute opts.type) #'nm.name)]
                       [d-s (struct-type-property (ignore (quasisyntax/loc stx
                                                            (struct #,@(attribute nm.new-spec) (fs.fld ...)
                                                              . opts.untyped)))
                                                  #'type)]
-                      [prop-vals (quasisyntax/loc stx
-                                   (define prop-val-li (list #,@(attribute opts.prop-val))))]
                       [dtsi (quasisyntax/loc stx
                               (dtsi* (vars.vars ...)
                                      nm.old-spec type (fs.form ...)
@@ -206,6 +272,7 @@
                                      #,@prefab?
                                      #,@maker
                                      #,@extra-maker
+                                     #,@proc-ty
                                      #,@properties
                                      ))])
          #'(begin d-s dtsi)))]))

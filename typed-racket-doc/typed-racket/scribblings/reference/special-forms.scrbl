@@ -854,9 +854,18 @@ value.
 (plant 31)
 ]
 
-Like for other structure type properties, when a structure's base structure
+@margin-note[]{In other words, a variable that refers to a
+function is not allowed}
+
+Unlike in Racket, only one of the following types of expressions are allowed in
+Typed Racket: a nonnegative literal, @racket[(struct-index-field field-name)],
+or a lambda expression. Note that in the last case, if the type annotation on
+the codomain is not supplied, the type checker will use @racket[Any] as the
+return type.
+
+Similar to other structure type properties, when a structure's base structure
 specifies a value for @racket[prop:procedure], the structure inherits that
-value if it does not specify its own value.
+value if it does not specify its own.
 
 @ex[
 (struct cat animal ([c : Number]))
@@ -866,9 +875,9 @@ value if it does not specify its own value.
 ]
 
 Function types for procedural structures do not enforce subtyping relations. A
-substructure can be associcated with a different field index for
-@racket[prop:procedure] or a procedure that has a different arity or takes
-different types arguments from from base structures'
+substructure can specify a different field index or a procedure that has a
+arity and/or types different from its base structures for
+@racket[prop:procedure].
 
 @ex[
 (struct b-cat cat ([d : (-> Number String)])

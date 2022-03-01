@@ -60,6 +60,7 @@
   (type-ascription type-ascription)
   (type-inst type-inst)
   (row-inst row-inst)
+  (st-proc-ty st-proc-ty)
   (type-label type-label)
   (optional-non-immediate-arg optional-non-immediate-arg)
   (optional-immediate-arg optional-immediate-arg)

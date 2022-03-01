@@ -20,18 +20,34 @@
   ((cat 2 add1 42) 11)
   ((a-cat 2 add1 42) 11)
   ((b-cat 2 add1 42 number->string) 11)
-  ((dog 2 add1 (lambda ([s : String])  : (Listof String)
-                 (list s)))
-   "1 1")
-  ((super-dog 2 add1 (lambda ([s : String])  : (Listof String)
-                       (list s)))
-   "1 1")
+  (define ad (dog 2 add1 (lambda ([s : String])  : (Listof String)
+                 (list s))))
+  (ad "1 1")
+  (define sd (super-dog 2 add1 (lambda ([s : String])  : (Listof String)
+                       (list s))))
+  (sd "1 1")
 
   ((fruit 2 number->string) 10)
   ((apple 2 number->string 42) 11)
 
   ((plant 31) "hello world")
-  ((tree 42) "hello world"))
+  ((tree 42) "hello world")
+
+  (struct (A) poly1 ([a : A])
+    #:property prop:procedure
+    (lambda ([this : (poly1 A)]) : A
+      (poly1-a this)))
+  (define poly-ins (poly1 42))
+  (add1 (poly-ins))
+
+  (define (any->42 _) : Number
+    42)
+
+  (struct struct-foo ([a : Number]) #:property prop:procedure
+    (lambda (this a) : Number
+      (+ (struct-foo-a this) (any->42 a))))
+  (define foo-ins (struct-foo 42))
+  (foo-ins 42))
 
 (module bbb-mod typed/racket/base
   (require (submod ".." aaa-mod))

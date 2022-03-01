@@ -26,7 +26,7 @@
          typed-racket/base-env/base-types-extra
          typed-racket/base-env/colon
          ;; needed for parsing case-lambda/case-> types
-         (only-in typed-racket/base-env/case-lambda case-lambda)
+         (only-in typed-racket/base-env/prims-lambda case-lambda)
          (prefix-in un: (only-in racket/class init init-field field augment))
          (only-in typed/racket/class init init-field field augment)
          (only-in racket/unit import export init-depend)

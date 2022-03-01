@@ -3,6 +3,7 @@
 (require "../utils/utils.rkt"
          racket/syntax syntax/parse syntax/stx syntax/id-table
          racket/list racket/match racket/sequence
+         racket/promise
          racket/struct-info
          (prefix-in c: (contract-req))
          "../rep/core-rep.rkt" "../rep/type-rep.rkt" "../rep/values-rep.rkt"
@@ -69,6 +70,7 @@
                   #:extra-maker (attribute t.extra-maker)
                   #:type-only (attribute t.type-only)
                   #:prefab? (attribute t.prefab)
+                  #:proc-ty-stx (attribute t.proc-ty)
                   #:properties (attribute t.properties))])))
 
 
@@ -222,7 +224,7 @@
 (define (tc-toplevel/pass1.5 form)
   (parameterize ([current-orig-stx form])
     (syntax-parse form
-      #:literals (define-values begin)
+      #:literals (define-values begin #%plain-app make-struct-type)
       [(~or _:ignore^ _:ignore-some^)  (list)]
 
       ;; definitions lifted from contracts should be ignored
@@ -230,6 +232,19 @@
        #:when (contract-lifted-property #'expr)
        #:do [(register-ignored! #'expr)]
        (list)]
+
+
+      [(define-values
+         (lifted/7 lifted/8 lifted/9 lifted/10 lifted/11)
+         (#%plain-app
+          make-struct-type
+          a
+          b ;; struct:keyword-procedure/arity-error
+          . rst))
+       ;; why does the below not work?
+       #:do [(register-ignored! form)]
+       (list)]
+
 
       [(define-values (var ...) expr)
        (define vars (syntax->list #'(var ...)))
@@ -313,6 +328,15 @@
            (define lexical-type (lookup-id-type/lexical member))
            (check-below lexical-type expected-type)))
        (register-ignored! #'dviu)
+       'no-type]
+
+      [(define-values
+         (lifted/7 lifted/8 lifted/9 lifted/10 lifted/11)
+         (#%plain-app
+          make-struct-type
+          a
+          b ;; struct:keyword-procedure/arity-error
+          . rst))
        'no-type]
 
       [stx:make-struct-type^
@@ -408,6 +432,28 @@
               (~datum prefix-all-defined) (~datum prefix-all-defined-except)
               (~datum expand)))))
 
+;; finish registering struct definitions in two steps with the second one being
+;; the return thunk, which can be invoked on demand.
+;; Listof[Expr] -> Promise[Listof[binding]]
+(define (register-struct-type-info! form-li)
+  ;; register type name and alias first
+  (define rest
+    (for/list ([form (in-list form-li)])
+      (define name (name-of-struct form))
+      (define tvars (type-vars-of-struct form))
+      (register-resolved-type-alias name (make-Name name (length tvars) #t))
+      (register-type-name name)
+      (add-constant-variance! name tvars)
+      (delay
+        (let ([parsed (parse-typed-struct form)])
+          (register-parsed-struct-sty! parsed)
+          (refine-struct-variance! (list parsed))
+          (register-parsed-struct-bindings! parsed)))))
+  (delay (map force rest)))
+
+
+  ;; the resulting thunk finishes the rest work)
+
 ;; actually do the work on a module
 ;; produces prelude and post-lude syntax objects
 ;; syntax-list -> (values syntax syntax)
@@ -432,14 +478,8 @@
     (parse-and-register-signature! sig-form))
 
   ;; Add the struct names to the type table, but not with a type
-  (let ([names (map name-of-struct struct-defs)]
-        [type-vars (map type-vars-of-struct struct-defs)])
-    (for ([name (in-list names)]
-          [tvars (in-list type-vars)])
-      (register-resolved-type-alias
-       name (make-Name name (length tvars) #t)))
-    (for-each register-type-name names)
-    (for-each add-constant-variance! names type-vars))
+  (define promise-reg-sty-info (register-struct-type-info! struct-defs))
+
   (do-time "after adding type names")
 
   (register-all-type-aliases type-aliases)
@@ -447,16 +487,10 @@
   (finalize-signatures!)
 
   (do-time "starting struct handling")
-  ;; Parse and register the structure types
-  (define parsed-structs
-    (for/list ((def (in-list struct-defs)))
-      (define parsed (parse-typed-struct def))
-      (register-parsed-struct-sty! parsed)
-      parsed))
-  (refine-struct-variance! parsed-structs)
 
-  ;; register the bindings of the structs
-  (define struct-bindings (map register-parsed-struct-bindings! parsed-structs))
+  ;; continue parsing and registering the structure types,
+  ;; the bindings of the structs
+  (define struct-bindings (force promise-reg-sty-info))
 
   (do-time "before pass1")
   ;; do pass 1, and collect the defintions
@@ -678,17 +712,10 @@
                                       'no-type)]
     [else
      (when (typed-struct? form)
-       (define name (name-of-struct form))
-       (define tvars (type-vars-of-struct form))
-       (register-type-name name)
-       (add-constant-variance! name tvars)
-       (define parsed (parse-typed-struct form))
-       (register-parsed-struct-sty! parsed)
-       (refine-struct-variance! (list parsed))
-       (register-parsed-struct-bindings! parsed))
+       (force (register-struct-type-info! (list form))))
      (define all-forms (cond
                          [(typed-struct? form)
-                          ;; after a struct type is registered, check the pending forms in order in which they arrived.
+                          ;; after a struct type is registered, check the pending forms is in receiving order
                           (define st-tname (name-of-struct form))
                           (begin0 (reverse (cons form (free-id-table-ref toplevel-struct-making-tbl st-tname)))
                             (free-id-table-remove! toplevel-struct-making-tbl st-tname))]

@@ -329,16 +329,8 @@
         (string-append "Cannot infer type instantiation for type ~a. Please add "
                        "more type annotations")
         f-type)]
-      [(Intersection: ts^ _)
-       (define li-arr
-         (append-map (match-lambda
-                       [(Fun: (list arrows ...)) arrows]
-                       [_ null])
-                     ts^))
-
-       (if (null? li-arr)
-           (failure-cont)
-           (tc/funapp f-stx args-stx (make-Fun li-arr) args-res expected))]
+      [(Intersection: (HasArrows: li-arr) _)
+       (tc/funapp f-stx args-stx (make-Fun li-arr) args-res expected)]
       [_
        (tc-error/expr
         "Cannot apply expression of type ~a, since it is not a function type"

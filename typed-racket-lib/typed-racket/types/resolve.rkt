@@ -44,7 +44,13 @@
 (define (resolve-name t [for-app #f])
   (match* (for-app t)
     [(#t (Name/simple: (app lookup-type-constructor (? TypeConstructor? t)))) t]
-    [(_ (Name/simple: (app lookup-type-name t))) (if (Type? t) t #f)]
+    [(_ (Name/simple: (app (lambda (t)
+                             ;; Based on the contract on lookup-type-name, we
+                             ;; return #t when t is not a registered name yet.
+                             (lookup-type-name t (lambda () #t)))
+                           t)))
+     (if (Type? t) t
+         #f)]
     [(_ _) (int-err "resolve-name: not a name ~a" t)]))
 
 (define already-resolving? (make-parameter #f))

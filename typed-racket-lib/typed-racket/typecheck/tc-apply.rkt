@@ -8,6 +8,7 @@
          "../types/substitute.rkt"
          "../types/type-table.rkt"
          "../utils/tc-utils.rkt"
+         "tc-funapp.rkt"
          "../rep/type-rep.rkt"
          "../rep/core-rep.rkt"
          "../rep/values-rep.rkt"
@@ -81,7 +82,12 @@
                    (list (-Tuple* arg-tys full-tail-ty))
                    (list (-Tuple* domain (Rest->Type rst)))
                    rng))]))
-       (failure))]
+      (failure))]
+    [(tc-result1: (and (? Intersection? f-ty^)))
+     (tc/funapp f args f-ty^ (append arg-tres
+                                     (match full-tail-ty
+                                       [(List: ty) (list (ret ty))]))
+                #f)]
     [(tc-result1: (AnyPoly: _ _ (Fun: '())))
      (tc-error/expr "Function has no cases")]
     [(tc-result1: f-ty)

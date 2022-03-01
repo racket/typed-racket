@@ -1,4 +1,4 @@
 #;
-(exn-pred #rx"expected: Procedure or nonnegative integer literal")
+(exn-pred #rx"expected: a nonnegative integer literal or an annotated lambda")
 #lang typed/racket/base
 (struct some-struct1 ([a : String] [b : (-> Number Number)]) #:property prop:procedure (+ 10 20))

@@ -460,11 +460,11 @@
      (define s-seq (seq ss (rest->end s-rest)))
      (define t-seq (seq ts (rest->end t-rest)))
      (and
-      ;; if all keywords are optional, then we can just treat
-      ;; them like they aren't there (or if there are none)
-      (for/and ([s-kw (in-list s-kws)])
-        (not (Keyword-required? s-kw)))
-      (null? t-kws)
+      ;; since we currently don't infer types for keyword arguments, we ignore
+      ;; optional ones and make sure keywords for mandatory ones are exactly
+      ;; matched.
+      (equal? (filter Keyword-required? s-kws)
+              (filter Keyword-required? t-kws))
       (% cset-meet
          (cgen context s t)
          (cgen/seq context t-seq s-seq)))]))

@@ -45,27 +45,43 @@
     #:with pos-args (if (attribute boundary-ctc?)
                         (stx-cdr #'*pos-args)
                         #'*pos-args)
-    (match (tc-expr #'fn)
-      [(tc-result1:
-        (Poly: vars
-               (Fun: (list (and ar (Arrow: dom #f kw-formals rng))))))
-       (=> fail)
-       (unless (set-empty? (fv/list kw-formals))
-         (fail))
-       (match (stx-map single-value #'pos-args)
-         [(list (tc-result1: argtys-t) ...)
-          (let* ([subst (infer vars null argtys-t dom rng
-                               (and expected (tc-results->values expected)))])
-            (unless subst (fail))
-            (tc-keywords #'form (list (subst-all subst ar))
-                         (type->list (tc-expr/t #'kws)) #'kw-arg-list #'pos-args expected))])]
-      [(tc-result1: (Fun: arrows))
-       (tc-keywords #'(#%plain-app . form) arrows (type->list (tc-expr/t #'kws))
-                    #'kw-arg-list #'pos-args expected)]
-      [(tc-result1: (Poly: _ (Fun: _)))
-       (tc-error/expr "Inference for polymorphic keyword functions not supported")]
-      [(tc-result1: t)
-       (tc-error/expr "Cannot apply expression of type ~a, since it is not a function type" t)])))
+
+    (let ()
+      (define (tc/app-mono-fun arrows)
+        (tc-keywords #'(#%plain-app . form) arrows (type->list (tc-expr/t #'kws))
+                     #'kw-arg-list #'pos-args expected))
+
+      (define (tc/app-poly-fun vars arrow fail)
+        (match-define (and ar (Arrow: dom #f kw-formals rng)) arrow)
+        ;; if the types of the keyword arguments have type variables, stop.
+        (unless (set-empty? (fv/list kw-formals))
+          (fail))
+        (match (stx-map single-value #'pos-args)
+           [(list (tc-result1: argtys-t) ...)
+            (let* ([subst (infer vars null argtys-t dom rng
+                                 (and expected (tc-results->values expected)))])
+              (unless subst
+                (fail))
+              (tc-keywords #'form (list (subst-all subst ar))
+                           (type->list (tc-expr/t #'kws)) #'kw-arg-list #'pos-args expected))]))
+
+      (match (tc-expr/t #'fn)
+        [(Poly: vars
+                (Fun: (list arrow)))
+         (=> fail)
+         (tc/app-poly-fun vars arrow fail)]
+        [(Fun: arrows)
+         (tc/app-mono-fun arrows)]
+        [(Poly: _ (Fun: _))
+         (tc-error/expr "Inference for polymorphic keyword functions not supported")]
+        [(Intersection: (HasArrows: arrows) _)
+         (tc/app-mono-fun arrows)]
+        [(Intersection: (Poly: vars
+                               (Fun: (list arrow))) _)
+         (=> fail)
+         (tc/app-poly-fun vars arrow fail)]
+        [t
+         (tc-error/expr "Cannot apply expression of type ~a, since it is not a function type" t)]))))
 
 (define (tc-keywords/internal arity kws kw-args error?)
   (match arity
@@ -142,5 +158,3 @@
      (cons k (type->list b))]
     [(? Base:Null?) null]
     [_ (int-err "bad value in type->list: ~a" t)]))
-
-

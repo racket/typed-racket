@@ -279,7 +279,8 @@
 
 
   (list
-   (match (free-id-table-ref aux-table (last arg-list) #f)
+   (match (and (not (null? arg-list))
+               (free-id-table-ref aux-table (last arg-list) #f))
      [id #:when (and id (rst-arg-property id))
       ;; when an opt-lambda with a rest parameter is expanded, the resulting
       ;; expression contains a generated lambda, which is being checked and whose

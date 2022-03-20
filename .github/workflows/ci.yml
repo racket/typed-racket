@@ -42,7 +42,7 @@ jobs:
         if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test -- --missed-opt
         if: ${{ !matrix.enable-contracts }}
-      - run: racket -l typed-racket-test/test-docs-complete
+      - run: raco test -em typed-racket-test/test-docs-complete.rkt
         if: ${{ !matrix.enable-contracts }}
       - run: raco setup math
       - run: racket -l typed-racket-test -- --external

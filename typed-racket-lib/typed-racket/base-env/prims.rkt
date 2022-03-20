@@ -36,7 +36,7 @@ the typed racket language.
                      base-for/flvector: base-for/vector -define -do -let
                      -let* -let*-values -let-values -let/cc -let/ec -letrec -letrec-values)
          (all-from-out "top-interaction.rkt")
-         (all-from-out "prims-lambda.rkt")
+         (except-out (all-from-out "prims-lambda.rkt") -lambda)
          (all-from-out (submod "prims-contract.rkt" forms))
          define-type-alias
          define-new-subtype
@@ -47,6 +47,7 @@ the typed racket language.
          (rename-out [define-typed-struct define-struct:]
                      [define-typed-struct define-struct]
                      [-lambda lambda]
+                     [-lambda λ]
                      [-struct struct]
                      [-struct struct:]
                      [-define define]
@@ -109,7 +110,7 @@ the typed racket language.
          "top-interaction.rkt"
          "base-types.rkt"
          "base-types-extra.rkt"
-         (rename-in "prims-lambda.rkt" [lambda -lambda])
+         "prims-lambda.rkt"
          "prims-struct.rkt"
          "ann-inst.rkt"
          racket/unsafe/ops

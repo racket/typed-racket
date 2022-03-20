@@ -17,11 +17,10 @@
 
 (provide (rename-out [-case-lambda case-lambda]
                      [-case-lambda case-lambda:]
-                     [-lambda lambda]
-                     [-lambda λ]
                      [lambda: λ:])
          pcase-lambda:
          plambda:
+         -lambda
          lambda:
          popt-lambda:
          opt-lambda:)

@@ -211,8 +211,8 @@
 ;;Syntax Expr -> (values Syntax Syntax)
 (define-for-syntax (maybe-extract-prop-proc-ty-ann sty-stx val)
   (syntax-parse val
-    #:literals (lambda λ ann)
-    [((~or lambda λ) formals:lambda-formals ret-ty:return-ann _)
+    #:literals (-lambda ann)
+    [(-lambda formals:lambda-formals ret-ty:return-ann _)
      (define mand-tys (attribute formals.mand-tys))
      (define self-ty (if (car mand-tys)
                          (car mand-tys)

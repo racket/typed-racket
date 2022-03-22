@@ -879,18 +879,24 @@
                     "The case-lambda type constructor is deprecated!"
                     " Please use case-> instead.")
             stx))
-         (make-Fun
-          (remove-duplicates
-           (apply
-            append
-            (for/list ([ty (in-syntax #'(tys ...))])
-              (let ([t (do-parse ty)])
-                (match t
-                  [(Fun: arrows) arrows]
-                  [_ (parse-error
-                      #:stx ty
-                      "expected a function type for component of case-> type"
-                      "given" t)]))))))]
+         (let/ec k
+           (define arrows
+             (for/fold ([res (list)]
+                        [err? #f]
+                        #:result (if err?
+                                     (k Err)
+                                     (remove-duplicates res)))
+                       ([ty (in-syntax #'(tys ...))])
+               (let ([t (do-parse ty)])
+                 (match (resolve t)
+                   [(Fun: arrows) (values (append res arrows) err?)]
+                   [_ (if (side-effect-mode? mode)
+                          (values res #t)
+                          (parse-error
+                           #:stx ty
+                           "expected a function type for component of case-> type"
+                           "given" t))]))))
+           (make-Fun arrows))]
         [(:Rec^ x:id t)
          (let* ([var (syntax-e #'x)])
            (extend-tvars (list var)

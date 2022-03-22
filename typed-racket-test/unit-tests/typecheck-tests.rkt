@@ -3212,6 +3212,11 @@
                (define-type-alias (c T)   (a (c T) Number))
                (void))
              -Void]
+       [tc-e (let ()
+               (define-type-alias A (-> Symbol Symbol String Natural Integer))
+               (define-type-alias F (case-> A))
+               (void))
+             -Void]
        [tc-err (let () (define-type-alias A (Class #:implements A)) "dummy")
                #:msg "Recursive #:implements clause not allowed"]
        [tc-err (let () (define-type-alias X (U X #f)) "dummy")

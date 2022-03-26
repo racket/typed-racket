@@ -849,10 +849,12 @@
 [mcons (-poly (a b) (-> a b (-mpair a b)))]
 [mcar (-poly (a b)
              (cl->* (-> (-mpair a b) a)
-                    (-> (-mlst a) a)))]
+                    (-> (-mlst a) a)
+                    (-> -MPairTop Univ)))]
 [mcdr (-poly (a b)
              (cl->* (-> (-mpair a b) b)
-                    (-> (-mlst a) (-mlst a))))]
+                    (-> (-mlst a) (-mlst a))
+                    (-> -MPairTop Univ)))]
 [set-mcar! (-poly (a b)
                   (cl->* (-> (-mpair a b) a -Void)
                          (-> (-mlst a) a -Void)))]
@@ -861,10 +863,12 @@
                          (-> (-mlst a) (-mlst a) -Void)))]
 [unsafe-mcar (-poly (a b)
                     (cl->* (-> (-mpair a b) a)
-                           (-> (-mlst a) a)))]
+                           (-> (-mlst a) a)
+                           (-> -MPairTop Univ)))]
 [unsafe-mcdr (-poly (a b)
                     (cl->* (-> (-mpair a b) b)
-                           (-> (-mlst a) (-mlst a))))]
+                           (-> (-mlst a) (-mlst a))
+                           (-> -MPairTop Univ)))]
 [unsafe-set-mcar! (-poly (a b)
                          (cl->* (-> (-mpair a b) a -Void)
                                 (-> (-mlst a) a -Void)))]

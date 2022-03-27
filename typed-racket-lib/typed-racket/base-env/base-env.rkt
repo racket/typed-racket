@@ -673,7 +673,7 @@
                (cl->*
                 (->* (list (-pair a (-lst a))) (-lst a) (-pair a (-lst a)))
                 (->* (list) (-lst a) (-lst a))))]
-[length (-poly (a) (-> (-lst a) -Index))]
+[length (-> (-lst Univ) -Index)]
 [memq (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
 [memv (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
 [memf (-poly (a) ((a . -> . Univ) (-lst a) . -> . (-opt (-ne-lst a))))]
@@ -700,6 +700,15 @@
                      (-> a Univ)
                      . -> .
                      (-opt -Index)))]
+[indexes-of (-poly (a b)
+                   (cl->* ((-lst a) Univ . -> . (-lst -Index))
+                          ((-lst a) b (-> a b Univ)
+                             . -> . (-lst -Index))))]
+[indexes-where (-poly (a)
+                      ((-lst a)
+                       (-> a Univ)
+                       . -> .
+                       (-lst -Index)))]
 
 [list? (make-pred-ty (-lst Univ))]
 [list (-poly (a) (->* '() a (-lst a)))]

@@ -673,7 +673,7 @@
                (cl->*
                 (->* (list (-pair a (-lst a))) (-lst a) (-pair a (-lst a)))
                 (->* (list) (-lst a) (-lst a))))]
-[length (-poly (a) (-> (-lst Univ) -Index))]
+[length (-poly (a) (-> (-lst a) -Index))]
 [memq (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
 [memv (-poly (a) (-> Univ (-lst a) (-opt (-ne-lst a))))]
 [memf (-poly (a) ((a . -> . Univ) (-lst a) . -> . (-opt (-ne-lst a))))]

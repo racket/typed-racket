@@ -266,7 +266,7 @@
   (start-workers)
 
   (define unit-test-retcode (if (unit?)
-                                (run-unit-test-suite (places))
+                                (run-unit-test-suite (or (places) 1))
                                 0))
 
   (if (and (nightly?) (eq? 'cgc (system-type 'gc)))

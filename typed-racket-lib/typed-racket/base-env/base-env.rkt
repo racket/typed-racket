@@ -718,7 +718,7 @@
                  ((list
                    ((list a) (b b) . ->... . c)
                    (-lst a))
-                  ((-lst b) b) . ->... .(-lst c))))]
+                  ((-lst b) b) . ->... . (-lst c))))]
 [for-each (-polydots (a b) ((list ((list a) (b b) . ->... . Univ) (-lst a))
                             ((-lst b) b) . ->... . -Void))]
 #;[fold-left (-polydots (c a b) ((list ((list c a) (b b) . ->... . c) c (-lst a))
@@ -831,7 +831,7 @@
 
 [append-map
  (-polydots (c a b) ((list ((list a) (b b) . ->... . (-lst c)) (-lst a))
-                     ((-lst b) b) . ->... .(-lst c)))]
+                     ((-lst b) b) . ->... . (-lst c)))]
 [append*
  (-poly (a) ((-lst (-lst a)) . -> . (-lst a)))]
 [flatten
@@ -934,9 +934,9 @@
                ((-vec a) -Integer . -> . (-mvec a))
                ((-vec a) -Integer -Integer . -> . (-mvec a))))]
 [vector-map (-polydots (c a b) ((list ((list a) (b b) . ->... . c) (-vec a))
-                                ((-vec b) b) . ->... .(-mvec c)))]
+                                ((-vec b) b) . ->... . (-mvec c)))]
 [vector-map! (-polydots (a b) ((list ((list a) (b b) . ->... . a) (-vec a))
-                               ((-vec b) b) . ->... .(-mvec a)))]
+                               ((-vec b) b) . ->... . (-mvec a)))]
 [vector-append (-poly (a) (->* (list) (-vec a) (-mvec a)))]
 [vector-take   (-poly (a) ((-vec a) -Integer . -> . (-mvec a)))]
 [vector-drop   (-poly (a) ((-vec a) -Integer . -> . (-mvec a)))]

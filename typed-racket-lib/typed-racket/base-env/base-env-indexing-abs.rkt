@@ -4,7 +4,8 @@
  (for-template racket/base racket/list racket/unsafe/ops racket/flonum racket/extflonum racket/fixnum)
  "../utils/tc-utils.rkt"
  (rename-in "../types/abbrev.rkt"  [-Boolean B] [-Symbol Sym])
- (rename-in "../types/numeric-tower.rkt" [-Number N]))
+ (rename-in "../types/numeric-tower.rkt" [-Number N])
+ (only-in "base-structs.rkt" -Arity-At-Least))
 
 (provide indexing)
 
@@ -239,7 +240,7 @@
    [flvector (->* (list) -Flonum -FlVector)]
    [make-flvector (cl->* (-> index-type -FlVector)
                          (-> index-type -Flonum -FlVector))]
-   
+
    [shared-flvector (->* (list) -Flonum -FlVector)]
    [make-shared-flvector (cl->* (-> index-type -FlVector)
                                 (-> index-type -Flonum -FlVector))]
@@ -254,13 +255,13 @@
    [unsafe-flvector-length (-> -FlVector -Index)]
    [unsafe-flvector-ref (-> -FlVector index-type -Flonum)]
    [unsafe-flvector-set! (-> -FlVector index-type -Flonum -Void)]
-   
+
    ;; Section 4.2.5.2 (ExtFlonum Vectors)
    [extflvector? (make-pred-ty -ExtFlVector)]
    [extflvector (->* (list) -ExtFlonum -ExtFlVector)]
    [make-extflvector (cl->* (-> index-type -ExtFlVector)
                             (-> index-type -ExtFlonum -ExtFlVector))]
-   
+
    [shared-extflvector (->* (list) -ExtFlonum -ExtFlVector)]
    [make-shared-extflvector (cl->* (-> index-type -ExtFlVector)
                                    (-> index-type -ExtFlonum -ExtFlVector))]
@@ -275,13 +276,13 @@
    [unsafe-extflvector-length (-> -ExtFlVector -Index)]
    [unsafe-extflvector-ref (-> -ExtFlVector index-type -ExtFlonum)]
    [unsafe-extflvector-set! (-> -ExtFlVector index-type -ExtFlonum -Void)]
-   
+
    ;; Section 4.2.4.2 (Fixnum vectors)
    [fxvector? (make-pred-ty -FxVector)]
    [fxvector (->* (list) -Fixnum -FxVector)]
    [make-fxvector (cl->* (-> index-type -FxVector)
                          (-> index-type -Fixnum -FxVector))]
-   
+
    [shared-fxvector (->* (list) -Fixnum -FxVector)]
    [make-shared-fxvector (cl->* (-> index-type -FxVector)
                                 (-> index-type -Fixnum -FxVector))]
@@ -344,7 +345,12 @@
    [raise-arguments-error
     (->* (list Sym -String) Univ (Un))]
    [raise-range-error
-    (-> Sym -String -String index-type Univ index-type index-type (Un index-type (-val #f)) (Un))]
+    (-> Sym -String -String index-type Univ index-type index-type (-opt index-type) (Un))]
+   [raise-arity-error
+    (->* (list (Un Sym top-func) (Un index-type -Arity-At-Least (-lst (Un index-type -Arity-At-Least)))) Univ (Un))]
+   [raise-arity-mask-error
+    (->* (list (Un Sym top-func) index-type) Univ (Un))]
+   [raise-result-arity-error
+    (->* (list (-opt Sym) index-type (-opt -String)) Univ (Un))]
 
    ))
-

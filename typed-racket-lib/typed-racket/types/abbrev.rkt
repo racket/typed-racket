@@ -109,8 +109,8 @@
 (define -Listof (make-type-constr -lst 1))
 (define -MListof (make-type-constr -mlst 1))
 (define/decl -Regexp (Un -PRegexp -Base-Regexp))
-(define/decl -Byte-Regexp (Un -Byte-Base-Regexp -Byte-PRegexp))
-(define/decl -Pattern (Un -Bytes -Regexp -Byte-Regexp -String))
+(define/decl -Byte-Regexp (Un -Byte-Regexp -Byte-Base-PRegexp))
+(define/decl -Pattern (Un -String -Bytes -Regexp -Byte-Regexp))
 (define/decl -Module-Path
   (-mu X
        (Un -Symbol -String -Path
@@ -134,7 +134,7 @@
 (define-type-constructor -Syntax make-Syntax)
 (define/decl In-Syntax
   (-mu e
-       (Un -Null -Boolean -Symbol -String -Keyword -Char -Number
+       (Un -Null -Boolean -Symbol -String -Bytes -Keyword -Char -Number
            (make-Vector (-Syntax e))
            (make-Box (-Syntax e))
            (make-Listof (-Syntax e))
@@ -145,7 +145,7 @@
 (define (sexpof t)
   (-mu sexp
        (Un -Null
-           -Number -Boolean -Symbol -String -Keyword -Char
+           -Number -Boolean -Symbol -String -Bytes -Keyword -Char
            (-pair sexp sexp)
            (make-Vector sexp)
            (make-Box sexp)
@@ -154,8 +154,10 @@
 
 (define/decl -Flat
   (-mu flat
-       (Un -Null -Number -Boolean -Symbol -String -Keyword -Char
-           (-pair flat flat))))
+       (Un -Null -Number -Boolean -Symbol -String -Bytes -Keyword -Char
+           (-pair flat flat)
+           (-ivec -Flat)
+           (-Immutable-HT -Flat -Flat))))
 (define/decl -Sexp (-Sexpof (Un)))
 (define Syntax-Sexp (-Sexpof Any-Syntax))
 (define Ident (-Syntax -Symbol))

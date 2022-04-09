@@ -156,8 +156,8 @@
   (-mu flat
        (Un -Null -Number -Boolean -Symbol -String -Bytes -Keyword -Char
            (-pair flat flat)
-           (-ivec -Flat)
-           (-Immutable-HT -Flat -Flat))))
+           (-ivec flat)
+           (-Immutable-HT flat flat))))
 (define/decl -Sexp (-Sexpof (Un)))
 (define Syntax-Sexp (-Sexpof Any-Syntax))
 (define Ident (-Syntax -Symbol))

@@ -109,7 +109,7 @@
 (define -Listof (make-type-constr -lst 1))
 (define -MListof (make-type-constr -mlst 1))
 (define/decl -Regexp (Un -PRegexp -Base-Regexp))
-(define/decl -Byte-Regexp (Un -Byte-Regexp -Byte-Base-PRegexp))
+(define/decl -Byte-Regexp (Un -Byte-PRegexp -Byte-Base-Regexp))
 (define/decl -Pattern (Un -String -Bytes -Regexp -Byte-Regexp))
 (define/decl -Module-Path
   (-mu X

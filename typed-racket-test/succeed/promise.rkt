@@ -11,4 +11,11 @@
       (string->number (force del))))
 
 (check-equal? (foo (delay 5)) 6)
+(check-equal? (foo (lazy  5)) 6)
+(check-equal? (foo (lazy  (delay 5))) 6)
+(check-equal? (foo (lazy  (lazy  5))) 6)
+
 (check-equal? (foo (delay "5")) 5)
+(check-equal? (foo (lazy  "5")) 5)
+(check-equal? (foo (lazy  (delay "5"))) 5)
+(check-equal? (foo (lazy  (lazy  "5"))) 5)

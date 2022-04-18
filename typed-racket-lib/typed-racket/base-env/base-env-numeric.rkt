@@ -798,8 +798,8 @@
 [fixnum? (make-pred-ty -Fixnum)]
 [fixnum-for-every-system? (asym-pred Univ B (-PS (-is-type 0 -Fixnum) -tt))]
 [index? (make-pred-ty -Index)]
-[positive? (-> -Real B : (-PS (-is-type 0 -PosReal) (-is-type 0 -NonPosReal)))]
-[negative? (-> -Real B : (-PS (-is-type 0 -NegReal) (-is-type 0 -NonNegReal)))]
+[positive? (-> -Real B : (-PS (-is-type 0 -PosRealNoNan) (-is-type 0 -NonPosReal)))]
+[negative? (-> -Real B : (-PS (-is-type 0 -NegRealNoNan) (-is-type 0 -NonNegReal)))]
 [exact-positive-integer? (make-pred-ty -Pos)]
 [exact-nonnegative-integer? (make-pred-ty -Nat)]
 

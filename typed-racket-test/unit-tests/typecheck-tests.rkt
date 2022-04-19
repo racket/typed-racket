@@ -541,6 +541,14 @@
               1.0
               x))
           -NonNegFlonum)
+        (tc-e/t (let ([a : (U One Float-Nan) 1])
+                  (if (positive? a) a
+                      1))
+                -One)
+        (tc-e/t (let ([a : (U Negative-Fixnum Float-Nan) -1])
+                  (if (negative? a) a
+                      -1))
+                -NegFixnum)
         (tc-e (exact->inexact (expt 10 (/ -120.0 20))) ; from rsound
               -NonNegInexactReal)
         (tc-e (flexpt 0.5 0.3) -NonNegFlonum)

@@ -407,34 +407,47 @@
         "expected single value, got multiple (or zero) values")]))
 
 
+(define (tc-expr-seq exps tc-expr
+                     [tail-expected (-tc-any-results #f)]
+                     #:unreachable-op [unreachable-op #f])
+  (define any-res (-tc-any-results #f))
+  (if (null? exps)
+      (-tc-any-results -tt)
+      (let loop ([exps exps])
+        (match exps
+          [(list tail-exp) (tc-expr tail-exp tail-expected)]
+          [(cons e rst)
+           (define props
+             (match (tc-expr e any-res)
+               [(tc-any-results: p) (list p)]
+               [(tc-results: tcrs _)
+                (map (match-lambda
+                       [(tc-result: _ (PropSet: p+ p-) _)
+                        (-or p+ p-)])
+                     tcrs)]))
+           (with-lexical-env+props
+             props
+             #:expected any-res
+             ;; If `e` is ill-typed and unreachable-op is supplied, call
+             ;; unreachable-op. Otherwise, check the subsequent expressions
+             #:unreachable (if unreachable-op
+                               (unreachable-op rst)
+                               (loop rst))
+             ;; Keep going with an environment extended with the
+             ;; propositions that are true if execution reaches this
+             ;; point.
+             (loop rst))]))))
+
 ;; tc-body/check: syntax? tc-results? -> tc-results?
 ;; Body must be a non empty sequence of expressions to typecheck.
 ;; The final one will be checked against expected.
 (define (tc-body/check body expected)
-  (define any-res (-tc-any-results #f))
-  (define exps (syntax->list body))
-  (let loop ([exps exps])
-    (match exps
-      [(list tail-exp) (tc-expr/check tail-exp expected)]
-      [(cons e rst)
-       (define results (tc-expr/check e any-res))
-       (define props
-         (match results
-           [(tc-any-results: p) (list p)]
-           [(tc-results: tcrs _)
-            (map (match-lambda
-                   [(tc-result: _ (PropSet: p+ p-) _)
-                    (-or p+ p-)])
-                 tcrs)]))
-       (with-lexical-env+props
-         props
-         #:expected any-res
-         ;; If `e` bails out, mark the rest as ignored.
-         #:unreachable (for-each register-ignored! rst)
-         ;; Keep going with an environment extended with the
-         ;; propositions that are true if execution reaches this
-         ;; point.
-         (loop rst))])))
+  (tc-expr-seq (syntax->list body)
+               tc-expr/check
+               expected
+               #:unreachable-op
+               ;; the expr bails out, mark the rest as ignored
+               (lambda (rst) (for-each register-ignored! rst))))
 
 ;; find-stx-type : Any [(or/c Type? #f)] -> Type?
 ;; recursively find the type of either a syntax object or the result of syntax-e

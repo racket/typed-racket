@@ -306,7 +306,7 @@
 ;; typecheck the expressions of a module-top-level form
 ;; no side-effects
 ;; syntax? -> (or/c 'no-type tc-results/c)
-(define (tc-toplevel/pass2 form [expected (-tc-any-results -tt)])
+(define (tc-toplevel/pass2 form [expected (-tc-any-results #f)])
   (do-time (format "pass2 ~a line ~a"
                    (if #t
                        (substring (~a (syntax-source form))
@@ -517,7 +517,10 @@
   (do-time "computed def-tbl")
   ;; typecheck the expressions and the rhss of defintions
   ;(displayln "Starting pass2")
-  (for-each tc-toplevel/pass2 forms)
+  (tc-expr-seq forms (lambda (expr expected)
+                       (match (tc-toplevel/pass2 expr expected)
+                                   [(? full-tc-results/c r) r]
+                                   [_ (-tc-any-results -tt)])))
   (do-time "Finished pass2")
   ;; check that declarations correspond to definitions
   ;; and that any additional parsed apps are sensible

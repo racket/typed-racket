@@ -554,6 +554,7 @@
                           "expected: a function that takes only one argument"))
           (if (Evt? rng_t)
               rng_t
+              ;; fixme: return struct type alias, not always ready
               (-mu x (make-Evt x)))]
          [_ (if (Evt? ty)
                 ty

@@ -893,7 +893,9 @@
                       (list -vec-len))]
 [vector (-poly (a) (->* (list) a (-mvec a)))]
 [vector-immutable (-poly (a) (->* (list) a (-ivec a)))]
-[vector->immutable-vector (-poly (a) (-> (-vec a) (-ivec a)))]
+[vector->immutable-vector (-poly (a)
+                                 (cl-> [((-vec a)) (-ivec a)]
+                                       [(-VectorTop) (-ivec Univ)]))]
 [vector-fill! (-poly (a) (-> (-vec a) a -Void))]
 [vector-argmax (-poly (a) (-> (-> a -Real) (-vec a) a))]
 [vector-argmin (-poly (a) (-> (-> a -Real) (-vec a) a))]

@@ -22,9 +22,3 @@
   #:property prop:evt (ann (make-channel) (Evtof String)))
 
 (ann (sync (aaa3 (make-channel))) String)
-
-
-(struct aaa4 ([evt : (Evtof String)])
-  #:property prop:evt (make-channel))
-
-(ann (sync (aaa3 (make-channel))) String)

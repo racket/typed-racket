@@ -1388,7 +1388,10 @@
                                (if (symbol? x) 'x #f)) ((U Symbol String) -> (U Symbol #f) : Symbol))
                       (list "three" 'four 'five "six"))
               (-lst -Symbol)]
-
+        [tc-e (let ([x : Any '#()])
+                (and (vector? x)
+                     (vector->immutable-vector x)))
+              (t:Un (-ivec Univ) (-val #f))]
 
         [tc-e (vector-filter path-string? (ann (vector "a" 4 5 "b") (Mutable-Vectorof Any)))
               (-mvec (t:Un -Path -String))]

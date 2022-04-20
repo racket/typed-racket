@@ -1553,7 +1553,7 @@
 [system-idle-evt (-> (-evt -Void))]
 [alarm-evt (-> -Real (-mu x (-evt x)))]
 [handle-evt? (asym-pred Univ B (-PS (-is-type 0 (-evt Univ)) -tt))]
-[prop:evt (-struct-property (Un (-evt Univ) (-> -Self ManyUniv) -Nat) #'evt?)]
+[prop:evt (-struct-property (Un (-evt Univ) (-> -Self (-evt Univ)) -Nat) #'evt?)]
 [current-evt-pseudo-random-generator
  (-Param -Pseudo-Random-Generator -Pseudo-Random-Generator)]
 

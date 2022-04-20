@@ -458,7 +458,7 @@
   (refine-variance! names stys tvarss))
 
 
-(define ((make-extract check-field-type customized-proc check-doms-rng)
+(define ((make-extract check-field-type check-doms-rng error-msg)
          ty-stx st-name fld-names desc)
   (syntax-parse ty-stx
     #:literals (struct-field-index)
@@ -487,45 +487,12 @@
 
     [ty-stx:st-proc-ty^
      #:do [(define ty (parse-type #'ty-stx))]
-     (match ty
-       [(Fun: (list arrs ...))
-        (make-Fun
-         (map (lambda (arr)
-                (Arrow-update
-                 arr
-                 dom
-                 rng
-                 (lambda (doms rng)
-                   (match (car doms)
-                     [(Name/simple: n)
-                      #:when (free-identifier=? n st-name)
-                      (void)]
-                     [(App: (Name/simple: rator) vars)
-                      #:when (free-identifier=? rator st-name)
-                      (void)]
-                     [(Univ:)
-                      (void)]
-                     [(or (Name/simple: (app syntax-e n)) n)
-                      (tc-error/fields "type mismatch in the first parameter of the function for prop:procedure"
-                                       "expected" (syntax-e st-name)
-                                       "got" n
-                                       #:stx (st-proc-ty-property #'ty-stx))])
-                   (if check-doms-rng
-                       (check-doms-rng #'ty-stx (cdr doms) rng)
-                       (values (cdr doms) rng)))))
-              arrs))]
-       [_
-        (tc-error/fields "type mismatch"
-                         "expected"
-                         "Procedure"
-                         "given"
-                         ty
-                         #:stx #'ty-stx)])]
-    [_
-     (customized-proc ty-stx)]))
+     (check-doms-rng #'ty-stx ty st-name)
+     ]
+    [_ (tc-error/stx ty-stx error-msg)]))
 
-(define-syntax-rule (define-property-handling-table (name check-field-type custimized-handling rng-chck) ...)
-  (make-immutable-free-id-table (list (cons name (make-extract check-field-type custimized-handling rng-chck))
+(define-syntax-rule (define-property-handling-table (name check-field-type rng-chck error-msg) ...)
+  (make-immutable-free-id-table (list (cons name (make-extract check-field-type rng-chck error-msg))
                                       ...)))
 
 (define property-handling-table
@@ -541,25 +508,58 @@
           ty
           #:stx ty-stx))
        ty)
-     (lambda (ty-stx)
-       (tc-error/stx ty-stx
-                     "expected: a nonnegative integer literal or an annotated lambda"))
-     #f)
-    (#'prop:evt?
+     (lambda (ty-stx ty st-name)
+       (match ty
+         [(Fun: (list arrs ...))
+          (make-Fun
+           (map (lambda (arr)
+                  (Arrow-update
+                   arr
+                   dom
+                   (lambda (doms)
+                     (match (car doms)
+                       [(Name/simple: n)
+                        #:when (free-identifier=? n st-name)
+                        (void)]
+                       [(App: (Name/simple: rator) vars)
+                        #:when (free-identifier=? rator st-name)
+                        (void)]
+                       [(Univ:)
+                        (void)]
+                       [(or (Name/simple: (app syntax-e n)) n)
+                        (tc-error/fields "type mismatch in the first parameter of the function for prop:procedure"
+                                         "expected" (syntax-e st-name)
+                                         "got" n
+                                         #:stx (st-proc-ty-property ty-stx))])
+                     (cdr doms))))
+                arrs))]
+         [_
+          (tc-error/fields "type mismatch"
+                           "expected"
+                           "Procedure"
+                           "given"
+                           ty
+                           #:stx ty-stx)]))
+     "expected: a nonnegative integer literal or an annotated lambda")
+    (#'prop:evt
      (lambda (ty-stx field-name ty)
        (if (Evt? ty)
            ty
            (make-Evt (Un))))
-     (lambda (ty-stx)
-       (tc-error/stx ty-stx
-                     "expected: a nonnegative integer literal, an annotated lambda that returns an event, or an event"))
-     (lambda (ty-stx doms rng)
-       (unless (zero? (length doms))
-         (tc-error/stx ty-stx
-                       "expected: a function that takes only one argument"))
-       (if (Evt? rng)
-           (values doms rng)
-           (values doms (-mu x (make-Evt x))))))))
+     (lambda (ty-stx ty st-name)
+       (match ty
+         [(Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng_t _ _))))))
+          (unless (= (length doms) 1)
+            (tc-error/stx ty-stx
+                          "expected: a function that takes only one argument"))
+          (if (Evt? rng_t)
+              rng_t
+              (-mu x (make-Evt x)))]
+         [_ (if (Evt? ty)
+                ty
+                (tc-error/stx ty-stx
+                              "expected: a nonnegative integer literal, an annotated lambda that returns an event, or an event"))]))
+     "expected: a nonnegative integer literal, an annotated lambda that returns an event, or an event")))
 
 
 

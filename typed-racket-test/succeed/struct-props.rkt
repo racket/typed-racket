@@ -28,7 +28,7 @@
   (lambda ([self : foobar^] [p : Output-Port] [m : (U Boolean 1 0)]) : Void
           (displayln (+ (foobar^-y self) 20) p))
 
-  #:property prop:evt (make-channel)
+  #:property prop:evt (ann (make-channel) (Evtof Any))
 
   #:property prop:custom-print-quotable 'self)
 

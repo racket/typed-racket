@@ -21,8 +21,6 @@
   #:property prop:custom-write
   (lambda ([self : foo] [p : Output-Port] [m : (U Boolean 1 0)]) : Void
           (displayln (+ (foo-x self) 20) p))
-  #:property prop:evt 0
-
   #:property prop:custom-print-quotable 'always)
 
 (struct foobar^ foo ([y : Number])

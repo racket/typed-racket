@@ -91,13 +91,6 @@
   (syntax-parse stx
     [t:typed-struct #'t.type-name]))
 
-;; a simple wrapper to get proc from a polymorphic or monomorhpic structure
-(define/cond-contract (get-struct-proc sty)
-  (c:-> (c:or/c Struct? Poly?) (c:or/c #f Fun?))
-  (Struct-proc (match sty
-                 [(? Struct?) sty]
-                 [(Poly: names (? Struct? sty)) sty])))
-
 
 (define/cond-contract (tc/struct-prop-values st-tname pnames pvals)
   (c:-> identifier? (c:listof identifier?) (c:listof syntax?) void?)
@@ -385,7 +378,7 @@
   (define st-type-alias (mk-type-alias type-name tvars))
   (define st-type-alias-maybe-with-proc
     (let ([maybe-proc-ty (and (or (Poly? sty) (Struct? sty))
-                              (get-struct-proc sty))])
+                              (Struct-proc sty))])
       (if maybe-proc-ty (intersect st-type-alias maybe-proc-ty)
           st-type-alias)) )
 
@@ -463,84 +456,107 @@
       (struct-names-type-name (parsed-struct-names parsed-struct))))
   (refine-variance! names stys tvarss))
 
+
+(define ((make-extract predicate mismatched-field-type-errors customized-proc property-lambda-rng-chck)
+         ty-stx st-name fld-names desc)
+  (syntax-parse ty-stx
+    #:literals (struct-field-index)
+    ;; a field index is provided
+    [n_:exact-nonnegative-integer
+     (define n (syntax-e #'n_))
+     (define max-idx (sub1 (length (struct-desc-self-fields desc))))
+     (unless (<= n max-idx)
+       (tc-error/fields
+        "index too large"
+        "index"
+        n
+        "maximum allowed index"
+        max-idx
+        #:stx ty-stx))
+     (define ty (list-ref (struct-desc-self-fields desc) n))
+     (unless (predicate ty)
+       (tc-error/fields
+        (format "field ~a is not a ~a" (syntax-e (list-ref fld-names n)) (car mismatched-field-type-errors))
+        "expected"
+        (cdr mismatched-field-type-errors)
+        "given"
+        ty
+        #:stx ty-stx))
+     ty]
+
+    ;; a field name is provided (via struct-field-index)
+    [(struct-field-index fld-nm:id)
+     (define idx (index-of fld-names #'fld-nm
+                           free-identifier=?))
+     ;; fld-nm must be valid, because invalid field names have been reported by
+     ;; struct-field-index at this point
+     (list-ref (struct-desc-self-fields desc) idx)]
+
+    [ty-stx:st-proc-ty^
+     #:do [(define ty (parse-type #'ty-stx))]
+     (match ty
+       [(Fun: (list arrs ...))
+        (make-Fun
+         (map (lambda (arr)
+                (Arrow-update
+                 arr
+                 dom
+                 rng
+                 (lambda (doms rng)
+                   (match (car doms)
+                     [(Name/simple: n)
+                      #:when (free-identifier=? n st-name)
+                      (void)]
+                     [(App: (Name/simple: rator) vars)
+                      #:when (free-identifier=? rator st-name)
+                      (void)]
+                     [(Univ:)
+                      (void)]
+                     [(or (Name/simple: (app syntax-e n)) n)
+                      (tc-error/fields "type mismatch in the first parameter of the function for prop:procedure"
+                                       "expected" (syntax-e st-name)
+                                       "got" n
+                                       #:stx (st-proc-ty-property #'ty-stx))])
+                   (when property-lambda-rng-chck
+                     (property-lambda-rng-chck rng))
+                   (values (cdr doms) rng))))
+              arrs))]
+       [_
+        (tc-error/fields "type mismatch"
+                         "expected"
+                         "Procedure"
+                         "given"
+                         ty
+                         #:stx #'ty-stx)])]
+    [_
+     (customized-proc ty-stx)]))
+
+(define-syntax-rule (define-property-handling-table (name predicate msg-parts custimized-handling rng-chck) ...)
+  (make-immutable-free-id-table (list (cons name (make-extract predicate msg-parts custimized-handling rng-chck))
+                                      ...)))
+
+(define property-handling-table
+  (define-property-handling-table
+    (#'prop:procedure Fun? (cons "function" "Procedure")
+     (lambda (ty-stx)
+       (tc-error/stx ty-stx
+                     "expected: a nonnegative integer literal or an annotated lambda"))
+     #f)))
+
+
+
 ;; extract the type annotation of prop:procedure value
-(define/cond-contract (extract-proc-ty proc-ty-stx desc fld-names st-name)
+(define/cond-contract (extract-proc-ty proc-ty-stx-li desc fld-names st-name)
   (c:-> (c:listof syntax?) struct-desc? (c:listof identifier?) identifier? Type?)
 
-  (unless (equal? (length proc-ty-stx) 1)
+
+  (unless (equal? (length proc-ty-stx-li) 1)
     (tc-error "prop:procedure can only have one value assigned to it"))
 
-  (let ([proc-ty-stx (car proc-ty-stx)])
-    (syntax-parse proc-ty-stx
-      #:literals (struct-field-index)
-      ;; a field index is provided
-      [n_:exact-nonnegative-integer
-       (define n (syntax-e #'n_))
-       (define max-idx (sub1 (length (struct-desc-self-fields desc))))
-       (unless (<= n max-idx)
-         (tc-error/fields
-          "index too large"
-          "index"
-          n
-          "maximum allowed index"
-          max-idx
-          #:stx proc-ty-stx))
-       (define ty (list-ref (struct-desc-self-fields desc) n))
-       (unless (Fun? ty)
-         (tc-error/fields
-          (format "field ~a is not a function" (syntax-e (list-ref fld-names n)))
-          "expected"
-          "Procedure"
-          "given"
-          ty
-          #:stx proc-ty-stx))
-       ty]
-
-      ;; a field name is provided (via struct-field-index)
-      [(struct-field-index fld-nm:id)
-       (define idx (index-of fld-names #'fld-nm
-                             free-identifier=?))
-       ;; fld-nm must be valid, because invalid field names have been reported by
-       ;; struct-field-index at this point
-       (list-ref (struct-desc-self-fields desc) idx)]
-
-      [ty-stx:st-proc-ty^
-       #:do [(define ty (parse-type #'ty-stx))]
-       (match ty
-         [(Fun: (list arrs ...))
-          (make-Fun
-           (map (lambda (arr)
-                  (Arrow-update
-                   arr
-                   dom
-                   (lambda (doms)
-                     (match (car doms)
-                       [(Name/simple: n)
-                        #:when (free-identifier=? n st-name)
-                        (void)]
-                       [(App: (Name/simple: rator) vars)
-                        #:when (free-identifier=? rator st-name)
-                        (void)]
-                       [(Univ:)
-                        (void)]
-                       [(or (Name/simple: (app syntax-e n)) n)
-                        (tc-error/fields "type mismatch in the first parameter of the function for prop:procedure"
-                                         "expected" (syntax-e st-name)
-                                         "got" n
-                                         #:stx (st-proc-ty-property #'ty-stx))])
-
-                     (cdr doms))))
-                arrs))]
-         [_
-          (tc-error/fields "type mismatch"
-                           "expected"
-                           "Procedure"
-                           "given"
-                           ty
-                           #:stx #'ty-stx)])]
-      [_
-       (tc-error/stx proc-ty-stx
-                     "expected: a nonnegative integer literal or an annotated lambda")])))
+  ;; fixme for/first -> for/list
+  (for/first ([proc-ty-stx (in-list proc-ty-stx-li)])
+    (define property-name (assoc-struct-property-name-property proc-ty-stx))
+    ((free-id-table-ref property-handling-table property-name) proc-ty-stx st-name fld-names desc)))
 
 ;; check and register types for a define struct
 ;; tc/struct : Listof[identifier] (U identifier (list identifier identifier))

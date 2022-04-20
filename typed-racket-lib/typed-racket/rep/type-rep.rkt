@@ -806,8 +806,11 @@
 
 
 (define/cond-contract (Struct-proc* sty)
-  (-> Struct? (or/c #f Fun?))
-  (define b (Struct-proc sty))
+  (-> (or/c Poly? Struct?) (or/c #f Type?))
+  (define sty^ (match sty
+                 [(? Struct?) sty]
+                 [(Poly: _ (? Struct? sty)) sty]))
+  (define b (Struct-proc sty^))
   (and b (unbox b)))
 
 (define (make-Struct* name parent flds proc poly? pred-id properties)

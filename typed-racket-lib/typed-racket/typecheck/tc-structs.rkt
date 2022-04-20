@@ -379,7 +379,8 @@
   (define st-type-alias-maybe-with-proc
     (let ([maybe-proc-ty (and (or (Poly? sty) (Struct? sty))
                               (Struct-proc sty))])
-      (if maybe-proc-ty (intersect st-type-alias maybe-proc-ty)
+      (if maybe-proc-ty
+          (intersect st-type-alias maybe-proc-ty)
           st-type-alias)) )
 
   ;; simple abstraction for handling field getters or setters
@@ -457,7 +458,7 @@
   (refine-variance! names stys tvarss))
 
 
-(define ((make-extract predicate mismatched-field-type-errors customized-proc property-lambda-rng-chck)
+(define ((make-extract check-field-type customized-proc check-doms-rng)
          ty-stx st-name fld-names desc)
   (syntax-parse ty-stx
     #:literals (struct-field-index)
@@ -474,15 +475,7 @@
         max-idx
         #:stx ty-stx))
      (define ty (list-ref (struct-desc-self-fields desc) n))
-     (unless (predicate ty)
-       (tc-error/fields
-        (format "field ~a is not a ~a" (syntax-e (list-ref fld-names n)) (car mismatched-field-type-errors))
-        "expected"
-        (cdr mismatched-field-type-errors)
-        "given"
-        ty
-        #:stx ty-stx))
-     ty]
+     (check-field-type ty-stx (list-ref fld-names n) ty)]
 
     ;; a field name is provided (via struct-field-index)
     [(struct-field-index fld-nm:id)
@@ -517,9 +510,9 @@
                                        "expected" (syntax-e st-name)
                                        "got" n
                                        #:stx (st-proc-ty-property #'ty-stx))])
-                   (when property-lambda-rng-chck
-                     (property-lambda-rng-chck rng))
-                   (values (cdr doms) rng))))
+                   (if check-doms-rng
+                       (check-doms-rng #'ty-stx (cdr doms) rng)
+                       (values (cdr doms) rng)))))
               arrs))]
        [_
         (tc-error/fields "type mismatch"
@@ -531,17 +524,42 @@
     [_
      (customized-proc ty-stx)]))
 
-(define-syntax-rule (define-property-handling-table (name predicate msg-parts custimized-handling rng-chck) ...)
-  (make-immutable-free-id-table (list (cons name (make-extract predicate msg-parts custimized-handling rng-chck))
+(define-syntax-rule (define-property-handling-table (name check-field-type custimized-handling rng-chck) ...)
+  (make-immutable-free-id-table (list (cons name (make-extract check-field-type custimized-handling rng-chck))
                                       ...)))
 
 (define property-handling-table
   (define-property-handling-table
-    (#'prop:procedure Fun? (cons "function" "Procedure")
+    (#'prop:procedure
+     (lambda (ty-stx fld-name ty)
+       (unless (Fun? ty)
+         (tc-error/fields
+          (format "field ~a is not a function" (syntax-e fld-name))
+          "expected"
+          "Procedure"
+          "given"
+          ty
+          #:stx ty-stx))
+       ty)
      (lambda (ty-stx)
        (tc-error/stx ty-stx
                      "expected: a nonnegative integer literal or an annotated lambda"))
-     #f)))
+     #f)
+    (#'prop:evt?
+     (lambda (ty-stx field-name ty)
+       (if (Evt? ty)
+           ty
+           (make-Evt (Un))))
+     (lambda (ty-stx)
+       (tc-error/stx ty-stx
+                     "expected: a nonnegative integer literal, an annotated lambda that returns an event, or an event"))
+     (lambda (ty-stx doms rng)
+       (unless (zero? (length doms))
+         (tc-error/stx ty-stx
+                       "expected: a function that takes only one argument"))
+       (if (Evt? rng)
+           (values doms rng)
+           (values doms (-mu x (make-Evt x))))))))
 
 
 

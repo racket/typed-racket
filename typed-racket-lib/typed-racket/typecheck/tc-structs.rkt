@@ -549,13 +549,13 @@
            (make-Evt (Un))))
      (lambda (ty-stx ty st-name)
        (match ty
-         [(Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng_t _ _))))))
+         [(Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng-t _ _))))))
           (unless (= (length doms) 1)
             (tc-error/stx ty-stx
                           "expected: a function that takes only one argument"))
-          (if (subtype ty (-evt Univ))
-              rng_t
-              ;; if the field is not an event, we get an "always ready" event of the structure type
+          (if (subtype rng-t (-evt Univ))
+              rng-t
+              ;; if the return type is not an event, we make an event type using the structure type
               (make-Evt (parse-type st-name)))]
          [_ (if (subtype ty (-evt Univ))
                 ty

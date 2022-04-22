@@ -20,13 +20,13 @@
 
 (ann (sync (aaa1 ch)) Number)
 
-;; (struct aaa2 ([evt : (Channelof Number)])
-;;   #:property prop:evt (lambda ([self : aaa2]) : (Channelof Number)
-;;                         (aaa2-evt self)))
+(struct aaa2 ([evt : (Channelof Number)])
+  #:property prop:evt (lambda ([self : aaa2]) : (Channelof Number)
+                        (aaa2-evt self)))
 
-;; (thread (lambda ()
-;;           (channel-put ch 10)))
-;; (ann (sync (aaa2 ch)) Number)
+(thread (lambda ()
+          (channel-put ch 10)))
+(ann (sync (aaa2 ch)) Number)
 
 
 (define ch2 ((inst make-channel String)))

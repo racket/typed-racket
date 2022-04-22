@@ -543,8 +543,9 @@
      "expected: a nonnegative integer literal or an annotated lambda")
     (#'prop:evt
      (lambda (ty-stx field-name ty)
-       (if (Evt? ty)
+       (if (subtype ty (-evt Univ))
            ty
+           ;; if the field is not an event, we get the "never ready" event type.
            (make-Evt (Un))))
      (lambda (ty-stx ty st-name)
        (match ty
@@ -552,11 +553,11 @@
           (unless (= (length doms) 1)
             (tc-error/stx ty-stx
                           "expected: a function that takes only one argument"))
-          (if (Evt? rng_t)
+          (if (subtype ty (-evt Univ))
               rng_t
-              ;; fixme: return struct type alias, not always ready
-              (-mu x (make-Evt x)))]
-         [_ (if (Evt? ty)
+              ;; if the field is not an event, we get an "always ready" event of the structure type
+              (make-Evt (parse-type st-name)))]
+         [_ (if (subtype ty (-evt Univ))
                 ty
                 (tc-error/stx ty-stx
                               "expected: a nonnegative integer literal, an annotated lambda that returns an event, or an event"))]))

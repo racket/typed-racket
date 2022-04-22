@@ -50,6 +50,13 @@
   (match*/no-order
    (t1 t2)
    [(_ _) #:when (equal? t1 t2) #t]
+   ;; a struct type can overlap with a function type (via prop:procedure)
+   ;; or any event type (via prop:evt)
+   [((or (? Fun?) (? (lambda (x) (subtype x (make-Evt Univ)))))
+     (or (Name/struct: _)
+         (? Struct?)))
+    #:no-order
+    #t]
    [(_ _) #:when (disjoint-masks? (mask t1) (mask t2)) #f]
    [(_ _) #:when (seen? t1 t2) #t]
    [((Univ:) _) #:no-order #t]

@@ -614,7 +614,13 @@ protect higher-order uses of the value.
 @ex[
 ((cast (lambda ([s : String]) s) (Any -> Any)) "hello")
 (eval:error ((cast (lambda ([s : String]) s) (Any -> Any)) 5))
-]}
+]
+
+@racket[cast] is mainly useful in the cases in which a thorough check is
+required, in particular when using higher-order or mutable values that cannot
+be fully verified by a flat predicate, or when a good error message from the
+contract system is worth the performance penalty.  In most other cases
+occurrence typing or @racket[assert] should be preferred.}
 
 @defform*[[(inst e t ...)
            (inst e t ... t ooo bound)]]{

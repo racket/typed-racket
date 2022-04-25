@@ -618,11 +618,11 @@ protect higher-order uses of the value.
 (eval:error ((cast (lambda ([s : String]) s) (Any -> Any)) 5))
 ]
 
-@racket[cast] is mainly useful in the cases in which a thorough check is
-required, in particular when using higher-order or mutable values that cannot
-be fully verified by a flat predicate, or when a good error message from the
-contract system is worth the performance penalty.  In most other cases
-occurrence typing or @racket[assert] should be preferred.}
+@racket[cast] will wrap the value @racket[e] in a contract which will affect
+the runtime performance of reading and updating the value. This is needed when
+@racket[e] is a complex data type, such as a hash table. However, when the type
+of the value can be checked using a simple predicate, consider using
+@racket[assert] instead.}
 
 @defform*[[(inst e t ...)
            (inst e t ... t ooo bound)]]{

@@ -63,13 +63,16 @@
          (loop)]
         [(vector p* res error?) 
          (define-values (path p b) (split-path p*))
-         (with-handlers ([exn? (λ (e) (place-channel-put res (serialize-exn e)))])
+         (place-channel-put ch p*)
+         (with-handlers ([exn? (λ (e)
+                                 (place-channel-put ch p*)
+                                 (place-channel-put res (serialize-exn e)))])
            (parameterize ([read-accept-reader #t]
                           [current-load-relative-directory
                            (path->complete-path path)]
                           [current-directory path]
                           [current-output-port (open-output-nowhere)]                        
-                          [error-display-handler (if error? void (error-display-handler))]) 
+                          [error-display-handler (if error? void (error-display-handler))])
              (dr p)
              (place-channel-put res #t)))
          (loop)]))))

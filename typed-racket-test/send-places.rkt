@@ -3,15 +3,33 @@
 (require "places.rkt")
 
 (require racket/place data/queue racket/async-channel)
-(provide generate-log start-workers run-in-other-place places verbose? compile-path)
+(provide generate-log start-workers run-in-other-place places verbose? compile-path timeout)
 
 (define places (make-parameter (and (place-enabled?) (min 8 (processor-count)))))
+(define timeout (make-parameter 120))
 
 (define-values (enq-ch deq-ch) (place-channel))
 (define (start-workers)
   (when (places)
-    (for ([i (places)])
-      (start-worker deq-ch i))))
+    (define ws (for/list ([i (places)])
+                 (start-worker deq-ch i)))
+    (place/context me
+      (let loop ([tests (set)])
+        (define val (apply sync/timeout (timeout) ws))
+        (cond
+          [val (define-values (path n _) (split-path val))
+               (match n
+                 [(and (? path?) (app path->string (or "slow-parser.rkt" "slow-check.rkt")))
+                  (loop tests)]
+                 [_ (loop (if (set-member? tests val)
+                              (set-remove tests val)
+                              (set-add tests val)))])]
+          [else (unless (zero? (set-count tests))
+                  (eprintf "~a tests are still running:~n~a"
+                           (set-count tests)
+                           (string-join (set-map tests path->string)
+                                        "\n")))])))
+    (void)))
 
 (define (run-in-other-place p* error?)
   (define-values (res-ch res-ch*) (place-channel))

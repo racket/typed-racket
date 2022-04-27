@@ -195,7 +195,12 @@
 
 ;; Structs
 (define (-struct name parent flds [proc #f] [poly #f] [pred #'dummy] [props (immutable-free-id-set)])
-  (make-Struct name parent flds proc poly pred props))
+  (make-Struct name parent flds
+               (cond
+                 [(and proc (not (list? proc)))
+                  (list proc)]
+                 [else proc])
+               poly pred props))
 
 ;; Function type constructors
 (define/decl top-func (make-Fun (list)))

@@ -188,7 +188,7 @@
 ;; Constructs the Struct value for a structure type
 ;; The returned value has free type variables
 (define/cond-contract (mk/inner-struct-type names desc parent [property-names empty] [proc-ty #f])
-  (c:->* (struct-names? struct-desc? (c:or/c Struct? #f)) ((c:listof identifier?) (c:or/c Type? #f)) Struct?)
+  (c:->* (struct-names? struct-desc? (c:or/c Struct? #f)) ((c:listof identifier?) (c:or/c (c:listof Type?) #f)) Struct?)
 
   (let* ([this-flds (for/list ([t (in-list (struct-desc-self-fields desc))]
                                [g (in-list (struct-names-getters names))])
@@ -197,7 +197,7 @@
     (make-Struct (struct-names-struct-name names)
                  parent
                  flds
-                 (or proc-ty (and parent (Struct-proc parent)))
+                 (or proc-ty (and parent (Struct-extra-tys parent)))
                  (not (null? (struct-desc-tvars desc)))
                  (struct-names-predicate names)
                  (immutable-free-id-set property-names))))
@@ -377,10 +377,10 @@
   ;; the alias, with free type variables
   (define st-type-alias (mk-type-alias type-name tvars))
   (define st-type-alias-maybe-with-proc
-    (let ([maybe-proc-ty (and (or (Poly? sty) (Struct? sty))
-                              (Struct-proc sty))])
-      (if maybe-proc-ty
-          (intersect st-type-alias maybe-proc-ty)
+    (let ([maybe-proc-tys (and (or (Poly? sty) (Struct? sty))
+                              (Struct-extra-tys sty))])
+      (if maybe-proc-tys
+          (foldl intersect st-type-alias maybe-proc-tys)
           st-type-alias)) )
 
   ;; simple abstraction for handling field getters or setters
@@ -579,14 +579,13 @@
 
 ;; extract the type annotation of prop:procedure value
 (define/cond-contract (extract-prop-specified-type proc-ty-stx-li desc fld-names st-name)
-  (c:-> (c:listof syntax?) struct-desc? (c:listof identifier?) identifier? Type?)
+  (c:-> (c:listof syntax?) struct-desc? (c:listof identifier?) identifier? (c:listof Type?))
 
 
   (unless (equal? (length proc-ty-stx-li) 1)
     (tc-error "prop:procedure can only have one value assigned to it"))
 
-  ;; fixme for/first -> for/list
-  (for/first ([proc-ty-stx (in-list proc-ty-stx-li)])
+  (for/list ([proc-ty-stx (in-list proc-ty-stx-li)])
     (define property-name (assoc-struct-property-name-property proc-ty-stx))
     ((free-id-table-ref property-handling-table property-name) proc-ty-stx st-name fld-names desc)))
 

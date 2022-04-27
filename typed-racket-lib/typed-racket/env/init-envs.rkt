@@ -265,11 +265,11 @@
      `(make-Name (quote-syntax ,stx) ,args ,struct?)]
     [(fld: t acc mut)
      `(make-fld ,(type->sexp t) (quote-syntax ,acc) ,mut)]
-    [(Struct: name parent flds proc poly? pred-id properties)
+    [(Struct: name parent flds extra-tys poly? pred-id properties)
      `(make-Struct (quote-syntax ,name)
                    ,(and parent (type->sexp parent))
                    (list ,@(map type->sexp flds))
-                   ,(and proc (type->sexp proc))
+                   ,(and extra-tys `(list ,@(map type->sexp extra-tys)))
                    ,poly?
                    (quote-syntax ,pred-id)
                    (immutable-free-id-set (list ,@(for/list ([p (in-free-id-set properties)])

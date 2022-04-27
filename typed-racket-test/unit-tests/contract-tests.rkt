@@ -223,7 +223,7 @@
             (-> -Symbol -Symbol))
            "two cases of arity 1")
    (t/fail (-struct #'struct-name2 #f (list (make-fld -Symbol #'acc #f)) (-> -Symbol))
-           "procedural structs are not supported")
+           "structs with prop:procedure or prop:evt attached are not supported")
    (t/fail (-Syntax (-> -Boolean -Boolean))
            "required a flat contract but generated a chaperone contract")
    (t/fail (-Syntax (-seq -Boolean))

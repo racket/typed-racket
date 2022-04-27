@@ -681,14 +681,17 @@
 
         ;; two structs with the same name
         ;; just check pairwise on the fields
-        [((Struct: nm _ flds proc _ _ _) (Struct: nm* _ flds* proc* _ _ _))
+        [((Struct: nm _ flds extra-ty _ _ _) (Struct: nm* _ flds* extra-ty* _ _ _))
          #:when (free-identifier=? nm nm*)
-         (let ([proc-c
-                (cond [(and proc proc*)
-                       (cg proc proc*)]
-                      [proc* #f]
+         (let ([extra-ty-c
+                (cond [(and extra-ty extra-ty*)
+                       (for/fold ([acc empty])
+                                  ([p extra-ty]
+                                   [p* extra-ty*])
+                         (% cset-meet acc (cg p p*)))]
+                      [extra-ty* #f]
                       [else empty])])
-           (% cset-meet proc-c (cgen/flds context flds flds*)))]
+           (% cset-meet extra-ty-c (cgen/flds context flds flds*)))]
 
         ;; two prefab structs with the same key
         [((Prefab: k ss) (Prefab: k* ts))

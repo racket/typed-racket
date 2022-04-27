@@ -1205,7 +1205,7 @@
      [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Some (Some: _ _)) #f]
-  [(case: Struct (Struct: nm1 parent1 flds1 proc1 _ _ properties))
+  [(case: Struct (Struct: nm1 parent1 flds1 extras1 _ _ properties))
    (match t2
      ;; Avoid resolving things that refer to different structs.
      ;; Saves us from non-termination
@@ -1213,12 +1213,14 @@
       #:when (unrelated-structs t1 t2)
       #f]
      ;; subtyping on immutable structs is covariant
-     [(Struct: nm2 _ flds2 proc2 _ _ _)
+     [(Struct: nm2 _ flds2 extras2 _ _ _)
       #:when (free-identifier=? nm1 nm2)
       (let ([A (remember t1 t2 A)])
         (with-updated-seen A
-          (let ([A (cond [(and proc1 proc2) (subtype* A proc1 proc2)]
-                         [proc2 #f]
+          (let ([A (cond [(and extras1 extras2) (for/and ([et1 (in-list extras1)]
+                                                          [et2 (in-list extras2)])
+                                                  (subtype* A et1 et2))]
+                         [extras2 #f]
                          [else A])])
             (for/fold ([A A])
                       ([f1 (in-list flds1)]

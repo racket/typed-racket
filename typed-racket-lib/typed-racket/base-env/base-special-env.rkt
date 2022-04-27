@@ -30,6 +30,11 @@
 
 (define-initial-env initialize-special
   ;; make-promise
+  [(make-template-identifier 'lazy 'racket/private/promise)
+   (-poly (a)
+         (cl->*
+          (-> (-> (-Promise a)) (-Promise a))
+          (-> (-> a) (-Promise a))))]
   [(make-template-identifier 'delay 'racket/private/promise)
    (-poly (a) (-> (-> a) (-Promise a)))]
   ;; next four for string constants

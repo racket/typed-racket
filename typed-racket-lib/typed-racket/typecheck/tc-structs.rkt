@@ -458,7 +458,7 @@
   (refine-variance! names stys tvarss))
 
 
-(define ((make-extract check-field-type check-doms-rng error-msg)
+(define ((make-extract specified-field-checker supplied-proc-checker failure-msg)
          ty-stx st-name fld-names desc)
   (syntax-parse ty-stx
     #:literals (struct-field-index)
@@ -475,98 +475,110 @@
         max-idx
         #:stx ty-stx))
      (define ty (list-ref (struct-desc-self-fields desc) n))
-     (check-field-type ty-stx (list-ref fld-names n) ty)]
+     (specified-field-checker ty-stx (list-ref fld-names n) ty)]
 
-    ;; a field name is provided (via struct-field-index)
+    ;; a field name is provided via `struct-field-index`
     [(struct-field-index fld-nm:id)
-     (define idx (index-of fld-names #'fld-nm
-                           free-identifier=?))
+     (define idx (index-of fld-names #'fld-nm free-identifier=?))
      ;; fld-nm must be valid, because invalid field names have been reported by
      ;; struct-field-index at this point
-     (list-ref (struct-desc-self-fields desc) idx)]
+     (specified-field-checker ty-stx #'fld-nm (list-ref (struct-desc-self-fields desc) idx))]
 
     [ty-stx:st-proc-ty^
      #:do [(define ty (parse-type #'ty-stx))]
-     (check-doms-rng #'ty-stx ty st-name)
-     ]
-    [_ (tc-error/stx ty-stx error-msg)]))
+     (supplied-proc-checker #'ty-stx ty st-name)]
+    [_ (tc-error/stx ty-stx failure-msg)]))
 
-(define-syntax-rule (define-property-handling-table (name check-field-type rng-chck error-msg) ...)
-  (make-immutable-free-id-table (list (cons name (make-extract check-field-type rng-chck error-msg))
-                                      ...)))
+(define (define-property-handling-entry
+          #:name name
+          #:specified-field-checker specified-field-checker
+          #:supplied-proc-checker suppiled-proc-checker
+          #:failure-msg failure-msg)
+  (cons name (make-extract specified-field-checker suppiled-proc-checker failure-msg)))
 
 (define property-handling-table
-  (define-property-handling-table
-    (#'prop:procedure
-     (lambda (ty-stx fld-name ty)
-       (unless (Fun? ty)
-         (tc-error/fields
-          (format "field ~a is not a function" (syntax-e fld-name))
-          "expected"
-          "Procedure"
-          "given"
-          ty
-          #:stx ty-stx))
-       ty)
-     (lambda (ty-stx ty st-name)
-       (match ty
-         [(Fun: (list arrs ...))
-          (make-Fun
-           (map (lambda (arr)
-                  (Arrow-update
-                   arr
-                   dom
-                   (lambda (doms)
-                     (match (car doms)
-                       [(Name/simple: n)
-                        #:when (free-identifier=? n st-name)
-                        (void)]
-                       [(App: (Name/simple: rator) vars)
-                        #:when (free-identifier=? rator st-name)
-                        (void)]
-                       [(Univ:)
-                        (void)]
-                       [(or (Name/simple: (app syntax-e n)) n)
-                        (tc-error/fields "type mismatch in the first parameter of the function for prop:procedure"
-                                         "expected" (syntax-e st-name)
-                                         "got" n
-                                         #:stx (st-proc-ty-property ty-stx))])
-                     (cdr doms))))
-                arrs))]
-         [_
-          (tc-error/fields "type mismatch"
-                           "expected"
-                           "Procedure"
-                           "given"
-                           ty
-                           #:stx ty-stx)]))
-     "expected: a nonnegative integer literal or an annotated lambda")
-    (#'prop:evt
-     (lambda (ty-stx field-name ty)
-       (if (subtype ty (-evt Univ))
+  (make-immutable-free-id-table
+   (list
+    (define-property-handling-entry
+      #:name
+      #'prop:procedure
+      #:specified-field-checker
+      (lambda (ty-stx fld-name ty)
+        (unless (Fun? ty)
+          (tc-error/fields
+           (format "field ~a is not a function" (syntax-e fld-name))
+           "expected"
+           "Procedure"
+           "given"
            ty
-           ;; if the field is not an event, we get the "never ready" event type.
-           (make-Evt (Un))))
-     (lambda (ty-stx ty st-name)
-       (match ty
-         [(Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng-t _ _))))))
-          (unless (= (length doms) 1)
-            (tc-error/stx ty-stx
-                          "expected: a function that takes only one argument"))
-          (if (subtype rng-t (-evt Univ))
-              rng-t
-              ;; if the return type is not an event, we make an event type using the structure type
-              (make-Evt (parse-type st-name)))]
-         [_ (if (subtype ty (-evt Univ))
-                ty
-                (tc-error/stx ty-stx
-                              "expected: a nonnegative integer literal, an annotated lambda that returns an event, or an event"))]))
-     "expected: a nonnegative integer literal, an annotated lambda that returns an event, or an event")))
+           #:stx ty-stx))
+        ty)
+      #:supplied-proc-checker
+      (lambda (ty-stx ty st-name)
+        (match ty
+          [(Fun: (list arrs ...))
+           (make-Fun
+            (map (lambda (arr)
+                   (Arrow-update
+                    arr
+                    dom
+                    (lambda (doms)
+                      (match (car doms)
+                        [(Name/simple: n)
+                         #:when (free-identifier=? n st-name)
+                         (void)]
+                        [(App: (Name/simple: rator) vars)
+                         #:when (free-identifier=? rator st-name)
+                         (void)]
+                        [(Univ:)
+                         (void)]
+                        [(or (Name/simple: (app syntax-e n)) n)
+                         (tc-error/fields "type mismatch in the first parameter of the function for prop:procedure"
+                                          "expected" (syntax-e st-name)
+                                          "got" n
+                                          #:stx (st-proc-ty-property ty-stx))])
+                      (cdr doms))))
+                 arrs))]
+          [_
+           (tc-error/fields "type mismatch"
+                            "expected"
+                            "Procedure"
+                            "given"
+                            ty
+                            #:stx ty-stx)]))
+      #:failure-msg
+      "expected: a nonnegative integer literal or an annotated lambda")
+    (define-property-handling-entry
+      #:name
+      #'prop:evt
+      #:specified-field-checker
+      (lambda (ty-stx field-name ty)
+        (if (subtype ty (-evt Univ))
+            ty
+            ;; if the field is not an event, we get the "never ready" event type.
+            (make-Evt (Un))))
+      #:supplied-proc-checker
+      (lambda (ty-stx ty st-name)
+        (match ty
+          [(Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng-t _ _))))))
+           (unless (= (length doms) 1)
+             (tc-error/stx ty-stx
+                           "expected: a function that takes only one argument"))
+           (if (subtype rng-t (-evt Univ))
+               rng-t
+               ;; if the return type is not an event, we make an event type using the structure type
+               (make-Evt (parse-type st-name)))]
+          [_ (if (subtype ty (-evt Univ))
+                 ty
+                 (tc-error/stx ty-stx
+                               "expected: a nonnegative integer literal, an annotated lambda that returns an event, or an event"))]))
+      #:failure-msg
+      "expected: a nonnegative integer literal, an annotated lambda that returns an event, or an event"))))
 
 
 
 ;; extract the type annotation of prop:procedure value
-(define/cond-contract (extract-proc-ty proc-ty-stx-li desc fld-names st-name)
+(define/cond-contract (extract-prop-specified-type proc-ty-stx-li desc fld-names st-name)
   (c:-> (c:listof syntax?) struct-desc? (c:listof identifier?) identifier? Type?)
 
 
@@ -668,7 +680,7 @@
                                            (and proc-ty-stx
                                                 (not (null? proc-ty-stx))
                                                 (extend-tvars tvars
-                                                              (extract-proc-ty proc-ty-stx desc fld-names type-name)))))
+                                                              (extract-prop-specified-type proc-ty-stx desc fld-names type-name)))))
 
          (parsed-struct sty names desc (struct-info-property nm/par) type-only)]))
 

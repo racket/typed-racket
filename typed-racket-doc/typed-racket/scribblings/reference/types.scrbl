@@ -753,12 +753,13 @@ delimited continuation functions and continuation mark functions.
   @margin-note{Currently, because explicit packing operations for existential types are
   not supported, existential type results are only used to annotate accessors
   for @racket[Struct-Property]}
-  @emph{(Some (a ...) type : #:+ proposition)} for @racket[rng] specifies an
+
+  @racket[(Some (a ...) type : #:+ proposition)] for @racket[rng] specifies an
   @deftech[#:key "Some"]{existential type result}, where the type variables @racket[a ...] may appear
   in @racket[type] and @racket[opt-proposition]. Unpacking the existential type
   result is done automatically while checking application of the function.
 
-  @history[#:changed "1.12" @elem{Added [#:key "Some"]{existential type results}}]
+  @history[#:changed "1.12" @elem{Added @tech[#:key "Some"]{existential type results}}]
 }
 
 @;; This is a trick to get a reference to ->* in another manual

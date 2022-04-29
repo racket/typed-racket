@@ -368,7 +368,8 @@
 ;; Evt
 ;;------
 
-(def-structural Evt ([result #:covariant]))
+(def-structural Evt ([result #:covariant])
+  [#:mask mask:evt])
 
 ;;--------
 ;; Param
@@ -799,7 +800,7 @@
    (let ([bv (unbox extra-tys)])
      (when bv (for-each f bv)))]
   ;; This should eventually be based on understanding of struct properties.
-  [#:mask (mask-union mask:struct mask:procedure)]
+  [#:mask (mask-union mask:struct mask:procedure mask:evt)]
   [#:custom-constructor
    (let ([name (normalize-id name)]
          [pred-id (normalize-id pred-id)])
@@ -829,6 +830,10 @@
   [#:fmap (f) (make-StructTop (f name))]
   [#:for-each (f) (f name)]
   [#:mask (mask-union mask:struct mask:procedure)])
+
+(def-type Undecided-Evt ([n F?])
+  [#:frees (f) (f n)]
+  [#:fmap (f) (make-Undecide)])
 
 ;; Represents prefab structs
 ;; key  : prefab key encoding mutability, auto-fields, etc.

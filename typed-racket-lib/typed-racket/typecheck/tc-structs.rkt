@@ -486,7 +486,8 @@
 
     [ty-stx:st-proc-ty^
      #:do [(define ty (parse-type #'ty-stx))]
-     (supplied-proc-checker #'ty-stx ty st-name)]
+     (define tvars (struct-desc-tvars desc))
+     (supplied-proc-checker #'ty-stx ty (mk-type-alias st-name tvars))]
     [_ (tc-error/stx ty-stx failure-msg)]))
 
 (define (mk-handling-entry
@@ -514,7 +515,7 @@
            #:stx ty-stx))
         ty)
       #:supplied-proc-checker
-      (lambda (ty-stx ty st-name)
+      (lambda (ty-stx ty st-alias)
         (match ty
           [(Fun: (list arrs ...))
            (make-Fun
@@ -523,18 +524,18 @@
                     arr
                     dom
                     (lambda (doms)
-                      (match (car doms)
-                        [(Name/simple: n)
-                         #:when (free-identifier=? n st-name)
+                      (match* ((car doms) st-alias)
+                        [((Name/simple: n) (Name/simple: st))
+                         #:when (free-identifier=? n st)
                          (void)]
-                        [(App: (Name/simple: rator) vars)
-                         #:when (free-identifier=? rator st-name)
+                        [((App: (Name/simple: rator) _) (App: (Name/simple: st) _))
+                         #:when (free-identifier=? rator st)
                          (void)]
-                        [(Univ:)
+                        [((Univ:) _)
                          (void)]
-                        [(or (Name/simple: (app syntax-e n)) n)
+                        [((or (Name/simple: (app syntax-e n)) n) _)
                          (tc-error/fields "type mismatch in the first parameter of the function for prop:procedure"
-                                          "expected" (syntax-e st-name)
+                                          "expected" st-alias
                                           "got" n
                                           #:stx (st-proc-ty-property ty-stx))])
                       (cdr doms))))
@@ -558,16 +559,19 @@
             ;; if the field is not an event, we get the "never ready" event type.
             (make-Evt (Un))))
       #:supplied-proc-checker
-      (lambda (ty-stx ty st-name)
+      (lambda (ty-stx ty st-alias)
         (match ty
           [(Fun: (list (Arrow: doms _ _ (Values: (list (Result: rng-t _ _))))))
            (unless (= (length doms) 1)
              (tc-error/stx ty-stx
                            "expected: a function that takes only one argument"))
-           (if (subtype rng-t (-evt Univ))
-               rng-t
-               ;; if the return type is not an event, we make an event type using the structure type
-               (make-Evt (parse-type st-name)))]
+           (cond
+             [(subtype rng-t (-evt Univ))
+              rng-t]
+             [(F? rng-t) (make-Evt rng-t)]
+             [else
+              ;; if the return type is not an event, we make an event type using the structure type
+              (make-Evt st-alias)])]
           [_ (if (subtype ty (-evt Univ))
                  ty
                  (tc-error/stx ty-stx

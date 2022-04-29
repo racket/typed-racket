@@ -144,6 +144,7 @@
  mask:other-box
  mask:set
  mask:procedure
+ mask:evt
  mask:prompt-tag
  mask:continuation-mark-key
  mask:struct

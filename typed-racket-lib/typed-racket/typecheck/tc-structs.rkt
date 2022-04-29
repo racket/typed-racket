@@ -489,7 +489,7 @@
      (supplied-proc-checker #'ty-stx ty st-name)]
     [_ (tc-error/stx ty-stx failure-msg)]))
 
-(define (define-property-handling-entry
+(define (mk-handling-entry
           #:name name
           #:specified-field-checker specified-field-checker
           #:supplied-proc-checker suppiled-proc-checker
@@ -499,7 +499,7 @@
 (define property-handling-table
   (make-immutable-free-id-table
    (list
-    (define-property-handling-entry
+    (mk-handling-entry
       #:name
       #'prop:procedure
       #:specified-field-checker
@@ -548,7 +548,7 @@
                             #:stx ty-stx)]))
       #:failure-msg
       "expected: a nonnegative integer literal or an annotated lambda")
-    (define-property-handling-entry
+    (mk-handling-entry
       #:name
       #'prop:evt
       #:specified-field-checker

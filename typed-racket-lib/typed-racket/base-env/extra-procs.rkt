@@ -8,7 +8,7 @@
      #`(let ([val v])
          #,(syntax-property
             (syntax/loc stx
-              (or val (error (format "Assertion failed on ~v" val))))
+              (or val (error (format "Assertion failed on ~e" val))))
             'feature-profile:TR-dynamic-check #t))]
     [(assert v p)
      #`(let ([val  v]
@@ -17,7 +17,7 @@
             (quasisyntax/loc stx
               (if (pred val)
                   val
-                  (error (format "Assertion ~a failed on ~v" pred val))))
+                  (error (format "Assertion ~e failed on ~e" pred val))))
             'feature-profile:TR-dynamic-check #t))]))
 
 (define (defined? v) #t)

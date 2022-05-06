@@ -1083,16 +1083,6 @@
          Mode:Host-Text<%>
          Mode:Host-Text-Mixin)
 
-(define-type File-Format (U 'guess 'same 'copy 'standard 'text 'text-force-cr))
-(define-type Image-Kind (U 'unknown 'unknown/mask 'unknown/alpha
-                           'gif 'gif/mask 'gif/alpha
-                           'jpeg 'png 'png/mask 'png/alpha
-                           'xbm 'xpm 'bmp 'pict))
-(define-type Draw-Caret (U 'no-caret 'show-inactive-caret 'show-caret (Pairof Natural Natural)))
-(define-type Edit-Op (U 'undo 'redo 'clear 'cut 'copy 'paste
-                        'kill 'select-all 'insert-text-box
-                        'insert-pasteboard-box 'insert-image))
-
 (define-type Mode:Surrogate-Text<%>
   (Class [on-enable-surrogate (Text%-Instance -> Any)]
          [on-disable-surrogate (Text%-Instance -> Any)]))
@@ -1107,7 +1097,7 @@
          [on-edit-sequence (Text%-Instance (-> Void) -> Void)]
          [on-event (Text%-Instance (-> Void) Mouse-Event%-Instance -> Void)]
          [on-focus (Text%-Instance (-> Void) Any -> Void)]
-         [on-load-file (Text%-Instance (-> Void) Path File-Format -> Void)]
+         [on-load-file (Text%-Instance (-> Void) Path Load/Save-Format -> Void)]
          [on-local-char (Text%-Instance (-> Void) Key-Event%-Instance -> Void)]
          [on-local-event (Text%-Instance (-> Void) Mouse-Event%-Instance -> Void)]
          [on-new-box (Text%-Instance (-> Snip%-Instance) (U 'text 'pasteboard) -> Snip%-Instance)]
@@ -1115,7 +1105,7 @@
           (Text%-Instance (-> (Instance Image-Snip%)) Path Image-Kind Any Any -> (Instance Image-Snip%))]
          [on-paint
           (Text%-Instance (-> Void) Any (Instance DC<%>) Real Real Real Real Real Real Draw-Caret -> Void)]
-         [on-save-file (Text%-Instance (-> Void) Path File-Format -> Void)]
+         [on-save-file (Text%-Instance (-> Void) Path Load/Save-Format -> Void)]
          [on-snip-modified (Text%-Instance (-> Void) Snip%-Instance Any -> Void)]
          [on-change-style (Text%-Instance (-> Any) Natural Natural -> Any)]
          [on-delete (Text%-Instance (-> Void) Natural Natural -> Void)]
@@ -1136,11 +1126,11 @@
          [can-delete? (Text%-Instance (-> Boolean) Natural Natural -> Boolean)]
          [can-insert? (Text%-Instance (-> Boolean) Natural Natural -> Boolean)]
          [can-set-size-constraint? (Text%-Instance (-> Boolean) -> Boolean)]
-         [can-do-edit-operation? ([Text%-Instance (-> Boolean) Edit-Op]
+         [can-do-edit-operation? ([Text%-Instance (-> Boolean) Edit-Operation]
                                   [Any]
                                   . ->* . Boolean)]
-         [can-load-file? (Text%-Instance (-> Boolean) Path File-Format -> Boolean)]
-         [can-save-file? (Text%-Instance (-> Boolean) Path File-Format -> Boolean)]
+         [can-load-file? (Text%-Instance (-> Boolean) Path Load/Save-Format -> Boolean)]
+         [can-save-file? (Text%-Instance (-> Boolean) Path Load/Save-Format -> Boolean)]
          [put-file
           (Text%-Instance
            (-> (Option Path-String))

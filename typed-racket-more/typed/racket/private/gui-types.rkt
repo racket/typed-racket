@@ -2069,7 +2069,11 @@
 
 ;; editor classes
 
-(provide Editor<%>
+(provide Edit-Operation
+         Load/Save-Format
+         Threshold
+         Draw-Caret
+         Editor<%>
          Editor-Admin%
          Editor-Canvas%
          Editor-Data%
@@ -2089,6 +2093,9 @@
 
 (define-type Load/Save-Format
   (U 'guess 'same 'copy 'standard 'text 'text-force-cr))
+
+(define-type Threshold  (U 'no-caret 'show-inactive-caret 'show-caret))
+(define-type Draw-Caret (U Threshold (Pairof Natural Natural)))
 
 (define-type Editor<%>
   (Class [add-canvas ((Instance Editor-Canvas%) -> Void)]
@@ -2145,7 +2152,7 @@
           (->* () ((Option (Boxof Any))) (Option Path-String))]
          [get-flattened-text (-> String)]
          [get-focus-snip (-> (Option (Instance Snip%)))]
-         [get-inactive-caret-threshold (-> (U 'no-caret 'show-inactive-caret 'show-caret))]
+         [get-inactive-caret-threshold (-> Threshold)]
          [get-keymap (-> (Option (Instance Keymap%)))]
          [get-load-overwrites-styles (-> Boolean)]
          [get-max-height (-> (U Nonnegative-Real 'none))]
@@ -2240,8 +2247,7 @@
           (Path Image-Kind Any Any -> (Instance Snip%))]
          [on-paint
           (Any (Instance DC<%>) Real Real Real Real
-               Real Real (U 'no-caret 'show-inactive-caret
-                            'show-caret (Pairof Integer Integer))
+               Real Real Draw-Caret
                -> Void)]
          [on-save-file (Path Load/Save-Format -> Void)]
          [on-snip-modified ((Instance Snip%) Any -> Void)]
@@ -2278,8 +2284,7 @@
           ((Instance Editor-Stream-In%) String -> Boolean)]
          [redo (-> Void)]
          [refresh
-          (Real Real Real Real (U 'no-caret 'show-inactive-caret 'show-caret
-                                  (Pairof Integer Integer))
+          (Real Real Real Real Draw-Caret
                 (Option (Instance Color%))
                 -> Void)]
          [refresh-delayed? (-> Boolean)]
@@ -2316,8 +2321,7 @@
          [set-filename
           (case-> ((Option Path-String) -> Void)
                   ((Option Path-String) Any -> Void))]
-         [set-inactive-caret-threshold
-          ((U 'no-caret 'show-inactive-caret 'show-caret) -> Void)]
+         [set-inactive-caret-threshold (Threshold -> Void)]
          [set-keymap
           (case-> (-> Void) ((Option (Instance Keymap%)) -> Void))]
          [set-load-overwrites-styles (Any -> Void)]
@@ -2591,6 +2595,7 @@
 ;; racket/snip
 
 (provide Image-Kind
+         Snip-Edit-Operation
          Add-Color<%>
          Image-Snip%
          Mult-Color<%>
@@ -2856,9 +2861,7 @@
                   (Snip-Edit-Operation Any -> Void)
                   (Snip-Edit-Operation Any Integer -> Void))]
          [draw
-          ((Instance DC<%>) Real Real Real Real Real Real Real Real
-           (U 'no-caret 'show-inactive-caret 'show-caret
-              (Pairof Natural Natural)) -> Void)]
+          ((Instance DC<%>) Real Real Real Real Real Real Real Real Draw-Caret -> Void)]
          [equal-to?
           ((Instance Snip%) (Any Any -> Boolean) -> Boolean)]
          [other-equal-to?

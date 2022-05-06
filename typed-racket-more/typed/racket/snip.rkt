@@ -26,7 +26,7 @@
          Tab-Snip%)
 
 #;(begin-for-syntax
-    (define -Image-Kind          (parse-type #'Image-Kind))
+    (define -Image-Kind   (parse-type #'Image-Kind))
     (define -Snip-Edit-Op (parse-type #'Snip-Edit-Op)))
 
 (type-environment

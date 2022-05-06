@@ -1126,7 +1126,7 @@
          [can-delete? (Text%-Instance (-> Boolean) Natural Natural -> Boolean)]
          [can-insert? (Text%-Instance (-> Boolean) Natural Natural -> Boolean)]
          [can-set-size-constraint? (Text%-Instance (-> Boolean) -> Boolean)]
-         [can-do-edit-operation? ([Text%-Instance (-> Boolean) Edit-Operation]
+         [can-do-edit-operation? ([Text%-Instance (-> Boolean) Edit-Op]
                                   [Any]
                                   . ->* . Boolean)]
          [can-load-file? (Text%-Instance (-> Boolean) Path Load/Save-Format -> Boolean)]

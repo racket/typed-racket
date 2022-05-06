@@ -2069,7 +2069,7 @@
 
 ;; editor classes
 
-(provide Edit-Operation
+(provide Edit-Op
          Load/Save-Format
          Threshold
          Draw-Caret
@@ -2086,7 +2086,7 @@
          Pasteboard%
          Text%)
 
-(define-type Edit-Operation
+(define-type Edit-Op
   (U 'undo 'redo 'clear 'cut 'copy 'paste
      'kill 'select-all 'insert-text-box
      'insert-pasteboard-box 'insert-image))
@@ -2115,8 +2115,8 @@
           ((Instance Editor-Stream-Out%) String (Boxof Integer) -> Void)]
          [blink-caret (-> Void)]
          [can-do-edit-operation?
-          (case-> (Edit-Operation -> Boolean)
-                  (Edit-Operation Any -> Boolean))]
+          (case-> (Edit-Op -> Boolean)
+                  (Edit-Op Any -> Boolean))]
          [can-load-file? (Path Load/Save-Format -> Boolean)]
          [can-save-file? (Path Load/Save-Format -> Boolean)]
          [clear (-> Void)]
@@ -2129,9 +2129,9 @@
          [dc-location-to-editor-location (Real Real -> (Values Real Real))]
          [default-style-name (-> String)]
          [do-edit-operation
-          (case-> (Edit-Operation -> Void)
-                  (Edit-Operation Any -> Void)
-                  (Edit-Operation Any Integer -> Void))]
+          (case-> (Edit-Op -> Void)
+                  (Edit-Op Any -> Void)
+                  (Edit-Op Any Integer -> Void))]
          [editor-location-to-dc-location (Real Real -> (Values Real Real))]
          [end-edit-sequence (-> Void)]
          [end-write-header-footer-to-file
@@ -2595,7 +2595,7 @@
 ;; racket/snip
 
 (provide Image-Kind
-         Snip-Edit-Operation
+         Snip-Edit-Op
          Add-Color<%>
          Image-Snip%
          Mult-Color<%>
@@ -2662,7 +2662,7 @@
 (define-type Readable-Snip<%>
   (Class [read-special (Any (Option Natural) (Option Natural) (Option Natural) -> Any)]))
 
-(define-type Snip-Edit-Operation
+(define-type Snip-Edit-Op
   (U 'undo 'redo 'clear 'cut 'copy
      'paste 'kill 'select-all
      'insert-text-box 'insert-pasteboard-box
@@ -2853,13 +2853,13 @@
          [blink-caret
           ((Instance DC<%>) Real Real -> Void)]
          [can-do-edit-operation?
-          (case-> (Snip-Edit-Operation -> Boolean)
-                  (Snip-Edit-Operation Any -> Boolean))]
+          (case-> (Snip-Edit-Op -> Boolean)
+                  (Snip-Edit-Op Any -> Boolean))]
          [copy (-> (Instance Snip%))]
          [do-edit-operation
-          (case-> (Snip-Edit-Operation -> Void)
-                  (Snip-Edit-Operation Any -> Void)
-                  (Snip-Edit-Operation Any Integer -> Void))]
+          (case-> (Snip-Edit-Op -> Void)
+                  (Snip-Edit-Op Any -> Void)
+                  (Snip-Edit-Op Any Integer -> Void))]
          [draw
           ((Instance DC<%>) Real Real Real Real Real Real Real Real Draw-Caret -> Void)]
          [equal-to?

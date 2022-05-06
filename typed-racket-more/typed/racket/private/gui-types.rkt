@@ -2663,6 +2663,184 @@
      'insert-text-box 'insert-pasteboard-box
      'insert-image))
 
+(define-type Style-Delta%
+  (Class (init-rest
+          (U (List)
+             (List (U 'change-nothing 'change-normal
+                      'change-toggle-underline 'change-toggle-size-in-pixels
+                      'change-normal-color 'change-bold))
+             (List (U 'change-family 'change-style
+                      'change-toggle-style 'change-weight
+                      'change-toggle-weight 'change-smoothing
+                      'change'toggle-smoothing 'change-alignment)
+                   Symbol)
+             (List (U 'change-size 'change-bigger 'change-smaller)
+                   Byte)
+             (List (U 'change-underline 'change-size-in-pixels)
+                   Any)))
+         [collapse ((Instance Style-Delta%) -> Boolean)]
+         [copy ((Instance Style-Delta%) -> Void)]
+         [equal? ((Instance Style-Delta%) -> Boolean)]
+         [get-alignment-off (-> (U 'base 'top 'center 'bottom))]
+         [get-alignment-on (-> (U 'base 'top 'center 'bottom))]
+         [get-background-add (-> (Instance Add-Color<%>))]
+         [get-background-mult (-> (Instance Mult-Color<%>))]
+         [get-face (-> (Option String))]
+         [get-family (-> Font-Family)]
+         [get-foreground-add (-> (Instance Add-Color<%>))]
+         [get-foreground-mult (-> (Instance Mult-Color<%>))]
+         [get-size-add (-> Byte)]
+         [get-size-in-pixels-off (-> Boolean)]
+         [get-size-in-pixels-on (-> Boolean)]
+         [get-size-mult (-> Real)]
+         [get-smoothing-off (-> Font-Smoothing)]
+         [get-smoothing-on (-> Font-Smoothing)]
+         [get-style-off (-> Font-Style)]
+         [get-style-on (-> Font-Style)]
+         [get-transparent-text-backing-off (-> Boolean)]
+         [get-transparent-text-backing-on (-> Boolean)]
+         [get-underlined-off (-> Boolean)]
+         [get-underlined-on (-> Boolean)]
+         [get-weight-off (-> Font-Weight)]
+         [get-weight-on (-> Font-Weight)]
+         [set-alignment-off ((U 'base 'top 'center 'bottom) -> Void)]
+         [set-alignment-on ((U 'base 'top 'center 'bottom) -> Void)]
+         [set-delta
+          (case-> ((U 'change-nothing 'change-normal 'change-toggle-underline
+                      'change-toggle-size-in-pixels 'change-normal-color
+                      'change-bold)
+                   -> (Instance Style-Delta%))
+                  ((U 'change-family 'change-style 'change-toggle-style 'change-weight
+                      'change-toggle-weight 'change-smoothing 'change-toggle-smoothing
+                      'change-alignment 'change-size 'change-bigger
+                      'change-smaller 'change-underline 'change-size-in-pixel)
+                   Any -> (Instance Style-Delta%)))]
+         [set-delta-background ((U String (Instance Color%)) -> (Instance Style-Delta%))]
+         [set-delta-face
+          (case-> (String -> (Instance Style-Delta%))
+                  (String Font-Family -> (Instance Style-Delta%)))]
+         [set-delta-foreground ((U String (Instance Color%)) -> (Instance Style-Delta%))]
+         [set-face ((Option String) -> Void)]
+         [set-family (Font-Family -> Void)]
+         [set-size-add (Byte -> Void)]
+         [set-size-in-pixels-off (Any -> Void)]
+         [set-size-in-pixels-on (Any -> Void)]
+         [set-size-mult (Real -> Void)]
+         [set-smoothing-off (Font-Smoothing -> Void)]
+         [set-smoothing-on (Font-Smoothing -> Void)]
+         [set-style-off (Font-Style -> Void)]
+         [set-style-on (Font-Style -> Void)]
+         [set-transparent-text-backing-off (Any -> Void)]
+         [set-transparent-text-backing-on (Any -> Void)]
+         [set-underlined-off (Any -> Void)]
+         [set-underlined-on (Any -> Void)]
+         [set-weight-off (Font-Weight -> Void)]
+         [set-weight-on (Font-Weight -> Void)]))
+
+(define-type Style<%>
+  (Class [get-alignment (-> (U 'top 'center 'bottom))]
+         [get-background (-> (Instance Color%))]
+         [get-base-style (-> (Option (Instance Style<%>)))]
+         [get-delta ((Instance Style-Delta%) -> Void)]
+         [get-face (-> (Option String))]
+         [get-family (-> (U 'default 'decorative 'roman 'script
+                            'swiss 'modern 'symbol 'system))]
+         [get-font (-> (Instance Font%))]
+         [get-foreground (-> (Instance Color%))]
+         [get-name (-> (Option String))]
+         [get-shift-style (-> (Instance Style<%>))]
+         [get-size (-> Byte)]
+         [get-size-in-pixels (-> Boolean)]
+         [get-smoothing
+          (-> (U 'default 'partly-smoothed 'smoothed 'unsmoothed))]
+         [get-style (-> (U 'normal 'italic 'slant))]
+         [get-text-descent ((Instance DC<%>) -> Nonnegative-Real)]
+         [get-text-height ((Instance DC<%>) -> Nonnegative-Real)]
+         [get-text-space ((Instance DC<%>) -> Nonnegative-Real)]
+         [get-text-width ((Instance DC<%>) -> Nonnegative-Real)]
+         [get-transparent-text-backing (-> Boolean)]
+         [get-underlined (-> Boolean)]
+         [get-weight (-> (U 'normal 'bold 'light))]
+         [is-join? (-> Boolean)]
+         [set-base-style (Any -> (Instance Style<%>))]
+         [set-delta ((Instance Style-Delta%) -> Void)]
+         [set-shift-style ((Instance Style<%>) -> Void)]
+         [switch-to ((Instance DC<%>) (Option (Instance Style<%>)) -> Void)]))
+
+(define-type Style-List%
+  (Class ; FIXME: this is a final method
+         [basic-style (-> (Instance Style<%>))]
+         [convert ((Instance Style<%>) -> (Instance Style<%>))]
+         [find-named-style
+          (String -> (Option (Instance Style<%>)))]
+         [find-or-create-join-style
+          ((Instance Style<%>) (Instance Style<%>) -> (Instance Style<%>))]
+         [find-or-create-style
+          ((Instance Style<%>) (Instance Style-Delta%) -> (Instance Style<%>))]
+         [forget-notification (Any -> Void)]
+         [index-to-style (Natural -> (Option (Instance Style<%>)))]
+         [new-named-style (String (Instance Style<%>) -> (Instance Style<%>))]
+         [notify-on-change
+          (((Option (Instance Style<%>)) -> Any) -> Any)]
+         [number (-> Natural)]
+         [replace-named-style
+          (String (Instance Style<%>) -> (Instance Style<%>))]
+         [style-to-index
+          ((Instance Style<%>) -> (Option Natural))]))
+
+(define-type Snip-Admin%
+  (Class [get-dc (-> (Option (Instance DC<%>)))]
+         [get-editor (-> (U (Instance Text%) (Instance Pasteboard%)))]
+         [get-view
+          (case-> ((Option (Boxof Real)) (Option (Boxof Real))
+                   (Option (Boxof Nonnegative-Real))
+                   (Option (Boxof Nonnegative-Real))
+                   -> Void)
+                  ((Option (Boxof Real)) (Option (Boxof Real))
+                   (Option (Boxof Nonnegative-Real))
+                   (Option (Boxof Nonnegative-Real))
+                   (Option (Instance Snip%))
+                   -> Void))]
+         [get-view-size ((Option (Boxof Nonnegative-Real))
+                         (Option (Boxof Nonnegative-Real))
+                         -> Void)]
+         [modified ((Instance Snip%) Any -> Void)]
+         [needs-update
+          ((Instance Snip%) Real Real Real Real -> Void)]
+         [popup-menu
+          ((Instance Popup-Menu%) (Instance Snip%) Real Real -> Boolean)]
+         [recounted ((Instance Snip%) Any -> Void)]
+         [release-snip ((Instance Snip%) -> Boolean)]
+         [resized ((Instance Snip%) Any -> Void)]
+         [scroll-to
+          (case->
+           ((Instance Snip%) Real Real Real Real Any -> Boolean)
+           ((Instance Snip%) Real Real Real Real Any (U 'start 'end 'none)
+            -> Boolean))]
+         [set-caret-owner
+          ((Option Snip%) (U 'immediate 'display 'global) -> Void)]
+         [update-cursor (-> Void)]
+         [get-line-spacing (-> Nonnegative-Real)]
+         [get-selected-text-color (-> (Option (Instance Color%)))]
+         [call-with-busy-cursor ((-> Any) -> Any)]
+         [get-tabs
+          (case-> (-> (Listof Real))
+                  ((Option (Boxof Natural)) -> (Listof Real))
+                  ((Option (Boxof Natural)) (Option (Boxof Real))
+                   -> (Listof Real))
+                  ((Option (Boxof Natural)) (Option (Boxof Real))
+                   (Option (Boxof Any)) -> (Listof Real)))]))
+
+(define-type Snip-Class%
+  (Class [get-classname (-> String)]
+         [get-version (-> Integer)]
+         [read ((Instance Editor-Stream-In%) -> (Option (Instance Snip%)))]
+         [read-header ((Instance Editor-Stream-In%) -> Boolean)]
+         [reading-version ((Instance Editor-Stream-In%) -> Integer)]
+         [set-classname (String -> Void)]
+         [set-version (Integer -> Void)]
+         [write-header ((Instance Editor-Stream-Out%) -> Boolean)]))
+
 (define-type Snip%
   (Class [adjust-cursor
           ((Instance DC<%>) Real Real Real Real
@@ -2752,59 +2930,6 @@
                  (Boxof (Instance Snip%)) -> Void)]
          [write ((Instance Editor-Stream-Out%) -> Void)]))
 
-(define-type Snip-Admin%
-  (Class [get-dc (-> (Option (Instance DC<%>)))]
-         [get-editor (-> (U (Instance Text%) (Instance Pasteboard%)))]
-         [get-view
-          (case-> ((Option (Boxof Real)) (Option (Boxof Real))
-                   (Option (Boxof Nonnegative-Real))
-                   (Option (Boxof Nonnegative-Real))
-                   -> Void)
-                  ((Option (Boxof Real)) (Option (Boxof Real))
-                   (Option (Boxof Nonnegative-Real))
-                   (Option (Boxof Nonnegative-Real))
-                   (Option (Instance Snip%))
-                   -> Void))]
-         [get-view-size ((Option (Boxof Nonnegative-Real))
-                         (Option (Boxof Nonnegative-Real))
-                         -> Void)]
-         [modified ((Instance Snip%) Any -> Void)]
-         [needs-update
-          ((Instance Snip%) Real Real Real Real -> Void)]
-         [popup-menu
-          ((Instance Popup-Menu%) (Instance Snip%) Real Real -> Boolean)]
-         [recounted ((Instance Snip%) Any -> Void)]
-         [release-snip ((Instance Snip%) -> Boolean)]
-         [resized ((Instance Snip%) Any -> Void)]
-         [scroll-to
-          (case->
-           ((Instance Snip%) Real Real Real Real Any -> Boolean)
-           ((Instance Snip%) Real Real Real Real Any (U 'start 'end 'none)
-            -> Boolean))]
-         [set-caret-owner
-          ((Option Snip%) (U 'immediate 'display 'global) -> Void)]
-         [update-cursor (-> Void)]
-         [get-line-spacing (-> Nonnegative-Real)]
-         [get-selected-text-color (-> (Option (Instance Color%)))]
-         [call-with-busy-cursor ((-> Any) -> Any)]
-         [get-tabs
-          (case-> (-> (Listof Real))
-                  ((Option (Boxof Natural)) -> (Listof Real))
-                  ((Option (Boxof Natural)) (Option (Boxof Real))
-                   -> (Listof Real))
-                  ((Option (Boxof Natural)) (Option (Boxof Real))
-                   (Option (Boxof Any)) -> (Listof Real)))]))
-
-(define-type Snip-Class%
-  (Class [get-classname (-> String)]
-         [get-version (-> Integer)]
-         [read ((Instance Editor-Stream-In%) -> (Option (Instance Snip%)))]
-         [read-header ((Instance Editor-Stream-In%) -> Boolean)]
-         [reading-version ((Instance Editor-Stream-In%) -> Integer)]
-         [set-classname (String -> Void)]
-         [set-version (Integer -> Void)]
-         [write-header ((Instance Editor-Stream-Out%) -> Boolean)]))
-
 (define-type Snip-Class-List<%>
   (Class [add ((Instance Snip-Class%) -> Void)]
          [find (String -> (Option (Instance Snip-Class%)))]
@@ -2818,131 +2943,6 @@
          [insert (case-> (String Natural -> Void)
                          (String Natural Natural -> Void))]
          [read (Natural (Instance Editor-Stream-In%) -> Void)]))
-
-(define-type Style<%>
-  (Class [get-alignment (-> (U 'top 'center 'bottom))]
-         [get-background (-> (Instance Color%))]
-         [get-base-style (-> (Option (Instance Style<%>)))]
-         [get-delta ((Instance Style-Delta%) -> Void)]
-         [get-face (-> (Option String))]
-         [get-family (-> (U 'default 'decorative 'roman 'script
-                            'swiss 'modern 'symbol 'system))]
-         [get-font (-> (Instance Font%))]
-         [get-foreground (-> (Instance Color%))]
-         [get-name (-> (Option String))]
-         [get-shift-style (-> (Instance Style<%>))]
-         [get-size (-> Byte)]
-         [get-size-in-pixels (-> Boolean)]
-         [get-smoothing
-          (-> (U 'default 'partly-smoothed 'smoothed 'unsmoothed))]
-         [get-style (-> (U 'normal 'italic 'slant))]
-         [get-text-descent ((Instance DC<%>) -> Nonnegative-Real)]
-         [get-text-height ((Instance DC<%>) -> Nonnegative-Real)]
-         [get-text-space ((Instance DC<%>) -> Nonnegative-Real)]
-         [get-text-width ((Instance DC<%>) -> Nonnegative-Real)]
-         [get-transparent-text-backing (-> Boolean)]
-         [get-underlined (-> Boolean)]
-         [get-weight (-> (U 'normal 'bold 'light))]
-         [is-join? (-> Boolean)]
-         [set-base-style (Any -> (Instance Style<%>))]
-         [set-delta ((Instance Style-Delta%) -> Void)]
-         [set-shift-style ((Instance Style<%>) -> Void)]
-         [switch-to ((Instance DC<%>) (Option (Instance Style<%>)) -> Void)]))
-
-(define-type Style-Delta%
-  (Class (init-rest
-          (U (List)
-             (List (U 'change-nothing 'change-normal
-                      'change-toggle-underline 'change-toggle-size-in-pixels
-                      'change-normal-color 'change-bold))
-             (List (U 'change-family 'change-style
-                      'change-toggle-style 'change-weight
-                      'change-toggle-weight 'change-smoothing
-                      'change'toggle-smoothing 'change-alignment)
-                   Symbol)
-             (List (U 'change-size 'change-bigger 'change-smaller)
-                   Byte)
-             (List (U 'change-underline 'change-size-in-pixels)
-                   Any)))
-         [collapse ((Instance Style-Delta%) -> Boolean)]
-         [copy ((Instance Style-Delta%) -> Void)]
-         [equal? ((Instance Style-Delta%) -> Boolean)]
-         [get-alignment-off (-> (U 'base 'top 'center 'bottom))]
-         [get-alignment-on (-> (U 'base 'top 'center 'bottom))]
-         [get-background-add (-> (Instance Add-Color<%>))]
-         [get-background-mult (-> (Instance Mult-Color<%>))]
-         [get-face (-> (Option String))]
-         [get-family (-> Font-Family)]
-         [get-foreground-add (-> (Instance Add-Color<%>))]
-         [get-foreground-mult (-> (Instance Mult-Color<%>))]
-         [get-size-add (-> Byte)]
-         [get-size-in-pixels-off (-> Boolean)]
-         [get-size-in-pixels-on (-> Boolean)]
-         [get-size-mult (-> Real)]
-         [get-smoothing-off (-> Font-Smoothing)]
-         [get-smoothing-on (-> Font-Smoothing)]
-         [get-style-off (-> Font-Style)]
-         [get-style-on (-> Font-Style)]
-         [get-transparent-text-backing-off (-> Boolean)]
-         [get-transparent-text-backing-on (-> Boolean)]
-         [get-underlined-off (-> Boolean)]
-         [get-underlined-on (-> Boolean)]
-         [get-weight-off (-> Font-Weight)]
-         [get-weight-on (-> Font-Weight)]
-         [set-alignment-off ((U 'base 'top 'center 'bottom) -> Void)]
-         [set-alignment-on ((U 'base 'top 'center 'bottom) -> Void)]
-         [set-delta
-          (case-> ((U 'change-nothing 'change-normal 'change-toggle-underline
-                      'change-toggle-size-in-pixels 'change-normal-color
-                      'change-bold)
-                   -> (Instance Style-Delta%))
-                  ((U 'change-family 'change-style 'change-toggle-style 'change-weight
-                      'change-toggle-weight 'change-smoothing 'change-toggle-smoothing
-                      'change-alignment 'change-size 'change-bigger
-                      'change-smaller 'change-underline 'change-size-in-pixel)
-                   Any -> (Instance Style-Delta%)))]
-         [set-delta-background ((U String (Instance Color%)) -> (Instance Style-Delta%))]
-         [set-delta-face
-          (case-> (String -> (Instance Style-Delta%))
-                  (String Font-Family -> (Instance Style-Delta%)))]
-         [set-delta-foreground ((U String (Instance Color%)) -> (Instance Style-Delta%))]
-         [set-face ((Option String) -> Void)]
-         [set-family (Font-Family -> Void)]
-         [set-size-add (Byte -> Void)]
-         [set-size-in-pixels-off (Any -> Void)]
-         [set-size-in-pixels-on (Any -> Void)]
-         [set-size-mult (Real -> Void)]
-         [set-smoothing-off (Font-Smoothing -> Void)]
-         [set-smoothing-on (Font-Smoothing -> Void)]
-         [set-style-off (Font-Style -> Void)]
-         [set-style-on (Font-Style -> Void)]
-         [set-transparent-text-backing-off (Any -> Void)]
-         [set-transparent-text-backing-on (Any -> Void)]
-         [set-underlined-off (Any -> Void)]
-         [set-underlined-on (Any -> Void)]
-         [set-weight-off (Font-Weight -> Void)]
-         [set-weight-on (Font-Weight -> Void)]))
-
-(define-type Style-List%
-  (Class ; FIXME: this is a final method
-         [basic-style (-> (Instance Style<%>))]
-         [convert ((Instance Style<%>) -> (Instance Style<%>))]
-         [find-named-style
-          (String -> (Option (Instance Style<%>)))]
-         [find-or-create-join-style
-          ((Instance Style<%>) (Instance Style<%>) -> (Instance Style<%>))]
-         [find-or-create-style
-          ((Instance Style<%>) (Instance Style-Delta%) -> (Instance Style<%>))]
-         [forget-notification (Any -> Void)]
-         [index-to-style (Natural -> (Option (Instance Style<%>)))]
-         [new-named-style (String (Instance Style<%>) -> (Instance Style<%>))]
-         [notify-on-change
-          (((Option (Instance Style<%>)) -> Any) -> Any)]
-         [number (-> Natural)]
-         [replace-named-style
-          (String (Instance Style<%>) -> (Instance Style<%>))]
-         [style-to-index
-          ((Instance Style<%>) -> (Option Natural))]))
 
 (define-type Tab-Snip%
   (Class #:implements String-Snip%))

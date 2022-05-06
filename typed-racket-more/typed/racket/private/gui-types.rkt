@@ -6,7 +6,6 @@
 ;; racket/draw
 
 (provide LoadFileKind
-         TabSnipFileType
          Font-Family
          Font-Style
          Font-Weight
@@ -48,12 +47,6 @@
      'png 'png/mask 'png/alpha
      'xbm 'xbm/alpha 'xpm 'xpm/alpha
      'bmp 'bmp/alpha))
-
-(define-type TabSnipFileType
-  (U 'unknown 'unknown/mask 'unknown/alpha
-     'gif 'gif/mask 'gif/alpha
-     'jpeg 'png 'png/mask 'png/alpha
-     'xbm 'xpm 'bmp 'pict))
 
 (define-type Bitmap%
   (Class
@@ -2597,7 +2590,8 @@
 
 ;; racket/snip
 
-(provide Add-Color<%>
+(provide TabSnipFileType
+         Add-Color<%>
          Image-Snip%
          Mult-Color<%>
          Readable-Snip<%>
@@ -2610,6 +2604,12 @@
          Style-Delta%
          Style-List%
          Tab-Snip%)
+
+(define-type TabSnipFileType
+  (U 'unknown 'unknown/mask 'unknown/alpha
+     'gif 'gif/mask 'gif/alpha
+     'jpeg 'png 'png/mask 'png/alpha
+     'xbm 'xpm 'bmp 'pict))
 
 (define-type Add-Color<%>
   (Class [get (((Boxof Integer) (Boxof Integer) (Boxof Integer)) ((Option (Boxof Real))) . ->* . Void)]

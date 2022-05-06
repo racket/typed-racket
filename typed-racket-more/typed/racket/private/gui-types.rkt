@@ -2184,9 +2184,9 @@
           (case->
            (-> Void)
            ((Option Path-String) -> Void)
-           ((Option Path-String) TabSnipFileType -> Void)
-           ((Option Path-String) TabSnipFileType Any -> Void)
-           ((Option Path-String) TabSnipFileType Any Any -> Void))]
+           ((Option Path-String) Image-Kind -> Void)
+           ((Option Path-String) Image-Kind Any -> Void)
+           ((Option Path-String) Image-Kind Any Any -> Void))]
          [insert-port
           (case->
            (Input-Port -> (U 'standard 'text 'text-force-cr))
@@ -2237,7 +2237,7 @@
          [on-local-event ((Instance Mouse-Event%) -> Void)]
          [on-new-box ((U 'text 'pasteboard) -> (Instance Snip%))]
          [on-new-image-snip
-          (Path TabSnipFileType Any Any -> (Instance Snip%))]
+          (Path Image-Kind Any Any -> (Instance Snip%))]
          [on-paint
           (Any (Instance DC<%>) Real Real Real Real
                Real Real (U 'no-caret 'show-inactive-caret
@@ -2590,7 +2590,7 @@
 
 ;; racket/snip
 
-(provide TabSnipFileType
+(provide Image-Kind
          Add-Color<%>
          Image-Snip%
          Mult-Color<%>
@@ -2605,7 +2605,7 @@
          Style-List%
          Tab-Snip%)
 
-(define-type TabSnipFileType
+(define-type Image-Kind
   (U 'unknown 'unknown/mask 'unknown/alpha
      'gif 'gif/mask 'gif/alpha
      'jpeg 'png 'png/mask 'png/alpha
@@ -2626,7 +2626,7 @@
 (define-type Image-Snip%
   (Class (init-rest
           (U (List)
-             (List (U Path-String Input-Port False) TabSnipFileType Any Any Positive-Real)
+             (List (U Path-String Input-Port False) Image-Kind Any Any Positive-Real)
              (List (Instance Bitmap%))
              (List (Instance Bitmap%) (Option (Instance Bitmap%)))))
          [equal-hash-code-of ((Any -> Integer) -> Integer)]
@@ -2634,9 +2634,9 @@
          [get-bitmap (-> (Option (Instance Bitmap%)))]
          [get-bitmap-mask (-> (Option (Instance Bitmap%)))]
          [get-filename (() ((Option (Boxof Any))) . ->* . (Option Path-String))]
-         [get-filetype (-> TabSnipFileType)]
+         [get-filetype (-> Image-Kind)]
          [load-file (((U Path-String Input-Port False))
-                     (TabSnipFileType Any Any Positive-Real) . ->* . Void)]
+                     (Image-Kind Any Any Positive-Real) . ->* . Void)]
          [other-equal-to? ((Instance Snip%) (Any Any -> Boolean) -> Boolean)]
          [resize (Nonnegative-Real Nonnegative-Real -> Boolean)]
          [set-bitmap (((Instance Bitmap%)) ((Option (Instance Bitmap%))) . ->* . Void)]

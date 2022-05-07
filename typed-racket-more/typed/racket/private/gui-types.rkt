@@ -2070,6 +2070,7 @@
 ;; editor classes
 
 (provide Edit-Op
+         Read/Write-Format
          File-Format
          Threshold
          Draw-Caret

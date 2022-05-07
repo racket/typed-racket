@@ -1840,7 +1840,7 @@
          [get-end-position (-> Natural)]
          [get-extend-start-position (-> Natural)]
          [get-extend-end-position (-> Natural)]
-         [get-file-format (-> (U 'standard 'text 'text-force-cr))]
+         [get-file-format (-> Read/Write-Format)]
          [get-line-spacing (-> Nonnegative-Real)]
          [get-overwrite-mode (-> Boolean)]
          [get-padding (-> (Values Nonnegative-Real Nonnegative-Real
@@ -1985,7 +1985,7 @@
                    (Option (Instance Style-Delta%)) -> Void)
                   (Integer Integer ((Instance Text%) Natural Natural -> Any)
                    (Option (Instance Style-Delta%)) Any -> Void))]
-         [set-file-format ((U 'standard 'text 'text-force-cr) -> Void)]
+         [set-file-format (Read/Write-Format -> Void)]
          [set-line-spacing (Real -> Void)]
          [set-overwrite-mode (Any -> Void)]
          [set-padding (Real Real Real Real -> Void)]
@@ -2070,7 +2070,7 @@
 ;; editor classes
 
 (provide Edit-Op
-         Load/Save-Format
+         File-Format
          Threshold
          Draw-Caret
          Editor<%>
@@ -2091,11 +2091,10 @@
      'kill 'select-all 'insert-text-box
      'insert-pasteboard-box 'insert-image))
 
-(define-type Load/Save-Format
-  (U 'guess 'same 'copy 'standard 'text 'text-force-cr))
-
-(define-type Threshold  (U 'no-caret 'show-inactive-caret 'show-caret))
-(define-type Draw-Caret (U Threshold (Pairof Natural Natural)))
+(define-type Read/Write-Format (U 'standard 'text 'text-force-cr))
+(define-type File-Format (U 'guess 'same 'copy Read/Write-Format))
+(define-type Threshold   (U 'no-caret 'show-inactive-caret 'show-caret))
+(define-type Draw-Caret  (U Threshold (Pairof Natural Natural)))
 
 (define-type Editor<%>
   (Class [add-canvas ((Instance Editor-Canvas%) -> Void)]
@@ -2117,8 +2116,8 @@
          [can-do-edit-operation?
           (case-> (Edit-Op -> Boolean)
                   (Edit-Op Any -> Boolean))]
-         [can-load-file? (Path Load/Save-Format -> Boolean)]
-         [can-save-file? (Path Load/Save-Format -> Boolean)]
+         [can-load-file? (Path File-Format -> Boolean)]
+         [can-save-file? (Path File-Format -> Boolean)]
          [clear (-> Void)]
          [clear-undos (-> Void)]
          [copy (case-> (-> Void) (Any -> Void) (Any Integer -> Void))]
@@ -2185,8 +2184,8 @@
          [insert-file
           (case->
            (Path-String -> Boolean)
-           (Path-String Load/Save-Format -> Boolean)
-           (Path-String Load/Save-Format Any -> Boolean))]
+           (Path-String File-Format -> Boolean)
+           (Path-String File-Format Any -> Boolean))]
          [insert-image
           (case->
            (-> Void)
@@ -2196,9 +2195,9 @@
            ((Option Path-String) Image-Kind Any Any -> Void))]
          [insert-port
           (case->
-           (Input-Port -> (U 'standard 'text 'text-force-cr))
-           (Input-Port Load/Save-Format -> (U 'standard 'text 'text-force-cr))
-           (Input-Port Load/Save-Format Any -> (U 'standard 'text 'text-force-cr)))]
+           (Input-Port -> Read/Write-Format)
+           (Input-Port File-Format -> Read/Write-Format)
+           (Input-Port File-Format Any -> Read/Write-Format))]
          [invalidate-bitmap-cache
           (case->
            (Real -> Void)
@@ -2213,9 +2212,9 @@
           (case->
            (-> Boolean)
            ((Option Path-String) -> Boolean)
-           ((Option Path-String) Load/Save-Format
+           ((Option Path-String) File-Format
             -> Boolean)
-           ((Option Path-String) Load/Save-Format
+           ((Option Path-String) File-Format
             Any -> Boolean))]
          [local-to-global
           ((Option (Boxof Real)) (Option (Boxof Real)) -> Void)]
@@ -2239,7 +2238,7 @@
          [on-edit-sequence (-> Void)]
          [on-event ((Instance Mouse-Event%) -> Void)]
          [on-focus (Any -> Void)]
-         [on-load-file (Path Load/Save-Format -> Void)]
+         [on-load-file (Path File-Format -> Void)]
          [on-local-char ((Instance Key-Event%) -> Void)]
          [on-local-event ((Instance Mouse-Event%) -> Void)]
          [on-new-box ((U 'text 'pasteboard) -> (Instance Snip%))]
@@ -2247,7 +2246,7 @@
           (Path Image-Kind Any Any -> (Instance Snip%))]
          [on-paint
           (Any (Instance DC<%>) Real Real Real Real Real Real Draw-Caret -> Void)]
-         [on-save-file (Path Load/Save-Format -> Void)]
+         [on-save-file (Path File-Format -> Void)]
          [on-snip-modified ((Instance Snip%) Any -> Void)]
          [own-caret (Any -> Void)]
          [paste (case-> (-> Void) (Integer -> Void))]
@@ -2289,12 +2288,12 @@
          [save-file
           (case-> (-> Boolean)
                   ((Option Path-String) -> Boolean)
-                  ((Option Path-String) Load/Save-Format -> Boolean)
-                  ((Option Path-String) Load/Save-Format Any -> Boolean))]
+                  ((Option Path-String) File-Format -> Boolean)
+                  ((Option Path-String) File-Format Any -> Boolean))]
          [save-port
           (case-> (Output-Port -> Boolean)
-                  (Output-Port Load/Save-Format -> Boolean)
-                  (Output-Port Load/Save-Format Any -> Boolean))]
+                  (Output-Port File-Format -> Boolean)
+                  (Output-Port File-Format Any -> Boolean))]
          [scroll-editor-to
           (Real Real Real Real Any (U 'start 'end 'none) -> Boolean)]
          [scroll-line-location (Integer -> Nonnegative-Real)]
@@ -2339,13 +2338,13 @@
          (augment [after-edit-sequence (-> Void)]
                   [after-load-file (Any -> Void)]
                   [after-save-file (Any -> Void)]
-                  [can-load-file? (Path Load/Save-Format -> Boolean)]
-                  [can-save-file? (Path Load/Save-Format -> Boolean)]
+                  [can-load-file? (Path File-Format -> Boolean)]
+                  [can-save-file? (Path File-Format -> Boolean)]
                   [on-change (-> Void)]
                   [on-display-size (-> Void)]
                   [on-edit-sequence (-> Void)]
-                  [on-load-file (Path Load/Save-Format -> Void)]
-                  [on-save-file (Path Load/Save-Format -> Void)]
+                  [on-load-file (Path File-Format -> Void)]
+                  [on-save-file (Path File-Format -> Void)]
                   [on-snip-modified ((Instance Snip%) Any -> Void)])))
 
 (define-type Editor-Admin%

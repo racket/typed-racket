@@ -235,8 +235,11 @@ and the @racket[URL] and @racket[Path/Param] types from
                         'kill 'select-all 'insert-text-box
                         'insert-pasteboard-box 'insert-image)].
 }
-@deftype[Load/Save-Format]{
-  Defined as @racket[(U 'guess 'same 'copy 'standard 'text 'text-force-cr)].
+@deftype[Read/Write-Format]{
+  Defined as @racket[(U 'standard 'text 'text-force-cr)].
+}
+@deftype[File-Format]{
+  Defined as @racket[(U 'guess 'same 'copy Read/Write-Format)].
 }
 @deftype[Threshold]{
   Defined as @racket[(U 'no-caret 'show-inactive-caret 'show-caret)].

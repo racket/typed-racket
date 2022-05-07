@@ -1097,15 +1097,15 @@
          [on-edit-sequence (Text%-Instance (-> Void) -> Void)]
          [on-event (Text%-Instance (-> Void) Mouse-Event%-Instance -> Void)]
          [on-focus (Text%-Instance (-> Void) Any -> Void)]
-         [on-load-file (Text%-Instance (-> Void) Path Load/Save-Format -> Void)]
+         [on-load-file (Text%-Instance (-> Void) Path File-Format -> Void)]
          [on-local-char (Text%-Instance (-> Void) Key-Event%-Instance -> Void)]
          [on-local-event (Text%-Instance (-> Void) Mouse-Event%-Instance -> Void)]
          [on-new-box (Text%-Instance (-> Snip%-Instance) (U 'text 'pasteboard) -> Snip%-Instance)]
          #;[on-new-image-snip ; TODO: reeanable when Image-Snip% is available
-          (Text%-Instance (-> (Instance Image-Snip%)) Path Image-Kind Any Any -> (Instance Image-Snip%))]
+            (Text%-Instance (-> (Instance Image-Snip%)) Path Image-Kind Any Any -> (Instance Image-Snip%))]
          [on-paint
           (Text%-Instance (-> Void) Any (Instance DC<%>) Real Real Real Real Real Real Draw-Caret -> Void)]
-         [on-save-file (Text%-Instance (-> Void) Path Load/Save-Format -> Void)]
+         [on-save-file (Text%-Instance (-> Void) Path File-Format -> Void)]
          [on-snip-modified (Text%-Instance (-> Void) Snip%-Instance Any -> Void)]
          [on-change-style (Text%-Instance (-> Any) Natural Natural -> Any)]
          [on-delete (Text%-Instance (-> Void) Natural Natural -> Void)]
@@ -1129,8 +1129,8 @@
          [can-do-edit-operation? ([Text%-Instance (-> Boolean) Edit-Op]
                                   [Any]
                                   . ->* . Boolean)]
-         [can-load-file? (Text%-Instance (-> Boolean) Path Load/Save-Format -> Boolean)]
-         [can-save-file? (Text%-Instance (-> Boolean) Path Load/Save-Format -> Boolean)]
+         [can-load-file? (Text%-Instance (-> Boolean) Path File-Format -> Boolean)]
+         [can-save-file? (Text%-Instance (-> Boolean) Path File-Format -> Boolean)]
          [put-file
           (Text%-Instance
            (-> (Option Path-String))

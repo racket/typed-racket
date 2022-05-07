@@ -2246,9 +2246,7 @@
          [on-new-image-snip
           (Path Image-Kind Any Any -> (Instance Snip%))]
          [on-paint
-          (Any (Instance DC<%>) Real Real Real Real
-               Real Real Draw-Caret
-               -> Void)]
+          (Any (Instance DC<%>) Real Real Real Real Real Real Draw-Caret -> Void)]
          [on-save-file (Path Load/Save-Format -> Void)]
          [on-snip-modified ((Instance Snip%) Any -> Void)]
          [own-caret (Any -> Void)]
@@ -2283,10 +2281,7 @@
          [read-header-from-file
           ((Instance Editor-Stream-In%) String -> Boolean)]
          [redo (-> Void)]
-         [refresh
-          (Real Real Real Real Draw-Caret
-                (Option (Instance Color%))
-                -> Void)]
+         [refresh (Real Real Real Real Draw-Caret (Option (Instance Color%)) -> Void)]
          [refresh-delayed? (-> Boolean)]
          [release-snip ((Instance Snip%) -> Boolean)]
          [remove-canvas ((Instance Editor-Canvas%) -> Void)]
@@ -2595,7 +2590,6 @@
 ;; racket/snip
 
 (provide Image-Kind
-         Snip-Edit-Op
          Add-Color<%>
          Image-Snip%
          Mult-Color<%>
@@ -2661,12 +2655,6 @@
 
 (define-type Readable-Snip<%>
   (Class [read-special (Any (Option Natural) (Option Natural) (Option Natural) -> Any)]))
-
-(define-type Snip-Edit-Op
-  (U 'undo 'redo 'clear 'cut 'copy
-     'paste 'kill 'select-all
-     'insert-text-box 'insert-pasteboard-box
-     'insert-image))
 
 (define-type Style-Delta%
   (Class (init-rest
@@ -2853,13 +2841,13 @@
          [blink-caret
           ((Instance DC<%>) Real Real -> Void)]
          [can-do-edit-operation?
-          (case-> (Snip-Edit-Op -> Boolean)
-                  (Snip-Edit-Op Any -> Boolean))]
+          (case-> (Edit-Op -> Boolean)
+                  (Edit-Op Any -> Boolean))]
          [copy (-> (Instance Snip%))]
          [do-edit-operation
-          (case-> (Snip-Edit-Op -> Void)
-                  (Snip-Edit-Op Any -> Void)
-                  (Snip-Edit-Op Any Integer -> Void))]
+          (case-> (Edit-Op -> Void)
+                  (Edit-Op Any -> Void)
+                  (Edit-Op Any Integer -> Void))]
          [draw
           ((Instance DC<%>) Real Real Real Real Real Real Real Real Draw-Caret -> Void)]
          [equal-to?

@@ -10,7 +10,6 @@
          (for-syntax (submod "private/gui-types.rkt" #%type-decl)))
 
 (provide Image-Kind
-         Snip-Edit-Op
          Add-Color<%>
          Image-Snip%
          Mult-Color<%>
@@ -26,8 +25,7 @@
          Tab-Snip%)
 
 #;(begin-for-syntax
-    (define -Image-Kind   (parse-type #'Image-Kind))
-    (define -Snip-Edit-Op (parse-type #'Snip-Edit-Op)))
+    (define -Image-Kind (parse-type #'Image-Kind)))
 
 (type-environment
  [add-color<%>       (parse-type #'Add-Color<%>)]

@@ -9,18 +9,35 @@
          "private/gui-types.rkt"
          (for-syntax (submod "private/gui-types.rkt" #%type-decl)))
 
-(provide Snip%
+(provide Image-Kind
+         Add-Color<%>
+         Image-Snip%
+         Mult-Color<%>
+         Readable-Snip<%>
+         Snip%
          Snip-Admin%
          Snip-Class%
+         Snip-Class-List<%>
          String-Snip%
          Style<%>
          Style-Delta%
-         Style-List%)
+         Style-List%
+         Tab-Snip%)
+
+#;(begin-for-syntax
+    (define -Image-Kind (parse-type #'Image-Kind)))
 
 (type-environment
- [snip% (parse-type #'Snip%)]
- [snip-admin% (parse-type #'Snip-Admin%)]
- [snip-class% (parse-type #'Snip-Class%)]
- [string-snip% (parse-type #'String-Snip%)]
- [style-delta% (parse-type #'Style-Delta%)]
- [style-list% (parse-type #'Style-List%)])
+ [add-color<%>       (parse-type #'Add-Color<%>)]
+ [image-snip%        (parse-type #'Image-Snip%)]
+ [mult-color<%>      (parse-type #'Mult-Color<%>)]
+ [readable-snip<%>   (parse-type #'Readable-Snip<%>)]
+ [snip%              (parse-type #'Snip%)]
+ [snip-admin%        (parse-type #'Snip-Admin%)]
+ [snip-class%        (parse-type #'Snip-Class%)]
+ [snip-class-list<%> (parse-type #'Snip-Class-List<%>)]
+ [string-snip%       (parse-type #'String-Snip%)]
+ [style<%>           (parse-type #'Style<%>)]
+ [style-delta%       (parse-type #'Style-Delta%)]
+ [style-list%        (parse-type #'Style-List%)]
+ [tab-snip%          (parse-type #'Tab-Snip%)])

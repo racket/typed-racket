@@ -183,7 +183,7 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/openssl]
 
 @deftype[SSL-Protocol]{
-  Describes an SSL protocol, defined as
+  Describes an SSL protocol, is an alias for
   @racket[(U 'auto 'sslv2-or-v3 'sslv2 'sslv3 'tls 'tls11 'tls12)].
 }
 @deftogether[(@deftype[SSL-Server-Context]
@@ -205,6 +205,15 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/racket/date]
 @defmodule/incl[typed/racket/draw]
 
+@deftype[LoadFileKind]{
+  Is an alias for @racket[(U 'unknown 'unknown/mask 'unknown/alpha
+                             'gif 'gif/mask 'gif/alpha
+                             'jpeg 'jpeg/alpha
+                             'png 'png/mask 'png/alpha
+                             'xbm 'xbm/alpha 'xpm 'xpm/alpha
+                             'bmp 'bmp/alpha)].
+}
+
 @defmodule/incl[typed/racket/extflonum]{
   @deftogether[[
     @defform[(for/extflvector type-ann-maybe (for-clause ...) expr ...+)]
@@ -220,10 +229,37 @@ and the @racket[URL] and @racket[Path/Param] types from
 }
 
 @defmodule/incl[typed/racket/gui]
+
+@deftype[Edit-Op]{
+  Is an alias for @racket[(U 'undo 'redo 'clear 'cut 'copy 'paste
+                             'kill 'select-all 'insert-text-box
+                             'insert-pasteboard-box 'insert-image)].
+}
+@deftype[Read/Write-Format]{
+  Is an alias for @racket[(U 'standard 'text 'text-force-cr)].
+}
+@deftype[File-Format]{
+  Is an alias for @racket[(U 'guess 'same 'copy Read/Write-Format)].
+}
+@deftype[Threshold]{
+  Is an alias for @racket[(U 'no-caret 'show-inactive-caret 'show-caret)].
+}
+@deftype[Draw-Caret]{
+  Is an alias for @racket[(U Threshold (Pairof Natural Natural))].
+}
+
 @defmodule/incl[typed/racket/gui/no-check]
 @defmodule/incl[typed/racket/random @history[#:added "1.5"]]
 @defmodule/incl[typed/racket/sandbox]
 @defmodule/incl[typed/racket/snip]
+
+@deftype[Image-Kind]{
+  Is an alias for @racket[(U 'unknown 'unknown/mask 'unknown/alpha
+                             'gif 'gif/mask 'gif/alpha
+                             'jpeg 'png 'png/mask 'png/alpha
+                             'xbm 'xpm 'bmp 'pict)].
+}
+
 @defmodule/incl[typed/racket/system]
 @defmodule/incl[typed/rackunit/docs-complete]
 @defmodule/incl[typed/rackunit/gui]

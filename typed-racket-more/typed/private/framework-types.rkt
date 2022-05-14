@@ -1083,16 +1083,6 @@
          Mode:Host-Text<%>
          Mode:Host-Text-Mixin)
 
-(define-type File-Format (U 'guess 'same 'copy 'standard 'text 'text-force-cr))
-(define-type Image-Kind (U 'unknown 'unknown/mask 'unknown/alpha
-                           'gif 'gif/mask 'gif/alpha
-                           'jpeg 'png 'png/mask 'png/alpha
-                           'xbm 'xpm 'bmp 'pict))
-(define-type Draw-Caret (U 'no-caret 'show-inactive-caret 'show-caret (Pairof Natural Natural)))
-(define-type Edit-Op (U 'undo 'redo 'clear 'cut 'copy 'paste
-                        'kill 'select-all 'insert-text-box
-                        'insert-pasteboard-box 'insert-image))
-
 (define-type Mode:Surrogate-Text<%>
   (Class [on-enable-surrogate (Text%-Instance -> Any)]
          [on-disable-surrogate (Text%-Instance -> Any)]))
@@ -1112,7 +1102,7 @@
          [on-local-event (Text%-Instance (-> Void) Mouse-Event%-Instance -> Void)]
          [on-new-box (Text%-Instance (-> Snip%-Instance) (U 'text 'pasteboard) -> Snip%-Instance)]
          #;[on-new-image-snip ; TODO: reeanable when Image-Snip% is available
-          (Text%-Instance (-> (Instance Image-Snip%)) Path Image-Kind Any Any -> (Instance Image-Snip%))]
+            (Text%-Instance (-> (Instance Image-Snip%)) Path Image-Kind Any Any -> (Instance Image-Snip%))]
          [on-paint
           (Text%-Instance (-> Void) Any (Instance DC<%>) Real Real Real Real Real Real Draw-Caret -> Void)]
          [on-save-file (Text%-Instance (-> Void) Path File-Format -> Void)]

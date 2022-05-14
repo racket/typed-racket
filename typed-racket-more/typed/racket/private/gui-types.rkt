@@ -41,12 +41,12 @@
          SVG-DC%)
 
 (define-type LoadFileKind
- (U 'unknown 'unknown/mask 'unknown/alpha
-    'gif 'gif/mask 'gif/alpha
-    'jpeg 'jpeg/alpha
-    'png 'png/mask 'png/alpha
-    'xbm 'xbm/alpha 'xpm 'xpm/alpha
-    'bmp 'bmp/alpha))
+  (U 'unknown 'unknown/mask 'unknown/alpha
+     'gif 'gif/mask 'gif/alpha
+     'jpeg 'jpeg/alpha
+     'png 'png/mask 'png/alpha
+     'xbm 'xbm/alpha 'xpm 'xpm/alpha
+     'bmp 'bmp/alpha))
 
 (define-type Bitmap%
   (Class
@@ -1840,7 +1840,7 @@
          [get-end-position (-> Natural)]
          [get-extend-start-position (-> Natural)]
          [get-extend-end-position (-> Natural)]
-         [get-file-format (-> (U 'standard 'text 'text-force-cr))]
+         [get-file-format (-> Read/Write-Format)]
          [get-line-spacing (-> Nonnegative-Real)]
          [get-overwrite-mode (-> Boolean)]
          [get-padding (-> (Values Nonnegative-Real Nonnegative-Real
@@ -1985,7 +1985,7 @@
                    (Option (Instance Style-Delta%)) -> Void)
                   (Integer Integer ((Instance Text%) Natural Natural -> Any)
                    (Option (Instance Style-Delta%)) Any -> Void))]
-         [set-file-format ((U 'standard 'text 'text-force-cr) -> Void)]
+         [set-file-format (Read/Write-Format -> Void)]
          [set-line-spacing (Real -> Void)]
          [set-overwrite-mode (Any -> Void)]
          [set-padding (Real Real Real Real -> Void)]
@@ -2069,7 +2069,12 @@
 
 ;; editor classes
 
-(provide Editor<%>
+(provide Edit-Op
+         Read/Write-Format
+         File-Format
+         Threshold
+         Draw-Caret
+         Editor<%>
          Editor-Admin%
          Editor-Canvas%
          Editor-Data%
@@ -2082,13 +2087,15 @@
          Pasteboard%
          Text%)
 
-(define-type Edit-Operation
+(define-type Edit-Op
   (U 'undo 'redo 'clear 'cut 'copy 'paste
      'kill 'select-all 'insert-text-box
      'insert-pasteboard-box 'insert-image))
 
-(define-type Load/Save-Format
-  (U 'guess 'same 'copy 'standard 'text 'text-force-cr))
+(define-type Read/Write-Format (U 'standard 'text 'text-force-cr))
+(define-type File-Format (U 'guess 'same 'copy Read/Write-Format))
+(define-type Threshold   (U 'no-caret 'show-inactive-caret 'show-caret))
+(define-type Draw-Caret  (U Threshold (Pairof Natural Natural)))
 
 (define-type Editor<%>
   (Class [add-canvas ((Instance Editor-Canvas%) -> Void)]
@@ -2108,10 +2115,10 @@
           ((Instance Editor-Stream-Out%) String (Boxof Integer) -> Void)]
          [blink-caret (-> Void)]
          [can-do-edit-operation?
-          (case-> (Edit-Operation -> Boolean)
-                  (Edit-Operation Any -> Boolean))]
-         [can-load-file? (Path Load/Save-Format -> Boolean)]
-         [can-save-file? (Path Load/Save-Format -> Boolean)]
+          (case-> (Edit-Op -> Boolean)
+                  (Edit-Op Any -> Boolean))]
+         [can-load-file? (Path File-Format -> Boolean)]
+         [can-save-file? (Path File-Format -> Boolean)]
          [clear (-> Void)]
          [clear-undos (-> Void)]
          [copy (case-> (-> Void) (Any -> Void) (Any Integer -> Void))]
@@ -2122,9 +2129,9 @@
          [dc-location-to-editor-location (Real Real -> (Values Real Real))]
          [default-style-name (-> String)]
          [do-edit-operation
-          (case-> (Edit-Operation -> Void)
-                  (Edit-Operation Any -> Void)
-                  (Edit-Operation Any Integer -> Void))]
+          (case-> (Edit-Op -> Void)
+                  (Edit-Op Any -> Void)
+                  (Edit-Op Any Integer -> Void))]
          [editor-location-to-dc-location (Real Real -> (Values Real Real))]
          [end-edit-sequence (-> Void)]
          [end-write-header-footer-to-file
@@ -2145,7 +2152,7 @@
           (->* () ((Option (Boxof Any))) (Option Path-String))]
          [get-flattened-text (-> String)]
          [get-focus-snip (-> (Option (Instance Snip%)))]
-         [get-inactive-caret-threshold (-> (U 'no-caret 'show-inactive-caret 'show-caret))]
+         [get-inactive-caret-threshold (-> Threshold)]
          [get-keymap (-> (Option (Instance Keymap%)))]
          [get-load-overwrites-styles (-> Boolean)]
          [get-max-height (-> (U Nonnegative-Real 'none))]
@@ -2178,40 +2185,20 @@
          [insert-file
           (case->
            (Path-String -> Boolean)
-           (Path-String (U 'guess 'same 'copy 'standard
-                           'text 'text-force-cr)
-                        -> Boolean)
-           (Path-String (U 'guess 'same 'copy 'standard
-                           'text 'text-force-cr)
-                        Any -> Boolean))]
+           (Path-String File-Format -> Boolean)
+           (Path-String File-Format Any -> Boolean))]
          [insert-image
           (case->
            (-> Void)
            ((Option Path-String) -> Void)
-           ((Option Path-String) (U 'unknown 'unknown/mask 'unknown/alpha
-                                    'gif 'gif/mask 'gif/alpha
-                                    'jpeg 'png 'png/mask 'png/alpha
-                                    'xbm 'xpm 'bmp 'pict)
-            -> Void)
-           ((Option Path-String) (U 'unknown 'unknown/mask 'unknown/alpha
-                                    'gif 'gif/mask 'gif/alpha
-                                    'jpeg 'png 'png/mask 'png/alpha
-                                    'xbm 'xpm 'bmp 'pict)
-            Any -> Void)
-           ((Option Path-String) (U 'unknown 'unknown/mask 'unknown/alpha
-                                    'gif 'gif/mask 'gif/alpha
-                                    'jpeg 'png 'png/mask 'png/alpha
-                                    'xbm 'xpm 'bmp 'pict)
-            Any Any -> Void))]
+           ((Option Path-String) Image-Kind -> Void)
+           ((Option Path-String) Image-Kind Any -> Void)
+           ((Option Path-String) Image-Kind Any Any -> Void))]
          [insert-port
           (case->
-           (Input-Port -> (U 'standard 'text 'text-force-cr))
-           (Input-Port (U 'guess 'same 'copy 'standard
-                           'text 'text-force-cr)
-                       -> (U 'standard 'text 'text-force-cr))
-           (Input-Port (U 'guess 'same 'copy 'standard
-                           'text 'text-force-cr)
-                       Any -> (U 'standard 'text 'text-force-cr)))]
+           (Input-Port -> Read/Write-Format)
+           (Input-Port File-Format -> Read/Write-Format)
+           (Input-Port File-Format Any -> Read/Write-Format))]
          [invalidate-bitmap-cache
           (case->
            (Real -> Void)
@@ -2226,9 +2213,9 @@
           (case->
            (-> Boolean)
            ((Option Path-String) -> Boolean)
-           ((Option Path-String) Load/Save-Format
+           ((Option Path-String) File-Format
             -> Boolean)
-           ((Option Path-String) Load/Save-Format
+           ((Option Path-String) File-Format
             Any -> Boolean))]
          [local-to-global
           ((Option (Boxof Real)) (Option (Boxof Real)) -> Void)]
@@ -2252,22 +2239,15 @@
          [on-edit-sequence (-> Void)]
          [on-event ((Instance Mouse-Event%) -> Void)]
          [on-focus (Any -> Void)]
-         [on-load-file (Path Load/Save-Format -> Void)]
+         [on-load-file (Path File-Format -> Void)]
          [on-local-char ((Instance Key-Event%) -> Void)]
          [on-local-event ((Instance Mouse-Event%) -> Void)]
          [on-new-box ((U 'text 'pasteboard) -> (Instance Snip%))]
          [on-new-image-snip
-          (Path (U 'unknown 'unknown/mask 'unknown/alpha
-                   'gif 'gif/mask 'gif/alpha
-                   'jpeg 'png 'png/mask 'png/alpha
-                   'xbm 'xpm 'bmp 'pict)
-                Any Any -> (Instance Snip%))]
+          (Path Image-Kind Any Any -> (Instance Snip%))]
          [on-paint
-          (Any (Instance DC<%>) Real Real Real Real
-               Real Real (U 'no-caret 'show-inactive-caret
-                            'show-caret (Pairof Integer Integer))
-               -> Void)]
-         [on-save-file (Path Load/Save-Format -> Void)]
+          (Any (Instance DC<%>) Real Real Real Real Real Real Draw-Caret -> Void)]
+         [on-save-file (Path File-Format -> Void)]
          [on-snip-modified ((Instance Snip%) Any -> Void)]
          [own-caret (Any -> Void)]
          [paste (case-> (-> Void) (Integer -> Void))]
@@ -2301,11 +2281,7 @@
          [read-header-from-file
           ((Instance Editor-Stream-In%) String -> Boolean)]
          [redo (-> Void)]
-         [refresh
-          (Real Real Real Real (U 'no-caret 'show-inactive-caret 'show-caret
-                                  (Pairof Integer Integer))
-                (Option (Instance Color%))
-                -> Void)]
+         [refresh (Real Real Real Real Draw-Caret (Option (Instance Color%)) -> Void)]
          [refresh-delayed? (-> Boolean)]
          [release-snip ((Instance Snip%) -> Boolean)]
          [remove-canvas ((Instance Editor-Canvas%) -> Void)]
@@ -2313,12 +2289,12 @@
          [save-file
           (case-> (-> Boolean)
                   ((Option Path-String) -> Boolean)
-                  ((Option Path-String) Load/Save-Format -> Boolean)
-                  ((Option Path-String) Load/Save-Format Any -> Boolean))]
+                  ((Option Path-String) File-Format -> Boolean)
+                  ((Option Path-String) File-Format Any -> Boolean))]
          [save-port
           (case-> (Output-Port -> Boolean)
-                  (Output-Port Load/Save-Format -> Boolean)
-                  (Output-Port Load/Save-Format Any -> Boolean))]
+                  (Output-Port File-Format -> Boolean)
+                  (Output-Port File-Format Any -> Boolean))]
          [scroll-editor-to
           (Real Real Real Real Any (U 'start 'end 'none) -> Boolean)]
          [scroll-line-location (Integer -> Nonnegative-Real)]
@@ -2340,8 +2316,7 @@
          [set-filename
           (case-> ((Option Path-String) -> Void)
                   ((Option Path-String) Any -> Void))]
-         [set-inactive-caret-threshold
-          ((U 'no-caret 'show-inactive-caret 'show-caret) -> Void)]
+         [set-inactive-caret-threshold (Threshold -> Void)]
          [set-keymap
           (case-> (-> Void) ((Option (Instance Keymap%)) -> Void))]
          [set-load-overwrites-styles (Any -> Void)]
@@ -2364,13 +2339,13 @@
          (augment [after-edit-sequence (-> Void)]
                   [after-load-file (Any -> Void)]
                   [after-save-file (Any -> Void)]
-                  [can-load-file? (Path Load/Save-Format -> Boolean)]
-                  [can-save-file? (Path Load/Save-Format -> Boolean)]
+                  [can-load-file? (Path File-Format -> Boolean)]
+                  [can-save-file? (Path File-Format -> Boolean)]
                   [on-change (-> Void)]
                   [on-display-size (-> Void)]
                   [on-edit-sequence (-> Void)]
-                  [on-load-file (Path Load/Save-Format -> Void)]
-                  [on-save-file (Path Load/Save-Format -> Void)]
+                  [on-load-file (Path File-Format -> Void)]
+                  [on-save-file (Path File-Format -> Void)]
                   [on-snip-modified ((Instance Snip%) Any -> Void)])))
 
 (define-type Editor-Admin%
@@ -2614,7 +2589,11 @@
 
 ;; racket/snip
 
-(provide Readable-Snip<%>
+(provide Image-Kind
+         Add-Color<%>
+         Image-Snip%
+         Mult-Color<%>
+         Readable-Snip<%>
          Snip%
          Snip-Admin%
          Snip-Class%
@@ -2625,14 +2604,57 @@
          Style-List%
          Tab-Snip%)
 
+(define-type Image-Kind
+  (U 'unknown 'unknown/mask 'unknown/alpha
+     'gif 'gif/mask 'gif/alpha
+     'jpeg 'png 'png/mask 'png/alpha
+     'xbm 'xpm 'bmp 'pict))
+
+(define-type Add-Color<%>
+  (Class [get (((Boxof Integer) (Boxof Integer) (Boxof Integer)) ((Option (Boxof Real))) . ->* . Void)]
+         [get-a (-> Real)]
+         [get-b (-> Integer)]
+         [get-g (-> Integer)]
+         [get-r (-> Integer)]
+         [set ((Integer Integer Integer) (Real) . ->* . Void)]
+         [set-a (Real -> Void)]
+         [set-b (Integer -> Void)]
+         [set-g (Integer -> Void)]
+         [set-r (Integer -> Void)]))
+
+(define-type Image-Snip%
+  (Class (init-rest
+          (U (List)
+             (List (U Path-String Input-Port False) Image-Kind Any Any Positive-Real)
+             (List (Instance Bitmap%))
+             (List (Instance Bitmap%) (Option (Instance Bitmap%)))))
+         [equal-hash-code-of ((Any -> Integer) -> Integer)]
+         [equal-secondary-hash-code-of ((Any -> Integer) -> Integer)]
+         [get-bitmap (-> (Option (Instance Bitmap%)))]
+         [get-bitmap-mask (-> (Option (Instance Bitmap%)))]
+         [get-filename (() ((Option (Boxof Any))) . ->* . (Option Path-String))]
+         [get-filetype (-> Image-Kind)]
+         [load-file (((U Path-String Input-Port False))
+                     (Image-Kind Any Any Positive-Real) . ->* . Void)]
+         [other-equal-to? ((Instance Snip%) (Any Any -> Boolean) -> Boolean)]
+         [resize (Nonnegative-Real Nonnegative-Real -> Boolean)]
+         [set-bitmap (((Instance Bitmap%)) ((Option (Instance Bitmap%))) . ->* . Void)]
+         [set-offset (Real Real -> Void)]))
+
+(define-type Mult-Color<%>
+  (Class [get (((Boxof Real) (Boxof Real) (Boxof Real)) ((Option (Boxof Real))) . ->* . Void)]
+         [get-a (-> Real)]
+         [get-b (-> Real)]
+         [get-g (-> Real)]
+         [get-r (-> Real)]
+         [set ((Real Real Real) (Real) . ->* . Void)]
+         [set-a (Real -> Void)]
+         [set-b (Real -> Void)]
+         [set-g (Real -> Void)]
+         [set-r (Real -> Void)]))
+
 (define-type Readable-Snip<%>
   (Class [read-special (Any (Option Natural) (Option Natural) (Option Natural) -> Any)]))
-
-(define-type Snip-Edit-Operation
-  (U 'undo 'redo 'clear 'cut 'copy
-     'paste 'kill 'select-all
-     'insert-text-box 'insert-pasteboard-box
-     'insert-image))
 
 (define-type Style-Delta%
   (Class (init-rest
@@ -2654,16 +2676,12 @@
          [equal? ((Instance Style-Delta%) -> Boolean)]
          [get-alignment-off (-> (U 'base 'top 'center 'bottom))]
          [get-alignment-on (-> (U 'base 'top 'center 'bottom))]
-         #| FIXME
          [get-background-add (-> (Instance Add-Color<%>))]
          [get-background-mult (-> (Instance Mult-Color<%>))]
-         |#
          [get-face (-> (Option String))]
          [get-family (-> Font-Family)]
-         #| FIXME
          [get-foreground-add (-> (Instance Add-Color<%>))]
          [get-foreground-mult (-> (Instance Mult-Color<%>))]
-         |#
          [get-size-add (-> Byte)]
          [get-size-in-pixels-off (-> Boolean)]
          [get-size-in-pixels-on (-> Boolean)]
@@ -2823,17 +2841,15 @@
          [blink-caret
           ((Instance DC<%>) Real Real -> Void)]
          [can-do-edit-operation?
-          (case-> (Snip-Edit-Operation -> Boolean)
-                  (Snip-Edit-Operation Any -> Boolean))]
+          (case-> (Edit-Op -> Boolean)
+                  (Edit-Op Any -> Boolean))]
          [copy (-> (Instance Snip%))]
          [do-edit-operation
-          (case-> (Snip-Edit-Operation -> Void)
-                  (Snip-Edit-Operation Any -> Void)
-                  (Snip-Edit-Operation Any Integer -> Void))]
+          (case-> (Edit-Op -> Void)
+                  (Edit-Op Any -> Void)
+                  (Edit-Op Any Integer -> Void))]
          [draw
-          ((Instance DC<%>) Real Real Real Real Real Real Real Real
-           (U 'no-caret 'show-inactive-caret 'show-caret
-              (Pairof Natural Natural)) -> Void)]
+          ((Instance DC<%>) Real Real Real Real Real Real Real Real Draw-Caret -> Void)]
          [equal-to?
           ((Instance Snip%) (Any Any -> Boolean) -> Boolean)]
          [other-equal-to?

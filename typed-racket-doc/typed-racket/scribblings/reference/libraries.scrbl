@@ -183,7 +183,7 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/openssl]
 
 @deftype[SSL-Protocol]{
-  Describes an SSL protocol, defined as
+  Describes an SSL protocol, is an alias for
   @racket[(U 'auto 'sslv2-or-v3 'sslv2 'sslv3 'tls 'tls11 'tls12)].
 }
 @deftogether[(@deftype[SSL-Server-Context]
@@ -206,12 +206,12 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/racket/draw]
 
 @deftype[LoadFileKind]{
-  Defined as @racket[(U 'unknown 'unknown/mask 'unknown/alpha
-                        'gif 'gif/mask 'gif/alpha
-                        'jpeg 'jpeg/alpha
-                        'png 'png/mask 'png/alpha
-                        'xbm 'xbm/alpha 'xpm 'xpm/alpha
-                        'bmp 'bmp/alpha)].
+  Is an alias for @racket[(U 'unknown 'unknown/mask 'unknown/alpha
+                             'gif 'gif/mask 'gif/alpha
+                             'jpeg 'jpeg/alpha
+                             'png 'png/mask 'png/alpha
+                             'xbm 'xbm/alpha 'xpm 'xpm/alpha
+                             'bmp 'bmp/alpha)].
 }
 
 @defmodule/incl[typed/racket/extflonum]{
@@ -231,21 +231,21 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/racket/gui]
 
 @deftype[Edit-Op]{
-  Defined as @racket[(U 'undo 'redo 'clear 'cut 'copy 'paste
-                        'kill 'select-all 'insert-text-box
-                        'insert-pasteboard-box 'insert-image)].
+  Is an alias for @racket[(U 'undo 'redo 'clear 'cut 'copy 'paste
+                             'kill 'select-all 'insert-text-box
+                             'insert-pasteboard-box 'insert-image)].
 }
 @deftype[Read/Write-Format]{
-  Defined as @racket[(U 'standard 'text 'text-force-cr)].
+  Is an alias for @racket[(U 'standard 'text 'text-force-cr)].
 }
 @deftype[File-Format]{
-  Defined as @racket[(U 'guess 'same 'copy Read/Write-Format)].
+  Is an alias for @racket[(U 'guess 'same 'copy Read/Write-Format)].
 }
 @deftype[Threshold]{
-  Defined as @racket[(U 'no-caret 'show-inactive-caret 'show-caret)].
+  Is an alias for @racket[(U 'no-caret 'show-inactive-caret 'show-caret)].
 }
 @deftype[Draw-Caret]{
-  Defined as @racket[(U Threshold (Pairof Natural Natural))].
+  Is an alias for @racket[(U Threshold (Pairof Natural Natural))].
 }
 
 @defmodule/incl[typed/racket/gui/no-check]
@@ -254,10 +254,10 @@ and the @racket[URL] and @racket[Path/Param] types from
 @defmodule/incl[typed/racket/snip]
 
 @deftype[Image-Kind]{
-  Defined as @racket[(U 'unknown 'unknown/mask 'unknown/alpha
-                        'gif 'gif/mask 'gif/alpha
-                        'jpeg 'png 'png/mask 'png/alpha
-                        'xbm 'xpm 'bmp 'pict)].
+  Is an alias for @racket[(U 'unknown 'unknown/mask 'unknown/alpha
+                             'gif 'gif/mask 'gif/alpha
+                             'jpeg 'png 'png/mask 'png/alpha
+                             'xbm 'xpm 'bmp 'pict)].
 }
 
 @defmodule/incl[typed/racket/system]

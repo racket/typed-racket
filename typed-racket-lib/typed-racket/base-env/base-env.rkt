@@ -1004,18 +1004,30 @@
 [hash-clear! (-> -HashTableTop -Void)]
 [hash-clear (-poly (a b) (cl-> [((-HT a b)) (-Immutable-HT a b)]
                                [(-HashTableTop) (-Immutable-HT Univ Univ)]))]
-[hash-copy-clear (-poly (a b) (cl-> [((-Immutable-HT a b)) (-Immutable-HT a b)]
-                                    [((-Mutable-HT a b)) (-Mutable-HT a b)]
-                                    [(-Mutable-HashTableTop) -Mutable-HashTableTop]
-                                    [((-Weak-HT a b)) (-Weak-HT a b)]
-                                    [(-Weak-HashTableTop) -Weak-HashTableTop]
-                                    [((-HT a b)) (-HT a b)]
-                                    [(-HashTableTop) -HashTableTop]))]
+[hash-copy-clear
+ (-poly (a b) (cl->*
+               (->key (-Immutable-HT a b) #:kind (Un (-val #f) (-val 'immutable)) #f
+                      (-Immutable-HT a b))
+               (->key (-Mutable-HT a b) #:kind (Un (-val #f) (-val 'mutable)) #f
+                      (-Mutable-HT a b))
+               (->key -Mutable-HashTableTop #:kind (Un (-val #f) (-val 'mutable)) #t
+                      -Mutable-HashTableTop)
+               (->key (-Weak-HT a b) #:kind (Un (-val #f) (-val 'weak)) #f
+                      (-Weak-HT a b))
+               (->key -Weak-HashTableTop #:kind (Un (-val #f) (-val 'weak)) #f
+                      -Weak-HashTableTop)
+               (->key (-HT a b) #:kind (Un (-val #f) (-val 'immutable) (-val 'mutable) (-val 'ephemeron) (-val 'weak)) #f
+                      (-HT a b))
+               (->key -HashTableTop #:kind (Un (-val #f) (-val 'immutable) (-val 'mutable) (-val 'ephemeron) (-val 'weak)) #f
+                      -HashTableTop)))]
 
 [hash-map (-poly (a b c) (cl-> [((-HT a b) (a b . -> . c)) (-lst c)]
                                [((-HT a b) (a b . -> . c) Univ) (-lst c)]
                                [(-HashTableTop (Univ Univ . -> . c)) (-lst c)]
                                [(-HashTableTop (Univ Univ . -> . c) Univ) (-lst c)]))]
+[hash-map/copy (-poly (a b c d) (->key (-HT a b) (a b . -> . (-values (list c d)))
+                                       #:kind (Un (-val #f) (-val 'immutable) (-val 'mutable) (-val 'ephemeron) (-val 'weak)) #f
+                                       (-HT c d)))]
 [hash-for-each (-poly (a b c) (cl-> [((-HT a b) (-> a b c)) -Void]
                                     [((-HT a b) (-> a b c) Univ) -Void]
                                     [(-HashTableTop (-> Univ Univ c)) -Void]

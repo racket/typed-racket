@@ -31,8 +31,15 @@
   (check-pred hash?
     (ann (hash-copy-clear (make-hash '((a . b)))) (Mutable-HashTable Symbol Symbol)))
 
+  ;; inst required because of inference limitations with keywords
+  ;; specific type is not used here because `hash-copy-clear`'s type is not that specific wrt kind
+  (check-pred hash-weak?
+    (ann ((inst hash-copy-clear Symbol Symbol) (make-hash '((a . b))) #:kind 'weak) (HashTable Symbol Symbol)))
+
   (check-pred hash-weak?
     (ann (hash-copy-clear (make-weak-hash)) Weak-HashTableTop))
+  (check-pred hash-weak?
+    (ann ((inst hash-copy-clear Symbol Symbol) (make-weak-hash) #:kind 'weak) Weak-HashTableTop))
   (check-pred hash-weak?
     (ann (hash-copy-clear (make-weak-hash '((a . b)))) (Weak-HashTable Symbol Symbol))))
 
@@ -45,3 +52,10 @@
 
   (check-exn exn:fail:contract?
     (λ () (hash-remove (make-weak-hash '((a . A))) 'a))))
+
+(test-case "hash-map/copy"
+  (check-pred hash?
+              (hash-map/copy (hash 1 2 2 3) (lambda ([x : Integer] [y : Integer]) (values y x))))
+  (check-pred hash-weak?
+              (hash-map/copy (hash 1 2 2 3) (lambda ([x : Integer] [y : Integer]) (values y x))
+                             #:kind 'weak)))

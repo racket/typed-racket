@@ -4,7 +4,7 @@
 
 (define deps '("scheme-lib"
                "typed-racket-lib"
-               "base"))
+               ("base" #:version "8.5.0.3")))
 
 
 (define pkg-desc "compatibility library for older Typed Racket-based languages")

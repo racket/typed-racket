@@ -19,7 +19,7 @@
                      "racket-doc"
                      "draw-lib"
                      "web-server-doc"))
-(define deps '("base"))
+(define deps '(("base" #:version "8.5.0.3")))
 (define update-implies '("typed-racket-lib"))
 
 (define pkg-desc "documentation part of \"typed-racket\"")

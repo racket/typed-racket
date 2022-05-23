@@ -47,6 +47,7 @@
     "../types/utils.rkt"
     "../types/abbrev.rkt"
     "../types/printer.rkt"
+    "../types/resolve.rkt"
     "../typecheck/possible-domains.rkt"
     "../typecheck/typechecker.rkt"
     "../rep/type-rep.rkt"
@@ -70,7 +71,9 @@
                       [current-type-names
                        (if (attribute verbose-kw) '() (current-type-names))]
                       [current-print-unexpanded (box '())])
-         (define type (pretty-format-rep (parse-type #'ty)))
+         (define type (pretty-format-rep (match (parse-type #'ty)
+                                           [(? App? ty) (resolve ty)]
+                                           [ty ty])))
          (define unexpanded
            (remove-duplicates (unbox (current-print-unexpanded))))
          (define cue (if (null? unexpanded)

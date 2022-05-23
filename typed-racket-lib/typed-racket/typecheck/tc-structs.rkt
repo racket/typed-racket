@@ -6,10 +6,10 @@
          (prefix-in c: (contract-req))
          "../rep/type-rep.rkt"
          "../rep/type-constr.rkt"
-         "struct-type-constr.rkt"
          "../rep/free-variance.rkt"
          "../rep/values-rep.rkt"
          "../private/parse-type.rkt"
+         "../private/user-defined-type-constr.rkt"
          "../private/syntax-properties.rkt"
          "../types/base-abbrev.rkt"
          "../types/abbrev.rkt"
@@ -45,7 +45,6 @@
          tc/struct-prop-values
          tc/make-struct-type-property
          name-of-struct d-s
-         refine-struct-variance!
          register-parsed-struct-sty!
          register-parsed-struct-bindings!)
 
@@ -232,10 +231,12 @@
   ;; a type constructor to create the monomophic structure types of foo. e.g (foo Integer)
   (register-type-name type-name
                       (make-Poly (struct-desc-tvars desc) sty))
-  (define sty^ (make-Poly (struct-desc-tvars desc) sty))
   (unless (empty? (struct-desc-tvars desc))
-    (define ty-op (make-type-constr (struct-type-op sty^)
-                                (length (struct-desc-tvars desc))))
+    (define variances (map (lambda _ variance:const) (struct-desc-tvars desc)))
+    (define ty-op (make-type-constr (user-defined-type-op (struct-desc-tvars desc) sty)
+                                    (length (struct-desc-tvars desc))
+                                    #:variances
+                                    variances))
     (register-type-constructor! type-name ty-op)))
 
 ;; Register the appropriate types, return a list of struct bindings
@@ -306,11 +307,10 @@
 
   ;; is this structure covariant in *all* arguments?
   (define (covariant-for? fields mutable)
-    (for*/and ([var (in-list tvars)]
-               [t (in-list fields)])
-      (let ([variance (hash-ref (free-vars-hash (free-vars* t)) var variance:const)])
-        (or (variance:const? variance)
-            (and (not mutable) (variance:co? variance))))))
+    (for*/and ([t (in-list fields)]
+               [variance (in-list (variances-in-type t tvars))])
+      (or (variance:const? variance)
+          (and (not mutable) (variance:co? variance)))))
 
   (define covariant?
     (and (covariant-for? self-fields mutable)
@@ -452,16 +452,6 @@
      (if type-only
          null
          (register-struct-bindings! sty names desc si)))))
-
-;; Listof<Parsed-Struct> -> Void
-;; Refines the variance of struct types in the name environment
-(define (refine-struct-variance! parsed-structs)
-  (define stys (map parsed-struct-sty parsed-structs))
-  (define tvarss (map (compose struct-desc-tvars parsed-struct-desc) parsed-structs))
-  (define names
-    (for/list ([parsed-struct (in-list parsed-structs)])
-      (struct-names-type-name (parsed-struct-names parsed-struct))))
-  (refine-variance! names stys tvarss))
 
 ;; extract the type annotation of prop:procedure value
 (define/cond-contract (extract-proc-ty proc-ty-stx desc fld-names st-name)

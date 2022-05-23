@@ -8,7 +8,8 @@
 (provide print-kind
          make-type-constr
          (struct-out TypeConstructor)
-         (struct-out exn:fail:contract:arity:type-constructor))
+         (struct-out exn:fail:contract:arity:type-constructor)
+         get-type-construstor-variance)
 
 (define-values (prop:kind kind? kind-acc) (make-struct-type-property 'kind))
 (provide prop:kind kind?)
@@ -35,12 +36,12 @@
 ;; arity: the mandatory arity
 ;; kind*: whether this type constructor can take an arbitrary number of arguments
 ;; productive?: whether this type constructor is productive.
-(struct TypeConstructor (real-trep-constr arity kind*? productive?)
+(struct TypeConstructor (real-trep-constr arity kind*? productive? [variances #:mutable])
   #:transparent
   #:property prop:kind #t
   #:property prop:procedure
   (lambda (me . args)
-    (match-define (TypeConstructor real-trep-constr arity kind*? _) me)
+    (match-define (TypeConstructor real-trep-constr arity kind*? _ _) me)
     ;; FIXME: real-trep-constr can take other arguments than types.
     ;; This could make handling k* more complicated.
     ;; naive assumpution: type arguments come first in args.
@@ -49,7 +50,10 @@
       (when (or (< len arity)
                 (and (> len arity) (not kind*?)))
         (raise (make-exn:fail:contract:arity:type-constructor
-                (format "number of expected type arguments: ~a~n given: ~a" arity len)
+                (format "~a: the expected number of type arguments does not match the given number~n expected: ~a~n given: ~a~n arguments: ~a ~n"
+                        (object-name real-trep-constr)
+                        arity len
+                        args)
                 (current-continuation-marks)
                 arity len))))
     (gen-create-type-rep real-trep-constr
@@ -59,13 +63,18 @@
                             (append mandatory-args (list seq-args) non-type-args)]
                            [else args]))))
 
-(define (make-type-constr type-maker [arity 1] [productive #t] #:kind*? [kind*? #f])
+(define (make-type-constr type-maker [arity 1] [productive #t] #:kind*? [kind*? #f] #:variances variances)
   (when (and (procedure? type-maker) (not (object-name type-maker)))
     (error 'make-type-constr "only named procedures are allowed"))
 
   (if (and (zero? arity) (not kind*?))
       type-maker
-      (TypeConstructor type-maker arity kind*? productive)))
+      (TypeConstructor type-maker arity kind*? productive variances)))
+
+(define (get-type-construstor-variance type-constr pos)
+  (if (TypeConstructor-kind*? type-constr)
+      (car (TypeConstructor-variances type-constr))
+      (list-ref (TypeConstructor-variances type-constr) pos)))
 
 
 (define (print-kind type-or-type-op)

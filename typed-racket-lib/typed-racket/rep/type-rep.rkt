@@ -66,6 +66,7 @@
          abstract-obj
          substitute-names
          set-struct-property-pred!
+         variances-in-type
          DepFun/ids:
          HasArrows:
          (rename-out [Union:* Union:]
@@ -184,16 +185,24 @@
              #:with fld-frees #'(make-invariant (frees name))))
   (syntax-parse stx
     [(_ name:var-name ((~var flds (structural-flds #'frees)) ...) . rst)
-     (quasisyntax/loc stx
-       (def-rep name ([flds.name Type?] ...)
-         [#:parent Type]
-         [#:frees (frees) . #,(if (= 1 (length (syntax->list #'(flds.name ...))))
-                                  #'(flds.fld-frees ...)
-                                  #'((combine-frees (list flds.fld-frees ...))))]
-         [#:fmap (f) (name.constructor (f flds.name) ...)]
-         [#:for-each (f) (f flds.name) ...]
-         [#:variances (list flds.variance ...)]
-         . rst))]))
+     (with-syntax ([contructor-name (format-id #'name "make-~a-rep" (syntax-e #'name))]
+                   [type-constructor-name (format-id #'name "make-~a" (syntax-e #'name))])
+       (define arity (length (syntax->list #'(flds ...))))
+       (quasisyntax/loc stx
+         (begin
+           (def-rep (name #:constructor-name constructor-name) ([flds.name Type?] ...)
+             #:no-provide (constructor-name)
+             [#:parent Type]
+             [#:frees (frees) . #,(if (= 1 (length (syntax->list #'(flds.name ...))))
+                                      #'(flds.fld-frees ...)
+                                      #'((combine-frees (list flds.fld-frees ...))))]
+             [#:fmap (f) (constructor-name (f flds.name) ...)]
+             [#:for-each (f) (f flds.name) ...]
+             [#:variances (list flds.variance ...)]
+             . rst)
+           (define type-constructor-name (make-type-constr constructor-name #,arity
+                                                           #:variances (list flds.variance ...)))
+           (provide type-constructor-name))))]))
 
 
 ;;--------
@@ -1047,7 +1056,8 @@
 (define Un (make-type-constr Un-fun
                          0
                          #f
-                         #:kind*? #t))
+                         #:kind*? #t
+                         #:variances (list variance:co)))
 
 
 
@@ -1240,7 +1250,9 @@
      (for-each walk fields)
      (for-each walk methods)
      (for-each walk augments)
-     (when init-rest (f init-rest)))])
+     (when init-rest (f init-rest)))]
+  [#:extras
+   #:property prop:kind #t])
 
 (def-type ClassTop ()
   [#:mask mask:class]
@@ -1747,6 +1759,12 @@
             (app merge-class/row
                  (list row-pat inits-pat fields-pat
                        methods-pat augments-pat init-rest-pat)))])))
+
+
+(define/cond-contract (variances-in-type ty syms)
+  (-> Type? (listof symbol?) (listof variance?))
+  (define free-vars (free-vars-hash (free-vars* ty)))
+  (map (λ (v) (hash-ref free-vars v variance:const)) syms))
 
 ;;***************************************************************
 ;; Smart Constructors for Some structs

@@ -21,25 +21,10 @@
                        [add-alias (-> identifier? identifier? any)]
                        [type-name-env-map
                         (-> (-> identifier? (or/c #t Type?) any) any)]
-                       [type-variance-env-map
-                        (-> (-> identifier? (listof variance?) any) any)]
                        [type-name-env-for-each
                         (-> (-> identifier? (or/c #t Type?) any) void?)]
-                       [type-variance-env-for-each
-                        (-> (-> identifier? (listof variance?) any) void?)]
                        [lookup-type-name
-                        (->* (identifier?) (procedure?) (or/c #t Type?))]
-                       [register-type-variance!
-                        (-> identifier? (listof variance?) any)]
-                       [lookup-type-variance
-                        (-> identifier? (listof variance?))]
-                       [add-constant-variance!
-                        (-> identifier? (or/c #f (listof identifier?)) any)]
-                       [refine-variance!
-                        (-> (listof identifier?)
-                            (listof Type?)
-                            (listof (or/c #f (listof symbol?)))
-                            any)])
+                        (->* (identifier?) (procedure?) (or/c #t Type?))])
 
 ;; a mapping from id -> type (where id is the name of the type)
 (define the-mapping
@@ -82,46 +67,3 @@
        (register-type-constructor! from v))]))
 
 
-;; a mapping from id -> listof[Variance] (where id is the name of the type)
-(define variance-mapping
-  (make-free-id-table))
-
-;; add a name to the mapping
-(define (register-type-variance! id variance)
-  (free-id-table-set! variance-mapping id variance))
-
-(define (lookup-type-variance id)
-  (free-id-table-ref
-   variance-mapping id
-   (lambda () (lookup-variance-fail id))))
-
-;; map over the-mapping, producing a list
-;; (id variance -> T) -> listof[T]
-(define (type-variance-env-map f)
-  (sorted-free-id-table-map variance-mapping f))
-
-(define (type-variance-env-for-each f)
-  (sorted-free-id-table-for-each variance-mapping f))
-
-;; Refines the variance of a type in the name environment
-(define (refine-variance! names types tvarss)
-  (let loop ()
-    (define sames?
-      (for/and ([name (in-list names)]
-                [type (in-list types)]
-                [tvars (in-list tvarss)])
-        (cond
-          [(or (not tvars) (null? tvars)) #t]
-          [else
-            (define free-vars (free-vars-hash (free-vars* type)))
-            (define variance (map (λ (v) (hash-ref free-vars v variance:const)) tvars))
-            (define old-variance (lookup-type-variance name))
-
-            (register-type-variance! name variance)
-            (equal? variance old-variance)])))
-    (unless sames? (loop))))
-
-;; Initialize variance of the given id to Constant for all type vars
-(define (add-constant-variance! name vars)
-  (unless (or (not vars) (null? vars))
-    (register-type-variance! name (map (lambda (_) variance:const) vars))))

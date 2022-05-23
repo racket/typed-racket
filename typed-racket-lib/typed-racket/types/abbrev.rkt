@@ -18,7 +18,7 @@
          "../rep/object-rep.rkt"
          "../rep/values-rep.rkt"
          "../rep/type-constr.rkt"
-         "../typecheck/struct-type-constr.rkt"
+         "../rep/free-variance.rkt"
          "../private/user-defined-type-constr.rkt"
          "numeric-tower.rkt"
          (only-in "utils.rkt" self-var imp-var)
@@ -35,45 +35,38 @@
 
 (provide (all-defined-out)
          (all-from-out "base-abbrev.rkt" "match-expanders.rkt"
-                       "../private/user-defined-type-constr.rkt"
-                       "../typecheck/struct-type-constr.rkt"))
+                       "../private/user-defined-type-constr.rkt"))
 
-(define-syntax (define-type-constructor stx)
-  (syntax-case stx ()
-    [(_ name body)
-     #'(define name (make-type-constr body))]
-    [(_ name body arity)
-     #'(define name (make-type-constr body arity))]))
 ;; Convenient constructors
 (define -App make-App)
 (define -has-struct-property make-Has-Struct-Property)
 
-(define-type-constructor -mpair make-MPair 2)
+(define -mpair make-MPair)
 (define (-Param t1 [t2 t1]) (make-Param t1 t2))
-(define-type-constructor -box make-Box)
-(define-type-constructor -channel make-Channel)
-(define-type-constructor -async-channel make-Async-Channel)
-(define-type-constructor -thread-cell make-ThreadCell)
-(define-type-constructor -Promise make-Promise)
-(define-type-constructor -set make-Set)
-(define-type-constructor -mvec make-Mutable-Vector)
-(define-type-constructor -ivec make-Immutable-Vector)
-(define-type-constructor -vec (lambda (a) (Un (-mvec a) (-ivec a))))
+(define -box make-Box)
+(define -channel make-Channel)
+(define -async-channel make-Async-Channel)
+(define -thread-cell make-ThreadCell)
+(define -Promise make-Promise)
+(define -set make-Set)
+(define -mvec make-Mutable-Vector)
+(define -ivec make-Immutable-Vector)
+
+(define/type-constr (-vec [a : variance:inv])
+  (Un (-mvec a) (-ivec a)))
+
 (define make-Vector -vec)
-(define -ivec* (make-type-constr make-Immutable-HeterogeneousVector 0 #:kind*? #t))
-(define -mvec* (make-type-constr make-Mutable-HeterogeneousVector 0 #:kind*? #t))
-(define -vec* (make-type-constr make-HeterogeneousVector 0 #:kind*? #t))
-(define -Inter (make-type-constr -Inter-fun 0 #f #:kind*? #t))
-(define-type-constructor -future make-Future)
-(define-type-constructor -struct-property make-Struct-Property)
-(define-type-constructor -evt make-Evt)
-(define-type-constructor -weak-box make-Weak-Box)
-(define-type-constructor -CustodianBox make-CustodianBox)
-(define-type-constructor -Ephemeron make-Ephemeron)
-(define-type-constructor -Mutable-HT make-Mutable-HashTable 2)
-(define-type-constructor -Immutable-HT make-Immutable-HashTable 2)
-(define-type-constructor -Weak-HT make-Weak-HashTable 2)
-(define-type-constructor -HT (lambda (a b) (Un (-Mutable-HT a b) (-Immutable-HT a b) (-Weak-HT a b))) 2)
+(define -ivec* (make-type-constr make-Immutable-HeterogeneousVector 0 #:kind*? #t #:variances (list variance:co)))
+(define -mvec* (make-type-constr make-Mutable-HeterogeneousVector 0 #:kind*? #t #:variances (list variance:inv)))
+(define -vec* (make-type-constr make-HeterogeneousVector 0 #:kind*? #t #:variances (list variance:inv)))
+(define -Inter (make-type-constr -Inter-fun 0 #f #:kind*? #t #:variances (list variance:co)))
+(define -future make-Future)
+(define -struct-property make-Struct-Property)
+(define -evt make-Evt)
+(define -weak-box make-Weak-Box)
+(define -CustodianBox make-CustodianBox)
+(define -Ephemeron make-Ephemeron)
+
 (define -inst make-Instance)
 (define (-prefab key . types)
   (make-Prefab (normalize-prefab-key key (length types)) types))
@@ -91,11 +84,9 @@
 (define (one-of/c . args)
   (apply Un (map -val args)))
 
-(define make-Opt
-  (lambda (t)
-    (Un (-val #f) t)))
-
-(define -opt (make-type-constr make-Opt 1 #f))
+(define/type-constr (-opt [t : variance:co])
+  #:productive? #f
+  (Un (-val #f) t))
 
 (define (-ne-lst t) (-pair t (-lst t)))
 
@@ -110,8 +101,8 @@
 ;; Basic types
 (define -Self (make-F self-var))
 (define -Imp (make-F imp-var))
-(define -Listof (make-type-constr -lst 1))
-(define -MListof (make-type-constr -mlst 1))
+(define -Listof -lst)
+(define -MListof -mlst)
 (define/decl -Regexp (Un -PRegexp -Base-Regexp))
 (define/decl -Byte-Regexp (Un -Byte-PRegexp -Byte-Base-Regexp))
 (define/decl -Pattern (Un -String -Bytes -Regexp -Byte-Regexp))
@@ -135,7 +126,7 @@
                   #:tail (-lst (Un -Symbol (-val "..")))))))
 (define/decl -Compiled-Expression (Un -Compiled-Module-Expression -Compiled-Non-Module-Expression))
 ;; in the type (-Syntax t), t is the type of the result of syntax-e, not syntax->datum
-(define-type-constructor -Syntax make-Syntax)
+(define -Syntax make-Syntax)
 (define/decl In-Syntax
   (-mu e
        (Un -Null -Boolean -Symbol -String -Bytes -Keyword -Char -Number
@@ -146,7 +137,8 @@
 (define/decl Any-Syntax (-Syntax In-Syntax))
 (define/decl -Stxish (-mu S (Un -Null (-Syntax Univ) (-pair (-Syntax Univ) S))))
 
-(define (sexpof t)
+
+(define/type-constr (-Sexpof [t : variance:co])
   (-mu sexp
        (Un -Null
            -Number -Boolean -Symbol -String -Bytes -Keyword -Char
@@ -154,7 +146,19 @@
            (make-Vector sexp)
            (make-Box sexp)
            t)))
-(define-type-constructor -Sexpof sexpof)
+
+
+(define/decl -Sexp (-Sexpof (Un)))
+(define Syntax-Sexp (-Sexpof Any-Syntax))
+(define Ident (-Syntax -Symbol))
+(define -Mutable-HT make-Mutable-HashTable)
+(define -Immutable-HT make-Immutable-HashTable)
+(define -Weak-HT make-Weak-HashTable)
+(define/type-constr (-HT [a : variance:inv]
+                         [b : variance:inv])
+  (Un (-Mutable-HT a b) (-Immutable-HT a b) (-Weak-HT a b)))
+(define -Prompt-Tagof make-Prompt-Tagof)
+(define -Continuation-Mark-Keyof make-Continuation-Mark-Keyof)
 
 (define/decl -Flat
   (-mu flat
@@ -162,11 +166,7 @@
            (-pair flat flat)
            (-ivec flat)
            (-Immutable-HT flat flat))))
-(define/decl -Sexp (-Sexpof (Un)))
-(define Syntax-Sexp (-Sexpof Any-Syntax))
-(define Ident (-Syntax -Symbol))
-(define-type-constructor -Prompt-Tagof make-Prompt-Tagof 2)
-(define-type-constructor -Continuation-Mark-Keyof make-Continuation-Mark-Keyof 1)
+
 (define make-HashTable -HT)
 (define/decl -Port (Un -Output-Port -Input-Port))
 (define/decl -SomeSystemPath (Un -Path -OtherSystemPath))

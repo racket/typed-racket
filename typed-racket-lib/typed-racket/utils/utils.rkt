@@ -9,6 +9,7 @@ at least theoretically.
          racket/require-syntax racket/provide-syntax
          racket/match
          racket/list
+         racket/format
          syntax/parse/define
          "timing.rkt")
 
@@ -36,11 +37,16 @@ at least theoretically.
  assoc-ref
  assoc-set
  assoc-remove
+ debug-print
  in-assoc)
 
 (define optimize? (make-parameter #t))
 (define with-refinements? (make-parameter #f))
 (define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
+
+(define-logger tr-debug)
+(define (debug-print format-string . vs)
+  (log-message tr-debug-logger 'debug 'tr (apply format format-string vs)))
 
 (define-syntax do-contract-req
   (if enable-contracts?

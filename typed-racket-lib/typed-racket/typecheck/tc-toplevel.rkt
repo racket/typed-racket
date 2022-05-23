@@ -8,6 +8,7 @@
          (prefix-in c: (contract-req))
          "../rep/core-rep.rkt" "../rep/type-rep.rkt" "../rep/values-rep.rkt"
          "../rep/type-constr.rkt"
+         "../rep/free-variance.rkt"
          "../types/utils.rkt" "../types/abbrev.rkt" "../types/type-table.rkt"
          "../types/struct-table.rkt" "../types/resolve.rkt"
          "../private/parse-type.rkt"
@@ -432,19 +433,27 @@
 ;; Listof[Expr] -> Promise[Listof[binding]]
 (define (register-struct-type-info! form-li)
   ;; register type name and alias first
-  (define rest
-    (for/list ([form (in-list form-li)])
+  (define-values (poly-names binding-reg)
+    (for/fold ([poly-names '()]
+               [binding-reg '()]
+               #:result (values (reverse poly-names)
+                                (reverse binding-reg)))
+              ([form (in-list form-li)])
       (define name (name-of-struct form))
       (define tvars (type-vars-of-struct form))
       (register-resolved-type-alias name (make-Name name (length tvars) #t))
       (register-type-name name)
-      (add-constant-variance! name tvars)
-      (delay
-        (let ([parsed (parse-typed-struct form)])
-          (register-parsed-struct-sty! parsed)
-          (refine-struct-variance! (list parsed))
-          (register-parsed-struct-bindings! parsed)))))
-  (delay (map force rest)))
+      (define parsed (delay (parse-typed-struct form)))
+      (values (cons (delay (register-parsed-struct-sty! (force parsed))
+                           (if (null? tvars) #f
+                               name))
+                    poly-names)
+              (cons (delay (register-parsed-struct-bindings! (force parsed)))
+                    binding-reg))))
+  (delay (lambda (names)
+           (refine-user-defined-constructor-variances!
+            (append names (filter-map force poly-names)))
+           (map force binding-reg))))
 
 
   ;; the resulting thunk finishes the rest work)
@@ -477,7 +486,7 @@
 
   (do-time "after adding type names")
 
-  (register-all-type-aliases type-aliases)
+  (define names (register-all-type-aliases type-aliases))
 
   (finalize-signatures!)
 
@@ -485,7 +494,7 @@
 
   ;; continue parsing and registering the structure types,
   ;; the bindings of the structs
-  (define struct-bindings (force promise-reg-sty-info))
+  (define struct-bindings ((force promise-reg-sty-info) names))
 
   (do-time "before pass1")
   ;; do pass 1, and collect the defintions
@@ -710,7 +719,7 @@
                                       'no-type)]
     [else
      (when (typed-struct? form)
-       (force (register-struct-type-info! (list form))))
+       ((force (register-struct-type-info! (list form))) null))
      (define all-forms (cond
                          [(typed-struct? form)
                           ;; after a struct type is registered, check the pending forms is in receiving order

@@ -5,10 +5,11 @@
                          define λ lambda define-struct for for*
                          let let* let-values let*-values letrec letrec-values
                          let/cc let/ec do case-lambda struct
-                         for/list for/vector for/hash for/hasheq for/hasheqv
+                         for/list for/vector for/hash for/hasheq for/hasheqv for/hashalw
                          for/and for/or for/sum for/product for/lists
                          for/first for/last for/fold for/foldr for*/list for*/lists
-                         for*/vector for*/hash for*/hasheq for*/hasheqv for*/and
+                         for*/vector for*/hash for*/hasheq for*/hasheqv for*/hashalw
+                         for*/and
                          for*/or for*/sum for*/product for*/first for*/last
                          for*/fold for*/foldr))
            (basics #%module-begin #%top-interaction))

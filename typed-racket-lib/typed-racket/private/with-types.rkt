@@ -30,10 +30,11 @@
                      let let* letrec letrec-values let-values let*-values
                      let/cc let/ec do case-lambda struct define-struct
                      default-continuation-prompt-tag
-                     for/list for/vector for/hash for/hasheq for/hasheqv
+                     for/list for/vector for/hash for/hasheq for/hasheqv for/hashalw
                      for/and for/or for/sum for/product for/lists
                      for/first for/last for/fold for/foldr for*/list for*/lists
-                     for*/vector for*/hash for*/hasheq for*/hasheqv for*/and
+                     for*/vector for*/hash for*/hasheq for*/hasheqv for*/hashalw
+                     for*/and
                      for*/or for*/sum for*/product for*/first for*/last
                      for*/fold for*/foldr)
           "../base-env/prims.rkt"

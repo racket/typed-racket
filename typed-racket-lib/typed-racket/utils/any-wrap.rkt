@@ -148,8 +148,10 @@
       [(? (λ (e)
             (and (hash? e) (immutable? e)
                  (not (hash-eqv? e)) (not (hash-eq? e)))))
-       (for/hash ([(k v) (in-hash v)]) (values (any-wrap/traverse k neg-party seen/v)
-                                               (any-wrap/traverse v neg-party seen/v)))]
+       (hash-map/copy v
+                      (lambda (k v)
+                        (values (any-wrap/traverse k neg-party seen/v)
+                                (any-wrap/traverse v neg-party seen/v))))]
       [(? vector?) (chaperone-vector v
                                      (lambda (v i e)
                                        (with-contract-continuation-mark

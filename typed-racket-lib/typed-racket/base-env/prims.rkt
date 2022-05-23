@@ -73,6 +73,7 @@ the typed racket language.
                      [for/hash: for/hash]
                      [for/hasheq: for/hasheq]
                      [for/hasheqv: for/hasheqv]
+                     [for/hashalw: for/hashalw]
                      [for/and: for/and]
                      [for/or: for/or]
                      [for/sum: for/sum]
@@ -89,6 +90,7 @@ the typed racket language.
                      [for*/hash: for*/hash]
                      [for*/hasheq: for*/hasheq]
                      [for*/hasheqv: for*/hasheqv]
+                     [for*/hashalw: for*/hashalw]
                      [for*/and: for*/and]
                      [for*/or: for*/or]
                      [for*/sum: for*/sum]
@@ -599,6 +601,7 @@ the typed racket language.
 (define-syntax for/hash:    (define-for/hash:-variant #'make-immutable-hash))
 (define-syntax for/hasheq:  (define-for/hash:-variant #'make-immutable-hasheq))
 (define-syntax for/hasheqv: (define-for/hash:-variant #'make-immutable-hasheqv))
+(define-syntax for/hashalw: (define-for/hash:-variant #'make-immutable-hashalw))
 
 (define-for-syntax (define-for*/hash:-variant hash-maker)
   (lambda (stx)
@@ -621,6 +624,7 @@ the typed racket language.
 (define-syntax for*/hash:    (define-for*/hash:-variant #'make-immutable-hash))
 (define-syntax for*/hasheq:  (define-for*/hash:-variant #'make-immutable-hasheq))
 (define-syntax for*/hasheqv: (define-for*/hash:-variant #'make-immutable-hasheqv))
+(define-syntax for*/hashalw: (define-for*/hash:-variant #'make-immutable-hashalw))
 
 
 (define-syntax (provide: stx)

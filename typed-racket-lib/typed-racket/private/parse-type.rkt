@@ -10,6 +10,7 @@
          "../rep/free-ids.rkt"
          "../rep/rep-utils.rkt"
          "../rep/type-constr.rkt"
+         "../rep/free-variance.rkt"
          "../types/abbrev.rkt"
          "user-defined-type-constr.rkt"
          "../types/utils.rkt"
@@ -43,6 +44,7 @@
          racket/format
          racket/match
          syntax/id-table
+         syntax/id-set
          "parse-classes.rkt"
          (for-template "../base-env/base-types-extra.rkt"
                        racket/base)
@@ -63,7 +65,8 @@
                     Type?)]
  [parse-type-operator-abstraction (c:->* (identifier? (c:listof identifier?) syntax?)
                                          ((c:or/c (c:-> identifier? boolean?) #f)
-                                          (free-id-table/c identifier? boolean?))
+                                          (free-id-table/c identifier? boolean?)
+                                          #:delay-variances? boolean?)
                                          TypeConstructor?)]
  [parse-for-effects (c:-> identifier? (c:cons/c (c:listof identifier?) syntax?)
                           (values (c:listof identifier?)
@@ -646,7 +649,9 @@
 ;; type-op-productivity-map: maps names of constructors to their productivity.
 
 (define (parse-type-operator-abstraction name arg-names stx [opt-in-same-component? #f]
-                                         [type-op-productivity-map (make-immutable-free-id-table)])
+                                         [type-op-productivity-map (make-immutable-free-id-table)]
+                                         #:delay-variances?
+                                         [delay-variances? #f])
   (define syms (map syntax-e arg-names))
   (define mode (synth-mode name syms opt-in-same-component?))
   (define var-kind-level-env
@@ -664,9 +669,14 @@
                             (parse stx INIT-LEVEL
                                    var-kind-level-env
                                    #:mode mode)))
+
   (make-type-constr (user-defined-type-op syms res)
                     (length syms)
-                    (free-id-table-ref type-op-productivity-map name #f)))
+                    (free-id-table-ref type-op-productivity-map name #f)
+                    #:variances
+                    (if delay-variances?
+                        (build-default-variances syms)
+                        (variances-in-type res syms))))
 
 (define (parse-type-or-type-constructor stx)
   (parse stx 0 (make-immutable-free-id-table) #:mode #f #:ret-type-op? #t))
@@ -1357,16 +1367,25 @@
                       [var (in-list (synth-mode-args mode))])
                   (check-argument rand var))))
             (match rator
-              [(? TypeConstructor?)
+              [(struct* TypeConstructor ([arity arity]))
+               (define (err expected given)
+                 (tc-error (~a "wrong number of arguments to type constructor"
+                               "\n  type: " #'id
+                               "\n  expected: " expected
+                               "\n  given: " given
+                               "\n  arguments...: " #'(args ...))))
+
                (with-handlers ([exn:fail:contract:arity:type-constructor?
                                 (lambda (e)
                                   (match-define (exn:fail:contract:arity:type-constructor _ _ expected given) e)
-                                  (tc-error (~a "wrong number of arguments to type constructor"
-                                                "\n  type: " #'id
-                                                "\n  expected: " expected
-                                                "\n  given: " given
-                                                "\n  arguments...: " #'(args ...))))])
-                 (apply rator args^))]
+                                  (err expected given))])
+                 (define alias (lookup-type-alias #'id (lambda (x) x) (lambda () #f)))
+                 (match alias
+                   [(? Name?)
+                    (if (equal? arity (length args^))
+                        (make-App alias args^)
+                        (err arity (length args^)))]
+                   [_ (apply rator args^)]))]
               [(? Name?)
                (resolve-app-check-error rator args^ stx)
                (define app (make-App rator args^))

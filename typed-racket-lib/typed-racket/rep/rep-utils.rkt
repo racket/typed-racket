@@ -298,6 +298,14 @@
   ;; variant name parsing
   (define-syntax-class var-name
     #:attributes (name constructor raw-constructor match-expander predicate updator)
+    (pattern (name:id #:constructor-name constructor)
+             #:with raw-constructor (format-id #'name "raw-make-~a" (syntax-e #'name))
+             #:with match-expander
+             (format-id #'name "~a:" (syntax-e #'name))
+             #:with predicate
+             (format-id #'name "~a?" (syntax-e #'name))
+             #:with updator
+             (format-id #'name "~a-update" (syntax-e #'name)))
     (pattern name:id
              #:with constructor (format-id #'name "make-~a" (syntax-e #'name))
              ;; hidden constructor for use inside custom constructor defs

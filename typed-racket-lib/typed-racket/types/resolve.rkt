@@ -81,6 +81,10 @@
                        "\n  expected: " num-args
                        "\n  given: " num-rands
                        "\n  arguments...: " rands)))]
+      [(Name/simple: (app lookup-type-constructor constr))
+       #:when constr
+       ;; the arity check is handled in parse-type
+       (void)]
       [_ (tc-error/delayed (~a "type cannot be applied"
                                "\n  type: " rator
                                "\n  arguments...: " rands))])))

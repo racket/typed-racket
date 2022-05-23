@@ -11,6 +11,7 @@
          "../rep/prop-rep.rkt"
          "../rep/object-rep.rkt"
          "../rep/base-types.rkt"
+         "../rep/free-variance.rkt"
          "../rep/numeric-base-types.rkt"
          "../rep/values-rep.rkt"
          "../rep/rep-utils.rkt"
@@ -18,6 +19,7 @@
          "../rep/free-ids.rkt"
          "../env/mvar-env.rkt"
          racket/lazy-require
+         syntax/parse/define
          racket/match racket/list (prefix-in c: (contract-req))
          (for-syntax racket/base syntax/parse racket/list)
          ;; For contract predicates
@@ -49,15 +51,29 @@
 (define/decl -Null (-val null))
 
 ;; Char type and List type (needed because of how sequences are checked in subtype)
-(define (make-Listof elem) (unsafe-make-Mu  (Un -Null (make-Pair elem (make-B 0)))))
-(define (make-MListof elem) (unsafe-make-Mu (Un -Null (make-MPair elem (make-B 0)))))
+(define-syntax-parse-rule (define/type-constr (name [arg : variance] ...) (~optional (~seq #:productive? productive?)
+                                                                                     #:defaults ([productive? #'#t])) . body)
+  #:declare name id
+  #:with arity #`#,(length (syntax->list #'(arg ...)))
+  (define name (let ([name (lambda (arg ...) . body)])
+                 (make-type-constr name arity productive?
+                                   #:variances (list variance ...)))))
+
+(define/type-constr (make-Listof [elem : variance:co])
+  (unsafe-make-Mu  (Un -Null (make-Pair elem (make-B 0)))))
+;; (define (make-Listof-inner elem) (unsafe-make-Mu  (Un -Null (make-Pair elem (make-B 0)))))
+;; (define make-Listof (make-type-constr make-Listof-inner 1 #:variances (list variance:co)))
+
+(define/type-constr (make-MListof [elem : variance:inv])
+  (unsafe-make-Mu (Un -Null (make-MPair elem (make-B 0)))))
+
 (define (make-CyclicListof cycle)
   (cond
     [(ormap Bottom? cycle) -Null]
     [else (unsafe-make-Mu (Un -Null (-Tuple* cycle (make-B 0))))]))
 
 ;; -Tuple Type is needed by substitute for ListDots
-(define -pair (make-type-constr make-Pair 2))
+(define -pair make-Pair)
 (define (-lst* #:tail [tail -Null] . args)
   (for/fold ([tl tail]) ([a (in-list (reverse args))]) (-pair a tl)))
 (define (-Tuple l)

@@ -12,7 +12,6 @@
          "signature-env.rkt"
          "struct-name-env.rkt"
          "../private/user-defined-type-constr.rkt"
-         "../typecheck/struct-type-constr.rkt"
          "../rep/core-rep.rkt"
          "../rep/type-rep.rkt"
          "../rep/type-constr.rkt"
@@ -364,9 +363,11 @@
     ;; Most Top types are in the predefined table, the ones here
     ;; are not
     [(StructTop: name) `(make-StructTop ,(type->sexp name))]
-    [(TypeConstructor constr arity kind*? productive?)
+    [(TypeConstructor constr arity kind*? productive? variances)
      (define constr^ (gen-serialize-type-rep constr type->sexp))
-     `(make-type-constr ,constr^ ,arity ,productive? #:kind*? ,kind*?)]))
+     `(make-type-constr ,constr^ ,arity ,productive? #:kind*? ,kind*?
+                        #:variances
+                        (list #,@(map variance->binding variances)))]))
 
 ;; Helper for class/row clauses
 (define (convert-row-clause members [inits? #f])
@@ -459,10 +460,6 @@
     type-name-env-map
     (λ (id ty) #`(register-type-name #'#,id #,(quote-type ty)))))
 
-(define (tvariance-env-init-code)
-  (make-init-code
-    type-variance-env-map
-    (λ (id var) #`(register-type-variance! #'#,id (list #,@(map variance->binding var))))))
 
 (define (talias-env-init-code)
   (make-init-code
@@ -489,10 +486,11 @@
    kind-env-map
    (lambda (id v)
      ;; TODO: turn this into a function
-     (match-define (TypeConstructor constr arity kind*? productive?) v)
+     (match-define (TypeConstructor constr arity kind*? productive? variances) v)
      (define constr^ (gen-serialize-type-rep constr type->sexp))
      #`(register-type-constructor! #'#,id
-                                   (make-type-constr #,constr^ #,arity #,productive? #:kind*? #,kind*?)))))
+                                   (make-type-constr #,constr^ #,arity #,productive? #:kind*? #,kind*?
+                                                     #:variances (list #,@(map variance->binding variances)))))))
 
 ;; see 'finalize-signatures!' in 'env/signature-env.rkt',
 ;; which forces these delays after all the signatures are parsed
@@ -519,7 +517,6 @@
     (list (env-init-code)
           (talias-env-init-code)
           (tname-env-init-code)
-          (tvariance-env-init-code)
           (mvar-env-init-code mvar-env)
           (signature-env-init-code)
           (make-struct-table-code)

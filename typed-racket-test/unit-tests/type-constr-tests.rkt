@@ -8,6 +8,8 @@
          typed-racket/typecheck/tc-structs
          typed-racket/types/prop-ops
          typed-racket/rep/type-rep
+         typed-racket/rep/free-variance
+         typed-racket/env/type-name-env
          typed-racket/rep/values-rep
          typed-racket/env/lexical-env
          typed-racket/env/init-envs
@@ -45,13 +47,13 @@
                                                       #'hello?
                                                       (immutable-free-id-set)))
                              "*"))
-   (test-begin (check-equal? (print-kind (make-type-constr -pair 2)) "(-> * * *)"))
+   (test-begin (check-equal? (print-kind (make-type-constr -pair 2 #:variances (list variance:co variance:co))) "(-> * * *)"))
    (test-begin (check-equal? (print-kind Un) "(-o * ... *)"))
    (test-begin (check-exn exn:fail:contract:arity:type-constructor?
                           (lambda ()
-                            ((make-type-constr -pair 2) -Number))))
-   (begin
-     (register-parsed-struct-sty! (tc/struct (list #'X #'Y) #'foo #'foo (list #'a) (list #'X)))
+                            ((make-type-constr -pair 2 #:variances (list variance:co variance:co)) -Number))))
+   (let ([parsed-sty! (tc/struct (list #'X #'Y) #'foo #'foo (list #'a) (list #'X))])
+     (register-parsed-struct-sty! parsed-sty!)
      (test-begin (check-equal? (print-kind (lookup-type-constructor #'foo))
                                "(-> * * *)")))))
 

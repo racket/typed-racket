@@ -8,10 +8,12 @@
          "type-alias-env.rkt"
          "type-name-env.rkt"
          "../rep/type-rep.rkt"
+         "../rep/free-variance.rkt"
          "../rep/type-constr.rkt"
          "tvar-env.rkt"
          "type-constr-env.rkt"
          "../private/parse-type.rkt"
+         "../private/user-defined-type-constr.rkt"
          "../typecheck/internal-forms.rkt"
          "../types/resolve.rkt"
          "../types/base-abbrev.rkt"
@@ -70,11 +72,13 @@
         ;; start registering type alias names
         (start-type-alias-registration! id (make-Name id (length args) #f))
         (values id (list id type-stx args))))
-    (register-all-type-alias-info type-alias-names type-alias-map)
-    (unless (zero? (free-id-table-count (incomplete-name-alias-map)))
-      (define names (free-id-table-keys (incomplete-name-alias-map)))
-      (int-err "not all type alias names are fully registered: ~n ~a"
-               names))))
+
+    (begin0
+      (register-all-type-alias-info type-alias-names type-alias-map)
+      (unless (zero? (free-id-table-count (incomplete-name-alias-map)))
+        (define names (free-id-table-keys (incomplete-name-alias-map)))
+        (int-err "not all type alias names are fully registered: ~n ~a"
+                 names)))))
 
 ;; Identifier -> Type
 ;; Construct a fresh placeholder type
@@ -198,20 +202,31 @@
   ;; Note that the connected component algorithm returns results
   ;; in topologically sorted order, so we want to go through in the
   ;; reverse order of that to avoid unbound type aliases.
-  (for ([id (in-list acyclic-singletons)])
-    (match-define (list _ type-stx args) (free-id-table-ref type-alias-map id))
-    (cond
-      [(not (null? args))
-       (define ty-op (parse-type-operator-abstraction id args type-stx #f
-                                                      type-alias-productivity-map))
-       (register-type-constructor! id ty-op)]
-      [else
-       ;; id can be a simple abbreviation for another type constructor
-       (define rv (parse-type-or-type-constructor type-stx))
-       ((if (TypeConstructor? rv)
-            register-type-constructor!
-            register-resolved-type-alias) id rv)])
-    (complete-type-alias-registration! id))
+  (define acyclic-constr-names
+    (for/fold ([acc '()])
+              ([id (in-list acyclic-singletons)])
+      (match-define (list _ type-stx args) (free-id-table-ref type-alias-map id))
+      (define acc^
+        (cond
+          [(not (null? args))
+           (define ty-op (parse-type-operator-abstraction id args type-stx #f
+                                                          type-alias-productivity-map))
+
+           (register-type-constructor! id ty-op)
+           (cons id acc)]
+          [else
+           ;; id can be a simple abbreviation for another type constructor
+           (define rv (parse-type-or-type-constructor type-stx))
+           (match rv
+             [(? TypeConstructor?)
+              (register-type-constructor! id rv)
+              (if (user-defined-type-constr? rv)
+                  (cons id acc)
+                  acc)]
+             [else (register-resolved-type-alias id rv)
+                   acc])]))
+      (complete-type-alias-registration! id)
+      acc^))
 
   ;; Clear the resolver cache of Name types from this block
 
@@ -250,16 +265,11 @@
     (for/lists (_1 _2 _3)
                ([record (in-list type-records)])
       (match-define (list id type-stx args) record)
-      ;; TODO try parse-type
       (define type (parse-type type-stx type-alias-productivity-map))
       (reset-resolver-cache!)
       (register-type-name id type)
       (complete-type-alias-registration! id)
-      (add-constant-variance! id args)
       (values id type (map syntax-e args))))
-
-  ;; do a pass to refine the variance
-  (refine-variance! names-to-refine types-to-refine tvarss)
 
   (define-values (productive unproductive)
     (partition (match-lambda
@@ -267,24 +277,28 @@
                   (equal? (free-id-table-ref type-alias-productivity-map a #f) #t)])
                type-op-records))
 
-  (let (;; sort unproductive constructors by the number of dependent
-        ;; user-defined constructors in increasing order
-        [unproductive (sort unproductive <
+  ;; sort unproductive constructors by the number of dependent
+  ;; user-defined constructors in increasing order
+  (let ([unproductive (sort unproductive <
                             #:key
                              (match-lambda
                                [(cons a _)
                                 (length (free-id-table-ref type-alias-dependency-map a #f))]))])
-    (for/list ([record (in-list (append productive unproductive))])
-      (match-define (list id type-stx args) record)
-      (define ty-op (parse-type-operator-abstraction id args type-stx
-                                                     (lambda (x)
-                                                       (define res (in-same-component? id x))
-                                                       res)
-                                                     type-alias-productivity-map))
-      (register-type-constructor! id ty-op)
-      (complete-type-alias-registration! id)
-      (reset-resolver-cache!)
-      (add-constant-variance! id args))))
+    (define constr-names
+      (for/list ([record (in-list (append productive unproductive))])
+        (match-define (list id type-stx args) record)
+        (define ty-op (parse-type-operator-abstraction id args type-stx
+                                                       (lambda (x)
+                                                         (define res (in-same-component? id x))
+                                                         res)
+                                                       type-alias-productivity-map
+                                                       #:delay-variances? #t))
+        (register-type-constructor! id ty-op)
+        (complete-type-alias-registration! id)
+        (reset-resolver-cache!)
+        id))
+    (refine-user-defined-constructor-variances! constr-names)
+    (append acyclic-constr-names constr-names)))
 
 ;; Syntax -> Syntax Syntax (Listof Syntax)
 ;; Parse a type alias internal declaration

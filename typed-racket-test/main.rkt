@@ -254,7 +254,7 @@
    ["--nightly" "for the nightly builds" (begin (nightly? #t) (unit? #t) (opt? #t) (missed-opt? #t) (places 1))]
    ["--all" "run all tests" (begin (unit? #t) (int? #t) (opt? #t) (missed-opt? #t) (bench? #t) (math? #t))]
    ["--guitests" "run the gui-related tests" (gui? #t)]
-   ["--timeout" "minutes after which the running tests will be printed out" (timeout (string->number))]
+   ["--timeout" tm "minutes after which the running tests will be printed out" (timeout (string->number tm))]
    ["-j" num "number of places to use"
     (let ([n (string->number num)])
       (places (and (integer? n) (> n 1) n)))]

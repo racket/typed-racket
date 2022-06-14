@@ -28,8 +28,8 @@
                   (eprintf "~a tests are still running:~n~a"
                            (set-count tests)
                            (string-join (set-map tests path->string)
-                                        "\n")))])))
-    (void)))
+                                        "\n")))
+                (loop tests)])))))
 
 (define (run-in-other-place p* error?)
   (define-values (res-ch res-ch*) (place-channel))

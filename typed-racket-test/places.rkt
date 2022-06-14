@@ -74,6 +74,7 @@
                           [current-output-port (open-output-nowhere)]                        
                           [error-display-handler (if error? void (error-display-handler))])
              (dr p)
+             (place-channel-put ch p*)
              (place-channel-put res #t)))
          (loop)]))))
 

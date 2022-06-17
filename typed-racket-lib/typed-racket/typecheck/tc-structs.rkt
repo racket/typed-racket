@@ -560,7 +560,8 @@
   (define tvars (map syntax-e vars))
   (define new-tvars (map make-F tvars))
   (define parent (match parent^
-                   [(struct* TypeConstructor ([arity expected]))
+                   [(? TypeConstructor?)
+                    (define expected (type-constr-arity parent^))
                     (define given (length new-tvars))
                     (unless (<= expected given)
                       (tc-error (~a "wrong number of arguments to type constructor"

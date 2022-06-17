@@ -7,7 +7,10 @@
 
 (provide print-kind
          make-type-constr
+         type-constr-productive?
+         type-constr-arity
          (struct-out TypeConstructor)
+         (struct-out TypeConstructorStub)
          (struct-out exn:fail:contract:arity:type-constructor))
 
 (define-values (prop:kind kind? kind-acc) (make-struct-type-property 'kind))
@@ -31,16 +34,24 @@
   [gen-serialize-type-rep type-rep-maker ty->sexp])
 
 
+(struct TypeConstructorBase (arity kind*? productive?) #:transparent)
+
+(define (type-constr-productive? ty-op)
+  (TypeConstructorBase-productive? ty-op))
+
+(define (type-constr-arity ty-op)
+  (TypeConstructorBase-arity ty-op))
+
 ;; real-trep-constr: the underlying *named* type rep constructor
 ;; arity: the mandatory arity
 ;; kind*: whether this type constructor can take an arbitrary number of arguments
 ;; productive?: whether this type constructor is productive.
-(struct TypeConstructor (real-trep-constr arity kind*? productive?)
+(struct TypeConstructor TypeConstructorBase (real-trep-constr)
   #:transparent
   #:property prop:kind #t
   #:property prop:procedure
   (lambda (me . args)
-    (match-define (TypeConstructor real-trep-constr arity kind*? _) me)
+    (match-define (TypeConstructor arity kind*? _ real-trep-constr) me)
     ;; FIXME: real-trep-constr can take other arguments than types.
     ;; This could make handling k* more complicated.
     ;; naive assumpution: type arguments come first in args.
@@ -65,14 +76,16 @@
 
   (if (and (zero? arity) (not kind*?))
       type-maker
-      (TypeConstructor type-maker arity kind*? productive)))
+      (TypeConstructor arity kind*? productive type-maker)))
 
+
+(struct TypeConstructorStub TypeConstructorBase [] #:transparent)
 
 (define (print-kind type-or-type-op)
   (match type-or-type-op
-    [(struct* TypeConstructor ([arity arity]
-                               [kind*? kind*?]
-                               [productive? productive?]))
+    [(struct* TypeConstructorBase ([arity arity]
+                                   [kind*? kind*?]
+                                   [productive? productive?]))
      (define mandatory-stars (make-list arity "*"))
      (define all-stars (if kind*? (append mandatory-stars (list "* ..."))
                            mandatory-stars))

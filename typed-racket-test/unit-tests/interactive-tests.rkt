@@ -195,6 +195,15 @@
     (test-form (regexp-quote "(-> * *)") (:kind MListof))
     (test-form (regexp-quote "(-> * *)") (:kind Thread-Cellof))
     (test-form (regexp-quote "(-> * *)") (:kind Weak-Boxof))
+    (test-form (regexp-quote "(-> * * ... *)") (:kind List*))
+    (test-form (regexp-quote "(-> * ... *)") (:kind List))
+    (test-form #rx"^$"
+               (begin
+                 (define-type MyList List)
+                 (define-type MyList* List*)))
+    (test-form (regexp-quote "(-> * ... *)") (:kind MyList))
+    (test-form (regexp-quote "(-> * * ... *)") (:kind MyList*))
+
     (test-form (regexp-quote "(-> * *)") (:kind Vectorof))
     (test-form-not-exn (define-type (Bar a) a))
     (test-form (regexp-quote "(-o * *)")

@@ -69,7 +69,7 @@
                           (values (c:listof identifier?)
                                   (c:listof identifier?)
                                   boolean?))]
- [parse-type-or-type-constructor (syntax? . c:-> . (c:or/c Type? TypeConstructor?))]
+ [parse-type-or-type-constructor (syntax? . c:-> . (c:or/c Type? TypeConstructor? TypeConstructorStub?))]
  ;; Parse the given identifier using the lexical
  ;; context of the given syntax object
  [parse-type/id (syntax? c:any/c . c:-> . Type?)]
@@ -118,6 +118,16 @@
     e ...))
 
 
+(define type-constr-stub-tbl (make-hash))
+
+(define (get-type-constr-stub id)
+  (hash-ref type-constr-stub-tbl (syntax->datum id) #f))
+
+(define-syntax-rule (define-literal-type-constr-stub id arity kind* productive?)
+  (begin
+    (define-literal-syntax-class #:for-label id)
+    (hash-set! type-constr-stub-tbl (quote id) (TypeConstructorStub arity kind* productive?))))
+
 (define-literal-syntax-class #:for-label car)
 (define-literal-syntax-class #:for-label cdr)
 (define-literal-syntax-class #:for-label vector-length)
@@ -133,8 +143,8 @@
 (define-literal-syntax-class #:for-label init-depend)
 (define-literal-syntax-class #:for-label Refinement)
 (define-literal-syntax-class #:for-label Instance)
-(define-literal-syntax-class #:for-label List)
-(define-literal-syntax-class #:for-label List*)
+(define-literal-type-constr-stub List 0 #t #t)
+(define-literal-type-constr-stub List* 1 #t #t)
 (define-literal-syntax-class #:for-label pred)
 (define-literal-syntax-class #:for-label ->)
 (define-literal-syntax-class #:for-label ->*)
@@ -860,14 +870,12 @@
                     (if res (parse-values-type res do-parse do-parse-multi) (-values (list -Void))))]
         [(:List^ ts ...)
          (parse-list-type stx
-                          (lambda (stx)
-                            (do-parse stx (add1 current-level)))
-                          (lambda (stx-li)
-                            (do-parse-multi stx-li (add1 current-level))))]
+                          do-parse
+                          do-parse-multi)]
         [(:List*^ ts ... t)
-         (-Tuple* (do-parse-multi #'(ts ...) (add1 current-level)) (do-parse #'t (add1 current-level)))]
+         (-Tuple* (do-parse-multi #'(ts ...)) (do-parse #'t))]
         [(:cons^ fst rst)
-         (-pair (do-parse #'fst (add1 current-level)) (do-parse #'rst (add1 current-level)))]
+         (-pair (do-parse #'fst) (do-parse #'rst))]
         [(:pred^ t)
          (make-pred-ty (do-parse #'t))]
         [((~and :case->^ operator) tys ...)
@@ -1263,6 +1271,9 @@
            [(bound-index? v)
             (parse-error "type variable must be used with ..."
                          "variable" v)]
+           [(and ret-type-op? (get-type-constr-stub #'id))
+            => (lambda (t)
+                 t)]
            ;; if it's a type alias, we expand it (the expanded type is stored in the HT)
            [(lookup-type-alias #'id do-parse (lambda () #f))
             =>
@@ -1305,7 +1316,7 @@
                                  #:ret-type-op? #t))
          (define args^ (let ([lvl
                               (match rator
-                                [(struct* TypeConstructor ([productive? #t]))
+                                [(and (? TypeConstructor?) (? type-constr-productive?))
                                  (add1 current-level)]
                                 ;; when checking user-defined type constructors, structure types
                                 ;; defined in the enclosing module have not been registerd yet, so we

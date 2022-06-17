@@ -517,10 +517,16 @@
   (do-time "computed def-tbl")
   ;; typecheck the expressions and the rhss of defintions
   ;(displayln "Starting pass2")
-  (tc-expr-seq forms (lambda (expr expected)
-                       (match (tc-toplevel/pass2 expr expected)
-                                   [(? full-tc-results/c r) r]
-                                   [_ (-tc-any-results -tt)])))
+
+  ;; typechecking programs like with-linear-integer-arith2.rkt with 8.5.0.2+
+  ;; would become 10-20x slower or even run into an infinite loop if we use
+  ;; tc-expr-seq. So in that case, we fall back on the old solution
+  (if (with-refinements?)
+      (for-each tc-toplevel/pass2 forms)
+      (tc-expr-seq forms (lambda (expr expected)
+                           (match (tc-toplevel/pass2 expr expected)
+                             [(? full-tc-results/c r) r]
+                             [_ (-tc-any-results -tt)]))))
   (do-time "Finished pass2")
   ;; check that declarations correspond to definitions
   ;; and that any additional parsed apps are sensible

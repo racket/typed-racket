@@ -1,4 +1,5 @@
 #lang typed-racket/minimal
 
-(require racket/require typed/racket/no-check (subtract-in typed/scheme/base typed/racket/no-check))
-(provide (all-from-out typed/scheme/base typed/racket/no-check))
+(require racket/require typed/private/no-check-helper
+         (subtract-in typed/scheme/base typed/private/no-check-helper))
+(provide (all-from-out typed/scheme/base typed/private/no-check-helper))

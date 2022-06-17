@@ -70,6 +70,10 @@
 (define-type-constructor -weak-box make-Weak-Box)
 (define-type-constructor -CustodianBox make-CustodianBox)
 (define-type-constructor -Ephemeron make-Ephemeron)
+(define-type-constructor -Mutable-HT make-Mutable-HashTable 2)
+(define-type-constructor -Immutable-HT make-Immutable-HashTable 2)
+(define-type-constructor -Weak-HT make-Weak-HashTable 2)
+(define-type-constructor -HT (lambda (a b) (Un (-Mutable-HT a b) (-Immutable-HT a b) (-Weak-HT a b))) 2)
 (define -inst make-Instance)
 (define (-prefab key . types)
   (make-Prefab (normalize-prefab-key key (length types)) types))
@@ -109,8 +113,8 @@
 (define -Listof (make-type-constr -lst 1))
 (define -MListof (make-type-constr -mlst 1))
 (define/decl -Regexp (Un -PRegexp -Base-Regexp))
-(define/decl -Byte-Regexp (Un -Byte-Base-Regexp -Byte-PRegexp))
-(define/decl -Pattern (Un -Bytes -Regexp -Byte-Regexp -String))
+(define/decl -Byte-Regexp (Un -Byte-PRegexp -Byte-Base-Regexp))
+(define/decl -Pattern (Un -String -Bytes -Regexp -Byte-Regexp))
 (define/decl -Module-Path
   (-mu X
        (Un -Symbol -String -Path
@@ -134,7 +138,7 @@
 (define-type-constructor -Syntax make-Syntax)
 (define/decl In-Syntax
   (-mu e
-       (Un -Null -Boolean -Symbol -String -Keyword -Char -Number
+       (Un -Null -Boolean -Symbol -String -Bytes -Keyword -Char -Number
            (make-Vector (-Syntax e))
            (make-Box (-Syntax e))
            (make-Listof (-Syntax e))
@@ -145,7 +149,7 @@
 (define (sexpof t)
   (-mu sexp
        (Un -Null
-           -Number -Boolean -Symbol -String -Keyword -Char
+           -Number -Boolean -Symbol -String -Bytes -Keyword -Char
            (-pair sexp sexp)
            (make-Vector sexp)
            (make-Box sexp)
@@ -154,15 +158,13 @@
 
 (define/decl -Flat
   (-mu flat
-       (Un -Null -Number -Boolean -Symbol -String -Keyword -Char
-           (-pair flat flat))))
+       (Un -Null -Number -Boolean -Symbol -String -Bytes -Keyword -Char
+           (-pair flat flat)
+           (-ivec flat)
+           (-Immutable-HT flat flat))))
 (define/decl -Sexp (-Sexpof (Un)))
 (define Syntax-Sexp (-Sexpof Any-Syntax))
 (define Ident (-Syntax -Symbol))
-(define-type-constructor -Mutable-HT make-Mutable-HashTable 2)
-(define-type-constructor -Immutable-HT make-Immutable-HashTable 2)
-(define-type-constructor -Weak-HT make-Weak-HashTable 2)
-(define-type-constructor -HT (lambda (a b) (Un (-Mutable-HT a b) (-Immutable-HT a b) (-Weak-HT a b))) 2)
 (define-type-constructor -Prompt-Tagof make-Prompt-Tagof 2)
 (define-type-constructor -Continuation-Mark-Keyof make-Continuation-Mark-Keyof 1)
 (define make-HashTable -HT)

@@ -574,7 +574,7 @@ value of type @racket[t].}
 to @racket[(Syntaxof Symbol)].}
 
 @deftype[Syntax]{A syntax object containing only @rtech{symbol}s,
-@rtech{keyword}s, @rtech{string}s, @rtech{bytes}s, @rtech{character}s, @rtech{boolean}s,
+@rtech{keyword}s, @rtech{string}s, @rtech{byte string}s, @rtech{character}s, @rtech{boolean}s,
 @rtech{number}s, @rtech{box}es containing @racket[Syntax], @rtech{vector}s of
 @racket[Syntax], or (possibly improper) @rtech{list}s of @racket[Syntax].
 Equivalent to @racket[(Syntaxof Syntax-E)].}

@@ -584,7 +584,7 @@ Applying @racket[syntax-e] to a value of type @racket[Syntax] produces a value
 of type @racket[Syntax-E].}
 
 @deftypeconstr[(Sexpof t)]{Returns the recursive union of @racket[t] with @rtech{symbol}s,
-@rtech{keyword}s, @rtech{string}s, @rtech{bytes}s, @rtech{character}s, @rtech{boolean}s,
+@rtech{keyword}s, @rtech{string}s, @rtech{byte string}s, @rtech{character}s, @rtech{boolean}s,
 @rtech{number}s, @rtech{box}es, @rtech{vector}s, and (possibly improper)
 @rtech{list}s.}
 

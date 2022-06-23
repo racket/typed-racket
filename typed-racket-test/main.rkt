@@ -265,7 +265,7 @@
    #:multi
    ["--excl" test "exclude tests" (excl (set-add (excl) test))])
 
-  (start-workers)
+  (void (start-workers))
 
   (define unit-test-retcode (if (unit?)
                                 (run-unit-test-suite (or (places) 1))

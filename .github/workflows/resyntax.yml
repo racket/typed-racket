@@ -1,0 +1,35 @@
+name: Resyntax
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v2
+        # See https://github.com/actions/checkout/issues/118.
+        with:
+          fetch-depth: 0
+      - uses: Bogdanp/setup-racket@v1.8.1
+        with:
+          version: current
+          packages: resyntax
+          local_catalogs: $GITHUB_WORKSPACE
+          dest: '"${HOME}/racketdist-current-CS"'
+          sudo: never
+      - name: Register local packages
+        run: |
+          raco pkg install -i --auto --no-setup --skip-installed typed-racket-test
+          raco pkg update --auto --no-setup source-syntax typed-racket-lib typed-racket-more typed-racket-compatibility typed-racket-doc typed-racket typed-racket-test
+      - run: raco setup typed typed-racket typed-racket-test typed-scheme
+      - run: xvfb-run racket -l- resyntax/cli analyze --local-git-repository . "origin/${GITHUB_BASE_REF}" --output-as-github-review

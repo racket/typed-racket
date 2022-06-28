@@ -2788,30 +2788,33 @@
          -FlVector]
 
        ;; for/hash, for*/hash - PR 14306
-       [tc-e (for/hash: : (HashTable Symbol String)
+       [tc-e (for/hash: : (Immutable-HashTable Symbol String)
                ([x (in-list '(x y z))]
                 [y (in-list '("a" "b" "c"))]
                 #:when (eq? x 'x))
                (values x y))
-             #:ret (tc-ret (-HT -Symbol -String))]
-       [tc-e (for*/hash: : (HashTable Symbol String)
+             #:ret (tc-ret (-Immutable-HT -Symbol -String))]
+       [tc-e (for*/hash: : (Immutable-HashTable Symbol String)
                ([k (in-list '(x y z))]
                 [v (in-list '("a" "b"))]
                 #:when (eq? k 'x))
                (values k v))
-             #:ret (tc-ret (-HT -Symbol -String))]
+             #:ret (tc-ret (-Immutable-HT -Symbol -String))]
 
        ;; PR 13937
        [tc-e (let ()
                (: foo ((HashTable String Symbol) -> (HashTable Symbol String)))
                (define (foo map)
-                 (for/hash : (HashTable Symbol String)
+                 (for/hash : (Immutable-HashTable Symbol String)
                              ([(str sym) map])
                    (values sym str)))
                (foo #hash(("foo" . foo))))
              (-HT -Symbol -String)]
 
        ;; for/hash doesn't always need a return annotation inside
+       [tc-e/t (for/hash ([(k v) (in-hash #hash(("a" . a)))])
+                 (values v k))
+               (-Immutable-HT Univ Univ)]
        [tc-e/t (let ()
                  (tr:define h : (HashTable Any Any)
                    (for/hash ([(k v) (in-hash #hash(("a" . a)))])

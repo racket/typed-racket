@@ -2646,8 +2646,8 @@
        [tc-e (assoc 3 '((a . 5) (b . 7))) (t:Un (-val #f) (-pair (one-of/c 'a 'b) -PosByte))]
        [tc-e (set-remove (set 1 2 3) 'a) (-set -PosByte)]
        ;; don't return HashTableTop
-       [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-Immutable-HT -Symbol -Integer)]
-       [tc-e (hash-remove #hash((a . 5) (b . 7)) 3) (-Immutable-HT -Symbol -Integer)]
+       [tc-e (hash-remove #hash((a . 5) (b . 7)) 'a) (-Immutable-HT -Symbol -Integer)]
+       [tc-e (hash-remove #hash((a . 5) (b . 7))  3) (-Immutable-HT -Symbol -Integer)]
        ;; these should actually work
        [tc-e (vector-memq 3 #(a b c)) (t:Un (-val #f) -Index)]
        [tc-e (vector-memv 3 #(a b c)) (t:Un (-val #f) -Index)]

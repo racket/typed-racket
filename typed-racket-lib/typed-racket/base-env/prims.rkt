@@ -579,47 +579,31 @@ the typed racket language.
     (for/set: for/fold: for/set #f set-add (set) #%expression)
     (for*/set: for*/fold: for*/set #t set-add (set) #%expression)))
 
-(define-for-syntax (define-for/hash:-variant hash-maker)
-  (lambda (stx)
-    (syntax-parse stx
-      [(_ a1:optional-standalone-annotation*
-          clause:for-clauses
-          a2:optional-standalone-annotation*
-          body ...) ; body is not always an expression, can be a break-clause
-       (define a.ty (or (attribute a2.ty) (attribute a1.ty)))
-       (if a.ty
-           (quasisyntax/loc stx
-             (for/fold: : #,a.ty
-               ((return-hash : #,a.ty (ann (#,hash-maker null) #,a.ty)))
-               (clause.expand ... ...)
-               (let-values (((key val) (let () body ...)))
-                 (hash-set return-hash key val))))
-           (syntax/loc stx
-             (for/hash (clause.expand ... ...)
-               body ...)))])))
+(begin-for-syntax
+  (define-values (define-for/hash:-variant define-for*/hash:-variant)
+    (let ()
+      (define ((make for*? for/folder:) hash-maker)
+        (lambda (stx)
+          (syntax-parse stx
+            [(_ a1:optional-standalone-annotation*
+                clause:for-clauses
+                a2:optional-standalone-annotation*
+                body ...) ; body is not always an expression, can be a break-clause
+             (define a.ty (or (attribute a2.ty) (attribute a1.ty) #'(Immutable-HashTable Any Any)))
+             (quasisyntax/loc stx
+               (#,for/folder: : #,a.ty
+                ((return-hash : #,a.ty (ann (#,hash-maker null) #,a.ty)))
+                #,(if for*?
+                      #'(clause.expand* ... ...)
+                      #'(clause.expand  ... ...))
+                (let-values (((key val) (let () body ...)))
+                  (hash-set return-hash key val))))])))
+      (values (make #f #'for/fold:) (make #t #'for*/fold:)))))
 
 (define-syntax for/hash:    (define-for/hash:-variant #'make-immutable-hash))
 (define-syntax for/hasheq:  (define-for/hash:-variant #'make-immutable-hasheq))
 (define-syntax for/hasheqv: (define-for/hash:-variant #'make-immutable-hasheqv))
 (define-syntax for/hashalw: (define-for/hash:-variant #'make-immutable-hashalw))
-
-(define-for-syntax (define-for*/hash:-variant hash-maker)
-  (lambda (stx)
-    (syntax-parse stx
-      #:literals (:)
-      [(_ a1:optional-standalone-annotation*
-          clause:for-clauses
-          a2:optional-standalone-annotation*
-          body ...) ; body is not always an expression, can be a break-clause
-       (define a.ty (or (attribute a2.ty) (attribute a1.ty)))
-       (quasisyntax/loc stx
-         (for*/fold: #,@(if a.ty #`(: #,a.ty) #'())
-             #,(if a.ty
-                   #`((return-hash : #,a.ty (ann (#,hash-maker null) #,a.ty)))
-                   #`((return-hash (#,hash-maker null))))
-           (clause.expand* ... ...)
-           (let-values (((key val) (let () body ...)))
-             (hash-set return-hash key val))))])))
 
 (define-syntax for*/hash:    (define-for*/hash:-variant #'make-immutable-hash))
 (define-syntax for*/hasheq:  (define-for*/hash:-variant #'make-immutable-hasheq))

@@ -1,7 +1,9 @@
 name: Resyntax
 
 on:
-  pull_request:
+  # See https://github.community/t/github-actions-are-severely-limited-on-prs/18179 for
+  # why this uses pull_request_target instead of pull_request
+  pull_request_target:
     types:
       - opened
       - edited
@@ -17,9 +19,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        # See https://github.com/actions/checkout/issues/118.
         with:
+          # See https://github.com/actions/checkout/issues/118 for why the fetch depth needs to be zero
           fetch-depth: 0
+          # See https://github.community/t/github-actions-are-severely-limited-on-prs/18179/17 for why
+          # we need to specify the ref to checkout
+          ref: ${{github.event.pull_request.head.ref}}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
       - uses: Bogdanp/setup-racket@v1.8.1
         with:
           version: current

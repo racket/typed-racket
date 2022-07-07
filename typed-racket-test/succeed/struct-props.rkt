@@ -20,9 +20,8 @@
 (struct foobar foo ([y : Number])
   #:property prop:custom-write
   (lambda ([self : foo] [p : Output-Port] [m : (U Boolean 1 0)]) : Void
-          (displayln (+ (foo-x self) 20) p))
+    (displayln (+ (foo-x self) 20) p))
   #:property prop:evt 0
-
   #:property prop:custom-print-quotable 'always)
 
 (struct foobar^ foo ([y : Number])
@@ -30,7 +29,7 @@
   (lambda ([self : foobar^] [p : Output-Port] [m : (U Boolean 1 0)]) : Void
           (displayln (+ (foobar^-y self) 20) p))
 
-  #:property prop:evt (make-channel)
+  #:property prop:evt (ann (make-channel) (Evtof Any))
 
   #:property prop:custom-print-quotable 'self)
 

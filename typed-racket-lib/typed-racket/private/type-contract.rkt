@@ -727,10 +727,10 @@
                               " with unknown return values"))]
           [(Values: (list (Result: rngs _ _) ...))
            (unit/sc imports-specs exports-specs init-depends-ids (map t->sc rngs))])]
-       [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred? props)
+       [(Struct: nm par (list (fld: flds acc-ids mut?) ...) extra-tys poly? pred? props)
         (cond
           [(hash-ref recursive-values nm #f)]
-          [proc (fail #:reason "procedural structs are not supported")]
+          [extra-tys (fail #:reason "structs with prop:procedure or prop:evt attached are not supported")]
           [poly?
            (struct->recursive-sc #'n* nm flds
                                            (lambda (ftsc)

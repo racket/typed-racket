@@ -76,7 +76,7 @@
                      [Struct:* Struct:]
                      [Row* make-Row]
                      [make-Mu unsafe-make-Mu]
-                     [Struct-proc* Struct-proc]
+                     [Struct-extra-tys* Struct-extra-tys]
                      [make-Struct* make-Struct]
                      [Mu-names: Mu-maybe-name:]
                      [Mu-body Mu-body-unsafe]
@@ -368,7 +368,8 @@
 ;; Evt
 ;;------
 
-(def-structural Evt ([result #:covariant]))
+(def-structural Evt ([result #:covariant])
+  [#:mask mask:evt])
 
 ;;--------
 ;; Param
@@ -776,38 +777,42 @@
                   ;; we can only put a function type of this box when checking the property value
                   ;; for prop:procedure, which happens after a Struct rep
                   ;; instance is created.
-                  [proc (box/c (or/c #f Fun?))]
+                  [extra-tys (box/c (or/c #f (listof Type?)))]
                   [poly? boolean?]
                   [pred-id identifier?]
                   [properties (free-id-set/c identifier?)])
-  #:no-provide (Struct: Struct-proc make-Struct)
-  [#:frees (f) (combine-frees (map f (append (let ([bv (unbox proc)])
-                                               (if bv (list bv) null))
+  #:no-provide (Struct: Struct-extra-tys make-Struct)
+  [#:frees (f) (combine-frees (map f (append (let ([bv (unbox extra-tys)])
+                                               (if bv bv null))
                                              (if parent (list parent) null)
                                              flds)))]
   [#:fmap (f) (make-Struct name
                            (and parent (f parent))
                            (map f flds)
-                           (let ([bv (unbox proc)])
-                             (box (and bv (f bv))))
+                           (let ([bv (unbox extra-tys)])
+                             (box (and bv (map f bv))))
                            poly?
                            pred-id
                            properties)]
   [#:for-each (f)
    (when parent (f parent))
    (for-each f flds)
-   (when proc (f proc))]
+   (let ([bv (unbox extra-tys)])
+     (when bv (for-each f bv)))]
   ;; This should eventually be based on understanding of struct properties.
-  [#:mask (mask-union mask:struct mask:procedure)]
+  [#:mask (mask-union mask:struct mask:procedure mask:evt)]
   [#:custom-constructor
    (let ([name (normalize-id name)]
          [pred-id (normalize-id pred-id)])
-     (make-Struct name parent flds proc poly? pred-id properties))])
+     (make-Struct name parent flds extra-tys poly? pred-id properties))])
 
 
-(define/cond-contract (Struct-proc* sty)
-  (-> Struct? (or/c #f Fun?))
-  (define b (Struct-proc sty))
+(define/cond-contract (Struct-extra-tys* sty)
+  (-> (or/c Poly? Struct?) (or/c #f (listof Type?)))
+  (define sty^ (match sty
+                 [(? Struct?) sty]
+                 [(Poly: _ (? Struct? sty)) sty]))
+  (define b (Struct-extra-tys sty^))
   (and b (unbox b)))
 
 (define (make-Struct* name parent flds proc poly? pred-id properties)
@@ -816,8 +821,8 @@
 (define-match-expander Struct:*
   (lambda (stx)
     (syntax-case stx ()
-      [(_ name parent flds proc poly? pred-id properties)
-       #'(Struct: name parent flds (box proc) poly? pred-id properties)])))
+      [(_ name parent flds extra-tys poly? pred-id properties)
+       #'(Struct: name parent flds (box extra-tys) poly? pred-id properties)])))
 
 
 (def-type StructTop ([name Struct?])
@@ -825,6 +830,10 @@
   [#:fmap (f) (make-StructTop (f name))]
   [#:for-each (f) (f name)]
   [#:mask (mask-union mask:struct mask:procedure)])
+
+(def-type Undecided-Evt ([n F?])
+  [#:frees (f) (f n)]
+  [#:fmap (f) (make-Undecide)])
 
 ;; Represents prefab structs
 ;; key  : prefab key encoding mutability, auto-fields, etc.

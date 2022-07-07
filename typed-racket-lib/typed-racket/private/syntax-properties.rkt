@@ -61,6 +61,7 @@
   (type-inst type-inst)
   (row-inst row-inst)
   (st-proc-ty st-proc-ty)
+  (assoc-struct-property-name assoc-struct-property-name)
   (type-label type-label)
   (optional-non-immediate-arg optional-non-immediate-arg)
   (optional-immediate-arg optional-immediate-arg)

@@ -660,10 +660,10 @@
     [(? improper-tuple? t)
      `(List* ,@(map type->sexp (improper-tuple-elems t)))]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]
-    [(Struct: nm par (list (fld: t _ _) ...) proc _ _ properties)
+    [(Struct: nm par (list (fld: t _ _) ...) extra-tys _ _ properties)
      `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
         ,(map t->s t)
-        ,@(if proc (list (t->s proc)) null)
+        ,@(if extra-tys (list (map t->s extra-tys)) null)
         ,@(free-id-set->list properties))]
     [(? Fun?)
      (parameterize ([current-print-type-fuel

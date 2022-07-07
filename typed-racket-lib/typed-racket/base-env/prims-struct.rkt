@@ -102,13 +102,15 @@
                                ([val (attribute prop-val)]
                                 [name (attribute prop)])
                        (cond
-                         [(free-identifier=? name #'prop:procedure)
+                         [(or (free-identifier=? name #'prop:procedure)
+                              (free-identifier=? name #'prop:evt))
                           (define tname (or (attribute type) st-name))
                           (define sty-stx (if (null? type-vars)
                                               tname
                                               (quasisyntax/loc tname
                                                 (#,tname #,@type-vars))))
-                          (maybe-extract-prop-proc-ty-ann sty-stx val)]
+                          (define-values (val^ ty^) (extract-prop-specified-type-ann sty-stx val))
+                          (values val^ (assoc-struct-property-name-property ty^ name))]
                          [else (values val #f)])))]
              #:attr proc-ty (if (null? proc-tys) #f
                                 proc-tys)
@@ -199,17 +201,17 @@
                 . opts))]))
 
 
-;; This function tries to extract the type annotation on a lambda
-;; expression for prop:precedure.
+;; This function tries to extract the type annotation from values for
+;; prop:procedure or prop:evt
 ;;
 ;; sty-stx: the syntax that represents a structure type. For a monomorhpic
 ;; structure type, sty-stx is the identifier for its name. For a polymorphic
 ;; structure type, sty-stx is in the form (structure-name type-vars ...)
 ;;
-;; val: the value expression for prop:procedure
+;; val: the value expression for the property
 ;;
 ;;Syntax Expr -> (values Syntax Syntax)
-(define-for-syntax (maybe-extract-prop-proc-ty-ann sty-stx val)
+(define-for-syntax (extract-prop-specified-type-ann sty-stx val)
   (syntax-parse val
     #:literals (-lambda ann)
     [(-lambda formals:lambda-formals ret-ty:return-ann _)

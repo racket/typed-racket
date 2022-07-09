@@ -1,0 +1,52 @@
+name: Resyntax Analysis
+
+# The Resyntax integration is split into two phases: a workflow that analyzes the code and uploads
+# the analysis as an artifact, and a workflow that downloads the analysis artifact and creates a
+# review of the pull request. This split is for permissions reasons; the analysis workflow checks out
+# the pull request branch and compiles it, executing arbitrary code as it does so. For that reason,
+# the first workflow has read-only permissions in the github repository. The second workflow only
+# downloads the pull request review artifact and submits it, and it executes with read-write permissions
+# without executing any code in the repository. This division of responsibilities allows Resyntax to
+# safely analyze pull requests from forks. This strategy is outlined in the following article:
+# https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v3.0.2
+        # See https://github.com/actions/checkout/issues/118.
+        with:
+          fetch-depth: 0
+      - uses: Bogdanp/setup-racket@v1.8.1
+        with:
+          version: current
+          packages: resyntax
+          local_catalogs: $GITHUB_WORKSPACE
+          dest: '"${HOME}/racketdist-current-CS"'
+          sudo: never
+      - name: Register local packages
+        run: |
+          raco pkg install -i --auto --no-setup --skip-installed typed-racket-test
+          raco pkg update --auto --no-setup source-syntax typed-racket-lib typed-racket-more typed-racket-compatibility typed-racket-doc typed-racket typed-racket-test
+      - name: Install local packages
+      - run: raco setup typed typed-racket typed-racket-test typed-scheme
+      - name: Analyze changed files
+      - run: xvfb-run racket -l- resyntax/cli analyze --local-git-repository . "origin/${GITHUB_BASE_REF}" --output-as-github-review >> ./resyntax-review.json
+      - name: Upload analysis artifact
+      - uses: actions/upload-artifact@v3.1.0
+        with:
+          name: resyntax-review
+          path: resyntax-review.json

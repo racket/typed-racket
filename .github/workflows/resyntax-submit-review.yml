@@ -22,9 +22,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3.0.2
       - name: Download Resyntax analysis
-        uses: actions/download-artifact@v3.0.0
+        # This uses a github script instead of the download-artifact action because
+        # that action doesn't work for artifacts uploaded by other workflows. See
+        # https://github.com/actions/download-artifact/issues/130 for more info.
+        uses: actions/github-script@v6.1.0
         with:
-          name: resyntax-review
+          script: |
+            var artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{github.event.workflow_run.id }},
+            });
+            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "resyntax-review"
+            })[0];
+            var download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+            var fs = require('fs');
+            fs.writeFileSync('${{github.workspace}}/resyntax-review.zip', Buffer.from(download.data));
+      - run: unzip resyntax-review.zip
       - name: Create pull request review
         uses: actions/github-script@v6.1.0
         with:

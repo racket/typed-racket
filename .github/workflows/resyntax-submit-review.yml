@@ -19,11 +19,14 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v3.0.2
-      - uses: actions/download-artifact@v3.0.0
+      - name: Checkout code
+        uses: actions/checkout@v3.0.2
+      - name: Download Resyntax analysis
+        uses: actions/download-artifact@v3.0.0
         with:
           name: resyntax-review
-      - uses: actions/github-script@6.1.0
+      - name: Create pull request review
+        uses: actions/github-script@6.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

@@ -26,11 +26,13 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v3.0.2
+      - name: Checkout code
+        uses: actions/checkout@v3.0.2
         # See https://github.com/actions/checkout/issues/118.
         with:
           fetch-depth: 0
-      - uses: Bogdanp/setup-racket@v1.8.1
+      - name: Install Racket
+        uses: Bogdanp/setup-racket@v1.8.1
         with:
           version: current
           packages: resyntax
@@ -42,11 +44,11 @@ jobs:
           raco pkg install -i --auto --no-setup --skip-installed typed-racket-test
           raco pkg update --auto --no-setup source-syntax typed-racket-lib typed-racket-more typed-racket-compatibility typed-racket-doc typed-racket typed-racket-test
       - name: Install local packages
-      - run: raco setup typed typed-racket typed-racket-test typed-scheme
+        run: raco setup typed typed-racket typed-racket-test typed-scheme
       - name: Analyze changed files
-      - run: xvfb-run racket -l- resyntax/cli analyze --local-git-repository . "origin/${GITHUB_BASE_REF}" --output-as-github-review >> ./resyntax-review.json
+        run: xvfb-run racket -l- resyntax/cli analyze --local-git-repository . "origin/${GITHUB_BASE_REF}" --output-as-github-review >> ./resyntax-review.json
       - name: Upload analysis artifact
-      - uses: actions/upload-artifact@v3.1.0
+        uses: actions/upload-artifact@v3.1.0
         with:
           name: resyntax-review
           path: resyntax-review.json

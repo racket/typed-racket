@@ -13,12 +13,13 @@
                        typed-racket/utils/opaque-object)
          (for-syntax racket/base syntax/parse))
 
-(struct member-spec (modifier id sc) #:transparent)
+(struct member-spec (modifier id sc) #:authentic #:transparent)
 
 (define field-modifiers '(field init init-field inherit-field))
 (define method-modifiers '(method inherit super inner override augment augride))
 
 (struct object-combinator combinator (opaque?)
+  #:authentic
   #:transparent
   #:property prop:combinator-name "object/sc"
   #:methods gen:sc
@@ -34,6 +35,7 @@
        (merge-restricts* 'impersonator (map f (member-seq->list (combinator-args v)))))])
 
 (struct class-combinator combinator (opaque absents)
+  #:authentic
   #:transparent
   #:property prop:combinator-name "class/sc"
   #:methods gen:sc
@@ -52,6 +54,7 @@
        (merge-restricts* 'impersonator (map f (member-seq->list (combinator-args v)))))])
 
 (struct instanceof-combinator combinator ()
+  #:authentic
   #:transparent
   #:property prop:combinator-name "instanceof/sc"
   #:methods gen:sc
@@ -78,8 +81,9 @@
      (filter-map member-spec-sc vals)]))
 
 (struct member-seq (vals)
-   #:transparent
-   #:property prop:sequence member-seq->list)
+  #:authentic
+  #:transparent
+  #:property prop:sequence member-seq->list)
 
 (define (member-seq-sc-map f seq)
   (match seq

@@ -31,6 +31,7 @@
  [sealing-var/sc (identifier? . -> . static-contract?)])
 
 (struct parametric-combinator combinator (vars)
+  #:authentic
   #:transparent
   #:property prop:combinator-name "parametric->/sc"
   #:methods gen:sc
@@ -66,6 +67,7 @@
 
 ;; combinator for sealing-> contracts for row polymorphism
 (struct sealing-combinator combinator (vars members)
+  #:authentic
   #:transparent
   #:property prop:combinator-name "sealing->/sc"
   #:methods gen:sc

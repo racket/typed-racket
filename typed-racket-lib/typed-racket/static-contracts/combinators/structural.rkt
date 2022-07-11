@@ -113,6 +113,7 @@
     [(_ sc:static-combinator-form c:expr kind:contract-category-keyword)
      #'(begin
          (struct sc.struct-name combinator ()
+           #:authentic
            #:transparent
            #:methods gen:sc
            [(define sc-map sc.map)

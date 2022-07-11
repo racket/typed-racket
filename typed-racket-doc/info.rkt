@@ -18,7 +18,8 @@
                      ("typed-racket-more" #:version "1.10")
                      "racket-doc"
                      "draw-lib"
-                     "web-server-doc"))
+                     "web-server-doc"
+                     "scheme-doc"))
 (define deps '(("base" #:version "8.5.0.3")))
 (define update-implies '("typed-racket-lib"))
 

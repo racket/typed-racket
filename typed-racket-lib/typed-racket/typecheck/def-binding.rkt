@@ -107,7 +107,7 @@
              (mk-ignored-quad e))))
 
      (define sname-is-constructor? (and (or extra-constr-name (free-identifier=? sname constructor-name)) #t))
-     (define constr (or extra-constr-name constr^))
+     (define constr (or extra-constr-name constructor-name))
      (define type-is-sname? (free-identifier=? tname internal-id))
 
      ;; Here, we recursively handle all of the identifiers referenced

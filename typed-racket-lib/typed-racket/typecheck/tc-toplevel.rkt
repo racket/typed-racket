@@ -72,7 +72,6 @@
                   #:mutable (attribute t.mutable)
                   #:maker (attribute t.maker)
                   #:extra-maker (attribute t.extra-maker)
-                  #:type-only (attribute t.type-only)
                   #:prefab? (attribute t.prefab)
                   #:proc-ty-stx (attribute t.proc-ty)
                   #:properties (attribute t.properties))])))

@@ -292,7 +292,8 @@
                                                          (define res (in-same-component? id x))
                                                          res)
                                                        type-alias-productivity-map
-                                                       #:delay-variances? #t))
+                                                       #:delay-variances? #t
+                                                       #:recursive? #t))
         (register-type-constructor! id ty-op)
         (complete-type-alias-registration! id)
         (reset-resolver-cache!)

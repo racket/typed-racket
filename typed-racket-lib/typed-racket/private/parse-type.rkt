@@ -66,7 +66,8 @@
  [parse-type-operator-abstraction (c:->* (identifier? (c:listof identifier?) syntax?)
                                          ((c:or/c (c:-> identifier? boolean?) #f)
                                           (free-id-table/c identifier? boolean?)
-                                          #:delay-variances? boolean?)
+                                          #:delay-variances? boolean?
+                                          #:recursive? boolean?)
                                          TypeConstructor?)]
  [parse-for-effects (c:-> identifier? (c:cons/c (c:listof identifier?) syntax?)
                           (values (c:listof identifier?)
@@ -651,7 +652,8 @@
 (define (parse-type-operator-abstraction name arg-names stx [opt-in-same-component? #f]
                                          [type-op-productivity-map (make-immutable-free-id-table)]
                                          #:delay-variances?
-                                         [delay-variances? #f])
+                                         [delay-variances? #f]
+                                         #:recursive? [recursive? #f])
   (define syms (map syntax-e arg-names))
   (define mode (synth-mode name syms opt-in-same-component?))
   (define var-kind-level-env
@@ -670,7 +672,7 @@
                                    var-kind-level-env
                                    #:mode mode)))
 
-  (make-type-constr (user-defined-type-op syms res)
+  (make-type-constr (user-defined-type-op syms res recursive?)
                     (length syms)
                     (free-id-table-ref type-op-productivity-map name #f)
                     #:variances

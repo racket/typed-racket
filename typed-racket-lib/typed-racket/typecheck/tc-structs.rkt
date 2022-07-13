@@ -233,7 +233,7 @@
                       (make-Poly (struct-desc-tvars desc) sty))
   (unless (empty? (struct-desc-tvars desc))
     (define variances (map (lambda _ variance:const) (struct-desc-tvars desc)))
-    (define ty-op (make-type-constr (user-defined-type-op (struct-desc-tvars desc) sty)
+    (define ty-op (make-type-constr (user-defined-type-op (struct-desc-tvars desc) sty #f)
                                     (length (struct-desc-tvars desc))
                                     #:variances
                                     variances))

@@ -12,6 +12,7 @@
          "../../types/type-table.rkt"
          "../../types/utils.rkt"
          "../../types/substitute.rkt"
+         "../../types/resolve.rkt"
          "../../rep/type-rep.rkt"
          "../../env/tvar-env.rkt"
          (prefix-in i: "../../infer/infer.rkt")
@@ -154,7 +155,7 @@
   ;; special case for `reverse' to propagate expected type info
   (pattern ((~and fun (~or reverse k:reverse)) arg)
     (match expected
-      [(tc-result1: (and return-ty (Listof: _)))
+      [(tc-result1: (and return-ty (or (? App? (app resolve-once (Listof: _))) (Listof: _))))
        (begin0
          (tc-expr/check #'arg expected)
          (add-typeof-expr #'fun (ret (-> return-ty return-ty))))]

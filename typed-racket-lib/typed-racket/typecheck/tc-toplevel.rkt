@@ -432,7 +432,7 @@
 ;; Listof[Expr] -> Promise[Listof[binding]]
 (define (register-struct-type-info! form-li)
   ;; register type name and alias first
-  (define (names-referred-in-struct stx)
+  (define (names-referred-in-struct name stx)
     (define-values (tvars field-types)
       (syntax-parse stx
         [t:typed-struct (values (attribute t.tvars)
@@ -440,15 +440,10 @@
     (cond
       [(null? tvars) null]
       [else
-       (let recur ([types field-types])
-         (match types
-           [(list-rest h t)
-            (syntax-parse h
-              [(rator rand ...)
-               (cons #'rator
-                     (recur (syntax->list #'(rand ...))))]
-              [_:id
-               null])]))]))
+       (append-map (lambda (t)
+                     (define-values (r _ __) (parse-for-effects name (cons tvars t)))
+                     r)
+                   field-types)]))
 
   (define-values (poly-names binding-reg dependency-map)
     (for/fold ([poly-names '()]
@@ -459,7 +454,7 @@
                                 dependency-map))
               ([form (in-list form-li)])
       (define name (name-of-struct form))
-      (define other-names (names-referred-in-struct form))
+      (define other-names (names-referred-in-struct name form))
       (define tvars (type-vars-of-struct form))
       (register-resolved-type-alias name (make-Name name (length tvars) #t))
       (register-type-name name)

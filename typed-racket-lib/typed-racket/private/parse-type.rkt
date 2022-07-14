@@ -1304,7 +1304,8 @@
                    (add-disappeared-use (syntax-local-introduce #'id)))
               t)]
            [else
-            (parse-error #:delayed? #t (~a "type name `" v "' is unbound"))
+            (unless (side-effect-mode? mode)
+              (parse-error #:delayed? #t (~a "type name `" v "' is unbound")))
             Err])]
         [(:Opaque^ . rest)
          (parse-error "bad syntax in Opaque")]

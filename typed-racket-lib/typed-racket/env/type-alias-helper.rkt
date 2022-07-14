@@ -85,9 +85,6 @@
 (define (make-placeholder-type id)
   (make-Opaque id))
 
-(define (free-id-table-union! a b)
-  (for ([(id v) (in-free-id-table b)])
-    (free-id-table-set! a id v)))
 ;; register-all-type-aliases : Listof<Id> Dict<Id, TypeAliasInfo> -> Void
 ;;
 ;; Given parsed type aliases and a type alias map, do the work
@@ -105,6 +102,14 @@
   ;; The second is necessary in order to prevent recursive
   ;; #:implements clauses and to determine the order in which
   ;; recursive type aliases should be initialized.
+
+  (define (free-id-table-union! a b)
+    (define struct-names (list->set (free-id-table-keys b)))
+    (for ([(id deps) (in-free-id-table b)])
+      (free-id-table-set! a id (filter (lambda (v)
+                                         (or (free-id-table-ref type-alias-map v #f)
+                                             (set-member? struct-names v)))
+                                       deps))))
 
   (define-values (type-alias-dependency-map type-alias-class-map type-alias-productivity-map)
     (for/lists (_1 _2 _3 #:result (values (let ([tbl1 (make-free-id-table _1)])

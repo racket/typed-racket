@@ -44,7 +44,9 @@
 (provide tc/struct
          tc/struct-prop-values
          tc/make-struct-type-property
-         name-of-struct d-s
+         name-of-struct
+         names-referred-in-struct
+         d-s
          register-parsed-struct-sty!
          register-parsed-struct-bindings!)
 
@@ -89,6 +91,21 @@
 (define (name-of-struct stx)
   (syntax-parse stx
     [t:typed-struct #'t.type-name]))
+
+(define (names-referred-in-struct stx)
+  (define-values (tvars field-types)
+    (syntax-parse stx
+      [t:typed-struct (values (attribute t.tvars)
+                              (attribute t.types))]))
+  (define name (name-of-struct stx))
+
+  (cond
+    [(null? tvars) null]
+    [else
+     (append-map (lambda (t)
+                   (define-values (r _ __) (parse-for-effects name (cons tvars t)))
+                   r)
+                 field-types)]))
 
 ;; a simple wrapper to get proc from a polymorphic or monomorhpic structure
 (define/cond-contract (get-struct-proc sty)

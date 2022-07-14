@@ -428,23 +428,13 @@
               (~datum expand)))))
 
 ;; finish registering struct definitions in two steps with the second one being
-;; the return thunk, which can be invoked on demand.
-;; Listof[Expr] -> Promise[Listof[binding]]
+;; the return thunk, which can be invoked on demand. The function also returns a
+;; dependency mappping from struct type names to the type names used in their
+;; definitions.
+
+;; Listof[Expr] -> Values[Promise[Listof[binding]], FreeIDTable[Identifer, Identifer]]
 (define (register-struct-type-info! form-li)
   ;; register type name and alias first
-  (define (names-referred-in-struct name stx)
-    (define-values (tvars field-types)
-      (syntax-parse stx
-        [t:typed-struct (values (attribute t.tvars)
-                                (attribute t.types))]))
-    (cond
-      [(null? tvars) null]
-      [else
-       (append-map (lambda (t)
-                     (define-values (r _ __) (parse-for-effects name (cons tvars t)))
-                     r)
-                   field-types)]))
-
   (define-values (poly-names binding-reg dependency-map)
     (for/fold ([poly-names '()]
                [binding-reg '()]
@@ -454,7 +444,7 @@
                                 dependency-map))
               ([form (in-list form-li)])
       (define name (name-of-struct form))
-      (define other-names (names-referred-in-struct name form))
+      (define other-names (names-referred-in-struct form))
       (define tvars (type-vars-of-struct form))
       (register-resolved-type-alias name (make-Name name (length tvars) #t))
       (register-type-name name)

@@ -60,6 +60,7 @@
 ;; register-all-type-aliases : Listof<Syntax> IDTable<ID, Listof<ID>> -> Void
 ;;
 ;; register all type alias definitions carried by the input syntaxes
+;; dependency-map accounts for the dependencies of struct declarations
 (define (register-all-type-aliases type-aliases [dependency-map (make-immutable-free-id-table)])
   (parameterize ([incomplete-name-alias-map (make-free-id-table)])
     (define-values (type-alias-names type-alias-map)

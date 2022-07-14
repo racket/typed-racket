@@ -1385,13 +1385,20 @@
                                 (lambda (e)
                                   (match-define (exn:fail:contract:arity:type-constructor _ _ expected given) e)
                                   (err expected given))])
-                 (define alias (lookup-type-alias #'id (lambda (x) x) (lambda () #f)))
-                 (match alias
-                   [(? Name?)
-                    (if (equal? arity (length args^))
-                        (make-App alias args^)
-                        (err arity (length args^)))]
-                   [_ (apply rator args^)]))]
+                 (cond
+                   ;; in the checking mode, inline type applications of simple
+                   ;; type constructors
+                   [(and (not mode)
+                         (simple-type-constructor? #'id))
+                    (apply rator args^)]
+                   [else
+                    (define alias (lookup-type-alias #'id (lambda (x) x) (lambda () #f)))
+                    (match alias
+                      [(? Name?)
+                       (if (equal? arity (length args^))
+                           (make-App alias args^)
+                           (err arity (length args^)))]
+                      [_ (apply rator args^)])]))]
               [(? Name?)
                (resolve-app-check-error rator args^ stx)
                (define app (make-App rator args^))

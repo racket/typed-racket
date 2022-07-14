@@ -142,6 +142,8 @@
          #:smoothing -Font-Smoothing #f
          #:size-in-pixels? Univ #f
          #:hinting -Font-Hinting #f
+         #:feature-settings (-Immutable-HT -String -Integer) #f
+         #:font-list (-opt (-inst (parse-type #'Font-List%))) #f
          (-inst (parse-type #'Font%)))]
  [make-monochrome-bitmap
   (->* (list -Integer -Integer) (-opt -Bytes) (-inst -Bitmap%))]

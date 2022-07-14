@@ -185,13 +185,12 @@
              #:with fld-frees #'(make-invariant (frees name))))
   (syntax-parse stx
     [(_ name:var-name ((~var flds (structural-flds #'frees)) ...) . rst)
-     (with-syntax ([contructor-name (format-id #'name "make-~a-rep" (syntax-e #'name))]
+     (with-syntax ([constructor-name (format-id #'name "make-~a-rep" (syntax-e #'name))]
                    [type-constructor-name (format-id #'name "make-~a" (syntax-e #'name))])
        (define arity (length (syntax->list #'(flds ...))))
        (quasisyntax/loc stx
          (begin
            (def-rep (name #:constructor-name constructor-name) ([flds.name Type?] ...)
-             #:no-provide (constructor-name)
              [#:parent Type]
              [#:frees (frees) . #,(if (= 1 (length (syntax->list #'(flds.name ...))))
                                       #'(flds.fld-frees ...)

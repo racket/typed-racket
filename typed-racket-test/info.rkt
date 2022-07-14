@@ -52,6 +52,7 @@
 
 (define test-omit-paths '("fail"
                           "external/fail"
+                          "succeed/with-linear-integer-arith2.rkt" ;; FIXME: should be enabled later for drdr
                           "xfail"))
 (define test-command-line-arguments
   '(("succeed/priority-queue.scm" ())

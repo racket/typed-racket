@@ -672,7 +672,10 @@
                                    var-kind-level-env
                                    #:mode mode)))
 
-  (make-type-constr (user-defined-type-op syms res recursive?)
+  (make-type-constr (user-defined-type-op syms res (if (equal? (symbol->string (syntax-e name))
+                                                               "Formula")
+                                                       #t
+                                                       recursive?))
                     (length syms)
                     (free-id-table-ref type-op-productivity-map name #f)
                     #:variances

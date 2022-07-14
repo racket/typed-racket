@@ -428,23 +428,17 @@
               (~datum expand)))))
 
 ;; finish registering struct definitions in two steps with the second one being
-;; the return thunk, which can be invoked on demand. The function also returns a
-;; dependency mappping from struct type names to the type names used in their
-;; definitions.
-
-;; Listof[Expr] -> Values[Promise[Listof[binding]], FreeIDTable[Identifer, Identifer]]
+;; the return thunk, which can be invoked on demand.
+;; Listof[Expr] -> Promise[Listof[binding]]
 (define (register-struct-type-info! form-li)
   ;; register type name and alias first
-  (define-values (poly-names binding-reg dependency-map)
+  (define-values (poly-names binding-reg)
     (for/fold ([poly-names '()]
                [binding-reg '()]
-               [dependency-map (make-immutable-free-id-table)]
                #:result (values (reverse poly-names)
-                                (reverse binding-reg)
-                                dependency-map))
+                                (reverse binding-reg)))
               ([form (in-list form-li)])
       (define name (name-of-struct form))
-      (define other-names (names-referred-in-struct form))
       (define tvars (type-vars-of-struct form))
       (register-resolved-type-alias name (make-Name name (length tvars) #t))
       (register-type-name name)
@@ -454,14 +448,11 @@
                                name))
                     poly-names)
               (cons (delay (register-parsed-struct-bindings! (force parsed)))
-                    binding-reg)
-              (free-id-table-set dependency-map name other-names))))
-  (values
-   (delay (lambda (names)
-            (refine-user-defined-constructor-variances!
-             (append names (filter-map force poly-names)))
-            (map force binding-reg)))
-   dependency-map))
+                    binding-reg))))
+  (delay (lambda (names)
+           (refine-user-defined-constructor-variances!
+            (append names (filter-map force poly-names)))
+           (map force binding-reg))))
 
 
   ;; the resulting thunk finishes the rest work)
@@ -490,11 +481,11 @@
     (parse-and-register-signature! sig-form))
 
   ;; Add the struct names to the type table, but not with a type
-  (define-values (promise-reg-sty-info dependency-map) (register-struct-type-info! struct-defs))
+  (define promise-reg-sty-info (register-struct-type-info! struct-defs))
 
   (do-time "after adding type names")
 
-  (define names (register-all-type-aliases type-aliases dependency-map))
+  (define names (register-all-type-aliases type-aliases))
 
   (finalize-signatures!)
 
@@ -727,8 +718,7 @@
                                       'no-type)]
     [else
      (when (typed-struct? form)
-       (define-values (after-reg _) (register-struct-type-info! (list form)))
-       ((force after-reg) null))
+       ((force (register-struct-type-info! (list form))) null))
      (define all-forms (cond
                          [(typed-struct? form)
                           ;; after a struct type is registered, check the pending forms is in receiving order

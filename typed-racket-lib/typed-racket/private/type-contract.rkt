@@ -17,7 +17,6 @@
  "../env/type-name-env.rkt"
  "../env/row-constraint-env.rkt"
  "../env/lexical-env.rkt"
- "../env/type-constr-env.rkt"
 
  "../rep/core-rep.rkt"
  "../rep/rep-utils.rkt"
@@ -413,23 +412,17 @@
         ;; Key with (cons name 'app) instead of just name because the
         ;; application of the Name is not necessarily the same as the
         ;; Name type alone
-        (cond
-          ;; when constr is a built-in or non-recursive user-defined type
-          ;; constructor, don't generate a recursive static contract
-          ;; for the resulting type.
-          [(simple-type-constructor? name)
-           (t->sc (resolve-once type))]
-          [(hash-ref recursive-values (cons name 'app) #f)]
-          [else
-           (define name* (generate-temporary name))
-           (recursive-sc (list name*)
-                         (list
-                          (t->sc (resolve-once type)
-                                 #:recursive-values
-                                 (hash-set recursive-values
-                                           (cons name 'app)
-                                           (recursive-sc-use name*))))
-                         (recursive-sc-use name*))])]
+        (cond [(hash-ref recursive-values (cons name 'app) #f)]
+              [else
+               (define name* (generate-temporary name))
+               (recursive-sc (list name*)
+                             (list
+                              (t->sc (resolve-once type)
+                                     #:recursive-values
+                                     (hash-set recursive-values
+                                               (cons name 'app)
+                                               (recursive-sc-use name*))))
+                             (recursive-sc-use name*))])]
        ;; Implicit recursive aliases
        [(Name: name-id args #f)
         (cond [;; recursive references are looked up in a special table

@@ -66,8 +66,7 @@
  [parse-type-operator-abstraction (c:->* (identifier? (c:listof identifier?) syntax?)
                                          ((c:or/c (c:-> identifier? boolean?) #f)
                                           (free-id-table/c identifier? boolean?)
-                                          #:delay-variances? boolean?
-                                          #:recursive? boolean?)
+                                          #:delay-variances? boolean?)
                                          TypeConstructor?)]
  [parse-for-effects (c:-> identifier? (c:cons/c (c:listof identifier?) syntax?)
                           (values (c:listof identifier?)
@@ -652,8 +651,7 @@
 (define (parse-type-operator-abstraction name arg-names stx [opt-in-same-component? #f]
                                          [type-op-productivity-map (make-immutable-free-id-table)]
                                          #:delay-variances?
-                                         [delay-variances? #f]
-                                         #:recursive? [recursive? #f])
+                                         [delay-variances? #f])
   (define syms (map syntax-e arg-names))
   (define mode (synth-mode name syms opt-in-same-component?))
   (define var-kind-level-env
@@ -672,10 +670,7 @@
                                    var-kind-level-env
                                    #:mode mode)))
 
-  (make-type-constr (user-defined-type-op syms res (if (equal? (symbol->string (syntax-e name))
-                                                               "Formula")
-                                                       #t
-                                                       recursive?))
+  (make-type-constr (user-defined-type-op syms res)
                     (length syms)
                     (free-id-table-ref type-op-productivity-map name #f)
                     #:variances
@@ -1304,8 +1299,7 @@
                    (add-disappeared-use (syntax-local-introduce #'id)))
               t)]
            [else
-            (unless (side-effect-mode? mode)
-              (parse-error #:delayed? #t (~a "type name `" v "' is unbound")))
+            (parse-error #:delayed? #t (~a "type name `" v "' is unbound"))
             Err])]
         [(:Opaque^ . rest)
          (parse-error "bad syntax in Opaque")]

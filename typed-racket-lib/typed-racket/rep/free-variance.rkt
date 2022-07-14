@@ -210,7 +210,7 @@
         (match-define (struct* TypeConstructor ([real-trep-constr maker]
                                                 [variances old-variances]))
           constr)
-        (match-define (struct user-defined-type-op [tvars type _]) maker)
+        (match-define (struct user-defined-type-op [tvars type]) maker)
         (cond
           [(or (not tvars) (null? tvars)) #t]
           [else

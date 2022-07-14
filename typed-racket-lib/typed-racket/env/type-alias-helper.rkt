@@ -57,11 +57,10 @@
     (map vertex-data component)))
 
 
-;; register-all-type-aliases : Listof<Syntax> IDTable<ID, Listof<ID>> -> Void
+;; register-all-type-aliases : Listof<Syntax> -> Void
 ;;
 ;; register all type alias definitions carried by the input syntaxes
-;; dependency-map accounts for the dependencies of struct declarations
-(define (register-all-type-aliases type-aliases [dependency-map (make-immutable-free-id-table)])
+(define (register-all-type-aliases type-aliases)
   (parameterize ([incomplete-name-alias-map (make-free-id-table)])
     (define-values (type-alias-names type-alias-map)
       (for/lists (_1 _2 #:result (values _1 (make-free-id-table
@@ -75,7 +74,7 @@
         (values id (list id type-stx args))))
 
     (begin0
-      (register-all-type-alias-info type-alias-names type-alias-map dependency-map)
+      (register-all-type-alias-info type-alias-names type-alias-map)
       (unless (zero? (free-id-table-count (incomplete-name-alias-map)))
         (define names (free-id-table-keys (incomplete-name-alias-map)))
         (int-err "not all type alias names are fully registered: ~n ~a"
@@ -92,7 +91,7 @@
 ;; of actually registering the type aliases. If struct names or
 ;; other definitions need to be registered, do that before calling
 ;; this function.
-(define (register-all-type-alias-info type-alias-names type-alias-map dependency-map)
+(define (register-all-type-alias-info type-alias-names type-alias-map)
   ;; Find type alias dependencies
   ;; The two maps defined here contains the dependency structure
   ;; of type aliases in two senses:
@@ -103,19 +102,8 @@
   ;; The second is necessary in order to prevent recursive
   ;; #:implements clauses and to determine the order in which
   ;; recursive type aliases should be initialized.
-
-  (define (free-id-table-union! a b)
-    (define struct-names (list->set (free-id-table-keys b)))
-    (for ([(id deps) (in-free-id-table b)])
-      (free-id-table-set! a id (filter (lambda (v)
-                                         (or (free-id-table-ref type-alias-map v #f)
-                                             (set-member? struct-names v)))
-                                       deps))))
-
   (define-values (type-alias-dependency-map type-alias-class-map type-alias-productivity-map)
-    (for/lists (_1 _2 _3 #:result (values (let ([tbl1 (make-free-id-table _1)])
-                                            (free-id-table-union! tbl1 dependency-map)
-                                            tbl1)
+    (for/lists (_1 _2 _3 #:result (values (make-free-id-table _1)
                                           (make-free-id-table _2)
                                           (make-free-id-table _3)))
                ([(name alias-info) (in-free-id-table type-alias-map)])
@@ -179,7 +167,6 @@
                               recursive-aliases
                               free-identifier=?))
       (car component)))
-
   (define other-recursive-aliases
     (for/list ([alias (in-list recursive-aliases)]
                #:unless (member alias
@@ -217,9 +204,8 @@
   ;; reverse order of that to avoid unbound type aliases.
   (define acyclic-constr-names
     (for/fold ([acc '()])
-              ([id (in-list acyclic-singletons)]
-               #:when (free-id-table-ref type-alias-map id #f))
-      (match-define (list _ type-stx args) (free-id-table-ref type-alias-map id #f))
+              ([id (in-list acyclic-singletons)])
+      (match-define (list _ type-stx args) (free-id-table-ref type-alias-map id))
       (define acc^
         (cond
           [(not (null? args))
@@ -265,8 +251,7 @@
                #:result
                (values (reverse type-records)
                        (reverse type-op-records)))
-              ([id (in-list (append other-recursive-aliases class-aliases))]
-               #:when (free-id-table-ref type-alias-map id #f))
+              ([id (in-list (append other-recursive-aliases class-aliases))])
       (define record (free-id-table-ref type-alias-map id))
       (match-define (list _ type-stx args) record)
       (if (null? args)
@@ -307,8 +292,7 @@
                                                          (define res (in-same-component? id x))
                                                          res)
                                                        type-alias-productivity-map
-                                                       #:delay-variances? #t
-                                                       #:recursive? #t))
+                                                       #:delay-variances? #t))
         (register-type-constructor! id ty-op)
         (complete-type-alias-registration! id)
         (reset-resolver-cache!)

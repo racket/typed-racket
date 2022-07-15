@@ -10,6 +10,7 @@
          "../find-annotation.rkt"
          "../tc-metafunctions.rkt"
          "../../types/abbrev.rkt"
+         "../../types/resolve.rkt"
          "../../types/utils.rkt"
          "../../types/generalize.rkt"
          "../../types/type-table.rkt"
@@ -108,8 +109,8 @@
                        (generalize (tc-expr/t ac)))))]
            [acc-ty (or
                     (type-annotation #'val #:infer #t)
-                    (match expected
-                      [(tc-result1: (and t (Listof: _))) t]
+                    (match (resolve expected)
+                      [(tc-result1: (app resolve (and t (Listof: _)))) t]
                       [_ #f])
                     (generalize -Null))])
        ;; this check is needed because the type annotation may come

@@ -665,16 +665,10 @@
                                                        (id-drop orig-sels orig-muts num-fields)))
                                            (struct-info-list new-sels new-muts)))))))
 
-                         #,(ignore
-                             ;; bg: provide the static struct info directly, unlike other define-syntax forms
-                             ;; this is similar to the struct quad code in `typecheck/provide-handling.rkt`
-                             ;; TODO need this? sound? leave it to #1078 close #926 ?
-                             #'(begin
-                                 (define-syntax nm
-                                   (if id-is-ctor?
-                                     (make-struct-info-wrapper* #'internal-maker si #'type)
-                                     si))
-                                 (provide nm)))
+                         (define-syntax nm
+                              (if id-is-ctor?
+                                  (make-struct-info-wrapper* #'internal-maker si #'type)
+                                  si))
 
                          (dtsi* (tvar ...) spec type (body ...) #:maker maker-name)
                          #,(ignore

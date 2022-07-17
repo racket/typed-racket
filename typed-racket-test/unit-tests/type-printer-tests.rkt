@@ -49,11 +49,11 @@
     (check-prints-as? (-val #\a) "#\\a")
     (check-prints-as? Univ "Any")
     (check-prints-as? (Un (-val #t) (-val #f)) "Boolean")
-    (check-prints-as? (-lst -Nat) "(Listof Nonnegative-Integer)")
+    (check-prints-as? (-lst -Nat) "(Listof Natural)")
     (check-prints-as? (-Listof -Nat)
-                      "(Listof Nonnegative-Integer)")
+                      "(Listof Natural)")
     (check-prints-as? (make-Mu 'x (Un -Null (-pair -Nat (make-F 'x))))
-                      "(Listof Nonnegative-Integer)")
+                      "(Listof Natural)")
     (check-prints-as? (-lst* -String -Symbol) "(List String Symbol)")
     (check-prints-as? (-Tuple* (list -String -Symbol) -String) "(List* String Symbol String)")
 
@@ -67,9 +67,9 @@
 
     (check-prints-as? -Custodian "Custodian")
     (check-prints-as? (make-Opaque #'integer?) "(Opaque integer?)")
-    (check-prints-as? (make-Immutable-Vector -Nat) "(Immutable-Vectorof Nonnegative-Integer)")
-    (check-prints-as? (make-Mutable-Vector -Nat) "(Mutable-Vectorof Nonnegative-Integer)")
-    (check-prints-as? (make-Vector -Nat) "(Vectorof Nonnegative-Integer)")
+    (check-prints-as? (make-Immutable-Vector -Nat) "(Immutable-Vectorof Natural)")
+    (check-prints-as? (make-Mutable-Vector -Nat) "(Mutable-Vectorof Natural)")
+    (check-prints-as? (make-Vector -Nat) "(Vectorof Natural)")
     (check-prints-as? (make-Immutable-HeterogeneousVector (list -Symbol -String))
                       "(Immutable-Vector Symbol String)")
     (check-prints-as? (make-Mutable-HeterogeneousVector (list -Symbol -String))
@@ -305,7 +305,7 @@
     (check-pretty-prints-as? (-val #\a) "#\\a")
     (check-pretty-prints-as? Univ "Any")
     (check-pretty-prints-as? (Un (-val #t) (-val #f)) "Boolean")
-    (check-pretty-prints-as? (-lst -Nat) "(Listof Nonnegative-Integer)")
+    (check-pretty-prints-as? (-lst -Nat) "(Listof Natural)")
     (check-pretty-prints-as?
      (-polydots (c a b)
                 (cl->*

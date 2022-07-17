@@ -53,7 +53,7 @@ several fixed-width integers types, detailed later in this section.
 numeric type, including all Racket numbers, both exact and inexact, including
 complex numbers.
 
-@defnums[(Integer)]
+@defnums[(Integer Exact-Integer)]
 Includes Racket's exact integers and corresponds to the
 @racket[exact-integer?] predicate. This is the most general type that is still
 valid for indexing and other operations that require integral values.
@@ -63,7 +63,7 @@ Includes Racket's double-precision (default) floating-point numbers and
 corresponds to the @racket[flonum?] predicate. This type excludes
 single-precision floating-point numbers.
 
-@defnums[(Single-Flonum)]
+@defnums[(Single-Flonum Single-Float)]
 Includes Racket's single-precision floating-point numbers and corresponds to
 the @racket[single-flonum?] predicate. This type excludes double-precision
 floating-point numbers.
@@ -72,7 +72,7 @@ floating-point numbers.
 Includes all of Racket's floating-point numbers, both single- and
 double-precision.
 
-@defnums[(Exact-Rational)]
+@defnums[(Rational Exact-Rational)]
 Includes Racket's exact rationals, which include fractions and exact integers.
 
 @defnums[(Real)]
@@ -82,14 +82,28 @@ all floating-point numbers. This is the most general type for which comparisons
 
 @defnums[(
 Exact-Number
+Flonum-Complex
 Float-Complex
 Single-Flonum-Complex
+Single-Float-Complex
 Inexact-Complex
 Imaginary
+Flonum-Imaginary
+Float-Imaginary
+Single-Flonum-Imaginary
+Single-Float-Imaginary
 Exact-Complex
 Exact-Imaginary
 Inexact-Imaginary)]
 These types correspond to Racket's complex numbers.
+
+@ex[
+(ann 1+1i Exact-Number)
+(ann 1+1i Exact-Complex)
+(ann 1+0i Exact-Number)
+(eval:error (ann 1+0i Exact-Complex))
+(ann 0+1i Exact-Number)
+(eval:error (ann 0+1i Exact-Complex))]
 
 @history[#:changed "1.7"]{@elem{Added @racket[Imaginary],
  @racket[Inexact-Complex],
@@ -103,20 +117,32 @@ negative, non-negative and non-positive subsets of the above types (where
 applicable).
 
 @defnums[(
+Natural
 Positive-Integer
+Positive-Exact-Integer
 Exact-Positive-Integer
 Nonnegative-Integer
 Exact-Nonnegative-Integer
-Natural
+Nonnegative-Exact-Integer
 Negative-Integer
+Negative-Exact-Integer
+Exact-Negative-Integer
+Negative-Integer-Not-Fixnum
 Nonpositive-Integer
+Nonpositive-Exact-Integer
+Exact-Nonpositive-Integer
+Positive-Integer-Not-Fixnum
 Zero
 Positive-Float
 Positive-Flonum
+Positive-Float-Not-Nan
+Positive-Flonum-Not-Nan
 Nonnegative-Float
 Nonnegative-Flonum
 Negative-Float
 Negative-Flonum
+Negative-Float-Not-Nan
+Negative-Flonum-Not-Nan
 Nonpositive-Float
 Nonpositive-Flonum
 Float-Negative-Zero
@@ -128,13 +154,25 @@ Flonum-Zero
 Float-Nan
 Flonum-Nan
 Positive-Single-Flonum
+Positive-Single-Float
+Positive-Single-Flonum-Not-Nan
+Positive-Single-Float-Not-Nan
 Nonnegative-Single-Flonum
+Nonnegative-Single-Float
 Negative-Single-Flonum
+Negative-Single-Float
+Negative-Single-Flonum-Not-Nan
+Negative-Single-Float-Not-Nan
 Nonpositive-Single-Flonum
+Nonpositive-Single-Float
 Single-Flonum-Negative-Zero
+Single-Float-Negative-Zero
 Single-Flonum-Positive-Zero
+Single-Float-Positive-Zero
 Single-Flonum-Zero
+Single-Float-Zero
 Single-Flonum-Nan
+Single-Float-Nan
 Positive-Inexact-Real
 Nonnegative-Inexact-Real
 Negative-Inexact-Real
@@ -143,10 +181,20 @@ Inexact-Real-Negative-Zero
 Inexact-Real-Positive-Zero
 Inexact-Real-Zero
 Inexact-Real-Nan
+Positive-Rational
 Positive-Exact-Rational
+Exact-Positive-Rational
+Positive-Rational-Not-Integer
+Nonnegative-Rational
 Nonnegative-Exact-Rational
+Exact-Nonnegative-Rational
+Negative-Rational
 Negative-Exact-Rational
+Exact-Negative-Rational
+Negative-Rational-Not-Integer
+Nonpositive-Rational
 Nonpositive-Exact-Rational
+Exact-Nonpositive-Rational
 Positive-Real
 Nonnegative-Real
 Negative-Real
@@ -175,10 +223,13 @@ diagram are subtypes of its containing types.
 One
 Byte
 Positive-Byte
+Byte>1
 Index
 Positive-Index
+Positive-Index-Not-Byte
 Fixnum
 Positive-Fixnum
+Positive-Fixnum-Not-Index
 Nonnegative-Fixnum
 Negative-Fixnum
 Nonpositive-Fixnum
@@ -204,14 +255,27 @@ needed to check the desired bounds at runtime.
 
 @defnums[(
 ExtFlonum
+ExtFloat
 Positive-ExtFlonum
+Positive-ExtFloat
+Positive-ExtFlonum-Not-Nan
+Positive-ExtFloat-Not-Nan
 Nonnegative-ExtFlonum
+Nonnegative-ExtFloat
 Negative-ExtFlonum
+Negative-ExtFloat
+Negative-ExtFlonum-Not-Nan
+Negative-ExtFloat-Not-Nan
 Nonpositive-ExtFlonum
+Nonpositive-ExtFloat
 ExtFlonum-Negative-Zero
+ExtFloat-Negative-Zero
 ExtFlonum-Positive-Zero
+ExtFloat-Positive-Zero
 ExtFlonum-Zero
+ExtFloat-Zero
 ExtFlonum-Nan
+ExtFloat-Nan
 )]
 80-bit @rtech{extflonum} types, for the values operated on by
 @racketmodname[racket/extflonum] exports.
@@ -235,8 +299,10 @@ These are not part of the numeric tower.
 @deftype[Path]
 @deftype[Path-For-Some-System]
 @deftype[Regexp]
+@deftype[Base-Regexp]
 @deftype[PRegexp]
 @deftype[Byte-Regexp]
+@deftype[Byte-Base-Regexp]
 @deftype[Byte-PRegexp]
 @deftype[Bytes]
 @deftype[Namespace]
@@ -249,7 +315,9 @@ These are not part of the numeric tower.
 @deftype[Module-Path]
 @deftype[Module-Path-Index]
 @deftype[Resolved-Module-Path]
+@deftype[Other-System-Path]
 @deftype[Compiled-Module-Expression]
+@deftype[Compiled-Non-Module-Expression]
 @deftype[Compiled-Expression]
 @deftype[Internal-Definition-Context]
 @deftype[Pretty-Print-Style-Table]
@@ -272,6 +340,7 @@ These are not part of the numeric tower.
 @deftype[Subprocess]
 @deftype[Place]
 @deftype[Place-Channel]
+@deftype[Base-Place-Channel]
 @deftype[Semaphore]
 @deftype[FSemaphore]
 @deftype[Will-Executor]
@@ -1030,9 +1099,15 @@ prefab types with the (implicitly quoted) prefab-key
 }
 
 @defalias[Union U "type constructor"]
+@defalias[∪ U "type constructor"]
 @defalias[Intersection ∩ "type constructor"]
 @defalias[→ -> "type constructor"]
 @defalias[case→ case-> "type constructor"]
+@defalias[Box Boxof "type constructor"]
+@defalias[Weak-Box Weak-Boxof "type constructor"]
+@defalias[Custodian-Box Custodian-Boxof "type constructor"]
+@defalias[MPair MPairof "type constructor"]
+@defalias[None Nothing "type"]
 @defalias[∀ All "type"]
 
 @section{Other Types}

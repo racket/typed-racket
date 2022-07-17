@@ -94,7 +94,7 @@
   [-Zero Zero #'(λ (n) (eq? n 0)) (λ (n) (eq? n 0))]
   [-One One #'(λ (n) (eq? n 1)) (λ (n) (eq? n 1))]
   [-Byte>1
-   Byte-Larger-Than-One
+   Byte>1
    #'(λ (n) (and (byte? n) (> n 1)))
    (λ (n) (and (byte? n) (> n 1)))]
   [-PosIndexNotByte
@@ -151,11 +151,11 @@
    #'(λ (x) (eqv? x -0.0))
    (λ (x) (eqv? x -0.0))]
   [-PosFlonumNoNan
-   Positive-Float-No-NaN
+   Positive-Float-Not-Nan
    #'(and/c flonum? positive?)
    (λ (x) (and (flonum? x) (positive? x)))]
   [-NegFlonumNoNan
-   Negative-Float-No-NaN
+   Negative-Float-Not-Nan
    #'(and/c flonum? negative?)
    (λ (x) (and (flonum? x) (negative? x)))]
   [-SingleFlonumNan
@@ -172,11 +172,11 @@
    #'(λ (x) (and (single-flonum? x) (eqv? x (real->single-flonum -0.0f0))))
    (λ (x) (and (single-flonum? x) (eqv? x (real->single-flonum -0.0f0))))]
   [-PosSingleFlonumNoNan
-   Positive-Single-Flonum-No-Nan
+   Positive-Single-Flonum-Not-Nan
    #'(and/c single-flonum? positive?)
    (λ (x) (and (single-flonum? x) (positive? x)))]
   [-NegSingleFlonumNoNan
-   Negative-Single-Flonum-No-Nan
+   Negative-Single-Flonum-Not-Nan
    #'(and/c single-flonum? negative?)
    (λ (x) (and (single-flonum? x) (negative? x)))]
   [-ExactImaginary

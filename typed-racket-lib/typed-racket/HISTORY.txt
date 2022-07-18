@@ -1,3 +1,5 @@
+8.6
+- Bug fixes and type updates.
 8.5
 - Add `typed/xml` and related library wrappers.
 8.4

@@ -52,9 +52,10 @@
                      #'kw-arg-list #'pos-args expected))
 
       (define (tc/app-poly-fun vars arrow fail)
-        (match-define (and ar (Arrow: dom #f kw-formals rng)) arrow)
-        ;; if the types of the keyword arguments have type variables, stop.
-        (unless (set-empty? (fv/list kw-formals))
+        (match-define (and ar (Arrow: dom rst kw-formals rng)) arrow)
+        ;; if the types of the keyword arguments have type variables or rst is
+        ;; set, stop.
+        (unless (or (set-empty? (fv/list kw-formals)) (not rst))
           (fail))
         (match (stx-map single-value #'pos-args)
            [(list (tc-result1: argtys-t) ...)

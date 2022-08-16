@@ -298,9 +298,6 @@ don't depend on any other portion of the system
 (define deep 'deep)
 (define shallow 'shallow)
 (define optional 'optional)
-(define guarded deep)
-(define transient shallow)
-(define erasure optional)
 
 (define (type-enforcement-mode? x)
   (and (symbol? x)

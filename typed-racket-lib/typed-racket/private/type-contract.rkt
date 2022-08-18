@@ -600,7 +600,7 @@
        [(Continuation-Mark-Keyof: t)
         (continuation-mark-key/sc (t->sc t))]
        ;; TODO: this is not quite right for case->
-       [(Prompt-Tagof: s (Fun: (list (Arrow: ts _ _ _ _))))
+       [(Prompt-Tagof: s (Fun: (list (Arrow: ts _ _ _))))
         (prompt-tag/sc (map t->sc ts) (list (t->sc s)))]
        [(Some: (list n) (? Fun? t-body))
         (t->sc/fun t-body #:maybe-existential n)]
@@ -1088,12 +1088,12 @@
   (let ((conv (match-lambda [(Keyword: kw _ _) kw])))
     (lambda (orig-ty typed-side?)
       (match orig-ty
-        [(Arrow: _ _ _ rng _)
+        [(Arrow: _ _ _ rng)
          #:when (and (not typed-side?) (arrow-rng-has-prop? rng))
          none/sc]
-        [(Arrow: _ (RestDots: _ _) _ _ _)
+        [(Arrow: _ (RestDots: _ _) _ _)
          procedure?/sc]
-        [(Arrow: dom _ kws _ _)
+        [(Arrow: dom _ kws _)
          (define num-mand-args (length dom))
          (define-values [mand-kws opt-kws]
            (let-values ([(mand-kws opt-kws) (partition-kws kws)])
@@ -1139,7 +1139,7 @@
           (set-member? (free-vars-names (free-vars* t)) exi)))
 
     (match* (rng prop+type)
-      [((Fun: (list (Arrow: (list-rest (F: n1) a ... _) rst_i kw_i _ _))) (F: n1))
+      [((Fun: (list (Arrow: (list-rest (F: n1) a ... _) rst_i kw_i _))) (F: n1))
        #:when (and (not (ormap occur? (list rst kw rst_i kw_i)))
                    (eq? n1 exi))
        (void)]
@@ -1160,7 +1160,7 @@
   ;; and call the given thunk or raise an error
   (define (handle-arrow-range arrow proceed)
     (match arrow
-      [(or (Arrow: _ _ _ rng _)
+      [(or (Arrow: _ _ _ rng)
            (DepFun: _ _ rng))
        (handle-range rng proceed)]))
   (define (handle-range rng proceed)
@@ -1209,7 +1209,7 @@
         (define last-arrow (last arrows))
         (define (convert-arrow)
           (match-define (Arrow: first-dom _ kws
-                                (Values: (list (Result: rngs _ _) ...)) _)
+                                (Values: (list (Result: rngs _ _) ...)))
             first-arrow)
           (define rst (Arrow-rst last-arrow))
 
@@ -1227,16 +1227,16 @@
         (handle-arrow-range first-arrow convert-arrow)]
        [else
         (define/match (convert-single-arrow arr)
-          [((Arrow: (list dom) rst kws (Values: (list (Result: rng (PropSet: (TypeProp: _ prop+type) _) _ 0))) _))
+          [((Arrow: (list dom) rst kws (Values: (list (Result: rng (PropSet: (TypeProp: _ prop+type) _) _ 0)))))
            #:when opt-exi
            (let-values ([(mand-kws opt-kws) (partition-kws kws)])
              (arr-params->exist/sc opt-exi dom rst kws rng prop+type))]
 
-          [((Arrow: (list dom) rst kws (Values: (list (ExistentialResult: rng (PropSet: (TypeProp: _ prop+type) _) _ vars))) _))
+          [((Arrow: (list dom) rst kws (Values: (list (ExistentialResult: rng (PropSet: (TypeProp: _ prop+type) _) _ vars)))))
            (let*-values ([(mand-kws opt-kws) (partition-kws kws)])
              (arr-params->exist/sc (F-n (car vars)) dom rst kws rng prop+type))]
 
-          [((Arrow: dom rst kws (Values: (list (Result: rngs _ _ n-exiss) ...)) _))
+          [((Arrow: dom rst kws (Values: (list (Result: rngs _ _ n-exiss) ...))))
            (define-values (mand-kws opt-kws) (partition-kws kws))
            (function/sc
                  (from-typed? typed-side)
@@ -1255,7 +1255,7 @@
                  (map t->sc rngs))])
 
         (define/match (convert-one-arrow-in-many arr)
-          [((Arrow: dom rst kws (Values: (list (Result: rngs _ _ n-exis) ...)) _))
+          [((Arrow: dom rst kws (Values: (list (Result: rngs _ _ n-exis) ...))))
            (let-values ([(mand-kws opt-kws) (partition-kws kws)])
              ;; Garr, I hate case->!
              (when (and (not (empty? kws)))
@@ -1431,7 +1431,7 @@
   (match arrs
     [(list (Arrow: (list (Univ:))
                    #f '()
-                   (Values: (list (Result: t _ _))) _))
+                   (Values: (list (Result: t _ _)))))
      (t:subtype -Boolean t)]
     [_ #f]))
 

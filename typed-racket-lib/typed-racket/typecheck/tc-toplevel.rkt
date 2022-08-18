@@ -111,7 +111,7 @@
       [t:type-refinement
        (match (lookup-id-type/lexical #'t.predicate)
               [(and t (Fun: (list (Arrow: (list dom) #f '()
-                                          (Values: (list (Result: rng _ _))) _))))
+                                          (Values: (list (Result: rng _ _)))))))
                (let ([new-t (make-pred-ty (list dom)
                                           rng
                                           (make-Refinement dom #'t.predicate))])

@@ -26,8 +26,9 @@ Untyped code can freely import bindings from typed code (@secref{typed-in-untype
 At run-time, combining typed and untyped code is complicated because there is a
 tradeoff between strong type guarantees and the performance cost of checking
 that untyped code matches the types.
-Typed Racket provides strong @emph{Deep} type guarantees by default, but offers two
-weaker options as well: Shallow and Optional types
+Typed Racket provides strong @emph{Deep} type guarantees by
+default, but offers two weaker options as well: @emph{Shallow}
+and @emph{Optional} types
 (@secref{protecting-interaction}).
 
 
@@ -191,14 +192,14 @@ two alternatives. All together, the three options are Deep, Shallow, and Optiona
 
 @itemlist[#:style 'ordered
   @item{
-    @emph{Deep} types get enforced with comprehensive contract checks.
+    @tr-rtech{Deep types} get enforced with rigorous contract checks.
   }
   @item{
-    @emph{Shallow} types get checked in typed code with lightweight assertions
-    called @emph{shape checks}.
+    @tr-rtech{Shallow types} get checked in typed code with lightweight assertions
+    called @tech{shape checks}.
   }
   @item{
-    @emph{Optional} types do not get enforced in any way. They do not ensure
+    @tr-rtech{Optional types} do not get enforced in any way. They do not ensure
     safe typed-untyped interactions.
   }
 ]
@@ -220,7 +221,7 @@ calls the untyped @racket[_increment] function:
 
 Because the implementation in the untyped module broke the contract
 by returning a string instead of an integer, the error message
-@emph{blames} it.
+blames it.
 
 @margin-note{For general information on Racket's contract system,
 see @secref[#:doc '(lib "scribblings/guide/guide.scrbl")]{contracts}.}
@@ -244,7 +245,7 @@ values from another Deep-typed module.
 Changing the module language of the @racket[_client] program
 from @racketmodname[typed/racket] to @racketmodname[typed/racket/shallow]
 changes the way in which typed-untyped interactions are protected.
-Instead of contracts, Typed Racket uses shape checks to enforce
+Instead of contracts, Typed Racket uses @deftech{shape checks} to enforce
 these Shallow types.
 
 With Shallow types, the @racket[_client] program from above still detects an
@@ -277,8 +278,8 @@ The compiled @racket[_client] module has two shape checks in total:
 Such checks work together within one typed module to enforce the assumptions that
 it makes about untyped code.
 
-In general, a shape check ensures that a value matches the top-level constructor
-of a type.
+A design guideline for a shape checks is to ensure that a value matches the
+top-level constructor of a type.
 Shape checks are always yes-or-no predicates (unlike contracts, which may wrap a
 value) and typically run in constant time.
 Because they ensure the validity of type constructors, shape checks allow Typed
@@ -315,17 +316,17 @@ A call to the increment function does not raise an error:
 @examples[#:label #f #:eval the-eval (require 'client)]
 
 Optional types cannot detect incorrect type assumptions
-and therefore enable zero type-driven optimizations.
+and therefore do not enable type-driven optimizations.
 But, they also add no costs to slow a program down.
-In general, the behavior of an Optionally-typed program is the same as that of
-a Racket program that completely ignores type annotations.
+The run-time behavior is very similar to untyped Racket
+and @racketmodname[typed/racket/no-check].
 
 
 @subsection{When to Use Deep, Shallow, or Optional?}
 
 @itemlist[
   @item{
-    @emph{Deep} types maximize the benefits of static checking
+    @tr-rtech{Deep types} maximize the benefits of static checking
     and type-driven optimizations.
     Use them for tightly-connected groups of typed modules.
     Avoid them when untyped, higher-order values frequently
@@ -333,7 +334,7 @@ a Racket program that completely ignores type annotations.
     include @racket[Vectorof], @racket[->], and @racket[Object].
   }
   @item{
-    @emph{Shallow} types are best for small typed modules that frequently
+    @tr-rtech{Shallow types} are best for small typed modules that frequently
     interact with untyped code.
     This is because Shallow shape checks run quickly: constant-time for
     most types, and linear time (in the size of the type, not the value)
@@ -343,7 +344,7 @@ a Racket program that completely ignores type annotations.
     and their net cost may be significant.
   }
   @item{
-    @emph{Optional} types enable the typechecker and nothing else. Use them when
+    @tr-rtech{Optional types} enable the typechecker and nothing else. Use them when
     you do not want types enforced at run-time.
   }
 ]

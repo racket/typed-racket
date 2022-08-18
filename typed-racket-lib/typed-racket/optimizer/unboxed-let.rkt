@@ -142,7 +142,7 @@
               [(tc-result1: (Fun: (list (Arrow: doms
                                                 #f  ;; rest arg
                                                 '() ;; kw args
-                                                _ _))))
+                                                _))))
                doms]
               [_ #f]))]
     #:when doms

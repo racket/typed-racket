@@ -219,8 +219,8 @@
              (list ,@(map path-elem->sexp pth))
              #:T+ ,rng-T+)]
     [(Fun: (? has-optional-args? arrs))
-     (match-define (Arrow: fdoms _ kws rng _) (first arrs))
-     (match-define (Arrow: ldoms rst _ _ _) (last arrs))
+     (match-define (Arrow: fdoms _ kws rng) (first arrs))
+     (match-define (Arrow: ldoms rst _ _) (last arrs))
      (define opts (drop ldoms (length fdoms)))
      `(opt-fn
        (list ,@(map type->sexp fdoms))

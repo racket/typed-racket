@@ -391,7 +391,7 @@
                [else (quasisyntax/loc (car types) (U #,@types))])))
      `#s(contract-def ,type-stx ,flat? ,maker? typed ,te-mode))))
 
-(define-values [define-predicate]
+(define define-predicate
   (let ()
     (define (dp-maker te-mode)
       (define/with-syntax m-p (case te-mode ((shallow) #'make-predicate-shallow) ((optional) #'make-predicate-optional) (else #'make-predicate)))
@@ -412,7 +412,7 @@
             #;(dp-maker shallow)
             #;(dp-maker optional))))
 
-(define-values [make-predicate]
+(define make-predicate
   (let ()
     (define (mp-maker te-mode)
       (syntax-parser

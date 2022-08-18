@@ -115,11 +115,11 @@
   (and (pair? arrows)
        (pair? (cdr arrows)) ;; i.e. (> (length arrows) 1)
        (match arrows
-         [(cons (Arrow: dom #f kws rng _) as)
+         [(cons (Arrow: dom #f kws rng) as)
           (let loop ([dom dom]
                      [to-check (cdr arrows)])
             (match to-check
-              [(cons (Arrow: next-dom next-rst next-kws next-rng _)
+              [(cons (Arrow: next-dom next-rst next-kws next-rng)
                      remaining)
                (cond
                  ;; a #:rest must be the LAST clause,

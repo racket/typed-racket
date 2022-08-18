@@ -69,7 +69,8 @@
          variances-in-type
          DepFun/ids:
          HasArrows:
-         (rename-out [Union:* Union:]
+         (rename-out [Arrow:* Arrow:]
+                     [Union:* Union:]
                      [Intersection:* Intersection:]
                      [make-Intersection* make-Intersection]
                      [Class:* Class:]
@@ -616,6 +617,7 @@
                 [kws (and/c (listof Keyword?) keyword-sorted/c)]
                 [rng SomeValues?]
                 [rng-shallow-safe? boolean?])
+  #:no-provide (Arrow:)
   [#:frees (f)
    (combine-frees
     (list* (f rng)
@@ -708,6 +710,20 @@
     [else
      (error 'Arrow-domain-at-arity
             "invalid arity! ~a @ ~a" a arity)]))
+
+(define-match-expander Arrow:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ dom rst kws rng)
+       #'(? Arrow? (app (lambda (arrow)
+                           (match-define (Arrow: d r k r _) arrow)
+                           (list d r k r))
+                         (list dom rst kws rng)))]
+      [(_ dom rst kws rng rng-T+)
+       #'(? Arrow? (app (lambda (arrow)
+                           (match-define (Arrow: d r k r T+) arrow)
+                           (list d r k r T+))
+                         (list dom rst kws rng rng-T+)))])))
 
 ;; a standard function
 ;; + all functions are case-> under the hood (i.e. see 'arrows')

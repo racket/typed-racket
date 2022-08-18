@@ -353,7 +353,7 @@
 ;; Convert an arr (see type-rep.rkt) to its printable form
 (define (arr->sexp arr)
   (match arr
-    [(Arrow: dom rst kws rng _)
+    [(Arrow: dom rst kws rng)
      (define arrow-star? (and (Rest? rst) (> (length (Rest-tys rst)) 1)))
      (define dom-sexps (map type->sexp dom))
      (append
@@ -427,8 +427,8 @@
   ;; see type-contract.rkt, which does something similar and this code
   ;; was stolen from/inspired by/etc.
   (match* ((first arrs) (last arrs))
-    [((Arrow: first-dom _ kws rng _)
-      (Arrow: last-dom rst _ _ _))
+    [((Arrow: first-dom _ kws rng)
+      (Arrow: last-dom rst _ _))
      (define-values (mand-kws opt-kws) (partition-kws kws))
      (define opt-doms (drop last-dom (length first-dom)))
      `(->*

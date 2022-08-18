@@ -1029,7 +1029,7 @@
 (define (setter->type id)
   (define f-type (lookup-id-type/lexical id))
   (match f-type
-    [(Fun: (list (Arrow: (list _ t) _ _ _ _))) t]
+    [(Fun: (list (Arrow: (list _ t) _ _ _))) t]
     [_ (int-err "setter->type ~a" (syntax-e id))]))
 
 ;; check-init-arg : Id Type Syntax -> Void
@@ -1044,7 +1044,7 @@
            (define type
              (tc-expr/check/t init-val (ret (->* null init-type))))
            (match type
-             [(Fun: (list (Arrow: _ _ _ (Values: (list (Result: result _ _))) _)))
+             [(Fun: (list (Arrow: _ _ _ (Values: (list (Result: result _ _))))))
               (check-below result init-type)]
              [_ (int-err "unexpected init value ~a"
                          (syntax->datum init-val))])]

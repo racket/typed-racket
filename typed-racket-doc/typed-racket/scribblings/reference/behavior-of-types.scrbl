@@ -44,10 +44,10 @@ because they can detect when a typed-untyped interaction goes wrong. On the othe
 constraints must be enforced with run-time checks, which affect run-time
 performance. Stronger constraints generally impose a higher performance cost.
 
-By default, Typed Racket provides @emph{Deep} types that strictly constrain the
+By default, Typed Racket provides @tech[#:key "deep type"]{Deep} types that strictly constrain the
 behavior of untyped code. But because these constraints can be expensive,
-Typed Racket offers two alternatives: @emph{Shallow} and
-@emph{Optional} types.
+Typed Racket offers two alternatives: @tech[#:key "shallow type"]{Shallow} and
+@tech[#:key "optional type"]{Optional} types.
 All three use the same static types and static checks, but
 they progressively weaken the run-time behavior of types.
 
@@ -62,7 +62,7 @@ they progressively weaken the run-time behavior of types.
 
 @itemlist[
 @item{
-  @emph{Deep} types enforce strong, compositional guarantees.
+  @deftech{Deep types} enforce strong, compositional guarantees.
   If a value is annotated with a Deep type, then all of its interactions with
   other code must match the type.
   For example, a value with the type @racket[(Listof String)] must be a list
@@ -72,7 +72,7 @@ they progressively weaken the run-time behavior of types.
               @racketmodname[typed/racket/deep] @racketmodname[typed/racket/base/deep]]
 }
 @item{
-  @emph{Shallow} types enforce the outer shape of values.
+  @deftech{Shallow types} enforce the outer shape of values.
   For example, the Shallow type @racket[(Listof String)] checks only for lists --- it does not check
   whether the list elements are strings.
   This enforcement may seem weak at first glance, but Shallow types can work
@@ -83,7 +83,7 @@ they progressively weaken the run-time behavior of types.
   @langs-from[@racketmodname[typed/racket/shallow] @racketmodname[typed/racket/base/shallow]]
 }
 @item{
-  @emph{Optional} types enforce nothing and add zero run-time cost.
+  @deftech{Optional types} enforce nothing and add zero run-time cost.
   These types are useful for finding bugs in typed code at compile-time, but they cannot
   detect interaction errors at run-time.
 
@@ -262,7 +262,7 @@ Shallow, or Optional.
 
 Across these forms, the changes are roughly the same.
 Deep types get enforced as (higher-order) contracts,
-Shallow types get enforced as shape checks,
+Shallow types get enforced as @tr-gtech{shape checks},
 and Optional types get enforced with nothing.
 The key point to understand is @emph{which} types get enforced at run-time.
 

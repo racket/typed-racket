@@ -761,7 +761,7 @@
          (parse-object-type stx do-parse)]
         [(:Refinement^ p?:id)
          (match (lookup-id-type/lexical #'p?)
-           [(and t (Fun: (list (Arrow: (list dom) #f '() _ _))))
+           [(and t (Fun: (list (Arrow: (list dom) #f '() _))))
             (make-Refinement dom #'p?)]
            [t (parse-error "expected a predicate for argument to Refinement"
                            "given" t)])]

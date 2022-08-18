@@ -311,7 +311,7 @@
 (define (restrict-Arrow-to-arity arrow n)
   (match arrow
     ;; currently does not handle rest arguments
-    [(Arrow: args #f '() _ _)
+    [(Arrow: args #f '() _)
      #:when (= n (length args))
      arrow]
     [_ #f]))
@@ -460,7 +460,7 @@
   (match* (arities f-or-arrow)
     [((case-arities fixed-arities rest-pos)
       (or (formals (app length arity) rst _)
-          (Arrow:  (app length arity) rst _ _ _)))
+          (Arrow:  (app length arity) rst _ _)))
      (or (>= arity rest-pos)
          (and (not rst) (memv arity fixed-arities) #t))]))
 
@@ -551,7 +551,7 @@
          ;; if this clause has an orig-arrow, we already checked it once and that
          ;; was it's arrow type -- we don't want to check it again at the same arrow
          [_ #:when (member arrow orig-arrows) arrow]
-         [(Arrow: dom rst '() rng _)
+         [(Arrow: dom rst '() rng)
           (define expected
             (values->tc-results rng (formals->objects clause-formals)))
           (tc/lambda-clause/check

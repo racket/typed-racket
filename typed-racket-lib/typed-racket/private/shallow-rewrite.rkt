@@ -83,7 +83,7 @@
            (protect-codomain tc-res stx (build-source-location-list stx) ctc-cache))
          (void (register-extra-defs! extra*))
          (if stx/check
-           (register-ignored (readd-props stx/check stx))
+           (register-ignored (copy-props stx/check stx))
            stx)]
         [(#%plain-app
            compose-class:id name:expr superclass:expr interface:expr internal:expr ...
@@ -103,10 +103,10 @@
              (lambda (name-stx)
                (memq (syntax-e name-stx) name*))))
          (register-ignored
-           (readd-props
+           (copy-props
              (quasisyntax/loc stx
                (#%plain-app compose-class name superclass interface internal ...
-                #,(readd-props
+                #,(copy-props
                     #`(#%plain-lambda (local-accessor local-mutator local-method-or-field ...)
                         #,(let shallow-rewrite-method-def ([val #'make-methods-body])
                             (cond
@@ -125,7 +125,7 @@
                                        (~literal chaperone-procedure)
                                        ((~literal let-values) ((meth-id meth-fun)) let-body) . rest)
                                       ;; TODO custom defense here, avoid checking 1st arg to method? ... for keywords, meth-fun is not an immediate lambda
-                                      (readd-props
+                                      (copy-props
                                         (quasisyntax/loc val
                                           (#%plain-app chaperone-procedure
                                             (let-values ((meth-id #,(loop #'meth-fun (private-method-name? val-name) trusted-fn*))) let-body) . rest))
@@ -135,7 +135,7 @@
                               [else
                                (define v (syntax-e val))
                                (if (pair? v)
-                                 (readd-props
+                                 (copy-props
                                    (datum->syntax val (cons (shallow-rewrite-method-def (car v)) (shallow-rewrite-method-def (cdr v))))
                                    val)
                                  val)])))
@@ -157,14 +157,14 @@
          (define num-args (length (syntax->list #'f-args)))
          (with-extended-env (get-poly-tvarss stx)
            (lambda ()
-             (readd-props
+             (copy-props
                (quasisyntax/loc stx
                  (let-values (((f-name)
                                (#%plain-lambda f-args
                                  #,(let dom-check-loop ([f-body #'f-body]
                                                         [num-args num-args])
                                      (if (zero? num-args)
-                                       (readd-props (loop f-body #f trusted-fn*) f-body)
+                                       (copy-props (loop f-body #f trusted-fn*) f-body)
                                        (syntax-parse f-body
                                         #:literals (let-values if)
                                         [(let-values (((arg-id) (~and if-expr (if test default-expr arg)))) f-rest)
@@ -182,8 +182,8 @@
                                                               [((~literal #%expression) ((~literal quote) #f))
                                                                #'default-expr]
                                                               [_
-                                                               (readd-props (loop #'default-expr #f trusted-fn*) #'default-expr)])
-                                                           #,(if arg+ (readd-props arg+ #'arg) #'arg))))
+                                                               (copy-props (loop #'default-expr #f trusted-fn*) #'default-expr)])
+                                                           #,(if arg+ (copy-props arg+ #'arg) #'arg))))
                                              #,(dom-check-loop #'f-rest (- num-args 1))))]
                                         [(let-values (((arg-id) arg-val)) f-rest)
                                          ;; normal arg
@@ -195,7 +195,7 @@
                                          (void (register-extra-defs! ex*))
                                          (quasisyntax/loc f-body
                                            (let-values (((arg-id)
-                                                         #,(if arg-val+ (readd-props arg-val+ #'arg-val) #'arg-val)))
+                                                         #,(if arg-val+ (copy-props arg-val+ #'arg-val) #'arg-val)))
                                              #,(dom-check-loop #'f-rest (- num-args 1))))]
                                         [_
                                          (raise-syntax-error 'shallow-rewrite-top "strange kw/opt function body"
@@ -204,19 +204,19 @@
                  stx)))]
         [((~and lam-id (~or #%plain-lambda case-lambda)) formals . body)
          #:when (not (maybe-type-of stx))
-         (define body+ (readd-props (loop #'body #f trusted-fn*) #'body))
-         (readd-props
+         (define body+ (copy-props (loop #'body #f trusted-fn*) #'body))
+         (copy-props
            (quasisyntax/loc stx
              (lam-id formals . #,body+))
            stx)]
         [(#%plain-lambda formals . body)
          (with-extended-env (get-poly-tvarss stx)
           (lambda ()
-           (readd-props
+           (copy-props
              (quasisyntax/loc stx
                (#%plain-lambda formals .
                  #,(let* ([body+
-                            (readd-props (loop #'body #f trusted-fn*) #'body)]
+                            (copy-props (loop #'body #f trusted-fn*) #'body)]
                           [dom* (map Arrow-dom (syntax->arrows stx))]
                           [check-formal*
                             (let protect-loop ([args #'formals]
@@ -261,7 +261,7 @@
          (define all-dom* (map Arrow-dom (syntax->arrows stx)))
          (with-extended-env (get-poly-tvarss stx)
            (lambda ()
-             (readd-props
+             (copy-props
                (quasisyntax/loc stx
                  (case-lambda .
                      #,(for/list ([formals (in-list (syntax-e #'(formals* ...)))]
@@ -279,7 +279,7 @@
                              (quasisyntax/loc stx
                                [#,formals .
                                 #,(let* ([body+
-                                          (readd-props (loop body #f trusted-fn*) body)]
+                                          (copy-props (loop body #f trusted-fn*) body)]
                                          [check-formal*
                                            (let protect-loop ([args formals]
                                                               [dom* matching-dom*])
@@ -326,18 +326,18 @@
          ;; (for ....) combinators expand to a recursive function that does not escape,
          ;;  no need to check the domain --- use (loop e #true trusted-fn*) to skip
          (define skip? (not (escapes? #'a #'e0 #false)))
-         (with-syntax ((e0+ (readd-props (loop #'e0 skip? (free-id-set-add trusted-fn* #'a)) #'e0))
+         (with-syntax ((e0+ (copy-props (loop #'e0 skip? (free-id-set-add trusted-fn* #'a)) #'e0))
                       ((e1*+ ...) (for/list ((e1 (in-list (syntax-e #'(e1* ...)))))
-                                    (readd-props (loop e1 #f trusted-fn*) e1))))
+                                    (copy-props (loop e1 #f trusted-fn*) e1))))
            (syntax/loc stx
              (#%plain-app (letrec-values (((a) e0+)) b) e1*+ ...))) ]
         [(x* ...)
          #:when (is-application? stx)
          (define stx+
-           (readd-props
+           (copy-props
              (syntax*->syntax stx
                (for/list ([x (in-list (syntax-e #'(x* ...)))])
-                 (readd-props (loop x skip-dom? trusted-fn*) x)))
+                 (copy-props (loop x skip-dom? trusted-fn*) x)))
              stx))
          (define-values [pre* f post*] (split-application stx+))
          (cond
@@ -354,22 +354,22 @@
               (protect-codomain cod-tc-res stx+ (build-source-location-list stx) ctc-cache))
             (void (register-extra-defs! extra*))
             (if stx/cod
-              (readd-props stx/cod stx)
+              (copy-props stx/cod stx)
               stx+)])]
         [((~and x (~literal #%expression)) e)
          #:when (or (type-inst-property #'x)
                     (type-ascription-property stx))
-         (define e+ (readd-props (loop #'e skip-dom? trusted-fn*) #'e))
+         (define e+ (copy-props (loop #'e skip-dom? trusted-fn*) #'e))
          (define e++
            (with-syntax ([e+ e+])
              (syntax/loc stx (x e+))))
-         (readd-props e++ stx)]
+         (copy-props e++ stx)]
         [(x* ...)
          (define stx+
            (syntax*->syntax stx
              (for/list ((x (in-list (syntax-e #'(x* ...)))))
-               (readd-props (loop x skip-dom? trusted-fn*) x))))
-         (readd-props stx+ stx)]
+               (copy-props (loop x skip-dom? trusted-fn*) x))))
+         (copy-props stx+ stx)]
         [_
          stx])))
   (values (reverse (unbox rev-extra-def*)) rewritten-stx))
@@ -392,16 +392,16 @@
            (extend-tvars/new tvars ns
              (inner rest-tvarss))])))))
 
-(define (readd-props! new-stx old-stx)
+(define (copy-props! new-stx old-stx)
   (maybe-add-typeof-expr new-stx old-stx)
   (maybe-add-test-position new-stx old-stx)
   (maybe-add-scoped-tvar new-stx old-stx)
   (maybe-register-ignored new-stx old-stx)
   (void))
 
-(define (readd-props pre-stx old-stx)
+(define (copy-props pre-stx old-stx)
   (define new-stx (copy-syntax-property* pre-stx old-stx))
-  (readd-props! new-stx old-stx)
+  (copy-props! new-stx old-stx)
   new-stx)
 
 (define (copy-syntax-property* new-stx old-stx)

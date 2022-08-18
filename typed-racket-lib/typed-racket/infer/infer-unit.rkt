@@ -448,8 +448,8 @@
 (define/cond-contract (cgen/arrow context s-arr t-arr)
   (context? Arrow? Arrow? . -> . (or/c #f cset?))
   (match* (s-arr t-arr)
-    [((Arrow: ss s-rest s-kws s _)
-      (Arrow: ts t-rest t-kws t _))
+    [((Arrow: ss s-rest s-kws s)
+      (Arrow: ts t-rest t-kws t))
      (define (rest->end rest)
        (match rest
          [(Rest: rst-ts) (star-end rst-ts)]

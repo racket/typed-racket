@@ -52,7 +52,7 @@
                      #'kw-arg-list #'pos-args expected))
 
       (define (tc/app-poly-fun vars arrow fail)
-        (match-define (and ar (Arrow: dom rst kw-formals rng _)) arrow)
+        (match-define (and ar (Arrow: dom rst kw-formals rng)) arrow)
         ;; if the types of the keyword arguments have type variables or rst is
         ;; set, stop.
         (unless (or (set-empty? (fv/list kw-formals)) (not rst))
@@ -86,7 +86,7 @@
 
 (define (tc-keywords/internal arity kws kw-args error?)
   (match arity
-    [(Arrow: dom (not (? RestDots?)) ktys rng _)
+    [(Arrow: dom (not (? RestDots?)) ktys rng)
      ;; assumes that everything is in sorted order
      (let loop ([actual-kws kws]
                 [actuals (stx-map tc-expr/t kw-args)]

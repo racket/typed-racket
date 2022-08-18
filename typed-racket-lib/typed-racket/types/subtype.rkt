@@ -233,8 +233,8 @@
 (define/cond-contract (arrow-subtype* A arr1 arr2)
   (-> list? Arrow? Arrow? (or/c #f list?))
   (match* (arr1 arr2)
-    [((Arrow: dom1 rst1 kws1 raw-rng1 _)
-      (Arrow: dom2 rst2 kws2 raw-rng2 _))
+    [((Arrow: dom1 rst1 kws1 raw-rng1)
+      (Arrow: dom2 rst2 kws2 raw-rng2))
      (define A* (subtype-seq A
                              (Arrow-domain-subtypes* dom1 rst1 dom2 rst2)
                              (kw-subtypes* kws1 kws2)))
@@ -261,7 +261,7 @@
 (define/cond-contract (arrow-subtype-dfun* A arrow dfun)
   (-> list? Arrow? DepFun? (or/c #f list?))
   (match* (arrow dfun)
-    [((Arrow: dom1 rst1 kws1 raw-rng1 _)
+    [((Arrow: dom1 rst1 kws1 raw-rng1)
       (DepFun: raw-dom2 raw-pre2  raw-rng2))
      #:when (Arrow-includes-arity? arrow (length raw-dom2))
      (define arity (length raw-dom2))
@@ -579,7 +579,7 @@
 (define/cond-contract (collapsable-arrows? arrows)
   (-> (listof Arrow?) (or/c Arrow? #f))
   (match arrows
-    [(cons (Arrow: (list dom1) #f '() rng _) remaining)
+    [(cons (Arrow: (list dom1) #f '() rng) remaining)
      (match remaining
        [(list (Arrow: (list dom2) #f '() (== rng) rng-T+2)
               (Arrow: (list doms) #f '() (== rng) rng-T+*) ...)
@@ -794,7 +794,7 @@
                   ([a2 (in-list arrows2)]
                    #:break (not A))
           (match a2
-            [(Arrow: dom2 rst2 kws2 raw-rng2 _)
+            [(Arrow: dom2 rst2 kws2 raw-rng2)
              (define A* (subtype-seq A
                                      (subtypes* dom2 dom1)
                                      (kw-subtypes* '() kws2)))

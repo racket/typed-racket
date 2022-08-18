@@ -65,7 +65,7 @@
         (eq? expected-ty #t) ; expected is tc-anyresults, anything is fine
         (and expected-ty ; not some unknown expected tc-result
              (match fun-ty
-               [(Fun: (list (Arrow: _ _ _ rng _)))
+               [(Fun: (list (Arrow: _ _ _ rng)))
                 (let ([rng (match rng
                              [(Values: (list (Result: t _ _)))
                               t]
@@ -116,7 +116,7 @@
   ;; function types with a return type of any then test for subtyping
   (define fun-tys-ret-any
     (map (match-lambda
-          [(Fun: (list (Arrow: dom rst _ _ _)))
+          [(Fun: (list (Arrow: dom rst _ _)))
            (make-Fun (list (make-Arrow dom
                                        rst
                                        null

@@ -716,14 +716,14 @@
     (syntax-case stx ()
       [(_ dom rst kws rng)
        #'(? Arrow? (app (lambda (arrow)
-                           (match-define (Arrow: d r k r _) arrow)
-                           (list d r k r))
-                         (list dom rst kws rng)))]
+                          (match-define (Arrow: domain rest keywords range _) arrow)
+                          (list domain rest keywords range))
+                        (list dom rst kws rng)))]
       [(_ dom rst kws rng rng-T+)
        #'(? Arrow? (app (lambda (arrow)
-                           (match-define (Arrow: d r k r T+) arrow)
-                           (list d r k r T+))
-                         (list dom rst kws rng rng-T+)))])))
+                          (match-define (Arrow: domain rest keywords range rng-shallow-safe?) arrow)
+                          (list domain rest keywords range rng-shallow-safe?))
+                        (list dom rst kws rng rng-T+)))])))
 
 ;; a standard function
 ;; + all functions are case-> under the hood (i.e. see 'arrows')

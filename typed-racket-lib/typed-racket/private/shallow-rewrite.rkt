@@ -32,6 +32,7 @@
   typed-racket/utils/plambda-utils
   typed-racket/utils/shallow-utils
   (only-in typed-racket/optimizer/unboxed-let escapes?)
+  (only-in typed-racket/utils/utils rev-append)
   (only-in typed-racket/private/type-annotation type-annotation get-type)
   (only-in typed-racket/private/syntax-properties
     type-ascription-property
@@ -736,9 +737,5 @@
              #:result (values (reverse extra-def*) (reverse ctc-stx*)))
             ((t (in-list t*)))
     (define-values [ex* ctc-stx] (type->flat-contract t ctc-cache))
-    (values (rev-append ex* extra-def*) (cons ctc-stx ctc-stx*))))
-
-(define (rev-append a* b*)
-  (let loop ((a* a*) (b* b*))
-    (if (null? a*) b* (loop (cdr a*) (cons (car a*) b*)))))
+    (values (append (reverse ex*) extra-def*) (cons ctc-stx ctc-stx*))))
 

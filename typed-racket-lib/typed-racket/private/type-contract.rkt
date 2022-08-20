@@ -225,8 +225,7 @@
 ;;   submodule, which always has the above `require`s.
 (define include-extra-requires? (box #f))
 
-(define (change-contract-fixups forms)
-  (define ctc-cache (make-hash))
+(define (change-contract-fixups forms [ctc-cache (make-hash)])
   (with-new-name-tables
    (for/list ((e (in-list forms)))
      (if (not (has-contract-def-property? e))

@@ -737,5 +737,5 @@
              #:result (values (reverse extra-def*) (reverse ctc-stx*)))
             ((t (in-list t*)))
     (define-values [ex* ctc-stx] (type->flat-contract t ctc-cache))
-    (values (append (reverse ex*) extra-def*) (cons ctc-stx ctc-stx*))))
+    (values (rev-append ex* extra-def*) (cons ctc-stx ctc-stx*))))
 

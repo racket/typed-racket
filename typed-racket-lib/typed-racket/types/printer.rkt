@@ -602,7 +602,9 @@
     ;; struct names are just printed as the original syntax
     [(Name/struct: id)
      (match (lookup-type-name id (lambda () #f))
-       [(and (? Prefab?) ty) (t->s ty (cons id ignored-names))]
+       [(and (? Prefab?) ty)
+        #:when (>= (current-print-type-fuel) 0)
+        (t->s ty (cons id ignored-names))]
        [_ (syntax-e id)])]
     ;; If a type has a name, then print it with that name.
     ;; However, we expand the alias in some cases

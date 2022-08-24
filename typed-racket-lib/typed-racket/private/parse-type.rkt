@@ -1124,7 +1124,7 @@
          ;; use do-parse instead of parse-values-type because we need to add the props from the pred-ty
          (with-arity 1
            (make-pred-ty (list (do-parse #'dom)) (do-parse #'rng) (attribute latent.type)
-                         (-acc-path (attribute latent.path) (-arg-path 0)) #f))]
+                         (-acc-path (attribute latent.path) (-arg-path 0))))]
         [(~or (:->^ dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rest:non-keyword-ty ddd:star rng)
               (dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rest:non-keyword-ty ddd:star :->^ rng))
          (with-arity (length (syntax->list #'(dom ...)))

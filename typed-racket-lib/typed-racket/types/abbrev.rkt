@@ -205,6 +205,9 @@
 (define (asym-pred dom rng prop [T+ #f])
   (make-Fun (list (-Arrow (list dom) rng #:props prop #:T+ T+))))
 
+(define (unsafe-shallow:asym-pred dom rng prop)
+  (asym-pred dom rng prop #true))
+
 (define/cond-contract make-pred-ty
   (c:case-> (c:-> Type? Type?)
             (c:-> Type? boolean? Type?)
@@ -222,6 +225,15 @@
      (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)) T+)]
     [(t)
      (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)) #f)]))
+
+(define unsafe-shallow:make-pred-ty
+  (case-lambda
+    [(in out t o)
+     (make-pred-ty in out t o #true)]
+    [(in out t)
+     (make-pred-ty in out t #true)]
+    [(t)
+     (make-pred-ty t #true)]))
 
 (define/decl -true-propset (-PS -tt -ff))
 (define/decl -false-propset (-PS -ff -tt))

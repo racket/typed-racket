@@ -71,18 +71,18 @@
                                    #f)]
 
 ;; Section 4.2 (Booleans)
-[boolean? (make-pred-ty B #t)]
-[not (make-pred-ty (-val #f) #t)]
+[boolean? (unsafe-shallow:make-pred-ty B)]
+[not (unsafe-shallow:make-pred-ty (-val #f))]
 
-[immutable? (asym-pred Univ B (-PS (-is-type 0 (Un -Bytes -BoxTop -String (-Immutable-HT Univ Univ) (-ivec Univ)))
-                                   (-not-type 0 (Un (-Immutable-HT Univ Univ) (-ivec Univ)))) #t)]
+[immutable? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (Un -Bytes -BoxTop -String (-Immutable-HT Univ Univ) (-ivec Univ)))
+                                   (-not-type 0 (Un (-Immutable-HT Univ Univ) (-ivec Univ)))))]
 
 ;; Section 4.1.1 (racket/bool)
 [true (-val #t)]
 [false (-val #f)]
 [boolean=? (B B . -> . B)]
 [symbol=? (Sym Sym . -> . B)]
-[false? (make-pred-ty (-val #f) #t)]
+[false? (unsafe-shallow:make-pred-ty (-val #f))]
 [xor (-> Univ Univ Univ)]
 
 ;; Section 4.3 (Numbers)
@@ -98,7 +98,7 @@
 
 [random-seed (-> -PosInt -Void)]
 [make-pseudo-random-generator (-> -Pseudo-Random-Generator)]
-[pseudo-random-generator? (make-pred-ty -Pseudo-Random-Generator #t)]
+[pseudo-random-generator? (unsafe-shallow:make-pred-ty -Pseudo-Random-Generator)]
 [current-pseudo-random-generator (-Param -Pseudo-Random-Generator -Pseudo-Random-Generator)]
 [pseudo-random-generator->vector
  (-> -Pseudo-Random-Generator (-vec* -PosInt -PosInt -PosInt -PosInt -PosInt -PosInt))]
@@ -122,7 +122,7 @@
 [extfl->floating-point-bytes (->opt -ExtFlonum [Univ -Bytes -Nat] -Bytes)]
 
 ;; Section 4.4 (Strings)
-[string? (make-pred-ty -String #t)]
+[string? (unsafe-shallow:make-pred-ty -String)]
 ;make-string (in Index)
 [string (->* '() -Char -String)]
 [string->immutable-string (-> -String -String)]
@@ -204,7 +204,7 @@
            #:repeat? Univ #f
            -String)]
 
-[non-empty-string? (asym-pred Univ -Boolean (-PS (-is-type 0 -String) -tt) #t)]
+[non-empty-string? (unsafe-shallow:asym-pred Univ -Boolean (-PS (-is-type 0 -String) -tt))]
 [string-contains? (-> -String -String -Boolean)]
 [string-prefix? (-> -String -String -Boolean)]
 [string-suffix? (-> -String -String -Boolean)]
@@ -319,11 +319,11 @@
 
 ;; Section 4.5 (Byte Strings)
 [bytes (->* (list) -Integer -Bytes)]
-[bytes? (make-pred-ty -Bytes #t)]
+[bytes? (unsafe-shallow:make-pred-ty -Bytes)]
 [make-bytes (cl-> [(-Integer -Integer) -Bytes]
                   [(-Integer) -Bytes])]
 [bytes->immutable-bytes (-> -Bytes -Bytes)]
-[byte? (make-pred-ty -Byte #t)]
+[byte? (unsafe-shallow:make-pred-ty -Byte)]
 [bytes-append (->* (list) -Bytes -Bytes)]
 [bytes-length (-> -Bytes -Index)]
 [unsafe-bytes-length (-> -Bytes -Index)]
@@ -381,7 +381,7 @@
               -Nat
               (one-of/c 'complete 'continues)))))]
 
-[bytes-converter? (make-pred-ty -Bytes-Converter #t)]
+[bytes-converter? (unsafe-shallow:make-pred-ty -Bytes-Converter)]
 
 [locale-string-encoding (-> -String)]
 
@@ -389,7 +389,7 @@
 [bytes-join ((-lst -Bytes) -Bytes . -> . -Bytes)]
 
 ;; Section 4.6 (Characters)
-[char? (make-pred-ty -Char #t)]
+[char? (unsafe-shallow:make-pred-ty -Char)]
 [char=? (->* (list -Char -Char) -Char B)]
 [char<=? (->* (list -Char -Char) -Char B)]
 [char>=? (->* (list -Char -Char) -Char B)]
@@ -427,7 +427,7 @@
 [char-utf-8-length (-> -Char (apply Un (map -val '(1 2 3 4 5 6))))]
 
 ;; Section 4.7 (Symbols)
-[symbol? (make-pred-ty Sym #t)]
+[symbol? (unsafe-shallow:make-pred-ty Sym)]
 [symbol-interned? (-> Sym B)]
 [symbol-unreadable? (-> Sym B)]
 [symbol->string (Sym . -> . -String)]
@@ -440,10 +440,10 @@
 [symbol->immutable-string (Sym . -> . -String)]
 
 ;; Section 4.8 (Regular Expressions)
-[regexp? (make-pred-ty -Regexp #t)]
-[pregexp? (make-pred-ty -PRegexp #t)]
-[byte-regexp? (make-pred-ty -Byte-Regexp #t)]
-[byte-pregexp? (make-pred-ty -Byte-PRegexp #t)]
+[regexp? (unsafe-shallow:make-pred-ty -Regexp)]
+[pregexp? (unsafe-shallow:make-pred-ty -PRegexp)]
+[byte-regexp? (unsafe-shallow:make-pred-ty -Byte-Regexp)]
+[byte-pregexp? (unsafe-shallow:make-pred-ty -Byte-PRegexp)]
 [regexp (-String . -> . -Base-Regexp)]
 [pregexp (-String . -> . -PRegexp)]
 [byte-regexp (-Bytes . -> . -Byte-Base-Regexp)]
@@ -498,7 +498,7 @@
   [-> -Bytes -Bytes])]
 
 ;; Section 4.9 (Keywords)
-[keyword? (make-pred-ty -Keyword #t)]
+[keyword? (unsafe-shallow:make-pred-ty -Keyword)]
 [string->keyword (-String . -> . -Keyword)]
 [keyword->string (-Keyword . -> . -String)]
 [keyword<? (->* (list -Keyword -Keyword) -Keyword B)]
@@ -654,18 +654,18 @@
                      [(a (-lst a)) (-lst a)]))]
 #;[*list? (make-pred-ty (-lst Univ))]
 
-[null? (make-pred-ty -Null #t)]
+[null? (unsafe-shallow:make-pred-ty -Null)]
 [null -Null]
-[cons? (make-pred-ty (-pair Univ Univ) #t)]
-[pair? (make-pred-ty (-pair Univ Univ) #t)]
-[empty? (make-pred-ty -Null #t)]
+[cons? (unsafe-shallow:make-pred-ty (-pair Univ Univ))]
+[pair? (unsafe-shallow:make-pred-ty (-pair Univ Univ))]
+[empty? (unsafe-shallow:make-pred-ty -Null)]
 [empty -Null]
 
 [ormap (-polydots (a c b) (->... (list (->... (list a) (b b) c) (-lst a)) ((-lst b) b) (Un c (-val #f))))]
 [andmap (-polydots (a c d b) (cl->*
-                              (make-pred-ty (list (make-pred-ty (list a) c d #f) (-lst a)) c (-lst d)
+                              (unsafe-shallow:make-pred-ty (list (make-pred-ty (list a) c d) (-lst a)) c (-lst d)
                                             ;; predicate on second argument
-                                            (-arg-path 1) #t)
+                                            (-arg-path 1))
                               (->... (list (->... (list a) (b b) c) (-lst a)) ((-lst b) b) (Un c (-val #t)))))]
 
 [reverse (-poly (a) (-> (-lst a) (-lst a)))]
@@ -711,7 +711,7 @@
                        . -> .
                        (-lst -Index)))]
 
-[list? (make-pred-ty (-lst Univ) #t)]
+[list? (unsafe-shallow:make-pred-ty (-lst Univ))]
 [list (-poly (a) (->* '() a (-lst a)))]
 [map (-polydots (c a b)
                 (cl->*
@@ -736,7 +736,7 @@
                      [((a b c . -> . c :T+ #f) c (-lst a) (-lst b)) c :T+ #f]
                      [((a b c d . -> . d :T+ #f) d (-lst a) (-lst b) (-lst c)) d :T+ #f]))]
 [filter (-poly (a b) (cl->*
-                      ((asym-pred a Univ (-PS (-is-type 0 b) -tt) #t)
+                      ((unsafe-shallow:asym-pred a Univ (-PS (-is-type 0 b) -tt))
                        (-lst a)
                        . -> .
                        (-lst b))
@@ -776,7 +776,7 @@
                    -Index))]
 [partition
  (-poly (a b) (cl->*
-               (-> (asym-pred b Univ (-PS (-is-type 0 a) -tt) #t) (-lst b) (-values (list (-lst a) (-lst b))))
+               (-> (unsafe-shallow:asym-pred b Univ (-PS (-is-type 0 a) -tt)) (-lst b) (-values (list (-lst a) (-lst b))))
                (-> (-> a Univ) (-lst a) (-values (list (-lst a) (-lst a))))))]
 
 [last   (-poly (a) ((-lst a) . -> . a :T+ #f))]
@@ -794,7 +794,7 @@
  (-poly (a b)
    (cl->*
     (-> (-lst a)
-        (asym-pred a Univ (-PS (-is-type 0 b) -tt) #t)
+        (unsafe-shallow:asym-pred a Univ (-PS (-is-type 0 b) -tt))
         (-lst b))
     (-> (-lst a) (-> a Univ) (-lst a))))]
 [dropf (-poly (a) (-> (-lst a) (-> a Univ) (-lst a)))]
@@ -802,14 +802,14 @@
  (-poly (a b)
    (cl->*
     (-> (-lst a)
-        (asym-pred a Univ (-PS (-is-type 0 b) -tt) #t)
+        (unsafe-shallow:asym-pred a Univ (-PS (-is-type 0 b) -tt))
         (-values (list (-lst b) (-lst a))))
     (-> (-lst a) (-> a Univ) (-values (list (-lst a) (-lst a))))))]
 [takef-right
  (-poly (a b)
    (cl->*
     (-> (-lst a)
-        (asym-pred a Univ (-PS (-is-type 0 b) -tt) #t)
+        (unsafe-shallow:asym-pred a Univ (-PS (-is-type 0 b) -tt))
         (-lst b))
     (-> (-lst a) (-> a Univ) (-lst a))))]
 [dropf-right (-poly (a) (-> (-lst a) (-> a Univ) (-lst a)))]
@@ -817,7 +817,7 @@
  (-poly (a b)
    (cl->*
     (-> (-lst a)
-        (asym-pred a Univ (-PS (-is-type 0 b) -tt) #t)
+        (unsafe-shallow:asym-pred a Univ (-PS (-is-type 0 b) -tt))
         (-values (list (-lst a) (-lst b))))
     (-> (-lst a) (-> a Univ) (-values (list (-lst a) (-lst a))))))]
 
@@ -885,7 +885,7 @@
 [unsafe-set-mcdr! (-poly (a b)
                          (cl->* (-> (-mpair a b) b -Void)
                                 (-> (-mlst a) (-mlst a) -Void)))]
-[mpair? (make-pred-ty -MPairTop #t)]
+[mpair? (unsafe-shallow:make-pred-ty -MPairTop)]
 ;; mlist is a macro that under the hood uses -mlist, which is annotated in
 ;; base-special-env.rkt
 
@@ -894,7 +894,7 @@
 [mappend (-poly (a) (->* (list) (-mlst a) (-mlst a)))]
 
 ;; Section 4.12 (Vectors)
-[vector? (make-pred-ty -VectorTop #t)]
+[vector? (unsafe-shallow:make-pred-ty -VectorTop)]
 [vector->list (-poly (a) (cl->* (-> (-vec a) (-lst a))
                                 (-> -VectorTop (-lst Univ))))]
 [list->vector (-poly (a) (-> (-lst a) (-mvec a)))]
@@ -923,7 +923,7 @@
                           . ->... .
                           -Index))]
 [vector-filter (-poly (a b) (cl->*
-                              ((asym-pred a Univ (-PS (-is-type 0 b) -tt) #t)
+                              ((unsafe-shallow:asym-pred a Univ (-PS (-is-type 0 b) -tt))
                                (-vec a)
                                . -> .
                                (-mvec b))
@@ -967,14 +967,14 @@
                            (-BoxTop . -> . Univ)))]
 [unsafe-set-box*! (-poly (a) ((-box a) a . -> . -Void))]
 [unsafe-box*-cas! (-poly (a) ((-box a) a a . -> . -Boolean))]
-[box? (make-pred-ty -BoxTop #t)]
+[box? (unsafe-shallow:make-pred-ty -BoxTop)]
 
 ;; Section 4.14 (Hash Tables)
-[hash? (make-pred-ty -HashTableTop #t)]
+[hash? (unsafe-shallow:make-pred-ty -HashTableTop)]
 [hash-eq? (-> -HashTableTop B)]
 [hash-eqv? (-> -HashTableTop B)]
 [hash-equal? (-> -HashTableTop B)]
-[hash-weak? (asym-pred -HashTableTop B (-PS (-is-type 0 -Weak-HashTableTop) (-not-type 0 -Weak-HashTableTop)) #t)]
+[hash-weak? (unsafe-shallow:asym-pred -HashTableTop B (-PS (-is-type 0 -Weak-HashTableTop) (-not-type 0 -Weak-HashTableTop)))]
 [hash (-poly (a b) (->* (list) (make-Rest (list a b)) (-Immutable-HT a b)))]
 [hasheqv (-poly (a b) (->* (list) (make-Rest (list a b)) (-Immutable-HT a b)))]
 [hasheq (-poly (a b) (->* (list) (make-Rest (list a b)) (-Immutable-HT a b)))]
@@ -1131,7 +1131,7 @@
 [hash-union! (-poly (a b) (->* (list (-Mutable-HT a b))  (-HT a b) -Void))]
 
 ;; Section 4.15 (Sequences and Streams)
-[sequence? (make-pred-ty -SequenceTop #t)]
+[sequence? (unsafe-shallow:make-pred-ty -SequenceTop)]
 [in-sequences
  (-polydots (a) (->* '() (-seq-dots '() a 'a) (-seq-dots '() a 'a)))]
 [in-cycle
@@ -1178,7 +1178,7 @@
 [sequence-count (-polydots (a) ((->... '() (a a) Univ) (-seq-dots '() a 'a) . -> . -Nat))]
 [sequence-filter (-polydots (a b c)
                    (cl->*
-                    ((asym-pred a Univ (-PS (-is-type 0 b) -tt) #t)
+                    ((unsafe-shallow:asym-pred a Univ (-PS (-is-type 0 b) -tt))
                      (-seq a)
                      . -> .
                      (-seq b))
@@ -1209,8 +1209,8 @@
 [proper-subset? (-poly (e) (set-abs -set (-> (-set e) (-set e) B)))]
 [set-map (-poly (e b) (-> (-list-or-set e) (-> e b) (-lst b)))]
 [set-for-each (-poly (e b) (-> (-list-or-set e) (-> e b) -Void))]
-[generic-set? (asym-pred Univ B (-PS -tt (-not-type 0 (-list-or-set Univ))) #t)]
-[set? (make-pred-ty (-set Univ) #t)]
+[generic-set? (unsafe-shallow:asym-pred Univ B (-PS -tt (-not-type 0 (-list-or-set Univ))))]
+[set? (unsafe-shallow:make-pred-ty (-set Univ))]
 [set-equal? (-poly (e) (-> (-set e) B))]
 [set-eqv? (-poly (e) (-> (-set e) B))]
 [set-eq? (-poly (e) (-> (-set e) B))]
@@ -1221,7 +1221,7 @@
 [set->list (-poly (e) (-> (-set e) (-lst e)))]
 
 ;; Section 4.18 (Procedures)
-[procedure? (make-pred-ty top-func #t)]
+[procedure? (unsafe-shallow:make-pred-ty top-func)]
 [compose (-poly (a b c) (-> (-> b c :T+ #f) (-> a b :T+ #f) (-> a c :T+ #f)))]
 [compose1 (-poly (a b c) (-> (-> b c :T+ #f) (-> a b :T+ #f) (-> a c :T+ #f)))]
 [procedure-rename (-poly (a) (-> (-Inter top-func a) -Symbol a))]
@@ -1229,7 +1229,7 @@
 [procedure-closure-contents-eq? (-> top-func top-func -Boolean)]
 ;; keyword-apply - hard to give a type
 [procedure-arity (-> top-func (Un -Nat -Arity-At-Least (-lst (Un -Nat -Arity-At-Least))))]
-[procedure-arity? (make-pred-ty (Un -Nat -Arity-At-Least (-lst (Un -Nat -Arity-At-Least))) #t)]
+[procedure-arity? (unsafe-shallow:make-pred-ty (Un -Nat -Arity-At-Least (-lst (Un -Nat -Arity-At-Least))))]
 [procedure-arity-includes? (->opt top-func -Nat [Univ] B)]
 [procedure-reduce-arity (-> top-func (Un -Nat -Arity-At-Least (-lst (Un -Nat -Arity-At-Least))) top-func)]
 [procedure-keywords (-> top-func (-values (list (-lst -Keyword) (-opt (-lst -Keyword)))))]
@@ -1271,7 +1271,7 @@
 
 ;; Sections 4.19 & 4.20 (Void and Undefined)
 [void (->* '() Univ -Void)]
-[void? (make-pred-ty -Void #t)]
+[void? (unsafe-shallow:make-pred-ty -Void)]
 
 [unsafe-undefined -Unsafe-Undefined]
 
@@ -1299,21 +1299,21 @@
         Univ]
        (-values (list (-poly (a) (-struct-property a #f)) (-> Univ B) (-> Univ Univ))))]
 
-[struct-type-property? (make-pred-ty (-struct-property -Bottom #f) #t)]
+[struct-type-property? (unsafe-shallow:make-pred-ty (-struct-property -Bottom #f))]
 [struct-type-property-accessor-procedure? (-> Univ B)]
 [struct-type-property-predicate-procedure? (->opt Univ [(-opt (-struct-property -Bottom #f))] B)]
 
 ;; Section 5.6 (Structure Utilities)
 [struct->vector (Univ . -> . (-vec Univ))]
 [struct? (-> Univ -Boolean)]
-[struct-type? (make-pred-ty -StructTypeTop #t)]
+[struct-type? (unsafe-shallow:make-pred-ty -StructTypeTop)]
 
 ;; Section 6.2 (Classes)
 [object% (-class)]
 
 ;; Section 6.11 (Object, Class, and Interface Utilities)
-[object? (make-pred-ty (-object) #t)]
-[class? (make-pred-ty -ClassTop #t)]
+[object? (unsafe-shallow:make-pred-ty (-object))]
+[class? (unsafe-shallow:make-pred-ty -ClassTop)]
 ;; TODO: interface?
 ;;       generic?
 [object=? (-> (-object) (-object) -Boolean)]
@@ -1332,7 +1332,7 @@
 ;; TODO: class-info (is this sound to allow?)
 
 ;; Section 7.8 (Unit Utilities)
-[unit? (make-pred-ty -UnitTop #t)]
+[unit? (unsafe-shallow:make-pred-ty -UnitTop)]
 
 ;; Section 9.1
 [exn:misc:match? (-> Univ B)]
@@ -1340,7 +1340,7 @@
 [match:error ((list) Univ . ->* . (Un))]
 ;[match:error (Univ . -> . (Un))]
 [match-equality-test (-Param (Univ Univ . -> . Univ) (Univ Univ . -> . Univ))]
-[matchable? (make-pred-ty (Un -String -Bytes) #t)]
+[matchable? (unsafe-shallow:make-pred-ty (Un -String -Bytes))]
 [syntax-srclocs (Univ . -> . Univ)]
 
 ;; Section 10.1
@@ -1371,7 +1371,7 @@
 [raise-syntax-error (->optkey (-opt Sym) -String [Univ Univ (-lst (-Syntax Univ)) -String] #:exn (-> (-lst (-Syntax Univ)) -String -Cont-Mark-Set -Exn) #f (Un))]
 ;raise-argument-error, raise-type-error, etc. (in index)
 
-[unquoted-printing-string? (make-pred-ty -Unquoted-Printing-String #t)]
+[unquoted-printing-string? (unsafe-shallow:make-pred-ty -Unquoted-Printing-String)]
 [unquoted-printing-string (-> -String -Unquoted-Printing-String)]
 [unquoted-printing-string-value (-> -Unquoted-Printing-String -String)]
 
@@ -1387,13 +1387,13 @@
 
 ;; Section 10.2.5
 [prop:exn:srclocs (-struct-property (-> -Self (-lst -Srcloc)) #'exn:srclocs?)]
-[exn:srclocs? (make-pred-ty (-has-struct-property #'prop:exn:srclocs) #t)]
+[exn:srclocs? (unsafe-shallow:make-pred-ty (-has-struct-property #'prop:exn:srclocs))]
 [exn:srclocs-accessor (-> Univ (-lst Univ))] ;TODO
 
 [srcloc->string (-> -Srcloc -String)]
 
 ;; Section 10.3 (Delayed Evaluation)
-[promise? (make-pred-ty (-Promise Univ) #t)]
+[promise? (unsafe-shallow:make-pred-ty (-Promise Univ))]
 [force (-poly (a) (->acc (list (-Promise a)) a (list -force) #:T+ #f))]
 [promise-forced? (-poly (a) (-> (-Promise a) B))]
 [promise-running? (-poly (a) (-> (-Promise a) B))]
@@ -1452,8 +1452,8 @@
 [call-with-continuation-barrier (-poly (a) (-> (-> a :T+ #f) a :T+ #f))]
 [continuation-prompt-available? (-> -Prompt-TagTop B)]
 [continuation?
- (asym-pred Univ B (-PS (-is-type 0 top-func) -tt) #t)]
-[continuation-prompt-tag? (make-pred-ty -Prompt-TagTop #t)]
+ (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 top-func) -tt))]
+[continuation-prompt-tag? (unsafe-shallow:make-pred-ty -Prompt-TagTop)]
 [dynamic-wind (-poly (a) (-> (-> ManyUniv) (-> a :T+ #f) (-> ManyUniv) a :T+ #f))]
 
 ;; Section 10.5 (Continuation Marks)
@@ -1490,8 +1490,8 @@
          (->opt (-opt -Cont-Mark-Set) Univ [Univ -Prompt-TagTop] Univ)))]
 [call-with-immediate-continuation-mark
  (-poly (a) (->opt Univ (-> Univ a :T+ #f) [Univ] a :T+ #f))]
-[continuation-mark-key? (make-pred-ty -Continuation-Mark-KeyTop #t)]
-[continuation-mark-set? (make-pred-ty -Cont-Mark-Set #t)]
+[continuation-mark-key? (unsafe-shallow:make-pred-ty -Continuation-Mark-KeyTop)]
+[continuation-mark-set? (unsafe-shallow:make-pred-ty -Cont-Mark-Set)]
 [make-continuation-mark-key
  (-poly (a) (->opt [-Symbol] (-Continuation-Mark-Keyof a)))]
 [continuation-mark-set->context
@@ -1509,7 +1509,7 @@
 
 ;; Section 11.1.1
 [thread (-> (-> Univ) -Thread)]
-[thread? (make-pred-ty -Thread #t)]
+[thread? (unsafe-shallow:make-pred-ty -Thread)]
 [current-thread (-> -Thread)]
 [thread/suspend-to-kill (-> (-> Univ) -Thread)]
 [call-in-nested-thread (-poly (a) (->opt (-> a :T+ #f) [-Custodian] a :T+ #f))]
@@ -1540,7 +1540,7 @@
 [thread-rewind-receive (-> (-lst Univ) -Void)]
 
 ;; Section 11.2.1
-[evt? (make-pred-ty (-evt Univ) #t)]
+[evt? (unsafe-shallow:make-pred-ty (-evt Univ))]
 [sync (-poly (a) (->* '() (-evt a) a :T+ #f))]
 [sync/timeout
  (-poly (a b)
@@ -1573,29 +1573,29 @@
 [never-evt (-evt (Un))]
 [system-idle-evt (-> (-evt -Void))]
 [alarm-evt (-> -Real (-mu x (-evt x)))]
-[handle-evt? (asym-pred Univ B (-PS (-is-type 0 (-evt Univ)) -tt) #t)]
+[handle-evt? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (-evt Univ)) -tt))]
 [prop:evt (-struct-property (Un (-evt Univ) (-> -Self ManyUniv) -Nat) #'evt?)]
 [current-evt-pseudo-random-generator
  (-Param -Pseudo-Random-Generator -Pseudo-Random-Generator)]
 
 ;; Section 11.2.2
 [make-channel (-poly (a) (-> (-channel a)))]
-[channel? (make-pred-ty -ChannelTop #t)]
+[channel? (unsafe-shallow:make-pred-ty -ChannelTop)]
 [channel-get (-poly (a) ((-channel a) . -> . a :T+ #f))]
 [channel-try-get (-poly (a) ((-channel a) . -> . (Un a (-val #f)) :T+ #f))]
 [channel-put (-poly (a) ((-channel a) a . -> . -Void))]
 [channel-put-evt (-poly (a) (-> (-channel a) a (-mu x (-evt x))))]
-[channel-put-evt? (asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt) #t)]
+[channel-put-evt? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt))]
 
 ;; Section 11.2.3 (Semaphores)
-[semaphore? (make-pred-ty -Semaphore #t)]
+[semaphore? (unsafe-shallow:make-pred-ty -Semaphore)]
 [make-semaphore (->opt [-Nat] -Semaphore)]
 [semaphore-post (-> -Semaphore -Void)]
 [semaphore-wait (-> -Semaphore -Void)]
 [semaphore-try-wait? (-> -Semaphore B)]
 [semaphore-wait/enable-break (-> -Semaphore -Void)]
 [semaphore-peek-evt (-> -Semaphore (-mu x (-evt x)))]
-[semaphore-peek-evt? (asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt) #t)]
+[semaphore-peek-evt? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt))]
 [call-with-semaphore
  (-polydots (b a)
    (cl->* (->... (list -Semaphore (->... '() [a a] b :T+ #f))
@@ -1610,7 +1610,7 @@
                  [a a] b :T+ #f)))]
 
 ;; Section 11.3.1 (Thread Cells)
-[thread-cell? (make-pred-ty -ThreadCellTop #t)]
+[thread-cell? (unsafe-shallow:make-pred-ty -ThreadCellTop)]
 [make-thread-cell (-poly (a) (->opt a [Univ] (-thread-cell a)))]
 [thread-cell-ref (-poly (a) (-> (-thread-cell a) a :T+ #f))]
 [thread-cell-set! (-poly (a) (-> (-thread-cell a) a -Void))]
@@ -1626,25 +1626,25 @@
 [make-parameter (-poly (a b) (cl-> [(a) (-Param a a)]
                                    [(b (a . -> . b :T+ #f)) (-Param a b)]))]
 [make-derived-parameter (-poly (a b c d) (-> (-Param a b) (-> c a :T+ #f) (-> b d :T+ #f) (-Param c d)))]
-[parameter? (make-pred-ty (-Param -Bottom Univ) #t)]
+[parameter? (unsafe-shallow:make-pred-ty (-Param -Bottom Univ))]
 [parameter-procedure=? (-poly (a b c d) (-> (-Param a b) (-Param c d) B))]
 
 [current-parameterization (-> -Parameterization)]
 [call-with-parameterization (-poly (a) (-> -Parameterization (-> a :T+ #f) a :T+ #f))]
-[parameterization? (make-pred-ty -Parameterization #t)]
+[parameterization? (unsafe-shallow:make-pred-ty -Parameterization)]
 
 ;; Section 11.4 (Futures)
 [future (-poly (A) ((-> A :T+ #f) . -> . (-future A)))]
 [touch (-poly (A) ((-future A) . -> . A :T+ #f))]
 [futures-enabled? (-> -Boolean)]
 [current-future (-> (-opt (-future Univ)))]
-[future? (make-pred-ty (-future Univ) #t)]
+[future? (unsafe-shallow:make-pred-ty (-future Univ))]
 [would-be-future (-poly (A) ((-> A :T+ #f) . -> . (-future A)))]
 [processor-count (-> -PosInt)]
 
 ;; Section 11.4.2 (Future Semaphores)
 [make-fsemaphore (-> -Nat -FSemaphore)]
-[fsemaphore? (make-pred-ty -FSemaphore #t)]
+[fsemaphore? (unsafe-shallow:make-pred-ty -FSemaphore)]
 [fsemaphore-post (-> -FSemaphore -Void)]
 [fsemaphore-wait (-> -FSemaphore -Void)]
 [fsemaphore-try-wait? (-> -FSemaphore B)]
@@ -1652,8 +1652,8 @@
 
 ;; Section 11.5 (Places)
 [place-enabled? (-> -Boolean)]
-[place? (make-pred-ty -Place #t)]
-[place-channel? (make-pred-ty -Place-Channel #t)]
+[place? (unsafe-shallow:make-pred-ty -Place)]
+[place-channel? (unsafe-shallow:make-pred-ty -Place-Channel)]
 ;; FIXME: the `#:at` keyword is for remote places, not supported yet
 [dynamic-place (->key (Un -Module-Path -Path) Sym
                       #:at (-val #f) #f
@@ -1680,7 +1680,7 @@
 ;; Section 12 (Macros)
 
 ;; Section 12.2
-[syntax? (make-pred-ty (-Syntax Univ) #t)]
+[syntax? (unsafe-shallow:make-pred-ty (-Syntax Univ))]
 
 [syntax-source (-> (-Syntax Univ) Univ)]
 [syntax-line (-> (-Syntax Univ) (-opt -PosInt))]
@@ -1723,7 +1723,7 @@
     (->opt ctxt Pre  [srcloc prop cert] A)
     (->opt ctxt Univ [srcloc prop cert] S)))]
 
-[identifier? (make-pred-ty (-Syntax Sym) #t)]
+[identifier? (unsafe-shallow:make-pred-ty (-Syntax Sym))]
 
 [generate-temporaries (-> (Un (-Syntax (-lst Univ)) (-lst Univ)) (-lst (-Syntax Sym)))]
 [identifier-prune-lexical-context (->opt (-Syntax Sym) [(-lst Sym)] (-Syntax Sym))]
@@ -1783,7 +1783,7 @@
  (Ident . ->opt . [(Un -Int (-val #f))] -Symbol)]
 
 ;; Section 12.4
-[set!-transformer? (make-pred-ty (-has-struct-property #'prop:set!-transformer) #t)]
+[set!-transformer? (unsafe-shallow:make-pred-ty (-has-struct-property #'prop:set!-transformer))]
 [make-set!-transformer (-> (-> (-Syntax Univ) (-Syntax Univ)) Univ)]
 [set!-transformer-procedure (-> Univ (-> (-Syntax Univ) (-Syntax Univ)))]
 [prop:set!-transformer (-struct-property (Un -Nat
@@ -1791,7 +1791,7 @@
                                                    [(-Self (-Syntax Univ)) (-Syntax Univ)]))
                                          #'set!-transformer?)]
 
-[rename-transformer? (make-pred-ty (-has-struct-property #'prop:rename-transformer) #t)]
+[rename-transformer? (unsafe-shallow:make-pred-ty (-has-struct-property #'prop:rename-transformer))]
 [make-rename-transformer (->opt (-Syntax Sym) [(-> (-Syntax Sym) (-Syntax Sym))] Univ)]
 [rename-transformer-target (-> Univ (-Syntax Sym))]
 [prop:rename-transformer (-struct-property (Un -Nat (-Syntax Sym) (-> -Self (-Syntax Sym)))
@@ -1845,7 +1845,7 @@
          Univ]
         (-Syntax Univ))]
 
-[internal-definition-context? (make-pred-ty -Internal-Definition-Context #t)]
+[internal-definition-context? (unsafe-shallow:make-pred-ty -Internal-Definition-Context)]
 [syntax-local-make-definition-context (->opt [(-opt -Internal-Definition-Context)] -Internal-Definition-Context)]
 [syntax-local-bind-syntaxes (-> (-lst (-Syntax Sym)) (-opt (-Syntax Univ)) -Internal-Definition-Context -Void)]
 [internal-definition-context-introduce
@@ -1918,9 +1918,9 @@
 [current-locale (-Param -String -String)]
 
 ;; Section 13.1.2
-[input-port? (make-pred-ty -Input-Port #t)]
-[output-port? (make-pred-ty -Output-Port #t)]
-[port? (make-pred-ty -Port #t)]
+[input-port? (unsafe-shallow:make-pred-ty -Input-Port)]
+[output-port? (unsafe-shallow:make-pred-ty -Output-Port)]
+[port? (unsafe-shallow:make-pred-ty -Port)]
 
 [close-input-port (-> -Input-Port -Void)]
 [close-output-port (-> -Output-Port -Void)]
@@ -1932,11 +1932,11 @@
 [current-output-port (-Param -Output-Port -Output-Port)]
 [current-error-port (-Param -Output-Port -Output-Port)]
 
-[file-stream-port? (asym-pred Univ B (-PS (-is-type 0 -Port) -tt) #t)]
-[terminal-port? (asym-pred Univ B (-PS (-is-type 0 -Port) -tt) #t)]
+[file-stream-port? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 -Port) -tt))]
+[terminal-port? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 -Port) -tt))]
 
 [eof (-val eof)]
-[eof-object? (make-pred-ty (-val eof) #t)]
+[eof-object? (unsafe-shallow:make-pred-ty (-val eof))]
 
 ;; Section 13.1.3
 [flush-output (->opt [-Output-Port] -Void)]
@@ -2351,7 +2351,7 @@
 [pretty-print-show-inexactness (-Param Univ B)]
 [pretty-print-abbreviate-read-macros (-Param Univ B)]
 
-[pretty-print-style-table? (make-pred-ty -Pretty-Print-Style-Table #t)]
+[pretty-print-style-table? (unsafe-shallow:make-pred-ty -Pretty-Print-Style-Table)]
 [pretty-print-current-style-table (-Param -Pretty-Print-Style-Table -Pretty-Print-Style-Table)]
 [pretty-print-extend-style-table (-> (-opt -Pretty-Print-Style-Table) (-lst Sym) (-lst Sym) -Pretty-Print-Style-Table)]
 [pretty-print-remap-stylable (-Param (-> Univ (-opt Sym)) (-> Univ (-opt Sym)))]
@@ -2373,7 +2373,7 @@
 ;; Section 13.7
 
 ;; Section 13.7.1
-[readtable? (make-pred-ty -Read-Table #t)]
+[readtable? (unsafe-shallow:make-pred-ty -Read-Table)]
 [make-readtable
  (->* (list (-opt -Read-Table))
       (make-Rest
@@ -2406,14 +2406,14 @@
 ;; Nothing defined here
 
 ;; Section 13.7.3
-[special-comment? (make-pred-ty -Special-Comment #t)]
+[special-comment? (unsafe-shallow:make-pred-ty -Special-Comment)]
 [make-special-comment (-> Univ -Special-Comment)]
 [special-comment-value (-> -Special-Comment Univ)]
 
 ;; Section 13.8
 [prop:custom-write (-struct-property (-> -Self -Output-Port (Un B (-val 1) (-val 0)) ManyUniv)
                                      #'custom-write?)]
-[custom-write? (make-pred-ty (-has-struct-property #'prop:custom-write) #t)]
+[custom-write? (unsafe-shallow:make-pred-ty (-has-struct-property #'prop:custom-write))]
 [custom-write-accessor (-> (-has-struct-property #'prop:custom-write)
                            (-some-res (me) (-> me -Output-Port (Un B (-val 1) (-val 0)) ManyUniv) : #:+ me))]
 
@@ -2422,7 +2422,7 @@
                                                   (-val 'maybe)
                                                   (-val 'always))
                                               #'custom-print-quotable?)]
-[custom-print-quotable? (make-pred-ty (-has-struct-property #'prop:custom-print-quotable) #t)]
+[custom-print-quotable? (unsafe-shallow:make-pred-ty (-has-struct-property #'prop:custom-print-quotable))]
 [custom-print-quotable-accessor (-> (-has-struct-property #'prop:custom-print-quotable)
                                     (Un (-val 'self)
                                         (-val 'never)
@@ -2439,13 +2439,13 @@
 [sha256-bytes (->opt (Un -Bytes -Input-Port) [-Nat (Un -Nat (-val #f))] -Bytes)]
 
 ;; Section 14.1 (Namespaces)
-[namespace? (make-pred-ty -Namespace #t)]
+[namespace? (unsafe-shallow:make-pred-ty -Namespace)]
 [make-namespace (->opt [(one-of/c  'empty 'initial)] -Namespace)]
 [make-empty-namespace (-> -Namespace)]
 [make-base-empty-namespace (-> -Namespace)]
 [make-base-namespace (-> -Namespace)]
 
-[namespace-anchor? (make-pred-ty -Namespace-Anchor #t)]
+[namespace-anchor? (unsafe-shallow:make-pred-ty -Namespace-Anchor)]
 [namespace-anchor->empty-namespace (-> -Namespace-Anchor -Namespace)]
 [namespace-anchor->namespace (-> -Namespace-Anchor -Namespace)]
 
@@ -2468,7 +2468,7 @@
 [namespace-syntax-introduce (-poly (a) (-> (-Syntax a) (-Syntax a)))]
 [module-provide-protected? (-> -Module-Path-Index Sym B)]
 
-[variable-reference? (make-pred-ty -Variable-Reference #t)]
+[variable-reference? (unsafe-shallow:make-pred-ty -Variable-Reference)]
 [variable-reference->empty-namespace (-> -Variable-Reference -Namespace)]
 [variable-reference->namespace (-> -Variable-Reference -Namespace)]
 [variable-reference->resolved-module-path (-> -Variable-Reference (-opt -Resolved-Module-Path))]
@@ -2507,7 +2507,7 @@
 [current-compile (-Param (-> Univ B -Compiled-Expression) (-> Univ B -Compiled-Expression))]
 [compile (-> Univ -Compiled-Expression)]
 [compile-syntax (-> (-Syntax Univ) -Compiled-Expression)]
-[compiled-expression? (make-pred-ty -Compiled-Expression #t)]
+[compiled-expression? (unsafe-shallow:make-pred-ty -Compiled-Expression)]
 
 [compile-enforce-module-constants (-Param B B)]
 [compile-allow-set!-undefined (-Param B B)]
@@ -2516,10 +2516,10 @@
 [load-on-demand-enabled (-Param B B)]
 
 ;; Section 14.4 (Module Names and Loading)
-[resolved-module-path? (make-pred-ty -Resolved-Module-Path #t)]
+[resolved-module-path? (unsafe-shallow:make-pred-ty -Resolved-Module-Path)]
 [make-resolved-module-path (-> (Un -Symbol -Path) -Resolved-Module-Path)]
 [resolved-module-path-name (-> -Resolved-Module-Path (Un -Path -Symbol))]
-[module-path? (asym-pred Univ B (-PS (-is-type 0 -Module-Path) -tt) #t)]
+[module-path? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 -Module-Path) -tt))]
 
 [current-module-name-resolver (-Param (cl->* (-Resolved-Module-Path Univ . -> . Univ)
                                              ((Un -Module-Path -Path)
@@ -2537,7 +2537,7 @@
                                      (-opt -Resolved-Module-Path))]
 [current-module-declare-source (-Param (-opt (Un -Symbol -Path))
                                        (-opt (Un -Symbol -Path)))]
-[module-path-index? (make-pred-ty -Module-Path-Index #t)]
+[module-path-index? (unsafe-shallow:make-pred-ty -Module-Path-Index)]
 [module-path-index-resolve (-> -Module-Path-Index -Resolved-Module-Path)]
 [module-path-index-split (-> -Module-Path-Index
                              (-values
@@ -2547,7 +2547,7 @@
 [module-path-index-join (-> (-opt -Module-Path)
                             (-opt (Un -Module-Path-Index -Resolved-Module-Path))
                             -Module-Path-Index)]
-[compiled-module-expression? (make-pred-ty -Compiled-Module-Expression #t)]
+[compiled-module-expression? (unsafe-shallow:make-pred-ty -Compiled-Module-Expression)]
 [module-compiled-name (-> -Compiled-Module-Expression -Symbol)]
 [module-compiled-imports (-> -Compiled-Module-Expression
                              (-lst (-pair (-opt -Integer)
@@ -2639,12 +2639,12 @@
 [chaperone-of? (Univ Univ . -> . B)]
 
 [make-impersonator-property (-> Sym (-values (list -Impersonator-Property (-> Univ B) (-> Univ Univ))))]
-[impersonator-property? (make-pred-ty -Impersonator-Property #t)]
+[impersonator-property? (unsafe-shallow:make-pred-ty -Impersonator-Property)]
 [impersonator-property-accessor-procedure? (-> Univ B)]
 [impersonator-prop:application-mark -Impersonator-Property]
 
 ;; Section 14.6 (Security Guards)
-[security-guard? (make-pred-ty -Security-Guard #t)]
+[security-guard? (unsafe-shallow:make-pred-ty -Security-Guard)]
 [make-security-guard
  (->opt -Security-Guard
         (-> Sym (-opt -Path) (-lst Sym) ManyUniv)
@@ -2654,7 +2654,7 @@
 [current-security-guard (-Param -Security-Guard -Security-Guard)]
 
 ;; Section 14.7 (Custodians)
-[custodian? (make-pred-ty -Custodian #t)]
+[custodian? (unsafe-shallow:make-pred-ty -Custodian)]
 [make-custodian (->opt [-Custodian] -Custodian)]
 [custodian-shutdown-all (-> -Custodian -Void)]
 [current-custodian (-Param -Custodian -Custodian)]
@@ -2664,16 +2664,16 @@
 [custodian-limit-memory (->opt -Custodian -Nat [-Custodian] -Void)]
 
 [make-custodian-box (-poly (a) (-> -Custodian a (-CustodianBox a)))]
-[custodian-box? (make-pred-ty (-poly (a) (-CustodianBox a)) #t)]
+[custodian-box? (unsafe-shallow:make-pred-ty (-poly (a) (-CustodianBox a)))]
 [custodian-box-value (-poly (a) (-> (-CustodianBox a) a :T+ #f))]
 
 ;; Section 14.8 (Thread Groups)
 [make-thread-group (->opt [-Thread-Group] -Thread-Group)]
-[thread-group? (make-pred-ty -Thread-Group #t)]
+[thread-group? (unsafe-shallow:make-pred-ty -Thread-Group)]
 [current-thread-group (-Param -Thread-Group -Thread-Group)]
 
 ;; Section 14.9 (Structure Inspectors)
-[inspector? (make-pred-ty -Inspector #t)]
+[inspector? (unsafe-shallow:make-pred-ty -Inspector)]
 [make-inspector (->opt [-Inspector] -Inspector)]
 [make-sibling-inspector (->opt [-Inspector] -Inspector)]
 [current-inspector (-Param -Inspector -Inspector)]
@@ -2693,7 +2693,7 @@
 [struct-type-make-predicate
  (-poly (a)
    (cl->*
-    (-> (make-StructType a) (make-pred-ty a #t))
+    (-> (make-StructType a) (unsafe-shallow:make-pred-ty a))
     (-> -StructTypeTop (-> Univ B))))]
 [object-name (-> Univ Univ)]
 
@@ -2701,11 +2701,11 @@
 [current-code-inspector (-Param -Inspector -Inspector)]
 
 ;; Section 15.1 (Path Manipulation)
-[path? (make-pred-ty -Path #t)]
-[path-string? (asym-pred Univ B
+[path? (unsafe-shallow:make-pred-ty -Path)]
+[path-string? (unsafe-shallow:asym-pred Univ B
                          (-PS (-is-type 0 (Un -Path -String))
-                              (-not-type 0 -Path)) #t)]
-[path-for-some-system? (make-pred-ty -SomeSystemPath #t)]
+                              (-not-type 0 -Path)))]
+[path-for-some-system? (unsafe-shallow:make-pred-ty -SomeSystemPath)]
 
 [string->path (-> -String -Path)]
 [bytes->path (cl->* (-> -Bytes -Path) (-> -Bytes -PathConventionType -SomeSystemPath))]
@@ -2850,7 +2850,7 @@
 [filesystem-root-list (-> (-lst -Path))]
 
 ;; Section 15.2.4
-[filesystem-change-evt? (asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt) #t)]
+[filesystem-change-evt? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (-mu x (-evt x))) -tt))]
 [filesystem-change-evt-cancel (-> (-mu x (-evt x)) -Void)]
 [filesystem-change-evt (-poly (a) (cl->* (-> -Pathlike (-mu x (-evt x)))
                                          (-> -Pathlike (-> a :T+ #f) (Un (-mu x (-evt x)) a))))]
@@ -2906,7 +2906,7 @@
 
 [tcp-accept-ready? (-TCP-Listener . -> . B)]
 [tcp-close (-TCP-Listener . -> . -Void)]
-[tcp-listener? (make-pred-ty -TCP-Listener #t)]
+[tcp-listener? (unsafe-shallow:make-pred-ty -TCP-Listener)]
 
 [tcp-accept-evt
  (-> -TCP-Listener
@@ -2917,7 +2917,7 @@
                 ((Un -TCP-Listener -Port) [(-val #f)] . ->opt . (-values (list -String -String)))
                 ((Un -TCP-Listener -Port) (-val #t) . -> . (-values (list -String -Index -String -Index))))]
 
-[tcp-port? (asym-pred Univ B (-PS (-is-type 0 (Un -Input-Port -Output-Port)) -tt) #t)]
+[tcp-port? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (Un -Input-Port -Output-Port)) -tt))]
 [port-number? (Univ . -> . B)]
 [listen-port-number? (Univ . -> . B)]
 
@@ -2938,7 +2938,7 @@
 [udp-receive!/enable-break (->opt -UDP-Socket -Bytes [-Int -Int] (-values (list -Nat -String -Nat)))]
 
 [udp-close (-> -UDP-Socket -Void)]
-[udp? (make-pred-ty -UDP-Socket #t)]
+[udp? (unsafe-shallow:make-pred-ty -UDP-Socket)]
 [udp-bound? (-> -UDP-Socket B)]
 [udp-connected? (-> -UDP-Socket B)]
 
@@ -3007,7 +3007,7 @@
 [subprocess-status (-> -Subprocess (Un (-val 'running) -Nat))]
 [subprocess-kill (-> -Subprocess Univ -Void)]
 [subprocess-pid (-> -Subprocess -Nat)]
-[subprocess? (make-pred-ty -Subprocess #t)]
+[subprocess? (unsafe-shallow:make-pred-ty -Subprocess)]
 [current-subprocess-custodian-mode (-Param (one-of/c #f 'kill 'interrupt)
                                            (one-of/c #f 'kill 'interrupt))]
 [subprocess-group-enabled (-Param Univ B)]
@@ -3141,7 +3141,7 @@
 	      (-lst* (-opt -Input-Port) (-opt -Output-Port) -Nat (-opt -Input-Port) fun-type))))))]
 
 ;; Section 15.5 (Logging)
-[logger? (make-pred-ty -Logger #t)]
+[logger? (unsafe-shallow:make-pred-ty -Logger)]
 [make-logger (->opt [(-opt Sym) (-opt -Logger)] -Logger)]
 [logger-name (-> -Logger (-opt Sym))]
 [current-logger (-Param -Logger -Logger)]
@@ -3150,11 +3150,11 @@
                     (->opt -Logger -Log-Level (Un (-val #f) -Symbol) -String Univ [Univ] -Void))]
 [log-level? (->opt -Logger -Log-Level [(-opt -Symbol)] B)]
 
-[log-receiver? (make-pred-ty -Log-Receiver #t)]
+[log-receiver? (unsafe-shallow:make-pred-ty -Log-Receiver)]
 [make-log-receiver (opt-fn (list -Logger -Log-Level) (list (-opt -Symbol)) -Log-Receiver #:rest (make-Rest (list -Log-Level (-opt -Symbol))))]
 
 ;; Section 15.5.4 (Additional Logging Functions, racket/logging)
-[log-level/c (make-pred-ty (one-of/c 'none 'fatal 'error 'warning 'info 'debug) #t)]
+[log-level/c (unsafe-shallow:make-pred-ty (one-of/c 'none 'fatal 'error 'warning 'info 'debug))]
 [with-intercepted-logging
  (-polydots (a)
    (->* (list (-> (-vec* -Symbol -String Univ (-opt -Symbol)) Univ)
@@ -3179,15 +3179,15 @@
  (->opt [(Un (-val #f) (-val 'subprocesses) -Thread)] -Fixnum)]
 
 ;; Section 15.7
-[environment-variables? (make-pred-ty -Environment-Variables #t)]
+[environment-variables? (unsafe-shallow:make-pred-ty -Environment-Variables)]
 [current-environment-variables (-Param -Environment-Variables)]
-[bytes-environment-variable-name? (asym-pred Univ B (-PS (-is-type 0 -Bytes) -tt) #t)]
+[bytes-environment-variable-name? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 -Bytes) -tt))]
 [make-environment-variables (->* null -Bytes -Environment-Variables)]
 [environment-variables-ref (-> -Environment-Variables -Bytes (-opt -Bytes))]
 [environment-variables-set! (->opt -Environment-Variables -Bytes (-opt -Bytes) [(-> Univ)] Univ)]
 [environment-variables-names (-> -Environment-Variables  (-lst -Bytes))]
 [environment-variables-copy (-> -Environment-Variables -Environment-Variables)]
-[string-environment-variable-name? (asym-pred Univ B (-PS (-is-type 0 -String) -tt) #t)]
+[string-environment-variable-name? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 -String) -tt))]
 [getenv (-> -String (Un -String (-val #f)))]
 [putenv (-> -String -String B)]
 
@@ -3243,16 +3243,16 @@
    (cl->* (-> (-weak-box a) (-opt a) :T+ #f)
           (-> (-weak-box a) b (Un b a) :T+ #f)
           (->opt -Weak-BoxTop [Univ] Univ)))]
-[weak-box? (make-pred-ty -Weak-BoxTop #t)]
+[weak-box? (unsafe-shallow:make-pred-ty -Weak-BoxTop)]
 
 ;; Section 16.2 (Ephemerons)
 [make-ephemeron (-poly (k v) (-> k v (-Ephemeron v)))]
-[ephemeron? (make-pred-ty (-Ephemeron Univ) #t)]
+[ephemeron? (unsafe-shallow:make-pred-ty (-Ephemeron Univ))]
 [ephemeron-value (-poly (v) (-> (-Ephemeron v) (Un (-val #f) v) :T+ #f))]
 
 ;; Section 16.3 (Wills and Executors)
 [make-will-executor (-> -Will-Executor)]
-[will-executor? (make-pred-ty -Will-Executor #t)]
+[will-executor? (unsafe-shallow:make-pred-ty -Will-Executor)]
 [will-register (-poly (a) (-> -Will-Executor a (-> a ManyUniv) -Void))]
 [will-execute (-> -Will-Executor ManyUniv)]
 [will-try-execute (-> -Will-Executor ManyUniv)]
@@ -3312,7 +3312,7 @@
 ;; Typed Racket Reference
 ;; Section 4
 [assert (-poly (a b) (cl->*
-                      (Univ (make-pred-ty (list a) Univ b #t) . -> . b :T+ #f)
+                      (Univ (unsafe-shallow:make-pred-ty (list a) Univ b) . -> . b :T+ #f)
                       (-> (Un a (-val #f)) a :T+ #f)))]
 [defined? (->* (list Univ) -Boolean : (-PS (-not-type 0 -Undefined) (-is-type 0 -Undefined)))]
 

@@ -420,7 +420,7 @@
   (define bindings
     (list* (make-def-binding struct-type (make-StructType sty))
            (make-def-binding predicate
-                             (make-pred-ty (mk-pred-ty st-type-alias-maybe-with-proc) #t))
+                             (unsafe-shallow:make-pred-ty (mk-pred-ty st-type-alias-maybe-with-proc)))
            (append*
             (mk-operator-bindings! getters add-struct-accessor-fn! mk-getter-vals)
             (maybe-cons (and self-mutable (mk-operator-bindings! setters add-struct-mutator-fn! mk-setter-vals))))))

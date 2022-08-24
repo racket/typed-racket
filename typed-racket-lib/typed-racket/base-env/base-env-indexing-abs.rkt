@@ -243,7 +243,7 @@
 
    ;; flvector ops
 
-   [flvector? (make-pred-ty -FlVector #t)]
+   [flvector? (unsafe-shallow:make-pred-ty -FlVector)]
    [flvector (->* (list) -Flonum -FlVector)]
    [make-flvector (cl->* (-> index-type -FlVector)
                          (-> index-type -Flonum -FlVector))]
@@ -264,7 +264,7 @@
    [unsafe-flvector-set! (-> -FlVector index-type -Flonum -Void)]
 
    ;; Section 4.2.5.2 (ExtFlonum Vectors)
-   [extflvector? (make-pred-ty -ExtFlVector #t)]
+   [extflvector? (unsafe-shallow:make-pred-ty -ExtFlVector)]
    [extflvector (->* (list) -ExtFlonum -ExtFlVector)]
    [make-extflvector (cl->* (-> index-type -ExtFlVector)
                             (-> index-type -ExtFlonum -ExtFlVector))]
@@ -285,7 +285,7 @@
    [unsafe-extflvector-set! (-> -ExtFlVector index-type -ExtFlonum -Void)]
 
    ;; Section 4.2.4.2 (Fixnum vectors)
-   [fxvector? (make-pred-ty -FxVector #t)]
+   [fxvector? (unsafe-shallow:make-pred-ty -FxVector)]
    [fxvector (->* (list) -Fixnum -FxVector)]
    [make-fxvector (cl->* (-> index-type -FxVector)
                          (-> index-type -Fixnum -FxVector))]

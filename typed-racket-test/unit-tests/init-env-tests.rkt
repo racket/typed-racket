@@ -25,7 +25,7 @@
         '(simple-> (list -String) -Symbol #:T+ #f))
       (check-equal?
         (convert-type (make-pred-ty -String))
-        '(make-pred-ty (list Univ) -Boolean -String (-arg-path 0) #f))
+        '(make-pred-ty (list Univ) -Boolean -String (-arg-path 0)))
       (check-equal?
         (convert-type (->acc (list (-lst -String)) -String (list -car)))
         '(->acc (list (-lst -String)) -String (list -car) #:T+ #f))

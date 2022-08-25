@@ -280,7 +280,7 @@
  [rc-find -pict-finder]
  [rbl-find -pict-finder]
  [rb-find -pict-finder]
- [pict-path? (make-pred-ty -pict-path #true)]
+ [pict-path? (unsafe-shallow:make-pred-ty -pict-path)]
  [launder (-> -pict -pict)]
 
  ;; 7.1 Dingbats

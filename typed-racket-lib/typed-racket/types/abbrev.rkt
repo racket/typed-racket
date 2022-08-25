@@ -210,19 +210,16 @@
 
 (define/cond-contract make-pred-ty
   (c:case-> (c:-> Type? Type?)
-            (c:-> Type? boolean? Type?)
             (c:-> (c:listof Type?) Type? Type? Type?)
-            (c:-> (c:listof Type?) Type? Type? boolean? Type?)
+            (c:-> (c:listof Type?) Type? Type? Object? Type?)
             (c:-> (c:listof Type?) Type? Type? Object? boolean? Type?))
   (case-lambda
     [(in out t o T+)
      (->* in out : (-PS (-is-type o t) (-not-type o t)) :T+ T+)]
-    [(in out t T+)
-     (make-pred-ty in out t (make-Path null (cons 0 0)) T+)]
+    [(in out t o)
+     (make-pred-ty in out t o #f)]
     [(in out t)
      (make-pred-ty in out t (make-Path null (cons 0 0)) #f)]
-    [(t T+)
-     (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)) T+)]
     [(t)
      (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)) #f)]))
 
@@ -231,9 +228,9 @@
     [(in out t o)
      (make-pred-ty in out t o #true)]
     [(in out t)
-     (make-pred-ty in out t #true)]
+     (make-pred-ty in out t (make-Path null (cons 0 0)) #true)]
     [(t)
-     (make-pred-ty t #true)]))
+     (make-pred-ty (list Univ) -Boolean t (make-Path null (cons 0 0)) #true)]))
 
 (define/decl -true-propset (-PS -tt -ff))
 (define/decl -false-propset (-PS -ff -tt))

@@ -69,7 +69,8 @@
          variances-in-type
          DepFun/ids:
          HasArrows:
-         (rename-out [Union:* Union:]
+         (rename-out [Arrow:* Arrow:]
+                     [Union:* Union:]
                      [Intersection:* Intersection:]
                      [make-Intersection* make-Intersection]
                      [Class:* Class:]
@@ -88,6 +89,8 @@
                      [Struct-Property* make-Struct-Property]
                      [Struct-Property:* Struct-Property:]))
 
+(module* shallow-exports #f (provide set-shallow-trusted-positive))
+
 (lazy-require
  ("../types/overlap.rkt" (overlap?))
  ("../types/prop-ops.rkt" (-and))
@@ -103,7 +106,7 @@
 
 ;; Name = Symbol
 
-;; Type is defined in rep-utils.rkt
+;; Type is defined in core-rep.rkt
 
 ;; this is ONLY used when a type error ocurrs
 ;; FIXME: add a safety so this type can literally
@@ -609,11 +612,12 @@
   [#:fmap (f) (make-RestDots (f ty) nm)]
   [#:for-each (f) (f ty)])
 
-
 (def-rep Arrow ([dom (listof Type?)]
                 [rst (or/c #f Rest? RestDots?)]
                 [kws (and/c (listof Keyword?) keyword-sorted/c)]
-                [rng SomeValues?])
+                [rng SomeValues?]
+                [rng-shallow-safe? boolean?])
+  #:no-provide (Arrow:)
   [#:frees (f)
    (combine-frees
     (list* (f rng)
@@ -628,12 +632,34 @@
   [#:fmap (f) (make-Arrow (map f dom)
                           (and rst (f rst))
                           (map f kws)
-                          (f rng))]
+                          (f rng)
+                          rng-shallow-safe?)]
   [#:for-each (f)
    (for-each f dom)
    (when rst (f rst))
    (for-each f kws)
-   (f rng)])
+   (f rng)]
+  [#:extras
+   ;; equality can ignore shallow flag
+   #:methods gen:equal+hash
+   [(define (equal-proc a b recur)
+      (and
+        (recur (Arrow-dom a) (Arrow-dom b))
+        (recur (Arrow-rst a) (Arrow-rst b))
+        (recur (Arrow-kws a) (Arrow-kws b))
+        (recur (Arrow-rng a) (Arrow-rng b))))
+    (define (hash-proc a recur)
+      (bitwise-ior
+        (recur (Arrow-dom a))
+        (recur (Arrow-rst a))
+        (recur (Arrow-kws a))
+        (recur (Arrow-rng a))))
+    (define (hash2-proc a recur)
+      (bitwise-ior
+        (recur (Arrow-dom a))
+        (recur (Arrow-rst a))
+        (recur (Arrow-kws a))
+        (recur (Arrow-rng a))))]])
 
 (define/provide (Arrow-min-arity a)
   (length (Arrow-dom a)))
@@ -684,6 +710,20 @@
     [else
      (error 'Arrow-domain-at-arity
             "invalid arity! ~a @ ~a" a arity)]))
+
+(define-match-expander Arrow:*
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ dom rst kws rng)
+       #'(? Arrow? (app (lambda (arrow)
+                          (match-define (Arrow: domain rest keywords range _) arrow)
+                          (list domain rest keywords range))
+                        (list dom rst kws rng)))]
+      [(_ dom rst kws rng rng-T+)
+       #'(? Arrow? (app (lambda (arrow)
+                          (match-define (Arrow: domain rest keywords range rng-shallow-safe?) arrow)
+                          (list domain rest keywords range rng-shallow-safe?))
+                        (list dom rst kws rng rng-T+)))])))
 
 ;; a standard function
 ;; + all functions are case-> under the hood (i.e. see 'arrows')
@@ -1630,11 +1670,12 @@
     (match rep
       ;; Functions
       ;; increment the level of the substituted object
-      [(Arrow: dom rst kws rng)
+      [(Arrow: dom rst kws rng rng-T+)
        (make-Arrow (map rec dom)
                    (and rst (rec rst))
                    (map rec kws)
-                   (rec/inc rng))]
+                   (rec/inc rng)
+                   rng-T+)]
       [(DepFun: dom pre rng)
        (make-DepFun (for/list ([d (in-list dom)])
                       (rec/inc d))
@@ -1680,6 +1721,23 @@
     [(Mu-unsafe: body) (instantiate-type body t)]
     [t (error 'unfold "not a mu! ~a" t)]))
 
+(define (set-shallow-trusted-positive ty0)
+  ;; 2022-04-22: defined here (type-rep) instead of elsewhere to use the basic
+  ;;  constructors instead of the smart ones (make-PolyDots vs make-PolyDots*)
+  ;; alternatively: we could make and provide unsafe constructors in `rep-utils`
+  (let loop ((ty ty0))
+    (match ty
+      [(Arrow: dom rst kws rng _)
+       (make-Arrow dom rst kws rng #t)]
+      [(Fun: arrs)
+       (make-Fun (map loop arrs))]
+      [(PolyRow-unsafe: b c)
+       (make-PolyRow (loop b) c)]
+      [(PolyDots-unsafe: n b)
+       (make-PolyDots n (loop b))]
+      [(Poly-unsafe: n b)
+       (make-Poly n (loop b))]
+      [_ ty])))
 
 ;;***************************************************************
 ;; Smart Constructors/Expanders for Class-related structs

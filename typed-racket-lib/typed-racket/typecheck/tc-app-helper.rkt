@@ -274,7 +274,8 @@
                             (make-Arrow (car pdoms)
                                         (car rests)
                                         null
-                                        (car rngs))
+                                        (car rngs)
+                                        #f)
                             arg-tys expected)
                 return]
                [else

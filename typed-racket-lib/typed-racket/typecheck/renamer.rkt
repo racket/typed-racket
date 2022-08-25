@@ -1,18 +1,23 @@
 #lang racket/base
 
-(require typed-racket/utils/tc-utils)
+(require typed-racket/utils/tc-utils
+         racket/struct-info)
 
 (provide make-typed-renaming un-rename)
 
 ;; a constructor for typed renamings that attach the required
 ;; 'not-free-identifier properties
-(define (make-typed-renaming target alternate)
-  (typed-renaming (syntax-property target 'not-free-identifier=? #t)
-                  (syntax-property alternate 'not-free-identifier=? #t)))
+(define (make-typed-renaming deep-id untyped-id shallow-id optional-id)
+  (typed-renaming (syntax-property deep-id 'not-free-identifier=? #t)
+                  (syntax-property untyped-id 'not-free-identifier=? #t)
+                  (syntax-property shallow-id 'not-free-identifier=? #t)
+                  (syntax-property optional-id 'not-free-identifier=? #t)))
 
-;; target : identifier
-;; alternate : identifier
-(struct typed-renaming (target alternate)
+;; deep-id : identifier
+;; untyped-id : identifier
+;; shallow-id : identifier
+;; optional-id : identifier
+(struct typed-renaming (deep-id untyped-id shallow-id optional-id)
   ;; prevent the rename transformer from expanding in
   ;; module-begin context because the typed context flag
   ;; will not be set until the module-begin
@@ -23,8 +28,14 @@
   #:property prop:rename-transformer
   (λ (obj)
     (if (unbox typed-context?)
-        (typed-renaming-target obj)
-        (typed-renaming-alternate obj))))
+      (case (current-type-enforcement-mode)
+        ((shallow)
+         (typed-renaming-shallow-id obj))
+        ((optional)
+         (typed-renaming-optional-id obj))
+        (else ;;(deep #f)
+         (typed-renaming-deep-id obj)))
+      (typed-renaming-untyped-id obj))))
 
 ;; Undo renaming for type lookup.
 ;; Used because of macros that mark the identifier used as the binding such as

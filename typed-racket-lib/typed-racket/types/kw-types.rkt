@@ -21,7 +21,8 @@
                  pos-opts-supplied? ; (or/c (listof Boolean?) #f)
                  rng ; SomeValues?
                  maybe-rst ; (or/c #f Type? RestDots?)
-                 split?) ; boolean?
+                 split? ; boolean?
+                 rng-T+) ; boolean?
   (define rst-type (match maybe-rst
                      [#f '()]
                      [(? Rest?) (list (Rest->Type maybe-rst))]
@@ -59,7 +60,7 @@
           pos-opt-arg-types
           rst-type)))
 
-      (list (-Arrow ts rng))]
+      (list (-Arrow ts rng #:T+ rng-T+))]
      [else
       ;; The keyword argument types, including undefined option for
       ;; optional keyword arguments
@@ -77,7 +78,8 @@
                  (cons (Un t -Unsafe-Undefined) pos))])))
 
       (list (-Arrow (append kw-args mandatory-arg-types pos-opt-arg-types rst-type)
-                    rng))])))
+                    rng
+                    #:T+ rng-T+))])))
 
 ;; This is used to fix the props of keyword types.
 ;; TODO: This should also explore deeper into the actual types and remove props in there as well.
@@ -171,7 +173,7 @@
     (remove-duplicates
      (for/list ([(arrow arrow-mand-arg-count) (in-assoc mand-arg-table)])
        (match arrow
-         [(Arrow: dom rst kws rng)
+         [(Arrow: dom rst kws rng rng-T+)
           (define kws* (if actual-kws
                            (handle-extra-or-missing-kws kws actual-kws)
                            kws))
@@ -198,7 +200,8 @@
                        (make-list opt-arg-count #f))
                    rng
                    rst
-                   split?)]))))
+                   split?
+                   rng-T+)]))))
   (apply cl->* fns))
 
 ;; kw-convert : Type (Option LambdaKeywords) [Boolean] -> Type
@@ -248,7 +251,7 @@
        (cond [(positive? (length arrs))
               ;; assumption: only one arr is needed, since the types for
               ;; the actual domain are the same
-              (match-define (Arrow: doms _ _ rng) (car arrs))
+              (match-define (Arrow: doms _ _ rng rng-T+) (car arrs))
               (define kw-length
                 (- (length doms) (+ non-kw-argc (if rest? 1 0))))
               (define kw-args (take doms kw-length))
@@ -266,7 +269,8 @@
                                  (take opt-types to-take))
                          (erase-props/Values rng)
                          #:kws actual-kws
-                         #:rest (if (= to-take opt-types-count) rest-type #f))))]
+                         #:rest (if (= to-take opt-types-count) rest-type #f)
+                         #:T+ rng-T+)))]
              [else (int-err "unsupported arrs in keyword function type")])]
       [(Poly-names: names f) (make-Poly names (loop f))]
       [(PolyDots-names: names f) (make-PolyDots names (loop f))]
@@ -337,7 +341,7 @@
 
 (define (opt-convert-arr required-pos optional-pos optional-supplied? arr)
   (match arr
-    [(Arrow: args #f '() result)
+    [(Arrow: args #f '() result rng-T+)
      (define num-args (length args))
      (and (>= num-args required-pos)
           (<= num-args (+ required-pos optional-pos))
@@ -351,7 +355,8 @@
                             opt-args
                             (make-missing-opt-args (- (+ required-pos optional-pos) num-args)
                                                    (list-tail optional-supplied? (- num-args required-pos))))
-                    result)))]
+                    result
+                    #:T+ rng-T+)))]
     [_ #f]))
 
 (define (make-missing-opt-args num-missing-opt-args supplied?s)
@@ -413,7 +418,7 @@
     (match ft
       [(Fun: arrs)
        (cond [(= 1 (length arrs))
-              (match-define (Arrow: doms _ _ rng) (car arrs))
+              (match-define (Arrow: doms _ _ rng rng-T+) (car arrs))
               (define-values (mand-args opt-and-rest-args)
                 (split-at doms mand-argc))
               (define rest-type
@@ -425,7 +430,8 @@
                  (-Arrow (append mand-args (take opt-types how-many-opt-args))
                          rng
                          #:rest (and (= how-many-opt-args opt-types-len)
-                                     rest-type))))]
+                                     rest-type)
+                         #:T+ rng-T+)))]
              [else (int-err "unsupported arrs in keyword function type")])]
       [(Poly-names: names f) (make-Poly names (loop f))]
       [(PolyDots-names: names f) (make-PolyDots names (loop f))]

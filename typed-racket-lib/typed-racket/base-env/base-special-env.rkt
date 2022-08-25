@@ -28,7 +28,7 @@
   (syntax-binding-set->syntax s what))
 
 
-(define-initial-env initialize-special
+(define-initial-env initialize-special #:default-T+ #true
   ;; make-promise
   [(make-template-identifier 'lazy 'racket/private/promise)
    (-poly (a)
@@ -91,7 +91,7 @@
           (let ([seq-vals
                  (lambda (a b)
                    (-values (list
-                             (-> Univ (-values-dots (list a) b 'b))
+                             (-> Univ (-values-dots (list a) b 'b) :T+ #true)
                              (Un (-> Univ Univ) (-val #f))
                              (-> Univ Univ)
                              Univ
@@ -386,5 +386,5 @@
        (-opt -Input-Port) (-opt -Output-Port) (-opt -Output-Port) -Place)]
   [(make-template-identifier 'start-place 'racket/place)
    (-> -Symbol -Module-Path -Symbol (-opt -Input-Port) (-opt -Output-Port) (-opt -Output-Port) -Place)]
-  [(make-template-identifier '-mlist 'compatibility/mlist)
-   (-poly (a) (->* (list) a (-mlst a)))])
+   [(make-template-identifier '-mlist 'compatibility/mlist)
+    (-poly (a) (->* (list) a (-mlst a)))])

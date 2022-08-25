@@ -21,7 +21,11 @@
          "../typecheck/renamer.rkt"
          "../types/utils.rkt"
          "../types/kw-types.rkt"
-         (except-in "../types/abbrev.rkt" -> ->* one-of/c))
+         (except-in "../types/abbrev.rkt" -> ->* one-of/c)
+         (for-template
+           (only-in racket/contract/private/provide
+             provide/contract-info?
+             provide/contract-info-original-id)))
 
 (require-for-cond-contract "../rep/object-rep.rkt"
                            "../rep/core-rep.rkt")
@@ -72,7 +76,9 @@
 
 ;; find the type of identifier i, looking first in the lexical env, then in the top-level env
 ;; identifier -> Type
-(define (lookup-id-type/lexical i [env (lexical-env)] #:fail [fail #f])
+(define lookup-id-type/lexical
+ (let ([fail=false (lambda () #f)])
+ (lambda (i [env (lexical-env)] #:fail [fail #f])
   (env-lookup-id
    env i
    (λ (i) (lookup-type i (λ ()
@@ -100,7 +106,15 @@
                                                  Err))
                                    (register-type i t)
                                    t)]
-                             [else ((or fail lookup-fail) i)]))))))
+                             [(and (let* ([v (and (syntax-transforming?) (not (syntax-tainted? i)) (syntax-local-value i fail=false))]
+                                          [orig-id (and (provide/contract-info? v)
+                                                        (provide/contract-info-original-id v))])
+                                     (and (identifier? orig-id)
+                                          (lookup-type orig-id fail=false))))
+                              => (λ (orig-t)
+                                   (register-type i orig-t)
+                                   orig-t)]
+                             [else ((or fail lookup-fail) i)]))))))))
 
 (define (lookup-obj-type/lexical obj [env (lexical-env)] #:fail [fail #f])
   (match obj

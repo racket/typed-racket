@@ -44,8 +44,9 @@ jobs:
         if: ${{ !matrix.enable-contracts }}
       - run: raco test -em typed-racket-test/test-docs-complete.rkt
         if: ${{ !matrix.enable-contracts }}
-      - run: raco setup math
+      - run: raco setup plot math
       - run: racket -l typed-racket-test -- --external
+      - run: raco make typed-racket-test/external/historical-counterexamples.rkt
       - run: racket -l typed-racket-test/external/historical-counterexamples
         if: ${{ !matrix.enable-contracts }}
       - run: racket -l typed-racket-test/external/tr-random-testing

@@ -126,19 +126,19 @@
 
 (define (tc-keywords form arrows kws kw-args pos-args expected)
   (match arrows
-    [(list (and a (Arrow: dom (and rst (not (? RestDots?))) ktys rng)))
+    [(list (and a (Arrow: dom (and rst (not (? RestDots?))) ktys rng rng-T+)))
      (tc-keywords/internal a kws kw-args #t)
      (tc/funapp (car (syntax-e form)) kw-args
-                (->* dom rst rng)
+                (->* dom rst rng :T+ rng-T+)
                 (stx-map tc-expr pos-args) expected)]
-    [(list (and a (Arrow: doms (and rsts (not (? RestDots?))) _ rngs)) ...)
+    [(list (and a (Arrow: doms (and rsts (not (? RestDots?))) _ rngs rngs-T+)) ...)
      (let ([new-arrows
             (for/list ([a (in-list arrows)]
                        ;; find all the arrows where the keywords match
                        #:when (tc-keywords/internal a kws kw-args #f))
               (match a
-                [(Arrow: dom (and rst (not (? RestDots?))) ktys rng)
-                 (make-Arrow dom rst '() rng)]))])
+                [(Arrow: dom (and rst (not (? RestDots?))) ktys rng rng-T+)
+                 (make-Arrow dom rst '() rng rng-T+)]))])
        (if (null? new-arrows)
            (domain-mismatches
             (car (syntax-e form)) (cdr (syntax-e form))

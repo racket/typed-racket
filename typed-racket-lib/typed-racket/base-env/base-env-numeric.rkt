@@ -1,4 +1,5 @@
 #lang s-exp "env-lang.rkt"
+#:default-T+ #true
 
 (begin
   (require
@@ -781,27 +782,27 @@
   (-> N B : (-PS (-is-type 0 (Un -RealZeroNoNan -InexactComplex -InexactImaginary))
                  (-not-type 0 -RealZeroNoNan)))]
 
-[number? (make-pred-ty N)]
-[integer? (asym-pred Univ B (-PS (-is-type 0 (Un -Int -Flonum -SingleFlonum)) ; inexact-integers exist...
+[number? (unsafe-shallow:make-pred-ty N)]
+[integer? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (Un -Int -Flonum -SingleFlonum)) ; inexact-integers exist...
                                  (-not-type 0 -Int)))]
-[exact-integer? (make-pred-ty -Int)]
-[real? (make-pred-ty -Real)]
-[flonum? (make-pred-ty -Flonum)]
-[single-flonum? (make-pred-ty -SingleFlonum)]
-[double-flonum? (make-pred-ty -Flonum)]
-[inexact-real? (make-pred-ty -InexactReal)]
-[complex? (make-pred-ty N)]
+[exact-integer? (unsafe-shallow:make-pred-ty -Int)]
+[real? (unsafe-shallow:make-pred-ty -Real)]
+[flonum? (unsafe-shallow:make-pred-ty -Flonum)]
+[single-flonum? (unsafe-shallow:make-pred-ty -SingleFlonum)]
+[double-flonum? (unsafe-shallow:make-pred-ty -Flonum)]
+[inexact-real? (unsafe-shallow:make-pred-ty -InexactReal)]
+[complex? (unsafe-shallow:make-pred-ty N)]
 ;; `rational?' includes all Reals, except infinities and NaN.
-[rational? (asym-pred Univ B (-PS (-is-type 0 -Real) (-not-type 0 -Rat)))]
-[exact? (make-pred-ty -ExactNumber)]
-[inexact? (make-pred-ty (Un -InexactReal -InexactImaginary -InexactComplex))]
-[fixnum? (make-pred-ty -Fixnum)]
-[fixnum-for-every-system? (asym-pred Univ B (-PS (-is-type 0 -Fixnum) -tt))]
-[index? (make-pred-ty -Index)]
+[rational? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 -Real) (-not-type 0 -Rat)))]
+[exact? (unsafe-shallow:make-pred-ty -ExactNumber)]
+[inexact? (unsafe-shallow:make-pred-ty (Un -InexactReal -InexactImaginary -InexactComplex))]
+[fixnum? (unsafe-shallow:make-pred-ty -Fixnum)]
+[fixnum-for-every-system? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 -Fixnum) -tt))]
+[index? (unsafe-shallow:make-pred-ty -Index)]
 [positive? (-> -Real B : (-PS (-is-type 0 -PosRealNoNan) (-is-type 0 -NonPosReal)))]
 [negative? (-> -Real B : (-PS (-is-type 0 -NegRealNoNan) (-is-type 0 -NonNegReal)))]
-[exact-positive-integer? (make-pred-ty -Pos)]
-[exact-nonnegative-integer? (make-pred-ty -Nat)]
+[exact-positive-integer? (unsafe-shallow:make-pred-ty -Pos)]
+[exact-nonnegative-integer? (unsafe-shallow:make-pred-ty -Nat)]
 
 [odd? (-> -Int B : (-PS (-not-type 0 -Zero) (-not-type 0 -One)))]
 [even? (-> -Int B : (-PS (-not-type 0 -One) (-not-type 0 -Zero)))]
@@ -1900,18 +1901,18 @@
   (-> (Un -NonPosRat -NonPosFlonum -NonPosSingleFlonum -NonPosInexactReal -NonPosReal) -NonPosInt)
   (-> (Un -Rat -Flonum -SingleFlonum -InexactReal -Real) -Int))]
 
-[nan? (make-pred-ty (list -Real) B -InexactRealNan)]
+[nan? (unsafe-shallow:make-pred-ty (list -Real) B -InexactRealNan)]
 
-[infinite? (make-pred-ty (list -Real) B (Un -PosInfinity -NegInfinity))]
-[positive-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -PosInt -PosFlonum -PosSingleFlonum))
+[infinite? (unsafe-shallow:make-pred-ty (list -Real) B (Un -PosInfinity -NegInfinity))]
+[positive-integer? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (Un -PosInt -PosFlonum -PosSingleFlonum))
                                           (-not-type 0 -PosInt)))]
-[negative-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -NegInt -NegFlonum -NegSingleFlonum))
+[negative-integer? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (Un -NegInt -NegFlonum -NegSingleFlonum))
                                           (-not-type 0 -NegInt)))]
-[nonpositive-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -NonPosInt -NonPosFlonum -NonPosSingleFlonum))
+[nonpositive-integer? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (Un -NonPosInt -NonPosFlonum -NonPosSingleFlonum))
                                              (-not-type 0 -NonPosInt)))]
-[nonnegative-integer? (asym-pred Univ B (-PS (-is-type 0 (Un -Nat -NonNegFlonum -NonNegSingleFlonum))
+[nonnegative-integer? (unsafe-shallow:asym-pred Univ B (-PS (-is-type 0 (Un -Nat -NonNegFlonum -NonNegSingleFlonum))
                                              (-not-type 0 -Nat)))]
-[natural? (make-pred-ty -Nat)]
+[natural? (unsafe-shallow:make-pred-ty -Nat)]
 
 ;; racket/fixnum
 [fx+ (fx+-type)]
@@ -2037,7 +2038,7 @@
 [unsafe-flrandom (flrandom-type)]
 
 ; racket/extflonum
-[extflonum? (make-pred-ty -ExtFlonum)]
+[extflonum? (unsafe-shallow:make-pred-ty -ExtFlonum)]
 [extflonum-available? (-> B)]
 [pi.t -PosExtFlonum]
 

@@ -2,6 +2,8 @@
 
 ;; Typed base-env wrapper for the pict library
 
+;; TODO 2022-01-28 ... add T+ for untrusted ones!!!
+
 (require pict
          "racket/private/gui-types.rkt"
          (for-syntax (only-in typed-racket/rep/type-rep
@@ -9,6 +11,7 @@
                      (submod "racket/private/gui-types.rkt" #%type-decl)))
 
 (begin-for-syntax
+(with-default-T+ #true
  (define (-improper-listof t)
    (-mu -ilof
         (Un (-pair t -ilof) t -Null)))
@@ -42,15 +45,18 @@
           (-> -pict -pict-path (-values (list -Real -Real)))
           #:start-angle (-opt -Real) #f
           #:end-angle (-opt -Real) #f
-          #:start-pull -Real #f
-          #:end-pull -Real #f
-          #:line-width (-opt -Real) #f
+          #:start-pull (-opt -Real) #f
+          #:end-pull (-opt -Real) #f
           #:color (-opt (Un -String -color)) #f
           #:alpha -Real #f
-          #:style -linestyle #f
+          #:line-width (-opt -Real) #f
           #:under? Univ #f
           #:solid? Univ #f
+          #:style (-opt -linestyle) #f
           #:hide-arrowhead? Univ #f
+          #:label (-opt -pict) #f
+          #:x-adjust-label -Real #f
+          #:y-adjust-label -Real #f
           -pict))
  (define -pict-finder
    (-> -pict -pict-path (-values (list -Real -Real))))
@@ -59,9 +65,10 @@
      (->* (list -Real -pict) -pict -pict)
      (->* (list -pict) -pict -pict)))
  (define -superimpose-type
-   (->* (list -pict) -pict -pict)))
+   (->* (list -pict) -pict -pict))))
 
 (type-environment
+ #:default-T+ #true
  ; 1 Pict Datatype
  [#:struct pict ([draw : Univ]
                  [width : -Real]
@@ -157,13 +164,17 @@
          (-> -pict -pict-path (-values (list -Real -Real)))
          #:start-angle (-opt -Real) #f
          #:end-angle (-opt -Real) #f
-         #:start-pull -Real #f
-         #:end-pull -Real #f
-         #:line-width (-opt -Real) #f
+         #:start-pull (-opt -Real) #f
+         #:end-pull (-opt -Real) #f
          #:color (-opt (Un -String -color)) #f
          #:alpha -Real #f
-         #:style -linestyle #f
+         #:line-width (-opt -Real) #f
          #:under? Univ #f
+         #:solid? Univ #f
+         #:style (-opt -linestyle) #f
+         #:label (-opt -pict) #f
+         #:x-adjust-label -Real #f
+         #:y-adjust-label -Real #f
          -pict)]
  [pin-arrow-line -pin-arrow-line]
  [pin-arrows-line -pin-arrow-line]
@@ -269,7 +280,7 @@
  [rc-find -pict-finder]
  [rbl-find -pict-finder]
  [rb-find -pict-finder]
- [pict-path? (make-pred-ty -pict-path)]
+ [pict-path? (unsafe-shallow:make-pred-ty -pict-path)]
  [launder (-> -pict -pict)]
 
  ;; 7.1 Dingbats

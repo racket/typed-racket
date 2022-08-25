@@ -1322,7 +1322,8 @@
                  (list (-Arrow (list -Integer) -Integer
                                #:props (-PS (-not-type (cons 0 0) (-val #f))
                                             (-is-type (cons 0 0) (-val #f)))
-                               #:object (make-Path null (cons 0 0)))))]
+                               #:object (make-Path null (cons 0 0))
+                               #:T+ #t)))]
         [tc-e/t (inst (plambda: (a) [x : a *] (apply list x)) Integer)
                 ((list) -Integer . ->* . (-lst -Integer) : -true-propset)]
 
@@ -3645,11 +3646,11 @@
          #:ret (tc-ret (-polydots (a ...) (->... (list) ((-vec a) a) (t:Un (-val #f) (-vec Univ)))))
          #:expected (tc-ret (-polydots (a ...) (->... (list) ((-vec a) a)
                                                    (t:Un (-val #f) (-vec Univ)))))]
+
        [tc-err
          (lambda xs (andmap (lambda: ([x : #f]) x) xs))
          #:ret (tc-ret (-polydots (a ...) (->... (list) ((-val #f) a) (-val #f))))
          #:expected (tc-ret (-polydots (a ...) (->... (list) ((-val #f) a) (-val #f))))]
-
        [tc-e
         ((letrec ([lp (lambda (x) lp)]) lp) 'y)
         #:ret (tc-ret (t:-> -Symbol Univ) -true-propset)
@@ -4078,7 +4079,7 @@
          (t:-> -NonNegFlonum -Boolean : (-PS (-is-type 0 -FlonumZero) (-is-type 0 -PosFlonum)))]
        [tc-e/t
          (lambda: ([x : Byte]) (if (< 0 x) x 1))
-         (t:-> -Byte -PosByte : (-PS (-is-type (cons 0 0) -Byte) -ff))]
+         (t:-> -Byte -PosByte : (-PS (-is-type (cons 0 0) -Byte) -ff) :T+ #t)]
 
        [tc-e ((inst values Any) "a")
                #:ret (ret -String #f #f)]

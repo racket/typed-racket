@@ -40,6 +40,10 @@
          Region%
          SVG-DC%)
 
+(require (for-template (only-in typed-racket/base-env/extra-env-lang with-default-T+)))
+
+(with-default-T+ #true
+
 (define-type LoadFileKind
   (U 'unknown 'unknown/mask 'unknown/alpha
      'gif 'gif/mask 'gif/alpha
@@ -2986,3 +2990,5 @@
   (Class
    [get-map (Char -> (Listof Wordbreak-Map-Value))]
    [set-map (Char (Listof Wordbreak-Map-Value) -> Void)]))
+
+)

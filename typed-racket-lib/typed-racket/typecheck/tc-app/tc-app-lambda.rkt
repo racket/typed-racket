@@ -48,7 +48,7 @@
              (match (type-of arg)
               [(tc-result1: t) t]))]
           [cod-t (tc-results->values res)])
-     (add-typeof-expr #'lam (ret (->* dom-ts cod-t)))
+     (add-typeof-expr #'lam (ret (->* dom-ts cod-t :T+ #t)))
      res))
   ;; inference for ((lambda with dotted rest
   (pattern ((~and lam (#%plain-lambda (x ... . rst:id) . body)) args ...)

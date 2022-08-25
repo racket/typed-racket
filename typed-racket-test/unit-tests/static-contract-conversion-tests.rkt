@@ -15,17 +15,29 @@
 (provide tests)
 (gen-test-main)
 
+(begin-for-syntax
+  (define-splicing-syntax-class type-enforcement-flag
+    #:attributes (value)
+    (pattern (~or #:deep
+                  (~seq))
+      #:with value 'deep)
+    (pattern (~seq #:optional)
+      #:with value 'optional)
+    (pattern (~seq #:shallow)
+      #:with value 'shallow)))
+
 (define-syntax t/sc
   (syntax-parser
-    [(_ e:expr)
+    [(_ e:expr te-flag:type-enforcement-flag)
      (syntax/loc #'e
        (test-case
          (format "Conversion:~a" (quote-line-number e))
          (with-check-info (['type 'e]
-                           ['location (build-source-location-list (quote-srcloc e))])
+                           ['location (build-source-location-list (quote-srcloc e))]
+                           ['enforcement-mode 'te-flag.value])
            (phase1-phase0-eval
              (define sc
-                (type->static-contract e (lambda (#:reason _) #f)))
+                (type->static-contract e (lambda (#:reason _) #f) #:enforcement-mode 'te-flag.value))
              (if sc
                  #`(with-check-info (['static '#,sc])
                      (phase1-phase0-eval
@@ -39,18 +51,19 @@
 
 (define-syntax t/fail
   (syntax-parser
-    [(_ e:expr (~optional (~seq #:typed-side typed-side) #:defaults ([typed-side #'#t])))
+    [(_ e:expr (~optional (~seq #:typed-side typed-side) #:defaults ([typed-side #'#t])) te-flag:type-enforcement-flag)
      #`(test-case (format "~a" 'e)
          (define sc
            (phase1-phase0-eval
              (let/ec exit
-               #`'#,(type->static-contract e (lambda (#:reason _) (exit #'#f)) #:typed-side typed-side))))
+               #`'#,(type->static-contract e (lambda (#:reason _) (exit #'#f)) #:typed-side typed-side #:enforcement-mode 'te-flag.value))))
          (when sc
            (with-check-info (['static sc])
              (fail-check "Type was incorrectly converted to contract"))))]))
 
 (define tests
   (test-suite "Conversion Tests"
+   (test-suite "Guarded Tests"
     (t/sc (-Number . -> . -Number))
     (t/sc (cl->* (-> -Symbol)
                  (-Symbol . -> . -Symbol)))
@@ -86,4 +99,30 @@
     ;; contracts are tested by integration tests.
     (t/sc (-unit null null null (-values (list -String))))
     (t/sc (-unit null null null (-values (list -Symbol -String))))
-    (t/fail (-unit null null null ManyUniv))))
+    (t/fail (-unit null null null ManyUniv)))
+
+   (test-suite "Shallow Tests"
+    (t/sc (-Number . -> . -Number) #:shallow)
+    (t/sc (cl->* (-> -Symbol)
+                 (-Symbol . -> . -Symbol)) #:shallow)
+    (t/sc (-Promise -Number) #:shallow)
+    (t/sc (-struct-property (-> -Self -Number) #f) #:shallow)
+    (t/sc (-struct-property (-> -Self -Number) #f)  #:shallow)
+    (t/sc (-set Univ) #:shallow)
+    (t/sc ((-poly (a) (-vec a)) . -> . -Symbol) #:shallow)
+    (t/sc (-poly (a) (-lst a)) #:shallow)
+    (t/sc (-mu sexp (Un -Null -Symbol (-pair sexp sexp) (-vec sexp) (-box sexp))) #:shallow)
+    (t/sc (-Mutable-HT (-vec -Symbol) (-vec -Symbol)) #:shallow)
+    (t/sc (-HT (-vec -Symbol) (-vec -Symbol)) #:shallow)
+    (t/sc (-unit null null null (-values (list -Symbol -String))) #:shallow)
+    (t/sc (-unit null null null ManyUniv) #:shallow))
+
+   (test-suite "Optional (typing) tests"
+    ;; Optional always succeeds with any/sc
+    (t/sc (-Number . -> . -Number) #:optional)
+    (t/sc (-struct-property (-> -Self -Number) #f) #:optional)
+    (t/sc (-struct-property (-> -Self -Number) #f)  #:optional)
+    (t/sc (-set Univ) #:optional)
+    (t/sc (-HT (-vec -Symbol) (-vec -Symbol)) #:optional)
+    (t/sc (-unit null null null ManyUniv) #:optional))
+   ))

@@ -12,7 +12,7 @@
 
 (provide (rename-out [module-begin #%module-begin]
                      [top-interaction #%top-interaction])
-         with-type
+         with-type with-type-shallow with-type-optional
          (for-syntax do-standard-inits))
 
 (define-syntax-rule (drivers [name sym] ...)
@@ -26,4 +26,4 @@
               (do-time "Finished, returning to Racket")))
     ...))
 
-(drivers [module-begin mb-core] [top-interaction ti-core] [with-type wt-core])
+(drivers [module-begin mb-core] [top-interaction ti-core] [with-type wt-core] [with-type-shallow wt-core-shallow] [with-type-optional wt-core-optional])

@@ -27,6 +27,7 @@ at least theoretically.
  repeat-list
  ends-with?
  filter-multiple
+ rev-append
  syntax-length
  in-pair
  in-list/rest
@@ -246,6 +247,10 @@ at least theoretically.
 (define (filter-multiple l . fs)
   (apply values
          (map (lambda (f) (filter f l)) fs)))
+
+(define (rev-append a* b*)
+  (let loop ((a* a*) (b* b*))
+    (if (null? a*) b* (loop (cdr a*) (cons (car a*) b*)))))
 
 (define (syntax-length stx)
   (let ((list (syntax->list stx)))

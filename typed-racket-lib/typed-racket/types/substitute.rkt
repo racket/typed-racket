@@ -108,7 +108,7 @@
                  (for/list ([img (in-list images)])
                    (-result (substitute img name expanded))))))])]
          [else (make-ValuesDots (map sub types) (sub dty) dbound)])]
-      [(Arrow: dom (RestDots: dty dbound) kws rng)
+      [(Arrow: dom (RestDots: dty dbound) kws rng rng-T+)
        #:when (eq? name dbound)
        (make-Arrow
         (append
@@ -119,7 +119,8 @@
                 images)))
         (if (Type? rimage) (make-Rest (list rimage)) rimage)
         (map sub kws)
-        (sub rng))]
+        (sub rng)
+        rng-T+)]
       [_ (Rep-fmap target sub)])))
 
 ;; implements curly brace substitution from the formalism, with the addition
@@ -146,7 +147,7 @@
                                   pre-image)
                           (sub dty)
                           image-bound)]
-      [(Arrow: dom (RestDots: dty dbound) kws rng)
+      [(Arrow: dom (RestDots: dty dbound) kws rng rng-T+)
        #:when (eq? name dbound)
        (make-Arrow
         (append (map sub dom) pre-image)
@@ -154,7 +155,8 @@
          (substitute image dbound (sub dty))
          image-bound)
         (map sub kws)
-        (sub rng))]
+        (sub rng)
+        rng-T+)]
       [_ (Rep-fmap target sub)])))
 
 ;; substitute many variables

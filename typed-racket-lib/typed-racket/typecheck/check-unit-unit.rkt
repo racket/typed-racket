@@ -759,7 +759,7 @@
 ;; Based on the function of the same name in check-class-unit.rkt
 ;; trawl-for-property : Syntax (Syntax -> Any) [(Syntax -> A)] -> (Listof A)
 ;; Search through the given syntax for pieces of syntax that satisfy
-;; the accessor predicate, then apply the extractor function to  all such syntaxes 
+;; the accessor predicate, then apply the extractor function to  all such syntaxes
 (define (trawl-for-property form accessor [extractor values])
   (define (recur-on-all stx-list)
     (apply append (map (λ (stx) (trawl-for-property stx accessor extractor)) stx-list)))
@@ -771,3 +771,4 @@
     [_
      (define list? (syntax->list form))
      (if list? (recur-on-all list?) '())]))
+

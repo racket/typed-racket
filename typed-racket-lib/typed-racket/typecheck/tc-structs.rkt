@@ -114,7 +114,6 @@
                  [(? Struct?) sty]
                  [(Poly: names (? Struct? sty)) sty])))
 
-
 (define/cond-contract (tc/struct-prop-values st-tname pnames pvals)
   (c:-> identifier? (c:listof identifier?) (c:listof syntax?) void?)
   (unless (null? pnames)
@@ -421,7 +420,7 @@
   (define bindings
     (list* (make-def-binding struct-type (make-StructType sty))
            (make-def-binding predicate
-                             (make-pred-ty (mk-pred-ty st-type-alias-maybe-with-proc)))
+                             (unsafe-shallow:make-pred-ty (mk-pred-ty st-type-alias-maybe-with-proc)))
            (append*
             (mk-operator-bindings! getters add-struct-accessor-fn! mk-getter-vals)
             (maybe-cons (and self-mutable (mk-operator-bindings! setters add-struct-mutator-fn! mk-setter-vals))))))

@@ -12,7 +12,8 @@
                          for*/and
                          for*/or for*/sum for*/product for*/first for*/last
                          for*/fold for*/foldr))
-	   (basics #%module-begin #%top-interaction))
+	   (basics #%module-begin #%top-interaction)
+	   (ts-except with-type-shallow with-type-optional))
 
 (require typed-racket/base-env/extra-procs
          (rename-in

@@ -25,7 +25,7 @@
          "../types/struct-table.rkt"
          "../types/utils.rkt"
          data/queue
-         racket/private/dict racket/list racket/promise
+         racket/private/dict racket/list racket/promise racket/stxparam
          racket/match
          syntax/private/id-table
          syntax/id-set)
@@ -41,9 +41,11 @@
 
 (define-syntax (define-initial-env stx)
   (syntax-parse stx
-    [(_ initialize-env [id-expr ty] ...)
+    [(_ initialize-env #:default-T+ T+ [id-expr ty] ...)
      #`(begin
-         (define initial-env (make-env [id-expr (λ () ty)] ... ))
+         (define initial-env
+           (syntax-parameterize ([default-rng-shallow-safe? T+])
+             (make-env [id-expr (λ () ty)] ... )))
          (define (initialize-env) (initialize-type-env initial-env))
          (provide initialize-env))]))
 
@@ -51,7 +53,10 @@
   (for-each (lambda (nm/ty) (register-resolved-type-alias (car nm/ty) (cadr nm/ty))) initial-type-names))
 
 (define (initialize-type-env initial-env)
-  (for-each (lambda (nm/ty) (register-type-if-undefined (car nm/ty) (cadr nm/ty))) initial-env))
+  (define (init nm/ty/sh)
+    (define id (car nm/ty/sh))
+    (register-type-if-undefined id (cadr nm/ty/sh)))
+  (for-each init initial-env))
 
 ;; stores definition syntaxes for lifting out common expressions
 (define type-definitions (make-queue))
@@ -184,8 +189,8 @@
                            (Result: t
                                     (PropSet: (TrueProp:)
                                               (TrueProp:))
-                                    (Empty:)))))))
-     `(simple-> (list ,@(map type->sexp dom)) ,(type->sexp t))]
+                                    (Empty:)))) rng-T+)))
+     `(simple-> (list ,@(map type->sexp dom)) ,(type->sexp t) #:T+ ,rng-T+)]
     [(Fun: (list (Arrow: dom #f'()
                          (Values:
                           (list
@@ -193,11 +198,12 @@
                                     (PropSet:
                                      (TypeProp: pth ft)
                                      (NotTypeProp: pth ft))
-                                    (Empty:)))))))
+                                    (Empty:)))) rng-T+)))
      `(make-pred-ty (list ,@(map type->sexp dom))
                     ,(type->sexp t)
                     ,(type->sexp ft)
-                    ,(object->sexp pth))]
+                    ,(object->sexp pth)
+                    ,rng-T+)]
     [(Fun: (list (Arrow: dom #f '()
                          (Values:
                           (list
@@ -207,10 +213,11 @@
                                                    (== -False))
                                      (TypeProp: (Path: pth (cons 0 0))
                                                 (== -False)))
-                                    (Path: pth (cons 0 0))))))))
+                                    (Path: pth (cons 0 0))))) rng-T+)))
      `(->acc (list ,@(map type->sexp dom))
              ,(type->sexp t)
-             (list ,@(map path-elem->sexp pth)))]
+             (list ,@(map path-elem->sexp pth))
+             #:T+ ,rng-T+)]
     [(Fun: (? has-optional-args? arrs))
      (match-define (Arrow: fdoms _ kws rng) (first arrs))
      (match-define (Arrow: ldoms rst _ _) (last arrs))
@@ -220,7 +227,8 @@
        (list ,@(map type->sexp opts))
        ,(type->sexp rng)
        ,@(if rst `(#:rest ,(type->sexp rst)) '())
-       ,@(if (null? kws) '() `(#:kws (list ,@(map type->sexp kws)))))]
+       ,@(if (null? kws) '() `(#:kws (list ,@(map type->sexp kws))))
+       #:T+ ,(andmap Arrow-rng-shallow-safe? arrs))]
     [(Fun: arrs) `(make-Fun (list ,@(map type->sexp arrs)))]
     [(DepFun: dom pre rng)
      `(make-DepFun (list ,@(map type->sexp dom))
@@ -338,18 +346,21 @@
     [(Arrow: dom #f '()
              (Values: (list (Result: t (PropSet: (TrueProp:)
                                                  (TrueProp:))
-                                     (Empty:)))))
+                                     (Empty:)))) rng-T+)
      `(-Arrow (list ,@(map type->sexp dom))
-              ,(type->sexp t))]
-    [(Arrow: dom #f '() rng)
+              ,(type->sexp t)
+              #:T+ ,rng-T+)]
+    [(Arrow: dom #f '() rng rng-T+)
      `(-Arrow (list ,@(map type->sexp dom))
-              ,(type->sexp rng))]
-    [(Arrow: dom rest kws rng)
+              ,(type->sexp rng)
+              #:T+ ,rng-T+)]
+    [(Arrow: dom rest kws rng rng-T+)
      `(make-Arrow
        (list ,@(map type->sexp dom))
        ,(and rest (type->sexp rest))
        (list ,@(map type->sexp kws))
-       ,(type->sexp rng))]
+       ,(type->sexp rng)
+       ,rng-T+)]
     [(Rest: tys )
      `(make-Rest (list ,@(map type->sexp tys)))]
     [(RestDots: ty db)
@@ -458,7 +469,13 @@
 (define (tname-env-init-code)
   (make-init-code
     type-name-env-map
-    (λ (id ty) #`(register-type-name #'#,id #,(quote-type ty)))))
+    make-register-type-name-code))
+
+(define (make-register-type-code id ty)
+  #`(register-type #'#,id #,(quote-type ty)))
+
+(define (make-register-type-name-code id ty)
+  #`(register-type-name #'#,id #,(quote-type ty)))
 
 
 (define (talias-env-init-code)
@@ -469,7 +486,7 @@
 (define (env-init-code)
   (make-init-code
     type-env-map
-    (λ (id ty) #`(register-type #'#,id #,(quote-type ty)))))
+    make-register-type-code))
 
 (define (struct-name-env-init)
   (make-init-code

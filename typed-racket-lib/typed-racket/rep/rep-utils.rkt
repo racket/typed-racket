@@ -395,8 +395,6 @@
      ;; Error checking
      ;; - - - - - - - - - - - - - - -
 
-     ;; build convenient boolean flags
-     (define is-a-type? (and (attribute parent) (eq? 'Type (syntax-e #'parent))))
      ;; singletons cannot have fields or #:no-provide
      (when (and (attribute singleton)
                 (or (attribute no-provide?-kw)

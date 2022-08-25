@@ -18,57 +18,87 @@
          (only-in racket/contract contract)
          racket/match
          (except-in typed/racket/class private)
+         syntax/id-set
          rackunit)
 (provide tests)
 (gen-test-main)
 
-(define (tc-fail #:reason [reason #f])
-  (fail-check (or reason "Type could not be converted to contract")))
-
-(define-syntax-rule (t e)
-  (test-case (format "~a" 'e)
-    (let ([v e])
-      (with-check-info (('type v))
-        (type->contract
-          v
-          tc-fail)))))
-
-(define-syntax-rule (t-sc e-t e-sc)
-  (test-case (format "~a" '(e-t -> e-sc))
-    (let ([t e-t] [sc e-sc])
-      (with-check-info (['type t] ['expected sc])
-        (define actual
-          (optimize
-            (type->static-contract
-              t
-              tc-fail)))
-        (with-check-info (['actual actual])
-          (unless (equal? actual sc)
-            (fail-check "Static contract didn't match expected")))))))
+(begin-for-syntax
+  (define-splicing-syntax-class type-enforcement-flag
+    #:attributes (value)
+    (pattern (~or #:deep
+                  (~seq))
+      #:with value 'deep)
+    (pattern (~seq #:optional)
+      #:with value 'optional)
+    (pattern (~seq #:shallow)
+      #:with value 'shallow)))
 
 
-(define-syntax-rule (t/fail e expected-reason)
-  (test-case (format "~a" 'e)
-   (let ((v e))
-     (with-check-info (('expected expected-reason)
-                       ('type v))
-       (define reason
-         (let/ec exit
-           (let ([contract (type->contract v (λ (#:reason [reason #f])
-                                                (exit (or reason "No reason given"))))])
-             (match-define (list ctc-defs ctc) contract)
-             (define ctc-data (map syntax->datum (append ctc-defs (list ctc))))
-             (with-check-info (('contract ctc-data))
-               (fail-check "type could be converted to contract")))))
-       (unless (regexp-match? expected-reason reason)
-         (with-check-info (('reason reason))
-           (fail-check "Reason didn't match expected.")))))))
+;; (t ty [te-flag #:deep])
+;; Convert type to a contract using the type enforcement mode named by `te-flag`
+(define-syntax (t stx)
+  (syntax-parse stx
+   [(_ e te-flag:type-enforcement-flag)
+    #'(test-case (format "~a" 'e)
+        (let ([v e])
+          (with-check-info (('type v) ('enforcement-mode 'te-flag.value))
+            (type->contract
+              e
+              (λ (#:reason [reason #f])
+                (fail-check (or reason "Type could not be converted to contract")))
+              #:enforcement-mode 'te-flag.value))))]))
+
+
+;; (t-sc ty sc [te-mode #:deep])
+;; Convert `ty` to an optimized static contract, check equal to `sc`
+(define-syntax (t-sc stx)
+  (syntax-parse stx
+   [(_ e-t e-sc te-flag:type-enforcement-flag)
+    #'(test-case (format "~a" '(e-t -> e-sc))
+       (let ([t e-t] [sc e-sc])
+         (with-check-info (['type t] ['expected sc] ['enforcement-mode 'te-flag.value])
+           (define actual
+             (optimize
+               (type->static-contract
+                 t
+                 (λ (#:reason [reason #f])
+                   (fail-check (or reason "Type could not be converted to contract")))
+                 #:enforcement-mode 'te-flag.value)))
+           (with-check-info (['actual actual])
+             (unless (equal? actual sc)
+               (fail-check "Static contract didn't match expected"))))))]))
+
+
+;; (t/fail ty reason [te-flag #:deep])
+;; Try converting `ty` to a static contract, but expect an error message that contains `reason`
+(define-syntax (t/fail stx)
+  (syntax-parse stx
+   [(_ e expected-reason te-flag:type-enforcement-flag)
+    #'(test-case (format "~a" 'e)
+        (let ((v e))
+          (with-check-info (('expected expected-reason)
+                            ('type v)
+                            ('enforcement-mode 'te-flag.value))
+            (define reason
+              (let/ec exit
+                (let ([contract (type->contract v (λ (#:reason [reason #f])
+                                                     (exit (or reason "No reason given")))
+                                                #:enforcement-mode 'te-flag.value)])
+                  (match-define (list ctc-defs ctc) contract)
+                  (define ctc-data (map syntax->datum (append ctc-defs (list ctc))))
+                  (with-check-info (('contract ctc-data))
+                    (fail-check "type could be converted to contract")))))
+            (unless (regexp-match? expected-reason reason)
+              (with-check-info (('reason reason))
+                (fail-check "Reason didn't match expected."))))))]))
 
 ;; construct a namespace for use in typed-untyped interaction tests
 (define (ctc-namespace)
   (parameterize ([current-namespace (make-base-namespace)])
     (namespace-require 'racket/contract)
     (namespace-require 'racket/sequence)
+    (namespace-require 'racket/async-channel)
     (namespace-require 'typed-racket/utils/any-wrap)
     (namespace-require 'typed-racket/utils/evt-contract)
     (namespace-require 'typed-racket/utils/hash-contract)
@@ -105,7 +135,10 @@
       (quasisyntax/loc stx
         (t-int/check arg ...  (check-re re 'loc))))]))
 
-;; tests typed-untyped interaction
+;; (t-int/check ty fn val ty-side [te-mode #:deep] check)
+;; Convert `ty` to a contract, apply to `val`, then call `fn` on the result.
+;; Both `ty-side` and `ty-mode` control the contract generation.
+;; The whole computation runs in the context of `check`.
 (define-syntax (t-int/check stx)
   (syntax-parse stx
     [(_ type-expr fun-expr val-expr
@@ -113,16 +146,22 @@
                    (~bind [typed-side #'#t]))
              (~and (~seq #:untyped)
                    (~bind [typed-side #'#f])))
+        te-flag:type-enforcement-flag
         check)
-     (define pos (if (syntax-e #'typed-side) 'typed 'untyped))
-     (define neg (if (syntax-e #'typed-side) 'untyped 'typed))
+     (define-values [pos neg]
+       (if (syntax-e #'typed-side)
+         (values 'typed 'untyped)
+         (values 'untyped 'typed)))
      #`(test-case (format "~a for ~a in ~a" 'type-expr 'val-expr 'fun-expr)
          (let ([type-val type-expr])
-           (with-check-info (['type type-val] ['test-value (quote val-expr)])
+           (with-check-info (['type type-val] ['test-value (quote val-expr)] ['enforcement-mode 'te-flag.value])
              (define ctc-result
                (type->contract type-val
                                #:typed-side typed-side
-                               tc-fail))
+                               (λ (#:reason [reason #f])
+                                 (fail-check (or reason "Type could not be converted to contract")))
+                               #:cache #f
+                               #:enforcement-mode 'te-flag.value))
              (match-define (list extra-stxs ctc-stx) ctc-result)
              (define namespace (ctc-namespace))
              (define val (eval (quote val-expr) namespace))
@@ -141,8 +180,10 @@
                           (fun-val ctced-val)))))))]))
 
 (define tests
+ (test-suite
+  "Contract Tests"
   (test-suite
-   "Contract Tests"
+   "Guarded Tests"
    (t (-Number . -> . -Number))
    (t (-Promise -Number))
    (t (-set Univ))
@@ -280,7 +321,7 @@
             (let-values ([(_t _c foo? _a _m) (make-struct-type 'foo #f 0 0)])
               foo?)
             #:untyped)
-     ;; Unless the struct predicate is guarded by an untyped chaperone
+     ;; Unless the struct predicate is deep by an untyped chaperone
      (t-int/fail ctc
                  (lambda (foo?) (foo? string-append))
                  (let-values ([(_t _c foo? _a _m) (make-struct-type 'foo #f 0 0)])
@@ -431,7 +472,7 @@
           (λ (c) (c (vector 2)))
           (λ (h) (void))
           #:untyped)
-   ;; TODO these tests fail, but should pass in a future Racket / Typed Racket
+   ;; TODO these tests fail, but should pass in a future Racket / Typed Racket with union contracts (not or/c)
    #;(t-int (-poly (a) (-> (Un (-HT -Boolean a) (-HT -String a)) -Void))
           (λ (c)
             (c (make-immutable-hash '((#true . 1))))
@@ -912,6 +953,55 @@
    (t-int (-val #rx"aa") void #rx"aa" #:untyped)
    (t-int (-val #rx#"bb") void #rx#"bb" #:untyped)
 
+   (t-int/fail -Async-ChannelTop async-channel-get (let ([ch (make-async-channel)]) (async-channel-put ch "ok") ch)
+          #:typed
+          #:msg "Attempted to use a higher-order value passed as `Any`")
+   (t-int -Async-ChannelTop async-channel-get (let ([ch (make-async-channel)]) (async-channel-put ch "ok") ch)
+          #:untyped)
+   (t-int/fail -MPairTop mcar (mcons 0 0)
+          #:typed
+          #:msg "Attempted to use a higher-order value passed as `Any`")
+   (t-int -MPairTop mcar (mcons 0 0)
+          #:untyped)
+   (t-int/fail -HashTableTop (lambda (h) (hash-set! h 'a 0)) (make-hash `((a . b)))
+               #:typed
+               #:msg "Attempted to use a higher-order value passed as `Any`")
+   (t-int -HashTableTop (lambda (h) (hash-set! h 'a 0)) (make-hash `((a . b)))
+          #:untyped)
+   (t-int/fail -Mutable-HashTableTop (lambda (h) (hash-set! h 'a 0)) (make-hash `((a . b)))
+               #:typed
+               #:msg "Attempted to use a higher-order value passed as `Any`")
+   (t-int -Mutable-HashTableTop (lambda (h) (hash-set! h 'a 0)) (make-hash `((a . b)))
+          #:untyped)
+   (t-int/fail -Weak-HashTableTop (lambda (h) (hash-set! h 'a 0)) (make-weak-hash `((a . b)))
+               #:typed
+               #:msg "Attempted to use a higher-order value passed as `Any`")
+   (t-int -Weak-HashTableTop (lambda (h) (hash-set! h 'a 0)) (make-weak-hash `((a . b)))
+          #:untyped)
+   (t-int/fail -ThreadCellTop (lambda (tc) (thread-cell-set! tc 42)) (make-thread-cell 'x)
+               #:typed
+               #:msg "Attempted to use a higher-order value passed as `Any`")
+   (t-int -ThreadCellTop (lambda (tc) (thread-cell-set! tc 42)) (make-thread-cell 'x)
+          #:untyped)
+   (t-int/fail -Prompt-TagTop continuation-prompt-available? (make-continuation-prompt-tag)
+               #:typed
+               #:msg "Attempted to use a higher-order value passed as `Any`")
+   (t-int -Prompt-TagTop continuation-prompt-available? (make-continuation-prompt-tag)
+          #:untyped)
+   (t-int/fail -Continuation-Mark-KeyTop (lambda (k) (continuation-mark-set-first #f k)) (make-continuation-mark-key)
+               #:typed
+               #:msg "Attempted to use a higher-order value passed as `Any`")
+   (t-int -Continuation-Mark-KeyTop (lambda (k) (continuation-mark-set-first #f k)) (make-continuation-mark-key)
+          #:untyped)
+   (t-int/fail -ClassTop class->interface object%
+               #:typed
+               #:msg "Attempted to use a higher-order value passed as `Any`")
+   (t-int -ClassTop class->interface object%
+          #:untyped)
+   (t/fail (make-Ephemeron -Symbol)
+           "contract generation not supported for this type")
+   (t/fail (make-Future -Symbol)
+           "contract generation not supported for this type")
    (t-int -ChannelTop
           channel-get
           (let ((ch (make-channel))) (thread (λ () (channel-put ch "ok"))) ch)
@@ -926,5 +1016,107 @@
                (make-channel)
                #:typed
                #:msg "higher-order value passed as `Any`")
+   (t-sc top-func (case->/sc '()))
    (t-int -NonNegInexactReal void 2.0 #:untyped)
-   ))
+  )
+
+  (test-suite
+   "Shallow Tests"
+   (t-sc ((-poly (a) (-vec a)) . -> . -Symbol)
+         (make-procedure-arity-flat/sc 1 '() '()) #:shallow)
+   (t-sc -Number number/sc #:shallow)
+   (t-int Any-Syntax syntax? #'#'A #:typed #:shallow)
+   (t-int (-poly (a) (-> a a))
+          (λ (f) (f 1))
+          (λ (x) 1)
+          #:untyped #:shallow)
+
+   (t (-Number . -> . -Number) #:shallow)
+
+   (t-sc (make-Ephemeron -Symbol) ephemeron?/sc #:shallow)
+   (t-sc (make-Future -Symbol) future?/sc #:shallow)
+   (t-sc (-mpair -Symbol -Symbol) mpair?/sc #:shallow)
+
+   (t-sc -MPairTop mpair?/sc #:shallow)
+   (t-sc -BoxTop box?/sc #:shallow)
+   (t-sc -HashTableTop hash?/sc #:shallow)
+   (t-sc -Mutable-VectorTop mutable-vector?/sc #:shallow)
+   (t-sc -VectorTop vector?/sc #:shallow)
+   (t-sc -ChannelTop channel?/sc #:shallow)
+   (t-sc -Async-ChannelTop async-channel?/sc #:shallow)
+   (t-sc -ThreadCellTop thread-cell?/sc #:shallow)
+   (t-sc -Weak-BoxTop weak-box?/sc #:shallow)
+   (t-sc -Mutable-HashTableTop mutable-hash?/sc #:shallow)
+   (t-sc -Weak-HashTableTop weak-hash?/sc #:shallow)
+   (t-sc -Prompt-TagTop prompt-tag?/sc #:shallow)
+   (t-sc -Continuation-Mark-KeyTop continuation-mark-key?/sc #:shallow)
+   (t-sc -StructTypeTop struct-type?/sc #:shallow)
+   (t-sc -ClassTop class?/sc #:shallow)
+   (t-sc -UnitTop unit?/sc #:shallow)
+   (t-sc -SequenceTop sequence?/sc #:shallow)
+
+   (t-sc (-val eof) (flat/sc #'eof-object?) #:shallow)
+   (t-sc (-val (void)) (flat/sc #'void?) #:shallow)
+   (t-sc (-val 'X) (flat/sc #'(lambda (x) (eq? x 'X))) #:shallow)
+   (t-sc (-val #t) (flat/sc #'(lambda (x) (eq? x '#t))) #:shallow)
+   (t-sc (-val '#:kw) (flat/sc #'(lambda (x) (eq? x '#:kw))) #:shallow)
+   (t-sc (-val '()) (flat/sc #'(lambda (x) (eq? x '()))) #:shallow)
+   (t-sc (-val 3+3i) (flat/sc #'(lambda (x) (equal? x '3+3i))) #:shallow)
+   (t-sc (-val #rx"aa") (flat/sc #'(lambda (x) (equal? x '#rx"aa"))) #:shallow)
+   (t-sc (-val #rx#"bb") (flat/sc #'(lambda (x) (equal? x '#rx#"bb"))) #:shallow)
+   (t-sc (-val "cc") (flat/sc #'(lambda (x) (equal? x '"cc"))) #:shallow)
+   (t-sc (-val #"dd") (flat/sc #'(lambda (x) (equal? x '#"dd"))) #:shallow)
+   (t-sc (-val #\e) (flat/sc #'(lambda (x) (equal? x '#\e))) #:shallow)
+
+   (t-sc (-ivec* -Symbol) (immutable-vector-length/sc 1) #:shallow)
+   (t-sc (-mvec* -Symbol -Symbol -Symbol) (mutable-vector-length/sc 3) #:shallow)
+   (t-sc (-lst* -Symbol -Symbol) (list-length/sc 2) #:shallow)
+
+   (t -Byte-Regexp #:shallow)
+
+   (t-sc (-polydots (a) (-> (->... (list) (a a) -Symbol) (->... (list) (a a) -Symbol)))
+         (make-procedure-arity-flat/sc 1 '() '()) #:shallow)
+   (t-sc (-polydots (a) (->... (list) (a a) -Symbol))
+         procedure?/sc #:shallow)
+  (t-sc
+    (-polydots (a b)
+               (->... (list) ((-lst* (->... (list) (a a) b)) b) Univ))
+    procedure?/sc
+    #:shallow)
+  (t-sc (-polydots (a) (-lst* (->... (list) (a a) Univ)))
+        (list-length/sc 1) #:shallow)
+  (t-sc (make-ListDots Univ 'x)
+        list?/sc #:shallow)
+  (t-sc (make-SequenceDots (list) Univ 'x)
+        sequence?/sc #:shallow)
+  (t-int/fail (make-Value 3.0)
+              values
+              3
+              #:untyped #:shallow
+              #:msg #rx"produced: 3")
+  (t-int/fail (make-Value 3)
+              values
+              3.0
+              #:untyped #:shallow
+              #:msg #rx"produced: 3.0")
+  (t-sc top-func procedure?/sc #:shallow)
+  (t (-polyrow (a) (list null null null null)
+               (-> (-class #:row (-v a)) (-class #:row (-v a))))
+     #:shallow)
+  (t (-polyrow (a) (list null null null null)
+               (-> (-class #:method ([m (-> -Symbol -Integer)])) (-class #:method ([m (-> -Symbol -Integer)]))))
+     #:shallow)
+  (t-sc (make-StructTop (make-Struct #'foo #f null #f #f #'foo? (immutable-free-id-set (list))))
+        (flat/sc #'(lambda (x) (foo? x)))
+        #:shallow)
+  (t-sc (-prefab-top 'point 2)
+        (flat/sc #'(struct-type-make-predicate
+                    (prefab-key->struct-type 'point 2)))
+        #:shallow)
+  (t-sc (-prefab-top '(box-box #(0)) 1)
+        (flat/sc #'(struct-type-make-predicate
+                    (prefab-key->struct-type (quote (box-box #(0))) 1)))
+        #:shallow)
+
+  )
+))

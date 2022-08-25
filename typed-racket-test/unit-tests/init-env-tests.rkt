@@ -22,13 +22,13 @@
     (test-suite "Convert"
       (check-equal?
         (convert-type (-> -String -Symbol))
-        '(simple-> (list -String) -Symbol))
+        '(simple-> (list -String) -Symbol #:T+ #f))
       (check-equal?
         (convert-type (make-pred-ty -String))
-        '(make-pred-ty (list Univ) -Boolean -String (-arg-path 0)))
+        '(make-pred-ty (list Univ) -Boolean -String (-arg-path 0) #f))
       (check-equal?
         (convert-type (->acc (list (-lst -String)) -String (list -car)))
-        '(->acc (list (-lst -String)) -String (list -car)))
+        '(->acc (list (-lst -String)) -String (list -car) #:T+ #f))
       (check-equal?
         (convert-obj (make-Path '() (cons 0 0)))
         '(-arg-path 0))

@@ -420,7 +420,7 @@
 ;; useful to express properties of the form: if this function returns at all,
 ;; we learn this about its arguments (like fx primitives, or car/cdr, etc.)
 (define/match (add-unconditional-prop-all-args arr type)
-  [((Fun: (list (Arrow: dom rst kws rng))) type)
+  [((Fun: (list (Arrow: dom rst kws rng rng-T+))) type)
    (match rng
      [(Values: (list (Result: tp (PropSet: p+ p-) op)))
       (let ([new-props (apply -and (build-list (length dom)
@@ -432,7 +432,8 @@
                             (list (-result tp
                                            (-PS (-and p+ new-props)
                                                 (-and p- new-props))
-                                           op)))))))])])
+                                           op)))
+                           rng-T+))))])])
 
 ;; tc-results/c -> tc-results/c
 (define/match (erase-props tc)

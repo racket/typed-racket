@@ -2,7 +2,10 @@
 
 ;; Types for the framework library
 
-(require "../racket/private/gui-types.rkt")
+(require "../racket/private/gui-types.rkt"
+         (for-template (only-in typed-racket/base-env/extra-env-lang with-default-T+)))
+
+(with-default-T+ #true
 
 ;; Frequently reused types
 (define-type Style-Delta%-Instance (Instance Style-Delta%))
@@ -1831,3 +1834,5 @@
 (require/typed framework
  [#:opaque Color-Prefs:Color-Scheme-Style-Name color-prefs:color-scheme-style-name?]
  [#:opaque Color-Prefs:Color-Scheme-Color-Name color-prefs:color-scheme-color-name?])
+
+)

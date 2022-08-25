@@ -10,17 +10,20 @@
          (for-syntax "../private/parse-type.rkt"
                      "type-name-error.rkt"
                      racket/base
+                     (only-in racket/splicing splicing-syntax-parameterize)
                      syntax/parse
                      syntax/stx
                      "../types/abbrev.rkt"
                      "../types/numeric-tower.rkt"
                      "../types/prop-ops.rkt"
-                     "../utils/struct-info.rkt"))
+                     "../utils/struct-info.rkt")
+         (for-meta 2 (only-in racket/base #%app quote)))
 
 (provide type-environment
          (rename-out [-#%module-begin #%module-begin])
          require
          (for-syntax parse-type) ; to allow resolution of Name types
+         (for-syntax with-default-T+)
          (except-out (all-from-out racket/base) #%module-begin)
          (for-syntax (except-out (all-from-out racket/base) #%module-begin))
          (for-syntax (combine-out (all-from-out "../types/abbrev.rkt" "../types/numeric-tower.rkt" "../types/prop-ops.rkt"))))
@@ -86,7 +89,12 @@
     (define who 'type-environment)
     (define info (extract-struct-info/checked/context name who ctx))
     (define sels (reverse (cadddr info)))
-    (validate-struct-fields name fields sels who ctx)))
+    (validate-struct-fields name fields sels who ctx))
+
+  (define-syntax-rule (with-default-T+ T+ def ...)
+    (splicing-syntax-parameterize ([default-rng-shallow-safe? 'T+])
+      def ...)))
+
 
 
 (define-syntax (-#%module-begin stx)
@@ -103,7 +111,8 @@
 ;; at most once per extra-env-lang module
 (define-syntax (type-environment stx)
   (syntax-parse stx
-    [(_ binding:clause ...)
+    [(_ (~optional (~seq #:default-T+ T+:boolean) #:defaults ([T+ #'#false]))
+        binding:clause ...)
      #'(begin
          (begin-for-syntax
           (module* #%type-decl #f
@@ -113,9 +122,12 @@
                              typed-racket/env/global-env typed-racket/env/type-alias-env
                              typed-racket/types/struct-table typed-racket/types/abbrev
                              typed-racket/typecheck/tc-structs
+                             racket/stxparam (for-syntax (only-in racket/base #%app quote))
                              (only-in typed-racket/rep/type-rep make-Name make-Opaque)
                              (rename-in racket/private/sort [sort raw-sort]))
                     ;; FIXME: add a switch to turn contracts on for testing
-                    binding.form ...)))
+                    (syntax-parameterize ([default-rng-shallow-safe? 'T+])
+                      binding.form ...
+                      (void)))))
          binding.outer-form ...)]))
 

@@ -59,7 +59,7 @@
     (match (single-value #'arg)
       [(tc-result1: t (PropSet: p+ p-) _)
        (define new-prop (make-PropSet p- p+))
-       (add-typeof-expr #'op-name (ret (-> Univ -Boolean)))
+       (add-typeof-expr #'op-name (ret (-> Univ -Boolean :T+ #t)))
        (ret -Boolean new-prop)]))
   ;; special case for (current-contract-region)'s default expansion
   ;; just let it through without any typechecking, since module-name-fixup

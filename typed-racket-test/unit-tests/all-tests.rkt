@@ -48,7 +48,8 @@
   "prefab-tests.rkt"
   "json-tests.rkt"
   "typed-units-tests.rkt"
-  "type-constr-tests.rkt")
+  "type-constr-tests.rkt"
+  "shallow-rewrite-expansion/main.rkt")
 
 (struct fold-result [success failure err names])
 

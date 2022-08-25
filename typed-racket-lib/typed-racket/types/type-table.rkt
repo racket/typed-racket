@@ -19,7 +19,8 @@
 
 (provide/cond-contract
  [add-typeof-expr (syntax? tc-results/c . -> . any/c)]
- [type-of (syntax? . -> . tc-results/c)]
+ [type-of ([syntax?] [(or/c #f (-> any))]  . ->* . tc-results/c)]
+ [maybe-type-of (syntax?  . -> . (or/c #f tc-results/c))]
  [reset-type-table (-> any/c)]
  [type-table->tooltips
   (-> (listof (vector/c any/c integer? integer? (or/c string? (-> string?)))))]
@@ -79,13 +80,19 @@
                             [else t]))
                 #f))
 
-(define (type-of e)
+(define (type-of e [fail-thunk #f])
   (hash-ref type-table e
-            (lambda () (int-err (format "no type for ~s at: ~a line ~a col ~a"
-                                        (syntax->datum e)
-                                        (syntax-source e)
-                                        (syntax-line e)
-                                        (syntax-column e))))))
+            (or fail-thunk
+                (lambda () (int-err (format "no type for ~a at: ~a line ~a col ~a"
+                                            (syntax->datum e)
+                                            (syntax-source e)
+                                            (syntax-line e)
+                                            (syntax-column e)))))))
+
+(define maybe-type-of
+  (let ((fail (lambda () #false)))
+    (lambda (e) (type-of e fail))))
+
 
 ;; This macro is used to create a thunk that closes over the type
 ;; names that should be used to print the type. This is needed to ensure that

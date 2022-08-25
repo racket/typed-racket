@@ -20,6 +20,7 @@
          "../env/mvar-env.rkt"
          racket/lazy-require
          syntax/parse/define
+         racket/stxparam
          racket/match racket/list (prefix-in c: (contract-req))
          (for-syntax racket/base syntax/parse racket/list)
          ;; For contract predicates
@@ -32,7 +33,26 @@
                        "../rep/numeric-base-types.rkt"
                        "../rep/type-rep.rkt")
          (rename-out [make-Listof -lst]
-                     [make-MListof -mlst]))
+                     [make-MListof -mlst])
+         (for-syntax rng-T+ default-T+))
+
+(define-syntax-parameter default-rng-shallow-safe? #false)
+;; Default value for whether Transient can trust the outputs
+;;  of a function type.
+;;  - #true = can trust, do not check
+;;  - #false = can't trust, wrap calls in a run-time check
+;; Change this syntax parameter to set the default & reduce the
+;;  number of :T+ annotations that a type environment needs.
+;; 2021-12-13: may be able to infer correct :T+ annotations
+;;  with #true as the default and #false for every polymorphic function
+;;  that depends on a bound var for a positive shape
+
+(begin-for-syntax
+  (define-splicing-syntax-class rng-T+
+    #:attributes (val)
+    (pattern (~seq (~datum :T+) val)))
+  (define (default-T+)
+    (syntax-parameter-value #'default-rng-shallow-safe?)))
 
 (define-syntax (rebuild stx)
   (syntax-case stx ()
@@ -161,76 +181,141 @@
                               #:rest [rst #f]
                               #:kws [kws null]
                               #:props [props -tt-propset]
-                              #:object [obj -empty-obj])
+                              #:object [obj -empty-obj]
+                              #:T+ [shallow-trusted-positive? #f])
   (c:->* ((c:listof Type?) (c:or/c SomeValues? Type?))
          (#:rest (c:or/c #f Type? RestDots? Rest?)
           #:kws (c:listof Keyword?)
           #:props PropSet?
-          #:object OptObject?)
+          #:object OptObject?
+          #:T+ boolean?)
          Arrow?)
   (make-Arrow dom
               (if (Type? rst) (make-Rest (list rst)) rst)
               (sort kws Keyword<?)
               (match rng
                 [(? SomeValues?) rng]
-                [_ (-values rng props obj)])))
+                [_ (-values rng props obj)])
+              shallow-trusted-positive?))
 
 (define-syntax (->* stx)
   (define-syntax-class c
     (pattern x:id #:fail-unless (eq? ': (syntax-e #'x)) #f))
   (syntax-parse stx
     [(_ dom rng)
+     #:with T+ #`#,(default-T+)
      (syntax/loc stx
-       (make-Fun (list (-Arrow dom rng))))]
+       (make-Fun (list (-Arrow dom rng #:T+ T+))))]
+    [(_ dom rng T+:rng-T+)
+     (syntax/loc stx
+       (make-Fun (list (-Arrow dom rng #:T+ T+.val))))]
     [(_ dom rst rng)
+     #:with T+ #`#,(default-T+)
      (syntax/loc stx
-       (make-Fun (list (-Arrow dom rng #:rest rst))))]
+       (make-Fun (list (-Arrow dom rng #:rest rst #:T+ T+))))]
+    [(_ dom rst rng T+:rng-T+)
+     (syntax/loc stx
+       (make-Fun (list (-Arrow dom rng #:rest rst #:T+ T+.val))))]
+    [(_ dom rst rng)
+     #:with T+ #`#,(default-T+)
+     (syntax/loc stx
+       (make-Fun (list (-Arrow dom rng #:rest rst #:T+ T+))))]
+    [(_ dom rng :c props T+:rng-T+)
+     (syntax/loc stx
+       (make-Fun (list (-Arrow dom rng #:props props #:T+ T+.val))))]
     [(_ dom rng :c props)
+     #:with T+ #`#,(default-T+)
      (syntax/loc stx
-       (make-Fun (list (-Arrow dom rng #:props props))))]
+       (make-Fun (list (-Arrow dom rng #:props props #:T+ T+))))]
+    [(_ dom rng _:c props _:c object T+:rng-T+)
+     (syntax/loc stx
+       (make-Fun (list (-Arrow dom rng #:props props #:object object #:T+ T+.val))))]
     [(_ dom rng _:c props _:c object)
+     #:with T+ #`#,(default-T+)
      (syntax/loc stx
-       (make-Fun (list (-Arrow dom rng #:props props #:object object))))]
+       (make-Fun (list (-Arrow dom rng #:props props #:object object #:T+ T+))))]
+    [(_ dom rst rng _:c props T+:rng-T+)
+     (syntax/loc stx
+       (make-Fun (list (-Arrow dom rng #:rest rst #:props props #:T+ T+.val))))]
     [(_ dom rst rng _:c props)
+     #:with T+ #`#,(default-T+)
      (syntax/loc stx
-       (make-Fun (list (-Arrow dom rng #:rest rst #:props props))))]
-    [(_ dom rst rng _:c props : object)
+       (make-Fun (list (-Arrow dom rng #:rest rst #:props props #:T+ T+))))]
+    [(_ dom rst rng _:c props _:c object T+:rng-T+)
      (syntax/loc stx
-       (make-Fun (list (-Arrow dom rng #:rest rst #:props props #:object object))))]))
+       (make-Fun (list (-Arrow dom rng #:rest rst #:props props #:object object #:T+ T+.val))))]
+    [(_ dom rst rng _:c props _:c object)
+     #:with T+ #`#,(default-T+)
+     (syntax/loc stx
+       (make-Fun (list (-Arrow dom rng #:rest rst #:props props #:object object #:T+ T+))))]))
 
 (define-syntax (-> stx)
   (define-syntax-class c
     (pattern x:id #:fail-unless (eq? ': (syntax-e #'x)) #f))
   (syntax-parse stx
+    [(_ dom ... rng _:c props _:c objects T+:rng-T+)
+     (syntax/loc stx
+       (->* (list dom ...) rng : props : objects :T+ T+.val))]
     [(_ dom ... rng _:c props _:c objects)
+     #:with T+ #`#,(default-T+)
      (syntax/loc stx
-       (->* (list dom ...) rng : props : objects))]
+       (->* (list dom ...) rng : props : objects :T+ T+))]
+    [(_ dom ... rng :c props T+:rng-T+)
+     (syntax/loc stx
+       (->* (list dom ...) rng : props :T+ T+.val))]
     [(_ dom ... rng :c props)
+     #:with T+ #`#,(default-T+)
      (syntax/loc stx
-       (->* (list dom ...) rng : props))]
+       (->* (list dom ...) rng : props :T+ T+))]
+    [(_ dom ... rng T+:rng-T+)
+     (syntax/loc stx
+       (->* (list dom ...) rng :T+ T+.val))]
     [(_ dom ... rng)
+     #:with T+ #`#,(default-T+)
      (syntax/loc stx
-       (->* (list dom ...) rng))]))
+       (->* (list dom ...) rng :T+ T+))]))
 
 (define-syntax (->... stx)
   (syntax-parse stx
-    [(_ dom rng) (syntax/loc stx (->* dom rng))]
-    [(_ dom (dty dbound) rng)
+    [(_ dom rng T+:rng-T+)
+     (syntax/loc stx (->* dom rng :T+ T+.val))]
+    [(_ dom rng)
+     #:with T+ #`#,(default-T+)
+     (syntax/loc stx (->* dom rng :T+ T+))]
+    [(_ dom (dty dbound) rng T+:rng-T+)
      (syntax/loc stx
        (make-Fun
-        (list (-Arrow dom rng #:rest (make-RestDots dty 'dbound)))))]
-    [(_ dom rng (~datum :) props)
+        (list (-Arrow dom rng #:rest (make-RestDots dty 'dbound) #:T+ T+.val))))]
+    [(_ dom (dty dbound) rng)
+     #:with T+ #`#,(default-T+)
      (syntax/loc stx
-       (->* dom rng (~datum :) props))]
-    [(_ dom (dty dbound) rng (~datum :) props)
+       (make-Fun
+        (list (-Arrow dom rng #:rest (make-RestDots dty 'dbound) #:T+ T+))))]
+    [(_ dom rng (~datum :) props T+:rng-T+)
+     (syntax/loc stx
+       (->* dom rng : props :T+ T+.val))]
+    [(_ dom rng (~datum :) props)
+     #:with T+ #`#,(default-T+)
+     (syntax/loc stx
+       (->* dom rng : props :T+ T+))]
+    [(_ dom (dty dbound) rng (~datum :) props T+:rng-T+)
      (syntax/loc stx
        (make-Fun
         (list (-Arrow dom rng
                       #:rest (make-RestDots dty 'dbound)
-                      #:props props))))]))
+                      #:props props
+                      #:T+ T+.val))))]
+    [(_ dom (dty dbound) rng (~datum :) props)
+     #:with T+ #`#,(default-T+)
+     (syntax/loc stx
+       (make-Fun
+        (list (-Arrow dom rng
+                      #:rest (make-RestDots dty 'dbound)
+                      #:props props
+                      #:T+ T+))))]))
 
-(define (simple-> doms rng)
-  (->* doms rng))
+(define (simple-> doms rng #:T+ [T+ #f])
+  (->* doms rng :T+ T+))
 
 (lazy-require ("../infer/infer.rkt" [intersect]))
 (define (-Inter-fun ts)
@@ -238,37 +323,55 @@
             ([ty (in-list ts)])
     (intersect acc ty)))
 
-(define (->acc dom rng path #:var [var (cons 0 0)])
+(define (->acc dom rng path #:var [var (cons 0 0)] #:T+ [T+ #f])
   (define obj (-acc-path path (-id-path var)))
   (make-Fun
    (list (-Arrow dom rng
                  #:props (-PS (-not-type obj (-val #f))
                               (-is-type obj (-val #f)))
-                 #:object obj))))
+                 #:object obj
+                 #:T+ T+))))
 
 (define (cl->* . args)
   (make-Fun (apply append (map Fun-arrows args))))
 
 (define-syntax (cl-> stx)
   (syntax-parse stx
-    [(_ [(dom ...) rng] ...)
+    [(_ [(dom ...) rng T+:rng-T+] ...)
      (syntax/loc stx
-       (cl->* (dom ... . -> . rng) ...))]))
+       (cl->* (-> dom ... rng :T+ T+.val) ...))]
+    [(_ [(dom ...) rng] ...)
+     #:with T+ #`#,(default-T+)
+     (syntax/loc stx
+       (cl->* (-> dom ... rng :T+ T+) ...))]))
 
 (define-syntax (->key stx)
+  ;;bg TODO collapse
   (syntax-parse stx
-    [(_ ty:expr ... (~seq k:keyword kty:expr opt:boolean) ... rng)
+    [(_ ty:expr ... (~seq k:keyword kty:expr opt:boolean) ... rng T+:rng-T+)
      (syntax/loc stx
        (make-Fun
         (list
          (-Arrow (list ty ...)
                  rng
                  #:kws (sort (list (make-Keyword 'k kty opt) ...)
-                             Keyword<?)))))]))
+                             Keyword<?)
+                 #:T+ T+.val))))]
+    [(_ ty:expr ... (~seq k:keyword kty:expr opt:boolean) ... rng)
+     #:with T+ #`#,(default-T+)
+     (syntax/loc stx
+       (make-Fun
+        (list
+         (-Arrow (list ty ...)
+                 rng
+                 #:kws (sort (list (make-Keyword 'k kty opt) ...)
+                             Keyword<?)
+                 #:T+ T+))))]))
 
 (define-syntax (->optkey stx)
+  ;; TODO collapse
   (syntax-parse stx
-    [(_ ty:expr ... [oty:expr ...] #:rest rst:expr (~seq k:keyword kty:expr opt:boolean) ... rng)
+    [(_ ty:expr ... [oty:expr ...] #:rest rst:expr (~seq k:keyword kty:expr opt:boolean) ... rng T+:rng-T+)
      (let ([l (syntax->list #'(oty ...))])
        (with-syntax ([((extra ...) ...)
                       (for/list ([i (in-range (add1 (length l)))])
@@ -283,9 +386,29 @@
                      rng
                      #:rest rst
                      #:kws (sort (list (make-Keyword 'k kty opt) ...)
-                                 Keyword<?))
+                                 Keyword<?)
+                     #:T+ T+.val)
              ...)))))]
-    [(_ ty:expr ... [oty:expr ...] (~seq k:keyword kty:expr opt:boolean) ... rng)
+    [(_ ty:expr ... [oty:expr ...] #:rest rst:expr (~seq k:keyword kty:expr opt:boolean) ... rng)
+     #:with T+ #`#,(default-T+)
+     (let ([l (syntax->list #'(oty ...))])
+       (with-syntax ([((extra ...) ...)
+                      (for/list ([i (in-range (add1 (length l)))])
+                        (take l i))]
+                     ;; only the LAST arrow gets a #:rest arg
+                     [(rst ...) (for/list ([i (in-range (add1 (length l)))])
+                                  (if (< i (length l)) #'#f #'rst))])
+         (syntax/loc stx
+           (make-Fun
+            (list
+             (-Arrow (list ty ... extra ...)
+                     rng
+                     #:rest rst
+                     #:kws (sort (list (make-Keyword 'k kty opt) ...)
+                                 Keyword<?)
+                     #:T+ T+)
+             ...)))))]
+    [(_ ty:expr ... [oty:expr ...] (~seq k:keyword kty:expr opt:boolean) ... rng T+:rng-T+)
      (let ([l (syntax->list #'(oty ...))])
        (with-syntax ([((extra ...) ...)
                       (for/list ([i (in-range (add1 (length l)))])
@@ -296,11 +419,28 @@
              (-Arrow (list ty ... extra ...)
                         rng
                         #:kws (sort (list (make-Keyword 'k kty opt) ...)
-                                    Keyword<?))
-             ...)))))]))
+                                    Keyword<?)
+                        #:T+ T+.val)
+             ...)))))]
+    [(_ ty:expr ... [oty:expr ...] (~seq k:keyword kty:expr opt:boolean) ... rng)
+     #:with T+ #`#,(default-T+)
+     (let ([l (syntax->list #'(oty ...))])
+       (with-syntax ([((extra ...) ...)
+                      (for/list ([i (in-range (add1 (length l)))])
+                        (take l i))])
+         (syntax/loc stx
+           (make-Fun
+            (list
+             (-Arrow (list ty ... extra ...)
+                        rng
+                        #:kws (sort (list (make-Keyword 'k kty opt) ...)
+                                    Keyword<?)
+                        #:T+ T+)
+             ...)))))]
+    ))
 
-(define (make-arr-dots dom rng dty dbound)
-  (-Arrow dom rng #:rest (make-RestDots dty dbound)))
+(define (make-arr-dots dom rng dty dbound #:T+ [T+ #f])
+  (-Arrow dom rng #:rest (make-RestDots dty dbound) #:T+ T+))
 
 
 (define-syntax (dep-> stx)

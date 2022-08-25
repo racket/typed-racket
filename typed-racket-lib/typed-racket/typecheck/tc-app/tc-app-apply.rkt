@@ -27,9 +27,10 @@
   (pattern ((~or apply k:apply) (~and f values) e)
     (match (single-value #'e)
       [(tc-result1: (ListDots: dty dbound))
+       (add-typeof-expr #'f (ret (make-Fun (list (make-arr-dots '() (-values-dots '() dty dbound) dty dbound #:T+ #false)))))
        (ret null null null dty dbound)]
       [(tc-result1: (List: ts))
-       (add-typeof-expr #'f (ret (->* ts (-values ts))))
+       (add-typeof-expr #'f (ret (->* ts (-values ts) :T+ #false)))
        (ret ts)]
       [_ (tc/apply #'f #'(e))]))
   (pattern ((~or apply k:apply) f . args)

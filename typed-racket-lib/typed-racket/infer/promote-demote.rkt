@@ -40,7 +40,7 @@
   ;; Returns the changed arr or #f if there is no arr above it
   (define (arr-change arr)
     (match arr
-      [(Arrow: dom rst kws rng)
+      [(Arrow: dom rst kws rng rng-T+)
        (cond
          [(apply V-in? V (get-propsets rng))
           #f]
@@ -50,13 +50,15 @@
            (map contra dom)
            (contra (RestDots-ty rst))
            (map contra kws)
-           (co rng))]
+           (co rng)
+           rng-T+)]
          [else
           (make-Arrow
            (map contra dom)
            (and rst (contra rst))
            (map contra kws)
-           (co rng))])]))
+           (co rng)
+           rng-T+)])]))
   (define (change-elems ts)
     (for/list ([t (in-list ts)])
       (if (V-in? V t)

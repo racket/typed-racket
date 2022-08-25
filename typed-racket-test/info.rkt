@@ -45,6 +45,7 @@
   '("succeed"
     "external"
     "fail"
+    "shallow" "t-succeed" "t-fail"
     "xfail"
     "racketcs-eval-server.rkt"
     "optimizer" ;; FIXME: should be improved by stamourv

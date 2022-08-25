@@ -38,6 +38,14 @@ don't depend on any other portion of the system
          int-err
 
          typed-context?
+
+         type-enforcement-mode
+         current-type-enforcement-mode
+         type-enforcement-mode?
+         deep ;; deep types, guarded semantics
+         shallow ;; shallow types, transient semantics
+         optional ;; optional types, no-op / erasure semantics (types are compile-time only)
+
          make-env
          id-from?
          id-from
@@ -280,7 +288,27 @@ don't depend on any other portion of the system
           (current-continuation-marks))))
 
 ;; are we currently expanding in a typed module (or top-level form)?
+;; (box/c (or/c #t #f))
 (define typed-context? (box #f))
+
+;; (box/c type-enforcement-mode?)
+(define type-enforcement-mode (box #f))
+
+;; type enforcement strategies: how to interpret types as run-time checks?
+(define deep 'deep)
+(define shallow 'shallow)
+(define optional 'optional)
+
+(define (type-enforcement-mode? x)
+  (and (symbol? x)
+       (or (eq? x deep)
+           (eq? x shallow)
+           (eq? x optional))))
+
+;; if we are in a typed module, how do we enforce types?
+;; (or/c #f type-enforcement-mode?)
+(define (current-type-enforcement-mode)
+  (unbox type-enforcement-mode))
 
 ;; environment constructor
 (define-syntax (make-env stx)
@@ -309,3 +337,4 @@ don't depend on any other portion of the system
 (define-syntax-class (id-from sym mod)
   (pattern i:id
            #:fail-unless (id-from? #'i sym mod) #f))
+

@@ -5,6 +5,7 @@
 (require net/git-checkout)
 
 (type-environment
+ #:default-T+ #t
  [git-checkout
   (->key -String -String
          #:dest-dir (-opt -Pathlike) #t

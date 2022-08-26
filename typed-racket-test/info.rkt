@@ -45,7 +45,7 @@
   '("succeed"
     "external"
     "fail"
-    "shallow" "t-succeed" "t-fail"
+    "unit-tests/shallow-rewrite-expansion"
     "xfail"
     "racketcs-eval-server.rkt"
     "optimizer" ;; FIXME: should be improved by stamourv
@@ -53,6 +53,7 @@
 
 (define test-omit-paths '("fail"
                           "external/fail"
+                          "unit-tests/shallow-rewrite-expansion"
                           "xfail"))
 (define test-command-line-arguments
   '(("succeed/priority-queue.scm" ())

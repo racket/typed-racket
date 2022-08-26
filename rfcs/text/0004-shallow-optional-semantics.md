@@ -1,7 +1,7 @@
 - Feature Name: shallow-optional-semantics
 - Start Date: 2020-07-21
-- RFC PR: (leave this empty)
-- Feature Commit(s): (leave this empty)
+- RFC PR: #948 / #952
+- Feature Commit(s): PR #948
 
 # Summary
 

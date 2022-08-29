@@ -223,8 +223,8 @@ and the @racket[URL] and @racket[Path/Param] types from
 
 @defmodule/incl[typed/racket/flonum]{
   @deftogether[[
-    @defform[(for/flvector type-ann-maybe (for-clause ...) expr ...+)]
-    @defform[(for*/flvector type-ann-maybe (for-clause ...) expr ...+)]
+    @defform[(for/flvector maybe-length (for-clause ...) expr ...+)]
+    @defform[(for*/flvector maybe-length (for-clause ...) expr ...+)]
   ]]
 }
 

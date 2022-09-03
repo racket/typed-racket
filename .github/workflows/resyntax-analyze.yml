@@ -46,7 +46,7 @@ jobs:
       - name: Install local packages
         run: raco setup typed typed-racket typed-racket-test typed-scheme
       - name: Analyze changed files
-        run: xvfb-run racket -l- resyntax/cli analyze --local-git-repository . "origin/${GITHUB_BASE_REF}" --output-as-github-review >> ./resyntax-review.json
+        run: xvfb-run racket -l- resyntax/cli analyze --local-git-repository . "origin/${GITHUB_BASE_REF}" --output-as-github-review --output-to-file ./resyntax-review.json
       - name: Upload analysis artifact
         uses: actions/upload-artifact@v3.1.0
         with:

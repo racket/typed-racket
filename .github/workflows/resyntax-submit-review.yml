@@ -47,8 +47,6 @@ jobs:
       - run: unzip resyntax-review.zip
       - name: Create pull request review
         uses: actions/github-script@v6.1.0
-        permissions:
-          pull-requests: write
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

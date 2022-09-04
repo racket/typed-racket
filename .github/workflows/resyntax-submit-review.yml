@@ -17,6 +17,8 @@ jobs:
       github.event.workflow_run.conclusion == 'success' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      pull-requests: write
 
     steps:
       - name: Checkout code

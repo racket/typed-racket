@@ -20,19 +20,12 @@ jobs:
           version: ${{ matrix.racket-version }}
           dest: '"${HOME}/racketdist-${{ matrix.racket-version }}-${{ matrix.racket-variant }}"'
           local_catalogs: $GITHUB_WORKSPACE
+          packages: source-syntax,typed-racket-lib,typed-racket-more,typed-racket-compatibility,typed-racket-doc,typed-racket,typed-racket-test
           sudo: never
+        env:
+          PLT_TR_CONTRACTS: ${{ matrix.enable-contracts }}
       - name: Check Racket version
         run: racket -v
-      - name: Register local packages
-        run: |
-          raco pkg install -i --auto --no-setup --skip-installed typed-racket-test
-          raco pkg update --auto --no-setup source-syntax typed-racket-lib typed-racket-more typed-racket-compatibility typed-racket-doc typed-racket typed-racket-test
-      - run: raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
-        if: ${{ !matrix.enable-contracts }}
-      - run: raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
-        if: ${{ matrix.enable-contracts }}
-        env:
-          PLT_TR_CONTRACTS: 1
       - run: racket -l typed-racket-test -- --unit
       - run: racket -l typed-racket-test -- --int
       - run: racket -l typed-racket-test -- --just typed-racket-test/succeed/cl.rkt

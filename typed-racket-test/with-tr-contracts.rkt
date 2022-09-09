@@ -1,6 +1,6 @@
 #lang racket
 
-#;(void (putenv "PLT_TR_CONTRACTS" "1"))
+#;(void (putenv "PLT_TR_CONTRACTS" "true"))
 
 (define ns (make-base-namespace))
 (current-namespace ns)

@@ -5,7 +5,9 @@ This file is for utilities that are of general interest,
 at least theoretically.
 |#
 
-(require (for-syntax racket/base racket/string)
+(require (for-syntax racket/base
+                     racket/match
+                     racket/string)
          racket/require-syntax racket/provide-syntax
          racket/match
          racket/list
@@ -43,7 +45,10 @@ at least theoretically.
 
 (define optimize? (make-parameter #t))
 (define with-refinements? (make-parameter #f))
-(define-for-syntax enable-contracts? (and (getenv "PLT_TR_CONTRACTS") #t))
+(define-for-syntax enable-contracts?
+  (match (getenv "PLT_TR_CONTRACTS")
+    ["true" #true]
+    [(or "false" "" #false) #false]))
 
 (define-logger tr-debug)
 (define (debug-print format-string . vs)

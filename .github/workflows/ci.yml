@@ -2,12 +2,11 @@ on: [push, pull_request]
 name: CI
 jobs:
   build:
-    name: "Build on Racket '${{ matrix.racket-version }}' (${{ matrix.racket-variant }}) Contracts (${{ matrix.enable-contracts}})"
+    name: Racket ${{ matrix.racket-variant }} - ${{ matrix.enable-contracts && 'Contracts Enabled' || 'Contracts Disabled' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        racket-version: ["current"]
         racket-variant: ["BC", "CS"]
         enable-contracts: [true, false]
     steps:
@@ -17,8 +16,8 @@ jobs:
           architecture: x64
           distribution: full
           variant: ${{ matrix.racket-variant }}
-          version: ${{ matrix.racket-version }}
-          dest: '"${HOME}/racketdist-${{ matrix.racket-version }}-${{ matrix.racket-variant }}"'
+          version: current
+          dest: '"${HOME}/racketdist-${{ matrix.racket-variant }}"'
           local_catalogs: $GITHUB_WORKSPACE
           sudo: never
       - name: Check Racket version

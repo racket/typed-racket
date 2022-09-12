@@ -54,7 +54,10 @@
  (contract-req)
  (only-in racket/unsafe/undefined unsafe-undefined)
  (for-syntax racket/base)
- (for-template racket/base racket/contract "../utils/any-wrap.rkt" "../utils/shallow-contract.rkt"))
+ (for-template racket/base
+               racket/contract
+               "../utils/any-wrap.rkt"
+               "../utils/shallow-contract.rkt"))
 
 (provide
   (c:contract-out

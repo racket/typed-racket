@@ -503,12 +503,17 @@
           [(Union-all-flat: elems)
            ;; merge hash and vector types if they have equal components
            (let*-values ([(hash-tys elems) (partition hash-type? elems)]
-                         [(hvec-tys elems) (partition heterogeneous-vector-type? elems)]
                          [(vec-tys elems) (partition vector-type? elems)]
-                         [(hash-scs) (merge-hash-types hash-tys t->sc (only-untyped hash?/sc))]
-                         [(hvec-scs) (merge-heterogeneous-vector-types hvec-tys t->sc)]
-                         [(vec-scs) (merge-vector-types vec-tys t->sc (only-untyped vector?/sc))])
-             (apply or/sc (append hash-scs hvec-scs vec-scs (map t->sc elems))))]
+                         [(hvec-tys elems) (partition heterogeneous-vector-type? elems)])
+             (define scs
+               (append
+                 (merge-hash-types hash-tys t->sc (only-untyped hash?/sc))
+                 (merge-vector-types vec-tys t->sc (only-untyped vector?/sc))
+                 (merge-heterogeneous-vector-types hvec-tys t->sc)
+                 (map t->sc elems)))
+             (if (and (not (null? scs)) (null? (cdr scs)))
+               (car scs)
+               (apply or/sc scs)))]
           [t (t->sc t)])]
        [(Intersection: ts raw-prop)
         (define-values (impersonators chaperones others)
@@ -1460,63 +1465,78 @@
     #true]
    [_ #false]))
 
+(define (group-types-by-elems t->elems ts)
+  (group-by t->elems ts non-#f-and-equal?))
+
+(define (non-#f-and-equal? a b)
+  (and a b (equal? a b)))
+
+(define (hash-type->elems ty)
+  (match ty
+   [(or (Mutable-HashTable: k v)
+        (Immutable-HashTable: k v)
+        (Weak-HashTable: k v))
+    (list k v)]
+   [_ #false]))
+
+(define (vector-type->elems ty)
+  (match ty
+   [(or (Immutable-Vector: t)
+        (Mutable-Vector: t))
+    (list t)]
+   [_ #false]))
+
+(define (heterogeneous-vector-type->elems ty)
+  (match ty
+   [(or (Immutable-HeterogeneousVector: ts)
+        (Mutable-HeterogeneousVector: ts))
+    ts]
+   [_ #false]))
+
 (define (merge-hash-types tys t->sc top-sc)
-  (match tys
-   [(HashTableTop:)
-    (list top-sc)]
-   [(list-no-order
-      (and t0 (Immutable-HashTable: k0 v0))
-      (and t1 (Mutable-HashTable: k1 v1))
-      (and t2 (Weak-HashTable: k2 v2)))
-    (define =01 (and (equal? k0 k1) (equal? v0 v1)))
-    (define =02 (and (equal? k0 k2) (equal? v0 v2)))
-    (define =12 (and (equal? k1 k2) (equal? v1 v2)))
-    (cond
-     [(and =01 =12)
-      (list (hash/sc (t->sc k0) (t->sc v0)))]
-     [=12
-      (list (hash/sc k1 v1) (t->sc t0))]
-     [=01
-      (list (hash/sc k0 v0) (t->sc t2))]
-     [=02
-      (list (hash/sc k0 v1) (t->sc t1))]
-     [else
-      (map t->sc tys)])]
-   [(list-no-order
-      (Immutable-HashTable: k0 v0)
-      (Mutable-HashTable: k1 v1))
-    #:when (and (equal? k0 k1) (equal? v0 v1))
-    (list (hash/sc k0 v1))]
-   [(list-no-order
-      (Immutable-HashTable: k0 v0)
-      (Weak-HashTable: k1 v1))
-    #:when (and (equal? k0 k1) (equal? v0 v1))
-    (list (hash/sc k0 v1))]
-   [(list-no-order
-      (Mutable-HashTable: k0 v0)
-      (Weak-HashTable: k1 v1))
-    #:when (and (equal? k0 k1) (equal? v0 v1))
-    (list (hash/sc k0 v1))]
-   [_
-    (map t->sc tys)]))
+  (merge-types->scs
+    tys
+    #:t->elems hash-type->elems
+    #:elems->sc (lambda (k v) (hash/sc (t->sc k) (t->sc v)))
+    #:t->sc t->sc
+    #:top (match-lambda
+           [(list-no-order (Immutable-HashTable: (Univ:) (Univ:))
+                           (Mutable-HashTableTop:)
+                           (Weak-HashTableTop:))
+            top-sc]
+           [_ #f])))
 
 (define (merge-vector-types tys t->sc top-sc)
-  (match tys
-   [(list-no-order (Immutable-Vector: (Univ:)) (Mutable-VectorTop:))
-    (list top-sc)]
-   [(list-no-order (Immutable-Vector: t0) (Mutable-Vector: t1))
-    #:when (equal? t0 t1)
-    (list (vectorof/sc (t->sc t0)))]
-   [_
-    (map t->sc tys)]))
+  (merge-types->scs
+    tys
+    #:t->elems vector-type->elems
+    #:elems->sc (lambda (t) (vectorof/sc (t->sc t)))
+    #:t->sc t->sc
+    #:top (match-lambda
+           [(list-no-order (Immutable-Vector: (Univ:))
+                           (Mutable-VectorTop:))
+            top-sc]
+           [_ #f])))
 
 (define (merge-heterogeneous-vector-types tys t->sc)
-  (match tys
-   [(list-no-order (Immutable-HeterogeneousVector: ts0) (Mutable-HeterogeneousVector: ts1))
-    #:when (equal? ts0 ts1)
-    (list (apply vector/sc (map t->sc ts0)))]
-   [_
-    (map t->sc tys)]))
+  (merge-types->scs
+    tys
+    #:t->elems heterogeneous-vector-type->elems
+    #:elems->sc (lambda ts (apply vector/sc (map t->sc ts)))
+    #:t->sc t->sc))
+
+(define (merge-types->scs tys0
+                          #:t->elems t->elems
+                          #:elems->sc elems->sc
+                          #:t->sc t->sc
+                          #:top [top #f])
+  (define top-sc (and top (top tys0)))
+  (if top-sc
+    (list top-sc)
+    (for/list ((tys (in-list (group-types-by-elems t->elems tys0))))
+      (if (null? (cdr tys))
+        (t->sc (car tys))
+        (apply elems->sc (t->elems (car tys)))))))
 
 (module predicates racket/base
   (require racket/extflonum)

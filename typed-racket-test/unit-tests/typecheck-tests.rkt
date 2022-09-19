@@ -2788,6 +2788,10 @@
            (real->double-flonum (+ a b)))
          -FlVector]
 
+       [tc-e (for/list : (Listof String) ([a (in-set (set "hello" "worlds"))])
+               a)
+             (-lst -String)]
+
        ;; for/hash, for*/hash - PR 14306
        [tc-e (for/hash: : (HashTable Symbol String)
                ([x (in-list '(x y z))]

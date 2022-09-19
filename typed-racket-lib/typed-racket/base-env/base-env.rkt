@@ -1219,6 +1219,7 @@
 [list->seteq  (-poly (e) (-> (-lst e) (-set e)))]
 [list->seteqv (-poly (e) (-> (-lst e) (-set e)))]
 [set->list (-poly (e) (-> (-set e) (-lst e)))]
+[in-set (-poly (a) (-> (-set a) (-seq a)))]
 
 ;; Section 4.18 (Procedures)
 [procedure? (unsafe-shallow:make-pred-ty top-func)]

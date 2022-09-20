@@ -511,6 +511,7 @@
                  (merge-vector-types vec-tys t->sc (only-untyped vector?/sc))
                  (merge-heterogeneous-vector-types hvec-tys t->sc)
                  (map t->sc elems)))
+             ;; bg: avoid singleton or/sc's, to make unit testing easier
              (if (and (not (null? scs)) (null? (cdr scs)))
                (car scs)
                (apply or/sc scs)))]
@@ -1440,6 +1441,54 @@
      (t:subtype -Boolean t)]
     [_ #f]))
 
+(define (merge-hash-types tys t->sc top-sc)
+  (merge-types->scs
+    tys
+    #:t->elems hash-type->elems
+    #:elems->sc (lambda (k v) (hash/sc (t->sc k) (t->sc v)))
+    #:t->sc t->sc
+    #:top (match-lambda
+           [(list-no-order (Immutable-HashTable: (Univ:) (Univ:))
+                           (Mutable-HashTableTop:)
+                           (Weak-HashTableTop:))
+            top-sc]
+           [_ #f])))
+
+(define (merge-vector-types tys t->sc top-sc)
+  (merge-types->scs
+    tys
+    #:t->elems vector-type->elems
+    #:elems->sc (lambda (t) (vectorof/sc (t->sc t)))
+    #:t->sc t->sc
+    #:top (match-lambda
+           [(list-no-order (Immutable-Vector: (Univ:))
+                           (Mutable-VectorTop:))
+            top-sc]
+           [_ #f])))
+
+(define (merge-heterogeneous-vector-types tys t->sc)
+  (merge-types->scs
+    tys
+    #:t->elems heterogeneous-vector-type->elems
+    #:elems->sc (lambda ts (apply vector/sc (map t->sc ts)))
+    #:t->sc t->sc))
+
+;; Convert a list of types to a (shorter) list of static contracts
+;; by (1) checking whether the list represents a top type,
+;; and (2) grouping types with similar elements
+(define (merge-types->scs tys0
+                          #:t->elems t->elems
+                          #:elems->sc elems->sc
+                          #:t->sc t->sc
+                          #:top [top #f])
+  (define top-sc (and top (top tys0)))
+  (if top-sc
+    (list top-sc)
+    (for/list ((tys (in-list (group-types-by-elems t->elems tys0))))
+      (if (null? (cdr tys))
+        (t->sc (car tys))
+        (apply elems->sc (t->elems (car tys)))))))
+
 (define (hash-type? ty)
   (match ty
    [(or (Mutable-HashTable: _ _)
@@ -1492,51 +1541,6 @@
         (Mutable-HeterogeneousVector: ts))
     ts]
    [_ #false]))
-
-(define (merge-hash-types tys t->sc top-sc)
-  (merge-types->scs
-    tys
-    #:t->elems hash-type->elems
-    #:elems->sc (lambda (k v) (hash/sc (t->sc k) (t->sc v)))
-    #:t->sc t->sc
-    #:top (match-lambda
-           [(list-no-order (Immutable-HashTable: (Univ:) (Univ:))
-                           (Mutable-HashTableTop:)
-                           (Weak-HashTableTop:))
-            top-sc]
-           [_ #f])))
-
-(define (merge-vector-types tys t->sc top-sc)
-  (merge-types->scs
-    tys
-    #:t->elems vector-type->elems
-    #:elems->sc (lambda (t) (vectorof/sc (t->sc t)))
-    #:t->sc t->sc
-    #:top (match-lambda
-           [(list-no-order (Immutable-Vector: (Univ:))
-                           (Mutable-VectorTop:))
-            top-sc]
-           [_ #f])))
-
-(define (merge-heterogeneous-vector-types tys t->sc)
-  (merge-types->scs
-    tys
-    #:t->elems heterogeneous-vector-type->elems
-    #:elems->sc (lambda ts (apply vector/sc (map t->sc ts)))
-    #:t->sc t->sc))
-
-(define (merge-types->scs tys0
-                          #:t->elems t->elems
-                          #:elems->sc elems->sc
-                          #:t->sc t->sc
-                          #:top [top #f])
-  (define top-sc (and top (top tys0)))
-  (if top-sc
-    (list top-sc)
-    (for/list ((tys (in-list (group-types-by-elems t->elems tys0))))
-      (if (null? (cdr tys))
-        (t->sc (car tys))
-        (apply elems->sc (t->elems (car tys)))))))
 
 (module predicates racket/base
   (require racket/extflonum)

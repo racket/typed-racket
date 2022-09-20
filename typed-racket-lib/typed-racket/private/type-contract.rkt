@@ -500,15 +500,21 @@
             (apply or/sc (append other-scs (map t->sc (nbits->base-types nbits)))))]
        [(? Union? t)
         (match (normalize-type t)
-          [(HashTableTop:)
-           ;; NOTE: this is a special case to make `HashTableTop` produce a flat contract in casts.
-           ;; Without this case:
-           ;; - `HashTableTop` would make a chaperone contract
-           ;; - because `HashTableTop` is a union containing `(Immutable-HashTable Any Any)`
-           ;; - and `Any` makes a chaperone contract
-           (only-untyped hash?/sc)]
           [(Union-all-flat: elems)
-           (apply or/sc (merge-overlapping-scs (map t->sc elems)))]
+           ;; merge hash and vector types if they have equal components
+           (let*-values ([(hash-tys elems) (partition hash-type? elems)]
+                         [(vec-tys elems) (partition vector-type? elems)]
+                         [(hvec-tys elems) (partition heterogeneous-vector-type? elems)])
+             (define scs
+               (append
+                 (merge-hash-types hash-tys t->sc (only-untyped hash?/sc))
+                 (merge-vector-types vec-tys t->sc (only-untyped vector?/sc))
+                 (merge-heterogeneous-vector-types hvec-tys t->sc)
+                 (map t->sc elems)))
+             ;; bg: avoid singleton or/sc's, to make unit testing easier
+             (if (and (not (null? scs)) (null? (cdr scs)))
+               (car scs)
+               (apply or/sc scs)))]
           [t (t->sc t)])]
        [(Intersection: ts raw-prop)
         (define-values (impersonators chaperones others)
@@ -1435,116 +1441,106 @@
      (t:subtype -Boolean t)]
     [_ #f]))
 
-;; merge-overlapping-scs : (listof sc?) -> (listof sc?)
-;; Given a list of static-contracts,
-;;  return a list that is "safe" use in an or/c.
-;;
-;; Two contracts `ctc0` and `ctc1` are unsafe if:
-;; - there is a value `v` such that
-;; - `ctc0` accepts `v` or `ctc1` accepts `v`
-;; - and `(or/c ctc0 ctc1)` does not accept `v`
-;;
-;; Example:
-;; ```
-;;   (define ctc
-;;     (parametric->/c [A]
-;;       (let ([ctc0 (vectorof A #:immutable #false)]
-;;             [ctc1 (vectorof A #:immutable #true)])
-;;         (-> (or/c ctc0 ctc1) any))))
-;;   (define/contract (f x) ctc (void))
-;;   (f (vector 1)) ;; error: none of the branches of the or/c matched
-;; ```
-;;
-;; 2017-12-02: If `or/c` is changed to remove contracts that do not match
-;;  the given value (and the example above starts working)  this function might
-;;  not be necessary. For some discussion see:
-;;    `https://github.com/racket/typed-racket/issues/655`
-(define (merge-overlapping-scs scs)
-  (merge-hash/sc*
-    (merge-vector/sc*
-      (merge-vectorof/sc* scs))))
+(define (merge-hash-types tys t->sc top-sc)
+  (merge-types->scs
+    tys
+    #:t->elems hash-type->elems
+    #:elems->sc (lambda (k v) (hash/sc (t->sc k) (t->sc v)))
+    #:t->sc t->sc
+    #:top (match-lambda
+           [(list-no-order (Immutable-HashTable: (Univ:) (Univ:))
+                           (Mutable-HashTableTop:)
+                           (Weak-HashTableTop:))
+            top-sc]
+           [_ #f])))
 
-;; make-merge-overlapping-function : (-> F (-> (listof sc?) (listof sc?)))
-;;  where F = (-> sc? (U #f (cons/c sc? (-> any/c boolean?))))
-;;
-;; Helper function for `merge-overlapping-scs`.
-;; The idea for `merge-overlapping-scs` is, given a list of static contracts:
-;;   1. Find a contract `sc` that might overlap with others
-;;   2. Find all contracts that overlap with `sc`
-;;   3. If there are any, replace all with one "overapproximate" contract
-;;
-;; The idea for this helper is to do the "find all" and "replace all"
-;;  given a function that says how to match & what to replace with.
-(define (make-merge-overlapping-function f)
-  (λ (scs)
-    (let loop ([scs scs])
-      (match scs
-       ['()
-        '()]
-       [(cons fst rst)
-        (define maybe-replacement+similar? (f fst))
-        (if maybe-replacement+similar?
-          (let ()
-            (define replacement-sc (car maybe-replacement+similar?))
-            (define similar? (cdr maybe-replacement+similar?))
-            (define-values [similar-scs other-scs] (partition similar? rst))
-            (define new-fst (if (null? similar-scs) fst replacement-sc))
-            (cons new-fst (loop other-scs)))
-          (cons (car scs) (loop (cdr scs))))]))))
+(define (merge-vector-types tys t->sc top-sc)
+  (merge-types->scs
+    tys
+    #:t->elems vector-type->elems
+    #:elems->sc (lambda (t) (vectorof/sc (t->sc t)))
+    #:t->sc t->sc
+    #:top (match-lambda
+           [(list-no-order (Immutable-Vector: (Univ:))
+                           (Mutable-VectorTop:))
+            top-sc]
+           [_ #f])))
 
-(define merge-hash/sc*
-  (make-merge-overlapping-function
-    (λ (this-sc)
-      (match this-sc
-       [(or (hash/sc: this-K this-V)
-            (mutable-hash/sc: this-K this-V)
-            (immutable-hash/sc: this-K this-V)
-            (weak-hash/sc: this-K this-V))
-        (cons (hash/sc this-K this-V)
-              (λ (that-sc)
-                (match that-sc
-                 [(or (hash/sc: that-K that-V)
-                      (mutable-hash/sc: that-K that-V)
-                      (immutable-hash/sc: that-K that-V)
-                      (weak-hash/sc: that-K that-V))
-                  (and (equal? this-K that-K)
-                       (equal? this-V that-V))]
-                 [_ #false])))]
-       [_ #false]))))
+(define (merge-heterogeneous-vector-types tys t->sc)
+  (merge-types->scs
+    tys
+    #:t->elems heterogeneous-vector-type->elems
+    #:elems->sc (lambda ts (apply vector/sc (map t->sc ts)))
+    #:t->sc t->sc))
 
-(define merge-vector/sc*
-  (make-merge-overlapping-function
-    (λ (this-sc)
-      (match this-sc
-       [(or (immutable-vector/sc: this-TS)
-            (mutable-vector/sc: this-TS)
-            (vector/sc: this-TS))
-        (cons (vector/sc this-TS)
-              (λ (that-sc)
-                (match that-sc
-                 [(or (immutable-vector/sc: that-TS)
-                      (mutable-vector/sc: that-TS)
-                      (vector/sc: that-TS))
-                  (equal? this-TS that-TS)]
-                 [_ #false])))]
-       [_ #false]))))
+;; Convert a list of types to a (shorter) list of static contracts
+;; by (1) checking whether the list represents a top type,
+;; and (2) grouping types with similar elements
+(define (merge-types->scs tys0
+                          #:t->elems t->elems
+                          #:elems->sc elems->sc
+                          #:t->sc t->sc
+                          #:top [top #f])
+  (define top-sc (and top (top tys0)))
+  (if top-sc
+    (list top-sc)
+    (for/list ((tys (in-list (group-types-by-elems t->elems tys0))))
+      (if (null? (cdr tys))
+        (t->sc (car tys))
+        (apply elems->sc (t->elems (car tys)))))))
 
-(define merge-vectorof/sc*
-  (make-merge-overlapping-function
-    (λ (this-sc)
-      (match this-sc
-       [(or (immutable-vectorof/sc: this-T)
-            (mutable-vectorof/sc: this-T)
-            (vectorof/sc: this-T))
-        (cons (vectorof/sc this-T)
-              (λ (that-sc)
-                (match that-sc
-                 [(or (immutable-vectorof/sc: that-T)
-                      (mutable-vectorof/sc: that-T)
-                      (vectorof/sc: that-T))
-                  (equal? this-T that-T)]
-                 [_ #false])))]
-       [_ #false]))))
+(define (hash-type? ty)
+  (match ty
+   [(or (Mutable-HashTable: _ _)
+        (Mutable-HashTableTop:)
+        (Immutable-HashTable: _ _)
+        (Weak-HashTable: _ _)
+        (Weak-HashTableTop:))
+    #true]
+   [_ #false]))
+
+(define (vector-type? ty)
+  (match ty
+   [(or (Immutable-Vector: _)
+        (Mutable-Vector: _)
+        (Mutable-VectorTop:))
+    #true]
+   [_ #false]))
+
+(define (heterogeneous-vector-type? ty)
+  (match ty
+   [(or (Immutable-HeterogeneousVector: _)
+        (Mutable-HeterogeneousVector: _))
+    #true]
+   [_ #false]))
+
+(define (group-types-by-elems t->elems ts)
+  (group-by t->elems ts non-#f-and-equal?))
+
+(define (non-#f-and-equal? a b)
+  (and a b (equal? a b)))
+
+(define (hash-type->elems ty)
+  (match ty
+   [(or (Mutable-HashTable: k v)
+        (Immutable-HashTable: k v)
+        (Weak-HashTable: k v))
+    (list k v)]
+   [_ #false]))
+
+(define (vector-type->elems ty)
+  (match ty
+   [(or (Immutable-Vector: t)
+        (Mutable-Vector: t))
+    (list t)]
+   [_ #false]))
+
+(define (heterogeneous-vector-type->elems ty)
+  (match ty
+   [(or (Immutable-HeterogeneousVector: ts)
+        (Mutable-HeterogeneousVector: ts))
+    ts]
+   [_ #false]))
 
 (module predicates racket/base
   (require racket/extflonum)

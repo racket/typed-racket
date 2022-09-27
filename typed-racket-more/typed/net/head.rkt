@@ -5,7 +5,7 @@
 (require/typed/provide net/head
   [empty-header String]
   [validate-header (String -> Void)]
-  [extract-field (Bytes (U Bytes String) -> (Option Bytes))]
+  [extract-field (Bytes Bytes -> (Option Bytes))]
   [remove-field (String String -> String)]
   [insert-field (String String String -> String)]
   [replace-field (String String String -> String)]

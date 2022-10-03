@@ -1,16 +1,23 @@
 #lang typed/racket/base
 
-(require typed/private/utils)
+(require typed/private/utils typed/racket/unsafe)
 
+(unsafe-require/typed/provide net/head
+  [extract-field (case-> (Bytes Bytes -> (Option Bytes))
+                         (String String -> (Option String)))]
+  [remove-field (case-> (Bytes Bytes -> Bytes)
+                        (String String -> String))]
+  [insert-field (case-> (Bytes Bytes Bytes -> Bytes)
+                        (String String String -> String))]
+  [replace-field (case-> (Bytes Bytes Bytes -> Bytes)
+                         (String String String -> String))]
+  [extract-all-fields (case-> (Bytes -> (Listof (cons Bytes Bytes)))
+                              (String -> (Listof (cons String String))))]
+  [append-headers (case-> (Bytes Bytes -> Bytes)
+                          (String String -> String))])
 (require/typed/provide net/head
   [empty-header String]
-  [validate-header (String -> Void)]
-  [extract-field (Bytes Bytes -> (Option Bytes))]
-  [remove-field (String String -> String)]
-  [insert-field (String String String -> String)]
-  [replace-field (String String String -> String)]
-  [extract-all-fields ((U String Bytes) -> (Listof (cons (U String Bytes) (U Bytes String))))]
-  [append-headers (String String -> String)]
+  [validate-header ((U String Bytes) -> Void)]
   [standard-message-header (String (Listof String) (Listof String) (Listof String) String -> String)]
   [data-lines->data ((Listof String) -> String)]
   [extract-addresses (String Symbol -> (U (Listof String) (Listof (Listof String))))]

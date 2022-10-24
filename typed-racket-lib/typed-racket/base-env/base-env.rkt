@@ -1126,9 +1126,21 @@
 [make-weak-custom-hash (->opt (-> Univ Univ Univ) (-> Univ -Nat) [(-> Univ -Nat)] Univ)]
 
 
-[hash-union (-poly (a b) (->* (list (-Immutable-HT a b))  (-HT a b) (-Immutable-HT a b)))]
-[hash-intersect (-poly (a b) (->* (list (-Immutable-HT a b))  (-HT a b) (-Immutable-HT a b)))]
-[hash-union! (-poly (a b) (->* (list (-Mutable-HT a b))  (-HT a b) -Void))]
+[hash-union (-poly (a b) (->optkey (-Immutable-HT a b) []
+                                   #:rest (-HT a b)
+                                   #:combine (-> b b b) #f
+                                   #:combine/key (-> a b b b) #f
+                                   (-Immutable-HT a b)))]
+[hash-intersect (-poly (a b) (->optkey (-Immutable-HT a b) []
+                                       #:rest (-HT a b)
+                                       #:combine (-> b b b) #f
+                                       #:combine/key (-> a b b b) #f
+                                       (-Immutable-HT a b)))]
+[hash-union! (-poly (a b) (->optkey (-Mutable-HT a b) []
+                                   #:rest (-HT a b)
+                                   #:combine (-> b b b) #f
+                                   #:combine/key (-> a b b b) #f
+                                   -Void))]
 
 ;; Section 4.15 (Sequences and Streams)
 [sequence? (unsafe-shallow:make-pred-ty -SequenceTop)]

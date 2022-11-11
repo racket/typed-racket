@@ -950,8 +950,8 @@
         [(:Sequenceof^ t ...)
          (parse-sequence-type stx do-parse do-parse-multi)]
         ;; simple dependent functions
-        ;; e.g. (-> ([x : τ] ...+) τ)
-        [(:->^ (args:dependent-fun-arg ...+)
+        ;; e.g. (-> ([x : τ] ...) τ)
+        [(:->^ (args:dependent-fun-arg ...)
                ~!
                (~optional (~seq #:pre (pre-dep-stx:id ...) pre-stx:expr)
                           #:defaults ([pre-stx #'Top]

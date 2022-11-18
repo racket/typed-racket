@@ -1259,6 +1259,11 @@
 ;; Section 4.18.3 (racket/function)
 [identity (-poly (a) (->acc (list a) a null #:T+ #t))]
 [const (-poly (a) (-> a (->* '() Univ a)))]
+[const* (-polydots (a b)
+          (cl->* (-> (->* (list) Univ (-values null)))
+                 (-> a (->* (list) Univ a))
+                 (->... (list a) (b b) (->* (list) Univ (make-ValuesDots (list (-result a)) b 'b)))
+                 (->* (list) Univ (->* (list) Univ ManyUniv))))]
 [negate (-polydots (a b c d)
           (cl->* (-> (-> c Univ : (-PS (-is-type 0 a) (-not-type 0 b)))
                      (-> c -Boolean : (-PS (-not-type 0 b) (-is-type 0 a))))

@@ -471,7 +471,7 @@
                        (list -FlZero -FlNan -PosFl -NonNegFl
                              -NegFl -NonPosFl -Fl))
                   (commutative-binop -NonNegFl -PosFl -PosFl)
-                  (map binop (list -NonNegFl -NegFl -NonPosFl -Fl)))))
+                  (map varop (list -NonNegFl -NegFl -NonPosFl -Fl)))))
   (define fl--type
     (fl-type-lambda
       (from-cases (binop -FlZero)
@@ -481,7 +481,7 @@
                   (-PosFl -NonPosFl . -> . -PosFl)
                   (-NonNegFl -NegFl . -> . -PosFl)
                   (-NonNegFl -NonPosFl . -> . -NonNegFl)
-                  (binop -Fl))))
+                  (varop-1+ -Fl))))
   (define fl*-type
     (fl-type-lambda
       (from-cases (binop -FlZero)
@@ -489,7 +489,7 @@
                   (binop -NonNegFl)
                   (commutative-binop -NegFl -PosFl -NonPosFl)
                   (binop -NegFl -NonNegFl)
-                  (binop -Fl))))
+                  (varop -Fl))))
   (define fl/-type
     (fl-type-lambda
       (from-cases (-FlZero -Fl . -> . -FlZero)
@@ -497,7 +497,7 @@
                   (-PosFl -PosFl . -> . -NonNegFl)
                   (commutative-binop -PosFl -NegFl -NonPosFl)
                   (-NegFl -NegFl . -> . -NonNegFl)
-                  (binop -Fl))))
+                  (varop-1+ -Fl))))
   (define fl=-type
     (fl-type-lambda
       (from-cases (commutative-equality/strict-prop -Fl (Un -FlPosZero -FlNegZero))

@@ -3535,6 +3535,7 @@
  (->key
   -Pathlike
   #:permissions -Nat #f
+  #:replace-permissions? Univ #f
   #:mode
   (one-of/c 'binary 'text)
   #f
@@ -3546,6 +3547,7 @@
  (->key
   -Pathlike
   #:permissions -Nat #f
+  #:replace-permissions? Univ #f
   #:mode
   (one-of/c 'binary 'text)
   #f
@@ -3569,6 +3571,9 @@
       #:permissions
       -Nat
       #f
+      #:replace-permissions?
+      Univ
+      #f
       a :T+ #f)))
 (call-with-input-file* (-poly (a) (->key -Pathlike (-> -Input-Port a :T+ #f) #:mode (Un (-val 'binary) (-val 'text)) #f a :T+ #f)))
 (call-with-output-file*
@@ -3586,6 +3591,9 @@
    #:permissions
    -Nat
    #f
+   #:replace-permissions?
+   Univ
+   #f
    a :T+ #f)))
 (with-input-from-file (-poly (a) (->key -Pathlike (-> a :T+ #f) #:mode (Un (-val 'binary) (-val 'text)) #f a :T+ #f)))
 (with-output-to-file
@@ -3602,6 +3610,9 @@
       #f
       #:permissions
       -Nat
+      #f
+      #:replace-permissions?
+      Univ
       #f
    a :T+ #f)))
 (port->lines

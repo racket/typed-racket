@@ -217,11 +217,18 @@
            #:with sigs #'(sig ...)
            #:with sig-tags #'(sig-tag ...)))
 
+(define-syntax-class init-depend-sig-tag
+  #:attributes (sig-tag)
+  #:literal-sets (kernel-literals)
+  #:literals (list cons)
+  (pattern (#%plain-app cons _ sig-tag))
+  (pattern sig-tag:identifier))
+
 (define-syntax-class init-depend-list
   #:literal-sets (kernel-literals)
   #:literals (list cons)
-  (pattern (#%plain-app list (#%plain-app cons _ sig-tag) ...)
-           #:with init-depend-tags #'(sig-tag ...)))
+  (pattern (#%plain-app list sg:init-depend-sig-tag ...)
+           #:with init-depend-tags #'(sg.sig-tag ...)))
 
 (define-syntax-class export-table
   #:literal-sets (kernel-literals)
@@ -253,13 +260,19 @@
                (#%plain-app
                 values
                 (#%plain-lambda (import-table:id)
-                                (let-values (((import:id ...) _) ...)
-                                  unit-body:expr))
+                                :unit-expansion-internals/import+body)
                 et:export-table
                 _ ...)))
            #:attr export-temp-ids (syntax->list #'(export-temp-id ...))
            #:attr import-internal-ids (map syntax->list (syntax->list #'((import ...) ...)))
            #:with body-stx #'unit-body))
+
+(define-syntax-class unit-expansion-internals/import+body
+  #:literal-sets (kernel-literals)
+  #:attributes ([import 2] unit-body)
+  (pattern (let-values () :unit-expansion-internals/import+body))
+  (pattern (let-values (((import:id ...) _) ...)
+             unit-body:expr)))
 
 ;; This syntax class matches the whole expansion of unit forms
 (define-syntax-class unit-expansion
@@ -372,8 +385,8 @@
                          vector-immutable
                          (#%plain-app cons (quote export-sig:id) _) ...)
                         _)
-           (let-values ([(fht) _]
-                        [(rht) _])
+           (#%plain-app check-deps _ ...)
+           (let-values ([(import-deps) _])
              _ ...)) ...
      (#%plain-app
             make-unit:id

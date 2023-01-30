@@ -319,7 +319,7 @@
 
 ;; get a reference to the actual `invoke-unit/core` function to properly parse
 ;; the fully expanded syntax of `invoke-unit` forms
-(define invoke-unit/core (make-template-identifier 'invoke-unit/core 'racket/unit))
+(define invoke-unit/core (make-template-identifier 'invoke-unit/core 'racket/private/unit/unit-core))
 
 ;; Syntax class for all the various expansions of invoke-unit forms
 ;; This also includes the syntax for the invoke-unit/infer forms
@@ -340,12 +340,11 @@
 (define-syntax-class invoke-unit-linkings
   #:literal-sets (kernel-literals)
   (pattern
-   (let-values ([(u-temp:id)
-                 (let-values ([(deps) _]
-                              [(sig-provider) _] ...
-                              [(temp) ie:invoked-expr])
-                   _ ...)])
-     (#%plain-app iu/c (#%plain-app values _)))
+   (#%plain-app iu/c
+                (let-values ([(deps) _]
+                             [(sig-provider) _] ...
+                             [(temp) ie:invoked-expr])
+                  _ ...))
    #:when (free-identifier=? #'iu/c invoke-unit/core)
    #:attr units '()
    #:attr expr (if (tr:unit:invoke:expr-property #'ie) #'ie #'ie.invoke-expr)

@@ -92,7 +92,7 @@
 
 ;; Section 4.3.2.7 (Random Numbers)
 [random
-  (cl->* (->opt -Int -Int [-Pseudo-Random-Generator] -NonNegFixnum)
+  (cl->* (->opt -Int -Int [-Pseudo-Random-Generator] -Int)
          (->opt -Int [-Pseudo-Random-Generator] -NonNegFixnum)
          (->opt [-Pseudo-Random-Generator] -Flonum))]
 

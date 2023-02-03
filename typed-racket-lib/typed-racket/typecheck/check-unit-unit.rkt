@@ -230,24 +230,6 @@
   (pattern (#%plain-app list sg:init-depend-sig-tag ...)
            #:with init-depend-tags #'(sg.sig-tag ...)))
 
-(define-syntax-class export-table
-  #:literal-sets (kernel-literals)
-  #:literals (make-immutable-hash list cons vector-immutable check-not-unsafe-undefined unbox)
-  (pattern (#%plain-app
-            make-immutable-hash
-            (#%plain-app
-             list
-             (#%plain-app
-              cons
-              signature-tag:id
-              (#%plain-app
-               vector-immutable
-               (#%plain-lambda () 
-                 (#%plain-app check-not-unsafe-undefined (#%plain-app unbox export-temp-id) external-id))
-               ...))
-             ...))
-           #:attr export-temp-ids (map syntax->list (syntax->list #'((export-temp-id ...) ...)))))
-
 (define-syntax-class unit-expansion-internals
   #:literal-sets (kernel-literals)
   #:attributes (body-stx 
@@ -261,7 +243,6 @@
                 values
                 (#%plain-lambda (import-table:id)
                                 :unit-expansion-internals/import+body)
-                et:export-table
                 _ ...)))
            #:attr export-temp-ids (syntax->list #'(export-temp-id ...))
            #:attr import-internal-ids (map syntax->list (syntax->list #'((import ...) ...)))

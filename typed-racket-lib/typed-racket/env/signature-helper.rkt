@@ -80,12 +80,11 @@
 ;; those listed in a require/typed clause
 (define (check-signature-bindings name vars stx)
   (match-define-values (_ inferred-vars inferred-defs _) (signature-members name name))
-  (define (make-id-set set) (immutable-free-id-set set #:phase (add1 (syntax-local-phase-level))))
-  (define inferred-vars-set (make-id-set inferred-vars))
-  (define vars-set (make-id-set vars))
+  (define inferred-vars-set (immutable-bound-id-set inferred-vars))
+  (define vars-set (immutable-bound-id-set vars))
   (unless (empty? inferred-defs)
     (tc-error/stx name "untyped signatures containing definitions are prohibited"))
-  (unless (free-id-set=? inferred-vars-set vars-set)
+  (unless (bound-id-set=? inferred-vars-set vars-set)
     (tc-error/fields "required signature declares inconsistent members"
                      "expected members" (map syntax-e inferred-vars)
                      "received members" (map syntax-e vars)
@@ -149,5 +148,5 @@
 (define (fix-order sig-id sig-bindings)
   (match-define-values (_ members _ _) (signature-members sig-id sig-id))
   (map
-   (lambda (id) (assoc id sig-bindings free-transformer-identifier=?))
+   (lambda (id) (assoc id sig-bindings bound-identifier=?))
    members))

@@ -23,26 +23,25 @@
 ;; introduce bindings of variables to types, and exported variables must be defined
 ;; with subtypes of their expected types.
 ;;
-;; The `invoke-unit` expansion is more complex and depends on whether or not
-;; imports were specified. In the case of no imports, the strategy is simply to
-;; find the expression being invoked and ensure it has the type of a unit with
-;; no imports. When there are imports to an `invoke-unit` form, the syntax contains
-;; local definitions of units defined using `unit-from-context`. These forms
-;; are parsed to determine which imports were declared to check subtyping on the
-;; invoked expression and to ensure that imports pulled from the current context
-;; have the correct types.
+;; The `unit-from-context` expansion is more complex and less regular than `unit`,
+;; but `racket/unit` attaches syntax properties to its expansion that can be used
+;; to identify the subexpressions that serve as the unit exports. These
+;; expressions are extracted and checked against the declared exports to ensure
+;; the form is well typed.
+;;
+;; The `invoke-unit` expansion depends on whether or not imports were specified.
+;; In the case of no imports, the strategy is simply to find the expression being
+;; invoked and ensure it has the type of a unit with no imports. When there are
+;; imports to an `invoke-unit` form, the syntax contains local definitions of
+;; units defined using `unit-from-context`. These forms are parsed to determine
+;; which imports were declared to check subtyping on the invoked expression and
+;; to ensure that imports pulled from the current context have the correct types.
 ;;
 ;; The `compound-unit` expansion contains information about the imports and exports
 ;; of each unit expression being linked. Additionally the typed `compound-unit` macro
 ;; attaches a syntax property that specifies the exact linking structure of the compound
 ;; unit. These pieces of information enable the calculation of init-depends for the entire
 ;; compound unit and to properly check subtyping on each linked expression.
-;;
-;; `unit-from-context` is handled similarly to `invoke-unit`, the expansion is exactly
-;; that of a unit created using the `unit` form, but lacks the annotations that are placed
-;; there by the typed `unit` macro. In this case the body of the unit is searched for
-;; syntax corresponding to definitions which are checked against the declared exports
-;; to ensure the form is well typed.
 ;;
 ;; The handling of the various `infer` forms (invoke-unit/infer compound-unit/infer)
 ;; is generally identical to the corresponding form lacking inference, however, in these
@@ -230,33 +229,41 @@
   (pattern (#%plain-app list sg:init-depend-sig-tag ...)
            #:with init-depend-tags #'(sg.sig-tag ...)))
 
-(define-syntax-class unit-expansion-internals
+(define-syntax-class (unit-expansion-internals #:unit-from-context? unit-from-context?)
   #:literal-sets (kernel-literals)
   #:attributes (body-stx 
                 import-internal-ids
                 export-temp-ids)
-  (pattern (let-values (_ ...) :unit-expansion-internals))
-  (pattern (#%expression :unit-expansion-internals))
+  (pattern (let-values (_ ...)
+             (~var || (unit-expansion-internals #:unit-from-context? unit-from-context?))))
+  (pattern (#%expression
+            (~var || (unit-expansion-internals #:unit-from-context? unit-from-context?))))
   (pattern (#%plain-lambda ()
              (let-values (((export-temp-id:id) _) ...)
                (#%plain-app
                 values
                 (#%plain-lambda (import-table:id)
-                                :unit-expansion-internals/import+body)
+                                (~var || (unit-expansion-internals/import+body
+                                          #:unit-from-context? unit-from-context?)))
                 _ ...)))
            #:attr export-temp-ids (syntax->list #'(export-temp-id ...))
            #:attr import-internal-ids (map syntax->list (syntax->list #'((import ...) ...)))
            #:with body-stx #'unit-body))
 
-(define-syntax-class unit-expansion-internals/import+body
+(define-syntax-class (unit-expansion-internals/import+body #:unit-from-context? unit-from-context?)
   #:literal-sets (kernel-literals)
+  #:literals (void)
   #:attributes ([import 2] unit-body)
-  (pattern (let-values () :unit-expansion-internals/import+body))
+  (pattern (let-values () (~var || (unit-expansion-internals/import+body
+                                    #:unit-from-context? unit-from-context?))))
+  (pattern (~and (~fail #:unless unit-from-context?)
+                 unit-body:expr)
+    #:attr [import 2] '())
   (pattern (let-values (((import:id ...) _) ...)
              unit-body:expr)))
 
 ;; This syntax class matches the whole expansion of unit forms
-(define-syntax-class unit-expansion
+(define-syntax-class (unit-expansion #:unit-from-context? [unit-from-context? #f])
   #:literal-sets (kernel-literals)
   #:attributes (body-stx 
                 import-internal-ids 
@@ -271,19 +278,31 @@
             import-vector:sig-vector
             export-vector:sig-vector
             list-dep:init-depend-list
-            :unit-expansion-internals)
+            (~var || (unit-expansion-internals #:unit-from-context? unit-from-context?)))
            #:attr import-sigs (syntax->list #'import-vector.sigs)
            #:attr import-sig-tags (syntax->list #'import-vector.sig-tags)
            #:attr export-sigs (syntax->list #'export-vector.sigs)
            #:attr init-depend-tags (syntax->list #'list-dep.init-depend-tags)))
 
-;; Extract the identifiers referenced in unit-from-context and invoke-unit forms
-;; in order to typecheck them in the current environment
- (define (extract-definitions stx)
-   (trawl-for-property
-    stx
-    (lambda (stx) (syntax-parse stx [((int:id) ref:id) #t] [_ #f]))
-    (lambda (stx) (syntax-parse stx [((int:id) ref:id) #'ref]))))
+;; Extract the expressions referenced in unit-from-context and invoke-unit
+;; forms in order to typecheck them in the current environment. The result is
+;; a hash table that maps signature indicies to expressions. Also see
+;; Note [unit-from-context syntax properties] in racket/private/unit/unit-core
+;; for some additional context.
+ (define (extract-unit-from-context-exports unit-stx)
+   (define unit-gensym (syntax-property unit-stx 'racket/unit:unit-from-context))
+   (unless unit-gensym
+     (int-err "no racket/unit:unit-from-context found on unit-from-context expansion"))
+
+   (define key 'racket/unit:unit-from-context:exported-expr)
+   (make-immutable-hash
+    (trawl-for-property
+     unit-stx
+     (lambda (stx)
+       (and (pair? (syntax-property stx key))
+            (eq? (car (syntax-property stx key)) unit-gensym)))
+     (lambda (stx)
+       (cons (cdr (syntax-property stx key)) stx)))))
 
 ;; Syntax inside the expansion of units that allows recovering a mapping
 ;; from temp-ids of exports to their internal identifiers
@@ -331,7 +350,7 @@
    #:attr expr (if (tr:unit:invoke:expr-property #'ie) #'ie #'ie.invoke-expr)
    #:attr imports '())
   (pattern
-   (let-values ([(temp-id) u:unit-expansion])
+   (let-values ([(temp-id) (~var u (unit-expansion #:unit-from-context? #t))])
      rest:invoke-unit-linkings)
    #:attr units (cons #'u (attribute rest.units))
    #:attr expr (attribute rest.expr)
@@ -484,24 +503,43 @@
 
 (define (parse-and-check-unit-from-context form expected-type)
   (syntax-parse form
-    [u:unit-expansion
-     (define export-sigs (map lookup-signature/check (attribute u.export-sigs)))
-     (define body-stx (attribute u.body-stx))
-     (for ([sig (in-list export-sigs)])
-       (define ids (extract-definitions body-stx))
-       (define types (map cdr (Signature-mapping sig)))
-       (for ([type (in-list types)]
-             [id (in-list ids)])
-         (define lexical-type (lookup-id-type/lexical id))
-         (unless (subtype lexical-type type)
-           (tc-error/fields "type mismatch in unit-from-context export"
-                            "expected" type
-                            "given" lexical-type
-                            "exported variable" (syntax-e id)
-                            "exported-signature" (syntax-e (Signature-name sig))
-                            #:stx form
-                            #:delayed #t))))
-     (-unit null export-sigs null (-values (list -Void)))]))
+    [(~var u (unit-expansion #:unit-from-context? #t))
+     (unless (= (length (attribute u.export-sigs)) 1)
+       (int-err "expected a single export signature for unit-from-context, found ~a"
+                (attribute u.export-sigs)))
+     (define sig (lookup-signature/check (first (attribute u.export-sigs))))
+     (check-unit-from-context-exports form sig)
+     (-unit null (list sig) null (-values (list -Void)))]))
+
+(define (check-unit-from-context-exports form sig #:for-invoke-unit? [for-invoke-unit? #f])
+  (define export-exprs (extract-unit-from-context-exports form))
+  (for ([(sig-id type) (in-dict (Signature-mapping sig))]
+        [index (in-naturals)])
+    (define (fail-no-export)
+      (int-err (string-append "could not find expression for unit-from-context export"
+                              "\n  export name: ~e")
+               (syntax-e sig-id)))
+    (define export-expr (hash-ref export-exprs index fail-no-export))
+    (unless (identifier? export-expr)
+      (int-err (string-append "cannot typecheck non-identifier export from unit-from-context"
+                              "\n  export name: ~e"
+                              "\n  export expression: ~e")
+               (syntax-e sig-id)
+               export-expr))
+       
+    (define lexical-type (lookup-id-type/lexical export-expr))
+    (unless (subtype lexical-type type)
+      (define imp/exp (if for-invoke-unit? "imported" "exported"))
+      (tc-error/fields (string-append "type mismatch in "
+                                      (if for-invoke-unit?
+                                          "invoke-unit import"
+                                          "unit-from-context export"))
+                       "expected" type
+                       "given" lexical-type
+                       (string-append imp/exp " variable") (syntax-e export-expr)
+                       (string-append imp/exp " signature") (syntax-e (Signature-name sig))
+                       #:stx form
+                       #:delayed? #t))))
 
 (define (parse-and-check-compound form expected-type)
   (define-values (link-mapping
@@ -597,19 +635,7 @@
        (check-below unit-expr-type (-unit import-sigs null import-sigs ManyUniv)))
      (for ([unit (in-list linking-units)]
            [sig (in-list import-sigs)])
-       (define ids (extract-definitions unit))
-       (define types (map cdr (Signature-mapping sig)))
-       (for ([type (in-list types)]
-             [id (in-list ids)])
-         (define lexical-type (lookup-id-type/lexical id))
-         (unless (subtype lexical-type type)
-           (tc-error/fields "type mismatch in invoke-unit import"
-                            "expected" type
-                            "given" lexical-type
-                            "imported variable" (syntax-e id)
-                            "imported signature" (syntax-e (Signature-name sig))
-                            #:stx form
-                            #:delayed? #t))))
+       (check-unit-from-context-exports unit sig #:for-invoke-unit? #t))
      (cond
        [(Unit? unit-expr-type)
         (define result-type (Unit-result unit-expr-type))

@@ -607,7 +607,7 @@
                       [r/c/te-mode (require/contract-maker te-mode)])
                      (when (and (not (attribute unsafe.unsafe?))
                                 (pair? (syntax->list #'(tvar ...))))
-                       (tc-error/stx stx "polymorphic structs are not supported"))
+                       (tc-error/stx stx "polymorphic structs are not supported when importing from untyped racket"))
 
                      (define (maybe-add-quote-syntax stx)
                        (if (and stx (syntax-e stx)) #`(quote-syntax #,stx) stx))

@@ -2182,7 +2182,9 @@
                 (pseudo-random-generator->vector pg))
               (-vec* -PosInt -PosInt -PosInt -PosInt -PosInt -PosInt))
         (tc-e (random 1 5 (make-pseudo-random-generator))
-              -NonNegFixnum)
+              -Integer)
+        (tc-e (random -1 -5 (make-pseudo-random-generator))
+              -Integer)
 
         ;Structure Type Properties
         (tc-e (make-struct-type-property 'prop)

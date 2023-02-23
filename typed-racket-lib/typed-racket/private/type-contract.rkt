@@ -74,6 +74,11 @@
 (module* test-exports #f (provide type->contract has-contract-def-property? make-procedure-arity-flat/sc))
 
 
+(define (foo)
+  (let ([x 1])
+    (+ x x)))
+
+
 (define num-existentials (make-parameter 0))
 ;; has-contrat-def-property? : Syntax -> Boolean
 (define (has-contract-def-property? stx)

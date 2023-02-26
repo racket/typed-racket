@@ -27,3 +27,13 @@ is insufficiently powerful to access @racketmodname[racket/unsafe/ops],
 for example when executing in a sandbox (see @secref["Sandboxed_Evaluation"
 #:doc '(lib "scribblings/reference/reference.scrbl")]). This prevents untrusted
 code from accessing these operations by exploiting errors in the type system.
+
+
+@section{Contract Optimization}
+
+Typed Racket generates contracts for its exports to protect them against
+untyped code.
+By default, these contracts do not check that typed code obeys the types.
+If you want to generate contracts that check both sides equally (for analysis,
+for teaching, etc.) then set the environment variable
+@envvar{PLT_TR_NO_CONTRACT_OPTIMIZE} to any value and recompile.

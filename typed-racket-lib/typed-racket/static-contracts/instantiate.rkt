@@ -40,6 +40,8 @@
            compute-recursive-kinds
            instantiate/inner))
 
+(define no-optimize-sc? (and (getenv "PLT_TR_NO_CONTRACT_OPTIMIZE") #t))
+
 (define (instantiate/optimize sc fail [kind 'impersonator] #:cache [cache #f] #:trusted-positive [trusted-positive #f] #:trusted-negative [trusted-negative #f])
   (define recursive-kinds
     (with-handlers [(exn:fail:constraint-failure?
@@ -53,7 +55,7 @@
                       #f))]
       (compute-recursive-kinds
         (contract-restrict-recursive-values (compute-constraints sc kind)))))
-  (define sc/opt (optimize sc #:trusted-positive trusted-positive #:trusted-negative trusted-negative #:recursive-kinds recursive-kinds))
+  (define sc/opt (if no-optimize-sc? sc (optimize sc #:trusted-positive trusted-positive #:trusted-negative trusted-negative #:recursive-kinds recursive-kinds)))
   (instantiate sc/opt fail kind #:cache cache #:recursive-kinds recursive-kinds))
 
 ;; kind is the greatest kind of contract that is supported, if a greater kind would be produced the

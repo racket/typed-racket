@@ -8,12 +8,15 @@
    (only-in "../rep/values-rep.rkt" make-Values)
    racket/list racket/math racket/flonum racket/extflonum racket/unsafe/ops racket/sequence racket/match
    (for-template racket/flonum racket/extflonum racket/fixnum racket/math racket/unsafe/ops racket/base
+                 (only-in typed-racket/base-env/extra-env-lang with-default-T+)
                  (only-in "../types/numeric-predicates.rkt" index?))
    (only-in (combine-in "../types/abbrev.rkt"
                         "../types/numeric-tower.rkt")
             [-Number N] [-Boolean B] [-Symbol Sym] [-Real R] [-PosInt -Pos]))
 
   ;; TODO having definitions only at the top is really inconvenient.
+
+ (with-default-T+ #true
 
   (define all-int-types
     (list -Zero -One -PosByte -Byte -PosIndex -Index
@@ -773,7 +776,7 @@
         (unless (free-identifier=? id1 id2 (sub1 phase))
           (error 'flonum-operations "The assumption that the safe and unsafe flonum-ops are the same binding has been violated. ~a and ~a are diffferent bindings." id1 id2))])))
 
-  )
+  ))
 
 ;; numeric predicates
 ;; There are 25 values that answer true to zero?. They are either reals, or inexact complexes.

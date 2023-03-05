@@ -193,6 +193,9 @@
 
 (define test-registry
   (list
+    (list "base-env-numeric.rkt"
+          no-shape-check?)
+
     (list "call-with-values.rkt"
           (lambda (stx)
             (define all-assert* (stx-find-shape-check* stx))

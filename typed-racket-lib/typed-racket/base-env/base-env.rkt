@@ -2137,7 +2137,7 @@
 [with-input-from-bytes (-poly (a) (-> -Bytes (-> a :T+ #f) a :T+ #f))]
 
 ;; Section 13.1.10.2
-[input-port-append  (->* (list Univ) -Input-Port -Input-Port)]
+[input-port-append  (->optkey Univ [] #:rest -Input-Port #:name Univ #f -Input-Port)]
 
 [make-input-port/read-to-peek
  (let ([specials-func (-> (-opt -PosInt) (-opt -Nat) (-opt -PosInt) (-opt -Nat) Univ)])

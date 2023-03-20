@@ -731,18 +731,16 @@ the typed racket language.
 
 (define-syntax with-asserts
   (let ()
-    (define pred-parser
-      (λ (stx)
-        (syntax-parse stx
-          #:datum-literals (not/p)
-          [(not/p (not/p p)) (pred-parser #'p)]
-          [_ stx])))
+    (define (pred-parser stx)
+      (syntax-parse stx
+        #:datum-literals (not/p)
+        [(not/p (not/p p)) (pred-parser #'p)]
+        [_ stx]))
     (define assert-parser
-      (λ (stx)
-        (syntax-parse stx
-          #:datum-literals (not/p)
-          [[x (not/p p)] #'(p x)]
-          [[x p] #'(not (p x))])))
+      (syntax-parser
+        #:datum-literals (not/p)
+        [[x (not/p p)] #'(p x)]
+        [[x p] #'(not (p x))]))
     (define-syntax-class with-asserts-clause
       [pattern [x:id]
                #:with cond-clause

@@ -4,4 +4,4 @@
 
 (let ([x #f])
   (with-asserts ([x])
-                x))
+    x))

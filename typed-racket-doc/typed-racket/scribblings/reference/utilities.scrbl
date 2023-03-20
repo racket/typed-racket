@@ -13,10 +13,12 @@
 
 Typed Racket provides some additional utility functions to facilitate typed programming.
 
-@defproc*[
-([(assert [v (U #f A)]) A]
- [(assert [v A] [p? (A -> Any : B)]) B])]{
-Verifies that the argument satisfies the constraint.  If no predicate
+@defform*/subs[[(assert val maybe-pred)]
+               ([pred (code:line predicate)
+                      (code:line (not/p pred))]
+                [maybe-pred code:blank
+                            (code:line pred)])]{
+Verifies that the argument satisfies the constraint. If no predicate
 is provided, simply checks that the value is not
 @racket[#f].
 
@@ -30,11 +32,16 @@ x
 (define: y : (U String Symbol) "hello")
 y
 (assert y string?)
-(eval:error (assert y boolean?))]
+(eval:error (assert y boolean?))
+(eval:error (assert y (not/p string?)))
+(assert y (not/p (not/p string?)))
+(assert y (not/p boolean?))]
 
 @defform*/subs[[(with-asserts ([id maybe-pred] ...) body ...+)]
-              ([maybe-pred code:blank
-                           (code:line predicate)])]{
+               ([pred (code:line predicate)
+                      (code:line (not/p pred))]
+                [maybe-pred code:blank
+                            (code:line pred)])]{
 Guard the body with assertions. If any of the assertions fail, the
 program errors. These assertions behave like @racket[assert].
 }

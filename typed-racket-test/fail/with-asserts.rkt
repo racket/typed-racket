@@ -4,4 +4,4 @@
 
 (let ([x 1] [y "2"])
   (with-asserts ([x string?] [y integer?])
-                x))
+    x))

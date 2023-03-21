@@ -237,6 +237,7 @@
        (-> -Int -NonPosInt B : (-PS (-is-type 0 -NegFixnum) -tt))
        (-> -NegInt -Int B : (-PS -tt (-is-type 1 -NegFixnum)))
        (-> -NonPosInt -Int B : (-PS -tt (-is-type 1 -NonPosFixnum)))
+       (-> -Int -True)
        (comp -Int))))
   (define fx>-type
     (lambda ()
@@ -264,6 +265,7 @@
        (-> -NonPosInt -Int B : (-PS (-is-type 1 -NegFixnum) -tt))
        (-> -Int -NegInt B : (-PS -tt (-is-type 0 -NegFixnum)))
        (-> -Int -NonPosInt B : (-PS -tt (-is-type 0 -NonPosFixnum)))
+       (-> -Int -True)
        (comp -Int))))
   (define fx<=-type
     (lambda ()
@@ -292,6 +294,7 @@
        (-> -Int -NegInt B : (-PS (-is-type 0 -NegFixnum) -tt))
        (-> -Int -NonPosInt B : (-PS (-is-type 0 -NonPosFixnum) -tt))
        (-> -NonPosInt -Int B : (-PS -tt (-is-type 1 -NegFixnum)))
+       (-> -Int -True)
        (comp -Int))))
   (define fx>=-type
     (lambda ()
@@ -321,6 +324,7 @@
        (-> -NegInt -Int B : (-PS (-is-type 1 -NegFixnum) -tt))
        (-> -NonPosInt -Int B : (-PS (-is-type 1 -NonPosFixnum) -tt))
        (-> -Int -NonPosInt B : (-PS -tt (-is-type 0 -NegFixnum)))
+       (-> -Int -True)
        (comp -Int))))
   (define fxmin-type
     (lambda ()
@@ -514,12 +518,14 @@
        ;; false case, we know nothing, lhs may be NaN. same for all comparison that can involve floats
        (-> -NonNegFl -Fl B : (-PS (-is-type 1 -PosFl) -tt))
        (-> -Fl -NonPosFl B : (-PS (-is-type 0 -NegFl) -tt))
+       (-> -Fl -True)
        (comp -Fl))))
   (define fl>-type
     (fl-type-lambda
       (from-cases
        (-> -NonPosFl -Fl B : (-PS (-is-type 1 -NegFl) -tt))
        (-> -Fl -NonNegFl B : (-PS (-is-type 0 -PosFl) -tt))
+       (-> -Fl -True)
        (comp -Fl))))
   (define fl<=-type
     (fl-type-lambda
@@ -528,6 +534,7 @@
        (-> -NonNegFl -Fl B : (-PS (-is-type 1 -NonNegFl) -tt))
        (-> -Fl -NegFl B : (-PS (-is-type 0 -NegFl) -tt))
        (-> -Fl -NonPosFl B : (-PS (-is-type 0 -NonPosFl) -tt))
+       (-> -Fl -True)
        (comp -Fl))))
   (define fl>=-type
     (fl-type-lambda
@@ -536,6 +543,7 @@
        (-> -Fl -NonNegFl B : (-PS (-is-type 0 -NonNegFl) -tt))
        (-> -NegFl -Fl B : (-PS (-is-type 1 -NegFl) -tt))
        (-> -NonPosFl -Fl B : (-PS (-is-type 1 -NonPosFl) -tt))
+       (-> -Fl -True)
        (comp -Fl))))
   (define flmin-type
     (fl-type-lambda
@@ -823,6 +831,7 @@
   ;; from the original types.
   (map (lambda (t) (commutative-equality/prop -Real t))
        (list -RealZero -PosReal -NonNegReal -NegReal -NonPosReal -Real))
+  (-> N -True)
   (->* (list N N) N B))]
 
 [<  (from-cases
@@ -867,6 +876,7 @@
                                      (-is-type 1 (Un -InexactRealNan -NegInfinity))))
      (-> -PosInfinity -Real B : -false-propset)
      (-> -Real -NegInfinity B : -false-propset)
+     (-> -Real -True)
      ;; If applying props resulted in the interesection of the prop and the
      ;; original type, we'd only need the cases for Fixnums and those for Reals.
      ;; Cases for Integers and co would fall out naturally from the Real cases,
@@ -928,6 +938,7 @@
      (>-type-pattern -SingleFlonum -PosSingleFlonum -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum #:no-false-props? #t)
      (>-type-pattern -InexactReal -PosInexactReal -NonNegInexactReal -NegInexactReal -NonPosInexactReal #:no-false-props? #t)
      (>-type-pattern -Real -PosReal -NonNegReal -NegReal -NonPosReal #:no-false-props? #t)
+     (-> -Real -True)
      (->* (list R R) R B))]
 [<= (from-cases
      (-> -Int -One B : (-PS (-is-type 0 (Un -NonPosInt -One)) (-is-type 0 -PosInt)))
@@ -976,6 +987,7 @@
      (<=-type-pattern -SingleFlonum -PosSingleFlonum -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum #:no-false-props? #t)
      (<=-type-pattern -InexactReal -PosInexactReal -NonNegInexactReal -NegInexactReal -NonPosInexactReal #:no-false-props? #t)
      (<=-type-pattern -Real -PosReal -NonNegReal -NegReal -NonPosReal #:no-false-props? #t)
+     (-> -Real -True)
      (->* (list R R) R B))]
 [>= (from-cases
      (-> -One -Int B : (-PS (-is-type 1 (Un -One -NonPosInt)) (-is-type 1 -PosInt)))
@@ -1024,6 +1036,7 @@
      (>=-type-pattern -SingleFlonum -PosSingleFlonum -NonNegSingleFlonum -NegSingleFlonum -NonPosSingleFlonum #:no-false-props? #t)
      (>=-type-pattern -InexactReal -PosInexactReal -NonNegInexactReal -NegInexactReal -NonPosInexactReal #:no-false-props? #t)
      (>=-type-pattern -Real -PosReal -NonNegReal -NegReal -NonPosReal #:no-false-props? #t)
+     (-> -Real -True)
      (->* (list R R) R B))]
 
 [* (from-cases

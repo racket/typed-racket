@@ -2,19 +2,10 @@
 
 ;; this file cheats to define types for unexported variables
 ;; that are expanded into by Racket macros
-(require
- "../utils/utils.rkt"
- (only-in "../rep/type-rep.rkt" -StructTypeTop)
- racket/promise
- string-constants/string-constant
- racket/private/kw racket/file racket/port syntax/parse racket/path
- (for-template (only-in racket/private/kw kw-expander-proc kw-expander-impl)
-               racket/base racket/file racket/port racket/path racket/list)
- "../env/init-envs.rkt"
- "../types/abbrev.rkt"
- "../types/numeric-tower.rkt"
- (for-syntax racket/base syntax/parse
-             (only-in racket/syntax syntax-local-eval)))
+(require "../env/init-envs.rkt"
+         "../types/abbrev.rkt"
+         "../types/numeric-tower.rkt"
+         (for-syntax racket/base))
 (provide make-template-identifier)
 
 (define (make-template-identifier what where)

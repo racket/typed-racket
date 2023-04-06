@@ -35,7 +35,7 @@
   (pattern (:for-clause ...)))
 
 (define-syntax-class accumulator-binding
-  #:description "accumumulator binding"
+  #:description "accumulator binding"
   #:attributes (ann-name init ty)
   (pattern (:optionally-annotated-name init:expr)))
 
@@ -44,6 +44,6 @@
   (pattern (~seq #:result result-expr:expr)))
 
 (define-syntax-class accumulator-bindings
-  #:description "accumumulator bindings"
+  #:description "accumulator bindings"
   #:attributes ((ann-name 1) (init 1) (ty 1) result)
   (pattern (:accumulator-binding ... (~optional result:result-clause))))

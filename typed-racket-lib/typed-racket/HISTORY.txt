@@ -1,3 +1,6 @@
+8.9
+- Improvements to shallow check generation.
+- Bug fixes and type updates.
 8.8
 - Bug fixes and type updates.
 8.7

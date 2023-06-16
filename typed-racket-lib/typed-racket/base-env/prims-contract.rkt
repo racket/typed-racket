@@ -492,7 +492,7 @@
                                  val
                                  '#,pos
                                  '#,neg
-                                 `(cast of ,(object-name val))
+                                 `(cast for ,(object-name val))
                                  (quote-srcloc #,stx)))
                               'feature-profile:TR-dynamic-check #t))
                        #'ty)))

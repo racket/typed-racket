@@ -22,7 +22,9 @@
  json
  [jsexpr? (-> Any #:null 'null Boolean)]
  [write-json (->* (JSExpr #:null 'null)
-                  (Output-Port #:encode (U 'control 'all))
+                  (Output-Port
+                   #:encode (U 'control 'all)
+                   #:indent (U False #\tab Natural))
                   Any)]
  [read-json (->* (#:null 'null) (Input-Port) (U JSExpr EOF))]
  [jsexpr->string (-> JSExpr #:null 'null [#:encode (U 'control 'all)] String)]
@@ -35,11 +37,17 @@
   (jsexpr? v #:null 'null))
 
 (: write-json* (->* (JSExpr)
-                    (Output-Port #:encode (U 'control 'all))
+                    (Output-Port
+                     #:encode (U 'control 'all)
+                     #:indent (U False #\tab Natural))
                     Any))
 (define (write-json* js [out (current-output-port)]
-                     #:encode [enc 'control])
-  (write-json js out #:encode enc #:null 'null))
+                     #:encode [enc 'control]
+                     #:indent [indent #f])
+  (write-json js out
+              #:encode enc
+              #:null   'null
+              #:indent indent))
 
 (: read-json* (->* () (Input-Port) (U JSExpr EOF)))
 (define (read-json* [in (current-input-port)])

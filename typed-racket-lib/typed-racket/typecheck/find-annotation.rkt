@@ -46,8 +46,8 @@
 
 ;; expr id -> type or #f
 ;; if there is a binding in stx of the form:
-;; (let ([x (reverse name)]) e) or
-;; (let ([x name]) e)
+;; (let ([x (reverse name)]) e ...) or
+;; (let ([x name]) e ...)
 ;; where x has a type annotation, return that annotation, otherwise #f
 (define (find-annotation stx name)
   (define (find s) (find-annotation s name))
@@ -67,8 +67,8 @@
       [_ #f]))
   (syntax-parse stx
     #:literal-sets (kernel-literals)
-    [(let-values cls:lv-clauses body)
+    [(let-values cls:lv-clauses body ...)
      (or (ormap match? (syntax->list #'cls))
-	 (find #'body))]
+         (ormap find (syntax->list #'(body ...))))]
     [e:core-expr
      (ormap find (syntax->list #'(e.expr ...)))]))

@@ -111,6 +111,9 @@
   ;; check-list
   [(make-template-identifier 'check-list 'racket/private/for)
    (-> Univ -Void)]
+  ;; check-mlist
+  [(make-template-identifier 'check-mlist 'racket/private/for)
+   (-> Univ -Void)]
   ;; check-fXvector for flvector
   [(make-template-identifier 'check-flvector 'racket/flonum)
    (-> Univ -Void)]
@@ -286,6 +289,12 @@
   ;; check-in-lines
   [(make-template-identifier 'check-in-lines 'racket/private/for)
    (-> Univ Univ Univ)]
+  ;; check-in-input-port-bytes
+  [(make-template-identifier 'check-in-input-port-bytes 'racket/private/for)
+   (-> Univ -Void)]
+  ;; check-in-input-port-chars
+  [(make-template-identifier 'check-in-input-port-chars 'racket/private/for)
+   (-> Univ -Void)]
   ;; check-in-port
   [(make-template-identifier 'check-in-port 'racket/private/for)
    (-> Univ Univ Univ)]

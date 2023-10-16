@@ -387,4 +387,14 @@
   [(make-template-identifier 'start-place 'racket/place)
    (-> -Symbol -Module-Path -Symbol (-opt -Input-Port) (-opt -Output-Port) (-opt -Output-Port) -Place)]
    [(make-template-identifier '-mlist 'compatibility/mlist)
-    (-poly (a) (->* (list) a (-mlst a)))])
+    (-poly (a) (->* (list) a (-mlst a)))]
+  ;; for `match`
+  ;; pregexp-matcher
+  [(make-template-identifier 'pregexp-matcher 'racket/match/runtime)
+   (-> (Un -PRegexp -String) -Symbol
+       (let* ([-False (-val #f)]
+              [make-match (lambda (t)
+                            (-> t (Un -False (-pair t (-lst (Un t -False))))))])
+         (cl->* (make-match -String)
+                (make-match -Bytes))))]
+  )

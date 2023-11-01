@@ -303,9 +303,9 @@ an analog of the @tt{Maybe} type constructor from Haskell:
 @racketmod[
 typed/racket
 (struct Nothing ())
-(struct (a) Some ([v : a]))
+(struct (A) Some ([v : A]))
 
-(define-type (Maybe a) (U Nothing (Some a)))
+(define-type (Maybe A) (U Nothing (Some A)))
 
 (: find (-> Number (Listof Number) (Maybe Number)))
 (define (find v l)
@@ -320,7 +320,7 @@ a structure with no contents.
 The second definition
 
 @racketblock[
-(struct (a) Some ([v : a]))
+(struct (A) Some ([v : A]))
 ]
 
 creates a type constructor, @racket[Some], and defines a namesake structure with
@@ -330,7 +330,7 @@ name, and can be referred to in the types of the fields.
 
 The type definiton
 @racketblock[
-  (define-type (Maybe a) (U Nothing (Some a)))
+  (define-type (Maybe A) (U Nothing (Some A)))
 ]
 creates a type constructor --- @racket[Maybe] is a potential
 container for whatever type is supplied.

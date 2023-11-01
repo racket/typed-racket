@@ -302,43 +302,43 @@ an analog of the @tt{Maybe} type constructor from Haskell:
 
 @racketmod[
 typed/racket
-(struct None ())
-(struct (a) Some ([v : a]))
+(struct Nothing ())
+(struct (A) Just ([v : A]))
 
-(define-type (Opt a) (U None (Some a)))
+(define-type (Maybe A) (U Nothing (Just A)))
 
-(: find (-> Number (Listof Number) (Opt Number)))
+(: find (-> Number (Listof Number) (Maybe Number)))
 (define (find v l)
-  (cond [(null? l) (None)]
-        [(= v (car l)) (Some v)]
+  (cond [(null? l) (Nothing)]
+        [(= v (car l)) (Just v)]
         [else (find v (cdr l))]))
 ]
 
-The first @racket[struct] defines @racket[None] to be
+The first @racket[struct] defines @racket[Nothing] to be
 a structure with no contents.
 
 The second definition
 
 @racketblock[
-(struct (a) Some ([v : a]))
+(struct (A) Just ([v : A]))
 ]
 
-creates a type constructor, @racket[Some], and defines a namesake structure with
-one element, whose type is that of the type argument to @racket[Some].  Here the
-type parameters (only one, @racket[a], in this case) are written before the type
+creates a type constructor, @racket[Just], and defines a namesake structure with
+one element, whose type is that of the type argument to @racket[Just].  Here the
+type parameters (only one, @racket[A], in this case) are written before the type
 name, and can be referred to in the types of the fields.
 
 The type definiton
 @racketblock[
-  (define-type (Opt a) (U None (Some a)))
+  (define-type (Maybe A) (U Nothing (Just A)))
 ]
-creates a type constructor --- @racket[Opt] is a potential
+creates a type constructor --- @racket[Maybe] is a potential
 container for whatever type is supplied.
 
 The @racket[find] function takes a number @racket[v] and list, and
-produces @racket[(Some v)] when the number is found in the list,
-and @racket[(None)] otherwise.  Therefore, it produces a
-@racket[(Opt Number)], just as the annotation specified.
+produces @racket[(Just v)] when the number is found in the list,
+and @racket[(Nothing)] otherwise.  Therefore, it produces a
+@racket[(Maybe Number)], just as the annotation specified.
 
 @subsection{Polymorphic Functions}
 

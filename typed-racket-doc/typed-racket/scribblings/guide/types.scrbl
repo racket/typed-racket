@@ -303,14 +303,14 @@ an analog of the @tt{Maybe} type constructor from Haskell:
 @racketmod[
 typed/racket
 (struct Nothing ())
-(struct (A) Some ([v : A]))
+(struct (A) Just ([v : A]))
 
-(define-type (Maybe A) (U Nothing (Some A)))
+(define-type (Maybe A) (U Nothing (Just A)))
 
 (: find (-> Number (Listof Number) (Maybe Number)))
 (define (find v l)
   (cond [(null? l) (Nothing)]
-        [(= v (car l)) (Some v)]
+        [(= v (car l)) (Just v)]
         [else (find v (cdr l))]))
 ]
 
@@ -320,23 +320,23 @@ a structure with no contents.
 The second definition
 
 @racketblock[
-(struct (A) Some ([v : A]))
+(struct (A) Just ([v : A]))
 ]
 
-creates a type constructor, @racket[Some], and defines a namesake structure with
-one element, whose type is that of the type argument to @racket[Some].  Here the
-type parameters (only one, @racket[a], in this case) are written before the type
+creates a type constructor, @racket[Just], and defines a namesake structure with
+one element, whose type is that of the type argument to @racket[Just].  Here the
+type parameters (only one, @racket[A], in this case) are written before the type
 name, and can be referred to in the types of the fields.
 
 The type definiton
 @racketblock[
-  (define-type (Maybe A) (U Nothing (Some A)))
+  (define-type (Maybe A) (U Nothing (Just A)))
 ]
 creates a type constructor --- @racket[Maybe] is a potential
 container for whatever type is supplied.
 
 The @racket[find] function takes a number @racket[v] and list, and
-produces @racket[(Some v)] when the number is found in the list,
+produces @racket[(Just v)] when the number is found in the list,
 and @racket[(Nothing)] otherwise.  Therefore, it produces a
 @racket[(Maybe Number)], just as the annotation specified.
 

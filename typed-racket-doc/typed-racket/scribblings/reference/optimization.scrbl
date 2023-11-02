@@ -36,4 +36,5 @@ untyped code.
 By default, these contracts do not check that typed code obeys the types.
 If you want to generate contracts that check both sides equally (for analysis,
 for teaching, etc.) then set the environment variable
-@envvar{PLT_TR_NO_CONTRACT_OPTIMIZE} to any value and recompile.
+@index["PLT_TR_NO_CONTRACT_OPTIMIZE"]{@envvar{PLT_TR_NO_CONTRACT_OPTIMIZE}}
+to any value and recompile.

@@ -107,7 +107,7 @@ To do so, we must change the type of @racket[listof-string?] to be a proposition
 
 Here, we adjust the type annotation to include the logical proposition
 @racket[(Listof String)] after the second @racket[_:], from which the typechecker learns
-that this predicate narrows its result type to a list of strings.       
+that this predicate narrows its input type to a list of strings.       
 
 @subsection{One-sided Propositions}
 

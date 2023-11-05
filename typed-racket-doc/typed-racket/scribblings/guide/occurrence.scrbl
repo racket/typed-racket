@@ -84,6 +84,31 @@ the typechecker learns from the result of applying the function:
 Predicates for all built-in types are annotated with similar propositions
 that allow the type system to reason logically about predicate checks.
 
+@subsection{Custom Propositions}
+
+Although propositions are provided for all built-in type predicates,
+we may want to define propositions from our own predicates as well.
+For instance, consider the following predicate:
+
+@racketblock[
+(: (-> (Listof Any) Boolean))
+(define (listof-string? lst)
+  (andmap string? lst))
+]
+
+This function determines whether a given list contains only strings.
+With Typed Racket, we can use this predicate to refine the type of a given list from
+the general @racket[(Listof Any)] to the more specific @racket[(Listof String)].
+To do so, we must change the type of @racket[listof-string?] to be a proposition:
+
+@racketblock[
+(: (-> (Listof Any) Boolean : (Listof String)))
+]
+
+Here, we adjust the type annotation to include the logical proposition
+@racket[(Listof String)] after the second @racket[_:], from which the typechecker learns
+that this predicate narrows its result type to a list of strings.       
+
 @subsection{One-sided Propositions}
 
 Sometimes, a predicate may provide information when it

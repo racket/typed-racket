@@ -6,6 +6,8 @@
 
 @(define the-eval (make-base-eval))
 @(the-eval '(require typed/racket))
+@(define the-eval* (make-base-eval))
+@(the-eval* '(require typed/racket))
 
 @title[#:tag "occurrence-typing"]{Occurrence Typing}
 
@@ -84,30 +86,50 @@ the typechecker learns from the result of applying the function:
 Predicates for all built-in types are annotated with similar propositions
 that allow the type system to reason logically about predicate checks.
 
-@subsection{Custom Propositions}
+@subsection{Specifying Propositions}
 
-Although propositions are provided for all built-in type predicates,
-we may want to define propositions from our own predicates as well.
-For instance, consider the following predicate:
+While propositions are provided for all built-in type predicates,
+we may want to provide propositions for our own predicates as well.
+For instance, consider the following predicate,
+which determines whether a given list contains only strings.
+Intuitively, a value that satisfies the predicate must have type
+@racket[(Listof String)].
 
-@racketblock[
-(: (-> (Listof Any) Boolean))
-(define (listof-string? lst)
-  (andmap string? lst))
+@examples[#:no-result #:eval the-eval*
+  (: listof-string? (-> (Listof Any) Boolean))
+  (define (listof-string? lst)
+    (andmap string? lst))
 ]
 
-This function determines whether a given list contains only strings.
-With Typed Racket, we can use this predicate to refine the type of a given list from
-the general @racket[(Listof Any)] to the more specific @racket[(Listof String)].
-To do so, we must change the type of @racket[listof-string?] to be a proposition:
+We then may wish to use this predicate to narrow a type in our main program:
 
-@racketblock[
-(: (-> (Listof Any) Boolean : (Listof String)))
+@examples[#:label #f #:eval the-eval*
+  (: main (-> (Listof Any) String))
+  (eval:error (define (main lst)
+                (cond
+                  [(listof-string? lst) (first lst)]
+                  [else "not a list of strings"])))
 ]
 
-Here, we adjust the type annotation to include the logical proposition
-@racket[(Listof String)] after the second @racket[_:], from which the typechecker learns
-that this predicate narrows its input type to a list of strings.       
+Unfortunately, Typed Racket fails to narrow the type, because we did not specify
+a proposition for @racket[listof-string?]. To fix this issue, we include
+the proposition in the @racket[->] form for @racket[listof-string].
+
+@examples[#:no-result #:eval the-eval
+  (: listof-string? (-> (Listof Any) Boolean : (Listof String)))
+  (define (listof-string? lst)
+    (andmap string? lst))
+]
+
+With the proposition, Typed Racket successfully type-checks our main program.
+
+@examples[#:label #f #:eval the-eval
+  (: main (-> (Listof Any) String))
+  (define (main lst)
+    (cond
+      [(listof-string? lst) (first lst)]
+      [else "not a list of strings"]))
+]
 
 @subsection{One-sided Propositions}
 

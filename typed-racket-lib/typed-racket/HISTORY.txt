@@ -1,3 +1,5 @@
+8.11
+- Bug fixes and type updates.
 8.10
 - Bug fixes and type updates.
 8.9

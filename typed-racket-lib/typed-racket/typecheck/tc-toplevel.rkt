@@ -555,7 +555,8 @@
   (log-message online-check-syntax-logger
                'info
                "TR's tooltip syntaxes; this message is ignored"
-               (list (syntax-property #'(void) 'mouse-over-tooltips (type-table->tooltips))))
+               (list (syntax-property (datum->syntax #'here '(void) (orig-module-stx))
+                                      'mouse-over-tooltips (type-table->tooltips))))
   ;; report delayed errors
   (report-all-errors)
   ;; provide-tbl : hash[id, listof[id]]

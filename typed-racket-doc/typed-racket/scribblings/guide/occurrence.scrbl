@@ -101,7 +101,7 @@ Intuitively, a value that satisfies the predicate must have type
     (andmap string? lst))
 ]
 
-We then may wish to use this predicate to narrow a type in our main program:
+We then may wish to use this predicate to narrow a type in the @racket[main] function:
 
 @examples[#:label #f #:eval the-eval*
   (: main (-> (Listof Any) String))
@@ -112,8 +112,13 @@ We then may wish to use this predicate to narrow a type in our main program:
 ]
 
 Unfortunately, Typed Racket fails to narrow the type, because we did not specify
-a proposition for @racket[listof-string?]. To fix this issue, we include
-the proposition in the @racket[->] form for @racket[listof-string].
+a proposition for @racket[listof-string?].@margin-note*{
+  Note that if we directly use @racket[(andmap string? lst)] as the conditional expression,
+  @racket[main] would be successfully type-checked,
+  because @racket[andmap] and @racket[string?] do provide propositions
+  that allow Typed Racket to narrow the type.
+} To fix this issue, we include
+the proposition in the @racket[->] form for @racket[listof-string?].
 
 @examples[#:no-result #:eval the-eval
   (: listof-string? (-> (Listof Any) Boolean : (Listof String)))
@@ -121,7 +126,7 @@ the proposition in the @racket[->] form for @racket[listof-string].
     (andmap string? lst))
 ]
 
-With the proposition, Typed Racket successfully type-checks our main program.
+With the proposition, Typed Racket successfully type-checks @racket[main].
 
 @examples[#:label #f #:eval the-eval
   (: main (-> (Listof Any) String))

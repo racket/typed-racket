@@ -189,7 +189,7 @@ be re-written to use @racket[cond] with no additional effort:
 ]
 
 In some cases, the type system does not have enough information or is
-too conservative to typecheck an expression. For example, consider
+too conservative to type-check an expression. For example, consider
 the following interaction:
 
 @examples[#:label #f #:eval the-eval
@@ -268,7 +268,7 @@ Typed Racket is able to reason about some cases when variables introduced
 by let-expressions alias other values (e.g. when they alias non-mutated identifiers, 
 @racket[car]/@racket[cdr]/@racket[struct] accesses into immutable values, etc...). 
 This allows programs which explicitly rely on occurrence typing and aliasing to 
-typecheck:
+type-check:
 
 @examples[#:no-result #:eval the-eval
 (: f (Any -> Number))

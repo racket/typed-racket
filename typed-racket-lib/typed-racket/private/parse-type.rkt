@@ -1409,7 +1409,7 @@
                               rator)])]
            [else Err])]
         [(id args ...)
-         (parse-error "bad syntax in type application: only an identifiers can be used as an operator")]
+         (parse-error "bad syntax in type application: only an identifier can be used as an operator")]
         [t:atom
          ;; Integers in a "grey area", that is, integers whose runtime type is
          ;; platform-dependent, cannot be safely assigned singleton types.

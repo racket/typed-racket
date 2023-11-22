@@ -13,10 +13,11 @@
 
 (provide-for-cond-contract symbolic-object-contract?)
 
-(struct symbolic-object-contract static-contract () #:transparent)
+(struct symbolic-object-contract static-contract () #:transparent #:authentic)
 
 ;; an identifier symbolic object e.g. x
 (struct id/sc symbolic-object-contract (syntax)
+  #:authentic
   #:transparent
   #:methods gen:equal+hash
   [(define/match (equal-proc a b rec)
@@ -35,6 +36,7 @@
 
 ;; a path element access into a symbolic object e.g. (car o)
 (struct acc-obj/sc symbolic-object-contract (acc-stx obj)
+  #:authentic
   #:transparent
   #:methods gen:equal+hash
   [(define/match (equal-proc a b recur)
@@ -58,6 +60,7 @@
 
 ;; a linear expression symbolic obj, e.g. 42, or x, or (+ 1 (* 2 y)), etc...
 (struct linear-exp/sc symbolic-object-contract (const terms)
+  #:authentic
   #:transparent
   #:methods gen:sc
   [(define/match (sc-map v f)

@@ -34,6 +34,7 @@
     [(_ name:id (args:id ...) kind:kind-keyword p:printer body:expr)
      #'(struct name static-contract (args ...)
          #:transparent
+         #:authentic
          p.methods ...
          #:methods gen:sc
           [(define (sc-map v f) v)

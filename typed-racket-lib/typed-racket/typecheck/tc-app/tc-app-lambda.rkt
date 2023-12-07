@@ -13,6 +13,7 @@
          "../../types/utils.rkt"
          "../../types/generalize.rkt"
          "../../types/resolve.rkt"
+         "../../types/subtype.rkt"
          "../../types/type-table.rkt"
          "../../private/type-annotation.rkt"
          "../../private/syntax-properties.rkt"
@@ -97,9 +98,11 @@
        body-results)]
     ;; special case `for/list'
     [((val acc ...)
-      ((~and inner-body (if e1 e2 e3:id)))
-      (~and (null actuals ...) (null-exp . _)))
+      ((~or (~and inner-body (if e1 e2 e3:id))
+            (~and inner-body (let-values () (if e1 e2 e3:id)))))
+      (null-exp actuals ...))
      #:when (free-identifier=? #'val #'e3)
+     #:when (subtype (tc-expr/t #'null-exp) -Null)
      (let ([ts (for/list ([ac (in-syntax #'(actuals ...))]
                           [f (in-syntax #'(acc ...))])
                  (let ([type (or (type-annotation f #:infer #t)

@@ -25,7 +25,7 @@
 
 (define pkg-desc "tests for \"typed-racket\"")
 
-(define pkg-authors '(samth stamourv endobson "moonsolo+drdr@gmail.com"))
+(define pkg-authors '(samth stamourv endobson "drdr@syntaxforge.net"))
 
 (define version "1.10")
 

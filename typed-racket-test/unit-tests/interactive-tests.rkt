@@ -148,7 +148,7 @@
       (:type 1))
     (test-form (regexp-quote "(U Positive-Byte Zero)")
       (:type Byte))
-    (test-form (regexp-quote "(U 0 1 Byte-Larger-Than-One")
+    (test-form (regexp-quote "(U 0 1 Byte>1")
       (:type #:verbose Byte))
     (test-form-exn #rx":type.*applied to arguments"
       :type)

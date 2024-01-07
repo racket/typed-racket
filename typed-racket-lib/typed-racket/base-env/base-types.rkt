@@ -4,14 +4,34 @@
          "../types/numeric-tower.rkt"
          (rename-in "../rep/type-rep.rkt" [Un -Un]))
 
-[Complex -Number]
-[Number -Number]
+#| DONE
+- Flonum/Float : they are the default, 64-bit floats, can be optimized
+
+- Undefined : initial value of letrec bindings
+
+- Sexpof   : recursive union of sexps with `a`
+- Syntaxof : syntax-e yields `a`
+- Syntax-E : possible results of syntax-e on "2D" syntax
+- Syntax   : (Syntaxof Syntax-E): "2D" syntax
+- Datum    : (Sexpof Syntax), datum->syntax yields "2D" syntax
+- Sexp     : (Sexpof (U)), syntax->datum of "2D" syntax
+|#
+
+#| TODO
+- Dead-Code : not clear that it makes sense to export this
+- Unsafe-Undefined : not clear that it makes sense to export this
+|#
+
+
+[Number -Number #:alias (Complex)]
 [Inexact-Complex -InexactComplex]
-[Single-Flonum-Complex -SingleFlonumComplex]
-[Float-Complex -FloatComplex]
+[Single-Flonum-Complex -SingleFlonumComplex #:alias (Single-Float-Complex)]
+[Flonum-Complex -FloatComplex #:alias (Float-Complex)]
 [Exact-Complex -ExactComplex]
 [Exact-Imaginary -ExactImaginary]
 [Inexact-Imaginary -InexactImaginary]
+[Single-Flonum-Imaginary -SingleFlonumImaginary #:alias (Single-Float-Imaginary)]
+[Flonum-Imaginary -FloatImaginary #:alias (Float-Imaginary)]
 [Imaginary -Imaginary]
 [Exact-Number -ExactNumber]
 [Real -Real]
@@ -21,79 +41,77 @@
 [Positive-Real -PosReal]
 [Real-Zero -RealZero]
 [Inexact-Real -InexactReal]
-[Single-Flonum -SingleFlonum]
+[Single-Flonum -SingleFlonum #:alias (Single-Float)]
 [Nonpositive-Inexact-Real -NonPosInexactReal]
-[Nonpositive-Single-Flonum -NonPosSingleFlonum]
+[Nonpositive-Single-Flonum -NonPosSingleFlonum #:alias (Nonpositive-Single-Float)]
 [Negative-Inexact-Real -NegInexactReal]
-[Negative-Single-Flonum -NegSingleFlonum]
+[Negative-Single-Flonum -NegSingleFlonum #:alias (Negative-Single-Float)]
+[Negative-Single-Flonum-Not-Nan -NegSingleFlonumNoNan #:alias (Negative-Single-Float-Not-Nan)]
 [Nonnegative-Inexact-Real -NonNegInexactReal]
-[Nonnegative-Single-Flonum -NonNegSingleFlonum]
+[Nonnegative-Single-Flonum -NonNegSingleFlonum #:alias (Nonnegative-Single-Float)]
 [Positive-Inexact-Real -PosInexactReal]
-[Positive-Single-Flonum -PosSingleFlonum]
+[Positive-Single-Flonum -PosSingleFlonum #:alias (Positive-Single-Float)]
+[Positive-Single-Flonum-Not-Nan -PosSingleFlonumNoNan #:alias (Positive-Single-Float-Not-Nan)]
 [Inexact-Real-Nan -InexactRealNan]
 [Inexact-Real-Zero -InexactRealZero]
 [Inexact-Real-Negative-Zero -InexactRealNegZero]
 [Inexact-Real-Positive-Zero -InexactRealPosZero]
-[Single-Flonum-Nan -SingleFlonumNan]
-[Single-Flonum-Zero -SingleFlonumZero]
-[Single-Flonum-Negative-Zero -SingleFlonumNegZero]
-[Single-Flonum-Positive-Zero -SingleFlonumPosZero]
-;; these are the default, 64-bit floats, can be optimized
-[Float -Flonum] ; both of these are valid
-[Flonum -Flonum]
-[Nonpositive-Float -NonPosFlonum] ; both of these are valid
-[Nonpositive-Flonum -NonPosFlonum]
-[Negative-Float -NegFlonum] ; both of these are valid
-[Negative-Flonum -NegFlonum]
-[Nonnegative-Float -NonNegFlonum] ; both of these are valid
-[Nonnegative-Flonum -NonNegFlonum]
-[Positive-Float -PosFlonum] ; both of these are valid
-[Positive-Flonum -PosFlonum]
-[Float-Nan -FlonumNan]
-[Flonum-Nan -FlonumNan]
-[Float-Zero -FlonumZero] ; both of these are valid
-[Flonum-Zero -FlonumZero]
-[Float-Negative-Zero -FlonumNegZero] ; both of these are valid
-[Flonum-Negative-Zero -FlonumNegZero]
-[Float-Positive-Zero -FlonumPosZero] ; both of these are valid
-[Flonum-Positive-Zero -FlonumPosZero]
-[Exact-Rational -Rat]
-[Nonpositive-Exact-Rational -NonPosRat]
-[Negative-Exact-Rational -NegRat]
-[Nonnegative-Exact-Rational -NonNegRat]
-[Positive-Exact-Rational -PosRat]
-[Integer -Int]
-[Nonpositive-Integer -NonPosInt]
-[Negative-Integer -NegInt]
-[Exact-Nonnegative-Integer -Nat] ; all three of these are valid
-[Nonnegative-Integer -Nat]
-[Natural -Nat]
-[Exact-Positive-Integer -PosInt] ; both of these are valid
-[Positive-Integer -PosInt]
+[Single-Flonum-Nan -SingleFlonumNan #:alias (Single-Float-Nan)]
+[Single-Flonum-Zero -SingleFlonumZero #:alias (Single-Float-Zero)]
+[Single-Flonum-Negative-Zero -SingleFlonumNegZero #:alias (Single-Float-Negative-Zero)]
+[Single-Flonum-Positive-Zero -SingleFlonumPosZero #:alias (Single-Float-Positive-Zero)]
+[Flonum -Flonum #:alias (Float)]
+[Nonpositive-Flonum -NonPosFlonum #:alias (Nonpositive-Float)]
+[Negative-Flonum -NegFlonum #:alias (Negative-Float)]
+[Negative-Flonum-Not-Nan -NegFlonumNoNan #:alias (Negative-Float-Not-Nan)]
+[Nonnegative-Flonum -NonNegFlonum #:alias (Nonnegative-Float)]
+[Positive-Flonum -PosFlonum #:alias (Positive-Float)]
+[Positive-Flonum-Not-Nan -PosFlonumNoNan #:alias (Positive-Float-Not-Nan)]
+[Flonum-Nan -FlonumNan #:alias (Float-Nan)]
+[Flonum-Zero -FlonumZero #:alias (Float-Zero)]
+[Flonum-Negative-Zero -FlonumNegZero #:alias (Float-Negative-Zero)]
+[Flonum-Positive-Zero -FlonumPosZero #:alias (Float-Positive-Zero)]
+[Rational -Rat #:alias (Exact-Rational)]
+[Nonnegative-Rational -NonNegRat #:alias (Exact-Nonnegative-Rational Nonnegative-Exact-Rational)]
+[Positive-Rational -PosRat #:alias (Exact-Positive-Rational Positive-Exact-Rational)]
+[Nonpositive-Rational -NonPosRat #:alias (Exact-Nonpositive-Rational Nonpositive-Exact-Rational)]
+[Negative-Rational -NegRat #:alias (Exact-Negative-Rational Negative-Exact-Rational)]
+[Positive-Rational-Not-Integer -PosRatNotInt]
+[Negative-Rational-Not-Integer -NegRatNotInt]
+[Integer -Int #:alias (Exact-Integer)]
+[Nonpositive-Integer -NonPosInt #:alias (Nonpositive-Exact-Integer Exact-Nonpositive-Integer)]
+[Negative-Integer -NegInt #:alias (Negative-Exact-Integer Exact-Negative-Integer)]
+[Negative-Integer-Not-Fixnum -NegIntNotFixnum]
+[Natural -Nat #:alias (Nonnegative-Integer Nonnegative-Exact-Integer Exact-Nonnegative-Integer)]
+[Exact-Positive-Integer -PosInt #:alias (Positive-Integer Positive-Exact-Integer)]
+[Positive-Integer-Not-Fixnum -PosIntNotFixnum]
 [Fixnum -Fixnum]
 [Negative-Fixnum -NegFixnum]
 [Nonpositive-Fixnum -NonPosFixnum]
 [Nonnegative-Fixnum -NonNegFixnum]
 [Positive-Fixnum -PosFixnum]
+[Positive-Fixnum-Not-Index -PosFixnumNotIndex]
 [Index -Index]
 [Positive-Index -PosIndex]
+[Positive-Index-Not-Byte -PosIndexNotByte]
 [Byte -Byte]
 [Positive-Byte -PosByte]
-[Zero (-val 0)]
-[One  (-val 1)]
-[ExtFlonum -ExtFlonum]
-[Nonpositive-ExtFlonum -NonPosExtFlonum]
-[Negative-ExtFlonum -NegExtFlonum]
-[Nonnegative-ExtFlonum -NonNegExtFlonum]
-[Positive-ExtFlonum -PosExtFlonum]
-[ExtFlonum-Nan -ExtFlonumNan]
-[ExtFlonum-Zero -ExtFlonumZero]
-[ExtFlonum-Negative-Zero -ExtFlonumNegZero]
-[ExtFlonum-Positive-Zero -ExtFlonumPosZero]
-
+[Byte>1 -Byte>1]
+[Zero -Zero]
+[One -One]
+[ExtFlonum -ExtFlonum #:alias (ExtFloat)]
+[Nonpositive-ExtFlonum -NonPosExtFlonum #:alias (Nonpositive-ExtFloat)]
+[Negative-ExtFlonum -NegExtFlonum #:alias (Negative-ExtFloat)]
+[Negative-ExtFlonum-Not-Nan -NegExtFlonumNoNan #:alias (Negative-ExtFloat-Not-Nan)]
+[Nonnegative-ExtFlonum -NonNegExtFlonum #:alias (Nonnegative-ExtFloat)]
+[Positive-ExtFlonum -PosExtFlonum #:alias (Positive-ExtFloat)]
+[Positive-ExtFlonum-Not-Nan -PosExtFlonumNoNan #:alias (Positive-ExtFloat-Not-Nan)]
+[ExtFlonum-Nan -ExtFlonumNan #:alias (ExtFloat-Nan)]
+[ExtFlonum-Zero -ExtFlonumZero #:alias (ExtFloat-Zero)]
+[ExtFlonum-Negative-Zero -ExtFlonumNegZero #:alias (ExtFloat-Negative-Zero)]
+[ExtFlonum-Positive-Zero -ExtFlonumPosZero #:alias (ExtFloat-Positive-Zero)]
 [Void -Void]
-[Undefined -Undefined] ; initial value of letrec bindings
-;; [Unsafe-Undefined -Unsafe-Undefined] ; not clear that it makes sense to export this
+[Undefined -Undefined]
 [Boolean -Boolean]
 [Symbol -Symbol]
 [String -String]
@@ -104,8 +122,10 @@
 [Path-For-Some-System -SomeSystemPath]
 [Path-String -Pathlike]
 [Regexp -Regexp]
+[Base-Regexp -Base-Regexp]
 [PRegexp -PRegexp]
 [Byte-Regexp -Byte-Regexp]
+[Byte-Base-Regexp -Byte-Base-Regexp]
 [Byte-PRegexp -Byte-PRegexp]
 [Char -Char]
 [Namespace -Namespace]
@@ -113,12 +133,12 @@
 [Output-Port -Output-Port]
 [Bytes -Bytes]
 [EOF (-val eof)]
-[Sexpof -Sexpof]   ;; recursive union of sexps with a
-[Syntaxof -Syntax] ;; syntax-e yields a
-[Syntax-E In-Syntax] ;; possible results of syntax-e on "2D" syntax
-[Syntax Any-Syntax]  ;; (Syntaxof Syntax-E): "2D" syntax
-[Datum Syntax-Sexp]  ;; (Sexpof Syntax), datum->syntax yields "2D" syntax
-[Sexp -Sexp]         ;; (Sexpof (U)), syntax->datum of "2D" syntax
+[Sexpof -Sexpof]
+[Syntaxof -Syntax]
+[Syntax-E In-Syntax]
+[Syntax Any-Syntax]
+[Datum Syntax-Sexp]
+[Sexp -Sexp]
 [Identifier Ident]
 [Procedure top-func]
 [BoxTop -BoxTop]
@@ -141,7 +161,9 @@
 [Resolved-Module-Path -Resolved-Module-Path]
 [Module-Path -Module-Path]
 [Module-Path-Index -Module-Path-Index]
+[Other-System-Path -OtherSystemPath]
 [Compiled-Module-Expression -Compiled-Module-Expression]
+[Compiled-Non-Module-Expression -Compiled-Non-Module-Expression]
 [Compiled-Expression -Compiled-Expression]
 [Read-Table -Read-Table]
 [Special-Comment -Special-Comment]
@@ -166,12 +188,11 @@
 [Logger -Logger]
 [Log-Receiver -Log-Receiver]
 [Log-Level -Log-Level]
-[Place-Channel -Place-Channel]
 [Place -Place]
+[Place-Channel -Place-Channel]
+[Base-Place-Channel -Base-Place-Channel]
 [Will-Executor -Will-Executor]
 [Environment-Variables -Environment-Variables]
-
-
 [Listof -Listof]
 [Vectorof -vec]
 [Vector -vec*]
@@ -190,9 +211,9 @@
 [Weak-HashTableTop -Weak-HashTableTop]
 [HashTable -HT]
 [Promise -Promise]
-[Pair -pair]
-[Boxof -box]
-[Weak-Boxof -weak-box]
+[Pairof -pair #:alias (Pair)]
+[Boxof -box #:alias (Box)]
+[Weak-Boxof -weak-box #:alias (Weak-Box)]
 [Channelof -channel]
 [Async-Channelof -async-channel]
 [Ephemeronof -Ephemeron]
@@ -202,15 +223,13 @@
 [False -False]
 [True -True]
 [Null -Null]
-[Nothing (-Un)]
+[Nothing (-Un) #:alias (None)]
 [Futureof -future]
-[Pairof -pair]
-[U -Un #:alias (Union Un)]
+[∪ -Un #:alias (U Un Union)]
 [∩ -Inter #:alias (Intersection)]
-[MPairof -mpair]
+[MPairof -mpair #:alias (MPair)]
 [MListof -MListof]
 [Thread-Cellof -thread-cell]
-[Custodian-Boxof -CustodianBox]
-
+[Custodian-Boxof -CustodianBox #:alias (Custodian-Box)]
 [Continuation-Mark-Keyof -Continuation-Mark-Keyof]
 [Prompt-Tagof -Prompt-Tagof]

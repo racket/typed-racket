@@ -135,7 +135,7 @@
    #'module-path-index?
    module-path-index?]
   [-OtherSystemPath
-   OtherSystemPath
+   Other-System-Path
    #'(and/c path-for-some-system? (not/c path?))
    (compose/and path-for-some-system? (¬ path?))]
   [-Cont-Mark-Set
@@ -220,11 +220,11 @@
    #'(λ (x) (eqv? x -0.0t0))
    (λ (x) (eqv? x -0.0t0))]
   [-NegExtFlonumNoNan
-   Negative-ExtFlonum-No-NaN
+   Negative-ExtFlonum-Not-Nan
    #'(and/c extflonum? (λ (x) (extfl<= x 0.0t0)))
    (λ (x) (and (extflonum? x) (extfl<= x 0.0t0)))]
   [-PosExtFlonumNoNan
-   Positive-ExtFlonum-No-NaN
+   Positive-ExtFlonum-Not-Nan
    #'(and/c extflonum? (λ (x) (extfl>= x 0.0t0)))
    (λ (x) (and (extflonum? x) (extfl>= x 0.0t0)))]
   [-Dead-Code Dead-Code #'(make-none/c 'dead-code/c) (λ (v) #f)])

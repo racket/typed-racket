@@ -126,13 +126,27 @@
        v]
       [(? unsafe-val?)
        (fail neg-party v)]
-      [(cons x y) (cons (any-wrap/traverse x neg-party seen/v) (any-wrap/traverse y neg-party seen/v))]
+      [(cons x y)
+       (define x* (any-wrap/traverse x neg-party seen/v))
+       (define y* (any-wrap/traverse y neg-party seen/v))
+       (cond
+         [(and (eq? x x*) (eq? y y*)) v]
+         [else (cons x* y*)])]
       [(? vector? (? immutable?))
        ;; fixme -- should have an immutable for/vector
-       (vector->immutable-vector
-        (for/vector #:length (vector-length v)
-          ([i (in-vector v)]) (any-wrap/traverse i neg-party seen/v)))]
-      [(? box? (? immutable?)) (box-immutable (any-wrap/traverse (unbox v) neg-party seen/v))]
+       (define all-eq? #t)
+       (define v*
+         (for/vector #:length (vector-length v) ([i (in-vector v)])
+           (define i* (any-wrap/traverse i neg-party seen/v))
+           (unless (eq? i i*)
+             (set! all-eq? #f))
+           i*))
+       (if all-eq? v (vector->immutable-vector v*))]
+      [(? box? (? immutable?))
+       (define v* (any-wrap/traverse (unbox v) neg-party seen/v))
+       (cond
+         [(eq? v* (unbox v)) v]
+         [else (box-immutable v*)])]
       [(? box?) (chaperone-box v
                                (lambda (v e)
                                  (with-contract-continuation-mark
@@ -145,13 +159,17 @@
       ;; [(? hasheqv? (? immutable?))
       ;;  (for/hasheqv ([(k v) (in-hash v)]) (values k v))]
 
-      [(? (λ (e)
-            (and (hash? e) (immutable? e)
-                 (not (hash-eqv? e)) (not (hash-eq? e)))))
-       (hash-map/copy v
-                      (lambda (k v)
-                        (values (any-wrap/traverse k neg-party seen/v)
-                                (any-wrap/traverse v neg-party seen/v))))]
+      [(? (λ (e) (and (hash? e) (immutable? e))))
+       (define all-eq? #t)
+       (define v*
+         (hash-map/copy v
+                        (lambda (k v)
+                          (define k* (any-wrap/traverse k neg-party seen/v))
+                          (define v* (any-wrap/traverse v neg-party seen/v))
+                          (unless (and (eq? k k*) (eq? v v*))
+                            (set! all-eq? #f))
+                          (values k* v*))))
+       (if all-eq? v v*)]
       [(? vector?) (chaperone-vector v
                                      (lambda (v i e)
                                        (with-contract-continuation-mark

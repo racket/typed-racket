@@ -22,7 +22,9 @@
   racket/keyword
   racket/private/stx
   (only-in mzscheme make-namespace)
-  (only-in racket/match/runtime match:error matchable? match-equality-test syntax-srclocs))
+  (only-in racket/match/runtime match:error matchable? match-equality-test syntax-srclocs
+           hash-state-step hash-shortcut-step
+           invoke-thunk hash-state hash-state-closed? hash-state-residue undef user-def))
  "base-structs.rkt"
  racket/file
  (only-in racket/private/pre-base new-apply-proc)
@@ -1359,6 +1361,29 @@
 [match-equality-test (-Param (Univ Univ . -> . Univ) (Univ Univ . -> . Univ))]
 [matchable? (unsafe-shallow:make-pred-ty (Un -String -Bytes))]
 [syntax-srclocs (Univ . -> . Univ)]
+
+;; hash table pattern matching
+[hash-state (-poly (a b) (-> (-HT a b) (-lst a) (-lst b)
+                             (-prefab 'hash-state (-HT a b) (-lst a) (-lst b))))]
+
+[hash-state-step
+ (-poly (a c) (-> a (-> (Un c -Unsafe-Undefined)) Univ
+                  (-poly (b) (-> (-prefab 'hash-state (-HT a b) (-lst a) (-lst b))
+                                 (-values (list B (-> (Un b c))
+                                                (-prefab 'hash-state
+                                                         (-HT a b)
+                                                         (-lst a)
+                                                         (-lst b))))))))]
+[hash-shortcut-step
+ (-poly (a c) (-> a (-> (Un c -Unsafe-Undefined))
+                  (-poly (b) (-> (-HT a b)
+                                 (-values (list B (-> (Un b c))))))))]
+
+[invoke-thunk (-poly (a) (-> (-> a) a))]
+[hash-state-closed? (-poly (a b) (-> (-prefab 'hash-state (-HT a b) (-lst a) (-lst b)) B))]
+[hash-state-residue (-poly (a b) (-> (-prefab 'hash-state (-HT a b) (-lst a) (-lst b)) (-HT a b)))]
+[undef -Unsafe-Undefined]
+[user-def Univ]
 
 ;; Section 10.1
 [values (-polydots (a b) (cl->*

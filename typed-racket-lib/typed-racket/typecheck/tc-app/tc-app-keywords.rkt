@@ -128,7 +128,7 @@
   (match arrows
     [(list (and a (Arrow: dom (and rst (not (? RestDots?))) ktys rng rng-T+)))
      (tc-keywords/internal a kws kw-args #t)
-     (tc/funapp (car (syntax-e form)) kw-args
+     (tc/funapp (car (syntax-e form)) pos-args
                 (->* dom rst rng :T+ rng-T+)
                 (stx-map tc-expr pos-args) expected)]
     [(list (and a (Arrow: doms (and rsts (not (? RestDots?))) _ rngs rngs-T+)) ...)
@@ -149,7 +149,7 @@
             (lambda (dom)
               (string-append "No function domains matched in function application:\n"
                              dom)))
-           (tc/funapp (car (syntax-e form)) kw-args
+           (tc/funapp (car (syntax-e form)) pos-args
                       (make-Fun new-arrows)
                       (stx-map tc-expr pos-args) expected)))]))
 

@@ -2,7 +2,7 @@
 
 (require "../utils/utils.rkt"
          "../utils/identifier.rkt"
-         racket/match racket/sequence racket/set racket/list
+         racket/match racket/sequence racket/set racket/list syntax/stx
          (contract-req)
          "check-below.rkt"
          "tc-subst.rkt"
@@ -76,6 +76,8 @@
             (parameterize ([current-orig-stx a])
               (check-below arg-res (dom+rst-ref dom rst idx))))]
          [_
+	  (unless (= (length (stx->list args-stx)) (length arg-ress))
+	    (int-err "bad input to tc/funapp1, lengths do not match"))
           (for ([dom-t (in-list dom)]
                 [a (in-syntax args-stx)]
                 [arg-res (in-list arg-ress)])

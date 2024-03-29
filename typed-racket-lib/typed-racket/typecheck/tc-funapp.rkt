@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require (except-in "../utils/utils.rkt" infer)
-         racket/match racket/list racket/sequence
+         racket/match racket/list racket/sequence syntax/stx
          (prefix-in c: (contract-req))
          (for-syntax syntax/parse racket/base)
          "../utils/tc-utils.rkt"
@@ -69,6 +69,9 @@
 
 
 (define (tc/funapp f-stx args-stx f-type args-res expected)
+  (unless (= (length args-res) (length (stx->list args-stx)))
+    (int-err "bad argument input to tc/funapp, lengths do not match"))
+
   (match-define (list (tc-result1: argtys (PropSet: argps+ argps-) argobjs) ...) args-res)
   (define arg-props
     (for/fold ([ps (map -or argps+ argps-)])

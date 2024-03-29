@@ -3,7 +3,7 @@
 (require "../../utils/utils.rkt"
          "signatures.rkt"
          "utils.rkt"
-         syntax/parse racket/match racket/sequence
+         syntax/parse racket/match racket/sequence racket/list
          "../signatures.rkt"
          "../tc-funapp.rkt"
          "../tc-metafunctions.rkt"
@@ -32,7 +32,7 @@
        (define con-ty (tc-expr/t #'con))
        (define con-trusted? (and con-ty (shallow-trusted-positive? con-ty)))
        (define r
-         (tc/funapp #'con #'(prod) con-ty
+         (tc/funapp #'con (make-list (length tcrs) #'prod) con-ty
                     (for/list ([tcr (in-list tcrs)])
                       (-tc-results (list tcr) #f))
                     expected))

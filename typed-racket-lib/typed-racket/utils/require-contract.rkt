@@ -34,8 +34,7 @@
 (define-syntax (rename-without-provide stx)
   (syntax-parse stx
     [(_ nm:id hidden:id orig:id)
-     (syntax/loc stx
-       (define-syntax nm
+     #'(define-syntax nm
          (make-rename-transformer
           (syntax-property
            (syntax-property
@@ -43,7 +42,7 @@
                              'not-free-identifier=? #t)
             'original-name
             (quote-syntax orig))
-           'not-provide-all-defined #t))))]))
+           'not-provide-all-defined #t)))]))
 
 (begin-for-syntax
   (define-syntax-class renameable

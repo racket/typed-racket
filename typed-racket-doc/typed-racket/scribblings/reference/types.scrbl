@@ -1029,9 +1029,11 @@ prefab types with the (implicitly quoted) prefab-key
   structure type associcated with a @racket[Struct-Property] named @racket[prop].
 }
 
+@defalias[∪ U "type constructor"]
 @defalias[Union U "type constructor"]
 @defalias[Intersection ∩ "type constructor"]
 @defalias[→ -> "type constructor"]
+@defalias[→* ->* "type constructor"]
 @defalias[case→ case-> "type constructor"]
 @defalias[∀ All "type"]
 

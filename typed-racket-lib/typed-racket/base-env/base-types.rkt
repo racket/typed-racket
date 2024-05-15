@@ -205,7 +205,7 @@
 [Nothing (-Un)]
 [Futureof -future]
 [Pairof -pair]
-[U -Un #:alias (Union Un)]
+[U -Un #:alias (Union Un ∪)]
 [∩ -Inter #:alias (Intersection)]
 [MPairof -mpair]
 [MListof -MListof]

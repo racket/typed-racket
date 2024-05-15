@@ -28,6 +28,7 @@
 
 (provide (rename-out [All ∀]
                      [-> →]
+                     [->* →*]
                      [case-> case→]
                      [List Tuple]
                      [Rec mu]

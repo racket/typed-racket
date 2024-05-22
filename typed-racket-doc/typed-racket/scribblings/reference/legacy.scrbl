@@ -35,31 +35,21 @@ A polymorphic function, abstracted over the type variables
 @racket[a]. The type variables @racket[a] are bound in both the types
 of the formal, and in any type expressions in the @racket[body].}
 
-@defalias[pλ: plambda: "syntax"]
-
 @defform/subs[(opt-lambda: formals maybe-ret . body)
 ([formals ([v : t] ... [v : t default] ...)
           ([v : t] ... [v : t default] ... v : t *)
           ([v : t] ... [v : t default] ... v : t ooo bound)])]{
 A function with optional arguments.}
 
-@defalias[opt-λ: opt-lambda: "syntax"]
-
 @defform*[[(popt-lambda: (a ...) formals maybe-ret . body)
            (popt-lambda: (a ... a ooo) formals maybe-ret . body)]]{
 A polymorphic function with optional arguments.}
 
-@defalias[popt-λ: popt-lambda: "syntax"]
-
 @defalias[case-lambda: case-lambda "syntax"]
-
-@defalias[case-λ: case-lambda: "syntax"]
 
 @defform*[[(pcase-lambda: (a ...) [formals body] ...)
            (pcase-lambda: (a ... b ooo) [formals body] ...)]]{
 A polymorphic function of multiple arities.}
-
-@defalias[pcase-λ: pcase-lambda: "syntax"]
 
 @defform*[[
   (let: ([v : t e] ...) . body)

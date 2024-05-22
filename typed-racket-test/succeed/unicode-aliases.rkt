@@ -1,27 +1,16 @@
 #lang typed/racket/base
 
-(: foo0 (∀ () (→* ((∪ Symbol String)) (Integer) (Pair Boolean Integer))))
-(: foo1 (∀ () (→* ((∪ Symbol String) Integer) () (Pair Boolean Integer))))
-(: foo2 (∀ () (→* ((∪ Symbol String) Integer) () (Pair Boolean Integer))))
-(: foo3 (∀ () (→* ((∪ Symbol String)) (Integer) (Pair Boolean Integer))))
-(: foo4 (∀ () (→* ((∪ Symbol String)) (Integer) (Pair Boolean Integer))))
-(define foo0 (λ   #:∀ () ([s : (∪ Symbol String)] [i : Integer 0]) : (Pair Boolean Integer) (cons (symbol? s) i)))
-(define foo1 (λ:         ([s : (∪ Symbol String)] [i : Integer])   : (Pair Boolean Integer) (cons (symbol? s) i)))
-(define foo2 (pλ:     () ([s : (∪ Symbol String)] [i : Integer])   : (Pair Boolean Integer) (cons (symbol? s) i)))
-(define foo3 (opt-λ:     ([s : (∪ Symbol String)] [i : Integer 0]) : (Pair Boolean Integer) (cons (symbol? s) i)))
-(define foo4 (popt-λ: () ([s : (∪ Symbol String)] [i : Integer 0]) : (Pair Boolean Integer) (cons (symbol? s) i)))
-(foo0 'abc 0) (foo0 "abc" 0)
-(foo1 'abc 0) (foo1 "abc" 0)
-(foo2 'abc 0) (foo2 "abc" 0)
-(foo3 'abc 0) (foo3 "abc" 0)
-(foo4 'abc 0) (foo4 "abc" 0)
+(: foo (→* ((∪ Symbol String)) (Integer) (Pair Boolean Integer)))
+(define foo
+  (λ (s [i 0])
+    (cons (symbol? s) i)))
+(foo 'abc)
+(foo "abc")
 
-(: bar0 (∀ () (case→ (→ True) (→ Any False))))
-(: bar1 (∀ () (case→ (→ True) (→ Any False))))
-(: bar2 (∀ () (case→ (→ True) (→ Any False))))
-(define bar0 (case-λ  #:∀ () [() #t] [(_) #f]))
-(define bar1 (case-λ: #:∀ () [() #t] [(_) #f]))
-(define bar2 (pcase-λ:    () [() #t] [(_) #f]))
-(bar0) (bar0 bar0)
-(bar1) (bar1 bar1)
-(bar2) (bar2 bar2)
+(: bar (∀ () (case→ (→ True) (→ Any False))))
+(define bar
+  (case-λ
+    [() #t]
+    [(_) #f]))
+(bar)
+(bar bar)

@@ -18,12 +18,7 @@
 (provide (rename-out [-case-lambda case-lambda]
                      [-case-lambda case-lambda:]
                      [-case-lambda case-λ]
-                     [-case-lambda case-λ:]
-                     [pcase-lambda: pcase-λ:]
-                     [plambda: pλ:]
-                     [lambda: λ:]
-                     [popt-lambda: popt-λ:]
-                     [opt-lambda: opt-λ:])
+                     [lambda: λ:])
          pcase-lambda:
          plambda:
          -lambda

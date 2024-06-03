@@ -109,6 +109,11 @@
 
     ))
 
+(module+ test
+  (require rackunit/text-ui)
+  (void (run-tests tests)))
+
+
 (module+ main
   (require rackunit/text-ui)
   (void (run-tests tests)))

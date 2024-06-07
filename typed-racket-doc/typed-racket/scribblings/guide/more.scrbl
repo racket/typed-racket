@@ -89,6 +89,10 @@ of @racket[Number]s.
 @racketblock[(lambda ([x : String] (unsyntax @tt["."]) [y : Number #,**]) (apply + y))]
 
 This function has the type @racket[(-> String Number #,** Number)].
+To specify the return type, add a type annotation after the arguments:
+
+@racketblock[(lambda ([x : String] (unsyntax @tt["."]) [y : Number #,**]) : (U Number String) (apply + y))]
+
 Functions defined by cases may also be annotated:
 
 @racketblock[(case-lambda [() 0]
@@ -96,6 +100,10 @@ Functions defined by cases may also be annotated:
 
 This function has the type
 @racket[(case-> (-> Number) (-> Number Number))].
+To specify the return type, either annotate the entire function or use the
+@seclink["Annotating_Expressions"]{expression annotation form}
+(@racket[ann]) inside each case.
+
 
 @subsection{Annotating Single Variables}
 

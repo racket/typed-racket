@@ -101,7 +101,7 @@ Functions defined by cases may also be annotated:
 This function has the type
 @racket[(case-> (-> Number) (-> Number Number))].
 To specify the return type, either annotate the entire function or use the
-@seclink["Annotating_Expressions" #:doc '(lib "typed-racket/scribblings/ts-guide.scrbl")]{expression annotation form}
+@seclink["Annotating_Expressions"]{expression annotation form}
 (@racket[ann]) inside each case.
 
 

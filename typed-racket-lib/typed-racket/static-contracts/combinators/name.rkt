@@ -93,6 +93,7 @@
              (list typed-sc untyped-sc both-sc)))
 
 (struct name-combinator combinator (gen-name)
+  #:authentic
   #:transparent
   #:property prop:combinator-name "name/sc"
   #:methods gen:sc

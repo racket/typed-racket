@@ -21,6 +21,7 @@
                                 pre-deps
                                 rng
                                 rng-deps)
+  #:authentic
   #:transparent
   #:property prop:combinator-name "dep->/sc"
   #:methods gen:sc

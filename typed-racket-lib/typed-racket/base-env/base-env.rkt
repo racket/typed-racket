@@ -2877,7 +2877,11 @@
 [file-or-directory-identity (->opt -Pathlike [Univ] -PosInt)]
 [file-size (-> -Pathlike -Nat)]
 
-[copy-file (-> -Pathlike -Pathlike -Void)]
+[copy-file (->optkey -Pathlike -Pathlike [(-lst -Symbol)]
+		     #:exists-ok? Univ #f
+		     #:permissions Univ #f
+		     #:replace-permissions Univ #f
+		     -Void)]
 [make-file-or-directory-link (-> -Pathlike -Pathlike -Void)]
 
 ;; Section 15.2.3
@@ -2922,7 +2926,6 @@
 
 [make-directory* (-> -Pathlike -Void)]
 [make-parent-directory* (-> -Pathlike -Void)]
-#;[make-temporary-file (->opt [-String (Un -Pathlike (-val 'directory) (-val #f)) (-opt -Pathlike)] -Path)]
 
 [put-preferences (->opt (-lst -Symbol) (-lst Univ) [(-> -Path Univ) (-opt -Pathlike)] -Void)]
 [preferences-lock-file-mode (-> (one-of/c 'exists 'file-lock))]

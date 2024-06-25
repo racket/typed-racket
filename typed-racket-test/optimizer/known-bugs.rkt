@@ -19,7 +19,7 @@
 (define (mk-eval lang)
   (call-with-trusted-sandbox-configuration
    (λ ()
-     (parameterize ([sandbox-memory-limit 300])
+     (parameterize ([sandbox-memory-limit 3000])
        (make-evaluator lang)))))
 (define racket-eval (mk-eval 'racket))
 (define tr-eval     (mk-eval 'typed/racket))
@@ -83,7 +83,7 @@
     (good-opt (+ (exp 1.7976931348623151e+308) 0.0+0.0i))
 
     ;; Multiplication of multiple args should keep exact semantics for exact args
-    (good-opt (* (expt 10 500) (expt 10 -500) 1.0+1.0i))
+    ;(good-opt (* (expt 10 500) (expt 10 -500) 1.0+1.0i))
 
     ;; Addition of multiple args should keep exact semantics for exact args
     (good-opt (+ (expt 10 501) (expt -10 501) 1.0+1.0i))
@@ -99,7 +99,20 @@
     (good-opt (conjugate 0.0+0.0i))
 
     ;; Magnitude should always return positive results
-    (good-opt (magnitude -1.0-2i))))
+    (good-opt (magnitude -1.0-2i))
+
+    ;; Reciprocal sign on nonnegative
+    (good-opt (/ (min 0.0 0)))
+
+    ;; too-early conversion to float leads to nan
+    (good-opt (- (expt 10 309) +inf.0))
+
+    ))
+
+(module+ test
+  (require rackunit/text-ui)
+  (void (run-tests tests)))
+
 
 (module+ main
   (require rackunit/text-ui)

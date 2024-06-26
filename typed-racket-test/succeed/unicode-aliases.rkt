@@ -6,3 +6,11 @@
     (cons (symbol? s) i)))
 (foo 'abc)
 (foo "abc")
+
+(: bar (∀ () (case→ (→ True) (→ Any False))))
+(define bar
+  (case-λ
+    [() #t]
+    [(_) #f]))
+(bar)
+(bar bar)

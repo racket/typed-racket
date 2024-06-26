@@ -28,7 +28,7 @@
           (except-in racket/base for for* with-handlers with-handlers*
                      lambda λ define
                      let let* letrec letrec-values let-values let*-values
-                     let/cc let/ec do case-lambda struct define-struct
+                     let/cc let/ec do case-lambda case-λ struct define-struct
                      default-continuation-prompt-tag
                      for/list for/vector for/hash for/hasheq for/hasheqv for/hashalw
                      for/and for/or for/sum for/product for/lists

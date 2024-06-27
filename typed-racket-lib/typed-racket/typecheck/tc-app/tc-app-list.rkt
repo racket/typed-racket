@@ -130,17 +130,8 @@
                   (add-typeof-expr #'op-name (ret (->* arg-tys return-ty :T+ #t)))
                   (ret return-ty)))
               (or result
-                  ;; When arguments to the list function fail to typecheck, the
-                  ;; odds are those argument expressions are ill-typed.  In that
-                  ;; case, we should only report those type errors instead of the error
-                  ;; that the result type of application of list doesn't match
-                  ;; the expected one.
-                  (let-values ([(tys errs) (for/lists (tys errs)
-                                                      ([i (in-list args-list)])
-                                             (tc-expr/t* i))])
-                    (when (andmap not errs)
-                      (expected-but-got t (-Tuple tys)))
-                    (fix-results expected)))]
+                  (begin (expected-but-got t (-Tuple (map tc-expr/t args-list)))
+                         (fix-results expected)))]
              [else
               (define arg-tys (map tc-expr/t args-list))
               (define return-ty (-Tuple arg-tys))

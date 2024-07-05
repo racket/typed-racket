@@ -331,8 +331,13 @@
   ;; ... or a Guide is ...
   [(make-template-identifier 'check-same-length 'racket/private/template)
    (-> (Un (-val #f) (-Syntax Univ)) (Un (-val #f) (-Syntax Univ)) (-lst Univ) -Void)]
-  ;; from the expansion of `make-temp-file`
-  [(make-template-identifier 'make-temporary-file/proc 'racket/file)
+  ;; from the expansion of `make-temporary-file`
+  [(make-template-identifier 'make-temporary-file 'racket/file)
+   (->optkey [-String (Un -Pathlike (-val 'directory) (-val #f)) (-opt -Pathlike)]
+	     #:copy-from (Un -Pathlike (-val 'directory) (-val #f)) #f
+	     #:base-dir (-opt -Pathlike) #f
+	     -Path)
+   #;
    (->opt [-String (Un -Pathlike (-val 'directory) (-val #f)) (-opt -Pathlike)]
           -Path)]
   ;; from the (lifted) portion of the expansion of keyword lambdas

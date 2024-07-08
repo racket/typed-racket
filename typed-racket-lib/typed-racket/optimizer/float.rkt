@@ -107,6 +107,13 @@
        (not (subtypeof? stx -Int))))
 
 
+(define (safe-to-convert? a)
+  (or (subtypeof? a -Fixnum)
+      (syntax-parse a #:literals (quote)
+	[(quote n) #:when (flonum? (syntax-e #'n)) #t]
+	[(quote n) #:when (rational? (real->double-flonum (syntax-e #'n))) #t]
+	[_ #f])))
+
 (define-syntax-class float-opt-expr
   #:commit
   #:literal-sets (kernel-literals)
@@ -130,6 +137,8 @@
                           ;; - all non-float arguments need to be provably non-zero
                           ;;   otherwise, we may hit corner cases like (* 0 <float>) => 0
                           ;;   or (+ 0 -0.0) => -0.0 (while (+ 0.0 -0.0) => 0.0)
+			  ;;   and non-infinite when converted to a float, otherwise you
+			  ;;   convert large finite numbers too early
                           ;; - only one argument can be coerced. If more than one needs
                           ;;   coercion, we could end up turning exact (or single-float)
                           ;;   operations into float operations by accident.
@@ -139,7 +148,8 @@
                                (for/and ([a (in-syntax #'(fs ...))])
                                  ;; flonum or provably non-zero
                                  (or (subtypeof? a -Flonum)
-                                     (subtypeof? a (Un -PosReal -NegReal))))
+                                     (and (subtypeof? a (Un -PosReal -NegReal))
+					  (safe-to-convert? a))))
                                (>= 1
                                    (for/sum ([a (in-syntax #'(fs ...))]
                                              #:when (not (subtypeof? a -Flonum)))

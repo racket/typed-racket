@@ -1,3 +1,5 @@
+8.14
+- Bug fixes and type updates. 
 8.13
 - Fix failure to typecheck some arguments in the presence of keywords.
   This can lead to new type errors in the missing checks.

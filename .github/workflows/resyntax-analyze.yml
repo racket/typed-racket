@@ -21,6 +21,7 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    if: ${{ github.triggering_actor != 'resyntax-ci[bot]' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

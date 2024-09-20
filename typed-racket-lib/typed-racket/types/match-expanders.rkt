@@ -1,16 +1,16 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         "../rep/type-rep.rkt"
-         "../rep/values-rep.rkt"
-         "../rep/rep-utils.rkt"
+(require (for-syntax racket/base syntax/parse)
          racket/match
-         syntax/parse/define
          racket/set
          racket/unsafe/undefined
-         "resolve.rkt"
+         syntax/parse/define
+         "../rep/rep-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../utils/utils.rkt"
          "base-abbrev.rkt"
-         (for-syntax racket/base syntax/parse))
+         "resolve.rkt")
 
 (provide Listof: List: MListof: AnyPoly: AnyPoly-names:
          HashTableTop:
@@ -75,12 +75,10 @@
          (app (λ (t) (Listof? t #t)) (? Type? elem-pat)))])))
 
 
-(define-simple-macro (make-Listof-pred listof-pred?:id pair-matcher:id)
+(define-syntax-parse-rule (make-Listof-pred listof-pred?:id pair-matcher:id)
   (define (listof-pred? t [simple? #f])
     (match t
-      [(Mu-unsafe:
-        (Union: (== -Null)
-                (list (pair-matcher elem-t (B: 0)))))
+      [(Mu-unsafe: (Union: (== -Null) (list (pair-matcher elem-t (B: 0)))))
        (define elem-t* (instantiate-type elem-t t))
        (cond
          [simple? (and (equal? elem-t elem-t*) elem-t)]
@@ -88,7 +86,8 @@
       [(Union: (== -Null) (list (pair-matcher hd-t tl-t)))
        (cond
          [(listof-pred? tl-t)
-          => (λ (lst-t) (and (equal? hd-t lst-t) hd-t))]
+          =>
+          (λ (lst-t) (and (equal? hd-t lst-t) hd-t))]
          [else #f])]
       [_ #f])))
 

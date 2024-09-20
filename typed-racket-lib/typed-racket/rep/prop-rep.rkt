@@ -1,15 +1,15 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         (contract-req)
-         "fme-utils.rkt"
-         "rep-utils.rkt"
-         "free-variance.rkt"
-         "core-rep.rkt"
-         "object-rep.rkt"
+(require racket/lazy-require
          racket/match
-         racket/lazy-require
-         (only-in racket/unsafe/ops unsafe-fx<=))
+         (contract-req)
+         (only-in racket/unsafe/ops unsafe-fx<=)
+         "../utils/utils.rkt"
+         "core-rep.rkt"
+         "fme-utils.rkt"
+         "free-variance.rkt"
+         "object-rep.rkt"
+         "rep-utils.rkt")
 
 (lazy-require
  ["../types/prop-ops.rkt" (-and -or negate-prop)])
@@ -143,8 +143,7 @@
   [#:for-each (f) (for-each f ps)]
   [#:custom-constructor/contract
    (-> (listof (or/c TypeProp? NotTypeProp? LeqProp?)) OrProp?)
-   (let ([ps (sort ps (λ (p q) (unsafe-fx<= (eq-hash-code p)
-                                            (eq-hash-code q))))])
+   (let ([ps (sort ps unsafe-fx<= #:key eq-hash-code)])
      (intern-single-ref!
       orprop-intern-table
       ps

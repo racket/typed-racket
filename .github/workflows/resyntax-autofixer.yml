@@ -26,7 +26,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
       - name: Checkout code
-        uses: actions/checkout@v3.0.2
+        uses: actions/checkout@v4.1.7
         # See https://github.com/actions/checkout/issues/118.
         with:
           fetch-depth: 0

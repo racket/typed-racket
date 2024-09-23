@@ -15,7 +15,7 @@ jobs:
         racket-variant: ["BC", "CS"]
         enable-contracts: [true, false]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.1.7
       - uses: Bogdanp/setup-racket@v1.11
         with:
           architecture: x64

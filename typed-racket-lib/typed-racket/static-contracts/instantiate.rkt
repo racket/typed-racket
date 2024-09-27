@@ -2,24 +2,23 @@
 
 ;; Provides functionality to take a static contract and turn it into a regular contract.
 
-(require
-  "../utils/utils.rkt"
-  racket/match
-  racket/list
-  racket/contract
-  racket/syntax
-  syntax/private/id-table
-  (for-template racket/base racket/contract)
-  "combinators.rkt"
-  "combinators/name.rkt"
-  "combinators/case-lambda.rkt"
-  "combinators/parametric.rkt"
-  "kinds.rkt"
-  "optimize.rkt"
-  "parametric-check.rkt"
-  "structures.rkt"
-  "constraints.rkt"
-  "equations.rkt")
+(require (for-template racket/base racket/contract)
+         racket/contract
+         racket/list
+         racket/match
+         racket/syntax
+         syntax/private/id-table
+         "../utils/utils.rkt"
+         "combinators.rkt"
+         "combinators/case-lambda.rkt"
+         "combinators/name.rkt"
+         "combinators/parametric.rkt"
+         "constraints.rkt"
+         "equations.rkt"
+         "kinds.rkt"
+         "optimize.rkt"
+         "parametric-check.rkt"
+         "structures.rkt")
 
 (provide static-contract-may-contain-free-ids?)
 
@@ -145,12 +144,14 @@
     (variable-ref (hash-ref vars id)))
 
   (for ([(name v) (in-free-id-table recursives)])
-    (match v
-      [(kind-max others max)
-       (add-equation! eqs
-          (hash-ref vars name)
-          (λ () (apply combine-kinds max (for/list ([(id _) (in-free-id-table others)])
-                                           (lookup id)))))]))
+    (match-define (kind-max others max) v)
+    (add-equation! eqs
+                   (hash-ref vars name)
+                   (λ ()
+                     (apply combine-kinds
+                            max
+                            (for/list ([(id _) (in-free-id-table others)])
+                              (lookup id))))))
   (define var-values (resolve-equations eqs))
   (for/hash ([(name var) (in-hash vars)])
     (values name (hash-ref var-values var))))

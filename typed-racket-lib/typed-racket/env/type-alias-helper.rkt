@@ -2,32 +2,31 @@
 
 ;; This module provides helper functions for type aliases
 
-(require "../utils/utils.rkt"
-         "../utils/tarjan.rkt"
-         "../utils/tc-utils.rkt"
-         "type-alias-env.rkt"
-         "type-name-env.rkt"
-         "../rep/type-rep.rkt"
-         "../rep/free-variance.rkt"
-         "../rep/type-constr.rkt"
-         "tvar-env.rkt"
-         "type-constr-env.rkt"
-         "../private/parse-type.rkt"
-         "../private/user-defined-type-constr.rkt"
-         "../typecheck/internal-forms.rkt"
-         "../types/resolve.rkt"
-         "../types/base-abbrev.rkt"
-         "../types/substitute.rkt"
+(require (for-template racket/base
+                       "../typecheck/internal-forms.rkt")
+         racket/dict
+         racket/function
          racket/list
          racket/match
          racket/set
-         racket/dict
-         racket/function
          syntax/id-table
          syntax/parse
-         (for-template
-          "../typecheck/internal-forms.rkt"
-          racket/base))
+         "../private/parse-type.rkt"
+         "../private/user-defined-type-constr.rkt"
+         "../rep/free-variance.rkt"
+         "../rep/type-constr.rkt"
+         "../rep/type-rep.rkt"
+         "../typecheck/internal-forms.rkt"
+         "../types/base-abbrev.rkt"
+         "../types/resolve.rkt"
+         "../types/substitute.rkt"
+         "../utils/tarjan.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
+         "tvar-env.rkt"
+         "type-alias-env.rkt"
+         "type-constr-env.rkt"
+         "type-name-env.rkt")
 
 (provide find-strongly-connected-type-aliases
          register-all-type-aliases
@@ -304,8 +303,7 @@
         (match-define (list id type-stx args) record)
         (define ty-op (parse-type-operator-abstraction id args type-stx
                                                        (lambda (x)
-                                                         (define res (in-same-component? id x))
-                                                         res)
+                                                         (in-same-component? id x))
                                                        type-alias-productivity-map
                                                        #:delay-variances? #t
                                                        #:recursive? #t))

@@ -4,15 +4,14 @@
 ;; - fix datum-literals ?
 ;; - enable type-annotation test by upgrading user's annotations to trust codomain
 
-(require
-  "../test-utils.rkt"
-  rackunit
-  racket/pretty
-  racket/list
-  racket/set
-  syntax/parse
-  (only-in racket/format ~a)
-  (only-in syntax/modread with-module-reading-parameterization))
+(require racket/list
+         racket/pretty
+         racket/set
+         rackunit
+         syntax/parse
+         (only-in racket/format ~a)
+         (only-in syntax/modread with-module-reading-parameterization)
+         "../test-utils.rkt")
 
 (provide tests)
 (gen-test-main)
@@ -29,10 +28,8 @@
         (with-module-reading-parameterization
           (lambda ()
             (read-syntax (object-name in-port) in-port))))))
-  (define stx
-    (parameterize ((current-namespace (make-base-namespace)))
-      (expand mod-stx)))
-  stx)
+  (parameterize ([current-namespace (make-base-namespace)])
+    (expand mod-stx)))
 
 ;; ---
 
@@ -49,20 +46,25 @@
 
 (define (stx-find orig-stx p?)
   (define stx* (stx-find* orig-stx p?))
-  (if (or (null? stx*)
-          (not (null? (cdr stx*))))
-    (raise-arguments-error 'stx-find "non-unique results" "num matches" (length stx*) "orig-stx" orig-stx "predicate" p? "matches" stx*)
-    (car stx*)))
+  (when (or (null? stx*) (not (null? (cdr stx*))))
+    (raise-arguments-error 'stx-find
+                           "non-unique results"
+                           "num matches"
+                           (length stx*)
+                           "orig-stx"
+                           orig-stx
+                           "predicate"
+                           p?
+                           "matches"
+                           stx*))
+  (car stx*))
 
 (define (stx-find* orig-stx p?)
   (let loop ((stx orig-stx))
     (cond
       [(syntax? stx)
-       (let ((v (p? stx)))
-         (if v
-           (list
-             (if (eq? #true v) stx v))
-           (loop (syntax-e stx))))]
+       (define v (p? stx))
+       (if v (list (if (eq? #true v) stx v)) (loop (syntax-e stx)))]
       [(pair? stx)
        (append (loop (car stx)) (loop (cdr stx)))]
       [else
@@ -79,37 +81,36 @@
     ((~literal #%plain-app) (~datum shallow-shape-check) . _)))
 
 (define (stx-find-define-predicate-ctc stx pred-name)
-  (let* ((lift-id
-           (stx-find stx
-             (syntax-parser
-               #:datum-literals (define-values let-values #%app)
-               ((define-values (name:id) (let-values (((:id) (#%app fcp:id lift:id))) _))
-                #:when (eq? (syntax-e #'name) pred-name)
-                #'lift)
-               (_ #f))
-             ))
-         (lift-ctc
-           (stx-find stx
-             (syntax-parser
-               (((~datum define-values) (lt:id) ctc:id)
-                #:when (eq? (syntax-e #'lt) (syntax-e lift-id))
-                #'ctc)
-               (_ #f))))
-         (ctc*
-           (stx-find* stx
-             (syntax-parser
-               #:datum-literals (define-values lambda)
-               ((define-values (g:id) (lambda (_) body))
-                #:when (eq? (syntax-e #'g) (syntax-e lift-ctc))
-                #'body)
-               (_ #f)))))
-    (cond
-      [(null? ctc*)
-       lift-ctc]
-      [(null? (cdr ctc*))
-       (car ctc*)]
-      [else
-       (raise-arguments-error 'stx-find-define-predicate-ctc "cannot find lifted" "pred" pred-name)])))
+  (define lift-id
+    (stx-find stx
+              (syntax-parser
+                #:datum-literals (define-values let-values #%app)
+                [(define-values (name:id)
+                   (let-values ([(:id) (#%app fcp:id lift:id)])
+                     _))
+                 #:when (eq? (syntax-e #'name) pred-name)
+                 #'lift]
+                [_ #f])))
+  (define lift-ctc
+    (stx-find stx
+              (syntax-parser
+                [((~datum define-values) (lt:id) ctc:id)
+                 #:when (eq? (syntax-e #'lt) (syntax-e lift-id))
+                 #'ctc]
+                [_ #f])))
+  (define ctc*
+    (stx-find* stx
+               (syntax-parser
+                 #:datum-literals (define-values lambda)
+                 [(define-values (g:id) (lambda (_) body))
+                  #:when (eq? (syntax-e #'g) (syntax-e lift-ctc))
+                  #'body]
+                 [_ #f])))
+  (cond
+    [(null? ctc*) lift-ctc]
+    [(null? (cdr ctc*)) (car ctc*)]
+    [else
+     (raise-arguments-error 'stx-find-define-predicate-ctc "cannot find lifted" "pred" pred-name)]))
 
 (define (split-shape-check stx)
   (define expr (->datum stx))

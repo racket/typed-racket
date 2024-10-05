@@ -1,17 +1,23 @@
 #lang racket/base
 
-(require syntax/parse racket/sequence racket/flonum racket/promise
-         syntax/parse/experimental/specialize
+(require (for-template racket/base
+                       racket/flonum
+                       racket/math
+                       racket/unsafe/ops)
+         racket/flonum
+         racket/promise
+         racket/sequence
          syntax/id-table
-         (for-template racket/base racket/flonum racket/unsafe/ops racket/math)
-         "../utils/utils.rkt"
-         "../utils/tc-utils.rkt"
-         "../types/numeric-tower.rkt"
+         syntax/parse
+         syntax/parse/experimental/specialize
          "../types/abbrev.rkt"
-         "utils.rkt"
-         "numeric-utils.rkt"
+         "../types/numeric-tower.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
+         "fixnum.rkt"
          "logging.rkt"
-         "fixnum.rkt")
+         "numeric-utils.rkt"
+         "utils.rkt")
 
 (provide float-opt-expr float-arg-expr int-expr float-op)
 
@@ -136,10 +142,10 @@
                           ;;   (Note: could allow for more args, if not next to each other, but
                           ;;    probably not worth the trouble (most ops have 2 args anyway))
                           (and (subtypeof? this-syntax -Flonum)
-                               (for/and ([a (in-syntax #'(fs ...))])
+                               (for/and ([a (in-syntax #'(fs ...))]
+                                         #:unless (subtypeof? a -Flonum))
                                  ;; flonum or provably non-zero
-                                 (or (subtypeof? a -Flonum)
-                                     (subtypeof? a (Un -PosReal -NegReal))))
+                                 (subtypeof? a (Un -PosReal -NegReal)))
                                (>= 1
                                    (for/sum ([a (in-syntax #'(fs ...))]
                                              #:when (not (subtypeof? a -Flonum)))

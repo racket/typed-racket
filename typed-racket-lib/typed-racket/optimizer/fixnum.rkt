@@ -1,14 +1,18 @@
 #lang racket/base
 
-(require syntax/parse
+(require (for-syntax racket/base
+                     racket/syntax
+                     syntax/parse)
+         (for-template racket/base
+                       racket/fixnum
+                       racket/unsafe/ops)
+         syntax/parse
          syntax/parse/experimental/specialize
-         "../utils/utils.rkt"
-         (for-template racket/base racket/fixnum racket/unsafe/ops)
-         (for-syntax racket/base syntax/parse racket/syntax)
          "../rep/type-rep.rkt"
          "../types/numeric-tower.rkt"
-         "utils.rkt"
-         "logging.rkt")
+         "../utils/utils.rkt"
+         "logging.rkt"
+         "utils.rkt")
 
 (provide fixnum-expr fixnum-opt-expr)
 
@@ -124,10 +128,10 @@
 ;; if we make it this far, an optimization is likely to be expected by the
 ;; user, so we report a missed opt if the check fails
 (define (check-if-safe stx)
-  (let ([safe-to-opt? (subtypeof? stx -Fixnum)])
-    (unless safe-to-opt?
-      (log-fixnum-missed-opt stx))
-    safe-to-opt?))
+  (define safe-to-opt? (subtypeof? stx -Fixnum))
+  (unless safe-to-opt?
+    (log-fixnum-missed-opt stx))
+  safe-to-opt?)
 
 (define-syntax-class fixnum-opt-expr
   #:literal-sets (kernel-literals)

@@ -1,8 +1,9 @@
 #lang racket/base
 
-(require syntax/id-table syntax/parse
-         "../utils/utils.rkt"
-         "../utils/tc-utils.rkt")
+(require syntax/id-table
+         syntax/parse
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt")
 
 (provide
   add-unboxed-fun!

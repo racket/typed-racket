@@ -1,13 +1,16 @@
 #lang racket/base
 
-(require syntax/parse racket/extflonum
+(require (for-template racket/base
+                       racket/extflonum
+                       racket/unsafe/ops)
+         racket/extflonum
+         syntax/parse
          syntax/parse/experimental/specialize
-         (for-template racket/base racket/extflonum racket/unsafe/ops)
          "../utils/utils.rkt"
-         "utils.rkt"
-         "logging.rkt"
+         "fixnum.rkt"
          "float.rkt"
-         "fixnum.rkt")
+         "logging.rkt"
+         "utils.rkt")
 
 (provide extflonum-opt-expr)
 

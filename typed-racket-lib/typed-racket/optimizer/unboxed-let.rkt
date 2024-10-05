@@ -1,20 +1,23 @@
 #lang racket/base
 
-(require syntax/parse syntax/stx racket/sequence
-         syntax/parse/experimental/template
-         racket/match racket/syntax
+(require (for-template racket/base)
+         racket/match
          racket/promise
-         "../utils/utils.rkt"
-         (for-template racket/base)
-         "../types/numeric-tower.rkt"
-         "../types/utils.rkt"
-         "../types/type-table.rkt"
-         "../rep/type-rep.rkt"
+         racket/sequence
+         racket/syntax
+         syntax/parse
+         syntax/parse/experimental/template
+         syntax/stx
          "../env/mvar-env.rkt"
-         "utils.rkt"
-         "logging.rkt"
+         "../rep/type-rep.rkt"
+         "../types/numeric-tower.rkt"
+         "../types/type-table.rkt"
+         "../types/utils.rkt"
+         "../utils/utils.rkt"
          "float-complex.rkt"
-         "unboxed-tables.rkt")
+         "logging.rkt"
+         "unboxed-tables.rkt"
+         "utils.rkt")
 
 (provide unboxed-let-opt-expr escapes?)
 

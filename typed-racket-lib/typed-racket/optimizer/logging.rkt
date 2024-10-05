@@ -1,8 +1,10 @@
 #lang racket/base
 
-(require racket/string
-         syntax/location racket/logging syntax/parse
-         data/queue
+(require data/queue
+         racket/logging
+         racket/string
+         syntax/location
+         syntax/parse
          "../utils/tc-utils.rkt")
 
 (provide log-optimization log-missed-optimization log-optimization-info
@@ -90,25 +92,20 @@
 ;;--------------------------------------------------------------------
 
 (define (line+col->string stx)
-  (let ([line (syntax-line stx)]
-        [col  (syntax-column stx)])
-    (if (and line col)
-        (format "~a:~a" line col)
-        "(no location)")))
+  (define line (syntax-line stx))
+  (define col (syntax-column stx))
+  (if (and line col) (format "~a:~a" line col) "(no location)"))
 
 (define (format-irritants irritants)
   (if (null? irritants)
       ""
       (format " -- caused by: ~a"
               (string-join
-               (map (lambda (irritant)
-                      (let ([irritant (locate-stx irritant)])
-                        (format "~a ~s"
-                                (line+col->string irritant)
-                                (syntax->datum irritant))))
-                    (sort irritants <
-                          #:key (lambda (x)
-                                  (or (syntax-position x) 0))))
+               (for/list ([irritant (in-list (sort irritants
+                                                   <
+                                                   #:key (lambda (x) (or (syntax-position x) 0))))])
+                 (let ([irritant (locate-stx irritant)])
+                   (format "~a ~s" (line+col->string irritant) (syntax->datum irritant))))
                ", "))))
 
 ;; For command-line printing purposes.

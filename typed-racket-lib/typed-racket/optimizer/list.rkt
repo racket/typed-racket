@@ -1,13 +1,15 @@
 #lang racket/base
 
-(require syntax/parse racket/match
-         "../utils/utils.rkt"
+(require (for-template racket/base
+                       racket/unsafe/ops)
+         racket/match
+         syntax/parse
          "../types/abbrev.rkt"
-         "../types/utils.rkt"
          "../types/type-table.rkt"
-         "utils.rkt"
+         "../types/utils.rkt"
+         "../utils/utils.rkt"
          "logging.rkt"
-         (for-template racket/base racket/unsafe/ops))
+         "utils.rkt")
 
 (provide list-opt-expr)
 

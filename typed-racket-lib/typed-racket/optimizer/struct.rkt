@@ -1,12 +1,13 @@
 #lang racket/base
 
-(require syntax/parse
-         (for-template racket/base racket/unsafe/ops)
-         "../utils/utils.rkt"
-         "../utils/tc-utils.rkt"
+(require (for-template racket/base
+                       racket/unsafe/ops)
+         syntax/parse
          "../types/struct-table.rkt"
-         "utils.rkt"
-         "logging.rkt")
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
+         "logging.rkt"
+         "utils.rkt")
 
 (provide struct-opt-expr)
 

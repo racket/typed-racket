@@ -1,13 +1,15 @@
 #lang racket/base
 
-(require syntax/parse syntax/stx racket/sequence
+(require (for-template racket/base)
+         racket/sequence
          racket/syntax
-         (for-template racket/base)
-         "../utils/utils.rkt"
+         syntax/parse
+         syntax/stx
          (only-in "../utils/tc-utils.rkt" current-type-enforcement-mode deep)
          "../types/type-table.rkt"
-         "utils.rkt"
-         "logging.rkt")
+         "../utils/utils.rkt"
+         "logging.rkt"
+         "utils.rkt")
 
 (provide dead-code-opt-expr)
 

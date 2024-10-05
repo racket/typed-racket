@@ -10,12 +10,13 @@
          signature-env-map
          signature-env-for-each)
 
-(require syntax/private/id-table
+(require (for-syntax racket/base
+                     syntax/parse)
          racket/promise
-         (for-syntax syntax/parse racket/base)
-         "env-utils.rkt"
+         syntax/private/id-table
+         "../rep/type-rep.rkt"
          "../utils/tc-utils.rkt"
-         "../rep/type-rep.rkt")
+         "env-utils.rkt")
 
 ;; initial signature environment
 (define signature-env (make-free-id-table))

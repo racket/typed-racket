@@ -1,23 +1,27 @@
 #lang racket/base
 
-(require syntax/parse
+(require (for-syntax racket/base
+                     racket/syntax
+                     syntax/parse)
+         (for-template racket/base
+                       racket/list
+                       racket/unsafe/ops)
          racket/match
-         (for-template racket/base racket/unsafe/ops racket/list)
-         (for-syntax racket/base syntax/parse racket/syntax)
+         syntax/parse
          (only-in "../utils/tc-utils.rkt" current-type-enforcement-mode)
-         "../utils/utils.rkt"
-         "../rep/type-rep.rkt"
-         "../types/type-table.rkt"
-         "../types/utils.rkt"
-         "../types/base-abbrev.rkt"
          (only-in "../types/match-expanders.rkt" Listof:)
+         "../optimizer/logging.rkt"
+         "../optimizer/utils.rkt"
+         "../rep/type-rep.rkt"
+         "../typecheck/typechecker.rkt"
+         "../types/base-abbrev.rkt"
          "../types/resolve.rkt"
          "../types/subtype.rkt"
-         "../typecheck/typechecker.rkt"
-         "../optimizer/utils.rkt"
-         "../optimizer/logging.rkt"
-         "utils.rkt"
-         "logging.rkt")
+         "../types/type-table.rkt"
+         "../types/utils.rkt"
+         "../utils/utils.rkt"
+         "logging.rkt"
+         "utils.rkt")
 
 (provide pair-opt-expr)
 
@@ -74,7 +78,7 @@
 
 ;; change the source location of a given syntax object
 (define ((relocate loc-stx) stx)
-  (datum->syntax stx (syntax->datum stx) loc-stx stx stx))
+  (datum->syntax stx (syntax->datum stx) loc-stx stx))
 
 ;; if the equivalent sequence of cars and cdrs is guaranteed not to fail,
 ;; we can optimize

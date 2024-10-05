@@ -1,13 +1,13 @@
 #lang racket/base
 
-(require syntax/parse
+(require (for-template racket/base)
+         syntax/parse
          syntax/parse/experimental/specialize
-         (for-template racket/base)
-         "../utils/utils.rkt"
          "../types/abbrev.rkt"
          "../types/numeric-tower.rkt"
-         "utils.rkt"
-         "logging.rkt")
+         "../utils/utils.rkt"
+         "logging.rkt"
+         "utils.rkt")
 
 (provide number-opt-expr)
 

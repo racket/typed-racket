@@ -1,27 +1,28 @@
 #lang racket/base
 
-(require syntax/parse racket/pretty
-         "../utils/utils.rkt"
+(require racket/pretty
+         syntax/parse
          (only-in "../utils/tc-utils.rkt" optional current-type-enforcement-mode)
          "../private/syntax-properties.rkt"
          "../types/type-table.rkt"
-         "utils.rkt"
-         "number.rkt"
-         "fixnum.rkt"
-         "float.rkt"
+         "../utils/utils.rkt"
+         "apply.rkt"
+         "box.rkt"
+         "dead-code.rkt"
          "extflonum.rkt"
+         "fixnum.rkt"
          "float-complex.rkt"
-         "vector.rkt"
-         "string.rkt"
+         "float.rkt"
+         "hidden-costs.rkt"
          "list.rkt"
+         "number.rkt"
          "pair.rkt"
          "sequence.rkt"
-         "box.rkt"
+         "string.rkt"
          "struct.rkt"
-         "dead-code.rkt"
-         "apply.rkt"
          "unboxed-let.rkt"
-         "hidden-costs.rkt")
+         "utils.rkt"
+         "vector.rkt")
 
 
 (provide optimize-top)
@@ -89,7 +90,7 @@
     (when (eq? te-mode optional)
       (raise-optimizer-context-error te-mode)))
   (parameterize ([optimize (syntax-parser [e:opt-expr* #'e.opt])])
-    (let ((result ((optimize) stx)))
-      (when *show-optimized-code*
-        (pretty-print (syntax->datum result)))
-      result)))
+    (define result ((optimize) stx))
+    (when *show-optimized-code*
+      (pretty-print (syntax->datum result)))
+    result))

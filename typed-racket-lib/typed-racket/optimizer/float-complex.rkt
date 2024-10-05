@@ -1,19 +1,29 @@
 #lang racket/base
 
-(require syntax/parse syntax/stx syntax/id-table racket/promise
-         racket/syntax racket/match syntax/parse/experimental/specialize
-         "../utils/utils.rkt" racket/unsafe/ops racket/sequence
-         (for-template racket/base racket/math racket/flonum racket/unsafe/ops)
+(require (for-template racket/base
+                       racket/flonum
+                       racket/math
+                       racket/unsafe/ops)
+         racket/match
+         racket/promise
+         racket/sequence
+         racket/syntax
+         racket/unsafe/ops
+         syntax/id-table
+         syntax/parse
+         syntax/parse/experimental/specialize
+         syntax/stx
          "../types/numeric-tower.rkt"
          "../types/subtype.rkt"
          "../types/type-table.rkt"
          "../types/utils.rkt"
-         "utils.rkt"
-         "numeric-utils.rkt"
-         "logging.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
          "float.rkt"
+         "logging.rkt"
+         "numeric-utils.rkt"
          "unboxed-tables.rkt"
-         "../utils/tc-utils.rkt")
+         "utils.rkt")
 
 (provide float-complex-opt-expr
          float-complex-expr
@@ -82,18 +92,16 @@
     (define c1 (stx-car cs))
     (define o-nf (as-non-float o))
     (define c1-nf (as-non-float c1))
-    (if (or o-nf c1-nf)
-        ;; can't convert those to floats just yet, or may change
-        ;; the result
-        (let ([new-o (mark-as-non-float
-                      (quasisyntax/loc this-syntax
-                        (#,op #,(or o-nf o) #,(or c1-nf c1))))])
-          (if (stx-null? (stx-cdr cs))
-              new-o
-              (loop new-o
-                    (stx-cdr cs))))
-        ;; we've hit floats, can start coercing
-        (n-ary->binary this-syntax unsafe (cons #`(real->double-flonum #,(or o-nf o)) cs)))))
+    (cond
+      [(or o-nf c1-nf)
+       ;; can't convert those to floats just yet, or may change
+       ;; the result
+       (define new-o
+         (mark-as-non-float (quasisyntax/loc this-syntax
+                              (#,op #,(or o-nf o) #,(or c1-nf c1)))))
+       (if (stx-null? (stx-cdr cs)) new-o (loop new-o (stx-cdr cs)))]
+      ;; we've hit floats, can start coercing
+      [else (n-ary->binary this-syntax unsafe (cons #`(real->double-flonum #,(or o-nf o)) cs))])))
 
 
 

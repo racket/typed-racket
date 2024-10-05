@@ -1,10 +1,11 @@
 #lang racket/base
 
-(require syntax/parse
+(require (for-template racket/base
+                       racket/unsafe/ops)
+         syntax/parse
          "../utils/utils.rkt"
-         (for-template racket/base racket/unsafe/ops)
-         "utils.rkt"
-         "logging.rkt")
+         "logging.rkt"
+         "utils.rkt")
 
 (provide box-opt-expr)
 

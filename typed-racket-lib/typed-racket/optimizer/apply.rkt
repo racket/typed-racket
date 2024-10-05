@@ -1,9 +1,12 @@
 #lang racket/base
-(require syntax/parse racket/syntax
-         (for-template racket/unsafe/ops racket/base (prefix-in k- '#%kernel))
+(require (for-template racket/base
+                       racket/unsafe/ops
+                       (prefix-in k- '#%kernel))
+         racket/syntax
+         syntax/parse
          "../utils/utils.rkt"
-         "utils.rkt"
-         "logging.rkt")
+         "logging.rkt"
+         "utils.rkt")
 
 (provide apply-opt-expr)
 

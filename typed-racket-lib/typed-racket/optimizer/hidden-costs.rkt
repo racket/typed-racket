@@ -1,13 +1,14 @@
 #lang racket/base
 
-(require syntax/parse racket/sequence
-         (for-template racket/base)
-         "../utils/utils.rkt"
-         "utils.rkt"
-         "logging.rkt"
+(require (for-template racket/base)
+         racket/sequence
+         syntax/parse
          "../types/abbrev.rkt"
          "../types/numeric-tower.rkt"
-         "../types/struct-table.rkt")
+         "../types/struct-table.rkt"
+         "../utils/utils.rkt"
+         "logging.rkt"
+         "utils.rkt")
 
 (provide hidden-cost-log-expr)
 

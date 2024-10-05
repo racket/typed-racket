@@ -1,9 +1,13 @@
 #lang racket/base
 
-(require syntax/parse syntax/id-table
-         (for-template racket/base racket/flonum racket/fixnum racket/unsafe/ops)
-         "../utils/utils.rkt"
+(require (for-template racket/base
+                       racket/fixnum
+                       racket/flonum
+                       racket/unsafe/ops)
+         syntax/id-table
+         syntax/parse
          "../types/numeric-tower.rkt"
+         "../utils/utils.rkt"
          "utils.rkt")
 
 (provide (all-defined-out))

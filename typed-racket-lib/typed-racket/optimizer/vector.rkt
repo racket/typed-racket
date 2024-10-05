@@ -1,17 +1,22 @@
 #lang racket/base
 
-(require syntax/parse
-         racket/match racket/flonum racket/extflonum
-         (for-template racket/base racket/flonum racket/extflonum racket/unsafe/ops)
-         "../utils/utils.rkt"
+(require (for-template racket/base
+                       racket/extflonum
+                       racket/flonum
+                       racket/unsafe/ops)
+         racket/extflonum
+         racket/flonum
+         racket/match
+         syntax/parse
          "../rep/type-rep.rkt"
+         "../types/abbrev.rkt"
+         "../types/numeric-tower.rkt"
          "../types/type-table.rkt"
          "../types/utils.rkt"
-         "../types/numeric-tower.rkt"
-         "../types/abbrev.rkt"
-         "utils.rkt"
+         "../utils/utils.rkt"
+         "fixnum.rkt"
          "logging.rkt"
-         "fixnum.rkt")
+         "utils.rkt")
 
 (provide vector-opt-expr)
 

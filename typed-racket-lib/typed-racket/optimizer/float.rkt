@@ -142,10 +142,10 @@
                           ;;   (Note: could allow for more args, if not next to each other, but
                           ;;    probably not worth the trouble (most ops have 2 args anyway))
                           (and (subtypeof? this-syntax -Flonum)
-                               (for/and ([a (in-syntax #'(fs ...))]
-                                         #:unless (subtypeof? a -Flonum))
+                               (for/and ([a (in-syntax #'(fs ...))])
                                  ;; flonum or provably non-zero
-                                 (subtypeof? a (Un -PosReal -NegReal)))
+                                 (or (subtypeof? a -Flonum)
+                                     (subtypeof? a (Un -PosReal -NegReal))))
                                (>= 1
                                    (for/sum ([a (in-syntax #'(fs ...))]
                                              #:when (not (subtypeof? a -Flonum)))

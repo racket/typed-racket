@@ -27,8 +27,7 @@ A function of the formal arguments @racket[v], where each formal
 argument has the associated type.  If a rest argument is present, then
 it has type @racket[(Listof t)].}
 
-@defform[(λ: formals maybe-ret . body)]{
-An alias for the same form using @racket[lambda:].}
+@defalias[λ: lambda: "syntax"]
 
 @defform*[[(plambda: (a ...) formals maybe-ret . body)
            (plambda: (a ... b ooo) formals maybe-ret . body)]]{

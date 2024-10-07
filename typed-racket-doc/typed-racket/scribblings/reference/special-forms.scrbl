@@ -189,8 +189,7 @@ is the provided type annotation.
 ]
 }
 
-@defform[(λ maybe-tvars formals maybe-ret . body)]{
-An alias for the same form using @racket[lambda].}
+@defalias[λ lambda "syntax"]
 
 @defform[(case-lambda maybe-tvars [formals body] ...)]{
 
@@ -213,6 +212,8 @@ Note that each @racket[formals] must have a different arity.
 
 To see how to declare a type for @racket[add-map], see the
 @racket[case->] type constructor.}
+
+@defalias[case-λ case-lambda "syntax"]
 
 @section{Loops}
 

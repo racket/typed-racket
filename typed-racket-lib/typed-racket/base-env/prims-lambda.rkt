@@ -6,14 +6,14 @@
 ;; In particular, "parse-type.rkt" needs the binding of the TR
 ;; case-lambda in order to match for case-lambda types.
 
-(require "colon.rkt"
-         "ann-inst.rkt"
-         (for-syntax "annotate-classes.rkt"
-                     "../private/syntax-properties.rkt"
-                     racket/base
+(require (for-syntax racket/base
                      racket/syntax
+                     syntax/parse/pre
                      syntax/stx
-                     syntax/parse/pre))
+                     "../private/syntax-properties.rkt"
+                     "annotate-classes.rkt")
+         "ann-inst.rkt"
+         "colon.rkt")
 
 (provide (rename-out [-case-lambda case-lambda]
                      [-case-lambda case-lambda:]

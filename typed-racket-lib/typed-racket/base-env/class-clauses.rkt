@@ -5,12 +5,12 @@
 ;; other parts of TR to use the bindings of init, public, etc. without
 ;; requiring prims.rkt
 
-(require (prefix-in untyped: racket/class)
-         "colon.rkt"
-         (for-syntax racket/base
+(require (for-syntax racket/base
                      syntax/parse
                      syntax/stx
-                     "../private/syntax-properties.rkt"))
+                     "../private/syntax-properties.rkt")
+         (prefix-in untyped: racket/class)
+         "colon.rkt")
 
 (provide (for-syntax class-clause
                      clause

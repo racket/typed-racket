@@ -1,7 +1,7 @@
 #lang racket/base
 
-(require (for-syntax "type-name-error.rkt"
-                     racket/base))
+(require (for-syntax racket/base
+                     "type-name-error.rkt"))
 
 (define-syntax (define-other-types stx)
   (syntax-case stx ()

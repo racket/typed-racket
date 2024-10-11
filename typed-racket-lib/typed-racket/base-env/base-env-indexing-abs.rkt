@@ -1,13 +1,18 @@
 #lang racket/base
 
-(require
- (for-template racket/base racket/list racket/unsafe/ops racket/flonum racket/extflonum racket/fixnum)
- (for-syntax racket/base syntax/parse)
- racket/stxparam
- "../utils/tc-utils.rkt"
- (rename-in "../types/abbrev.rkt"  [-Boolean B] [-Symbol Sym])
- (rename-in "../types/numeric-tower.rkt" [-Number N])
- (only-in "base-structs.rkt" -Arity-At-Least))
+(require (for-syntax racket/base
+                     syntax/parse)
+         (for-template racket/base
+                       racket/extflonum
+                       racket/fixnum
+                       racket/flonum
+                       racket/list
+                       racket/unsafe/ops)
+         racket/stxparam
+         (rename-in "../types/abbrev.rkt" [-Boolean B] [-Symbol Sym])
+         (rename-in "../types/numeric-tower.rkt" [-Number N])
+         (only-in "base-structs.rkt" -Arity-At-Least)
+         "../utils/tc-utils.rkt")
 
 (provide indexing)
 

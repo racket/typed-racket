@@ -3,14 +3,12 @@
 ;; This file provides Typed Racket bindings for values that need
 ;; contract protection, even in typed code.
 
-(require "../utils/utils.rkt"
-         "../utils/any-wrap.rkt"
+(require (for-syntax racket/base
+                     "../env/env-req.rkt")
          (prefix-in c: racket/contract)
-         (rename-in
-          racket/base
-          [default-continuation-prompt-tag -default-continuation-prompt-tag])
-         (for-syntax racket/base
-                     "../env/env-req.rkt"))
+         (rename-in racket/base [default-continuation-prompt-tag -default-continuation-prompt-tag])
+         "../utils/any-wrap.rkt"
+         "../utils/utils.rkt")
 
 (provide default-continuation-prompt-tag)
 
@@ -32,8 +30,8 @@
   (module* #%type-decl #f
     (#%plain-module-begin
      (require typed-racket/env/global-env
-              typed-racket/types/abbrev
-              typed-racket/rep/type-rep)
+              typed-racket/rep/type-rep
+              typed-racket/types/abbrev)
      (register-type
       (quote-syntax default-continuation-prompt-tag)
       ;; TODO: we actually want the type

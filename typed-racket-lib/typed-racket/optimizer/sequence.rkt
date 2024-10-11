@@ -1,16 +1,18 @@
 #lang racket/base
 
-(require syntax/parse
-         racket/match
+(require (for-template racket/base
+                       racket/unsafe/ops)
          racket/function
+         racket/match
+         syntax/parse
          syntax/parse/experimental/specialize
-         (for-template racket/base racket/unsafe/ops)
-         "../utils/utils.rkt" "../utils/tc-utils.rkt"
          "../rep/type-rep.rkt"
          "../types/abbrev.rkt"
-         "utils.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
+         "float.rkt"
          "logging.rkt"
-         "float.rkt")
+         "utils.rkt")
 
 (provide sequence-opt-expr)
 

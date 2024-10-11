@@ -2,10 +2,10 @@
 
 ;; this file cheats to define types for unexported variables
 ;; that are expanded into by Racket macros
-(require "../env/init-envs.rkt"
+(require (for-syntax racket/base)
+         "../env/init-envs.rkt"
          "../types/abbrev.rkt"
-         "../types/numeric-tower.rkt"
-         (for-syntax racket/base))
+         "../types/numeric-tower.rkt")
 (provide make-template-identifier)
 
 (define (make-template-identifier what where)

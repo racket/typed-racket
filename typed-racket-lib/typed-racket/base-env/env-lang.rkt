@@ -2,13 +2,14 @@
 
 (require "../utils/utils.rkt")
 
-(require (for-syntax racket/base syntax/parse)
+(require (for-syntax racket/base
+                     syntax/parse)
          racket/stxparam
-         "../utils/tc-utils.rkt"
          "../env/init-envs.rkt"
          "../types/abbrev.rkt"
          "../types/numeric-tower.rkt"
-         "../types/prop-ops.rkt")
+         "../types/prop-ops.rkt"
+         "../utils/tc-utils.rkt")
 
 (define-syntax (-#%module-begin stx)
   (define-syntax-class clause

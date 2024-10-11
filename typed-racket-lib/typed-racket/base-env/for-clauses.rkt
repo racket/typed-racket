@@ -1,7 +1,7 @@
 #lang racket/base
 
-(require syntax/parse/pre
-         (for-template (only-in racket/base quote))
+(require (for-template (only-in racket/base quote))
+         syntax/parse/pre
          "annotate-classes.rkt")
 
 (provide (all-defined-out))

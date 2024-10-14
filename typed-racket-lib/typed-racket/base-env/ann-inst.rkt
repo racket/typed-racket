@@ -5,8 +5,9 @@
 ;; This file is loaded by all Typed Racket programs, so it should not
 ;; have expensive runtime dependencies.
 
-(require (for-syntax syntax/parse/pre "../private/syntax-properties.rkt"
-                     racket/base)
+(require (for-syntax racket/base
+                     syntax/parse/pre
+                     "../private/syntax-properties.rkt")
          "colon.rkt")
 
 (provide (for-syntax add-ann) ann inst row-inst)

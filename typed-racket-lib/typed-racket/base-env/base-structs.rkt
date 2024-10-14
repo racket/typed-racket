@@ -11,7 +11,11 @@
 
 (require (for-template racket/base (prefix-in k: '#%kernel)))
 
-(provide initialize-structs -Date -Srcloc -Date -Arity-At-Least -Exn)
+(provide initialize-structs
+         -Date
+         -Srcloc
+         -Arity-At-Least
+         -Exn)
 
 (define-syntax define-hierarchy
   (syntax-rules (define-hierarchy)

@@ -6,18 +6,18 @@
 ;;
 ;; Also see env-lang.rkt
 
-(require "../utils/utils.rkt"
-         (for-syntax "../private/parse-type.rkt"
-                     "type-name-error.rkt"
-                     racket/base
-                     (only-in racket/splicing splicing-syntax-parameterize)
+(require (for-syntax racket/base
                      syntax/parse
                      syntax/stx
+                     (only-in racket/splicing splicing-syntax-parameterize)
+                     "../private/parse-type.rkt"
                      "../types/abbrev.rkt"
                      "../types/numeric-tower.rkt"
                      "../types/prop-ops.rkt"
-                     "../utils/struct-info.rkt")
-         (for-meta 2 (only-in racket/base #%app quote)))
+                     "../utils/struct-info.rkt"
+                     "type-name-error.rkt")
+         (for-meta 2 (only-in racket/base #%app quote))
+         "../utils/utils.rkt")
 
 (provide type-environment
          (rename-out [-#%module-begin #%module-begin])

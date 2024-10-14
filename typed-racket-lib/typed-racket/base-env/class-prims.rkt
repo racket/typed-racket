@@ -2,26 +2,25 @@
 
 ;; This module provides TR primitives for classes and objects
 
-(require (prefix-in untyped: racket/class)
-         "class-clauses.rkt"
-         "colon.rkt"
+(require (for-syntax racket/base
+                     racket/class
+                     racket/list
+                     racket/match
+                     racket/syntax
+                     syntax/kerncase
+                     syntax/parse
+                     syntax/stx
+                     "../private/syntax-properties.rkt"
+                     "../typecheck/internal-forms.rkt"
+                     "../utils/disarm.rkt"
+                     "../utils/tc-utils.rkt"
+                     "annotate-classes.rkt")
+         (prefix-in untyped: racket/class)
+         (only-in "prims.rkt" (define tr:define))
          "../private/class-literals.rkt"
          "../utils/typed-method-property.rkt"
-         (only-in "prims.rkt" [define tr:define])
-         (for-syntax
-          racket/base
-          racket/class
-          racket/list
-          racket/match
-          racket/syntax
-          syntax/kerncase
-          syntax/parse
-          syntax/stx
-          "../typecheck/internal-forms.rkt"
-          "annotate-classes.rkt"
-          "../private/syntax-properties.rkt"
-          "../utils/disarm.rkt"
-          "../utils/tc-utils.rkt"))
+         "class-clauses.rkt"
+         "colon.rkt")
 
 (provide ;; Typed class macro that coordinates with TR
          class

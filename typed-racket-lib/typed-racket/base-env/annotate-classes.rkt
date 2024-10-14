@@ -1,13 +1,13 @@
 #lang racket/base
 
-(require syntax/parse/pre
-         racket/private/immediate-default
+(require (for-label "colon.rkt")
          racket/list
-         racket/set
          racket/match
+         racket/private/immediate-default
+         racket/set
+         syntax/parse/pre
          "../private/parse-classes.rkt"
-         "../private/syntax-properties.rkt"
-         (for-label "colon.rkt"))
+         "../private/syntax-properties.rkt")
 (provide (all-defined-out))
 
 ;; Data definitions
@@ -169,7 +169,7 @@
            #:with ty #'t))
 (define-splicing-syntax-class optional-standalone-annotation
   (pattern (~optional a:standalone-annotation)
-           #:attr ty (if (attribute a) #'a.ty #f)))
+           #:attr ty (and (attribute a) #'a.ty)))
 
 (define-syntax-class type-variables
   #:attributes ((vars 1))
@@ -330,23 +330,16 @@
                  (define-values (all-mand-tys all-opt-tys)
                    (cond
                      [kw-property
-                      (define-values (mand-kw-set opt-kw-set)
-                        (values
-                         (list->set (lambda-kws-mand kw-property))
-                         (list->set (lambda-kws-opt kw-property))))
-
+                      (define mand-kw-set (list->set (lambda-kws-mand kw-property)))
+                      (define opt-kw-set (list->set (lambda-kws-opt kw-property)))
                       (define-values (mand-tys^ opt-kw^)
-                        (partition (part-pred opt-kw-set)
-                                   (attribute mand.type-form)))
-
+                        (partition (part-pred opt-kw-set) (attribute mand.type-form)))
+                   
                       (define-values (opt-tys^ mand-kw^)
-                        (partition (part-pred mand-kw-set)
-                                   (attribute opt.type-form)))
-
-                      (values (append mand-tys^ mand-kw^)
-                              (append opt-tys^ opt-kw^))]
-                     [else
-                      (values (attribute mand.type-form) (attribute opt.type-form))]))]
+                        (partition (part-pred mand-kw-set) (attribute opt.type-form)))
+                   
+                      (values (append mand-tys^ mand-kw^) (append opt-tys^ opt-kw^))]
+                     [else (values (attribute mand.type-form) (attribute opt.type-form))]))]
            #:attr kw-property kw-property
            #:attr mand-tys
            (flatten all-mand-tys)

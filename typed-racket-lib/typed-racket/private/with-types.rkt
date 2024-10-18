@@ -1,46 +1,84 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         "../base-env/base-types-extra.rkt"
-         (except-in "../base-env/prims.rkt" with-handlers λ lambda define)
-         "../env/type-name-env.rkt"
-         "../env/type-alias-env.rkt"
-         "../env/global-env.rkt"
-         "parse-type.rkt"
-         "type-contract.rkt"
-         "syntax-properties.rkt"
-         "../typecheck/tc-toplevel.rkt"
-         "../typecheck/typechecker.rkt"
-         "../types/utils.rkt"
-         "../utils/lift.rkt"
-         "../utils/tc-utils.rkt"
-         "../utils/disarm.rkt"
-         "../utils/arm.rkt"
-         "../utils/literal-syntax-class.rkt"
+(require (for-template (except-in racket/base
+                                  for
+                                  for*
+                                  with-handlers
+                                  with-handlers*
+                                  lambda
+                                  λ
+                                  define
+                                  let
+                                  let*
+                                  letrec
+                                  letrec-values
+                                  let-values
+                                  let*-values
+                                  let/cc
+                                  let/ec
+                                  do
+                                  case-lambda
+                                  struct
+                                  define-struct
+                                  default-continuation-prompt-tag
+                                  for/list
+                                  for/vector
+                                  for/hash
+                                  for/hasheq
+                                  for/hasheqv
+                                  for/hashalw
+                                  for/and
+                                  for/or
+                                  for/sum
+                                  for/product
+                                  for/lists
+                                  for/first
+                                  for/last
+                                  for/fold
+                                  for/foldr
+                                  for*/list
+                                  for*/lists
+                                  for*/vector
+                                  for*/hash
+                                  for*/hasheq
+                                  for*/hasheqv
+                                  for*/hashalw
+                                  for*/and
+                                  for*/or
+                                  for*/sum
+                                  for*/product
+                                  for*/first
+                                  for*/last
+                                  for*/fold
+                                  for*/foldr)
+                       (prefix-in c: racket/contract/region)
+                       "../base-env/prims.rkt")
+         (for-label racket/base
+                    "../base-env/base-types-extra.rkt")
          racket/promise
+         racket/sequence
          racket/syntax
          syntax/flatten-begin
          syntax/parse
-         racket/sequence
-         "../tc-setup.rkt"
+         (except-in "../base-env/prims.rkt" with-handlers λ lambda define)
+         "../base-env/base-types-extra.rkt"
+         "../env/global-env.rkt"
+         "../env/type-alias-env.rkt"
+         "../env/type-name-env.rkt"
          "../standard-inits.rkt"
-         (for-template
-          (except-in racket/base for for* with-handlers with-handlers*
-                     lambda λ define
-                     let let* letrec letrec-values let-values let*-values
-                     let/cc let/ec do case-lambda struct define-struct
-                     default-continuation-prompt-tag
-                     for/list for/vector for/hash for/hasheq for/hasheqv for/hashalw
-                     for/and for/or for/sum for/product for/lists
-                     for/first for/last for/fold for/foldr for*/list for*/lists
-                     for*/vector for*/hash for*/hasheq for*/hasheqv for*/hashalw
-                     for*/and
-                     for*/or for*/sum for*/product for*/first for*/last
-                     for*/fold for*/foldr)
-          "../base-env/prims.rkt"
-          (prefix-in c: racket/contract/region))
-         (for-label racket/base
-                    "../base-env/base-types-extra.rkt"))
+         "../tc-setup.rkt"
+         "../typecheck/tc-toplevel.rkt"
+         "../typecheck/typechecker.rkt"
+         "../types/utils.rkt"
+         "../utils/arm.rkt"
+         "../utils/disarm.rkt"
+         "../utils/lift.rkt"
+         "../utils/literal-syntax-class.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
+         "parse-type.rkt"
+         "syntax-properties.rkt"
+         "type-contract.rkt")
 
 (define-literal-syntax-class #:for-label Values)
 (define-literal-syntax-class #:for-label values)
@@ -50,7 +88,7 @@
 (define (with-type-helper stx body fvids fvtys exids extys resty expr? ctx te-mode)
   (define old-context (unbox typed-context?))
   (define old-te-mode (unbox type-enforcement-mode))
-  (unless (not old-context)
+  (when old-context
     (tc-error/stx stx (format "with-type cannot be used in a typed module. ~a " old-context)))
   (set-box! typed-context? #t)
   (set-box! type-enforcement-mode te-mode)

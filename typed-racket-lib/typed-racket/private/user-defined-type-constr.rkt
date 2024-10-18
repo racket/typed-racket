@@ -1,7 +1,7 @@
 #lang racket/base
-(require "../rep/type-constr.rkt"
+(require racket/lazy-require
          racket/match
-         racket/lazy-require)
+         "../rep/type-constr.rkt")
 
 (lazy-require ["../types/substitute.rkt"
                (subst-all make-simple-substitution)])
@@ -30,7 +30,8 @@
     [_ #f]))
 
 (define (recursive-type-constr? constr)
-  (match constr
-    [(struct* TypeConstructor
-              ([real-trep-constr (struct* user-defined-type-op ([recursive? recursive?]))]))
-     recursive?]))
+  (match-define (struct* TypeConstructor
+                         ([real-trep-constr
+                           (struct* user-defined-type-op ([recursive? recursive?]))]))
+    constr)
+  recursive?)

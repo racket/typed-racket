@@ -183,8 +183,8 @@
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
 (define ((parse/id p) loc datum)
-  (let* ([stx* (datum->syntax loc datum loc loc)])
-    (p stx*)))
+  (define stx* (datum->syntax loc datum loc loc))
+  (p stx*))
 
 (define (parse-literal-alls stx)
   (syntax-parse stx
@@ -1507,10 +1507,9 @@
   ;; Merge all the non-duplicate entries from the parent types
   (define (merge-clause parent-clause clause)
     (for/fold ([clause clause])
-              ([(k v) (in-dict parent-clause)])
-      (if (dict-has-key? clause k)
-          clause
-          (dict-set clause k v))))
+              ([(k v) (in-dict parent-clause)]
+               #:unless (dict-has-key? clause k))
+      (dict-set clause k v)))
 
   (define (match-parent-type parent-type)
     (define resolved (resolve parent-type))
@@ -1655,12 +1654,12 @@
             ;; of init arguments.
             (define parent-inits (get-parent-inits parent/init-type))
 
-            (define class-type
-              (make-Class row-var
-                          (append given-inits parent-inits)
-                          fields methods augments given-init-rest))
-
-            class-type]
+            (make-Class row-var
+                        (append given-inits parent-inits)
+                        fields
+                        methods
+                        augments
+                        given-init-rest)]
            [else
             ;; Conservatively assume that if there *are* #:implements
             ;; clauses, then the current type alias will be recursive

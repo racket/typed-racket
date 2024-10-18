@@ -8,9 +8,9 @@
 ;; take over and keep head local-expanding until `begin` forms are exhausted,
 ;; at which point the syntax can be fully-expanded and checked normally.
 
-(require syntax/parse
-         "../private/syntax-properties.rkt"
-         (for-template racket/base))
+(require (for-template racket/base)
+         syntax/parse
+         "../private/syntax-properties.rkt")
 
 (provide tc-toplevel-start)
 
@@ -36,39 +36,39 @@
                        syntax/kerncase
                        syntax/parse
                        syntax/stx
-                       "../rep/values-rep.rkt"
+                       (only-in "../types/subtype.rkt" subtype)
+                       "../env/mvar-env.rkt"
                        "../optimizer/optimizer.rkt"
                        "../private/shallow-rewrite.rkt"
-                       "../types/utils.rkt"
+                       "../private/syntax-properties.rkt"
+                       "../private/type-contract.rkt"
+                       "../rep/values-rep.rkt"
                        "../types/abbrev.rkt"
                        "../types/printer.rkt"
                        "../types/tc-result.rkt"
-                       "tc-toplevel.rkt"
-                       "../private/type-contract.rkt"
-                       "../private/syntax-properties.rkt"
-                       (only-in "../types/subtype.rkt" subtype)
-                       "../env/mvar-env.rkt"
+                       "../types/utils.rkt"
+                       "../utils/arm.rkt"
                        "../utils/disarm.rkt"
                        "../utils/lift.rkt"
-                       "../utils/utils.rkt"
-                       "../utils/timing.rkt"
+                       "../utils/mutated-vars.rkt"
                        "../utils/tc-utils.rkt"
-                       "../utils/arm.rkt"
-                       "../utils/mutated-vars.rkt"))
+                       "../utils/timing.rkt"
+                       "../utils/utils.rkt"
+                       "tc-toplevel.rkt"))
 
   (provide tc-toplevel-trampoline
            tc-toplevel-trampoline/report)
 
   (define-for-syntax (maybe-optimize body)
     ;; do we optimize?
-    (if (and (optimize?)
-             (memq (current-type-enforcement-mode) (list deep shallow))
-             (not (getenv "PLT_TR_NO_OPTIMIZE")))
-        (begin
-          (do-time "Starting optimizer")
-          (begin0 (stx-map optimize-top body)
-            (do-time "Optimized")))
-        body))
+    (cond
+      [(and (optimize?)
+            (memq (current-type-enforcement-mode) (list deep shallow))
+            (not (getenv "PLT_TR_NO_OPTIMIZE")))
+       (do-time "Starting optimizer")
+       (begin0 (stx-map optimize-top body)
+         (do-time "Optimized"))]
+      [else body]))
 
   (define-for-syntax (maybe-shallow-rewrite body-stx ctc-cache)
     (case (current-type-enforcement-mode)

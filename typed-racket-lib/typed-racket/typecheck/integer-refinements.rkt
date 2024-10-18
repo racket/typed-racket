@@ -1,17 +1,17 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
+(require (for-syntax racket/base)
+         racket/match
+         syntax/parse
+         syntax/private/id-table
          (prefix-in c: (contract-req))
          "../types/abbrev.rkt"
-         "../types/subtype.rkt"
          "../types/numeric-tower.rkt"
          "../types/prop-ops.rkt"
+         "../types/subtype.rkt"
          "../types/tc-result.rkt"
          "../types/type-table.rkt"
-         racket/match
-         syntax/private/id-table
-         syntax/parse
-         (for-syntax racket/base))
+         "../utils/utils.rkt")
 
 (provide/cond-contract
  [has-linear-integer-refinements? (c:-> identifier? boolean?)]
@@ -71,19 +71,19 @@
            #:attr obj (if (Object? o) o -empty-obj)))
 
 ;; < <= >= =
-(define (numeric-comparison-function prop-constructor)
-  (λ (args-stx result)
-    (syntax-parse args-stx
-      [((~var e1 (w/obj+type -Int)) (~var e2 (w/obj+type -Int)))
-       (define p (prop-constructor (attribute e1.obj) (attribute e2.obj)))
-       (add-p/not-p result p)]
-      [((~var e1 (w/type -Int)) (~var e2 (w/type -Int)) (~var e3 (w/type -Int)))
-       #:when (or (and (Object? (attribute e1.obj)) (Object? (attribute e2.obj)))
-                  (and (Object? (attribute e2.obj)) (Object? (attribute e3.obj))))
-       (define p (-and (prop-constructor (attribute e1.obj) (attribute e2.obj))
-                       (prop-constructor (attribute e2.obj) (attribute e3.obj))))
-       (add-p/not-p result p)]
-      [_  result])))
+(define ((numeric-comparison-function prop-constructor) args-stx result)
+  (syntax-parse args-stx
+    [((~var e1 (w/obj+type -Int)) (~var e2 (w/obj+type -Int)))
+     (define p (prop-constructor (attribute e1.obj) (attribute e2.obj)))
+     (add-p/not-p result p)]
+    [((~var e1 (w/type -Int)) (~var e2 (w/type -Int)) (~var e3 (w/type -Int)))
+     #:when (or (and (Object? (attribute e1.obj)) (Object? (attribute e2.obj)))
+                (and (Object? (attribute e2.obj)) (Object? (attribute e3.obj))))
+     (define p
+       (-and (prop-constructor (attribute e1.obj) (attribute e2.obj))
+             (prop-constructor (attribute e2.obj) (attribute e3.obj))))
+     (add-p/not-p result p)]
+    [_ result]))
 
 ;; +/-
 (define (plus/minus plus?)

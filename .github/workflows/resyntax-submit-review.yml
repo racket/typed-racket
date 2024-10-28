@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.1
+        uses: actions/checkout@v4.2.2
       - name: Download Resyntax analysis
         # This uses a github script instead of the download-artifact action because
         # that action doesn't work for artifacts uploaded by other workflows. See

@@ -2,9 +2,9 @@
 
 ;; Unit tests for typed/json
 
-(require typed/json
-         (only-in json json-null)
-         rackunit)
+(require rackunit
+         typed/json
+         (only-in json json-null))
 
 (provide tests)
 

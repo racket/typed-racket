@@ -19,7 +19,14 @@
   (current-type-names (init-current-type-names)))
 
 ;; see typecheck-tests.rkt for rationale on imports
-(require rackunit
+(require (for-syntax typed-racket/rep/object-rep
+                     typed-racket/rep/prop-rep
+                     typed-racket/rep/type-rep
+                     typed-racket/types/numeric-tower
+                     typed-racket/types/prop-ops
+                     typed-racket/types/utils
+                     (rename-in typed-racket/types/abbrev [Un t:Un] [-> t:->]))
+         rackunit
          typed/racket/class
          (except-in typed-racket/utils/utils private)
          (except-in (combine-in typed-racket/base-env/extra-procs
@@ -27,17 +34,11 @@
                                 typed-racket/base-env/class-prims
                                 typed-racket/base-env/base-types
                                 typed-racket/base-env/base-types-extra)
-                    define lambda λ case-lambda)
-         (prefix-in tr: (only-in typed-racket/base-env/prims define lambda λ case-lambda))
-         (for-syntax typed-racket/rep/type-rep
-                     typed-racket/rep/prop-rep
-                     typed-racket/rep/object-rep
-                     typed-racket/types/numeric-tower
-                     typed-racket/types/prop-ops
-                     typed-racket/types/utils
-                     (rename-in typed-racket/types/abbrev
-                                [Un t:Un]
-                                [-> t:->])))
+                    define
+                    lambda
+                    λ
+                    case-lambda)
+         (prefix-in tr: (only-in typed-racket/base-env/prims define lambda λ case-lambda)))
 
 #reader typed-racket/typed-reader
 

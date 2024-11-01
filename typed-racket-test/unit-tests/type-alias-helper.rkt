@@ -2,11 +2,11 @@
 
 ;; Unit tests for the type-alias-helper.rkt module
 
-(require "test-utils.rkt"
-         racket/set
+(require racket/set
          rackunit
          syntax/id-table
-         typed-racket/env/type-alias-helper)
+         typed-racket/env/type-alias-helper
+         "test-utils.rkt")
 
 (provide tests)
 (gen-test-main)

@@ -1,20 +1,21 @@
 #lang racket/base
-(require
-  "test-utils.rkt"
-  rackunit
-  racket/list
-  (for-syntax racket/base syntax/parse)
-  syntax/location syntax/srcloc
-  typed-racket/rep/rep-utils
-  typed-racket/rep/type-rep
-  typed-racket/rep/free-variance
-  typed-racket/rep/values-rep
-  typed-racket/infer/infer
-  typed-racket/infer/promote-demote
-  typed-racket/types/substitute
-  typed-racket/types/numeric-tower
-  typed-racket/types/utils
-  typed-racket/types/abbrev)
+(require (for-syntax racket/base
+                     syntax/parse)
+         racket/list
+         rackunit
+         syntax/location
+         syntax/srcloc
+         typed-racket/infer/infer
+         typed-racket/infer/promote-demote
+         typed-racket/rep/free-variance
+         typed-racket/rep/rep-utils
+         typed-racket/rep/type-rep
+         typed-racket/rep/values-rep
+         typed-racket/types/abbrev
+         typed-racket/types/numeric-tower
+         typed-racket/types/substitute
+         typed-racket/types/utils
+         "test-utils.rkt")
 
 (provide tests)
 (gen-test-main)

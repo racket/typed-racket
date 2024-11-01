@@ -1,15 +1,13 @@
 #lang racket/base
 
-(require
-  "test-utils.rkt"
-  racket/base
-  racket/port
-  racket/promise
-  rackunit
-  (for-syntax
-    racket/base
-    racket/format
-    syntax/parse))
+(require (for-syntax racket/base
+                     racket/format
+                     syntax/parse)
+         racket/base
+         racket/port
+         racket/promise
+         rackunit
+         "test-utils.rkt")
 
 (provide tests)
 (gen-test-main)
@@ -28,13 +26,13 @@
 ;; If the argument is true, then it is a new namespace. This is slower but allows for tests that need
 ;; to mutate the namespace to not clash with each other.
 (define (get-ns fresh)
-  (if fresh
-      (let ([ns (variable-reference->empty-namespace
-                  (eval '(#%variable-reference) (force base-ns)))])
-        (parameterize ([current-namespace ns])
-          (namespace-require 'typed/racket/base)
-          ns))
-      (force base-ns)))
+  (cond
+    [fresh
+     (define ns (variable-reference->empty-namespace (eval '(#%variable-reference) (force base-ns))))
+     (parameterize ([current-namespace ns])
+       (namespace-require 'typed/racket/base)
+       ns)]
+    [else (force base-ns)]))
 
 (begin-for-syntax
   (define-splicing-syntax-class fresh-kw

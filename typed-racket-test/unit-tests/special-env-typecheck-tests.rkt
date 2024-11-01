@@ -1,39 +1,38 @@
 #lang racket
 
-(require "test-utils.rkt"
-         "evaluator.rkt"
-         (for-syntax racket/base)
-         (for-template racket/base)
-         (except-in typed-racket/rep/type-rep Un)
-         typed-racket/rep/prop-rep
-         typed-racket/rep/object-rep
-         (for-syntax
-          typed-racket/types/utils
-          typed-racket/types/numeric-tower
-          typed-racket/types/prop-ops
-          (rename-in typed-racket/types/abbrev
-                     [Un t:Un]
-                     [-> t:->]))
-         typed-racket/utils/tc-utils
-         typed-racket/utils/utils
-         typed-racket/utils/mutated-vars
-         rackunit rackunit/text-ui
-         syntax/parse
-         racket/file racket/port
-         syntax/location
-         (for-syntax syntax/kerncase syntax/parse racket/syntax
+(require (for-syntax racket/base
+                     racket/syntax
+                     syntax/kerncase
+                     syntax/parse
+                     typed-racket/env/mvar-env
+                     typed-racket/standard-inits
+                     typed-racket/typecheck/check-below
+                     typed-racket/typecheck/tc-metafunctions
+                     typed-racket/typecheck/typechecker
                      typed-racket/types/abbrev
                      typed-racket/types/numeric-tower
+                     typed-racket/types/prop-ops
                      typed-racket/types/utils
                      typed-racket/utils/mutated-vars
-                     typed-racket/env/mvar-env
                      typed-racket/utils/tc-utils
-                     typed-racket/typecheck/typechecker
-                     typed-racket/typecheck/check-below
-                     typed-racket/typecheck/tc-metafunctions)
-         typed-racket/base-env/prims
+                     (rename-in typed-racket/types/abbrev [Un t:Un] [-> t:->]))
+         (for-template racket/base)
+         racket/file
+         racket/port
+         rackunit
+         rackunit/text-ui
+         syntax/location
+         syntax/parse
          typed-racket/base-env/base-types
-         (for-syntax typed-racket/standard-inits))
+         typed-racket/base-env/prims
+         typed-racket/rep/object-rep
+         typed-racket/rep/prop-rep
+         typed-racket/utils/mutated-vars
+         typed-racket/utils/tc-utils
+         typed-racket/utils/utils
+         (except-in typed-racket/rep/type-rep Un)
+         "evaluator.rkt"
+         "test-utils.rkt")
 (provide tests)
 (gen-test-main)
 

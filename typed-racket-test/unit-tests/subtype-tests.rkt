@@ -1,18 +1,18 @@
 #lang racket/base
 
-(require "test-utils.rkt"
-         typed-racket/types/subtype
-         typed-racket/types/numeric-tower
-         typed-racket/types/utils
-         typed-racket/types/abbrev
-         typed-racket/types/prop-ops
+(require (for-syntax racket/base)
+         rackunit
+         typed-racket/env/init-envs
+         typed-racket/env/lexical-env
+         typed-racket/env/type-env-structs
          typed-racket/rep/type-rep
          typed-racket/rep/values-rep
-         typed-racket/env/lexical-env
-         typed-racket/env/init-envs
-         typed-racket/env/type-env-structs
-         rackunit
-         (for-syntax racket/base))
+         typed-racket/types/abbrev
+         typed-racket/types/numeric-tower
+         typed-racket/types/prop-ops
+         typed-racket/types/subtype
+         typed-racket/types/utils
+         "test-utils.rkt")
 
 (provide tests)
 (gen-test-main)

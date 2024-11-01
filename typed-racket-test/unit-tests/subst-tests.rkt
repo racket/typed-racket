@@ -1,12 +1,12 @@
 #lang racket/base
 
-(require "test-utils.rkt"
+(require rackunit
          typed-racket/rep/type-rep
-         typed-racket/types/utils
          typed-racket/types/abbrev
          typed-racket/types/numeric-tower
          typed-racket/types/substitute
-         rackunit)
+         typed-racket/types/utils
+         "test-utils.rkt")
 (provide tests)
 (gen-test-main)
 

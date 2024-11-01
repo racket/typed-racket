@@ -1,18 +1,19 @@
 #lang racket/base
 
-(require "test-utils.rkt" "evaluator.rkt"
+(require (for-syntax racket/base
+                     syntax/parse
+                     typed-racket/private/type-contract
+                     typed-racket/static-contracts/combinators
+                     typed-racket/static-contracts/instantiate
+                     typed-racket/static-contracts/structures
+                     typed-racket/types/abbrev
+                     typed-racket/types/numeric-tower)
          rackunit
+         syntax/location
+         syntax/srcloc
          (only-in racket/contract contract?)
-         syntax/srcloc syntax/location
-         (for-syntax
-           syntax/parse
-           racket/base
-           typed-racket/private/type-contract
-           typed-racket/static-contracts/instantiate
-           typed-racket/static-contracts/structures
-           typed-racket/static-contracts/combinators
-           typed-racket/types/abbrev
-           typed-racket/types/numeric-tower))
+         "evaluator.rkt"
+         "test-utils.rkt")
 
 (provide tests)
 (gen-test-main)

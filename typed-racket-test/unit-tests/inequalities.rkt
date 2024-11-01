@@ -1,12 +1,14 @@
 #lang racket/base
 
-(require "test-utils.rkt"
-         rackunit racket/format
+(require (for-syntax racket/base
+                     syntax/parse)
+         racket/format
+         rackunit
+         typed-racket/logic/ineq
          typed-racket/rep/prop-rep
          typed-racket/types/abbrev
          typed-racket/types/prop-ops
-         typed-racket/logic/ineq
-         (for-syntax racket/base syntax/parse))
+         "test-utils.rkt")
 
 (provide tests)
 (gen-test-main)

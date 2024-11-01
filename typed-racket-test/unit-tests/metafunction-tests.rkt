@@ -1,18 +1,20 @@
 #lang racket/base
 
-(require "test-utils.rkt"
-         rackunit racket/format
-         typed-racket/typecheck/tc-metafunctions
-         typed-racket/typecheck/tc-subst
+(require (for-syntax racket/base
+                     syntax/parse)
+         racket/format
+         rackunit
+         typed-racket/rep/object-rep
          typed-racket/rep/prop-rep
          typed-racket/rep/type-rep
-         typed-racket/rep/object-rep
          typed-racket/rep/values-rep
+         typed-racket/typecheck/tc-metafunctions
+         typed-racket/typecheck/tc-subst
          typed-racket/types/abbrev
+         typed-racket/types/numeric-tower
          typed-racket/types/prop-ops
          typed-racket/types/tc-result
-         typed-racket/types/numeric-tower
-         (for-syntax racket/base syntax/parse))
+         "test-utils.rkt")
 
 (provide tests)
 (gen-test-main)

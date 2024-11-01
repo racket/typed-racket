@@ -2,11 +2,11 @@
 
 ;; Tests for Typed Racket primitive macros
 
-(require "test-utils.rkt"
+(require rackunit
+         syntax/macro-testing
          typed-racket/base-env/base-types-extra
          typed-racket/base-env/prims
-         rackunit
-         syntax/macro-testing)
+         "test-utils.rkt")
 
 (provide tests)
 (gen-test-main)

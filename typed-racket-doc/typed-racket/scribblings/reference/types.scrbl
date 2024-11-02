@@ -513,10 +513,11 @@ type returned.  @ex[current-input-port current-directory]}
 
 @deftypeconstr[(Futureof t)]{Returns the type of @rtech{future} which produce a value of type @racket[t] when touched.}
 
-@deftypeconstr[(Sequenceof t t ...)]{Returns the type of @rtech{sequence} that produces
- @racket[(Values _t _t ...)] on each iteration. E.g., @racket[(Sequenceof String)]
-is a sequence of strings, @racket[(Sequenceof Number String)] is a sequence which
-produces two values---a number and a string---on each iteration, etc.}
+@deftypeconstr[(Sequenceof t ...)]{Returns the type of @rtech{sequence} that produces
+  @racket[(Values _t ...)] on each iteration. E.g., @racket[(Sequenceof)]
+  is a sequence which produces no values, @racket[(Sequenceof String)] is a
+  sequence of strings, @racket[(Sequenceof Number String)] is a sequence which
+  produces two values---a number and a string---on each iteration, etc.}
 
 @deftype[SequenceTop]{Is the type of a @rtech{sequence} with unknown element
   type and is the supertype of all sequences. This type typically

@@ -1,12 +1,12 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
+(require racket/match
+         (prefix-in c: (contract-req))
          "../rep/type-rep.rkt"
          "../utils/tc-utils.rkt"
-         "tc-result.rkt"
+         "../utils/utils.rkt"
          "base-abbrev.rkt"
-         (prefix-in c: (contract-req))
-         racket/match)
+         "tc-result.rkt")
 
 (provide/cond-contract
  [tc-error/expr ((string?) (#:return c:any/c #:stx syntax?) #:rest (c:listof c:any/c)

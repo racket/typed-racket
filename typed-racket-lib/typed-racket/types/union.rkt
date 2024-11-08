@@ -1,15 +1,15 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         "../rep/type-rep.rkt"
-         "../rep/rep-utils.rkt"
-         (prefix-in c: (contract-req))
-         "subtype.rkt"
-         "base-abbrev.rkt"
-         "resolve.rkt"
-         "current-seen.rkt"
+(require racket/list
          racket/match
-         racket/list)
+         (prefix-in c: (contract-req))
+         "../rep/rep-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../utils/utils.rkt"
+         "base-abbrev.rkt"
+         "current-seen.rkt"
+         "resolve.rkt"
+         "subtype.rkt")
 
 (provide normalize-type
          Un

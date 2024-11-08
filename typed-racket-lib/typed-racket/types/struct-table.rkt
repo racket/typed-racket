@@ -1,14 +1,15 @@
 #lang racket/base
 
-(require syntax/private/id-table racket/match
+(require racket/match
          racket/syntax
-         "../utils/utils.rkt"
+         syntax/private/id-table
          (prefix-in c: (contract-req))
-         "../rep/type-rep.rkt"
-         "../rep/prop-rep.rkt"
-         "../rep/object-rep.rkt"
-         "../utils/tc-utils.rkt"
          "../env/env-utils.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/type-rep.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
          "abbrev.rkt")
 
 

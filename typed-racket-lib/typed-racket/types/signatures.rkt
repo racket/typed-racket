@@ -3,15 +3,15 @@
 ;; This module provides helper functions for typed signatures needed for 
 ;; checking subtyping and parsing unit types
 
-(require "../utils/utils.rkt"
+(require (for-template racket/base
+                       "../typecheck/internal-forms.rkt")
+         racket/list
+         syntax/id-set
+         syntax/parse
+         (only-in racket/set subset?)
          "../env/signature-env.rkt"
          "../rep/type-rep.rkt"
-         syntax/parse
-         syntax/id-set
-         racket/list
-         (only-in racket/set subset?)
-         (for-template racket/base
-                       "../typecheck/internal-forms.rkt"))
+         "../utils/utils.rkt")
 
 (provide check-sub-signatures?
          distinct-signatures?
@@ -49,17 +49,24 @@
 ;; the given signature extends including itself
 ;; returns '() when given #f
 (define (signature-extensions sig*)
-  (let ([sig (and sig* (if (Signature? sig*) sig* (lookup-signature sig*)))])
-    (if sig
-        (cons (Signature-name sig)
-              (signature-extensions (Signature-extends sig)))
-        null)))
+  (define sig
+    (and sig*
+         (if (Signature? sig*)
+             sig*
+             (lookup-signature sig*))))
+  (if sig
+      (cons (Signature-name sig) (signature-extensions (Signature-extends sig)))
+      null))
 
 (define (flatten-sigs sig*)
-  (let ([sig (and sig* (if (Signature? sig*) sig* (lookup-signature sig*)))])
-    (if sig
-        (cons sig (flatten-sigs (Signature-extends sig)))
-        null)))
+  (define sig
+    (and sig*
+         (if (Signature? sig*)
+             sig*
+             (lookup-signature sig*))))
+  (if sig
+      (cons sig (flatten-sigs (Signature-extends sig)))
+      null))
 
 
 ;;  : (listof Signature) -> boolean

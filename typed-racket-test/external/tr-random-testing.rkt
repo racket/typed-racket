@@ -2,16 +2,19 @@
 
 ;; Random testing of the TR numeric base environment, and numeric optimizations
 
-(require redex/reduction-semantics
-         racket/flonum racket/unsafe/ops
-         racket/runtime-path racket/sandbox racket/cmdline
+(require racket/cmdline
+         racket/flonum
+         racket/runtime-path
+         racket/sandbox
+         racket/unsafe/ops
+         redex/reduction-semantics
          "random-real.rkt")
 
-(require typed-racket/utils/utils
-         typed-racket/typecheck/typechecker
-         typed-racket/utils/tc-utils
+(require typed-racket/typecheck/typechecker
          typed-racket/types/subtype
-         typed-racket/types/utils)
+         typed-racket/types/utils
+         typed-racket/utils/tc-utils
+         typed-racket/utils/utils)
 
 (require (prefix-in b: typed-racket/base-env/base-env)
          (prefix-in n: typed-racket/base-env/base-env-numeric))
@@ -334,11 +337,11 @@
           )))
   (or both-failed?
       (and (not racket-failed?)
-           (if (same-result? racket-result racketbc-result)
-               #t
-               (begin (printf "not same as bc: racketcs: ~s racketbc: ~s\n"
-                              racket-result racketbc-result)
-                      #f)))))
+           (cond
+             [(same-result? racket-result racketbc-result) #t]
+             [else
+              (printf "not same as bc: racketcs: ~s racketbc: ~s\n" racket-result racketbc-result)
+              #f]))))
 
 (define num-exceptions 0)
 

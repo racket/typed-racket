@@ -1,22 +1,23 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         racket/list racket/match
+(require racket/list
+         racket/match
          (prefix-in c: (contract-req))
-         "../rep/type-rep.rkt"
-         "../rep/prop-rep.rkt"
-         "../rep/object-rep.rkt"
-         "../rep/values-rep.rkt"
-         "../rep/rep-utils.rkt"
-         "../logic/ineq.rkt"
          (only-in "../infer/infer.rkt" intersect)
-         "subtype.rkt"
-         "overlap.rkt"
-         "subtract.rkt"
+         "../logic/ineq.rkt"
+         "../rep/object-rep.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../utils/utils.rkt"
          "abbrev.rkt"
+         "overlap.rkt"
+         "path-type.rkt"
+         "subtract.rkt"
+         "subtype.rkt"
          "tc-result.rkt"
          "union.rkt"
-         "path-type.rkt"
          "update.rkt")
 
 (provide/cond-contract
@@ -54,22 +55,24 @@
 ;; can't be False, then the else prop should be -ff)
 (define (reduce-tc-results/subsumption res)
   (define (update-ps tcr)
-    (match tcr
-      [(tc-result: t ps obj)
+    (match-define (tc-result: t ps obj) tcr)
+    (cond
+      [(Bottom? t) (-tc-result t -ff-propset -empty-obj)]
+      [else
+       (define p+
+         (if ps
+             (PropSet-thn ps)
+             -tt))
+       (define p-
+         (if ps
+             (PropSet-els ps)
+             -tt))
+       (define o (if obj obj -empty-obj))
        (cond
-         [(Bottom? t) (-tc-result t -ff-propset -empty-obj)]
-         [else
-          (define p+ (if ps (PropSet-thn ps) -tt))
-          (define p- (if ps (PropSet-els ps) -tt))
-          (define o (if obj obj -empty-obj))
-          (cond
-            [(or (equal? -False t)
-                 (FalseProp? p+))
-             (-tc-result (intersect t -False) (-PS -ff p-) o)]
-            [(not (overlap? t -False))
-             (-tc-result t (-PS p+ -ff) o)]
-            [(FalseProp? p-) (-tc-result (subtract t -False) (-PS p+ -ff) o)]
-            [else (-tc-result t (-PS p+ p-) o)])])]))
+         [(or (equal? -False t) (FalseProp? p+)) (-tc-result (intersect t -False) (-PS -ff p-) o)]
+         [(not (overlap? t -False)) (-tc-result t (-PS p+ -ff) o)]
+         [(FalseProp? p-) (-tc-result (subtract t -False) (-PS p+ -ff) o)]
+         [else (-tc-result t (-PS p+ p-) o)])]))
   (match res
     [(tc-any-results: _) res]
     [(tc-results: tcrs db)
@@ -108,13 +111,11 @@
     (and (equal? pes1 (drop pes2 prefix-len))
          (let ([prefix (take pes2 prefix-len)])
            (Bottom? (update t1 t2 #t prefix)))))
-  (let ([len1 (length pes1)]
-        [len2 (length pes2)])
-    (cond
-      [(<= len1 len2)
-       (check pes1 t1 pes2 t2 (- len2 len1))]
-      [else
-       (check pes2 t2 pes1 t1 (- len1 len2))])))
+  (define len1 (length pes1))
+  (define len2 (length pes2))
+  (cond
+    [(<= len1 len2) (check pes1 t1 pes2 t2 (- len2 len1))]
+    [else (check pes2 t2 pes1 t1 (- len1 len2))]))
 
 ;; does pes2 refer to the same or a subcomponent of
 ;; pes1 and if so, does updating the t1+ w/ the t2-
@@ -379,9 +380,7 @@
            [(AndProp: ps*) (partition! ps*)]
            [_ (set! others (cons p others))])))
      (define ors-smallest-to-largest
-       (append-map cdr (sort (hash->list ors)
-                             (λ (len/ors1 len/ors2)
-                               (< (car len/ors1) (car len/ors2))))))
+       (append-map cdr (sort (hash->list ors) < #:key car)))
      (remove-duplicates (append ts nts others ors-smallest-to-largest) eq?))
    (let loop ([ps (flatten-ands/remove-duplicates/order args)]
               [result null])

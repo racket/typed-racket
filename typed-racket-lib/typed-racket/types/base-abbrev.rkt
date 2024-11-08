@@ -102,15 +102,11 @@
   (foldr -pair b l))
 
 ;; Recursive types
-(define-syntax -v
-  (syntax-rules ()
-    [(_ x) (make-F 'x)]))
+(define-syntax-rule (-v x)
+  (make-F 'x))
 
-(define-syntax -mu
-  (syntax-rules ()
-    [(_ var ty)
-     (let ([var (-v var)])
-       (make-Mu 'var ty))]))
+(define-syntax-rule (-mu var ty)
+  (let ([var (-v var)]) (make-Mu 'var ty)))
 
 ;; Results
 (define/cond-contract (-result t [pset -tt-propset] [o -empty-obj])
@@ -493,31 +489,20 @@
 
 
 ;; Convenient syntax for polymorphic types
-(define-syntax -poly
-  (syntax-rules ()
-    [(_ (vars ...) ty)
-     (let ([vars (-v vars)] ...)
-       (make-Poly (list 'vars ...) ty))]))
+(define-syntax-rule (-poly (vars ...) ty)
+  (let ([vars (-v vars)] ...) (make-Poly (list 'vars ...) ty)))
 
-(define-syntax -polydots
-  (syntax-rules ()
-    [(_ (vars ... dotted) ty)
-     (let ([dotted (-v dotted)]
-           [vars (-v vars)] ...)
-       (make-PolyDots (list 'vars ... 'dotted) ty))]))
+(define-syntax-rule (-polydots (vars ... dotted) ty)
+  (let ([dotted (-v dotted)]
+        [vars (-v vars)] ...)
+    (make-PolyDots (list 'vars ... 'dotted) ty)))
 
-(define-syntax -polyrow
-  (syntax-rules ()
-    [(_ (var) consts ty)
-     (let ([var (-v var)])
-       (make-PolyRow (list 'var) ty consts))]))
+(define-syntax-rule (-polyrow (var) consts ty)
+  (let ([var (-v var)]) (make-PolyRow (list 'var) ty consts)))
 
 ;; abbreviation for existential types
-(define-syntax -some
-  (syntax-rules ()
-    [(_ (vars ...) ty)
-     (let ([vars (-v vars)] ...)
-       (make-Some (list 'vars ...) ty))]))
+(define-syntax-rule (-some (vars ...) ty)
+  (let ([vars (-v vars)] ...) (make-Some (list 'vars ...) ty)))
 
 ;; abbreviation for existential type results
 (define-syntax -some-res

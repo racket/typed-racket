@@ -1,6 +1,9 @@
 #lang racket/base
 
-(require "tr-random-testing.rkt" racket/runtime-path racket/file racket/list)
+(require racket/file
+         racket/list
+         racket/runtime-path
+         "tr-random-testing.rkt")
 
 ;; list of all the counterexamples that the random tester found on drdr,
 ;; as of drdr run #32529

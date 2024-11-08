@@ -132,7 +132,7 @@
 (define name-ref->sexp
   (match-lambda
     [(? syntax? name-ref) (syntax-e name-ref)]
-    [(cons lvl arg) `(,lvl ,arg)]))
+    [(cons lvl arg) (list lvl arg)]))
 
 ;; prop->sexp : Prop -> S-expression
 ;; Print a Prop (see prop-rep.rkt) to the given port
@@ -149,20 +149,19 @@
      ;; instead of (<= x y) (<= y x) when we have both inequalities
      (define-values (leqs others) (partition LeqProp? ps))
      (define-values (eqs simple-leqs)
-       (for/fold ([eqs '()] [simple-leqs '()])
+       (for/fold ([eqs '()]
+                  [simple-leqs '()])
                  ([leq (in-list leqs)])
-         (match leq
-           [(LeqProp: lhs rhs)
-            (define flip (-leq rhs lhs))
-            (cond
-              [(not (member flip leqs))
-               (values eqs (cons leq simple-leqs))]
-              [(member flip eqs) (values eqs simple-leqs)]
-              [else (values (cons leq eqs) simple-leqs)])])))
+         (match-define (LeqProp: lhs rhs) leq)
+         (define flip (-leq rhs lhs))
+         (cond
+           [(not (member flip leqs)) (values eqs (cons leq simple-leqs))]
+           [(member flip eqs) (values eqs simple-leqs)]
+           [else (values (cons leq eqs) simple-leqs)])))
      (let ([simple-leqs (map prop->sexp simple-leqs)]
            [eqs (for/list ([leq (in-list eqs)])
-                  (match leq
-                    [(LeqProp: lhs rhs) `(= ,(object->sexp lhs) ,(object->sexp rhs))]))]
+                  (match-define (LeqProp: lhs rhs) leq)
+                  `(= ,(object->sexp lhs) ,(object->sexp rhs)))]
            [others (map prop->sexp others)])
        (match (append eqs simple-leqs others)
          [(list sexp) sexp]
@@ -317,37 +316,36 @@
          valid-names))
   ;; some types in the union may not be coverable by the candidates
   ;; (e.g. type variables, etc.)
-  (define-values (uncoverable coverable)
-    (values (apply set-subtract elems (map cdr candidates))
-            (set-intersect elems (apply set-union null (map cdr candidates)))))
+  (define uncoverable (apply set-subtract elems (map cdr candidates)))
+  (define coverable (set-intersect elems (apply set-union null (map cdr candidates))))
   ;; set cover, greedy algorithm, ~lg n approximation
   (let loop ([to-cover   coverable]
              [candidates candidates]
              [coverage   '()])
-    (cond [(null? to-cover) ; done
-           (define coverage-names (map car coverage))
-           ;; to allow :type to cue the user on unexpanded aliases
-           ;; only union types can flow here, and any of those could be expanded
-           (set-box! (current-print-unexpanded)
-                     (append coverage-names (unbox (current-print-unexpanded))))
-           ;; reverse here to retain the old ordering from when srfi/1 was
-           ;; used to process the list sets
-           (values coverage-names (reverse uncoverable))] ; we want the names
-          [else
-           ;; pick the candidate that covers the most uncovered types
-           (define (covers-how-many? c)
-             (length (set-intersect (cdr c) to-cover)))
-           (define-values (next _)
-             (for/fold ([next      (car candidates)]
-                        [max-cover (covers-how-many? (car candidates))])
-                 ([c (in-list candidates)])
-               (let ([how-many? (covers-how-many? c)])
-                 (if (> how-many? max-cover)
-                     (values c how-many?)
-                     (values next max-cover)))))
-           (loop (set-subtract to-cover (cdr next))
-                 (remove next candidates)
-                 (cons next coverage))])))
+    (cond
+      [(null? to-cover) ; done
+       (define coverage-names (map car coverage))
+       ;; to allow :type to cue the user on unexpanded aliases
+       ;; only union types can flow here, and any of those could be expanded
+       (set-box! (current-print-unexpanded)
+                 (append coverage-names (unbox (current-print-unexpanded))))
+       ;; reverse here to retain the old ordering from when srfi/1 was
+       ;; used to process the list sets
+       (values coverage-names (reverse uncoverable))] ; we want the names
+      [else
+       ;; pick the candidate that covers the most uncovered types
+       (define (covers-how-many? c)
+         (length (set-intersect (cdr c) to-cover)))
+       (define next
+         (for/fold ([next (car candidates)]
+                    [max-cover (covers-how-many? (car candidates))]
+                    #:result next)
+                   ([c (in-list candidates)])
+           (let ([how-many? (covers-how-many? c)])
+             (if (> how-many? max-cover)
+                 (values c how-many?)
+                 (values next max-cover)))))
+       (loop (set-subtract to-cover (cdr next)) (remove next candidates) (cons next coverage))])))
 
 ;; arr->sexp : arr -> s-expression
 ;; Convert an arr (see type-rep.rkt) to its printable form
@@ -365,11 +363,10 @@
       ;; as long as the resulting s-expressions are `display`ed
       ;; this is fine, though it may not pretty-print well.
       (for/list ([kw (in-list kws)])
-        (match kw
-          [(Keyword: k t req?)
-           (if req?
-               (format "~a ~a" k (type->sexp t))
-               (format "[~a ~a]" k (type->sexp t)))]))
+        (match-define (Keyword: k t req?) kw)
+        (if req?
+            (format "~a ~a" k (type->sexp t))
+            (format "[~a ~a]" k (type->sexp t))))
       (match rst
         [(Rest: (list rst-t)) `(,(type->sexp rst-t) *)]
         [(Rest: rst-ts) `(#:rest-star ,(map type->sexp rst-ts))]
@@ -461,8 +458,9 @@
         (define-values (pre mid) (split-at lst to-drop))
         (define-values (sub post) (split-at mid n))
         (list pre sub post)))
-    (apply append (for/list ([i (range (length lst) 0 -1)])
-                    (sublist-n i lst))))
+    (for*/list ([i (range (length lst) 0 -1)]
+                [v (in-list (sublist-n i lst))])
+      v))
   (let loop ([left-to-cover arrs])
     ;; try to match the largest sublists possible that correspond to
     ;; ->* types and then the remainder are formatted normally
@@ -478,16 +476,15 @@
 ;; case-lambda->sexp : Type -> S-expression
 ;; Convert a case-> type to an s-expression
 (define (case-lambda->sexp type)
-  (match type
-    [(Fun: arrows)
-     (match arrows
-       [(list) '(case->)]
-       [(list a) (arr->sexp a)]
-       [(and arrs (list a b ...))
-        (define cover (cover-case-lambda arrs))
-        (if (> (length cover) 1)
-            `(case-> ,@cover)
-            (car cover))])]))
+  (match-define (Fun: arrows) type)
+  (match arrows
+    [(list) '(case->)]
+    [(list a) (arr->sexp a)]
+    [(and arrs (list a b ...))
+     (define cover (cover-case-lambda arrs))
+     (if (> (length cover) 1)
+         `(case-> ,@cover)
+         (car cover))]))
 
 ;; class->sexp : Class [#:object? Boolean] -> S-expression
 ;; Convert a class or object type to an s-expression
@@ -512,11 +509,11 @@
          (cons 'field
                (for/list ([name+type (in-list fields)])
                  (match-define (list name type) name+type)
-                 `(,name ,(type->sexp type)))))))
+                 (list name (type->sexp type)))))))
   (define methods*
     (for/list ([name+type (in-list methods)])
       (match-define (list name type) name+type)
-      `(,name ,(type->sexp type))))
+      (list name (type->sexp type))))
   (define augments*
     (cond [(or object? (null? augments)) '()]
           [else (list (cons 'augment augments))]))

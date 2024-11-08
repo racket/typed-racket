@@ -1,16 +1,16 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         "../utils/prefab.rkt"
-         "../rep/type-rep.rkt"
+(require racket/match
+         (prefix-in c: (contract-req))
          "../rep/rep-utils.rkt"
          "../rep/type-mask.rkt"
-         (prefix-in c: (contract-req))
+         "../rep/type-rep.rkt"
+         "../utils/prefab.rkt"
+         "../utils/utils.rkt"
          "abbrev.rkt"
+         "resolve.rkt"
          "subtype.rkt"
-         "resolve.rkt" 
-         "utils.rkt"
-         racket/match)
+         "utils.rkt")
 
 
 (provide overlap?)

@@ -1,19 +1,19 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         "../rep/rep-utils.rkt"
-         "../rep/core-rep.rkt"
-         "../rep/type-rep.rkt"
-         "../rep/prop-rep.rkt"
-         "../rep/values-rep.rkt"
-         "../rep/free-variance.rkt"
-         "../utils/tc-utils.rkt"
-         (only-in "numeric-tower.rkt" -Number)
+(require racket/generic
          racket/lazy-require
-         "base-abbrev.rkt"
-         racket/generic
          racket/match
-         (prefix-in c: (contract-req)))
+         (only-in "numeric-tower.rkt" -Number)
+         (prefix-in c: (contract-req))
+         "../rep/core-rep.rkt"
+         "../rep/free-variance.rkt"
+         "../rep/prop-rep.rkt"
+         "../rep/rep-utils.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
+         "base-abbrev.rkt")
 
 
 (provide tcresult-at-toplevel? toplevel-report)
@@ -156,8 +156,8 @@
    [(_ t ps o) (tc-results: (list (tc-result: t ps o _)) #f)]))
 
 (define (tc-results-ts* tc)
-  (match tc
-    [(tc-results: (list (tc-result: ts _ _ _) ...) _) ts]))
+  (match-define (tc-results: (list (tc-result: ts _ _ _) ...) _) tc)
+  ts)
 
 (define-match-expander Result1:
   (syntax-rules ()

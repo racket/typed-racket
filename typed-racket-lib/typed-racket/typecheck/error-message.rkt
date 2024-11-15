@@ -77,12 +77,12 @@
   (define class/object (if object? "object" "class"))
   (match-define (Class: row inits fields methods augments init-rest) c1)
   (match-define (Class: row* inits* fields* methods* augments* init-rest*) c2)
-  (when (not object?)
+  (unless object?
     (when (and (F? row) (not (F? row*)))
       (type-mismatch (format "Class with row variable `~a'" row)
-                     (format "Class with no row variable")))
+                     "Class with no row variable"))
     (when (and (F? row*) (not (F? row)))
-      (type-mismatch (format "Class with no row variable")
+      (type-mismatch "Class with no row variable"
                      (format "Class with row variable `~a'" row*)))
     (when (and (F? row) (F? row) (not (equal? row row*)))
       (type-mismatch (format "Class with row variable `~a'" row)

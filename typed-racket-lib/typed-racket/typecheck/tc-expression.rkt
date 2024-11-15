@@ -1,26 +1,25 @@
 #lang racket/unit
 
-(require
-  "../utils/utils.rkt"
-  "signatures.rkt"
-  "possible-domains.rkt"
-  "check-below.rkt"
-  "../types/utils.rkt"
-  "../types/abbrev.rkt"
-  "../types/classes.rkt"
-  "../types/type-table.rkt"
-  "../types/resolve.rkt"
-  "../rep/type-rep.rkt"
-  "../utils/tc-utils.rkt"
-  "../env/index-env.rkt"
-  "../env/tvar-env.rkt"
-  "../env/scoped-tvar-env.rkt"
-  "../private/syntax-properties.rkt"
-  "../private/parse-type.rkt"
-  racket/format
-  racket/match
-  syntax/stx
-  syntax/parse)
+(require racket/format
+         racket/match
+         syntax/parse
+         syntax/stx
+         "../env/index-env.rkt"
+         "../env/scoped-tvar-env.rkt"
+         "../env/tvar-env.rkt"
+         "../private/parse-type.rkt"
+         "../private/syntax-properties.rkt"
+         "../rep/type-rep.rkt"
+         "../types/abbrev.rkt"
+         "../types/classes.rkt"
+         "../types/resolve.rkt"
+         "../types/type-table.rkt"
+         "../types/utils.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
+         "check-below.rkt"
+         "possible-domains.rkt"
+         "signatures.rkt")
 
 
 (import tc-expr^ check-subforms^)

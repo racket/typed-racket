@@ -1,43 +1,50 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
-         syntax/struct syntax/parse racket/function racket/match racket/list syntax/id-set
-         racket/format syntax/id-table
+(require (for-syntax racket/base
+                     syntax/parse)
+         (for-template racket/base)
+         racket/format
+         racket/function
+         racket/list
+         racket/match
+         syntax/id-set
+         syntax/id-table
+         syntax/parse
+         syntax/struct
          (prefix-in c: (contract-req))
-         "../rep/type-rep.rkt"
-         "../rep/type-constr.rkt"
-         "../rep/free-variance.rkt"
-         "../rep/values-rep.rkt"
-         "../private/parse-type.rkt"
-         "../private/user-defined-type-constr.rkt"
-         "../private/syntax-properties.rkt"
-         "../types/base-abbrev.rkt"
-         "../types/abbrev.rkt"
-         "../types/subtype.rkt"
-         "../types/utils.rkt"
-         "../types/resolve.rkt"
-         "../types/substitute.rkt"
-         "../types/struct-table.rkt"
+         (only-in "../utils/struct-info.rkt" maybe-struct-info-wrapper-type)
+         (only-in "../infer/infer.rkt" intersect)
          "../env/global-env.rkt"
-         "../env/type-name-env.rkt"
-         "../env/type-alias-env.rkt"
-         "../env/type-constr-env.rkt"
-         "../env/tvar-env.rkt"
          "../env/lexical-env.rkt"
          "../env/struct-name-env.rkt"
-         "../utils/tc-utils.rkt"
-         "../utils/prefab.rkt"
+         "../env/tvar-env.rkt"
+         "../env/type-alias-env.rkt"
+         "../env/type-constr-env.rkt"
+         "../env/type-name-env.rkt"
+         "../private/parse-type.rkt"
+         "../private/syntax-properties.rkt"
+         "../private/user-defined-type-constr.rkt"
+         "../rep/free-variance.rkt"
+         "../rep/type-constr.rkt"
+         "../rep/type-rep.rkt"
+         "../rep/values-rep.rkt"
+         "../types/abbrev.rkt"
+         "../types/base-abbrev.rkt"
+         "../types/resolve.rkt"
+         "../types/struct-table.rkt"
+         "../types/substitute.rkt"
+         "../types/subtype.rkt"
+         "../types/utils.rkt"
          "../utils/identifier.rkt"
-         (only-in "../utils/struct-info.rkt" maybe-struct-info-wrapper-type)
-         "typechecker.rkt"
+         "../utils/prefab.rkt"
+         "../utils/tc-utils.rkt"
+         "../utils/utils.rkt"
          "def-binding.rkt"
-         "internal-forms.rkt"
          "error-message.rkt"
-         "tc-subst.rkt"
+         "internal-forms.rkt"
          "renamer.rkt"
-         (only-in "../infer/infer.rkt" intersect)
-         (for-syntax syntax/parse racket/base)
-         (for-template racket/base))
+         "tc-subst.rkt"
+         "typechecker.rkt")
 
 (require-for-cond-contract racket/struct-info)
 
@@ -193,10 +200,10 @@
       (if (null? l)
           (values (reverse getters) (reverse setters))
           (loop (cddr l) (cons (car l) getters) (cons (cadr l) setters)))))
-  (match (build-struct-names nm flds #f #f nm #:constructor-name maker*)
-    [(list sty maker pred getters/setters ...)
-     (let-values ([(getters setters) (split getters/setters)])
-       (struct-names nm type-name sty maker extra-maker pred getters setters))]))
+  (match-define (list sty maker pred getters/setters ...)
+    (build-struct-names nm flds #f #f nm #:constructor-name maker*))
+  (let-values ([(getters setters) (split getters/setters)])
+    (struct-names nm type-name sty maker extra-maker pred getters setters)))
 
 ;; gets the fields of the parent type, if they exist
 ;; Option[Struct-Ty] -> Listof[Type]
@@ -413,9 +420,9 @@
     (for/list ([opname (in-list operators)]
                [self-fld (in-list self-fields)]
                [idx-parent-cnt (in-naturals parent-count)])
-      (let-values ([(fn-args poly-ty) (mk-vals opname self-fld idx-parent-cnt st-type-alias)])
-        (apply add-struct-operator-fn! opname fn-args)
-        (make-def-binding opname poly-ty))))
+      (define-values (fn-args poly-ty) (mk-vals opname self-fld idx-parent-cnt st-type-alias))
+      (apply add-struct-operator-fn! opname fn-args)
+      (make-def-binding opname poly-ty)))
 
   (define bindings
     (list* (make-def-binding struct-type (make-StructType sty))
@@ -458,14 +465,12 @@
                            def-bindings))))
 
 (define (register-parsed-struct-sty! ps)
-  (match ps
-    ((parsed-struct sty names desc si)
-     (register-sty! sty names desc))))
+  (match-define (parsed-struct sty names desc si) ps)
+  (register-sty! sty names desc))
 
 (define (register-parsed-struct-bindings! ps)
-  (match ps
-    ((parsed-struct sty names desc si)
-     (register-struct-bindings! sty names desc si))))
+  (match-define (parsed-struct sty names desc si) ps)
+  (register-struct-bindings! sty names desc si))
 
 ;; extract the type annotation of prop:procedure value
 (define/cond-contract (extract-proc-ty proc-ty-stx desc fld-names st-name)
@@ -513,28 +518,29 @@
        (match ty
          [(Fun: (list arrs ...))
           (make-Fun
-           (map (lambda (arr)
-                  (Arrow-update
-                   arr
-                   dom
-                   (lambda (doms)
-                     (match (car doms)
-                       [(Name/simple: n)
-                        #:when (free-identifier=? n st-name)
-                        (void)]
-                       [(App: (Name/simple: rator) vars)
-                        #:when (free-identifier=? rator st-name)
-                        (void)]
-                       [(Univ:)
-                        (void)]
-                       [(or (Name/simple: (app syntax-e n)) n)
-                        (tc-error/fields "type mismatch in the first parameter of the function for prop:procedure"
-                                         "expected" (syntax-e st-name)
-                                         "got" n
-                                         #:stx (st-proc-ty-property #'ty-stx))])
-
-                     (cdr doms))))
-                arrs))]
+           (for/list ([arr (in-list arrs)])
+             (Arrow-update
+              arr
+              dom
+              (lambda (doms)
+                (match (car doms)
+                  [(Name/simple: n)
+                   #:when (free-identifier=? n st-name)
+                   (void)]
+                  [(App: (Name/simple: rator) vars)
+                   #:when (free-identifier=? rator st-name)
+                   (void)]
+                  [(Univ:) (void)]
+                  [(or (Name/simple: (app syntax-e n)) n)
+                   (tc-error/fields
+                    "type mismatch in the first parameter of the function for prop:procedure"
+                    "expected"
+                    (syntax-e st-name)
+                    "got"
+                    n
+                    #:stx (st-proc-ty-property #'ty-stx))])
+           
+                (cdr doms)))))]
          [_
           (tc-error/fields "type mismatch"
                            "expected"

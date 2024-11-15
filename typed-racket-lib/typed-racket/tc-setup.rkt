@@ -1,19 +1,21 @@
 #lang racket/base
 
-(require "utils/utils.rkt"
+(require (for-syntax racket/base)
+         (for-template racket/base)
+         racket/lazy-require
+         racket/pretty
+         racket/promise
          syntax/kerncase
          syntax/stx
-         racket/pretty racket/promise racket/lazy-require
-         "env/type-name-env.rkt"
-         "env/type-alias-env.rkt"
          "env/mvar-env.rkt"
-         "utils/tc-utils.rkt"
-         "utils/disarm.rkt"
-         "utils/mutated-vars.rkt"
-         "utils/lift.rkt"
+         "env/type-alias-env.rkt"
+         "env/type-name-env.rkt"
          "standard-inits.rkt"
-         (for-syntax racket/base)
-         (for-template racket/base))
+         "utils/disarm.rkt"
+         "utils/lift.rkt"
+         "utils/mutated-vars.rkt"
+         "utils/tc-utils.rkt"
+         "utils/utils.rkt")
 (lazy-require [typed-racket/optimizer/optimizer (optimize-top)])
 (lazy-require [typed-racket/private/shallow-rewrite (shallow-rewrite-top)])
 (lazy-require [typed-racket/typecheck/tc-toplevel (tc-module)])
@@ -36,15 +38,15 @@
   ;; types are enforced (not no-check etc.),
   ;; PLT_TR_NO_OPTIMIZE is not set, and the
   ;; current code inspector has sufficient privileges
-  (if (and (optimize?)
-           (memq (current-type-enforcement-mode) (list deep shallow))
-           (not (getenv "PLT_TR_NO_OPTIMIZE"))
-           (authorized-code-inspector?))
-      (begin
-        (do-time "Starting optimizer")
-        (begin0 (stx-map optimize-top body)
-          (do-time "Optimized")))
-      body))
+  (cond
+    [(and (optimize?)
+          (memq (current-type-enforcement-mode) (list deep shallow))
+          (not (getenv "PLT_TR_NO_OPTIMIZE"))
+          (authorized-code-inspector?))
+     (do-time "Starting optimizer")
+     (begin0 (stx-map optimize-top body)
+       (do-time "Optimized"))]
+    [else body]))
 
 (define (maybe-shallow-rewrite body-stx ctc-cache)
   (case (current-type-enforcement-mode)

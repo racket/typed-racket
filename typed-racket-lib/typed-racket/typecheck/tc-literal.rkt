@@ -1,20 +1,20 @@
 #lang racket/unit
 
-(require "../utils/utils.rkt"
+(require racket/extflonum
          racket/match
-         "signatures.rkt"
-         "check-below.rkt"
+         syntax/parse
+         (only-in "../infer/infer.rkt" intersect)
+         "../rep/type-rep.rkt"
          "../types/abbrev.rkt"
+         "../types/generalize.rkt"
          "../types/numeric-tower.rkt"
          "../types/resolve.rkt"
          "../types/subtype.rkt"
-         "../types/generalize.rkt"
-         "../rep/type-rep.rkt"
-         (only-in "../infer/infer.rkt" intersect)
-         "../utils/stxclass-util.rkt"
          "../utils/prefab.rkt"
-         syntax/parse
-         racket/extflonum)
+         "../utils/stxclass-util.rkt"
+         "../utils/utils.rkt"
+         "check-below.rkt"
+         "signatures.rkt")
 
 (import)
 (export tc-literal^)
@@ -190,9 +190,9 @@
            [vt (apply Un vts)])
       (tycon (check-below kt expected-kt) (check-below vt expected-vt)))]
    [(check-element h tycon)
-    (let ([kt (generalize (apply Un (map check-element (hash-keys h))))]
-          [vt (generalize (apply Un (map check-element (hash-values h))))])
-      (tycon kt vt))]))
+    (define kt (generalize (apply Un (map check-element (hash-keys h)))))
+    (define vt (generalize (apply Un (map check-element (hash-values h)))))
+    (tycon kt vt)]))
 
 ;; Typecheck a prefab struct literal (or result of syntax-e)
 ;; `check-field` allows prefabs in syntax to be checked by passing

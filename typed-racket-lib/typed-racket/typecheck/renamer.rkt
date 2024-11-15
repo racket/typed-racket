@@ -1,7 +1,7 @@
 #lang racket/base
 
-(require typed-racket/utils/tc-utils
-         racket/struct-info)
+(require racket/struct-info
+         typed-racket/utils/tc-utils)
 
 (provide make-typed-renaming un-rename)
 
@@ -43,9 +43,8 @@
 ;;
 ;; The syntax-transforming check is for unit tests
 (define (un-rename id)
-  (if (syntax-transforming?)
-      (let-values (((binding new-id) (syntax-local-value/immediate id (lambda () (values #f #f)))))
-        (if (typed-renaming? binding)
-            new-id
-            id))
-      id))
+  (cond
+    [(syntax-transforming?)
+     (define-values (binding new-id) (syntax-local-value/immediate id (lambda () (values #f #f))))
+     (if (typed-renaming? binding) new-id id)]
+    [else id]))

@@ -194,7 +194,7 @@
       [t:assert-typecheck-failure
        (cond
          [(tc-expr/check? #'t.body expected)
-          (tc-error/expr #:stx #'t.body (format "Expected a type check error!"))]
+          (tc-error/expr #:stx #'t.body "Expected a type check error!")]
          [else
           (fix-results expected)])]
       ;; data

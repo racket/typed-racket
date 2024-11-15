@@ -1,27 +1,31 @@
 #lang racket/base
 
-(require (except-in "../utils/utils.rkt" infer)
-         racket/match racket/list racket/sequence syntax/stx
+(require (for-syntax racket/base
+                     syntax/parse)
+         racket/list
+         racket/match
+         racket/sequence
+         syntax/stx
+         (except-in "../utils/utils.rkt" infer)
          (prefix-in c: (contract-req))
-         (for-syntax syntax/parse racket/base)
-         "../utils/tc-utils.rkt"
-         "../utils/identifier.rkt"
-         "../env/tvar-env.rkt"
          "../env/lexical-env.rkt"
-         "../types/utils.rkt"
-         "../types/subtype.rkt"
-         "../types/resolve.rkt"
+         "../env/tvar-env.rkt"
+         "../infer/infer.rkt"
+         "../rep/type-rep.rkt"
          "../types/abbrev.rkt"
-         "../types/substitute.rkt"
          "../types/classes.rkt"
          "../types/prop-ops.rkt"
-         "tc-metafunctions.rkt"
-         "tc-app-helper.rkt"
-         "tc-subst.rkt"
-         "tc-envops.rkt"
+         "../types/resolve.rkt"
+         "../types/substitute.rkt"
+         "../types/subtype.rkt"
+         "../types/utils.rkt"
+         "../utils/identifier.rkt"
+         "../utils/tc-utils.rkt"
          "check-below.rkt"
-         "../rep/type-rep.rkt"
-         "../infer/infer.rkt")
+         "tc-app-helper.rkt"
+         "tc-envops.rkt"
+         "tc-metafunctions.rkt"
+         "tc-subst.rkt")
 
 (require-for-cond-contract syntax/stx)
 
@@ -134,24 +138,30 @@
        (cond
          ;; find the first function where the argument types match
          [(ormap (match-lambda
-                   [(and a (Arrow: dom rst _ _))
-                    (and (subtypes/varargs argtys dom rst) a)])
+                   [(and a (Arrow: dom rst _ _)) (and (subtypes/varargs argtys dom rst) a)])
                  arrows)
-          => (λ (a)
-               ;; then typecheck here -- we call the separate function so that we get
-               ;; the appropriate props/objects
-               (tc/funapp1 f-stx args-stx a args-res expected #:check #f))]
+          =>
+          (λ (a)
+            ;; then typecheck here -- we call the separate function so that we get
+            ;; the appropriate props/objects
+            (tc/funapp1 f-stx args-stx a args-res expected #:check #f))]
          [else
           ;; if nothing matched, error
-          (match arrows
-            [(list (Arrow: doms rsts _ rngs) ...)
-             (domain-mismatches
-              f-stx args-stx f-type doms rsts rngs args-res #f #f
-              #:expected expected
-              #:msg-thunk (lambda (dom)
-                            (string-append
-                             "No function domains matched in function application:\n"
-                             dom)))])])]
+          (match-define (list (Arrow: doms rsts _ rngs) ...) arrows)
+          (domain-mismatches f-stx
+                             args-stx
+                             f-type
+                             doms
+                             rsts
+                             rngs
+                             args-res
+                             #f
+                             #f
+                             #:expected expected
+                             #:msg-thunk
+                             (lambda (dom)
+                               (string-append "No function domains matched in function application:\n"
+                                              dom)))])]
       ;; any kind of dotted polymorphic function without mandatory keyword args
       [(PolyDots: (list fixed-vars ... dotted-var)
                   (Fun: arrows))

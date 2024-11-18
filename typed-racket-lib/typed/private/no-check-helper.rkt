@@ -2,12 +2,16 @@
 
 ;; This module provides compatibility macros for no-check mode
 
-(require
- (except-in typed-racket/base-env/prims
-            require/typed require/opaque-type require-typed-struct require/typed/provide)
- typed-racket/base-env/base-types-extra
- (for-syntax racket/base syntax/parse syntax/struct
-             syntax/parse/experimental/template))
+(require (for-syntax racket/base
+                     syntax/parse
+                     syntax/parse/experimental/template
+                     syntax/struct)
+         typed-racket/base-env/base-types-extra
+         (except-in typed-racket/base-env/prims
+                    require/typed
+                    require/opaque-type
+                    require-typed-struct
+                    require/typed/provide))
 (provide (all-from-out racket/base)
          (all-defined-out)
          (all-from-out typed-racket/base-env/prims

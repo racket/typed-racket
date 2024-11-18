@@ -1,25 +1,26 @@
 #lang racket/base
 
-(require (rename-in "utils/utils.rkt")
-         (for-syntax racket/base)
-         (for-template racket/base)
-         "private/with-types.rkt"
-         "private/type-contract.rkt"
-         (except-in syntax/parse id)
-         racket/match racket/syntax
+(require (for-syntax racket/base)
+         (for-template racket/base
+                       "base-env/top-interaction.rkt")
+         racket/match
+         racket/syntax
          syntax/flatten-begin
-         "types/utils.rkt"
-         "types/abbrev.rkt"
-         "types/generalize.rkt"
+         (rename-in "utils/utils.rkt")
+         (except-in syntax/parse id)
+         "private/type-contract.rkt"
+         "private/with-types.rkt"
+         "rep/type-rep.rkt"
+         "standard-inits.rkt"
+         "tc-setup.rkt"
          "typecheck/provide-handling.rkt"
          "typecheck/tc-app-helper.rkt"
-         "rep/type-rep.rkt"
-         (for-template "base-env/top-interaction.rkt")
-         "utils/utils.rkt"
-         "utils/tc-utils.rkt"
+         "types/abbrev.rkt"
+         "types/generalize.rkt"
+         "types/utils.rkt"
          "utils/arm.rkt"
-         "standard-inits.rkt"
-         "tc-setup.rkt")
+         "utils/tc-utils.rkt"
+         "utils/utils.rkt")
 
 (provide mb-core ti-core wt-core wt-core-shallow wt-core-optional)
 

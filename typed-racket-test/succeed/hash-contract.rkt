@@ -5,8 +5,8 @@
 ;; 2. don't overlap in an or/c
 
 (module+ test
-  (require rackunit
-           racket/contract
+  (require racket/contract
+           rackunit
            typed-racket/utils/hash-contract)
 
   (test-case "hash-contract:correct"

@@ -1,8 +1,8 @@
 #lang racket/base
 
-(require rackunit
-         typed-racket/utils/evt-contract
-         racket/contract)
+(require racket/contract
+         rackunit
+         typed-racket/utils/evt-contract)
 
 (check-true  (contract-stronger?   (tr:evt/c (</c 10)) (tr:evt/c (</c 11))))
 (check-false (contract-stronger?   (tr:evt/c (</c 11)) (tr:evt/c (</c 10))))

@@ -1,10 +1,12 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
+(require racket/match
          "../rep/type-rep.rkt"
-         "abbrev.rkt" "subtype.rkt" "substitute.rkt"
+         "../utils/utils.rkt"
+         "abbrev.rkt"
          "numeric-tower.rkt"
-         racket/match)
+         "substitute.rkt"
+         "subtype.rkt")
 
 (provide generalize)
 

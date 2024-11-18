@@ -1,6 +1,7 @@
 #lang racket
-(require typed-racket/utils/opaque-object rackunit
-         (for-syntax (only-in syntax/srcloc build-source-location-list)))
+(require (for-syntax (only-in syntax/srcloc build-source-location-list))
+         rackunit
+         typed-racket/utils/opaque-object)
 
 ;; --------------------------------------------------------------------------------------------------
 

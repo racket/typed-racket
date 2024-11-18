@@ -30,7 +30,7 @@ jobs:
       - name: Install local packages
         run: raco setup typed typed-racket typed-racket-test typed-scheme
       - name: Create a Resyntax pull request
-        uses: jackfirth/create-resyntax-pull-request@v0.4.2
+        uses: jackfirth/create-resyntax-pull-request@v0.5.1
         with:
           private-key: ${{ secrets.RESYNTAX_APP_PRIVATE_KEY }}
           max-fixes: '50'

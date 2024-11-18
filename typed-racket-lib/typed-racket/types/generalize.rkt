@@ -47,15 +47,15 @@
         [(Pair: t1 (== -Null)) (-lst t1)]
         [(MPair: t1 (== -Null)) (-mlst t1)]
         [(or (Pair: t1 t2) (MPair: t1 t2))
-         (let ([t-new (loop t2)])
-           (define -lst-type
-             ((match t*
-                [(Pair: _ _) -lst]
-                [(MPair: _ _) -mlst])
-              t1))
-           (if (type-equiv? -lst-type t-new)
-               -lst-type
-               (exit t)))]
+         (define t-new (loop t2))
+         (define -lst-type
+           ((match t*
+              [(Pair: _ _) -lst]
+              [(MPair: _ _) -mlst])
+            t1))
+         (if (type-equiv? -lst-type t-new)
+             -lst-type
+             (exit t))]
         [(ListDots: t bound) (-lst (substitute Univ bound t))]
         [(? (lambda (t) (subtype t -Symbol))) -Symbol]
         [(== -True) -Boolean]

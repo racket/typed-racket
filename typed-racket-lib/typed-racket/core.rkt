@@ -49,10 +49,12 @@
                                      (and (attribute opt?) (syntax-e (attribute opt?))))]
                       [with-refinements? (and (or (attribute refinement-reasoning?)
                                                   (with-refinements?))
-                                              (when (not (eq? te-mode deep))
+                                              (unless (eq? te-mode deep)
                                                 (raise-arguments-error
-                                                  (string->symbol (format "typed/racket/~a" (keyword->string (syntax-e te-attr))))
-                                                  "#:with-refinements unsupported")))])
+                                                 (string->symbol (format "typed/racket/~a"
+                                                                         (keyword->string
+                                                                          (syntax-e te-attr))))
+                                                 "#:with-refinements unsupported")))])
          (tc-module/full te-mode stx pmb-form
           (λ (new-mod pre-before-code pre-after-code)
             (define ctc-cache (make-hash))

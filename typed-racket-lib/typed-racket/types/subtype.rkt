@@ -533,7 +533,7 @@
        (with-updated-seen A
          ;; be provable for subtyping to hold
          (define-values (t1* extracted-props) (extract-props obj t1))
-         (define assumptions (apply -and (cons (-is-type obj t1*) extracted-props)))
+         (define assumptions (apply -and (-is-type obj t1*) extracted-props))
 
          (define goal
            (match* (lower-ineq upper-ineq)

@@ -11,6 +11,6 @@
 (define bar
   (case-λ
     [() #t]
-    [(_) #f]))
+    [([_ : Any]) #f]))
 (bar)
 (bar bar)

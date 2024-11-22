@@ -124,15 +124,13 @@
         #:transparent
         #:methods gen:sc
           [(define (sc-map v f)
-             (match v
-               [(recursive-sc names values body)
-                (recursive-sc names (map (λ (v) (f v 'covariant)) values) (f body 'covariant))]))
+             (match-define (recursive-sc names values body) v)
+             (recursive-sc names (map (λ (v) (f v 'covariant)) values) (f body 'covariant)))
            (define (sc-traverse v f)
-             (match v
-               [(recursive-sc names values body)
-                (for-each (λ (v) (f v 'covariant)) values)
-                (f body 'covariant)
-                (void)]))
+             (match-define (recursive-sc names values body) v)
+             (for-each (λ (v) (f v 'covariant)) values)
+             (f body 'covariant)
+             (void))
            (define (sc->constraints v f)
              (simple-contract-restrict 'impersonator))]
         #:methods gen:custom-write [(define write-proc recursive-sc-write-proc)])

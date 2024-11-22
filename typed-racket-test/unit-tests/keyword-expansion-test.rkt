@@ -1,13 +1,14 @@
 #lang racket/base
 
-(require "test-utils.rkt" 
+(require racket/match
+         racket/set
+         rackunit
          typed-racket/rep/type-rep
-         typed-racket/types/utils
-         typed-racket/types/kw-types
          typed-racket/types/abbrev
+         typed-racket/types/kw-types
          typed-racket/types/numeric-tower
-         racket/match racket/set
-         rackunit)
+         typed-racket/types/utils
+         "test-utils.rkt")
 (provide tests)
 (gen-test-main)
 

@@ -2,24 +2,24 @@
 
 ;; Provides functionality to take a static contract and turn it into a regular contract.
 
-(require
-  "../utils/utils.rkt"
-  racket/match
-  racket/list
-  racket/contract
-  racket/syntax
-  syntax/private/id-table
-  (for-template racket/base racket/contract)
-  "combinators.rkt"
-  "combinators/name.rkt"
-  "combinators/case-lambda.rkt"
-  "combinators/parametric.rkt"
-  "kinds.rkt"
-  "optimize.rkt"
-  "parametric-check.rkt"
-  "structures.rkt"
-  "constraints.rkt"
-  "equations.rkt")
+(require (for-template racket/base
+                       racket/contract)
+         racket/contract
+         racket/list
+         racket/match
+         racket/syntax
+         syntax/private/id-table
+         "../utils/utils.rkt"
+         "combinators.rkt"
+         "combinators/case-lambda.rkt"
+         "combinators/name.rkt"
+         "combinators/parametric.rkt"
+         "constraints.rkt"
+         "equations.rkt"
+         "kinds.rkt"
+         "optimize.rkt"
+         "parametric-check.rkt"
+         "structures.rkt")
 
 (provide static-contract-may-contain-free-ids?)
 

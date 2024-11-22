@@ -1,19 +1,23 @@
 #lang racket/unit
 
-(require "../../utils/utils.rkt"
-         "signatures.rkt"
-         "utils.rkt"
+(require (for-label racket/base
+                    racket/bool)
+         racket/match
+         racket/unsafe/undefined
+         syntax/parse
+         syntax/stx
          (only-in "../../infer/infer.rkt" intersect)
-         syntax/parse syntax/stx racket/match racket/unsafe/undefined
-         "../signatures.rkt"
-         "../tc-funapp.rkt"
+         "../../rep/object-rep.rkt"
+         "../../rep/type-rep.rkt"
          "../../types/abbrev.rkt"
+         "../../types/match-expanders.rkt"
          "../../types/prop-ops.rkt"
          "../../types/utils.rkt"
-         "../../types/match-expanders.rkt"
-         "../../rep/type-rep.rkt"
-         "../../rep/object-rep.rkt"
-         (for-label racket/base racket/bool))
+         "../../utils/utils.rkt"
+         "../signatures.rkt"
+         "../tc-funapp.rkt"
+         "signatures.rkt"
+         "utils.rkt")
 
 (import tc-expr^)
 (export tc-app-eq^)

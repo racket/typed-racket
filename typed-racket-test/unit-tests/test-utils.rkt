@@ -1,16 +1,18 @@
 #lang racket/base
 
-(require racket/require-syntax
-         racket/match
+(require (for-syntax racket/base
+                     syntax/parse)
          racket/gui/dynamic
-         typed-racket/utils/utils
-         (for-syntax racket/base syntax/parse)
-         typed-racket/types/utils
-         typed-racket/types/subtype
-         typed-racket/utils/tc-utils
-         typed-racket/typecheck/check-below
+         racket/match
+         racket/require-syntax
+         rackunit
+         rackunit/text-ui
          typed-racket/rep/type-rep
-         rackunit rackunit/text-ui)
+         typed-racket/typecheck/check-below
+         typed-racket/types/subtype
+         typed-racket/types/utils
+         typed-racket/utils/tc-utils
+         typed-racket/utils/utils)
 
 (provide (all-defined-out))
 

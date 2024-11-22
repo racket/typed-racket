@@ -1,26 +1,32 @@
 #lang racket/unit
 
-(require "../../utils/utils.rkt"
+(require (for-syntax racket/base
+                     racket/syntax
+                     syntax/parse)
+         (for-label racket/base
+                    racket/unsafe/ops)
          racket/list
-         syntax/parse syntax/stx racket/match racket/sequence
-         (for-syntax racket/base syntax/parse racket/syntax)
-         "signatures.rkt"
-         "utils.rkt"
-         "../../utils/prefab.rkt"
+         racket/match
+         racket/sequence
+         syntax/parse
+         syntax/stx
          (only-in "../../infer/infer.rkt" intersect)
-         "../../types/utils.rkt"
+         "../../rep/rep-utils.rkt"
+         "../../rep/type-mask.rkt"
+         "../../rep/type-rep.rkt"
          "../../types/abbrev.rkt"
+         "../../types/generalize.rkt"
+         "../../types/match-expanders.rkt"
          "../../types/numeric-tower.rkt"
          "../../types/resolve.rkt"
          "../../types/type-table.rkt"
-         "../../types/generalize.rkt"
-         "../../types/match-expanders.rkt"
-         "../signatures.rkt"
+         "../../types/utils.rkt"
+         "../../utils/prefab.rkt"
+         "../../utils/utils.rkt"
          "../check-below.rkt"
-         "../../rep/type-rep.rkt"
-         "../../rep/type-mask.rkt"
-         "../../rep/rep-utils.rkt"
-         (for-label racket/unsafe/ops racket/base))
+         "../signatures.rkt"
+         "signatures.rkt"
+         "utils.rkt")
 
 (import tc-expr^ tc-app^ tc-literal^)
 (export tc-app-hetero^)

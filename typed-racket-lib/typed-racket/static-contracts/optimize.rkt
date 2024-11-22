@@ -404,7 +404,8 @@
 ;; If we trust a specific side then we drop all contracts protecting that side.
 (define (optimize sc #:trusted-positive [trusted-positive #f] #:trusted-negative [trusted-negative #f] #:recursive-kinds [recursive-kinds #f])
   (define sc->kind (make-sc->kind recursive-kinds))
-  (define flat-sc? (λ (sc) (eq? 'flat (sc->kind sc))))
+  (define (flat-sc? sc)
+    (eq? 'flat (sc->kind sc)))
   (define trusted-side-reduce (make-trusted-side-reduce flat-sc?))
   (define update-side (make-update-side flat-sc?))
 

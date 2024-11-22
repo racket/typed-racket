@@ -82,10 +82,10 @@
      (let* ([ts1 (generalize (tc-expr/t #'actual))]
             [ann-ts (for/list ([a (in-syntax #'(acc ...))]
                                [ac (in-syntax #'(actuals ...))])
-                      (let ([type (find-annotation #'inner-body a)])
-                        (if type
-                            (tc-expr/check/t ac (ret type))
-                            (generalize (tc-expr/t ac)))))]
+                      (define type (find-annotation #'inner-body a))
+                      (if type
+                          (tc-expr/check/t ac (ret type))
+                          (generalize (tc-expr/t ac))))]
             [ts (cons ts1 ann-ts)])
        ;; check that the actual arguments are ok here
        (for/list ([a (in-syntax #'(actuals ...))]

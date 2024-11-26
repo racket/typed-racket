@@ -18,19 +18,15 @@
      (Pair Symbol (Pair (Listof XExpr-Attribute) (Listof XExpr)))
      (Pair Symbol (Listof XExpr))))
 
-(require/typed xml
+(require/typed/provide xml
   [#:struct location
    ([line   : (U False Exact-Nonnegative-Integer)]
     [char   : (U False Exact-Nonnegative-Integer)]
-    [offset : Exact-Nonnegative-Integer])])
-   
-(define-type Location
-  (U location Symbol False))
-
-(require/typed/provide xml
+    [offset : Exact-Nonnegative-Integer])
+   #:type-name Location]
   [#:struct source
-   ([start : Location]
-    [stop  : Location])
+   ([start : (U Location Symbol False)]
+    [stop  : (U Location Symbol False)])
    #:type-name Source]
   [#:struct external-dtd
    ([system : String])

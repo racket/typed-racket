@@ -1,21 +1,24 @@
 #lang racket/unit
 
-(require "../../utils/utils.rkt"
-         "signatures.rkt"
-         "utils.rkt"
-         syntax/parse syntax/stx racket/match racket/sequence
+(require (for-template racket/base)
+         (for-label racket/base)
          racket/format
          racket/list
-         "../signatures.rkt"
+         racket/match
+         racket/sequence
+         syntax/parse
+         syntax/stx
+         "../../rep/type-rep.rkt"
          "../../types/base-abbrev.rkt"
          "../../types/resolve.rkt"
          "../../types/subtype.rkt"
          "../../types/type-table.rkt"
          "../../types/utils.rkt"
-         "../../rep/type-rep.rkt"
          "../../utils/tc-utils.rkt"
-         (for-template racket/base)
-         (for-label racket/base))
+         "../../utils/utils.rkt"
+         "../signatures.rkt"
+         "signatures.rkt"
+         "utils.rkt")
 
 
 (import tc-expr^)

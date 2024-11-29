@@ -1,12 +1,12 @@
 #lang racket/base
 
-(require "rep-utils.rkt"
+(require (for-syntax racket/base
+                     racket/list
+                     racket/syntax
+                     syntax/parse)
          racket/match
          racket/unsafe/ops
-         (for-syntax racket/base
-                     syntax/parse
-                     racket/list
-                     racket/syntax))
+         "rep-utils.rkt")
 
 (provide define-rep-switch)
 

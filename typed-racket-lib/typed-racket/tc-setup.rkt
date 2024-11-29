@@ -1,19 +1,21 @@
 #lang racket/base
 
-(require "utils/utils.rkt"
+(require (for-syntax racket/base)
+         (for-template racket/base)
+         racket/lazy-require
+         racket/pretty
+         racket/promise
          syntax/kerncase
          syntax/stx
-         racket/pretty racket/promise racket/lazy-require
-         "env/type-name-env.rkt"
-         "env/type-alias-env.rkt"
          "env/mvar-env.rkt"
-         "utils/tc-utils.rkt"
-         "utils/disarm.rkt"
-         "utils/mutated-vars.rkt"
-         "utils/lift.rkt"
+         "env/type-alias-env.rkt"
+         "env/type-name-env.rkt"
          "standard-inits.rkt"
-         (for-syntax racket/base)
-         (for-template racket/base))
+         "utils/disarm.rkt"
+         "utils/lift.rkt"
+         "utils/mutated-vars.rkt"
+         "utils/tc-utils.rkt"
+         "utils/utils.rkt")
 (lazy-require [typed-racket/optimizer/optimizer (optimize-top)])
 (lazy-require [typed-racket/private/shallow-rewrite (shallow-rewrite-top)])
 (lazy-require [typed-racket/typecheck/tc-toplevel (tc-module)])

@@ -1,12 +1,12 @@
 #lang racket/base
-(require racket/match
-         racket/set
+(require racket/lazy-require
          racket/list
-         "../rep/type-constr.rkt"
-         "../utils/utils.rkt"
-         racket/lazy-require
+         racket/match
+         racket/set
+         "../env/type-constr-env.rkt"
          "../private/user-defined-type-constr.rkt"
-         "../env/type-constr-env.rkt")
+         "../rep/type-constr.rkt"
+         "../utils/utils.rkt")
 
 (provide
   ;; Variances

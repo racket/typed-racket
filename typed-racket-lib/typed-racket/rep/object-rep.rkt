@@ -268,10 +268,10 @@
       [(list (? exact-integer? coeff) (? Path? p))
        (values c (terms-set ts p (+ coeff (terms-ref ts p))))]
       [(list (? exact-integer? coeff) (? name-ref/c nm))
-       (let ([p (-id-path nm)])
-         (if (Empty? nm)
-             (values c ts)
-             (values c (terms-set ts p (+ coeff (terms-ref ts p))))))]
+       (define p (-id-path nm))
+       (if (Empty? nm)
+           (values c ts)
+           (values c (terms-set ts p (+ coeff (terms-ref ts p)))))]
       [(? exact-integer? new-const)
        (values (+ new-const c) ts)]
       [(LExp: c* ts*)

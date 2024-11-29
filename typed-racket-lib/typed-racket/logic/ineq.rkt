@@ -329,13 +329,15 @@
   (-> lexp? (-> any/c any/c) string?)
   (define vars (terms-vars (lexp-vars e)))
   (define const (lexp-const e))
-  (define term->string
-    (λ (x) (string-append (if (= 1 (lexp-coeff e x))
-                              ""
-                              (number->string (lexp-coeff e x)))
-                          "(" (if pp
-                                  (pp x)
-                                  (~a x)) ")")))
+  (define (term->string x)
+    (string-append (if (= 1 (lexp-coeff e x))
+                       ""
+                       (number->string (lexp-coeff e x)))
+                   "("
+                   (if pp
+                       (pp x)
+                       (~a x))
+                   ")"))
   (cond
     [(terms-empty? vars) (number->string const)]
     [(zero? const)

@@ -35,7 +35,7 @@
         (~var clause (switch-clause #'(pre-args ...) #'arg #'(post-args ...))) ...
         [(~datum else:) . default])
      (define name-symbols (map syntax->datum (syntax->list #'(clause.name ...))))
-     (unless (not (null? name-symbols))
+     (when (null? name-symbols)
        (raise-syntax-error 'define-switch "switch cannot be null" stx))
      (define sorted-name-symbols (sort name-symbols symbol<?))
      (unless (eq? (first name-symbols) (first sorted-name-symbols))

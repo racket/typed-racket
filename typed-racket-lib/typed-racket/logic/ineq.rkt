@@ -99,9 +99,8 @@
 
 ;; Leq to the internal leq rep
 (define (Leq->leq l)
-  (match l
-    [(LeqProp: (LExp: c1 ts1) (LExp: c2 ts2))
-     (leq (lexp c1 ts1) (lexp c2 ts2))]))
+  (match-define (LeqProp: (LExp: c1 ts1) (LExp: c2 ts2)) l)
+  (leq (lexp c1 ts1) (lexp c2 ts2)))
 
 
 ;; *****************************************************************************
@@ -215,10 +214,8 @@
     [(eqv? a 0) (lexp 0 (make-terms))]
     [(= a 1) exp]
     [else
-     (match exp
-       [(lexp: c h)
-        (lexp (* c a)
-              (terms-scale h a))])]))
+     (match-define (lexp: c h) exp)
+     (lexp (* c a) (terms-scale h a))]))
 
 (module+ test
   (check-equal? (lexp-set (lexp* 17 '(42 x)) 'x 0)

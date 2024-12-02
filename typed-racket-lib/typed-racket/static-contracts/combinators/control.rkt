@@ -15,6 +15,7 @@
  [prompt-tag/sc ((listof static-contract?) (or/c (listof static-contract?) #f) . -> . static-contract?)])
 
 (struct prompt-tag-combinator combinator ()
+  #:authentic
   #:transparent
   #:property prop:combinator-name "prompt-tag/sc"
   #:methods gen:sc
@@ -36,6 +37,7 @@
        (merge-restricts* 'chaperone (map f (pt-seq->list (combinator-args v)))))])
 
 (struct pt-seq (vals call-cc)
+  #:authentic
   #:transparent
   #:property prop:sequence
   (lambda (s)

@@ -24,6 +24,7 @@
 
 (struct case-combinator combinator ()
   #:transparent
+  #:authentic
   #:property prop:combinator-name "case->/sc"
   #:methods gen:sc
     [(define (sc-map v f)
@@ -38,6 +39,7 @@
 (struct arr-combinator combinator ()
   #:transparent
   #:property prop:combinator-name "arr/sc"
+  #:authentic
   #:methods gen:sc
     [(define (sc-map v f)
        (arr-combinator (arr-seq-sc-map f (combinator-args v))))
@@ -83,6 +85,7 @@
 
 
 (struct arr-seq (args rest range)
+   #:authentic
    #:transparent
    #:property prop:sequence
      (match-lambda

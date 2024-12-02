@@ -27,6 +27,7 @@
 
 (struct any-combinator combinator ()
         #:transparent
+        #:authentic
         #:methods gen:sc
           [(define (sc-map v f) v)
            (define (sc-traverse v f) (void))

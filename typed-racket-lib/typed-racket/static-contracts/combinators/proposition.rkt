@@ -13,7 +13,7 @@
 
 (provide-for-cond-contract proposition-contract?)
 
-(struct proposition-contract static-contract () #:transparent)
+(struct proposition-contract static-contract () #:transparent #:authentic)
 
 
 (define/match (flat-lambda-write v port mode)
@@ -54,6 +54,7 @@
 ;; in the contract syntax they generate.
 (struct flat-named-lambda/sc static-contract (name arg body)
   #:transparent
+  #:authentic
   #:methods gen:sc
   [(define/match (sc-map v f)
      [((flat-named-lambda/sc name arg body) f)
@@ -88,6 +89,7 @@
 ;; so we can use it directly as a predicate.
 (struct is-flat-type/sc proposition-contract (obj type)
   #:transparent
+  #:authentic
   #:methods gen:sc
   [(define/match (sc-map v f)
      [((is-flat-type/sc obj type) f)
@@ -112,6 +114,7 @@
 ;; See is-flat-type/sc for more details.
 (struct not-flat-type/sc proposition-contract (obj type)
   #:transparent
+  #:authentic
   #:methods gen:sc
   [(define/match (sc-map v f)
      [((not-flat-type/sc obj type) f)
@@ -135,6 +138,7 @@
 ;; flat-named-lambda/sc.
 (struct leq/sc proposition-contract (lhs rhs)
   #:transparent
+  #:authentic
   #:methods gen:sc
   [(define/match (sc-map v f)
      [((leq/sc lhs rhs) f)
@@ -152,6 +156,7 @@
 
 (struct and-prop/sc proposition-contract (args)
   #:transparent
+  #:authentic
   #:methods gen:sc
   [(define/match (sc-map v f)
      [((and-prop/sc args) f)
@@ -172,6 +177,7 @@
 
 (struct or-prop/sc proposition-contract (args)
   #:transparent
+  #:authentic
   #:methods gen:sc
   [(define/match (sc-map v f)
      [((or-prop/sc args) f)

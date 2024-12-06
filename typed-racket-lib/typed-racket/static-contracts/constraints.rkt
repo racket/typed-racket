@@ -182,32 +182,28 @@
 
 
 (define (add-constraint cr max)
-  (match cr
-    [(contract-restrict v rec constraints)
-     (define con (constraint v max))
-     (if (trivial-constraint? con)
-         cr
-         (contract-restrict v rec (set-add constraints con)))]))
+  (match-define (contract-restrict v rec constraints) cr)
+  (define con (constraint v max))
+  (if (trivial-constraint? con)
+      cr
+      (contract-restrict v rec (set-add constraints con))))
 
-(define (add-recursive-values cr dict) 
-  (match cr
-    [(contract-restrict v rec constraints)
-     (contract-restrict v (free-id-table-union (list rec dict)) constraints)]))
+(define (add-recursive-values cr dict)
+  (match-define (contract-restrict v rec constraints) cr)
+  (contract-restrict v (free-id-table-union (list rec dict)) constraints))
 
 (define (merge-restricts* min crs)
   (apply merge-restricts min crs))
 
 (define (merge-restricts min . crs)
-  (match crs
-    [(list (contract-restrict vs rec constraints) ...)
-     (contract-restrict (merge-kind-maxes min vs)
-                        (free-id-table-union rec)
-                        (apply set-union (set) constraints))]))
+  (match-define (list (contract-restrict vs rec constraints) ...) crs)
+  (contract-restrict (merge-kind-maxes min vs)
+                     (free-id-table-union rec)
+                     (apply set-union (set) constraints)))
 
 (define (merge-kind-maxes min-kind vs)
-  (match vs
-    [(list (kind-max variables maxes) ...)
-     (kind-max (free-id-set-union variables) (apply combine-kinds min-kind maxes))]))
+  (match-define (list (kind-max variables maxes) ...) vs)
+  (kind-max (free-id-set-union variables) (apply combine-kinds min-kind maxes)))
 
 (define (close-loop names crs body)
   (define eqs (make-equation-set))
@@ -222,38 +218,36 @@
 
   (define (instantiate-cr cr lookup-id)
     (define (instantiate-kind-max km)
-      (match km
-        [(kind-max ids actual)
-         (define-values (bvals unbound-ids)
-           (for/fold ([bvals '()] [ubids (make-immutable-free-id-table)])
-                     ([(id _) (in-free-id-table ids)])
-             (if (member id names)
-                 (values (cons (contract-restrict-value (lookup-id id)) bvals) ubids)
-                 (values bvals (free-id-table-set ubids id #t)))))
-         (merge-kind-maxes 'flat (cons (kind-max unbound-ids actual) bvals))]))
+      (match-define (kind-max ids actual) km)
+      (define-values (bvals unbound-ids)
+        (for/fold ([bvals '()]
+                   [ubids (make-immutable-free-id-table)])
+                  ([(id _) (in-free-id-table ids)])
+          (if (member id names)
+              (values (cons (contract-restrict-value (lookup-id id)) bvals) ubids)
+              (values bvals (free-id-table-set ubids id #t)))))
+      (merge-kind-maxes 'flat (cons (kind-max unbound-ids actual) bvals)))
 
     (define (instantiate-constraint con)
-      (match con
-        [(constraint km bound)
-         (constraint (instantiate-kind-max km) bound)]))
+      (match-define (constraint km bound) con)
+      (constraint (instantiate-kind-max km) bound))
 
-    (match cr
-      [(contract-restrict (kind-max ids max) rec constraints)
-       (define-values (bound-vals unbound-ids)
-         (for/fold ([bvs '()] [ubids (make-immutable-free-id-table)])
-                   ([(id _) (in-free-id-table ids)])
-           (if (member id names)
-               (values (cons (lookup-id id) bvs) ubids)
-               (values bvs (free-id-table-set ubids id #t)))))
-       (merge-restricts* 'flat (cons
-                                (contract-restrict
-                                 (kind-max unbound-ids max) 
-                                 rec
-                                 (for*/set ([c (in-immutable-set constraints)]
-                                            [ic (in-value (instantiate-constraint c))]
-                                            #:when (not (trivial-constraint? ic)))
-                                   ic))
-                                bound-vals))]))
+    (match-define (contract-restrict (kind-max ids max) rec constraints) cr)
+    (define-values (bound-vals unbound-ids)
+      (for/fold ([bvs '()]
+                 [ubids (make-immutable-free-id-table)])
+                ([(id _) (in-free-id-table ids)])
+        (if (member id names)
+            (values (cons (lookup-id id) bvs) ubids)
+            (values bvs (free-id-table-set ubids id #t)))))
+    (merge-restricts* 'flat
+                      (cons (contract-restrict (kind-max unbound-ids max)
+                                               rec
+                                               (for*/set ([c (in-immutable-set constraints)]
+                                                          [ic (in-value (instantiate-constraint c))]
+                                                          #:when (not (trivial-constraint? ic)))
+                                                 ic))
+                            bound-vals)))
 
   (for ([name (in-list names)]
         [cr (in-list crs)])

@@ -268,10 +268,10 @@
       [(list (? exact-integer? coeff) (? Path? p))
        (values c (terms-set ts p (+ coeff (terms-ref ts p))))]
       [(list (? exact-integer? coeff) (? name-ref/c nm))
-       (let ([p (-id-path nm)])
-         (if (Empty? nm)
-             (values c ts)
-             (values c (terms-set ts p (+ coeff (terms-ref ts p))))))]
+       (define p (-id-path nm))
+       (if (Empty? nm)
+           (values c ts)
+           (values c (terms-set ts p (+ coeff (terms-ref ts p)))))]
       [(? exact-integer? new-const)
        (values (+ new-const c) ts)]
       [(LExp: c* ts*)
@@ -313,9 +313,7 @@
   (-> OptObject? (or/c #f exact-integer?))
   (match l
     [(LExp: c terms)
-     (if (hash-empty? terms)
-         c
-         #f)]
+     (and (hash-empty? terms) c)]
     [_ #f]))
 
 (define/cond-contract (in-LExp? obj l)
@@ -388,6 +386,5 @@
      (make-LExp* (+ c1 c2) (terms-add terms1 terms2))]))
 
 (define (add-path-to-lexp p l)
-  (match l
-    [(LExp: const terms)
-     (make-LExp* const (terms-set terms p (add1 (terms-ref terms p))))]))
+  (match-define (LExp: const terms) l)
+  (make-LExp* const (terms-set terms p (add1 (terms-ref terms p)))))

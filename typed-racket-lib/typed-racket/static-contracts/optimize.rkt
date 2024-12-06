@@ -341,11 +341,11 @@
   (let loop ((to-look-at reachable))
     (unless (zero? (free-id-table-count to-look-at))
       (define new-table (make-free-id-table))
-      (for ([(id _) (in-free-id-table to-look-at)])
-        (for ([(id _) (in-free-id-table (free-id-table-ref main-table id))])
-          (unless (free-id-table-ref seen id #f)
-            (free-id-table-set! seen id #t)
-            (free-id-table-set! new-table id #t))))
+      (for* ([(id _) (in-free-id-table to-look-at)]
+             [(id _) (in-free-id-table (free-id-table-ref main-table id))])
+        (unless (free-id-table-ref seen id #f)
+          (free-id-table-set! seen id #t)
+          (free-id-table-set! new-table id #t)))
       (loop new-table)))
 
   ;; Determine if the recursive name is referenced in the static contract

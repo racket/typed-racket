@@ -29,11 +29,12 @@
    (define (sc->contract v f)
      (match-define (exist-combinator (list names doms rngs)) v)
      (parameterize ([static-contract-may-contain-free-ids? #t])
-       (let ([a (with-syntax ([doms-stx (f doms)]
-                              [rngs-stx (f rngs)]
-                              [n (car names)])
-                  #'(->i ([n doms-stx]) (_ (n) rngs-stx)))])
-         a)))
+       (define a
+         (with-syntax ([doms-stx (f doms)]
+                       [rngs-stx (f rngs)]
+                       [n (car names)])
+           #'(->i ([n doms-stx]) (_ (n) rngs-stx))))
+       a))
    (define (sc->constraints v f)
      (simple-contract-restrict 'flat))])
 

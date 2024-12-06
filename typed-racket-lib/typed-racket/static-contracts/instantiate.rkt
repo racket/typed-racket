@@ -145,12 +145,14 @@
     (variable-ref (hash-ref vars id)))
 
   (for ([(name v) (in-free-id-table recursives)])
-    (match v
-      [(kind-max others max)
-       (add-equation! eqs
-          (hash-ref vars name)
-          (λ () (apply combine-kinds max (for/list ([(id _) (in-free-id-table others)])
-                                           (lookup id)))))]))
+    (match-define (kind-max others max) v)
+    (add-equation! eqs
+                   (hash-ref vars name)
+                   (λ ()
+                     (apply combine-kinds
+                            max
+                            (for/list ([(id _) (in-free-id-table others)])
+                              (lookup id))))))
   (define var-values (resolve-equations eqs))
   (for/hash ([(name var) (in-hash vars)])
     (values name (hash-ref var-values var))))

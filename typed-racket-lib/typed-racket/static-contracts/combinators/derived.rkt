@@ -4,9 +4,16 @@
 ;; These are used during optimizations as simplifications.
 ;; Ex: (listof/sc any/sc) => list?/sc
 
-(require "simple.rkt" "structural.rkt"
-         (for-template racket/base racket/list racket/set racket/promise
-                       racket/class racket/unit racket/async-channel racket/future))
+(require (for-template racket/async-channel
+                       racket/base
+                       racket/class
+                       racket/future
+                       racket/list
+                       racket/promise
+                       racket/set
+                       racket/unit)
+         "simple.rkt"
+         "structural.rkt")
 (provide (all-defined-out))
 
 (define identifier?/sc (flat/sc #'identifier?))

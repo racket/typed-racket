@@ -2,8 +2,8 @@
 
 ;; Defines a language analogous to #lang racket/gui but typed
 
-(require "gui/base.rkt"
-         typed/racket)
+(require typed/racket
+         "gui/base.rkt")
 
 (provide (all-from-out "gui/base.rkt")
          (all-from-out typed/racket))

@@ -3,8 +3,8 @@
 ;; Test for PR 14829. Make sure the type is not printed
 ;; for expressions that return Bottom.
 
-(require rackunit
-         racket/sandbox)
+(require racket/sandbox
+         rackunit)
 
 (define out (open-output-string))
 

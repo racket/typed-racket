@@ -111,7 +111,7 @@
         ;; All results must have the same range
         (unless (equal? (set-count (list->set ranges)) 1)
           (fail))
-        (define sorted-args (sort args (λ (l1 l2) (< (length l1) (length l2)))))
+        (define sorted-args (sort args < #:key length))
         (define shortest-args (first sorted-args))
         (define longest-args (last sorted-args))
         ;; The number of arguments must increase by 1 with no gaps

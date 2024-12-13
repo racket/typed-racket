@@ -1,5 +1,8 @@
 #lang racket/base
-(require (for-syntax syntax/parse racket/base syntax/id-table racket/dict))
+(require (for-syntax racket/base
+                     racket/dict
+                     syntax/id-table
+                     syntax/parse))
 
 (define-for-syntax code-insp
   (variable-reference->module-declaration-inspector

@@ -1,6 +1,7 @@
 #lang racket
 
-(require "run.rkt" "../send-places.rkt")
+(require "../send-places.rkt"
+         "run.rkt")
 
 (module test racket/base
   (displayln "run as program for tests"))

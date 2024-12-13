@@ -1,7 +1,7 @@
 #lang racket/base
-(require "../rep/type-constr.rkt"
+(require racket/lazy-require
          racket/match
-         racket/lazy-require)
+         "../rep/type-constr.rkt")
 
 (lazy-require ["../types/substitute.rkt"
                (subst-all make-simple-substitution)])

@@ -3,8 +3,8 @@
 ;; Make sure that the type printer expands only a single
 ;; level for (:type ...)
 
-(require rackunit
-         racket/sandbox)
+(require racket/sandbox
+         rackunit)
 
 (define out (open-output-string))
 

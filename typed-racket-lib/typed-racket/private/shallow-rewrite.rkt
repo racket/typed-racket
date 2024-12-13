@@ -222,36 +222,48 @@
                           [check-formal*
                             (let protect-loop ([args #'formals]
                                                [dom* dom*])
-                              (if (or (identifier? args)
-                                      (null? args)
-                                      (and (syntax? args) (null? (syntax-e args))))
-                                '()
-                                (let*-values ([(fst rst)
-                                               (cond
-                                                 [(pair? args)
-                                                  (values (car args) (cdr args))]
-                                                 [(syntax? args)
-                                                  (let ((e (syntax-e args)))
-                                                    (values (car e) (cdr e)))]
-                                                 [else
-                                                   (raise-syntax-error 'shallow-rewrite-top "#%plain-lambda formals" #'formals args)])]
-                                              [(check*)
-                                               (let ((dom+
-                                                     (for/fold ((acc '()))
-                                                               ((dom (in-list dom*)))
-                                                       (if (pair? dom) (cons (cdr dom) acc) acc))))
-                                                 (protect-loop rst dom+))]
-                                              [(fst-ty)
-                                               (let ((ann-ty (and (type-annotation fst #:infer #f) (get-type fst #:infer #t #:default Univ))))
-                                                 (if (and ann-ty (not (Error? ann-ty)))
-                                                   ann-ty
-                                                   (apply Un (for/list ((dom (in-list dom*)) #:when (pair? dom)) (car dom)))))]
-                                              [(ex* fst+)
-                                               (if skip-dom?
-                                                 (values '() #f)
-                                                 (protect-domain fst-ty fst (build-source-location-list fst) ctc-cache))])
-                                  (void (register-extra-defs! ex*))
-                                  (if fst+ (cons fst+ check*) check*))))])
+                              (cond
+                                [(or (identifier? args)
+                                     (null? args)
+                                     (and (syntax? args) (null? (syntax-e args))))
+                                 '()]
+                                [else
+                                 (define-values (fst rst)
+                                   (cond
+                                     [(pair? args) (values (car args) (cdr args))]
+                                     [(syntax? args)
+                                      (let ([e (syntax-e args)]) (values (car e) (cdr e)))]
+                                     [else
+                                      (raise-syntax-error 'shallow-rewrite-top
+                                                          "#%plain-lambda formals"
+                                                          #'formals
+                                                          args)]))
+                                 (define check*
+                                   (let ([dom+ (for/fold ([acc '()]) ([dom (in-list dom*)])
+                                                 (if (pair? dom)
+                                                     (cons (cdr dom) acc)
+                                                     acc))])
+                                     (protect-loop rst dom+)))
+                                 (define fst-ty
+                                   (let ([ann-ty (and (type-annotation fst #:infer #f)
+                                                      (get-type fst #:infer #t #:default Univ))])
+                                     (if (and ann-ty (not (Error? ann-ty)))
+                                         ann-ty
+                                         (apply Un
+                                                (for/list ([dom (in-list dom*)]
+                                                           #:when (pair? dom))
+                                                  (car dom))))))
+                                 (define-values (ex* fst+)
+                                   (if skip-dom?
+                                       (values '() #f)
+                                       (protect-domain fst-ty
+                                                       fst
+                                                       (build-source-location-list fst)
+                                                       ctc-cache)))
+                                 (void (register-extra-defs! ex*))
+                                 (if fst+
+                                     (cons fst+ check*)
+                                     check*)]))])
                      (if (null? check-formal*)
                        body+
                        (cons
@@ -284,38 +296,50 @@
                                          [check-formal*
                                            (let protect-loop ([args formals]
                                                               [dom* matching-dom*])
-                                             (if (or (identifier? args)
-                                                     (null? args)
-                                                     (and (syntax? args) (null? (syntax-e args))))
-                                               '()
-                                               (let*-values ([(fst rst)
-                                                              (cond
-                                                                [(pair? args)
-                                                                 (values (car args) (cdr args))]
-                                                                [(syntax? args)
-                                                                 (let ((e (syntax-e args)))
-                                                                   (values (car e) (cdr e)))]
-                                                                [else
-                                                                  (raise-syntax-error 'shallow-rewrite-top "#%plain-lambda formals" formals args)])]
-                                                             [(check*)
-                                                              (let ((dom+
-                                                                    (for/fold ((acc '()))
-                                                                              ((dom (in-list dom*)))
-                                                                      (if (pair? dom) (cons (cdr dom) acc) acc))))
-                                                                (protect-loop rst dom+))]
-                                                             [(fst-ty)
-                                                              (if (type-annotation fst #:infer #f)
-                                                                (get-type fst #:infer #t #:default Univ)
-                                                                (apply Un
-                                                                       (for/fold ((acc '()))
-                                                                                 ((dom (in-list dom*)))
-                                                                         (if (pair? dom) (cons (car dom) acc) acc))))]
-                                                             [(ex* fst+)
-                                                              (if skip-dom?
-                                                                (values '() #f)
-                                                                (protect-domain fst-ty fst (build-source-location-list fst) ctc-cache))])
-                                                 (void (register-extra-defs! ex*))
-                                                 (if fst+ (cons fst+ check*) check*))))])
+                                             (cond
+                                               [(or (identifier? args)
+                                                    (null? args)
+                                                    (and (syntax? args) (null? (syntax-e args))))
+                                                '()]
+                                               [else
+                                                (define-values (fst rst)
+                                                  (cond
+                                                    [(pair? args) (values (car args) (cdr args))]
+                                                    [(syntax? args)
+                                                     (let ([e (syntax-e args)])
+                                                       (values (car e) (cdr e)))]
+                                                    [else
+                                                     (raise-syntax-error 'shallow-rewrite-top
+                                                                         "#%plain-lambda formals"
+                                                                         formals
+                                                                         args)]))
+                                                (define check*
+                                                  (let ([dom+ (for/fold ([acc '()])
+                                                                        ([dom (in-list dom*)])
+                                                                (if (pair? dom)
+                                                                    (cons (cdr dom) acc)
+                                                                    acc))])
+                                                    (protect-loop rst dom+)))
+                                                (define fst-ty
+                                                  (if (type-annotation fst #:infer #f)
+                                                      (get-type fst #:infer #t #:default Univ)
+                                                      (apply Un
+                                                             (for/fold ([acc '()])
+                                                                       ([dom (in-list dom*)])
+                                                               (if (pair? dom)
+                                                                   (cons (car dom) acc)
+                                                                   acc)))))
+                                                (define-values (ex* fst+)
+                                                  (if skip-dom?
+                                                      (values '() #f)
+                                                      (protect-domain fst-ty
+                                                                      fst
+                                                                      (build-source-location-list fst)
+                                                                      ctc-cache)))
+                                                (void (register-extra-defs! ex*))
+                                                (if fst+
+                                                    (cons fst+ check*)
+                                                    check*)]))])
                                    (if (null? check-formal*)
                                      body+
                                      (cons
@@ -449,20 +473,15 @@
 
 (define (formals-fold init f stx)
   (let loop ((v stx))
-    (if (or (identifier? v)
-            (null? v)
-            (and (syntax? v) (null? (syntax-e v))))
-      init
-      (let*-values (((fst rst)
-                     (cond
-                       [(pair? v)
-                        (values (car v) (cdr v))]
-                       [(syntax? v)
-                        (let ((e (syntax-e v)))
-                          (values (car e) (cdr e)))]
-                       [else
-                         (raise-syntax-error 'formals-fold "lambda formals" stx)])))
-        (f (loop rst) fst)))))
+    (cond
+      [(or (identifier? v) (null? v) (and (syntax? v) (null? (syntax-e v)))) init]
+      [else
+       (define-values (fst rst)
+         (cond
+           [(pair? v) (values (car v) (cdr v))]
+           [(syntax? v) (let ([e (syntax-e v)]) (values (car e) (cdr e)))]
+           [else (raise-syntax-error 'formals-fold "lambda formals" stx)]))
+       (f (loop rst) fst)])))
 
 ;; is-application? : Syntax -> Boolean
 ;; Returns #true if `stx` is a function application (an app that may need dynamic checking)

@@ -1654,12 +1654,12 @@
             ;; of init arguments.
             (define parent-inits (get-parent-inits parent/init-type))
 
-            (define class-type
-              (make-Class row-var
-                          (append given-inits parent-inits)
-                          fields methods augments given-init-rest))
-
-            class-type]
+            (make-Class row-var
+                        (append given-inits parent-inits)
+                        fields
+                        methods
+                        augments
+                        given-init-rest)]
            [else
             ;; Conservatively assume that if there *are* #:implements
             ;; clauses, then the current type alias will be recursive

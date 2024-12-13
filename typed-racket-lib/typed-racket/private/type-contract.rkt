@@ -1261,8 +1261,7 @@
              (when (and (not (empty? kws)))
                (fail #:reason (~a "cannot generate contract for case function type"
                                   " with optional keyword arguments")))
-             (when (ormap (lambda (n-exi)
-                            (> n-exi 0))
+             (when (ormap positive?
                           n-exis)
                (fail #:reason (~a "cannot generate contract for case function type with existentials")))
 

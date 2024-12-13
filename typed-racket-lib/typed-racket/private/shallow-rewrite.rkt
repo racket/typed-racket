@@ -731,10 +731,7 @@
     [(eq? t Univ)
      (values '() #f)]
     [else
-     (define (fail #:reason r)
-       (raise-user-error 'type->flat-contract "failed to convert type ~a to flat contract because ~a" t r))
-     (match-define (list defs ctc)
-       (type->contract t fail #:typed-side 'both #:cache ctc-cache))
+     (match-define (list defs ctc) (type->contract t fail #:typed-side 'both #:cache ctc-cache))
      (match t
       [(Refine: _ _)
        ;; do not lift defs; they may use a local var

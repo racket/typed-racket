@@ -387,8 +387,8 @@
         (loop t (flip-side typed-side) recursive-values))
       (define (t->sc/both t #:recursive-values (recursive-values recursive-values))
         (loop t 'both recursive-values))
-      (define (t->sc/fun t #:maybe-existential [opt-exi #f]) (t->sc/function t fail typed-side recursive-values loop #f #:maybe-existential opt-exi))
-      (define (t->sc/meth t) (t->sc/method t fail typed-side recursive-values loop))
+      (define (t->sc/meth t)
+        (t->sc/method t fail typed-side recursive-values loop))
 
       (define (struct->recursive-sc name-base key flds sc-ctor)
         (define key* (generate-temporary name-base))
@@ -1135,28 +1135,25 @@
 (define (t->sc/function f fail typed-side recursive-values loop method? #:maybe-existential [opt-exi #f])
   (define (t->sc t #:recursive-values (recursive-values recursive-values))
     (loop t typed-side recursive-values))
-  (define (t->sc/neg t #:recursive-values (recursive-values recursive-values))
-    (loop t (flip-side typed-side) recursive-values))
-
   (define (arr-params->exist/sc exi dom rst kw rng prop+type)
     (define (occur? t)
-      (if (or (not t) (empty? t)) #f
+      (if (or (not t) (empty? t))
+          #f
           (set-member? (free-vars-names (free-vars* t)) exi)))
-
+  
     (match* (rng prop+type)
       [((Fun: (list (Arrow: (list-rest (F: n1) a ... _) rst_i kw_i _))) (F: n1))
-       #:when (and (not (ormap occur? (list rst kw rst_i kw_i)))
-                   (eq? n1 exi))
+       #:when (and (not (ormap occur? (list rst kw rst_i kw_i))) (eq? n1 exi))
        (void)]
-      [(_ _) (fail #:reason
-                   "contract generation only supports Some Type in this form: (Some (X) (-> ty1 ... (-> X ty ... ty2) : X)) or (-> ty1 ... (Some (X) (-> X ty ... ty2) : X))")])
-
+      [(_ _)
+       (fail
+        #:reason
+        "contract generation only supports Some Type in this form: (Some (X) (-> ty1 ... (-> X ty ... ty2) : X)) or (-> ty1 ... (Some (X) (-> X ty ... ty2) : X))")])
+  
     (define/with-syntax name exi)
     (define lhs (t->sc/neg dom))
     (define eq-name (flat/sc #'(eq/c name)))
-    (define rhs (t->sc rng
-                       #:recursive-values (hash-set recursive-values exi
-                                                    (same eq-name))))
+    (define rhs (t->sc rng #:recursive-values (hash-set recursive-values exi (same eq-name))))
     (exist/sc (list #'name) lhs rhs))
 
 
@@ -1310,17 +1307,11 @@
 ;; Precondition: type is a valid method type
 (define (t->sc/method type fail typed-side recursive-values loop)
   ;; helper for mutually recursive calls in Poly cases
-  (define (rec body #:recursive-values rv)
-    (t->sc/method body fail typed-side rv loop))
   (match type
-    [(? Poly?)
-     (t->sc/poly type fail typed-side recursive-values rec)]
-    [(? PolyDots?)
-     (t->sc/polydots type fail typed-side recursive-values rec)]
-    [(? PolyRow?)
-     (t->sc/polyrow type fail typed-side recursive-values rec)]
-    [(? Fun?)
-     (t->sc/function type fail typed-side recursive-values loop #t)]
+    [(? Poly?) (t->sc/poly type fail typed-side recursive-values rec)]
+    [(? PolyDots?) (t->sc/polydots type fail typed-side recursive-values rec)]
+    [(? PolyRow?) (t->sc/polyrow type fail typed-side recursive-values rec)]
+    [(? Fun?) (t->sc/function type fail typed-side recursive-values loop #t)]
     [_ (fail #:reason "invalid method type")]))
 
 (define (is-a-function-type? initial)

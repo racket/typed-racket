@@ -284,11 +284,11 @@
                             ;; no type
                             (quasisyntax/loc formals [#,formals . #,body])]
                            [else
+                             (define len (formals-length formals))
                              (define matching-dom*
-                               (let ([len (formals-length formals)])
-                                 (for/list ((dom (in-list all-dom*))
-                                            #:when (= len (length dom)))
-                                   dom)))
+                               (for/list ([dom (in-list all-dom*)]
+                                          #:when (= len (length dom)))
+                                 dom))
                              (quasisyntax/loc stx
                                [#,formals .
                                 #,(let* ([body+

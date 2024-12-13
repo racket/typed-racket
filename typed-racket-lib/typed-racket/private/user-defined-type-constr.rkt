@@ -30,7 +30,8 @@
     [_ #f]))
 
 (define (recursive-type-constr? constr)
-  (match constr
-    [(struct* TypeConstructor
-              ([real-trep-constr (struct* user-defined-type-op ([recursive? recursive?]))]))
-     recursive?]))
+  (match-define (struct* TypeConstructor
+                         ([real-trep-constr
+                           (struct* user-defined-type-op ([recursive? recursive?]))]))
+    constr)
+  recursive?)

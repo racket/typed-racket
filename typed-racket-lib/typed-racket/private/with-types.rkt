@@ -89,7 +89,7 @@
 (define (with-type-helper stx body fvids fvtys exids extys resty expr? ctx te-mode)
   (define old-context (unbox typed-context?))
   (define old-te-mode (unbox type-enforcement-mode))
-  (unless (not old-context)
+  (when old-context
     (tc-error/stx stx (format "with-type cannot be used in a typed module. ~a " old-context)))
   (set-box! typed-context? #t)
   (set-box! type-enforcement-mode te-mode)

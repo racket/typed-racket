@@ -183,8 +183,8 @@
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
 (define ((parse/id p) loc datum)
-  (let* ([stx* (datum->syntax loc datum loc loc)])
-    (p stx*)))
+  (define stx* (datum->syntax loc datum loc loc))
+  (p stx*))
 
 (define (parse-literal-alls stx)
   (syntax-parse stx

@@ -25,8 +25,8 @@
     [offset : Exact-Nonnegative-Integer])
    #:type-name Location]
   [#:struct source
-   ([start : Location]
-    [stop  : Location])
+   ([start : (U Location Symbol False)]
+    [stop  : (U Location Symbol False)])
    #:type-name Source]
   [#:struct external-dtd
    ([system : String])

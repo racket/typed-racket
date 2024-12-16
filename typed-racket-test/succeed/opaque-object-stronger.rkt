@@ -140,19 +140,16 @@
       (m1 (->m any/c integer?))
       (m2 (->m any/c (listof any/c)))))
 
-  (let ([ctc-stronger
-         (object/c-opaque
-           (a (->m symbol?))
-           (b (->m (between/c 2 3)))
-           (c (->m any/c (listof (char-in #\A #\B)))))]
-        [ctc-weaker
-         (object/c-opaque
-           (a (->m symbol?))
-           (b (->m (between/c 0 5)))
-           (c (->m any/c (listof (char-in #\A #\Z)))))])
-    (test-stronger? ctc-stronger ctc-weaker)
-    (test-not-equivalent? ctc-stronger ctc-weaker))
-)
+  (define ctc-stronger
+    (object/c-opaque (a (->m symbol?))
+                     (b (->m (between/c 2 3)))
+                     (c (->m any/c (listof (char-in #\A #\B))))))
+  (define ctc-weaker
+    (object/c-opaque (a (->m symbol?))
+                     (b (->m (between/c 0 5)))
+                     (c (->m any/c (listof (char-in #\A #\Z))))))
+  (test-stronger? ctc-stronger ctc-weaker)
+  (test-not-equivalent? ctc-stronger ctc-weaker))
 
 (let () ;; vs. object/c
   (test-stronger?

@@ -1,5 +1,7 @@
 #lang racket/base
-(require rackunit (for-syntax rackunit racket/base))
+(require (for-syntax racket/base
+                     rackunit)
+         rackunit)
 
 ;; Coerce vectors to/from syntax objects, check mutability
 

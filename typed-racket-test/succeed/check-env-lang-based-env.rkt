@@ -1,6 +1,6 @@
 #lang racket
-(require (only-in typed-racket/base-env/base-env [org-map be:org-map])
-         syntax/srcloc
+(require syntax/srcloc
+         (only-in typed-racket/base-env/base-env [org-map be:org-map])
          (only-in typed-racket/base-env/base-env-numeric [org-map ben:org-map]))
 
 (for ([a (in-list (append be:org-map

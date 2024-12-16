@@ -35,22 +35,18 @@
   #:property prop:combinator-name "parametric->/sc"
   #:methods gen:sc
     [(define (sc-map v f)
-       (match v
-        [(parametric-combinator (list arg) vars)
-         (parametric-combinator (list (f arg 'covariant)) vars)]))
+       (match-define (parametric-combinator (list arg) vars) v)
+       (parametric-combinator (list (f arg 'covariant)) vars))
      (define (sc-traverse v f)
-       (match v
-        [(parametric-combinator (list arg) vars)
-         (f arg 'covariant)
-         (void)]))
+       (match-define (parametric-combinator (list arg) vars) v)
+       (f arg 'covariant)
+       (void))
      (define (sc->contract v f)
-       (match v
-        [(parametric-combinator (list arg) vars)
-         #`(parametric->/c #,vars #,(f arg))]))
+       (match-define (parametric-combinator (list arg) vars) v)
+       #`(parametric->/c #,vars #,(f arg)))
      (define (sc->constraints v f)
-       (match v
-        [(parametric-combinator (list arg) vars)
-         (merge-restricts* 'impersonator  (list (f arg)))]))])
+       (match-define (parametric-combinator (list arg) vars) v)
+       (merge-restricts* 'impersonator (list (f arg))))])
 
 (define (parametric->/sc vars body)
   (parametric-combinator (list body) vars))
@@ -70,22 +66,18 @@
   #:property prop:combinator-name "sealing->/sc"
   #:methods gen:sc
     [(define (sc-map v f)
-       (match v
-        [(sealing-combinator (list arg) vars members)
-         (sealing-combinator (list (f arg 'covariant)) vars members)]))
+       (match-define (sealing-combinator (list arg) vars members) v)
+       (sealing-combinator (list (f arg 'covariant)) vars members))
      (define (sc-traverse v f)
-       (match v
-        [(sealing-combinator (list arg) vars members)
-         (f arg 'covariant)
-         (void)]))
+       (match-define (sealing-combinator (list arg) vars members) v)
+       (f arg 'covariant)
+       (void))
      (define (sc->contract v f)
-       (match v
-        [(sealing-combinator (list arg) vars members)
-         #`(sealing->/c #,(car vars) #,members #,(f arg))]))
+       (match-define (sealing-combinator (list arg) vars members) v)
+       #`(sealing->/c #,(car vars) #,members #,(f arg)))
      (define (sc->constraints v f)
-       (match v
-        [(sealing-combinator (list arg) vars members)
-         (merge-restricts* 'impersonator  (list (f arg)))]))])
+       (match-define (sealing-combinator (list arg) vars members) v)
+       (merge-restricts* 'impersonator (list (f arg))))])
 
 (define (sealing->/sc vars members body)
   (sealing-combinator (list body) vars members))

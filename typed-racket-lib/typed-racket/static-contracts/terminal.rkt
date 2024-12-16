@@ -3,13 +3,11 @@
 ;; Utilities for defining static contracts that have internal structure but have no sub static
 ;; contracts. Example: (length/sc 1).
 
-(require
-  "structures.rkt"
-  "constraints.rkt"
-   racket/match
-  (for-syntax
-    racket/base
-    syntax/parse))
+(require (for-syntax racket/base
+                     syntax/parse)
+         racket/match
+         "constraints.rkt"
+         "structures.rkt")
 
 (provide
   define-terminal-sc)

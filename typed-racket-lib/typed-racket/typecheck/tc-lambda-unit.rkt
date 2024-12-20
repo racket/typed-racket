@@ -336,7 +336,7 @@
       [_ #f]))
 
   (cond
-    [(and (> (free-id-table-count aux-table) 0) (not rest-id))
+    [(and (positive? (free-id-table-count aux-table)) (not rest-id))
      (tc/opt-lambda-clause arg-list body aux-table)]
     [else
      (define arg-types (get-types arg-list #:default (lambda () #f)))

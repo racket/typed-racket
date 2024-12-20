@@ -1,29 +1,26 @@
 #lang racket/unit
 
-(require "../../utils/utils.rkt"
-         "signatures.rkt"
-         "utils.rkt"
-         "../../utils/tc-utils.rkt"
-         "../../env/lexical-env.rkt"
-         "../../rep/type-rep.rkt"
-         "../../rep/prop-rep.rkt"
-         "../../rep/object-rep.rkt"
-         "../../rep/values-rep.rkt"
-         syntax/parse racket/match
+(require racket/match
+         syntax/parse
          syntax/parse/experimental/reflect
-         "../signatures.rkt" "../tc-funapp.rkt"
-         "../integer-refinements.rkt"
-         "../../types/abbrev.rkt"
-         "../../types/utils.rkt"
-         "../../types/prop-ops.rkt"
          "../../env/lexical-env.rkt"
-         "../tc-subst.rkt"
-         "../tc-envops.rkt"
-         "../check-below.rkt"
-         "../../rep/type-rep.rkt"
-         "../../rep/prop-rep.rkt"
          "../../rep/object-rep.rkt"
-         "../../rep/values-rep.rkt")
+         "../../rep/prop-rep.rkt"
+         "../../rep/type-rep.rkt"
+         "../../rep/values-rep.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/prop-ops.rkt"
+         "../../types/utils.rkt"
+         "../../utils/tc-utils.rkt"
+         "../../utils/utils.rkt"
+         "../check-below.rkt"
+         "../integer-refinements.rkt"
+         "../signatures.rkt"
+         "../tc-envops.rkt"
+         "../tc-funapp.rkt"
+         "../tc-subst.rkt"
+         "signatures.rkt"
+         "utils.rkt")
 
 (import tc-expr^ tc-app-keywords^
         tc-app-hetero^ tc-app-list^ tc-app-apply^ tc-app-values^

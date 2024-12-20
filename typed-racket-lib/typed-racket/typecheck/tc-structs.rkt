@@ -413,9 +413,9 @@
     (for/list ([opname (in-list operators)]
                [self-fld (in-list self-fields)]
                [idx-parent-cnt (in-naturals parent-count)])
-      (let-values ([(fn-args poly-ty) (mk-vals opname self-fld idx-parent-cnt st-type-alias)])
-        (apply add-struct-operator-fn! opname fn-args)
-        (make-def-binding opname poly-ty))))
+      (define-values (fn-args poly-ty) (mk-vals opname self-fld idx-parent-cnt st-type-alias))
+      (apply add-struct-operator-fn! opname fn-args)
+      (make-def-binding opname poly-ty)))
 
   (define bindings
     (list* (make-def-binding struct-type (make-StructType sty))

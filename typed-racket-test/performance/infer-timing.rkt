@@ -405,7 +405,8 @@
   (displayln `(big ,n))
   (define ty-list (append ts ts))
   (collect-garbage) (collect-garbage) (collect-garbage)
-  (define run (λ () (void (bigcall n ty-list))))
+  (define (run)
+    (void (bigcall n ty-list)))
   (cond [hsbencher
          (define-values (vs t r gc)
            (time-apply run null))

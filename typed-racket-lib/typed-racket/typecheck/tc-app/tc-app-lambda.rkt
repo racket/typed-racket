@@ -46,8 +46,8 @@
    (let* ([res (tc/let-values #'((x) ...) #'(args ...) #'body expected)]
           [dom-ts
            (for/list ([arg (in-list (syntax-e #'(args ...)))])
-             (match (type-of arg)
-              [(tc-result1: t) t]))]
+             (match-define (tc-result1: t) (type-of arg))
+             t)]
           [cod-t (tc-results->values res)])
      (add-typeof-expr #'lam (ret (->* dom-ts cod-t :T+ #t)))
      res))

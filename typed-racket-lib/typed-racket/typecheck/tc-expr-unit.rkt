@@ -94,8 +94,8 @@
     (values (tc-expr/t expr) (current-type-error?))))
 
 (define (tc-expr/check/t e t)
-  (match (tc-expr/check e t)
-    [(tc-result1: t) t]))
+  (match-define (tc-result1: t) (tc-expr/check e t))
+  t)
 
 ;; typecheck an expression by passing tr-expr/check a tc-results
 (define/cond-contract (tc-expr/check/type form expected)

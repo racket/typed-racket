@@ -1,12 +1,12 @@
 #lang racket/base
 
-(require "rep-utils.rkt"
-         "core-rep.rkt"
-         "type-mask.rkt"
-         racket/match
-         (for-syntax racket/base
+(require (for-syntax racket/base
                      racket/syntax
-                     syntax/parse))
+                     syntax/parse)
+         racket/match
+         "core-rep.rkt"
+         "rep-utils.rkt"
+         "type-mask.rkt")
 
 (provide define-base-types
          Base-bits:

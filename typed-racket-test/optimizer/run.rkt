@@ -1,6 +1,8 @@
 #lang racket
-(require racket/runtime-path compiler/compiler
-         rackunit rackunit/text-ui
+(require compiler/compiler
+         racket/runtime-path
+         rackunit
+         rackunit/text-ui
          typed-racket/optimizer/logging
          "../send-places.rkt")
 

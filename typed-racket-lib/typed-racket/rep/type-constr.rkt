@@ -1,9 +1,9 @@
 #lang racket/base
-(require racket/match
+(require racket/generic
          racket/lazy-require
          racket/list
-         racket/string
-         racket/generic)
+         racket/match
+         racket/string)
 
 (provide print-kind
          make-type-constr

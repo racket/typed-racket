@@ -146,13 +146,10 @@
   (match-define (function-combinator args indices mand-kws opt-kws typed-side?) v)
   (define-values (mand-args opt-args mand-kw-args opt-kw-args rest-arg range-args)
     (apply split-function-args args indices))
-  (if (and (not rest-arg)
-           (null? (append mand-kw-args mand-args opt-kw-args opt-args))
-           typed-side?)
-      ;; currently we only handle this trivial case
-      ;; we could probably look at the actual kind of `range-args` as well
-      (if (not range-args) 'flat #f)
-      #f))
+  (and (and (not rest-arg) (null? (append mand-kw-args mand-args opt-kw-args opt-args)) typed-side?)
+       ;; currently we only handle this trivial case
+       ;; we could probably look at the actual kind of `range-args` as well
+       (if (not range-args) 'flat #f)))
 
 
 (define (function-sc-constraints v f)

@@ -65,34 +65,28 @@
    [indices (listof symbol?)]) #:transparent)
 
 (define (context-add-vars ctx vars)
-  (match ctx
-    [(context V X Y)
-     (context V (append vars X) Y)]))
+  (match-define (context V X Y) ctx)
+  (context V (append vars X) Y))
 
 (define (context-add-var ctx var)
-  (match ctx
-    [(context V X Y)
-     (context V (cons var X) Y)]))
+  (match-define (context V X Y) ctx)
+  (context V (cons var X) Y))
 
 (define (context-add ctx #:bounds [bounds empty] #:vars [vars empty] #:indices [indices empty])
-  (match ctx
-    [(context V X Y)
-     (context (append bounds V) (append vars X) (append indices Y))]))
+  (match-define (context V X Y) ctx)
+  (context (append bounds V) (append vars X) (append indices Y)))
 
 (define (inferable-index? ctx bound)
-  (match ctx
-    [(context _ _ Y)
-     (memq bound Y)]))
+  (match-define (context _ _ Y) ctx)
+  (memq bound Y))
 
 (define ((inferable-var? ctx) var)
-  (match ctx
-    [(context _ X _)
-     (memq var X)]))
+  (match-define (context _ X _) ctx)
+  (memq var X))
 
 (define (empty-cset/context ctx)
-  (match ctx
-    [(context _ X Y)
-     (empty-cset X Y)]))
+  (match-define (context _ X Y) ctx)
+  (empty-cset X Y))
 
 
 
@@ -766,9 +760,8 @@
             (list values -Nat)))
          (define type
            (for/or ([pred-type (in-list possibilities)])
-             (match pred-type
-               [(list pred? type)
-                (and (pred? n) type)])))
+             (match-define (list pred? type) pred-type)
+             (and (pred? n) type)))
          (cgen/seq context (seq (list type) -null-end) ts*)]
         ;; numeric? == #true
         [((Base-bits: #t _) (SequenceSeq: ts*))
@@ -915,16 +908,12 @@
   ;; c : Constaint
   ;; variance : Variance
   (define (constraint->type v variance)
-    (match v
-      [(c S T)
-       (match variance
-         [(? variance:const?) S]
-         [(? variance:co?) S]
-         [(? variance:contra?) T]
-         [(? variance:inv?) (let ([gS (generalize S)])
-                             (if (subtype gS T)
-                                 gS
-                                 S))])]))
+    (match-define (c S T) v)
+    (match variance
+      [(? variance:const?) S]
+      [(? variance:co?) S]
+      [(? variance:contra?) T]
+      [(? variance:inv?) (let ([gS (generalize S)]) (if (subtype gS T) gS S))]))
 
   ;; Since we don't add entries to the empty cset for index variables (since there is no
   ;; widest constraint, due to dcon-exacts), we must add substitutions here if no constraint

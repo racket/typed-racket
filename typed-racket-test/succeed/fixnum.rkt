@@ -38,3 +38,6 @@
 (check equal? (fxmin 3 2) 2)
 (check equal? (fxmax 3 4) 4)
 
+(check equal? (fxpopcount #x0fffffffffffffff) 60)
+(check equal? (fxpopcount32 #xffffffff) 32)
+(check equal? (fxpopcount16 #xffff) 16)

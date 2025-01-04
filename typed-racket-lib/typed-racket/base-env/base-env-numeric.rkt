@@ -420,6 +420,13 @@
        (-> -NonPosInt -Int -NonPosFixnum)
        (binop -Int -Fixnum))))
 
+  (define fxpopcount-type
+    (lambda ()
+      (fx-from-cases
+       (-Nat . -> . -NonNegFixnum)
+       (-NonNegFixnum . -> . -NonNegFixnum)
+       (-Int . -> . -Fixnum))))
+
   ;; A bit of machinery to allow floating point operations to be abstracted over double/extended
   ;; floating point types without repetition. 
   (define-syntax (define-fl-type-lambda stx)
@@ -1945,6 +1952,10 @@
 [fxnot (fxnot-type)]
 [fxlshift (fxlshift-type)]
 [fxrshift (fxrshift-type)]
+
+[fxpopcount (fxpopcount-type)]
+[fxpopcount16 (fxpopcount-type)]
+[fxpopcount32 (fxpopcount-type)]
 
 [fx= (fx=-type)]
 [fx< (fx<-type)]

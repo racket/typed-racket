@@ -32,17 +32,15 @@
 
 
 (define (exn-pred p)
-  (let ([sexp (with-handlers
-                  ([exn:fail? (lambda _ #f)])
-                (call-with-input-file*
-                 p
-                 (lambda (prt)
-                   (read-line prt 'any) (read prt))))])
-    (match sexp
-      [(list-rest 'exn-pred e)
-       (eval `(exn-matches . ,e) (namespace-anchor->namespace a))]
-      [_
-       (exn-matches ".*Type Checker.*" exn:fail:syntax?)])))
+  (define sexp
+    (with-handlers ([exn:fail? (lambda _ #f)])
+      (call-with-input-file* p
+                             (lambda (prt)
+                               (read-line prt 'any)
+                               (read prt)))))
+  (match sexp
+    [(list-rest 'exn-pred e) (eval `(exn-matches . ,e) (namespace-anchor->namespace a))]
+    [_ (exn-matches ".*Type Checker.*" exn:fail:syntax?)]))
 
 (define-runtime-path src-dir ".")
 
@@ -114,15 +112,14 @@
   (define shootout (collection-path "tests" "racket" "benchmarks" "shootout" "typed"))
   (define common (collection-path "tests" "racket" "benchmarks" "common" "typed"))
   (define (mk dir)
-    (let ((promised-results
-            (for/hash ([file (in-list (directory-list dir))]
-                        #:when (scheme-file? file))
-              (values (path->string file)
-                      (delay/thread (compile-path (build-path dir file)))))))
-      (make-test-suite (path->string dir)
-        (for/list ([(name results) promised-results])
-           (test-suite name
-              (check-not-exn (λ () (force results))))))))
+    (define promised-results
+      (for/hash ([file (in-list (directory-list dir))]
+                 #:when (scheme-file? file))
+        (values (path->string file) (delay/thread (compile-path (build-path dir file))))))
+    (make-test-suite (path->string dir)
+                     (for/list ([(name results) promised-results])
+                       (test-suite name
+                         (check-not-exn (λ () (force results)))))))
 
 
   (test-suite "Compiling Benchmark tests"

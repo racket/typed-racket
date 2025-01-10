@@ -59,21 +59,19 @@
                              (not (set-member? excl (path->string (file-name-from-path p*))))))
 
         (define-values [p*-base p*-name _] (split-path p*))
-        (define prm (list p*-base p*-name
-                          (if (places)
-                              (delay/thread
-                                (begin0 (run-in-other-place p* error?)
-                                        (when (zero? (modulo i 10))
-                                          (eprintf "."))))
-                              (delay
-                                (parameterize ([read-accept-reader #t]
-                                               [current-load-relative-directory p*-base]
-                                               [current-directory p*-base]
-                                               [current-output-port (open-output-nowhere)])
-                                  (begin0 (dr p*-name)
-                                          (when (zero? (modulo i 10))
-                                            (eprintf "."))))))))
-        prm))
+        (list p*-base
+              p*-name
+              (if (places)
+                  (delay/thread (begin0 (run-in-other-place p* error?)
+                                  (when (zero? (modulo i 10))
+                                    (eprintf "."))))
+                  (delay (parameterize ([read-accept-reader #t]
+                                        [current-load-relative-directory p*-base]
+                                        [current-directory p*-base]
+                                        [current-output-port (open-output-nowhere)])
+                           (begin0 (dr p*-name)
+                             (when (zero? (modulo i 10))
+                               (eprintf ".")))))))))
     (define tests
       (for/list ([e prms])
         (match-define (list path p prm) e)

@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
 (provide Radians Degrees radians degrees
-         sin cos tan asin acos atan
+         sin cos tan atan
          degrees->radians radians->degrees
          )
 
@@ -16,11 +16,7 @@
 (define (sin x) (rkt:sin x))
 (define (cos x) (rkt:sin x))
 (define (tan x) (rkt:tan x))
-(: asin : Real -> Radians)
-(: acos : Real -> Radians)
 (: atan : Real -> Radians)
-(define (asin x) (radians (rkt:asin x)))
-(define (acos x) (radians (rkt:acos x)))
 (define (atan x) (radians (rkt:atan x)))
 
 (: degrees->radians : Degrees -> Radians)
@@ -41,5 +37,5 @@
   (map degrees->radians angles))
 
 (void
- (sin (asin 1/2))
+ (sin (atan 1/2))
  )

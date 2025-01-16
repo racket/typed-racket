@@ -1739,12 +1739,10 @@
                             -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
 [acos (from-cases (-One . -> . -Zero)
                   (map unop
-                       (list -Flonum -SingleFlonum -InexactReal -Real
-                             -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
+                       (list -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
 [asin (from-cases (-Zero . -> . -One)
                   (map unop
-                       (list -Flonum -SingleFlonum -InexactReal -Real
-                             -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
+                       (list -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
 [atan (from-cases
        (map unop (list -Zero -Flonum -SingleFlonum -InexactReal -Real
                        -FloatComplex -SingleFlonumComplex -InexactComplex N))

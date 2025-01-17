@@ -80,10 +80,10 @@
   (match v
     [(struct unresolved (stx _ persistent?))
      (set-unresolved-in-process! v #t)
-     (let ([t (parse-type stx)])
-       (when persistent?
-         (mapping-put! id (make-resolved t)))
-       t)]
+     (define t (parse-type stx))
+     (when persistent?
+       (mapping-put! id (make-resolved t)))
+     t]
     [(struct resolved (t))
      t]))
 

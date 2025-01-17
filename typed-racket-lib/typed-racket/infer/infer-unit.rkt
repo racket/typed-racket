@@ -948,13 +948,13 @@
                    (for/hash ([(k v) (in-hash cmap)])
                      (values k (t-subst (constraint->type v (hash-ref var-hash k variance:const))))))]
            [subst (for/fold ([subst subst]) ([v (in-list X)])
-                    (let ([entry (hash-ref subst v #f)])
-                      ;; Make sure we got a subst entry for a type var
-                      ;; (i.e. just a type to substitute)
-                      ;; If we don't have one, there are no constraints on this variable
-                      (if (and entry (t-subst? entry))
-                          subst
-                          (hash-set subst v (t-subst Univ)))))])
+                    (define entry (hash-ref subst v #f))
+                    ;; Make sure we got a subst entry for a type var
+                    ;; (i.e. just a type to substitute)
+                    ;; If we don't have one, there are no constraints on this variable
+                    (if (and entry (t-subst? entry))
+                        subst
+                        (hash-set subst v (t-subst Univ))))])
       ;; verify that we got all the important variables
       (extend-idxs subst)))
   (if multiple-substitutions?

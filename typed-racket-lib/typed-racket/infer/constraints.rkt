@@ -25,12 +25,10 @@
 
 ;; add the constraints S <: var <: T to every map in cs
 (define (insert cs var S T)
-  (match cs
-    [(struct cset (maps))
-     (make-cset (for/list ([map-entry (in-list maps)])
-                  (match-define (cons map dmap) map-entry)
-                  (cons (hash-set map var (make-c S T))
-                        dmap)))]))
+  (match-define (struct cset (maps)) cs)
+  (make-cset (for/list ([map-entry (in-list maps)])
+               (match-define (cons map dmap) map-entry)
+               (cons (hash-set map var (make-c S T)) dmap))))
 
 ;; meet: Type Type -> Type
 ;; intersect the given types, producing the greatest lower bound

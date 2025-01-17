@@ -329,11 +329,10 @@
     [(Instance: ty) `(make-Instance ,(type->sexp ty))]
     [(Signature: name extends mapping)
      (define (serialize-mapping m)
-       (map (lambda (id/ty)
-              (define id (car id/ty))
-              (define ty (force (cdr id/ty)))
-              `(cons (quote-syntax ,id) ,(type->sexp ty)))
-            m))
+       (for/list ([id/ty (in-list m)])
+         (define id (car id/ty))
+         (define ty (force (cdr id/ty)))
+         `(cons (quote-syntax ,id) ,(type->sexp ty))))
      (define serialized-extends (and extends `(quote-syntax ,extends)))
      `(make-Signature (quote-syntax ,name)
                       ,serialized-extends

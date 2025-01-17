@@ -14,7 +14,7 @@
   [var-demote (c:-> Type? (c:listof symbol?) Type?)])
 
 (define (V-in? V . ts)
-  (for/or ([e (in-list (append* (map fv ts)))])
+  (for/or ([e (in-list (append-map fv ts))])
     (memq e V)))
 
 ;; get-propset : SomeValues -> PropSet

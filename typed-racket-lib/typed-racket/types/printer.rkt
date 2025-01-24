@@ -316,9 +316,8 @@
          valid-names))
   ;; some types in the union may not be coverable by the candidates
   ;; (e.g. type variables, etc.)
-  (define-values (uncoverable coverable)
-    (values (apply set-subtract elems (map cdr candidates))
-            (set-intersect elems (apply set-union null (map cdr candidates)))))
+  (define uncoverable (apply set-subtract elems (map cdr candidates)))
+  (define coverable (set-intersect elems (apply set-union null (map cdr candidates))))
   ;; set cover, greedy algorithm, ~lg n approximation
   (let loop ([to-cover   coverable]
              [candidates candidates]

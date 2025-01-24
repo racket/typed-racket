@@ -16,7 +16,8 @@
 (provide (all-from-out "tc-result.rkt" "tc-error.rkt"))
 
 
-(define dom+rst-ref-failure (λ () (int-err "invalid index for domain and rest args")))
+(define (dom+rst-ref-failure)
+  (int-err "invalid index for domain and rest args"))
 
 ;; given the list of domain types (dom)
 ;; and the functions rest spec (rst),

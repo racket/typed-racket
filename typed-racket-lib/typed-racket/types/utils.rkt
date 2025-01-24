@@ -58,11 +58,10 @@
        (int-err
         "instantiate-poly: wrong number of types: expected at least ~a, got ~a"
         (length fixed) (length types)))
-     (let* ([fixed-tys (take types (length fixed))]
-            [rest-tys (drop types (length fixed))]
-            [body* (subst-all (make-simple-substitution fixed fixed-tys)
-                              body)])
-       (substitute-dots rest-tys #f dotted body*))]
+     (define fixed-tys (take types (length fixed)))
+     (define rest-tys (drop types (length fixed)))
+     (define body* (subst-all (make-simple-substitution fixed fixed-tys) body))
+     (substitute-dots rest-tys #f dotted body*)]
     [(PolyRow: names body _)
      (unless (= (length types) (length names))
        (int-err "instantiate-poly: wrong number of types: expected ~a, got ~a"
@@ -77,8 +76,8 @@
        (int-err (string-append "instantiate-poly-dotted: wrong number of"
                                " types: expected ~a, got ~a, types were ~a")
                 (length fixed) (length types) types))
-     (let ([body* (subst-all (make-simple-substitution fixed types) body)])
-       (substitute-dotted null image var dotted body*))]
+     (define body* (subst-all (make-simple-substitution fixed types) body))
+     (substitute-dotted null image var dotted body*)]
     [_ (int-err "instantiate-poly-dotted: requires PolyDots type, got ~a" t)]))
 
 

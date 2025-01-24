@@ -77,20 +77,19 @@ don't depend on any other portion of the system
 (define warn-unreachable? (make-parameter #t))
 
 (define (warn-unreachable e)
-  (let ([l (current-logger)]
-        [stx (locate-stx e)])
-    (when (and (warn-unreachable?)
-               (log-level? l 'warning)
-               (and (syntax-transforming?)
-                    #;(syntax-original? (syntax-local-introduce e)))
-               #;(and (orig-module-stx)
-                      (eq? (debugf syntax-source-module e)
-                           (debugf syntax-source-module (orig-module-stx))))
-               #;(syntax-source-module stx))
-      (log-message l 'warning
-                   (format "Typed Racket has detected unreachable code: ~.s"
-                           (locate-stx e))
-                   e))))
+  (define l (current-logger))
+  (locate-stx e)
+  (when (and (warn-unreachable?)
+             (log-level? l 'warning)
+             (and (syntax-transforming?) #;(syntax-original? (syntax-local-introduce e)))
+             #;(and (orig-module-stx)
+                    (eq? (debugf syntax-source-module e)
+                         (debugf syntax-source-module (orig-module-stx))))
+             #;(syntax-source-module stx))
+    (log-message l
+                 'warning
+                 (format "Typed Racket has detected unreachable code: ~.s" (locate-stx e))
+                 e)))
 
 (define locate-stx
   ;; this hash handles using `locate-stx` even when orig/expand change

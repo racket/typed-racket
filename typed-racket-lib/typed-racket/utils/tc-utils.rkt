@@ -136,18 +136,17 @@ don't depend on any other portion of the system
          (reset-errors!)
          (log-type-error (err-msg f) (err-stx f))
          (raise-typecheck-error (err-msg f) (err-stx f))]
-        [else (let ([stxs
-                     (for/list ([e (in-list l)])
-                       (with-handlers ([exn:fail:syntax?
-                                        (λ (e) ((error-display-handler) (exn-message e) e))])
-                         (log-type-error (err-msg e) (err-stx e))
-                         (raise-typecheck-error (err-msg e) (err-stx e)))
-                       (err-stx e))])
-                (reset-errors!)
-                (unless (null? stxs)
-                  (raise-typecheck-error (format "Summary: ~a errors encountered"
-                                                 (length stxs))
-                                         (apply append stxs))))]))
+        [else (define stxs
+                (for/list ([e (in-list l)])
+                  (with-handlers ([exn:fail:syntax? (λ (e)
+                                                      ((error-display-handler) (exn-message e) e))])
+                    (log-type-error (err-msg e) (err-stx e))
+                    (raise-typecheck-error (err-msg e) (err-stx e)))
+                  (err-stx e)))
+              (reset-errors!)
+              (unless (null? stxs)
+                (raise-typecheck-error (format "Summary: ~a errors encountered" (length stxs))
+                                       (apply append stxs)))]))
 
 ;; Returns #t if there's a type error recorded at the same position as
 ;; the given syntax object. Does not return a useful result if the

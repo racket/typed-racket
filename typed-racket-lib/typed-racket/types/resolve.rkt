@@ -72,7 +72,7 @@
                          "\n  expected: " poly-num
                          "\n  given: " (length rands)
                          "\n  arguments...: " rands)))]
-      [(Name: name-id num-args _) #:when (> num-args 0)
+      [(Name: name-id num-args _) #:when (positive? num-args)
        (define num-rands (length rands))
        (unless (= num-rands num-args)
          (tc-error (~a "wrong number of arguments to polymorphic type"

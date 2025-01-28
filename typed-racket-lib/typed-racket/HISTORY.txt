@@ -1,3 +1,8 @@
+8.16
+- Add `case-λ` as an alias for `case-lambda`
+- Bug fixes and type updates. 
+8.15
+- Bug fixes and type updates. 
 8.14
 - Bug fixes and type updates. 
 8.13

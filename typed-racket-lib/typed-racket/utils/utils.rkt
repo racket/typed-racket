@@ -180,7 +180,7 @@ at least theoretically.
        (begin (define (name . args) . body)
               (provide name)))]))
 
-(define-simple-macro (define/cond-contract/provide (name:id . args) c . body)
+(define-syntax-parse-rule (define/cond-contract/provide (name:id . args) c . body)
   (begin (define (name . args) . body)
          (provide/cond-contract [name c])))
 
@@ -377,10 +377,9 @@ at least theoretically.
 
 ;; quick in-list/rest and in-list-cycle sanity checks
 (module+ test
-  (unless (equal? (for/list ([_ (in-range 0)]
-                             [val (in-list/rest (list 1 2) #f)])
-                    val)
-                  (list))
+  (unless (null? (for/list ([_ (in-range 0)]
+                            [val (in-list/rest (list 1 2) #f)])
+                   val))
     (error 'in-list/rest "broken!"))
   (unless (equal? (for/list ([_ (in-range 2)]
                              [val (in-list/rest (list 1 2) #f)])
@@ -446,20 +445,20 @@ at least theoretically.
     (cond
       [(null? entries) (list (cons key val))]
       [else
-       (let ([entry (car entries)])
-         (if (equal? (car entry) key)
-             (cons (cons key val) (cdr entries))
-             (cons entry (loop (cdr entries)))))])))
+       (define entry (car entries))
+       (if (equal? (car entry) key)
+           (cons (cons key val) (cdr entries))
+           (cons entry (loop (cdr entries))))])))
 
 (define (assoc-remove d key)
   (let loop ([xd d])
     (cond
       [(null? xd) null]
       [else
-       (let ([a (car xd)])
-         (if (equal? (car a) key)
-             (cdr xd)
-             (cons a (loop (cdr xd)))))])))
+       (define a (car xd))
+       (if (equal? (car a) key)
+           (cdr xd)
+           (cons a (loop (cdr xd))))])))
 
 (define (in-assoc-proc l)
   (in-parallel (map car l) (map cdr l)))

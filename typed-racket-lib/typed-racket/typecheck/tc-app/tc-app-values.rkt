@@ -68,8 +68,9 @@
          (-tc-results
            (for/list ([arg (in-syntax #'args)]
                       [tcr (in-list/rest tcrs #f)])
-             (match (single-value arg (and tcr (-tc-results (list tcr) #f)))
-               [(tc-results: (list res) #f) res])) #f))
+             (match-define (tc-results: (list res) #f)
+               (single-value arg (and tcr (-tc-results (list tcr) #f))))
+             res) #f))
        (define return-ty (tc-results->values res))
        (define arg-tys (match return-ty [(Values: (list (Result: t* _ _) ...)) t*]))
        (add-typeof-expr #'op-name (ret (->* arg-tys return-ty :T+ #t)))

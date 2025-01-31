@@ -613,7 +613,7 @@
      (=> fail)
      (unless (null? ignored-names) (fail))
      (define fuel (current-print-type-fuel))
-     (cond [(> fuel 0)
+     (cond [(positive? fuel)
             (parameterize ([current-print-type-fuel (sub1 fuel)])
               ;; if we still have fuel, print the expanded type and
               ;; add the name to the ignored list so that the union

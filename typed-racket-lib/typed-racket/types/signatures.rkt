@@ -49,17 +49,24 @@
 ;; the given signature extends including itself
 ;; returns '() when given #f
 (define (signature-extensions sig*)
-  (let ([sig (and sig* (if (Signature? sig*) sig* (lookup-signature sig*)))])
-    (if sig
-        (cons (Signature-name sig)
-              (signature-extensions (Signature-extends sig)))
-        null)))
+  (define sig
+    (and sig*
+         (if (Signature? sig*)
+             sig*
+             (lookup-signature sig*))))
+  (if sig
+      (cons (Signature-name sig) (signature-extensions (Signature-extends sig)))
+      null))
 
 (define (flatten-sigs sig*)
-  (let ([sig (and sig* (if (Signature? sig*) sig* (lookup-signature sig*)))])
-    (if sig
-        (cons sig (flatten-sigs (Signature-extends sig)))
-        null)))
+  (define sig
+    (and sig*
+         (if (Signature? sig*)
+             sig*
+             (lookup-signature sig*))))
+  (if sig
+      (cons sig (flatten-sigs (Signature-extends sig)))
+      null))
 
 
 ;;  : (listof Signature) -> boolean

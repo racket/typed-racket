@@ -156,8 +156,8 @@
    [(_ t ps o) (tc-results: (list (tc-result: t ps o _)) #f)]))
 
 (define (tc-results-ts* tc)
-  (match tc
-    [(tc-results: (list (tc-result: ts _ _ _) ...) _) ts]))
+  (match-define (tc-results: (list (tc-result: ts _ _ _) ...) _) tc)
+  ts)
 
 (define-match-expander Result1:
   (syntax-rules ()

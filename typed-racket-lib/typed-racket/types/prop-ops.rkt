@@ -377,9 +377,7 @@
            [(AndProp: ps*) (partition! ps*)]
            [_ (set! others (cons p others))])))
      (define ors-smallest-to-largest
-       (append-map cdr (sort (hash->list ors)
-                             (λ (len/ors1 len/ors2)
-                               (< (car len/ors1) (car len/ors2))))))
+       (append-map cdr (sort (hash->list ors) < #:key car)))
      (remove-duplicates (append ts nts others ors-smallest-to-largest) eq?))
    (let loop ([ps (flatten-ands/remove-duplicates/order args)]
               [result null])

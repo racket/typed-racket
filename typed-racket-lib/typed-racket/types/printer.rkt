@@ -458,8 +458,9 @@
         (define-values (pre mid) (split-at lst to-drop))
         (define-values (sub post) (split-at mid n))
         (list pre sub post)))
-    (apply append (for/list ([i (range (length lst) 0 -1)])
-                    (sublist-n i lst))))
+    (for*/list ([i (range (length lst) 0 -1)]
+                [v (in-list (sublist-n i lst))])
+      v))
   (let loop ([left-to-cover arrs])
     ;; try to match the largest sublists possible that correspond to
     ;; ->* types and then the remainder are formatted normally

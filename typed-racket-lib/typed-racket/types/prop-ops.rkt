@@ -108,13 +108,11 @@
     (and (equal? pes1 (drop pes2 prefix-len))
          (let ([prefix (take pes2 prefix-len)])
            (Bottom? (update t1 t2 #t prefix)))))
-  (let ([len1 (length pes1)]
-        [len2 (length pes2)])
-    (cond
-      [(<= len1 len2)
-       (check pes1 t1 pes2 t2 (- len2 len1))]
-      [else
-       (check pes2 t2 pes1 t1 (- len1 len2))])))
+  (define len1 (length pes1))
+  (define len2 (length pes2))
+  (cond
+    [(<= len1 len2) (check pes1 t1 pes2 t2 (- len2 len1))]
+    [else (check pes2 t2 pes1 t1 (- len1 len2))]))
 
 ;; does pes2 refer to the same or a subcomponent of
 ;; pes1 and if so, does updating the t1+ w/ the t2-
@@ -423,17 +421,14 @@
   [((Fun: (list (Arrow: dom rst kws rng rng-T+))) type)
    (match rng
      [(Values: (list (Result: tp (PropSet: p+ p-) op)))
-      (let ([new-props (apply -and (build-list (length dom)
-                                               (lambda (i)
-                                                 (-is-type i type))))])
-        (make-Fun
-         (list (make-Arrow dom rst kws
-                           (make-Values
-                            (list (-result tp
-                                           (-PS (-and p+ new-props)
-                                                (-and p- new-props))
-                                           op)))
-                           rng-T+))))])])
+      (define new-props (apply -and (build-list (length dom) (lambda (i) (-is-type i type)))))
+      (make-Fun
+       (list (make-Arrow
+              dom
+              rst
+              kws
+              (make-Values (list (-result tp (-PS (-and p+ new-props) (-and p- new-props)) op)))
+              rng-T+)))])])
 
 ;; tc-results/c -> tc-results/c
 (define/match (erase-props tc)

@@ -98,11 +98,11 @@
     (resolve-app-check-error rator rands orig-stx)
     (match rator
       [(? Name?)
-       (let ([r (resolve-name rator #t)])
-         (and r
-              (if (TypeConstructor? r)
-                  (apply r rands)
-                  (resolve-app r rands stx))))]
+       (define r (resolve-name rator #t))
+       (and r
+            (if (TypeConstructor? r)
+                (apply r rands)
+                (resolve-app r rands stx)))]
       [(App: r r*) (resolve-app (resolve-app r r* (current-orig-stx))
                                 rands
                                 (current-orig-stx))]

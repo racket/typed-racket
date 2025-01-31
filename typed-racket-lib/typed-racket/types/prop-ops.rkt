@@ -54,22 +54,24 @@
 ;; can't be False, then the else prop should be -ff)
 (define (reduce-tc-results/subsumption res)
   (define (update-ps tcr)
-    (match tcr
-      [(tc-result: t ps obj)
+    (match-define (tc-result: t ps obj) tcr)
+    (cond
+      [(Bottom? t) (-tc-result t -ff-propset -empty-obj)]
+      [else
+       (define p+
+         (if ps
+             (PropSet-thn ps)
+             -tt))
+       (define p-
+         (if ps
+             (PropSet-els ps)
+             -tt))
+       (define o (if obj obj -empty-obj))
        (cond
-         [(Bottom? t) (-tc-result t -ff-propset -empty-obj)]
-         [else
-          (define p+ (if ps (PropSet-thn ps) -tt))
-          (define p- (if ps (PropSet-els ps) -tt))
-          (define o (if obj obj -empty-obj))
-          (cond
-            [(or (equal? -False t)
-                 (FalseProp? p+))
-             (-tc-result (intersect t -False) (-PS -ff p-) o)]
-            [(not (overlap? t -False))
-             (-tc-result t (-PS p+ -ff) o)]
-            [(FalseProp? p-) (-tc-result (subtract t -False) (-PS p+ -ff) o)]
-            [else (-tc-result t (-PS p+ p-) o)])])]))
+         [(or (equal? -False t) (FalseProp? p+)) (-tc-result (intersect t -False) (-PS -ff p-) o)]
+         [(not (overlap? t -False)) (-tc-result t (-PS p+ -ff) o)]
+         [(FalseProp? p-) (-tc-result (subtract t -False) (-PS p+ -ff) o)]
+         [else (-tc-result t (-PS p+ p-) o)])]))
   (match res
     [(tc-any-results: _) res]
     [(tc-results: tcrs db)

@@ -169,36 +169,38 @@
     ;; set and set->list to retain determinism
     (remove-duplicates
      (for/list ([(arrow arrow-mand-arg-count) (in-assoc mand-arg-table)])
-       (match arrow
-         [(Arrow: dom rst kws rng rng-T+)
-          (define kws* (if actual-kws
-                           (handle-extra-or-missing-kws kws actual-kws)
-                           kws))
-          (define kw-opts-supplied (if actual-kws
-                                       (lambda-kws-opt-supplied actual-kws)
-                                       '()))
-          (define mand-arg-count (if actual-kws
-                                     (lambda-kws-pos-mand-count actual-kws)
-                                     arrow-mand-arg-count))
-          (define opt-arg-count (- (length dom) mand-arg-count))
-          (define extra-opt-arg-count
-            ;; In case `dom` has too many arguments that we try to treat
-            ;; as optional:
-            (if actual-kws
-                (max 0 (- opt-arg-count (length (lambda-kws-pos-opt-supplied? actual-kws))))
-                0))
-          (convert kws*
-                   kw-opts-supplied
-                   (take dom mand-arg-count)
-                   (drop dom mand-arg-count)
-                   (if actual-kws
-                       (append (lambda-kws-pos-opt-supplied? actual-kws)
-                               (make-list extra-opt-arg-count #f))
-                       (make-list opt-arg-count #f))
-                   rng
-                   rst
-                   split?
-                   rng-T+)]))))
+       (match-define (Arrow: dom rst kws rng rng-T+) arrow)
+       (define kws*
+         (if actual-kws
+             (handle-extra-or-missing-kws kws actual-kws)
+             kws))
+       (define kw-opts-supplied
+         (if actual-kws
+             (lambda-kws-opt-supplied actual-kws)
+             '()))
+       (define mand-arg-count
+         (if actual-kws
+             (lambda-kws-pos-mand-count actual-kws)
+             arrow-mand-arg-count))
+       (define opt-arg-count (- (length dom) mand-arg-count))
+       (define extra-opt-arg-count
+         ;; In case `dom` has too many arguments that we try to treat
+         ;; as optional:
+         (if actual-kws
+             (max 0 (- opt-arg-count (length (lambda-kws-pos-opt-supplied? actual-kws))))
+             0))
+       (convert kws*
+                kw-opts-supplied
+                (take dom mand-arg-count)
+                (drop dom mand-arg-count)
+                (if actual-kws
+                    (append (lambda-kws-pos-opt-supplied? actual-kws)
+                            (make-list extra-opt-arg-count #f))
+                    (make-list opt-arg-count #f))
+                rng
+                rst
+                split?
+                rng-T+))))
   (apply cl->* fns))
 
 ;; kw-convert : Type (Option LambdaKeywords) [Boolean] -> Type

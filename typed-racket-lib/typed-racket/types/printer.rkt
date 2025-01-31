@@ -132,7 +132,7 @@
 (define name-ref->sexp
   (match-lambda
     [(? syntax? name-ref) (syntax-e name-ref)]
-    [(cons lvl arg) `(,lvl ,arg)]))
+    [(cons lvl arg) (list lvl arg)]))
 
 ;; prop->sexp : Prop -> S-expression
 ;; Print a Prop (see prop-rep.rkt) to the given port
@@ -509,11 +509,11 @@
          (cons 'field
                (for/list ([name+type (in-list fields)])
                  (match-define (list name type) name+type)
-                 `(,name ,(type->sexp type)))))))
+                 (list name (type->sexp type)))))))
   (define methods*
     (for/list ([name+type (in-list methods)])
       (match-define (list name type) name+type)
-      `(,name ,(type->sexp type))))
+      (list name (type->sexp type))))
   (define augments*
     (cond [(or object? (null? augments)) '()]
           [else (list (cons 'augment augments))]))

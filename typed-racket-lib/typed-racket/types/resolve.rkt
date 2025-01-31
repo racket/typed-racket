@@ -61,12 +61,12 @@
                                     (free-identifier=? n (poly-name (current-poly-struct))))
        (define poly-num (length (poly-vars (current-poly-struct))))
        (if (= poly-num (length rands))
-           (when (not (or (ormap Error? rands)
-                          (andmap equal? rands
-                                  (poly-vars (current-poly-struct)))))
+           (unless (or (ormap Error? rands) (andmap equal? rands (poly-vars (current-poly-struct))))
              (tc-error (~a "structure type constructor applied to non-regular arguments"
-                           "\n  type: " rator
-                           "\n  arguments...: " rands)))
+                           "\n  type: "
+                           rator
+                           "\n  arguments...: "
+                           rands)))
            (tc-error (~a "wrong number of arguments to structure type constructor"
                          "\n  type: " rator
                          "\n  expected: " poly-num

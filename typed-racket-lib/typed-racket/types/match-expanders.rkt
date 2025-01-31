@@ -75,7 +75,7 @@
          (app (λ (t) (Listof? t #t)) (? Type? elem-pat)))])))
 
 
-(define-simple-macro (make-Listof-pred listof-pred?:id pair-matcher:id)
+(define-syntax-parse-rule (make-Listof-pred listof-pred?:id pair-matcher:id)
   (define (listof-pred? t [simple? #f])
     (match t
       [(Mu-unsafe:

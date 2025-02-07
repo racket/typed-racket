@@ -180,7 +180,7 @@ at least theoretically.
        (begin (define (name . args) . body)
               (provide name)))]))
 
-(define-simple-macro (define/cond-contract/provide (name:id . args) c . body)
+(define-syntax-parse-rule (define/cond-contract/provide (name:id . args) c . body)
   (begin (define (name . args) . body)
          (provide/cond-contract [name c])))
 

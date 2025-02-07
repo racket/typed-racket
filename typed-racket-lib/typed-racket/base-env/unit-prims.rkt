@@ -133,12 +133,8 @@
 ;; in the signature, this is needed to typecheck define-values/invoke-unit forms
 (define-for-syntax (imports/members sig-id)
   (define-values (_1 imp-mem _2 _3) (signature-members sig-id sig-id))
-  #`(#,sig-id #,@(map (lambda (id)
-                        (local-expand
-                         id
-                         (syntax-local-context)
-                         (kernel-form-identifier-list)))
-                      imp-mem)))
+  #`(#,sig-id #,@(for/list ([id (in-list imp-mem)])
+                   (local-expand id (syntax-local-context) (kernel-form-identifier-list)))))
 
 ;; Given a list of signature specs
 ;; Processes each signature spec to determine the variables exported

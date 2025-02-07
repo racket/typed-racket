@@ -143,6 +143,7 @@
  mask:future
  mask:other-box
  mask:set
+ mask:treelist
  mask:procedure
  mask:prompt-tag
  mask:continuation-mark-key

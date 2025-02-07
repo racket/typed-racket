@@ -155,6 +155,8 @@
      `(-CustodianBox ,(type->sexp ty))]
     [(Set: ty)
      `(make-Set ,(type->sexp ty))]
+    [(TreeList: ty)
+     `(make-TreeList ,(type->sexp ty))]
     [(Evt: ty)
      `(make-Evt ,(type->sexp ty))]
     [(Future: ty)

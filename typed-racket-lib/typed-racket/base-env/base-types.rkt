@@ -197,6 +197,7 @@
 [Async-Channelof -async-channel]
 [Ephemeronof -Ephemeron]
 [Setof -set]
+[TreeListof -treelist]
 [Evtof -evt]
 [Continuation-Mark-Set -Cont-Mark-Set]
 [False -False]

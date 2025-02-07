@@ -8,6 +8,7 @@
   racket/unsafe/ops
   racket/unsafe/undefined
   racket/hash
+  racket/treelist
   (only-in racket/extflonum floating-point-bytes->extfl extfl->floating-point-bytes)
   ;(only-in rnrs/lists-6 fold-left)
   '#%paramz
@@ -1293,6 +1294,56 @@
 [void? (unsafe-shallow:make-pred-ty -Void)]
 
 [unsafe-undefined -Unsafe-Undefined]
+
+;; Section 4.21 (TreeLists)
+
+[treelist (-poly (a) (->* (list) a (-treelist a)))]
+[treelist-empty? (-poly (a) (-> (-treelist a) B))]
+[treelist-length (-poly (a) (-> (-treelist a) -Index))]
+[treelist-member?
+ (-poly (a)
+        (cl->* ((-treelist a) a . -> . Univ)
+               ((-treelist a) a (-> a a Univ) . -> . B)))]
+[treelist-first (-poly (a) (-> (-treelist a) a :T+ #f))]
+[treelist-last (-poly (a) (-> (-treelist a) a :T+ #f))]
+[treelist-rest (-poly (a) (-> (-treelist a) (-treelist a)))]
+[treelist-add (-poly (a) (-> (-treelist a) a (-treelist a)))]
+[treelist-cons (-poly (a) (-> (-treelist a) a (-treelist a)))]
+[treelist-delete (-poly (a) (-> (-treelist a) -Index (-treelist a)))]
+[make-treelist (-poly (a) (-> -Nat a (-treelist a)))]
+[treelist-ref (-poly (a) (-> (-treelist a) -Index a))]
+[treelist-insert (-poly (a) (-> (-treelist a) -Index a (-treelist a)))]
+[treelist-set (-poly (a) (-> (-treelist a) -Index a (-treelist a)))]
+[treelist-take (-poly (a) (-> (-treelist a) -Index (-treelist a)))]
+[treelist-drop (-poly (a) (-> (-treelist a) -Index (-treelist a)))]
+[treelist-take-right (-poly (a) (-> (-treelist a) -Index (-treelist a)))]
+[treelist-drop-right (-poly (a) (-> (-treelist a) -Index (-treelist a)))]
+[treelist-sublist (-poly (a) (-> (-treelist a) -Index -Index (-treelist a)))]
+[treelist-reverse (-poly (a) (-> (-treelist a) (-treelist a)))]
+[treelist->list (-poly (a) (-> (-treelist a) (-lst a)))]
+[list->treelist (-poly (a) (-> (-lst a) (-treelist a)))]
+[treelist->vector (-poly (a) (-> (-treelist a) (-vec a)))]
+[vector->treelist (-poly (a) (-> (-vec a) (-treelist a)))]
+[in-treelist (-poly (a) (-> (-treelist a) (-seq a)))]
+[treelist? (unsafe-shallow:make-pred-ty (-treelist Univ))]
+[treelist-append (-poly (a) (->* (list) (-treelist a) (-treelist a)))]
+[treelist-map (-poly (a b) (-> (-treelist a) (-> a b) (-treelist b)))]
+[treelist-for-each (-poly (a b) (-> (-treelist a) (-> a b) -Void))]
+[treelist-filter (-poly (a) (-> (-> a Univ) (-treelist a) (-treelist a)))]
+[treelist-find (-poly (a) (-> (-treelist a) (-> a Univ) a))]
+[treelist-index-of
+ (-poly (a)
+        (cl->* ((-treelist a) a . -> . -Index)
+               ((-treelist a) a (-> a a Univ) . -> . -Index)))]
+[treelist-flatten (-poly (a) (-> a (-treelist a)))] ;; This type isn't any more or less pratical than Univ, but Univ might not be sound
+[treelist-append* (-poly (a) (-> (-treelist (-treelist a)) (-treelist a)))] ;; Same type specificty issue as above
+[treelist-sort
+(-poly
+  (a b)
+  (cl->*
+   (->key (-treelist a) (-> a a -Boolean) #:key (-opt (-> a a :T+ #f)) #f #:cache-keys? -Boolean #f (-treelist a))
+   (->key (-treelist a) (-> b b -Boolean) #:key (-> a b :T+ #f) #t #:cache-keys? -Boolean #f (-treelist a))))]
+
 
 ;; Section 5.2 (Structure Types)
 [make-struct-type

@@ -83,29 +83,28 @@
       (define-values (sym init auto ref set! imms par skip?)
         (parameterize ([current-inspector inspector])
           (struct-type-info struct-type)))
-      (define-values (fun/chap-list _)
+      (define fun/chap-list
         (for/fold ([res null]
-                   [imms imms])
-          ([n (in-range (+ init auto))])
+                   [imms imms]
+                   #:result res)
+                  ([n (in-range (+ init auto))])
           (if (and (pair? imms) (= (car imms) n))
               ;; field is immutable
-              (values
-               (list* (make-struct-field-accessor ref n)
-                      (lambda (s v) (with-contract-continuation-mark
-                                     blame+neg-party
-                                     (any-wrap/traverse v neg-party seen)))
-                      res)
-               (cdr imms))
+              (values (list* (make-struct-field-accessor ref n)
+                             (lambda (s v)
+                               (with-contract-continuation-mark blame+neg-party
+                                                                (any-wrap/traverse v neg-party seen)))
+                             res)
+                      (cdr imms))
               ;; field is mutable
-              (values
-               (list* (make-struct-field-accessor ref n)
-                      (lambda (s v) (with-contract-continuation-mark
-                                     blame+neg-party
-                                     (any-wrap/traverse v neg-party seen)))
-                      (make-struct-field-mutator set! n)
-                      (lambda (s v) (fail neg-party s))
-                      res)
-               imms))))
+              (values (list* (make-struct-field-accessor ref n)
+                             (lambda (s v)
+                               (with-contract-continuation-mark blame+neg-party
+                                                                (any-wrap/traverse v neg-party seen)))
+                             (make-struct-field-mutator set! n)
+                             (lambda (s v) (fail neg-party s))
+                             res)
+                      imms))))
       (cond
         [par (append fun/chap-list (extract-functions par))]
         [else fun/chap-list]))

@@ -434,11 +434,11 @@
      `(make-PrefabPE (quote ,key) ,idx)]))
 
 (define (bound-in-this-module id)
-  (let ([binding (identifier-binding id)])
-    (if (and (list? binding) (module-path-index? (car binding)))
-        (let-values ([(mp base) (module-path-index-split (car binding))])
-          (not mp))
-        #f)))
+  (define binding (identifier-binding id))
+  (if (and (list? binding) (module-path-index? (car binding)))
+      (let-values ([(mp base) (module-path-index-split (car binding))])
+        (not mp))
+      #f))
 
 (define (make-init-code map f)
   (define (bound-f id v)

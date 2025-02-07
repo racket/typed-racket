@@ -116,20 +116,16 @@
                        (nbits-intersect nbits1 nbits2))]
       [((BaseUnion: bbits nbits)
         (Base-bits: numeric? bits))
-       (cond [numeric? (if (nbits-overlap? nbits bits)
-                           t2
-                           -Bottom)]
-             [else (if (bbits-overlap? bbits bits)
-                       t2
-                       -Bottom)])]
+       (cond
+         [numeric? (if (nbits-overlap? nbits bits) t2 -Bottom)]
+         [(bbits-overlap? bbits bits) t2]
+         [else -Bottom])]
       [((Base-bits: numeric? bits)
         (BaseUnion: bbits nbits))
-       (cond [numeric? (if (nbits-overlap? nbits bits)
-                           t1
-                           -Bottom)]
-             [else (if (bbits-overlap? bbits bits)
-                       t1
-                       -Bottom)])]
+       (cond
+         [numeric? (if (nbits-overlap? nbits bits) t1 -Bottom)]
+         [(bbits-overlap? bbits bits) t1]
+         [else -Bottom])]
       [((BaseUnion-bases: bases1) t2)
        (apply Un (for/list ([b (in-list bases1)])
                    (rec b t2 obj)))]

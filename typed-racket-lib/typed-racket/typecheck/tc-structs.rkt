@@ -193,10 +193,10 @@
       (if (null? l)
           (values (reverse getters) (reverse setters))
           (loop (cddr l) (cons (car l) getters) (cons (cadr l) setters)))))
-  (match (build-struct-names nm flds #f #f nm #:constructor-name maker*)
-    [(list sty maker pred getters/setters ...)
-     (let-values ([(getters setters) (split getters/setters)])
-       (struct-names nm type-name sty maker extra-maker pred getters setters))]))
+  (match-define (list sty maker pred getters/setters ...)
+    (build-struct-names nm flds #f #f nm #:constructor-name maker*))
+  (let-values ([(getters setters) (split getters/setters)])
+    (struct-names nm type-name sty maker extra-maker pred getters setters)))
 
 ;; gets the fields of the parent type, if they exist
 ;; Option[Struct-Ty] -> Listof[Type]
@@ -458,14 +458,12 @@
                            def-bindings))))
 
 (define (register-parsed-struct-sty! ps)
-  (match ps
-    ((parsed-struct sty names desc si)
-     (register-sty! sty names desc))))
+  (match-define (parsed-struct sty names desc si) ps)
+  (register-sty! sty names desc))
 
 (define (register-parsed-struct-bindings! ps)
-  (match ps
-    ((parsed-struct sty names desc si)
-     (register-struct-bindings! sty names desc si))))
+  (match-define (parsed-struct sty names desc si) ps)
+  (register-struct-bindings! sty names desc si))
 
 ;; extract the type annotation of prop:procedure value
 (define/cond-contract (extract-proc-ty proc-ty-stx desc fld-names st-name)

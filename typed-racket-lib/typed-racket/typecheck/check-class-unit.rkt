@@ -290,12 +290,10 @@
       [(tc-result1: type) (resolve type)]
       [_ #f]))
   (match expected-type
-    [(? Class? class-type)
-     (ret (parse-and-check form class-type))]
+    [(? Class? class-type) (ret (parse-and-check form class-type))]
     [(Poly-names: ns body-type)
-     (match (check-class form (ret body-type))
-       [(tc-result1: t f o)
-        (ret (make-Poly ns t) f o)])]
+     (match-define (tc-result1: t f o) (check-class form (ret body-type)))
+     (ret (make-Poly ns t) f o)]
     [_ (ret (parse-and-check form #f))]))
 
 ;; Syntax Option<Type> -> Type

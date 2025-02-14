@@ -77,7 +77,7 @@
   (define class/object (if object? "object" "class"))
   (match-define (Class: row inits fields methods augments init-rest) c1)
   (match-define (Class: row* inits* fields* methods* augments* init-rest*) c2)
-  (when (not object?)
+  (unless object?
     (when (and (F? row) (not (F? row*)))
       (type-mismatch (format "Class with row variable `~a'" row)
                      (format "Class with no row variable")))

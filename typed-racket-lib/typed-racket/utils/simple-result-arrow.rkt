@@ -10,6 +10,8 @@
 
 (provide simple-result->)
 
+(define-logger tr:simpleresult)
+
 (define-syntax-rule (the-contract n pred arity arg ...)
   (make-chaperone-contract
    #:name `(-> ,@(for/list ([i arity]) 'any/c) ,n)
@@ -30,57 +32,57 @@
                 (format "a procedure that accepts ~a non-keyword argument"
                         arity)
                 'given: (~s v))))
-       ;; We could have separate kinda-fast paths for when one of these conditions
-       ;; is true, but that is unlikely to be an important case in practice.
-       (if (and (equal? arity (procedure-arity v))
-                (equal? 1 (procedure-result-arity v)))
-           (unsafe-chaperone-procedure
-            v
-            (λ (arg ...) 
-              (define res (v arg ...))
-              (unless (with-contract-continuation-mark (cons blm neg) (pred res))
-                (raise-blame-error
-                 #:missing-party neg
-                 blm #f
-                 (list 'expected: (~s n) 'given: (~s res))))
-              res))
-           (unsafe-chaperone-procedure
-            v
-            ;; use `make-keyword-procedure` to cover cases
-            ;; where a keyword-accepting procedure is imported with a type that
-            ;; doesn't mention the keywords
-            (make-keyword-procedure
-             (λ (kws vals . args) (raise-blame-error
-                                   #:missing-party neg
-                                   blm #f
-                                   (list 'expected: "one non-keyword argument"
-                                         'given: (~a (length args) " arguments and " (length vals)
-                                                     " keyword arguments"))))
-             (case-lambda
-               [(arg ...)
-                (call-with-values (λ () (v arg ...))
-                                  (case-lambda [(res)
-                                                (unless (with-contract-continuation-mark
-                                                         (cons blm neg)
-                                                         (pred res))
-                                                  (raise-blame-error
-                                                   #:missing-party neg
-                                                   blm #f
-                                                   (list 'expected: (~s n) 'given: (~s res))))
-                                                res]
-                                               [results
-                                                (raise-blame-error
-                                                 #:missing-party neg
-                                                 blm results
-                                                 (list 'expected "one value"
-                                                       'given (~a (length results)
-                                                                  " values")))]))]
-               [args
-                (raise-blame-error
-                 #:missing-party neg
-                 blm #f
-                 (list 'expected: "one argument"
-                       'given: (~a (length args) " arguments")))]))))))))
+       (define simple-arity? (equal? arity (procedure-arity v)))
+       (define one-result? (equal? 1 (procedure-result-arity v)))
+       (cond
+        [(and simple-arity? one-result?)
+         (log-tr:simpleresult-info "+D +C")
+         (unsafe-chaperone-procedure
+          v
+          (λ (arg ...)
+            (define res (v arg ...))
+            (unless (with-contract-continuation-mark (cons blm neg) (pred res))
+              (raise-blame-error
+               #:missing-party neg
+               blm #f
+               (list 'expected: (~s n) 'given: (~s res))))
+            res))]
+        [simple-arity?
+         (log-tr:simpleresult-info "+D -C")
+         (unsafe-chaperone-procedure
+          v
+          (λ (arg ...)
+            (check-single-result (λ () (v arg ...)) pred blm neg n)))]
+        [one-result?
+         (log-tr:simpleresult-info "-D +C")
+         (unsafe-chaperone-procedure
+          v
+          (seal-kwargs blm neg
+                       (λ (arg ...)
+                         (define res (v arg ...))
+                         (unless (with-contract-continuation-mark (cons blm neg) (pred res))
+                           (raise-blame-error
+                            #:missing-party neg
+                            blm #f
+                            (list 'expected: (~s n) 'given: (~s res))))
+                         res)))]
+        [else
+         (log-tr:simpleresult-info "-D -C")
+         (unsafe-chaperone-procedure
+          v
+          ;; use `make-keyword-procedure` to cover cases
+          ;; where a keyword-accepting procedure is imported with a type that
+          ;; doesn't mention the keywords
+          (seal-kwargs blm neg
+                       (case-lambda
+                         [(arg ...)
+                          (check-single-result (λ () (v arg ...)) pred blm neg n)]
+                         [args
+                          (raise-blame-error
+                           #:missing-party neg
+                           blm #f
+                           (list 'expected: "one argument"
+                                 'given: (~a (length args) " arguments")))])))])))))
 
 ;; arity is how many any/c arguments the function expects
 (begin-encourage-inline
@@ -94,6 +96,38 @@
       [(2) (the-contract n pred 2 arg1 arg2)]
       [(3) (the-contract n pred 3 arg1 arg2 arg3)]
       [else (raise-argument-error 'simple-result-> "arity 0, 1, 2, or 3" arity)])))
+
+(define (check-single-result thunk pred blm neg result-ctc)
+  (call-with-values thunk
+                    (case-lambda [(res)
+                                  (unless (with-contract-continuation-mark
+                                           (cons blm neg)
+                                           (pred res))
+                                    (raise-blame-error
+                                     #:missing-party neg
+                                     blm #f
+                                     (list 'expected: (~s result-ctc) 'given: (~s res))))
+                                  res]
+                                 [results
+                                  (raise-blame-error
+                                   #:missing-party neg
+                                   blm results
+                                   (list 'expected "one value"
+                                         'given (~a (length results)
+                                                    " values")))])))
+
+(define (seal-kwargs plain-proc blm neg)
+  ;; use `make-keyword-procedure` to cover cases
+  ;; where a keyword-accepting procedure is imported with a type that
+  ;; doesn't mention the keywords
+  (make-keyword-procedure
+   (λ (kws vals . args) (raise-blame-error
+                         #:missing-party neg
+                         blm #f
+                         (list 'expected: "one non-keyword argument"
+                               'given: (~a (length args) " arguments and " (length vals)
+                                           " keyword arguments"))))
+   plain-proc))
 
 (module+ test
   (struct m (x))

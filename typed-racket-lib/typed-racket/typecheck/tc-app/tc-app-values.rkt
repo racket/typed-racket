@@ -1,20 +1,22 @@
 #lang racket/unit
 
-(require "../../utils/utils.rkt"
-         "signatures.rkt"
-         "utils.rkt"
-         syntax/parse racket/match racket/sequence racket/list
+(require (for-label racket/base)
+         racket/list
+         racket/match
+         racket/sequence
+         syntax/parse
+         typed-racket/utils/shallow-utils
+         "../../rep/values-rep.rkt"
+         "../../types/abbrev.rkt"
+         "../../types/base-abbrev.rkt"
+         "../../types/type-table.rkt"
+         "../../types/utils.rkt"
+         "../../utils/utils.rkt"
          "../signatures.rkt"
          "../tc-funapp.rkt"
          "../tc-metafunctions.rkt"
-         "../../types/base-abbrev.rkt"
-         "../../types/abbrev.rkt"
-         "../../types/type-table.rkt"
-         "../../types/utils.rkt"
-         "../../rep/values-rep.rkt"
-         typed-racket/utils/shallow-utils
-
-         (for-label racket/base))
+         "signatures.rkt"
+         "utils.rkt")
 
 
 (import tc-expr^ tc-app^)
@@ -68,8 +70,9 @@
          (-tc-results
            (for/list ([arg (in-syntax #'args)]
                       [tcr (in-list/rest tcrs #f)])
-             (match (single-value arg (and tcr (-tc-results (list tcr) #f)))
-               [(tc-results: (list res) #f) res])) #f))
+             (match-define (tc-results: (list res) #f)
+               (single-value arg (and tcr (-tc-results (list tcr) #f))))
+             res) #f))
        (define return-ty (tc-results->values res))
        (define arg-tys (match return-ty [(Values: (list (Result: t* _ _) ...)) t*]))
        (add-typeof-expr #'op-name (ret (->* arg-tys return-ty :T+ #t)))

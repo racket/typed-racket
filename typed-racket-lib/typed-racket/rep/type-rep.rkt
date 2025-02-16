@@ -3,38 +3,39 @@
 ;; This module provides type representations and utility functions
 ;; and pattern matchers on types
 
-(require "../utils/utils.rkt"
-         (for-syntax "../utils/utils.rkt"))
+(require (for-syntax "../utils/utils.rkt")
+         "../utils/utils.rkt")
 
 ;; TODO use contract-req
-(require "../utils/tc-utils.rkt"
-         "../utils/prefab.rkt"
-         "../utils/identifier.rkt"
+(require (for-syntax racket/base
+                     racket/syntax
+                     syntax/parse)
+         racket/contract
+         racket/format
+         racket/lazy-require
+         racket/list
+         racket/match
+         racket/string
+         racket/unsafe/undefined
+         syntax/id-set
+         syntax/id-table
+         (only-in racket/generic define/generic)
          "../env/env-utils.rkt"
-         "rep-utils.rkt"
-         "type-constr.rkt"
-         "core-rep.rkt"
-         "object-rep.rkt"
-         "prop-rep.rkt"
-         "values-rep.rkt"
-         "type-mask.rkt"
-         "free-variance.rkt"
+         "../utils/identifier.rkt"
+         "../utils/prefab.rkt"
+         "../utils/tc-utils.rkt"
          "base-type-rep.rkt"
          "base-types.rkt"
-         "numeric-base-types.rkt"
          "base-union.rkt"
-         racket/match racket/list
-         racket/format
-         syntax/id-table
-         syntax/id-set
-         racket/contract
-         racket/string
-         (only-in racket/generic define/generic)
-         racket/lazy-require
-         racket/unsafe/undefined
-         (for-syntax racket/base
-                     racket/syntax
-                     syntax/parse))
+         "core-rep.rkt"
+         "free-variance.rkt"
+         "numeric-base-types.rkt"
+         "object-rep.rkt"
+         "prop-rep.rkt"
+         "rep-utils.rkt"
+         "type-constr.rkt"
+         "type-mask.rkt"
+         "values-rep.rkt")
 
 (provide (except-out (all-from-out "core-rep.rkt"
                                    "base-type-rep.rkt"
@@ -1154,8 +1155,8 @@
           (match ts
             [(list) (-refine Univ prop)]
             [(list t) (-refine t prop)]
-            [_ (let ([t (make-Intersection ts -tt elems)])
-                 (-refine t prop))])]
+            [_ (define t (make-Intersection ts -tt elems))
+               (-refine t prop)])]
          [(cons arg args)
           (match arg
             [(Univ:) (loop ts elems prop args)]
@@ -1806,7 +1807,7 @@
 
 ;; sorts the given field of a Row by the member name
 (define (sort-row-clauses clauses)
-  (sort clauses (λ (x y) (symbol<? (car x) (car y)))))
+  (sort clauses symbol<? #:key car))
 
 (define-match-expander Class:*
   (λ (stx)

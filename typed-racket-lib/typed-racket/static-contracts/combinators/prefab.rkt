@@ -20,6 +20,7 @@
 
 (struct prefab-combinator combinator (key field-mutability)
   #:transparent
+  #:authentic
   #:property prop:combinator-name "prefab/sc"
   #:methods gen:sc
     [(define (sc-map v f)

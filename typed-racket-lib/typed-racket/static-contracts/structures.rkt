@@ -111,8 +111,9 @@
 
 ;; Super struct of static contracts
 (struct static-contract ()
-        #:transparent
-        #:property prop:custom-print-quotable 'never)
+  #:transparent
+  #:property prop:custom-print-quotable 'never
+  #:authentic)
 
 ;; Represents a recursive contract.
 ;; In each value and the body, each name is bound to a the corresponding value contract.
@@ -121,6 +122,7 @@
 ;; - body : static-contract?
 ;; names and value must have the same length.
 (struct recursive-sc static-contract (names values body)
+        #:authentic
         #:transparent
         #:methods gen:sc
           [(define (sc-map v f)
@@ -138,6 +140,7 @@
 ;; A use of a contract bound by recursive-sc
 ;; - name : identifier?
 (struct recursive-sc-use static-contract (name)
+        #:authentic
         #:transparent
         #:methods gen:sc
           [(define (sc-map v f) v)
@@ -150,6 +153,7 @@
 ;; Provides printing functionality.
 ;; - args : (sequenceof static-contract?)
 (struct combinator static-contract (args)
+        #:authentic
         #:transparent
         #:property prop:combinator-name "combinator/sc"
         #:methods gen:custom-write [(define write-proc combinator-write-proc)])

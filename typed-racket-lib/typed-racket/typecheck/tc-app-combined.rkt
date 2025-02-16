@@ -1,17 +1,17 @@
 #lang racket/base
 
-(require "tc-app/tc-app-apply.rkt"
+(require "signatures.rkt"
+         "tc-app/tc-app-apply.rkt"
+         "tc-app/tc-app-contracts.rkt"
          "tc-app/tc-app-eq.rkt"
          "tc-app/tc-app-hetero.rkt"
          "tc-app/tc-app-keywords.rkt"
          "tc-app/tc-app-lambda.rkt"
          "tc-app/tc-app-list.rkt"
+         "tc-app/tc-app-main.rkt"
          "tc-app/tc-app-objects.rkt"
          "tc-app/tc-app-special.rkt"
-         "tc-app/tc-app-values.rkt"
-         "tc-app/tc-app-contracts.rkt"
-         "tc-app/tc-app-main.rkt"
-         "signatures.rkt")
+         "tc-app/tc-app-values.rkt")
 
 (require racket/unit)
 (provide tc-app-combined@)

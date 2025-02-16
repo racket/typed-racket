@@ -1,8 +1,9 @@
 #lang racket/base
 
-(require syntax/parse
-         syntax/parse/experimental/reflect
-         (for-syntax racket/base syntax/parse))
+(require (for-syntax racket/base
+                     syntax/parse)
+         syntax/parse
+         syntax/parse/experimental/reflect)
 
 (provide define-reified-syntax-class define-tc/app-syntax-class)
 

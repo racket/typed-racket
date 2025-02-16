@@ -55,11 +55,11 @@
 
   ;; currently does not take advantage of multi-valued or arbitrary-valued expected types,
   (define expected-ty
-    (and expected
-         (match expected
-           [(tc-result1: t) t]
-           [(tc-any-results: (or #f (TrueProp:))) #t] ; anything is a subtype of expected
-           [_ #f]))) ; don't know what it is, don't do any pruning
+    (match expected
+      [#f #f]
+      [(tc-result1: t) t]
+      [(tc-any-results: (or #f (TrueProp:))) #t] ; anything is a subtype of expected
+      [_ #f])) ; don't know what it is, don't do any pruning
   (define (returns-subtype-of-expected? fun-ty)
     (or (not expected) ; no expected type, anything is fine
         (eq? expected-ty #t) ; expected is tc-anyresults, anything is fine

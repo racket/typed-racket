@@ -1309,14 +1309,14 @@
 ;; Check that by-name inits are valid for the superclass
 (define (check-by-name init-stxs super-inits)
   (match-define (super-init-stxs _ by-name) init-stxs)
-  (for ([(name _) (in-dict by-name)])
-    (unless (dict-ref super-inits name #f)
-      (tc-error/fields
-       "invalid `super-new' or `super-instantiate'"
-       #:more "init argument not accepted by superclass"
-       "init name" name
-       #:stx #`#,name
-       #:delayed? #t))))
+  (for ([(name _) (in-dict by-name)]
+        #:unless (dict-ref super-inits name #f))
+    (tc-error/fields "invalid `super-new' or `super-instantiate'"
+                     #:more "init argument not accepted by superclass"
+                     "init name"
+                     name
+                     #:stx #`#,name
+                     #:delayed? #t)))
 
 ;; check-super-new : super-init-stxs Dict Type -> Void
 ;; Check if the super-new call is well-typed

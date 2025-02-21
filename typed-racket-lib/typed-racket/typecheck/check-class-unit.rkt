@@ -213,7 +213,7 @@
                  opt:opt-lambda^)
            ;; it's only an interesting opt-lambda expansion if the number
            ;; of optional arguments is greater than zero
-           #:when (> (cadr (attribute opt.value)) 0)
+           #:when (positive? (cadr (attribute opt.value)))
            #:do [(register/method #'meth-name)]
            #:with props-core
                   (let* ([prop-val (attribute opt.value)]
@@ -1332,10 +1332,10 @@
   (match-define (super-init-stxs provided-pos-args provided-inits)
                 super-new)
   (define pos-init-diff (- (length provided-pos-args) (length super-inits)))
-  (cond [(and (> pos-init-diff 0) (not init-rest))
+  (cond [(and (positive? pos-init-diff) (not init-rest))
          ;; errror case that's caught above, do nothing
          (void)]
-        [(> pos-init-diff 0)
+        [(positive? pos-init-diff)
          (define-values (pos-args for-init-rest)
            (split-at provided-pos-args (length super-inits)))
          (for ([pos-arg pos-args]

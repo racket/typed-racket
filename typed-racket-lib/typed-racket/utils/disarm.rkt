@@ -9,7 +9,7 @@
   (let loop ([v stx])
     (cond
      [(syntax? v)
-      (let* ([stx (syntax-disarm v orig-insp)]
+      (let* ([stx v]
              [r (loop (syntax-e stx))])
         (if (eq? r (syntax-e stx))
             stx

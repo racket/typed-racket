@@ -256,12 +256,12 @@
            non-bindings
            expected
            #:before-check-body
-           (λ () (begin (for ([expr (in-list remaining-exprs)]
-                              [results (in-list given-rhs-types)])
-                          (match results
-                            [(list (tc-result: ts fs os) ...)
-                             (tc-expr/check expr (ret ts fs os))]))
-                        (check-thunk))))])))))
+           (λ ()
+             (for ([expr (in-list remaining-exprs)]
+                   [results (in-list given-rhs-types)])
+               (match results
+                 [(list (tc-result: ts fs os) ...) (tc-expr/check expr (ret ts fs os))]))
+             (check-thunk)))])))))
 
 ;; An lr-clause is a
 ;;   (lr-clause (Listof Identifier) Syntax)

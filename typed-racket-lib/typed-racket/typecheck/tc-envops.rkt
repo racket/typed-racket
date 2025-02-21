@@ -82,35 +82,36 @@
                           (env-set-obj-type Γ obj new-t*))])))
              (match p
                [(TypeProp: (and obj (Path: pes (? identifier? x))) pt)
-                (let ([t (lookup-id-type/lexical x Γ #:fail (λ (_) Univ))])
-                  (define new-t (update t pt #t pes))
-                  (cond
-                    [(Bottom? new-t) #f]
-                    [(equal? t new-t)
-                     (cond
-                       [(ormap uninterpreted-PE? pes)
-                        (update-obj-pos-type new Γ obj pt)]
-                       [else (loop ps (cons p atoms) negs new Γ)])]
-                    [else
-                     ;; it's a new type! check if there are any logical propositions that can
-                     ;; be extracted from new-t
-                     (define-values (new-t* new-props) (extract-props (-id-path x) new-t))
-                     (cond
-                       ;; if the path contains an uninterpreted path element,
-                       ;; we need to update the object's type in addition to
-                       ;; the identifier's type
-                       [(ormap uninterpreted-PE? pes)
-                        (update-obj-pos-type (append new-props new)
-                                             (env-set-id-type Γ x new-t*)
-                                             obj
-                                             pt)]
-                       [(path-type pes new-t*) => (lambda (pt)
-                                                    (loop ps
-                                                          (cons (-is-type obj pt) atoms)
-                                                          negs
-                                                          (append new-props new)
-                                                          (env-set-id-type Γ x new-t*)))]
-                       [else #f])]))]
+                (define t (lookup-id-type/lexical x Γ #:fail (λ (_) Univ)))
+                (define new-t (update t pt #t pes))
+                (cond
+                  [(Bottom? new-t) #f]
+                  [(equal? t new-t)
+                   (cond
+                     [(ormap uninterpreted-PE? pes) (update-obj-pos-type new Γ obj pt)]
+                     [else (loop ps (cons p atoms) negs new Γ)])]
+                  [else
+                   ;; it's a new type! check if there are any logical propositions that can
+                   ;; be extracted from new-t
+                   (define-values (new-t* new-props) (extract-props (-id-path x) new-t))
+                   (cond
+                     ;; if the path contains an uninterpreted path element,
+                     ;; we need to update the object's type in addition to
+                     ;; the identifier's type
+                     [(ormap uninterpreted-PE? pes)
+                      (update-obj-pos-type (append new-props new)
+                                           (env-set-id-type Γ x new-t*)
+                                           obj
+                                           pt)]
+                     [(path-type pes new-t*)
+                      =>
+                      (lambda (pt)
+                        (loop ps
+                              (cons (-is-type obj pt) atoms)
+                              negs
+                              (append new-props new)
+                              (env-set-id-type Γ x new-t*)))]
+                     [else #f])])]
                [(TypeProp: obj pt)
                 (update-obj-pos-type new Γ obj pt)]
                ;; process negative info _after_ positive info so we don't miss anything!
@@ -145,33 +146,32 @@
                                  (env-set-obj-type Γ obj new-t*))])))
                     (match p
                       [(NotTypeProp: (and obj (Path: pes (? identifier? x))) pt)
-                       (let ([t (lookup-id-type/lexical x Γ #:fail (λ (_) Univ))])
-                         (define new-t (update t pt #f pes))
-                         (cond
-                           [(Bottom? new-t) #f]
-                           [(equal? t new-t)
-                            (cond
-                              [(ormap uninterpreted-PE? pes)
-                               (update-obj-neg-type new Γ obj pt)]
-                              [else (loop negs (cons p atoms) new Γ)])]
-                           [else
-                            ;; it's a new type! check if there are any logical propositions that can
-                            ;; be extracted from new-t
-                            (define-values (new-t* new-props) (extract-props (-id-path x) new-t))
-                            (cond
-                              ;; if the path contains an uninterpreted path element,
-                              ;; we need to update the object's type in addition to
-                              ;; the identifier's type
-                              [(ormap uninterpreted-PE? pes)
-                               (update-obj-neg-type (append new-props new)
-                                                    (env-set-id-type Γ x new-t*)
-                                                    obj
-                                                    pt)]
-                              [else
-                               (loop negs
-                                     (cons p atoms)
-                                     (append new-props new)
-                                     (env-set-id-type Γ x new-t*))])]))]
+                       (define t (lookup-id-type/lexical x Γ #:fail (λ (_) Univ)))
+                       (define new-t (update t pt #f pes))
+                       (cond
+                         [(Bottom? new-t) #f]
+                         [(equal? t new-t)
+                          (cond
+                            [(ormap uninterpreted-PE? pes) (update-obj-neg-type new Γ obj pt)]
+                            [else (loop negs (cons p atoms) new Γ)])]
+                         [else
+                          ;; it's a new type! check if there are any logical propositions that can
+                          ;; be extracted from new-t
+                          (define-values (new-t* new-props) (extract-props (-id-path x) new-t))
+                          (cond
+                            ;; if the path contains an uninterpreted path element,
+                            ;; we need to update the object's type in addition to
+                            ;; the identifier's type
+                            [(ormap uninterpreted-PE? pes)
+                             (update-obj-neg-type (append new-props new)
+                                                  (env-set-id-type Γ x new-t*)
+                                                  obj
+                                                  pt)]
+                            [else
+                             (loop negs
+                                   (cons p atoms)
+                                   (append new-props new)
+                                   (env-set-id-type Γ x new-t*))])])]
                       [(NotTypeProp: obj pt)
                        (update-obj-neg-type new Γ obj pt)])]
                    [_

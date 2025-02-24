@@ -48,7 +48,7 @@ jobs:
       - name: Analyze changed files
         run: xvfb-run racket -l- resyntax/cli analyze --local-git-repository . "origin/${GITHUB_BASE_REF}" --output-as-github-review --output-to-file ./resyntax-review.json
       - name: Upload analysis artifact
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4.6.1
         with:
           name: resyntax-review
           path: resyntax-review.json

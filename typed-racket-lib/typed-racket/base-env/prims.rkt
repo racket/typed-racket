@@ -308,16 +308,29 @@ the typed racket language.
            (pattern (~seq (~and kw (~or #:break #:final)) guard-expr:expr)
                     #:with (expand ...) #'(kw guard-expr)))
          (define-syntax-class for-kw
+           (pattern #:when)
+           (pattern #:unless)
+           (pattern #:do)
+           (pattern #:splice))
+         (define-syntax-class for-when
            (pattern #:when
                     #:with replace-with #'when)
            (pattern #:unless
                     #:with replace-with #'unless))
          (syntax-parse clauses
-           [(head:for-clause next:for-clause ... kw:for-kw guard b:break-clause ... rest ...)
+           [(when:for-when guard) ; we end on a keyword clause
+            (quasisyntax/loc stx
+              (when.replace-with guard
+                #,@body))]
+           [(when:for-when guard rest ...)
+            (quasisyntax/loc stx
+              (when.replace-with guard
+                #,(loop #'(rest ...))))]
+           [(head:for-clause ... kw:for-kw expr b:break-clause ... rest ...)
             (add-ann
              (quasisyntax/loc stx
                (for
-                (head.expand ... next.expand ... ... kw guard b.expand ... ...)
+                (head.expand ... ... kw expr b.expand ... ...)
                 #,(loop #'(rest ...))))
              #'Void)]
            [(head:for-clause ...) ; we reached the end
@@ -326,15 +339,7 @@ the typed racket language.
                (for
                 (head.expand ... ...)
                 #,@body))
-             #'Void)]
-           [(kw:for-kw guard) ; we end on a keyword clause
-            (quasisyntax/loc stx
-              (kw.replace-with guard
-                #,@body))]
-           [(kw:for-kw guard rest ...)
-            (quasisyntax/loc stx
-              (kw.replace-with guard
-                #,(loop #'(rest ...))))])))]))
+             #'Void)])))]))
 
 (begin-for-syntax
   (define-splicing-syntax-class optional-standalone-annotation*

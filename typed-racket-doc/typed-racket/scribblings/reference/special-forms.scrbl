@@ -225,9 +225,15 @@ To see how to declare a type for @racket[add-map], see the
                [for-clause [id : t seq-expr]
                            [(binding ...) seq-expr]
                            [id seq-expr]
-                           @code:line[#:when guard]]
+                           @code:line[#:when guard]
+                           @code:line[#:unless guard]
+                           @code:line[#:do [do-body ...]]
+                           break-clause
+                           @code:line[#:splice (splicing-id . form)]]
                [binding id
-                        [id : t]])]{
+                        [id : t]]
+               [break-clause @code:line[#:break guard]
+                             @code:line[#:final guard]])]{
 Like @|for-id| from @racketmodname[racket/base], but each @racket[id] has the associated type
 @racket[t]. The latter @racket[_ann-maybe] will be used first, and then the previous one.
 Since the return type is always @racket[Void],

@@ -1,5 +1,7 @@
 #lang typed/scheme
 
+(require (for-syntax racket/base))
+
 (: check (All (a) ((a a -> Boolean) a a -> Boolean)))
 ;; Simple check function as RackUnit doesn't work in Typed Scheme (yet)
 (define (check f a b)
@@ -49,6 +51,35 @@
                  : Void
                  (display (list i j k)))))
        "(1 a #t)(1 a #t)(3 c #t)(3 c #t)")
+
+(check string=?
+       (with-output-to-string
+         (lambda ()
+           (for: : Void (#:do [(display #"0123456789")])
+             (void))))
+       "0123456789")
+(check string=?
+       (with-output-to-string
+         (lambda ()
+           (for: : Void
+                 ([i '(1 2 3)]
+                  #:do [(define neg-i (- i))]
+                  [j (in-list (list neg-i 0 i))])
+             (display j))))
+       "-101-202-303")
+
+(check string=?
+       (with-output-to-string
+         (lambda ()
+           (define-splicing-for-clause-syntax cross3
+             (lambda (stx)
+               (syntax-case stx ()
+                 [(_ n m) #'([n (in-range 3)]
+                             #:when #t
+                             [m (in-range 3)])])))
+           (for: : Void (#:splice (cross3 m n))
+             (display (+ m n)))))
+       "012123234")
 
 (check equal?
        (for/list: : (Listof Integer) ([i : Integer (in-range 10)]) i)

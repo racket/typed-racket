@@ -1806,7 +1806,7 @@
 
 ;; sorts the given field of a Row by the member name
 (define (sort-row-clauses clauses)
-  (sort clauses (λ (x y) (symbol<? (car x) (car y)))))
+  (sort clauses symbol<? #:key car))
 
 (define-match-expander Class:*
   (λ (stx)

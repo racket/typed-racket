@@ -59,10 +59,8 @@
                      (app BaseUnion-bases bases)))])))
 
 (define (BaseUnion-bases t)
-  (match t
-    [(BaseUnion: bbits nbits)
-     (cond
-       [(eqv? bbits 0) (nbits->base-types nbits)]
-       [(eqv? nbits 0) (bbits->base-types bbits)]
-       [else (append (bbits->base-types bbits)
-                     (nbits->base-types nbits))])]))
+  (match-define (BaseUnion: bbits nbits) t)
+  (cond
+    [(eqv? bbits 0) (nbits->base-types nbits)]
+    [(eqv? nbits 0) (bbits->base-types bbits)]
+    [else (append (bbits->base-types bbits) (nbits->base-types nbits))]))

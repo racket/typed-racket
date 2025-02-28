@@ -69,11 +69,9 @@
     (cond
       [(member x seen free-identifier=?) (cons x seen)]
       [else
-       (begin0
-         (let ([seen+x (cons x seen)])
-           (for/or ([neighbor (in-list (cdr (assoc x deps free-identifier=?)))])
-             (and (not (member neighbor visited free-identifier=?))
-                  (visit neighbor seen+x))))
+       (define seen+x (cons x seen))
+       (begin0 (for/or ([neighbor (in-list (cdr (assoc x deps free-identifier=?)))])
+                 (and (not (member neighbor visited free-identifier=?)) (visit neighbor seen+x)))
          (set! visited (cons x visited)))]))
   (match (for/or ([entry (in-list deps)])
            (visit (car entry) '()))

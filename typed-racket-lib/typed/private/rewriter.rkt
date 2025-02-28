@@ -7,7 +7,7 @@
 
 (define-for-syntax (rewrite stx tbl from)
   (define (rw stx)
-     (syntax-parse (syntax-disarm stx code-insp) #:literal-sets (kernel-literals)
+     (syntax-parse stx #:literal-sets (kernel-literals)
        [i:identifier
         (dict-ref tbl #'i #'i)]
        ;; no expressions here

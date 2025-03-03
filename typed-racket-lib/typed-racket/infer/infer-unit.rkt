@@ -827,6 +827,8 @@
          (cg e e*)]
         [((Set: a) (Set: a*))
          (cg a a*)]
+        [((TreeList: a) (TreeList: a*))
+         (cg a a*)]
         [((Evt: a) (Evt: a*))
          (cg a a*)]
         [((? Base:Semaphore?) (Evt: t))

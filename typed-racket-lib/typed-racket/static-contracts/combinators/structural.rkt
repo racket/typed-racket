@@ -9,10 +9,12 @@
          racket/match
          (for-syntax racket/base racket/syntax syntax/stx syntax/parse)
          racket/set
+         racket/treelist
          racket/sequence
          (for-template racket/base
                        racket/contract/base
                        racket/set
+                       racket/treelist
                        racket/async-channel
                        racket/sequence
                        racket/promise
@@ -160,6 +162,7 @@
   ((listof/sc (#:covariant)) listof #:flat)
   ((cons/sc (#:covariant) (#:covariant)) cons/c #:flat)
   ((set/sc (#:covariant #:chaperone)) set/c #:flat)
+  ((treelist/sc (#:covariant #:chaperone)) treelist/c #:flat)
   ((struct-property/sc (#:invariant)) struct-type-property/c #:impersonator)
   ((immutable-vectorof/sc (#:covariant)) immutable-vectorof/c #:flat)
   ((mutable-vectorof/sc (#:invariant)) mutable-vectorof/c #:chaperone)

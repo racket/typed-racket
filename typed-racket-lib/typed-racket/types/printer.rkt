@@ -687,6 +687,7 @@
     [(Ephemeron: e) `(Ephemeronof ,(t->s e))]
     [(CustodianBox: e) `(CustodianBoxof ,(t->s e))]
     [(Set: e) `(Setof ,(t->s e))]
+    [(TreeList: e) `(TreeListof ,(t->s e))]
     [(Evt: r) `(Evtof ,(t->s r))]
     [(? Union? (app normalize-type type))
      (match type

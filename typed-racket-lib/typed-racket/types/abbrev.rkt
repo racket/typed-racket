@@ -49,6 +49,7 @@
 (define -thread-cell make-ThreadCell)
 (define -Promise make-Promise)
 (define -set make-Set)
+(define -treelist make-TreeList)
 (define -mvec make-Mutable-Vector)
 (define -ivec make-Immutable-Vector)
 

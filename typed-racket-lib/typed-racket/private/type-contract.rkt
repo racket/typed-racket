@@ -42,6 +42,7 @@
  racket/format
  racket/string
  racket/set
+ racket/treelist
  syntax/flatten-begin
  (only-in "../types/abbrev.rkt" -Bottom -Boolean)
  "../static-contracts/instantiate.rkt"
@@ -564,6 +565,7 @@
        [(? Fun? t) (t->sc/fun t)]
        [(? DepFun? t) (t->sc/fun t)]
        [(Set: t) (set/sc (t->sc t))]
+       [(TreeList: t) (treelist/sc (t->sc t))]
        [(Sequence: (list t))
         #:when (subtype t:-Nat t)
         ;; sequence/c is always a wrapper, so avoid it when we just have a number
@@ -930,6 +932,7 @@
         none/sc
         (make-procedure-arity-flat/sc num-mand-args '() '()))]
      [(Set: _) set?/sc]
+     [(TreeList: _) treelist?/sc] 
      [(or (Sequence: _)
           (SequenceTop:)
           (SequenceDots: _ _ _))

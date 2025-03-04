@@ -354,10 +354,9 @@
   [#:mask mask:set])
 
 ;;------
-;; Treelist
+;; Treelist (Immutable)
 ;;------
 
-;; TODO separate mutable/immutable treelist types
 (def-structural TreeList ([elem #:covariant])
   [#:mask mask:treelist])
 

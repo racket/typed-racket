@@ -1951,9 +1951,8 @@
         (tc-e (treelist-for-each (treelist "a" "b") (λ (x) x)) -Void)
         (tc-e (treelist-find (treelist "a" "b") (λ (x) (if (equal? x "a") #t #f))) -String)
         (tc-e (treelist-filter even? (treelist 1 2 3 4 5)) (-treelist -PosByte))
-        (tc-e (treelist-flatten (treelist (treelist (treelist (treelist "a")))))
-              (-treelist (-treelist (-treelist (-treelist (-treelist -String)))))) ;;FIXME: this type is unpleasant
-        (tc-e (treelist-flatten "a") (-treelist -String))
+        (tc-e (treelist-flatten (treelist (treelist (treelist (treelist "a"))))) (-treelist Univ))
+        (tc-e (treelist-flatten "a") (-treelist Univ))
         (tc-e (treelist-append* (treelist (treelist "a" "b") (treelist "c" (treelist "d") "e") (treelist))) (-treelist Univ))
         (tc-e (treelist-index-of (treelist "a" "b" "c") "b") -Index)
         (tc-e (treelist-index-of (treelist "a" "b" "c") "b" equal?) -Index)

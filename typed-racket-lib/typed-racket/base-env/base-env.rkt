@@ -1311,7 +1311,7 @@
 [treelist-cons (-poly (a) (-> (-treelist a) a (-treelist a)))]
 [treelist-delete (-poly (a) (-> (-treelist a) -Index (-treelist a)))]
 [make-treelist (-poly (a) (-> -Nat a (-treelist a)))]
-[treelist-ref (-poly (a) (-> (-treelist a) -Index a))]
+[treelist-ref (-poly (a) (-> (-treelist a) -Index a :T+ #f))]
 [treelist-insert (-poly (a) (-> (-treelist a) -Index a (-treelist a)))]
 [treelist-set (-poly (a) (-> (-treelist a) -Index a (-treelist a)))]
 [treelist-take (-poly (a) (-> (-treelist a) -Index (-treelist a)))]
@@ -1330,13 +1330,13 @@
 [treelist-map (-poly (a b) (-> (-treelist a) (-> a b) (-treelist b)))]
 [treelist-for-each (-poly (a b) (-> (-treelist a) (-> a b) -Void))]
 [treelist-filter (-poly (a) (-> (-> a Univ) (-treelist a) (-treelist a)))]
-[treelist-find (-poly (a) (-> (-treelist a) (-> a Univ) a))]
+[treelist-find (-poly (a) (-> (-treelist a) (-> a Univ) a :T+ #f))]
 [treelist-index-of
  (-poly (a)
         (cl->* ((-treelist a) a . -> . -Index)
                ((-treelist a) a (-> a a Univ) . -> . -Index)))]
-[treelist-flatten (-poly (a) (-> a (-treelist a)))] ;; This type isn't any more or less pratical than Univ, but Univ might not be sound
-[treelist-append* (-poly (a) (-> (-treelist (-treelist a)) (-treelist a)))] ;; Same type specificty issue as above
+[treelist-flatten (Univ . -> . (-treelist Univ))]
+[treelist-append* (-poly (a) (-> (-treelist (-treelist a)) (-treelist a)))]
 [treelist-sort
 (-poly
   (a b)

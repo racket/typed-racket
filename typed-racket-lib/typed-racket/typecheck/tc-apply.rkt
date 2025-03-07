@@ -83,9 +83,8 @@
            ;; Takes a possible substitution and computes
            ;; the substituted range type if it is not #f
            (define (finish substitution)
-             (begin0
-               (and substitution (do-ret (subst-all substitution rng)))
-               (add-typeof-expr f (ret (make-Fun (list arrow))))))
+             (and substitution (do-ret (subst-all substitution rng))))
+           (add-typeof-expr f (ret (make-Fun (list arrow))))
            (finish
             (infer vars dotted-vars
                    (list (-Tuple* arg-tys full-tail-ty))

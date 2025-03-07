@@ -1353,12 +1353,9 @@
 ;; the pubment types as default augment types if an augment type
 ;; was not already provided
 (define (setup-pubment-defaults pubment-names annotations augment-annotations)
-  (for ([name pubment-names])
-    (when (and (not (hash-has-key? augment-annotations name))
-               (hash-has-key? annotations name))
-      (hash-set! augment-annotations
-                 name
-                 (dict-ref annotations name)))))
+  (for ([name pubment-names]
+        #:when (and (not (hash-has-key? augment-annotations name)) (hash-has-key? annotations name)))
+    (hash-set! augment-annotations name (dict-ref annotations name))))
 
 ;; infer-self-type : Dict RowVar Class Dict<Symbol, Type> Dict<Symbol, Type>
 ;;                   Set<Symbol> Dict<Symbol, Symbol>

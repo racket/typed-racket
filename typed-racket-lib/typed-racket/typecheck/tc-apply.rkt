@@ -50,15 +50,24 @@
 
   ;; Raises an error message for the case that the arguments do not match any of the domains
   (define (failure)
-    (match f-ty
-      [(tc-result1:
-         (and t (AnyPoly-names: _ _
-                                (Fun: (list (Arrow: doms rests (list (Keyword: _ _ #f) ...) rngs) ..1)))))
-       (domain-mismatches f args t doms rests rngs arg-tres full-tail-ty #f
-                          #:msg-thunk (lambda (dom)
-                                        (string-append
-                                         "Bad arguments to function in `apply':\n"
-                                         dom)))]))
+    (match-define (tc-result1: (and t
+                                    (AnyPoly-names:
+                                     _
+                                     _
+                                     (Fun: (list (Arrow: doms rests (list (Keyword: _ _ #f) ...) rngs)
+                                                 ..1)))))
+      f-ty)
+    (domain-mismatches f
+                       args
+                       t
+                       doms
+                       rests
+                       rngs
+                       arg-tres
+                       full-tail-ty
+                       #f
+                       #:msg-thunk
+                       (lambda (dom) (string-append "Bad arguments to function in `apply':\n" dom))))
 
   (match f-ty
     ;; apply of a simple function or polymorphic function

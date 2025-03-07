@@ -1506,10 +1506,9 @@
   ;; Merge all the non-duplicate entries from the parent types
   (define (merge-clause parent-clause clause)
     (for/fold ([clause clause])
-              ([(k v) (in-dict parent-clause)])
-      (if (dict-has-key? clause k)
-          clause
-          (dict-set clause k v))))
+              ([(k v) (in-dict parent-clause)]
+               #:unless (dict-has-key? clause k))
+      (dict-set clause k v)))
 
   (define (match-parent-type parent-type)
     (define resolved (resolve parent-type))

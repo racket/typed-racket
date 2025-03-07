@@ -183,8 +183,8 @@
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
 (define ((parse/id p) loc datum)
-  (let* ([stx* (datum->syntax loc datum loc loc)])
-    (p stx*)))
+  (define stx* (datum->syntax loc datum loc loc))
+  (p stx*))
 
 (define (parse-literal-alls stx)
   (syntax-parse stx
@@ -902,15 +902,16 @@
                                      (k Err)
                                      (remove-duplicates res)))
                        ([ty (in-syntax #'(tys ...))])
-               (let ([t (do-parse ty)])
-                 (match (resolve t)
-                   [(Fun: arrows) (values (append res arrows) err?)]
-                   [_ (if (side-effect-mode? mode)
-                          (values res #t)
-                          (parse-error
-                           #:stx ty
-                           "expected a function type for component of case-> type"
-                           "given" t))]))))
+               (define t (do-parse ty))
+               (match (resolve t)
+                 [(Fun: arrows) (values (append res arrows) err?)]
+                 [_
+                  (if (side-effect-mode? mode)
+                      (values res #t)
+                      (parse-error #:stx ty
+                                   "expected a function type for component of case-> type"
+                                   "given"
+                                   t))])))
            (make-Fun arrows))]
         [(:Rec^ x:id t)
          (let* ([var (syntax-e #'x)])

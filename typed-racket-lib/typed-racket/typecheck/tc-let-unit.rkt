@@ -284,8 +284,8 @@
       (if (null? names)
           (values (cons clause non-binding) other-clauses)
           (values non-binding (cons clause other-clauses)))))
-  (define-values (non-binding other-clauses)
-    (values (reverse *non-binding) (reverse *other-clauses)))
+  (define non-binding (reverse *non-binding))
+  (define other-clauses (reverse *other-clauses))
 
   ;; Set up vertices for Tarjan's algorithm, where each letrec-values
   ;; clause is a vertex but mapped in the table for each of the clause names

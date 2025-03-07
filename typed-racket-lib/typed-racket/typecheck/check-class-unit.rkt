@@ -712,18 +712,12 @@
      (localize local-augment-table 'augment-internals)
      (localize local-inner-table '(pubment-internals augment-internals))
      (localize local-init-table 'only-init-internals)))
-  (define-values (localized-field-get-names
-                  localized-field-set-names
-                  localized-private-field-get-names
-                  localized-private-field-set-names
-                  localized-inherit-field-get-names
-                  localized-inherit-field-set-names)
-    (values (map car localized-field-pairs)
-            (map cadr localized-field-pairs)
-            (map car localized-private-field-pairs)
-            (map cadr localized-private-field-pairs)
-            (map car localized-inherit-field-pairs)
-            (map cadr localized-inherit-field-pairs)))
+  (define localized-field-get-names (map car localized-field-pairs))
+  (define localized-field-set-names (map cadr localized-field-pairs))
+  (define localized-private-field-get-names (map car localized-private-field-pairs))
+  (define localized-private-field-set-names (map cadr localized-private-field-pairs))
+  (define localized-inherit-field-get-names (map car localized-inherit-field-pairs))
+  (define localized-inherit-field-set-names (map cadr localized-inherit-field-pairs))
 
   ;; construct the types for method accessors
   (define (make-method-types method-names type-map
@@ -1428,13 +1422,12 @@
       [(Class: _ inits fields publics augments init-rest)
        (values inits fields publics augments init-rest)]
       [_ (values #f #f #f #f #f)]))
-  (define-values (inits fields publics pubments overrides init-rest-name)
-    (values (hash-ref parse-info 'init-internals)
-            (hash-ref parse-info 'field-internals)
-            (hash-ref parse-info 'public-internals)
-            (hash-ref parse-info 'pubment-internals)
-            (hash-ref parse-info 'override-internals)
-            (hash-ref parse-info 'init-rest-name)))
+  (define inits (hash-ref parse-info 'init-internals))
+  (define fields (hash-ref parse-info 'field-internals))
+  (define publics (hash-ref parse-info 'public-internals))
+  (define pubments (hash-ref parse-info 'pubment-internals))
+  (define overrides (hash-ref parse-info 'override-internals))
+  (define init-rest-name (hash-ref parse-info 'init-rest-name))
   (define init-types (make-inits inits super-inits expected-inits))
   (define field-types (make-type-dict fields super-fields expected-fields Univ))
 

@@ -1401,8 +1401,7 @@
                       [_ (apply rator args^)])]))]
               [(? Name?)
                (resolve-app-check-error rator args^ stx)
-               (define app (make-App rator args^))
-               app]
+               (make-App rator args^)]
               [(Error:) Err]
               [_ (parse-error "bad syntax in type application: expected a type constructor"
                               "given a type"
@@ -1655,12 +1654,12 @@
             ;; of init arguments.
             (define parent-inits (get-parent-inits parent/init-type))
 
-            (define class-type
-              (make-Class row-var
-                          (append given-inits parent-inits)
-                          fields methods augments given-init-rest))
-
-            class-type]
+            (make-Class row-var
+                        (append given-inits parent-inits)
+                        fields
+                        methods
+                        augments
+                        given-init-rest)]
            [else
             ;; Conservatively assume that if there *are* #:implements
             ;; clauses, then the current type alias will be recursive

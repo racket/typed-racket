@@ -1532,11 +1532,16 @@
   (require racket/extflonum)
   (provide nonnegative? nonpositive?
            extflonum? extflzero? extflnonnegative? extflnonpositive?)
-  (define nonnegative? (lambda (x) (>= x 0)))
-  (define nonpositive? (lambda (x) (<= x 0)))
-  (define extflzero? (lambda (x) (extfl= x 0.0t0)))
-  (define extflnonnegative? (lambda (x) (extfl>= x 0.0t0)))
-  (define extflnonpositive? (lambda (x) (extfl<= x 0.0t0))))
+  (define (nonnegative? x)
+    (>= x 0))
+  (define (nonpositive? x)
+    (<= x 0))
+  (define (extflzero? x)
+    (extfl= x 0.0t0))
+  (define (extflnonnegative? x)
+    (extfl>= x 0.0t0))
+  (define (extflnonpositive? x)
+    (extfl<= x 0.0t0)))
 
 (module numeric-contracts racket/base
   (require

@@ -831,12 +831,11 @@
          refinement-type]
         [(:Instance^ t)
          (let ([v (do-parse #'t)])
-           (if (not (or (F? v) (Mu? v) (Name? v) (Class? v) (Error? v)))
-               (begin (parse-error #:delayed? #t
-                                   "expected a class type for argument to Instance"
-                                   "given" v)
-                      (make-Instance (Un)))
-               (make-Instance v)))]
+           (cond
+             [(not (or (F? v) (Mu? v) (Name? v) (Class? v) (Error? v)))
+              (parse-error #:delayed? #t "expected a class type for argument to Instance" "given" v)
+              (make-Instance (Un))]
+             [else (make-Instance v)]))]
         [(:Unit^ (:import^ import:id ...)
                  (:export^ export:id ...)
                  (~optional (:init-depend^ init-depend:id ...)

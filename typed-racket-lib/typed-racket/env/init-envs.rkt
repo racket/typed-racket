@@ -329,11 +329,10 @@
     [(Instance: ty) `(make-Instance ,(type->sexp ty))]
     [(Signature: name extends mapping)
      (define (serialize-mapping m)
-       (map (lambda (id/ty)
-              (define id (car id/ty))
-              (define ty (force (cdr id/ty)))
-              `(cons (quote-syntax ,id) ,(type->sexp ty)))
-            m))
+       (for/list ([id/ty (in-list m)])
+         (define id (car id/ty))
+         (define ty (force (cdr id/ty)))
+         `(cons (quote-syntax ,id) ,(type->sexp ty))))
      (define serialized-extends (and extends `(quote-syntax ,extends)))
      `(make-Signature (quote-syntax ,name)
                       ,serialized-extends
@@ -435,11 +434,10 @@
      `(make-PrefabPE (quote ,key) ,idx)]))
 
 (define (bound-in-this-module id)
-  (let ([binding (identifier-binding id)])
-    (if (and (list? binding) (module-path-index? (car binding)))
-        (let-values ([(mp base) (module-path-index-split (car binding))])
-          (not mp))
-        #f)))
+  (define binding (identifier-binding id))
+  (and (and (list? binding) (module-path-index? (car binding)))
+       (let-values ([(mp base) (module-path-index-split (car binding))])
+         (not mp))))
 
 (define (make-init-code map f)
   (define (bound-f id v)

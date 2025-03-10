@@ -1,6 +1,8 @@
 #lang racket
-(require racket/runtime-path compiler/compiler
-         rackunit rackunit/text-ui
+(require compiler/compiler
+         racket/runtime-path
+         rackunit
+         rackunit/text-ui
          typed-racket/optimizer/logging
          "../send-places.rkt")
 
@@ -11,7 +13,7 @@
 (define (get-expected-results file)
   (with-input-from-file file #:mode 'text
     (lambda () ; from the test file
-      (read-line) ; skip the #;#;
+      (read-line (current-input-port) 'any) ; skip the #;#;
       (values (for/list ((l (in-lines (open-input-string (read))))) l)
               (read)))))
 

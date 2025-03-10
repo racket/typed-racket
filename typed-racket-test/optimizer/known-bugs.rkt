@@ -1,14 +1,14 @@
 #lang racket/base
 
-(require
-  rackunit
-  racket/sandbox
-  racket/flonum racket/fixnum racket/unsafe/ops
-  racket/math
-  syntax/srcloc
-  (for-syntax
-    racket/base
-    syntax/parse))
+(require (for-syntax racket/base
+                     syntax/parse)
+         racket/fixnum
+         racket/flonum
+         racket/math
+         racket/sandbox
+         racket/unsafe/ops
+         rackunit
+         syntax/srcloc)
 
 (provide tests)
 

@@ -46,8 +46,8 @@
    (let* ([res (tc/let-values #'((x) ...) #'(args ...) #'body expected)]
           [dom-ts
            (for/list ([arg (in-list (syntax-e #'(args ...)))])
-             (match (type-of arg)
-              [(tc-result1: t) t]))]
+             (match-define (tc-result1: t) (type-of arg))
+             t)]
           [cod-t (tc-results->values res)])
      (add-typeof-expr #'lam (ret (->* dom-ts cod-t :T+ #t)))
      res))
@@ -82,10 +82,10 @@
      (let* ([ts1 (generalize (tc-expr/t #'actual))]
             [ann-ts (for/list ([a (in-syntax #'(acc ...))]
                                [ac (in-syntax #'(actuals ...))])
-                      (let ([type (find-annotation #'inner-body a)])
-                        (if type
-                            (tc-expr/check/t ac (ret type))
-                            (generalize (tc-expr/t ac)))))]
+                      (define type (find-annotation #'inner-body a))
+                      (if type
+                          (tc-expr/check/t ac (ret type))
+                          (generalize (tc-expr/t ac))))]
             [ts (cons ts1 ann-ts)])
        ;; check that the actual arguments are ok here
        (for/list ([a (in-syntax #'(actuals ...))]

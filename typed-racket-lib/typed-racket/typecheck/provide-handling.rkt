@@ -1,13 +1,13 @@
 #lang racket/base
 
-(require "../utils/utils.rkt"
+(require (for-syntax racket/base)
+         (for-template racket/base)
          racket/sequence
          syntax/parse
-         "../private/syntax-properties.rkt"
-         "def-binding.rkt"
          "../env/env-utils.rkt"
-         (for-syntax racket/base)
-         (for-template racket/base))
+         "../private/syntax-properties.rkt"
+         "../utils/utils.rkt"
+         "def-binding.rkt")
 
 (provide remove-provides provide? generate-prov)
 

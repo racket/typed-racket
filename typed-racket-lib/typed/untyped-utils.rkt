@@ -1,11 +1,11 @@
 #lang racket/base
 
 (require (for-syntax racket/base
+                     racket/syntax
                      syntax/parse
                      syntax/stx
-                     racket/syntax
-                     typed-racket/utils/tc-utils
-                     typed-racket/typecheck/renamer)
+                     typed-racket/typecheck/renamer
+                     typed-racket/utils/tc-utils)
          typed-racket/utils/tc-utils)
 
 (provide syntax-local-typed-context?

@@ -53,7 +53,7 @@
   (define guard/c (dynamic-object/c methods method-ctcs fields field-ctcs))
   (define guard/c-proj ((contract-late-neg-projection guard/c) blame))
   (λ (obj neg-party)
-    (when (not (object? obj))
+    (unless (object? obj)
       (raise-blame-error blame #:missing-party neg-party obj "expected an object got ~a" obj))
     (define actual-fields (field-names obj))
     (define actual-methods

@@ -213,7 +213,7 @@
                  opt:opt-lambda^)
            ;; it's only an interesting opt-lambda expansion if the number
            ;; of optional arguments is greater than zero
-           #:when (> (cadr (attribute opt.value)) 0)
+           #:when (positive? (cadr (attribute opt.value)))
            #:do [(register/method #'meth-name)]
            #:with props-core
                   (let* ([prop-val (attribute opt.value)]
@@ -290,12 +290,10 @@
       [(tc-result1: type) (resolve type)]
       [_ #f]))
   (match expected-type
-    [(? Class? class-type)
-     (ret (parse-and-check form class-type))]
+    [(? Class? class-type) (ret (parse-and-check form class-type))]
     [(Poly-names: ns body-type)
-     (match (check-class form (ret body-type))
-       [(tc-result1: t f o)
-        (ret (make-Poly ns t) f o)])]
+     (match-define (tc-result1: t f o) (check-class form (ret body-type)))
+     (ret (make-Poly ns t) f o)]
     [_ (ret (parse-and-check form #f))]))
 
 ;; Syntax Option<Type> -> Type
@@ -714,18 +712,12 @@
      (localize local-augment-table 'augment-internals)
      (localize local-inner-table '(pubment-internals augment-internals))
      (localize local-init-table 'only-init-internals)))
-  (define-values (localized-field-get-names
-                  localized-field-set-names
-                  localized-private-field-get-names
-                  localized-private-field-set-names
-                  localized-inherit-field-get-names
-                  localized-inherit-field-set-names)
-    (values (map car localized-field-pairs)
-            (map cadr localized-field-pairs)
-            (map car localized-private-field-pairs)
-            (map cadr localized-private-field-pairs)
-            (map car localized-inherit-field-pairs)
-            (map cadr localized-inherit-field-pairs)))
+  (define localized-field-get-names (map car localized-field-pairs))
+  (define localized-field-set-names (map cadr localized-field-pairs))
+  (define localized-private-field-get-names (map car localized-private-field-pairs))
+  (define localized-private-field-set-names (map cadr localized-private-field-pairs))
+  (define localized-inherit-field-get-names (map car localized-inherit-field-pairs))
+  (define localized-inherit-field-set-names (map cadr localized-inherit-field-pairs))
 
   ;; construct the types for method accessors
   (define (make-method-types method-names type-map
@@ -1317,14 +1309,14 @@
 ;; Check that by-name inits are valid for the superclass
 (define (check-by-name init-stxs super-inits)
   (match-define (super-init-stxs _ by-name) init-stxs)
-  (for ([(name _) (in-dict by-name)])
-    (unless (dict-ref super-inits name #f)
-      (tc-error/fields
-       "invalid `super-new' or `super-instantiate'"
-       #:more "init argument not accepted by superclass"
-       "init name" name
-       #:stx #`#,name
-       #:delayed? #t))))
+  (for ([(name _) (in-dict by-name)]
+        #:unless (dict-ref super-inits name #f))
+    (tc-error/fields "invalid `super-new' or `super-instantiate'"
+                     #:more "init argument not accepted by superclass"
+                     "init name"
+                     name
+                     #:stx #`#,name
+                     #:delayed? #t)))
 
 ;; check-super-new : super-init-stxs Dict Type -> Void
 ;; Check if the super-new call is well-typed
@@ -1332,10 +1324,10 @@
   (match-define (super-init-stxs provided-pos-args provided-inits)
                 super-new)
   (define pos-init-diff (- (length provided-pos-args) (length super-inits)))
-  (cond [(and (> pos-init-diff 0) (not init-rest))
+  (cond [(and (positive? pos-init-diff) (not init-rest))
          ;; errror case that's caught above, do nothing
          (void)]
-        [(> pos-init-diff 0)
+        [(positive? pos-init-diff)
          (define-values (pos-args for-init-rest)
            (split-at provided-pos-args (length super-inits)))
          (for ([pos-arg pos-args]
@@ -1361,12 +1353,9 @@
 ;; the pubment types as default augment types if an augment type
 ;; was not already provided
 (define (setup-pubment-defaults pubment-names annotations augment-annotations)
-  (for ([name pubment-names])
-    (when (and (not (hash-has-key? augment-annotations name))
-               (hash-has-key? annotations name))
-      (hash-set! augment-annotations
-                 name
-                 (dict-ref annotations name)))))
+  (for ([name pubment-names]
+        #:when (and (not (hash-has-key? augment-annotations name)) (hash-has-key? annotations name)))
+    (hash-set! augment-annotations name (dict-ref annotations name))))
 
 ;; infer-self-type : Dict RowVar Class Dict<Symbol, Type> Dict<Symbol, Type>
 ;;                   Set<Symbol> Dict<Symbol, Symbol>
@@ -1430,13 +1419,12 @@
       [(Class: _ inits fields publics augments init-rest)
        (values inits fields publics augments init-rest)]
       [_ (values #f #f #f #f #f)]))
-  (define-values (inits fields publics pubments overrides init-rest-name)
-    (values (hash-ref parse-info 'init-internals)
-            (hash-ref parse-info 'field-internals)
-            (hash-ref parse-info 'public-internals)
-            (hash-ref parse-info 'pubment-internals)
-            (hash-ref parse-info 'override-internals)
-            (hash-ref parse-info 'init-rest-name)))
+  (define inits (hash-ref parse-info 'init-internals))
+  (define fields (hash-ref parse-info 'field-internals))
+  (define publics (hash-ref parse-info 'public-internals))
+  (define pubments (hash-ref parse-info 'pubment-internals))
+  (define overrides (hash-ref parse-info 'override-internals))
+  (define init-rest-name (hash-ref parse-info 'init-rest-name))
   (define init-types (make-inits inits super-inits expected-inits))
   (define field-types (make-type-dict fields super-fields expected-fields Univ))
 

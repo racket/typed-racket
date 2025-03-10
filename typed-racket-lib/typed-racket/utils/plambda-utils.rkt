@@ -28,22 +28,19 @@
   (filter pair? (map rest tvarss)))
 
 (define (get-poly-tvarss form)
-  (let ([plambda-tvars
-          (let ([p (plambda-prop form)])
-            (match (and p (map syntax-e (syntax->list p)))
-              [#f #f]
-              [(list var ... dvar '...)
-               (list (list var dvar))]
-              [(list id ...)
-               (list id)]))]
-        [scoped-tvarss
-          (for/list ((tvarss (in-list (lookup-scoped-tvar-layer form))))
-            (for/list ((tvar (in-list tvarss)))
-              (match tvar
-                [(list (list v ...) dotted-v)
-                 (list (map syntax-e v) (syntax-e dotted-v))]
-                [(list v ...) (map syntax-e v)])))])
-    (if plambda-tvars
-        (cons plambda-tvars scoped-tvarss)
-        scoped-tvarss)))
+  (define plambda-tvars
+    (let ([p (plambda-prop form)])
+      (match (and p (map syntax-e (syntax->list p)))
+        [#f #f]
+        [(list var ... dvar '...) (list (list var dvar))]
+        [(list id ...) (list id)])))
+  (define scoped-tvarss
+    (for/list ([tvarss (in-list (lookup-scoped-tvar-layer form))])
+      (for/list ([tvar (in-list tvarss)])
+        (match tvar
+          [(list (list v ...) dotted-v) (list (map syntax-e v) (syntax-e dotted-v))]
+          [(list v ...) (map syntax-e v)]))))
+  (if plambda-tvars
+      (cons plambda-tvars scoped-tvarss)
+      scoped-tvarss))
 

@@ -533,7 +533,7 @@
        (with-updated-seen A
          ;; be provable for subtyping to hold
          (define-values (t1* extracted-props) (extract-props obj t1))
-         (define assumptions (apply -and (cons (-is-type obj t1*) extracted-props)))
+         (define assumptions (apply -and (-is-type obj t1*) extracted-props))
 
          (define goal
            (match* (lower-ineq upper-ineq)
@@ -658,9 +658,7 @@
            ;; FIXME: thread the store through here
            (for/or ([num-t (in-list num-seq-types)])
              (or (and (subtype* A t1 num-t) num-t))))
-         (if type
-             (subtype* A type seq-t)
-             #f)]
+         (and type (subtype* A type seq-t))]
         [else #f])]
      [(Evt: evt-t)
       (cond
@@ -793,30 +791,24 @@
         (for/fold ([A A])
                   ([a2 (in-list arrows2)]
                    #:break (not A))
-          (match a2
-            [(Arrow: dom2 rst2 kws2 raw-rng2)
-             (define A* (subtype-seq A
-                                     (subtypes* dom2 dom1)
-                                     (kw-subtypes* '() kws2)))
-             (cond
-               [(not A*) #f]
-               [else
-                (define arity (max (length dom1) (length dom2)))
-                (define-values (mapping t2s)
-                  (for/lists (_1 _2)
-                    ([idx (in-range arity)]
-                     [id (in-list ids)])
-                    (define t (dom+rst-ref dom2 rst2 idx Univ))
-                    (values (list* idx id t) t)))
-                (with-naively-extended-lexical-env
-                    [#:identifiers ids
-                     #:types t2s]
-                  (define A-res
-                    (subval* A*
-                             (instantiate-obj+simplify raw-rng1 mapping)
-                             (instantiate-obj raw-rng2 ids)))
-                  (and (implies-in-env? (lexical-env) -tt pre1)
-                       A-res))])])))]
+          (match-define (Arrow: dom2 rst2 kws2 raw-rng2) a2)
+          (define A* (subtype-seq A (subtypes* dom2 dom1) (kw-subtypes* '() kws2)))
+          (cond
+            [(not A*) #f]
+            [else
+             (define arity (max (length dom1) (length dom2)))
+             (define-values (mapping t2s)
+               (for/lists (_1 _2)
+                          ([idx (in-range arity)] [id (in-list ids)])
+                          (define t (dom+rst-ref dom2 rst2 idx Univ))
+                          (values (list* idx id t) t)))
+             (with-naively-extended-lexical-env [#:identifiers ids #:types t2s]
+                                                (define A-res
+                                                  (subval* A*
+                                                           (instantiate-obj+simplify raw-rng1 mapping)
+                                                           (instantiate-obj raw-rng2 ids)))
+                                                (and (implies-in-env? (lexical-env) -tt pre1)
+                                                     A-res))])))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Distinction (Distinction: nm1 id1 t1*))
    (match t2

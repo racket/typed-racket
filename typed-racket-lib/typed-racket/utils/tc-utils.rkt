@@ -77,20 +77,19 @@ don't depend on any other portion of the system
 (define warn-unreachable? (make-parameter #t))
 
 (define (warn-unreachable e)
-  (let ([l (current-logger)]
-        [stx (locate-stx e)])
-    (when (and (warn-unreachable?)
-               (log-level? l 'warning)
-               (and (syntax-transforming?)
-                    #;(syntax-original? (syntax-local-introduce e)))
-               #;(and (orig-module-stx)
-                      (eq? (debugf syntax-source-module e)
-                           (debugf syntax-source-module (orig-module-stx))))
-               #;(syntax-source-module stx))
-      (log-message l 'warning
-                   (format "Typed Racket has detected unreachable code: ~.s"
-                           (locate-stx e))
-                   e))))
+  (define l (current-logger))
+  (locate-stx e)
+  (when (and (warn-unreachable?)
+             (log-level? l 'warning)
+             (and (syntax-transforming?) #;(syntax-original? (syntax-local-introduce e)))
+             #;(and (orig-module-stx)
+                    (eq? (debugf syntax-source-module e)
+                         (debugf syntax-source-module (orig-module-stx))))
+             #;(syntax-source-module stx))
+    (log-message l
+                 'warning
+                 (format "Typed Racket has detected unreachable code: ~.s" (locate-stx e))
+                 e)))
 
 (define locate-stx
   ;; this hash handles using `locate-stx` even when orig/expand change
@@ -106,9 +105,9 @@ don't depend on any other portion of the system
 	    [else stx]))))
 
 (define (raise-typecheck-error msg stxs)
-  (if (null? (cdr stxs))
-      (raise-syntax-error (string->symbol "Type Checker") msg (car stxs))
-      (raise-syntax-error (string->symbol "Type Checker") msg #f #f stxs)))
+  (when (null? (cdr stxs))
+    (raise-syntax-error (string->symbol "Type Checker") msg (car stxs)))
+  (raise-syntax-error (string->symbol "Type Checker") msg #f #f stxs))
 
 (define delayed-errors null)
 
@@ -137,18 +136,17 @@ don't depend on any other portion of the system
          (reset-errors!)
          (log-type-error (err-msg f) (err-stx f))
          (raise-typecheck-error (err-msg f) (err-stx f))]
-        [else (let ([stxs
-                     (for/list ([e (in-list l)])
-                       (with-handlers ([exn:fail:syntax?
-                                        (λ (e) ((error-display-handler) (exn-message e) e))])
-                         (log-type-error (err-msg e) (err-stx e))
-                         (raise-typecheck-error (err-msg e) (err-stx e)))
-                       (err-stx e))])
-                (reset-errors!)
-                (unless (null? stxs)
-                  (raise-typecheck-error (format "Summary: ~a errors encountered"
-                                                 (length stxs))
-                                         (apply append stxs))))]))
+        [else (define stxs
+                (for/list ([e (in-list l)])
+                  (with-handlers ([exn:fail:syntax? (λ (e)
+                                                      ((error-display-handler) (exn-message e) e))])
+                    (log-type-error (err-msg e) (err-stx e))
+                    (raise-typecheck-error (err-msg e) (err-stx e)))
+                  (err-stx e)))
+              (reset-errors!)
+              (unless (null? stxs)
+                (raise-typecheck-error (format "Summary: ~a errors encountered" (length stxs))
+                                       (apply append stxs)))]))
 
 ;; Returns #t if there's a type error recorded at the same position as
 ;; the given syntax object. Does not return a useful result if the

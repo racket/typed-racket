@@ -3,26 +3,29 @@
 ;; Static contracts for structural contracts.
 ;; Ex: list/sc, vectorof/sc
 
-(require "../../utils/utils.rkt"
-         "../structures.rkt"
-         "../constraints.rkt"
-         racket/match
-         (for-syntax racket/base racket/syntax syntax/stx syntax/parse)
-         racket/set
-         racket/sequence
-         (for-template racket/base
+(require (for-syntax racket/base
+                     racket/syntax
+                     syntax/parse
+                     syntax/stx)
+         (for-template racket/async-channel
+                       racket/base
                        racket/contract/base
-                       racket/set
-                       racket/async-channel
-                       racket/sequence
                        racket/promise
+                       racket/sequence
+                       racket/set
                        "../../utils/evt-contract.rkt"
                        "../../utils/hash-contract.rkt"
+                       "../../utils/promise-not-name-contract.rkt"
                        "../../utils/shallow-contract.rkt"
-                       "../../utils/vector-contract.rkt"
-                       "../../utils/promise-not-name-contract.rkt")
+                       "../../utils/vector-contract.rkt")
+         racket/async-channel
          racket/contract
-         racket/async-channel)
+         racket/match
+         racket/sequence
+         racket/set
+         "../../utils/utils.rkt"
+         "../constraints.rkt"
+         "../structures.rkt")
 
 
 (begin-for-syntax

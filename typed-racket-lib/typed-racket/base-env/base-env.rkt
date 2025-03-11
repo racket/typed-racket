@@ -1298,8 +1298,8 @@
 ;; Section 4.21 (TreeLists)
 
 [treelist (-poly (a) (->* (list) a (-treelist a)))]
-[treelist-empty? (-> (-treelist Univ) B : (-treelist (Un)))]
-[treelist-length (-> (-treelist Univ) -Index)]
+[treelist-empty? (-poly (a) (-> (-treelist a) B))]
+[treelist-length (-poly (a) (-> (-treelist a) -Index))]
 [treelist-member?
  (-poly (a)
         (cl->* ((-treelist a) a . -> . Univ)

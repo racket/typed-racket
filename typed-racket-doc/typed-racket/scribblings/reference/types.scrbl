@@ -352,6 +352,8 @@ corresponding to @racket[trest], where @racket[bound]
 @deftypeconstr[(MListof t)]{Returns the type of a homogeneous @rtech{mutable list} of @racket[t].}
 @deftypeconstr[(MPairof t u)]{Returns the type of a @rtech{Mutable pair} of @racket[t] and @racket[u].}
 
+@deftypeconstr[(TreeListof t)]{Returns the type of @rtech{treelist} of @racket[t]}
+
 @deftype[MPairTop]{Is the type of a @rtech{mutable pair} with unknown
   element types and is the supertype of all mutable pair types.
   This type typically appears in programs via the combination of

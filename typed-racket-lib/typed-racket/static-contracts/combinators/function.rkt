@@ -159,14 +159,15 @@
   (match-define (function-combinator args indices mand-kws opt-kws typed-side?) v)
   (define-values (mand-args opt-args mand-kw-args opt-kw-args rest-arg range-args)
     (apply split-function-args args indices))
+  (define opt-kind (if #f 'flat 'chaperone))
   (if (and (not rest-arg)
            (null? (append mand-kw-args mand-args opt-kw-args opt-args))
            typed-side?)
       ;; arity-0 functions end up being flat contracts when they're
       ;; from the typed side and the result is flat
       (if range-args
-          (merge-restricts* 'flat (map f range-args))
-          (merge-restricts* 'flat null))
+          (merge-restricts* opt-kind (map f range-args))
+          (merge-restricts* opt-kind null))
       (merge-restricts* 'chaperone (map f args))))
 
 (define (function-sc-equal? a b recur)

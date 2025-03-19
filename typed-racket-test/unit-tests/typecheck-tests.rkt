@@ -1941,7 +1941,7 @@
         ;;(tc-e (in-treelist (treelist "a")) (-seq -String)) FIXME: "missing type identifier"
         (tc-e (list->treelist (list "a")) (-treelist -String))
         (tc-e (vector->treelist (vector "a")) (-treelist -String))
-        (tc-e (treelist? (treelist "a")) -Boolean)
+        (tc-e (treelist? (treelist "a")) #:ret (tc-ret -Boolean -true-propset))
         (tc-e (treelist? (list "a")) #:ret (tc-ret -Boolean -false-propset))
         (tc-e (treelist-append (treelist "a") (treelist "b")) (-treelist -String))
         (tc-e (treelist-append (treelist "a") (treelist "b") (treelist "c")) (-treelist -String))

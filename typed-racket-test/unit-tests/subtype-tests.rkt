@@ -179,6 +179,7 @@
     [make-Immutable-Vector ()]
     [make-Immutable-HashTable () ()]
     [make-Set ()]
+    [make-TreeList ()]
     [make-Evt ()]
     [make-Syntax ()]
     [make-Future ()])
@@ -298,6 +299,10 @@
    [(-mu x (make-Listof x)) (-mu x* (make-Listof x*))]
    [(-pair -Number -Number) (-pair Univ -Number)]
    [(-pair -Number -Number) (-pair -Number -Number)]
+   ;; simple treelist types
+   [(-treelist -Number) (-treelist Univ)]
+   [(-treelist -Number) (-treelist -Number)]
+   [FAIL (-treelist -Number) (-treelist -Symbol)]
    ;; from page 7 (my favorite page! But seriously, page 7 of... what???)
    [(-mu t (-> t t)) (-mu s (-> s s))]
    [(-mu s (-> -Number s)) (-mu t (-> -Number (-> -Number t)))]

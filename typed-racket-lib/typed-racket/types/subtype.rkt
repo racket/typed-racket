@@ -1278,6 +1278,12 @@
      [(? ThreadCellTop?) A]
      [(ThreadCell: elem2) (type≡? A elem1 elem2)]
      [_ (continue<: A t1 t2 obj)])]
+  [(case: TreeList (TreeList: elem1))
+   (match t2
+     [(TreeList: elem2) (subtype* A elem1 elem2)]
+     [(SequenceTop:) A]
+     [(Sequence: (list seq-t)) (subtype* A elem1 seq-t)]
+     [_ (continue<: A t1 t2 obj)])]
   [(case: Union (Union/set: base1 ts1 elems1))
    (let ([A (subtype* A base1 t2 obj)])
      (and A

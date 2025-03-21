@@ -658,9 +658,7 @@
            ;; FIXME: thread the store through here
            (for/or ([num-t (in-list num-seq-types)])
              (or (and (subtype* A t1 num-t) num-t))))
-         (if type
-             (subtype* A type seq-t)
-             #f)]
+         (and type (subtype* A type seq-t))]
         [else #f])]
      [(Evt: evt-t)
       (cond

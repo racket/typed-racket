@@ -271,7 +271,7 @@
                                  (take opt-types to-take))
                          (erase-props/Values rng)
                          #:kws actual-kws
-                         #:rest (if (= to-take opt-types-count) rest-type #f)
+                         #:rest (and (= to-take opt-types-count) rest-type)
                          #:T+ rng-T+)))]
              [else (int-err "unsupported arrs in keyword function type")])]
       [(Poly-names: names f) (make-Poly names (loop f))]

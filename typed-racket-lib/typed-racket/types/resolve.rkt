@@ -49,8 +49,7 @@
                              ;; return #t when t is not a registered name yet.
                              (lookup-type-name t (lambda () #t)))
                            t)))
-     (if (Type? t) t
-         #f)]
+     (and (Type? t) t)]
     [(_ _) (int-err "resolve-name: not a name ~a" t)]))
 
 (define already-resolving? (make-parameter #f))

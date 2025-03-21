@@ -169,7 +169,7 @@
            #:with ty #'t))
 (define-splicing-syntax-class optional-standalone-annotation
   (pattern (~optional a:standalone-annotation)
-           #:attr ty (if (attribute a) #'a.ty #f)))
+           #:attr ty (and (attribute a) #'a.ty)))
 
 (define-syntax-class type-variables
   #:attributes ((vars 1))

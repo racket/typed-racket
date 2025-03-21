@@ -169,7 +169,7 @@
            #:with ty #'t))
 (define-splicing-syntax-class optional-standalone-annotation
   (pattern (~optional a:standalone-annotation)
-           #:attr ty (if (attribute a) #'a.ty #f)))
+           #:attr ty (and (attribute a) #'a.ty)))
 
 (define-syntax-class type-variables
   #:attributes ((vars 1))
@@ -330,10 +330,8 @@
                  (define-values (all-mand-tys all-opt-tys)
                    (cond
                      [kw-property
-                      (define-values (mand-kw-set opt-kw-set)
-                        (values
-                         (list->set (lambda-kws-mand kw-property))
-                         (list->set (lambda-kws-opt kw-property))))
+                      (define mand-kw-set (list->set (lambda-kws-mand kw-property)))
+                      (define opt-kw-set (list->set (lambda-kws-opt kw-property)))
 
                       (define-values (mand-tys^ opt-kw^)
                         (partition (part-pred opt-kw-set)

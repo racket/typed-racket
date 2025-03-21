@@ -31,8 +31,7 @@
   ;; the kw protocol puts the arguments in keyword-sorted order in the
   ;; function header, so we need to sort the types to match
   (define sorted-kws
-    (sort keywords (λ (kw1 kw2) (keyword<? (Keyword-kw kw1)
-                                           (Keyword-kw kw2)))))
+    (sort keywords keyword<? #:key Keyword-kw))
 
   (define pos-opt-arg-types
     (append (for/list ([t (in-list optional-arg-types)]
@@ -148,9 +147,7 @@
 (define (calculate-mandatory-args orig-arrows)
   ;; sorted order is important, our loops below rely on this order
   (define arity-sorted-arrows
-    (sort orig-arrows
-          (λ (a1 a2) (>= (Arrow-max-arity a1)
-                         (Arrow-max-arity a2)))))
+    (sort orig-arrows >= #:key Arrow-max-arity))
   (for/fold ([mand-arg-table '()])
             ([arrow (in-list arity-sorted-arrows)])
     (cond
@@ -172,36 +169,38 @@
     ;; set and set->list to retain determinism
     (remove-duplicates
      (for/list ([(arrow arrow-mand-arg-count) (in-assoc mand-arg-table)])
-       (match arrow
-         [(Arrow: dom rst kws rng rng-T+)
-          (define kws* (if actual-kws
-                           (handle-extra-or-missing-kws kws actual-kws)
-                           kws))
-          (define kw-opts-supplied (if actual-kws
-                                       (lambda-kws-opt-supplied actual-kws)
-                                       '()))
-          (define mand-arg-count (if actual-kws
-                                     (lambda-kws-pos-mand-count actual-kws)
-                                     arrow-mand-arg-count))
-          (define opt-arg-count (- (length dom) mand-arg-count))
-          (define extra-opt-arg-count
-            ;; In case `dom` has too many arguments that we try to treat
-            ;; as optional:
-            (if actual-kws
-                (max 0 (- opt-arg-count (length (lambda-kws-pos-opt-supplied? actual-kws))))
-                0))
-          (convert kws*
-                   kw-opts-supplied
-                   (take dom mand-arg-count)
-                   (drop dom mand-arg-count)
-                   (if actual-kws
-                       (append (lambda-kws-pos-opt-supplied? actual-kws)
-                               (make-list extra-opt-arg-count #f))
-                       (make-list opt-arg-count #f))
-                   rng
-                   rst
-                   split?
-                   rng-T+)]))))
+       (match-define (Arrow: dom rst kws rng rng-T+) arrow)
+       (define kws*
+         (if actual-kws
+             (handle-extra-or-missing-kws kws actual-kws)
+             kws))
+       (define kw-opts-supplied
+         (if actual-kws
+             (lambda-kws-opt-supplied actual-kws)
+             '()))
+       (define mand-arg-count
+         (if actual-kws
+             (lambda-kws-pos-mand-count actual-kws)
+             arrow-mand-arg-count))
+       (define opt-arg-count (- (length dom) mand-arg-count))
+       (define extra-opt-arg-count
+         ;; In case `dom` has too many arguments that we try to treat
+         ;; as optional:
+         (if actual-kws
+             (max 0 (- opt-arg-count (length (lambda-kws-pos-opt-supplied? actual-kws))))
+             0))
+       (convert kws*
+                kw-opts-supplied
+                (take dom mand-arg-count)
+                (drop dom mand-arg-count)
+                (if actual-kws
+                    (append (lambda-kws-pos-opt-supplied? actual-kws)
+                            (make-list extra-opt-arg-count #f))
+                    (make-list opt-arg-count #f))
+                rng
+                rst
+                split?
+                rng-T+))))
   (apply cl->* fns))
 
 ;; kw-convert : Type (Option LambdaKeywords) [Boolean] -> Type
@@ -269,7 +268,7 @@
                                  (take opt-types to-take))
                          (erase-props/Values rng)
                          #:kws actual-kws
-                         #:rest (if (= to-take opt-types-count) rest-type #f)
+                         #:rest (and (= to-take opt-types-count) rest-type)
                          #:T+ rng-T+)))]
              [else (int-err "unsupported arrs in keyword function type")])]
       [(Poly-names: names f) (make-Poly names (loop f))]

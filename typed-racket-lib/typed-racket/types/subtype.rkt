@@ -793,30 +793,24 @@
         (for/fold ([A A])
                   ([a2 (in-list arrows2)]
                    #:break (not A))
-          (match a2
-            [(Arrow: dom2 rst2 kws2 raw-rng2)
-             (define A* (subtype-seq A
-                                     (subtypes* dom2 dom1)
-                                     (kw-subtypes* '() kws2)))
-             (cond
-               [(not A*) #f]
-               [else
-                (define arity (max (length dom1) (length dom2)))
-                (define-values (mapping t2s)
-                  (for/lists (_1 _2)
-                    ([idx (in-range arity)]
-                     [id (in-list ids)])
-                    (define t (dom+rst-ref dom2 rst2 idx Univ))
-                    (values (list* idx id t) t)))
-                (with-naively-extended-lexical-env
-                    [#:identifiers ids
-                     #:types t2s]
-                  (define A-res
-                    (subval* A*
-                             (instantiate-obj+simplify raw-rng1 mapping)
-                             (instantiate-obj raw-rng2 ids)))
-                  (and (implies-in-env? (lexical-env) -tt pre1)
-                       A-res))])])))]
+          (match-define (Arrow: dom2 rst2 kws2 raw-rng2) a2)
+          (define A* (subtype-seq A (subtypes* dom2 dom1) (kw-subtypes* '() kws2)))
+          (cond
+            [(not A*) #f]
+            [else
+             (define arity (max (length dom1) (length dom2)))
+             (define-values (mapping t2s)
+               (for/lists (_1 _2)
+                          ([idx (in-range arity)] [id (in-list ids)])
+                          (define t (dom+rst-ref dom2 rst2 idx Univ))
+                          (values (list* idx id t) t)))
+             (with-naively-extended-lexical-env [#:identifiers ids #:types t2s]
+                                                (define A-res
+                                                  (subval* A*
+                                                           (instantiate-obj+simplify raw-rng1 mapping)
+                                                           (instantiate-obj raw-rng2 ids)))
+                                                (and (implies-in-env? (lexical-env) -tt pre1)
+                                                     A-res))])))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Distinction (Distinction: nm1 id1 t1*))
    (match t2

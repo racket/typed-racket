@@ -381,6 +381,7 @@
   racket/port
   racket/sequence
   racket/set
+  racket/treelist
   racket/string
   racket/system
   racket/tcp
@@ -1900,6 +1901,62 @@
         (tc-e (list->seteqv (list 'one 'two)) (-set (one-of/c 'one 'two)))
         (tc-e (set->list (set 'one 'two)) (-lst (one-of/c 'one 'two)))
 
+        ;;Treelist operations
+        
+        (tc-e (treelist-empty? (treelist)) -Boolean)
+        (tc-e (treelist-empty? (treelist "a" "b")) -Boolean)
+        (tc-e (treelist-length (treelist "a" "b" "c")) -Index)
+        (tc-e (treelist-member? (treelist 1) 1 =) -Boolean)
+        (tc-e (treelist-first (treelist "a")) -String)
+        (tc-e (treelist-last (treelist "a")) -String)
+        (tc-e (treelist-rest (treelist "a" "b")) (-treelist -String))
+        (tc-e (treelist-add (treelist "a") "b") (-treelist -String))
+        (tc-e (treelist-cons (treelist "a") "b") (-treelist -String))
+        (tc-e (treelist-cons (treelist "a") 9) (-treelist (t:Un -PosByte -String)))
+        (tc-e (treelist-delete (treelist "a") 0) (-treelist -String))
+        (tc-err (treelist-delete (treelist "a") "b"))
+        (tc-e (make-treelist 5 "a") (-treelist -String))
+        (tc-e (treelist-ref (treelist "a" "b") 1) -String)
+        (tc-err (treelist-ref (treelist "a" "b") "b"))
+        (tc-e (treelist-insert (treelist "a" "c") 1 "b") (-treelist -String))
+        (tc-e (treelist-insert (treelist "a" "c") 1 9) (-treelist (t:Un -PosByte -String)))
+        (tc-err (treelist-insert (treelist "a" "c") "b" "b"))
+        (tc-e (treelist-set (treelist "a" "c") 1 "b") (-treelist -String))
+        (tc-e (treelist-set (treelist "a" "c") 1 9) (-treelist (t:Un -PosByte -String)))
+        (tc-err (treelist-set (treelist "a" "c") "b" "b"))
+        (tc-e (treelist-take (treelist "a" "b") 1) (-treelist -String))
+        (tc-err (treelist-take (treelist "a" "b") "a"))
+        (tc-e (treelist-drop (treelist "a" "b") 1) (-treelist -String))
+        (tc-err (treelist-drop (treelist "a" "b") "a"))
+        (tc-e (treelist-take-right (treelist "a" "b") 1) (-treelist -String))
+        (tc-err (treelist-take-right (treelist "a" "b") "a"))
+        (tc-e (treelist-drop-right (treelist "a" "b") 1) (-treelist -String))
+        (tc-err (treelist-drop-right (treelist "a" "b") "a"))
+        (tc-e (treelist-sublist (treelist "a" "b" "c") 1 2) (-treelist -String))
+        (tc-err (treelist-sublist (treelist "a" "b" "c") 1 "c"))
+        (tc-err (treelist-sublist (treelist "a" "b" "c") "b" 1))
+        (tc-e (treelist-reverse (treelist "a" "b")) (-treelist -String))
+        (tc-e (treelist->list (treelist "a")) (-lst -String))
+        (tc-e (treelist->vector (treelist "a")) (-vec -String))
+        ;;(tc-e (in-treelist (treelist "a")) (-seq -String)) FIXME: "missing type identifier"
+        (tc-e (list->treelist (list "a")) (-treelist -String))
+        (tc-e (vector->treelist (vector "a")) (-treelist -String))
+        (tc-e (treelist? (treelist "a")) #:ret (tc-ret -Boolean -true-propset))
+        (tc-e (treelist? (list "a")) #:ret (tc-ret -Boolean -false-propset))
+        (tc-e (treelist-append (treelist "a") (treelist "b")) (-treelist -String))
+        (tc-e (treelist-append (treelist "a") (treelist "b") (treelist "c")) (-treelist -String))
+        (tc-e (treelist-append (treelist "a") (treelist 9)) (-treelist (t:Un -PosByte -String)))
+        (tc-e (treelist-map (treelist "a" "b") (λ (x) "c")) (-treelist -String))
+        (tc-e (treelist-map (treelist "a" "b") (λ (x) 9)) (-treelist -PosByte))
+        (tc-e (treelist-for-each (treelist "a" "b") (λ (x) x)) -Void)
+        (tc-e (treelist-find (treelist "a" "b") (λ (x) (if (equal? x "a") #t #f))) -String)
+        (tc-e (treelist-filter even? (treelist 1 2 3 4 5)) (-treelist -PosByte))
+        (tc-e (treelist-flatten (treelist (treelist (treelist (treelist "a"))))) (-treelist Univ))
+        (tc-e (treelist-flatten "a") (-treelist Univ))
+        (tc-e (treelist-append* (treelist (treelist "a" "b") (treelist "c" (treelist "d") "e") (treelist))) (-treelist Univ))
+        (tc-e (treelist-index-of (treelist "a" "b" "c") "b") -Index)
+        (tc-e (treelist-index-of (treelist "a" "b" "c") "b" equal?) -Index)
+        (tc-e (treelist-sort (treelist "c" "a" "b") string<?) (-treelist -String))
 
         ;Syntax
 

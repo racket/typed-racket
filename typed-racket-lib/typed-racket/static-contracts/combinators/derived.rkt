@@ -11,6 +11,7 @@
                        racket/list
                        racket/promise
                        racket/set
+                       racket/treelist
                        racket/unit)
          "simple.rkt"
          "structural.rkt")
@@ -29,6 +30,9 @@
 
 (define set?/sc (flat/sc #'(lambda (x) (or (set? x) (set-mutable? x) (set-weak? x)))))
 (define empty-set/sc (and/sc set?/sc (flat/sc #'set-empty?)))
+
+(define treelist?/sc (flat/sc #'treelist?))
+(define empty-treelist/sc (and/sc treelist?/sc (flat/sc #'treelist-empty?)))
 
 (define vector?/sc (flat/sc #'vector?))
 (define immutable-vector?/sc (and/sc vector?/sc

@@ -322,30 +322,30 @@
   (let loop ([to-cover   coverable]
              [candidates candidates]
              [coverage   '()])
-    (cond [(null? to-cover) ; done
-           (define coverage-names (map car coverage))
-           ;; to allow :type to cue the user on unexpanded aliases
-           ;; only union types can flow here, and any of those could be expanded
-           (set-box! (current-print-unexpanded)
-                     (append coverage-names (unbox (current-print-unexpanded))))
-           ;; reverse here to retain the old ordering from when srfi/1 was
-           ;; used to process the list sets
-           (values coverage-names (reverse uncoverable))] ; we want the names
-          [else
-           ;; pick the candidate that covers the most uncovered types
-           (define (covers-how-many? c)
-             (length (set-intersect (cdr c) to-cover)))
-           (define-values (next _)
-             (for/fold ([next      (car candidates)]
-                        [max-cover (covers-how-many? (car candidates))])
-                 ([c (in-list candidates)])
-               (let ([how-many? (covers-how-many? c)])
-                 (if (> how-many? max-cover)
-                     (values c how-many?)
-                     (values next max-cover)))))
-           (loop (set-subtract to-cover (cdr next))
-                 (remove next candidates)
-                 (cons next coverage))])))
+    (cond
+      [(null? to-cover) ; done
+       (define coverage-names (map car coverage))
+       ;; to allow :type to cue the user on unexpanded aliases
+       ;; only union types can flow here, and any of those could be expanded
+       (set-box! (current-print-unexpanded)
+                 (append coverage-names (unbox (current-print-unexpanded))))
+       ;; reverse here to retain the old ordering from when srfi/1 was
+       ;; used to process the list sets
+       (values coverage-names (reverse uncoverable))] ; we want the names
+      [else
+       ;; pick the candidate that covers the most uncovered types
+       (define (covers-how-many? c)
+         (length (set-intersect (cdr c) to-cover)))
+       (define next
+         (for/fold ([next (car candidates)]
+                    [max-cover (covers-how-many? (car candidates))]
+                    #:result next)
+                   ([c (in-list candidates)])
+           (let ([how-many? (covers-how-many? c)])
+             (if (> how-many? max-cover)
+                 (values c how-many?)
+                 (values next max-cover)))))
+       (loop (set-subtract to-cover (cdr next)) (remove next candidates) (cons next coverage))])))
 
 ;; arr->sexp : arr -> s-expression
 ;; Convert an arr (see type-rep.rkt) to its printable form

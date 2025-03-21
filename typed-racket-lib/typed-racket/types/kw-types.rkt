@@ -31,8 +31,7 @@
   ;; the kw protocol puts the arguments in keyword-sorted order in the
   ;; function header, so we need to sort the types to match
   (define sorted-kws
-    (sort keywords (λ (kw1 kw2) (keyword<? (Keyword-kw kw1)
-                                           (Keyword-kw kw2)))))
+    (sort keywords keyword<? #:key Keyword-kw))
 
   (define pos-opt-arg-types
     (append (for/list ([t (in-list optional-arg-types)]
@@ -148,9 +147,7 @@
 (define (calculate-mandatory-args orig-arrows)
   ;; sorted order is important, our loops below rely on this order
   (define arity-sorted-arrows
-    (sort orig-arrows
-          (λ (a1 a2) (>= (Arrow-max-arity a1)
-                         (Arrow-max-arity a2)))))
+    (sort orig-arrows >= #:key Arrow-max-arity))
   (for/fold ([mand-arg-table '()])
             ([arrow (in-list arity-sorted-arrows)])
     (cond

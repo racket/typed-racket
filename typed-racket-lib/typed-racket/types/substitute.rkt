@@ -75,13 +75,16 @@
   (let sub ([target target])
     (match target
       [(ListDots: dty dbound)
-       (if (eq? name dbound)
-           ;; We need to recur first, just to expand out any dotted usages of this.
-           (let ([expanded (sub dty)])
-             (for/fold ([t (if rimage (-lst rimage) -Null)])
-                       ([img (in-list (reverse images))])
-               (make-Pair (substitute img name expanded) t)))
-           (make-ListDots (sub dty) dbound))]
+       (cond
+         [(eq? name dbound)
+          ;; We need to recur first, just to expand out any dotted usages of this.
+          (define expanded (sub dty))
+          (for/fold ([t (if rimage
+                            (-lst rimage)
+                            -Null)])
+                    ([img (in-list (reverse images))])
+            (make-Pair (substitute img name expanded) t))]
+         [else (make-ListDots (sub dty) dbound)])]
       [(SequenceDots: types dty dbound)
        (if (eq? name dbound)
            (if rimage

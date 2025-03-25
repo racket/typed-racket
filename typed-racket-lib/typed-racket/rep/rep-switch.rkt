@@ -1,12 +1,12 @@
 #lang racket/base
 
-(require "rep-utils.rkt"
+(require (for-syntax racket/base
+                     racket/list
+                     racket/syntax
+                     syntax/parse)
          racket/match
          racket/unsafe/ops
-         (for-syntax racket/base
-                     syntax/parse
-                     racket/list
-                     racket/syntax))
+         "rep-utils.rkt")
 
 (provide define-rep-switch)
 
@@ -35,7 +35,7 @@
         (~var clause (switch-clause #'(pre-args ...) #'arg #'(post-args ...))) ...
         [(~datum else:) . default])
      (define name-symbols (map syntax->datum (syntax->list #'(clause.name ...))))
-     (unless (not (null? name-symbols))
+     (when (null? name-symbols)
        (raise-syntax-error 'define-switch "switch cannot be null" stx))
      (define sorted-name-symbols (sort name-symbols symbol<?))
      (unless (eq? (first name-symbols) (first sorted-name-symbols))

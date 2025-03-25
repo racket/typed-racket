@@ -1,6 +1,9 @@
 #lang racket/base
 
-(require (except-in racket/unit
+(require typed-racket/base-env/base-types-extra
+         typed-racket/base-env/signature-prims
+         typed-racket/base-env/unit-prims
+         (except-in racket/unit
                     define-signature
                     unit
                     invoke-unit
@@ -13,10 +16,7 @@
                     compound-unit/infer
                     define-compound-unit/infer
                     unit-from-context
-                    define-unit-from-context)
-         typed-racket/base-env/unit-prims
-         typed-racket/base-env/base-types-extra
-         typed-racket/base-env/signature-prims)
+                    define-unit-from-context))
 
 (provide define-signature
          Unit

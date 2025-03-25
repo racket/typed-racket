@@ -3,16 +3,16 @@
 ;; This module provides custom type-checking rules for the expansion
 ;; of contracted values
 
-(require "../../utils/utils.rkt"
-         "signatures.rkt"
-         "utils.rkt"
+(require (for-template racket/base
+                       ;; shift -1 because it's provided +1
+                       racket/contract/private/provide)
          syntax/parse
-         "../signatures.rkt"
          (only-in typed-racket/types/type-table add-typeof-expr)
          (only-in typed-racket/types/tc-result ret)
-         (for-template racket/base
-                       ;; shift -1 because it's provided +1
-                       racket/contract/private/provide))
+         "../../utils/utils.rkt"
+         "../signatures.rkt"
+         "signatures.rkt"
+         "utils.rkt")
 
 (import tc-expr^)
 (export tc-app-contracts^)

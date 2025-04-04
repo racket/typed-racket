@@ -1166,10 +1166,8 @@
   ;; Match the range of an arr and determine if a contract can be generated
   ;; and call the given thunk or raise an error
   (define (handle-arrow-range arrow proceed)
-    (match arrow
-      [(or (Arrow: _ _ _ rng)
-           (DepFun: _ _ rng))
-       (handle-range rng proceed)]))
+    (match-define (or (Arrow: _ _ _ rng) (DepFun: _ _ rng)) arrow)
+    (handle-range rng proceed))
   (define (handle-range rng proceed)
     (match rng
       [(Values: (list (Result: _
@@ -1294,28 +1292,20 @@
                             arrows)))])]
     [(DepFun/ids: ids dom pre rng)
      (define (continue)
-       (match rng
-         [(Values: (list (Result: rngs _ _) ...))
-          (define (dom-id? id) (member id ids free-identifier=?))
-          (define-values (dom* dom-deps)
-            (for/lists (_1 _2) ([d (in-list dom)])
-              (values (t->sc/neg d)
-                      (filter dom-id? (free-ids d)))))
-          (define pre* (if (TrueProp? pre) #f (t->sc/neg pre)))
-          (define pre-deps (filter dom-id? (free-ids pre)))
-          (define rng* (map t->sc rngs))
-          (define rng-deps (filter dom-id?
-                                   (remove-duplicates
-                                    (apply append (map free-ids rngs))
-                                    free-identifier=?)))
-          (->i/sc (from-typed? typed-side)
-                  ids
-                  dom*
-                  dom-deps
-                  pre*
-                  pre-deps
-                  rng*
-                  rng-deps)]))
+       (match-define (Values: (list (Result: rngs _ _) ...)) rng)
+       (define (dom-id? id)
+         (member id ids free-identifier=?))
+       (define-values (dom* dom-deps)
+         (for/lists (_1 _2) ([d (in-list dom)]) (values (t->sc/neg d) (filter dom-id? (free-ids d)))))
+       (define pre*
+         (if (TrueProp? pre)
+             #f
+             (t->sc/neg pre)))
+       (define pre-deps (filter dom-id? (free-ids pre)))
+       (define rng* (map t->sc rngs))
+       (define rng-deps
+         (filter dom-id? (remove-duplicates (apply append (map free-ids rngs)) free-identifier=?)))
+       (->i/sc (from-typed? typed-side) ids dom* dom-deps pre* pre-deps rng* rng-deps))
      (handle-range rng continue)]))
 
 ;; Generate a contract for a object/class method clause

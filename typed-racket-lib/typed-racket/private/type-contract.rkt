@@ -836,10 +836,10 @@
            [else (is-flat-type/sc (obj->sc o) sc)])]
         [(NotTypeProp: o t)
          (define sc (t->sc t bound-all-vars))
-         (cond
-           [(not (equal? flat-sym (get-max-contract-kind sc)))
-            (raise-user-error 'type->static-contract/shallow "proposition contract generation not supported for non-flat types")]
-           [else (not-flat-type/sc (obj->sc o) sc)])]
+         (unless (equal? flat-sym (get-max-contract-kind sc))
+           (raise-user-error 'type->static-contract/shallow
+                             "proposition contract generation not supported for non-flat types"))
+         (not-flat-type/sc (obj->sc o) sc)]
         [(LeqProp: (app obj->sc lhs) (app obj->sc rhs))
          (leq/sc lhs rhs)]
         [(AndProp: ps)

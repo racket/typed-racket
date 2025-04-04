@@ -1286,10 +1286,8 @@
             (handle-arrow-range (first arrows)
                                 (lambda ()
                                   (convert-single-arrow (first arrows))))
-            (case->/sc (map (lambda (arr)
-                              (handle-arrow-range arr (lambda ()
-                                                        (convert-one-arrow-in-many arr))))
-                            arrows)))])]
+            (case->/sc (for/list ([arr (in-list arrows)])
+                         (handle-arrow-range arr (lambda () (convert-one-arrow-in-many arr))))))])]
     [(DepFun/ids: ids dom pre rng)
      (define (continue)
        (match-define (Values: (list (Result: rngs _ _) ...)) rng)

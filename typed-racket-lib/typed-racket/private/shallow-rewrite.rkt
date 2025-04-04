@@ -240,10 +240,10 @@
                                                           #'formals
                                                           args)]))
                                  (define check*
-                                   (let ([dom+ (for/fold ([acc '()]) ([dom (in-list dom*)])
-                                                 (if (pair? dom)
-                                                     (cons (cdr dom) acc)
-                                                     acc))])
+                                   (let ([dom+ (for/fold ([acc '()])
+                                                         ([dom (in-list dom*)]
+                                                          #:when (pair? dom))
+                                                 (cons (cdr dom) acc))])
                                      (protect-loop rst dom+)))
                                  (define fst-ty
                                    (let ([ann-ty (and (type-annotation fst #:infer #f)

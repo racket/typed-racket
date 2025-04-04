@@ -334,11 +334,11 @@
           )))
   (or both-failed?
       (and (not racket-failed?)
-           (if (same-result? racket-result racketbc-result)
-               #t
-               (begin (printf "not same as bc: racketcs: ~s racketbc: ~s\n"
-                              racket-result racketbc-result)
-                      #f)))))
+           (cond
+             [(same-result? racket-result racketbc-result) #t]
+             [else
+              (printf "not same as bc: racketcs: ~s racketbc: ~s\n" racket-result racketbc-result)
+              #f]))))
 
 (define num-exceptions 0)
 

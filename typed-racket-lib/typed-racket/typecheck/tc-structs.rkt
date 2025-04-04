@@ -193,10 +193,10 @@
       (if (null? l)
           (values (reverse getters) (reverse setters))
           (loop (cddr l) (cons (car l) getters) (cons (cadr l) setters)))))
-  (match (build-struct-names nm flds #f #f nm #:constructor-name maker*)
-    [(list sty maker pred getters/setters ...)
-     (let-values ([(getters setters) (split getters/setters)])
-       (struct-names nm type-name sty maker extra-maker pred getters setters))]))
+  (match-define (list sty maker pred getters/setters ...)
+    (build-struct-names nm flds #f #f nm #:constructor-name maker*))
+  (let-values ([(getters setters) (split getters/setters)])
+    (struct-names nm type-name sty maker extra-maker pred getters setters)))
 
 ;; gets the fields of the parent type, if they exist
 ;; Option[Struct-Ty] -> Listof[Type]
@@ -413,9 +413,9 @@
     (for/list ([opname (in-list operators)]
                [self-fld (in-list self-fields)]
                [idx-parent-cnt (in-naturals parent-count)])
-      (let-values ([(fn-args poly-ty) (mk-vals opname self-fld idx-parent-cnt st-type-alias)])
-        (apply add-struct-operator-fn! opname fn-args)
-        (make-def-binding opname poly-ty))))
+      (define-values (fn-args poly-ty) (mk-vals opname self-fld idx-parent-cnt st-type-alias))
+      (apply add-struct-operator-fn! opname fn-args)
+      (make-def-binding opname poly-ty)))
 
   (define bindings
     (list* (make-def-binding struct-type (make-StructType sty))
@@ -458,9 +458,8 @@
                            def-bindings))))
 
 (define (register-parsed-struct-sty! ps)
-  (match ps
-    ((parsed-struct sty names desc si)
-     (register-sty! sty names desc))))
+  (match-define (parsed-struct sty names desc si) ps)
+  (register-sty! sty names desc))
 
 (define (register-parsed-struct-bindings! ps)
   (match ps

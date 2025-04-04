@@ -232,7 +232,8 @@
                                    (cond
                                      [(pair? args) (values (car args) (cdr args))]
                                      [(syntax? args)
-                                      (let ([e (syntax-e args)]) (values (car e) (cdr e)))]
+                                      (define e (syntax-e args))
+                                      (values (car e) (cdr e))]
                                      [else
                                       (raise-syntax-error 'shallow-rewrite-top
                                                           "#%plain-lambda formals"
@@ -306,8 +307,8 @@
                                                   (cond
                                                     [(pair? args) (values (car args) (cdr args))]
                                                     [(syntax? args)
-                                                     (let ([e (syntax-e args)])
-                                                       (values (car e) (cdr e)))]
+                                                     (define e (syntax-e args))
+                                                     (values (car e) (cdr e))]
                                                     [else
                                                      (raise-syntax-error 'shallow-rewrite-top
                                                                          "#%plain-lambda formals"

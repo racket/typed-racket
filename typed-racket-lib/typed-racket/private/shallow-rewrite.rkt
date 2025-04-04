@@ -439,9 +439,9 @@
   stx)
 
 (define (maybe-add-typeof-expr new-stx old-stx)
-  (let ((old-type (maybe-type-of old-stx)))
-    (when old-type
-      (add-typeof-expr new-stx old-type))))
+  (define old-type (maybe-type-of old-stx))
+  (when old-type
+    (add-typeof-expr new-stx old-type)))
 
 (define (maybe-add-test-position new-stx old-stx)
   (maybe-add-test-true new-stx old-stx)
@@ -449,9 +449,9 @@
   (void))
 
 (define (maybe-add-scoped-tvar new-stx old-stx)
-  (let ([old-layer (lookup-scoped-tvar-layer old-stx)])
-    (when old-layer
-      (add-scoped-tvars new-stx old-layer))))
+  (define old-layer (lookup-scoped-tvar-layer old-stx))
+  (when old-layer
+    (add-scoped-tvars new-stx old-layer)))
 
 (define (maybe-add-test-true new-stx old-stx)
   (when (test-position-takes-true-branch old-stx)
@@ -648,12 +648,10 @@
     (λ (mpi)
       (hash-ref! cache mpi
         (λ () ;; Typed Racket always installs a `#%type-decl` submodule
-          (let* ([mpi+ (module-path-index-join '(submod "." #%type-decl) mpi)])
-            (parameterize ([current-namespace (make-base-namespace)])
-              (with-handlers ([exn:fail:contract? (lambda (exn) #f)])
-                (and mpi+
-                     (dynamic-require mpi+ #f)
-                     #t)))))))))
+          (define mpi+ (module-path-index-join '(submod "." #%type-decl) mpi))
+          (parameterize ([current-namespace (make-base-namespace)])
+            (with-handlers ([exn:fail:contract? (lambda (exn) #f)])
+              (and mpi+ (dynamic-require mpi+ #f) #t))))))))
 
 (define (protect-domain dom-type dom-stx ctx ctc-cache)
   (define-values [extra-def* ctc-stx]

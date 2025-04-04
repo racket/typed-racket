@@ -555,13 +555,11 @@
         ;; Avoid putting (-> any T) contracts on struct predicates (where Boolean <: T)
         ;; Optimization: if the value is typed, we can assume it's not wrapped
         ;;  in a type-unsafe chaperone/impersonator and use the unsafe contract
-        (let* ([unsafe-spp/sc (flat/sc #'struct-predicate-procedure?)]
-               [safe-spp/sc (flat/sc #'struct-predicate-procedure?/c)]
-               [optimized/sc (if (from-typed? typed-side)
-                                 unsafe-spp/sc
-                                 safe-spp/sc)]
-               [spt-pred-procedure?/sc (flat/sc #'struct-type-property-predicate-procedure?)])
-          (or/sc optimized/sc spt-pred-procedure?/sc (t->sc/fun t)))]
+        (define unsafe-spp/sc (flat/sc #'struct-predicate-procedure?))
+        (define safe-spp/sc (flat/sc #'struct-predicate-procedure?/c))
+        (define optimized/sc (if (from-typed? typed-side) unsafe-spp/sc safe-spp/sc))
+        (define spt-pred-procedure?/sc (flat/sc #'struct-type-property-predicate-procedure?))
+        (or/sc optimized/sc spt-pred-procedure?/sc (t->sc/fun t))]
        [(? Fun? t) (t->sc/fun t)]
        [(? DepFun? t) (t->sc/fun t)]
        [(Set: t) (set/sc (t->sc t))]

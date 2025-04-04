@@ -8,61 +8,74 @@
 (define (skip-whitespace port)
   ;; Skips whitespace characters, sensitive to the current
   ;; readtable's definition of whitespace
-  (let ([ch (peek-char port)])
-    (unless (eof-object? ch)
-      ;; Consult current readtable:
-      (let-values ([(like-ch/sym proc dispatch-proc)
-                    (readtable-mapping (current-readtable) ch)])
-        ;; If like-ch/sym is whitespace, then ch is whitespace
-        (when (and (char? like-ch/sym)
-                   (char-whitespace? like-ch/sym))
-          (read-char port)
-          (skip-whitespace port))))))
+  (define ch (peek-char port))
+  (unless (eof-object? ch)
+    ;; Consult current readtable:
+    (let-values ([(like-ch/sym proc dispatch-proc) (readtable-mapping (current-readtable) ch)])
+      ;; If like-ch/sym is whitespace, then ch is whitespace
+      (when (and (char? like-ch/sym) (char-whitespace? like-ch/sym))
+        (read-char port)
+        (skip-whitespace port)))))
 
 (define (skip-comments read-one port src)
   ;; Recursive read, but skip comments and detect EOF
   (let loop ()
-    (let ([v (read-one)])
-      (cond
-        [(special-comment? v) (loop)]
-        [(eof-object? v)
-         (let-values ([(l c p) (port-next-location port)])
-           (raise-read-eof-error "unexpected EOF in type annotation" src l c p 1))]
-        [else v]))))
+    (define v (read-one))
+    (cond
+      [(special-comment? v) (loop)]
+      [(eof-object? v)
+       (let-values ([(l c p) (port-next-location port)])
+         (raise-read-eof-error "unexpected EOF in type annotation" src l c p 1))]
+      [else v])))
 
 (define (parse port read-one src)
   (skip-whitespace port)
-  (let ([name (read-one)])
-    (begin0
-      (begin (skip-whitespace port)
-             (let ([next (read-one)])
-               (case (syntax-e next)
-                 ;; type annotation
-                 [(:) (skip-whitespace port)
-                      (type-label-property name (syntax->datum (read-one)))]
-                 [(::) (skip-whitespace port)
-                       (datum->syntax name `(ann ,name : ,(read-one)))]
-                 [(@) (let ([elems (let loop ([es '()])
-                                     (skip-whitespace port)
-                                     (if (equal? #\} (peek-char port))
-                                         (reverse es)
-                                         (loop (cons (read-one) es))))])
-                        (datum->syntax name `(inst ,name : ,@elems)))]
-                 ;; arbitrary property annotation
-                 [(PROP) (skip-whitespace port)
-                         (let* ([prop-name (syntax-e (read-one))])
-                           (skip-whitespace port)
-                           (syntax-property name prop-name (read-one)))]
-                 ;; otherwise error
-                 [else
-                  (let-values ([(l c p) (port-next-location port)])
-                    (raise-read-error (format "typed expression ~a must be followed by :, ::, or @"
-                                              (syntax->datum name)) src l c p 1))])))
-      (skip-whitespace port)
-      (let ([c (read-char port)])
-        (unless (equal? #\} c)
-          (let-values ([(l c p) (port-next-location port)])
-            (raise-read-error (format "typed expression ~a not properly terminated" (syntax->datum name)) src l c p 1)))))))
+  (define name (read-one))
+  (begin0 (begin
+            (skip-whitespace port)
+            (let ([next (read-one)])
+              (case (syntax-e next)
+                ;; type annotation
+                [(:)
+                 (skip-whitespace port)
+                 (type-label-property name (syntax->datum (read-one)))]
+                [(::)
+                 (skip-whitespace port)
+                 (datum->syntax name `(ann ,name : ,(read-one)))]
+                [(@)
+                 (let ([elems (let loop ([es '()])
+                                (skip-whitespace port)
+                                (if (equal? #\} (peek-char port))
+                                    (reverse es)
+                                    (loop (cons (read-one) es))))])
+                   (datum->syntax name `(inst ,name : ,@elems)))]
+                ;; arbitrary property annotation
+                [(PROP)
+                 (skip-whitespace port)
+                 (let* ([prop-name (syntax-e (read-one))])
+                   (skip-whitespace port)
+                   (syntax-property name prop-name (read-one)))]
+                ;; otherwise error
+                [else
+                 (let-values ([(l c p) (port-next-location port)])
+                   (raise-read-error (format "typed expression ~a must be followed by :, ::, or @"
+                                             (syntax->datum name))
+                                     src
+                                     l
+                                     c
+                                     p
+                                     1))])))
+    (skip-whitespace port)
+    (let ([c (read-char port)])
+      (unless (equal? #\} c)
+        (let-values ([(l c p) (port-next-location port)])
+          (raise-read-error (format "typed expression ~a not properly terminated"
+                                    (syntax->datum name))
+                            src
+                            l
+                            c
+                            p
+                            1))))))
 
 (define parse-id-type
   (case-lambda

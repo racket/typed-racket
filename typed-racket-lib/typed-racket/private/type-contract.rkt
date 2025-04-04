@@ -240,10 +240,11 @@
 (define (change-contract-fixups forms [ctc-cache (make-hash)])
   (with-new-name-tables
    (for/list ((e (in-list forms)))
-     (if (not (has-contract-def-property? e))
-         e
-         (begin (set-box! include-extra-requires? #t)
-                (generate-contract-def e ctc-cache))))))
+     (cond
+       [(not (has-contract-def-property? e)) e]
+       [else
+        (set-box! include-extra-requires? #t)
+        (generate-contract-def e ctc-cache)]))))
 
 ;; TODO: These are probably all in a specific place, which could avoid
 ;;       the big traversal

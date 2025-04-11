@@ -99,7 +99,8 @@
   (struct m (x))
   (define val (m 1))
 
-  (define thunk (λ () 1))
+  (define (thunk)
+    1)
 
   
   (define c0 (-> any/c real?))

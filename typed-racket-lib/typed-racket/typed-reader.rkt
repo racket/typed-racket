@@ -78,16 +78,12 @@
                             1))))))
 
 (define parse-id-type
-  (case-lambda
-    [(ch port src line col pos)
-     ;; `read-syntax' mode
-     (datum->syntax
-      #f
-      (parse port
-             (lambda () (read-syntax src port ))
-             src)
-      (let-values ([(l c p) (port-next-location port)])
-        (list src line col pos (and pos (- p pos)))))]))
+  (λ (ch port src line col pos)
+    ;; `read-syntax' mode
+    (datum->syntax #f
+                   (parse port (lambda () (read-syntax src port)) src)
+                   (let-values ([(l c p) (port-next-location port)])
+                     (list src line col pos (and pos (- p pos)))))))
 
 (define (readtable)
   ; don't install the reader macro if a dispatch macro on the open brace has already been installed

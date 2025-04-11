@@ -84,8 +84,8 @@
 ;; produces a cset of all of the maps in all of the given csets
 ;; FIXME: should this call `remove-duplicates`?
 (define (cset-join l)
-  (let ([mapss (map cset-maps l)])
-    (make-cset (apply stream-append mapss))))
+  (define mapss (map cset-maps l))
+  (make-cset (apply stream-append mapss)))
 
 (define (stream-remove-duplicates st)
   (define seen (mutable-set))

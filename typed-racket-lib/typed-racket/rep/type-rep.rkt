@@ -1161,8 +1161,8 @@
           (match ts
             [(list) (-refine Univ prop)]
             [(list t) (-refine t prop)]
-            [_ (let ([t (make-Intersection ts -tt elems)])
-                 (-refine t prop))])]
+            [_ (define t (make-Intersection ts -tt elems))
+               (-refine t prop)])]
          [(cons arg args)
           (match arg
             [(Univ:) (loop ts elems prop args)]
@@ -1813,7 +1813,7 @@
 
 ;; sorts the given field of a Row by the member name
 (define (sort-row-clauses clauses)
-  (sort clauses (λ (x y) (symbol<? (car x) (car y)))))
+  (sort clauses symbol<? #:key car))
 
 (define-match-expander Class:*
   (λ (stx)

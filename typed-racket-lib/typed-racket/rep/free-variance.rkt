@@ -123,18 +123,14 @@
     (for/fold ([hash (hasheq)]
                [computed null])
               ([frees (in-list freess)])
-      (match frees
-        [(combined-frees new-hash new-computed)
-         (values (combine-hashes (list hash new-hash))
-                 (append new-computed computed))])))
+      (match-define (combined-frees new-hash new-computed) frees)
+      (values (combine-hashes (list hash new-hash)) (append new-computed computed))))
   (combined-frees hash computed))
 
 
 (define (free-vars-remove frees name)
-  (match frees
-    [(combined-frees hash computed)
-     (combined-frees (hash-remove hash name)
-                     (map (λ (v) (remove-frees v name)) computed))]))
+  (match-define (combined-frees hash computed) frees)
+  (combined-frees (hash-remove hash name) (map (λ (v) (remove-frees v name)) computed)))
 
 ;;
 (define (free-vars-names vars)

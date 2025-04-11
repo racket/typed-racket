@@ -105,9 +105,9 @@ don't depend on any other portion of the system
 	    [else stx]))))
 
 (define (raise-typecheck-error msg stxs)
-  (if (null? (cdr stxs))
-      (raise-syntax-error (string->symbol "Type Checker") msg (car stxs))
-      (raise-syntax-error (string->symbol "Type Checker") msg #f #f stxs)))
+  (when (null? (cdr stxs))
+    (raise-syntax-error (string->symbol "Type Checker") msg (car stxs)))
+  (raise-syntax-error (string->symbol "Type Checker") msg #f #f stxs))
 
 (define delayed-errors null)
 

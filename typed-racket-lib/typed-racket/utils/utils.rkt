@@ -446,20 +446,20 @@ at least theoretically.
     (cond
       [(null? entries) (list (cons key val))]
       [else
-       (let ([entry (car entries)])
-         (if (equal? (car entry) key)
-             (cons (cons key val) (cdr entries))
-             (cons entry (loop (cdr entries)))))])))
+       (define entry (car entries))
+       (if (equal? (car entry) key)
+           (cons (cons key val) (cdr entries))
+           (cons entry (loop (cdr entries))))])))
 
 (define (assoc-remove d key)
   (let loop ([xd d])
     (cond
       [(null? xd) null]
       [else
-       (let ([a (car xd)])
-         (if (equal? (car a) key)
-             (cdr xd)
-             (cons a (loop (cdr xd)))))])))
+       (define a (car xd))
+       (if (equal? (car a) key)
+           (cdr xd)
+           (cons a (loop (cdr xd))))])))
 
 (define (in-assoc-proc l)
   (in-parallel (map car l) (map cdr l)))

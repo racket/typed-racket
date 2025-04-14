@@ -13,8 +13,8 @@
   (U Comment P-I))
 
 (define-type XExpr
-  (U XML-Misc Cdata Positive-Index
-     Number String Symbol
+  (U XML-Misc Cdata Pcdata Positive-Index
+     String Symbol
      (Pair Symbol (Pair (Listof XExpr-Attribute) (Listof XExpr)))
      (Pair Symbol (Listof XExpr))))
 

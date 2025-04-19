@@ -190,9 +190,9 @@
            [vt (apply Un vts)])
       (tycon (check-below kt expected-kt) (check-below vt expected-vt)))]
    [(check-element h tycon)
-    (let ([kt (generalize (apply Un (map check-element (hash-keys h))))]
-          [vt (generalize (apply Un (map check-element (hash-values h))))])
-      (tycon kt vt))]))
+    (define kt (generalize (apply Un (map check-element (hash-keys h)))))
+    (define vt (generalize (apply Un (map check-element (hash-values h)))))
+    (tycon kt vt)]))
 
 ;; Typecheck a prefab struct literal (or result of syntax-e)
 ;; `check-field` allows prefabs in syntax to be checked by passing

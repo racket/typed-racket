@@ -25,8 +25,8 @@
            #:with (expand* ...) (list (quasisyntax/loc #'c
                                         ((v.ann-name ...) seq-expr.e))
                                       #'#:when #''#t))
-  (pattern (~seq (~and kw (~or #:when #:unless #:break #:final)) guard:expr)
-           #:with (expand ...) (list #'kw #'guard)
+  (pattern (~seq (~and kw (~or #:when #:unless #:break #:final #:do #:splice)) expr:expr)
+           #:with (expand ...) (list #'kw #'expr)
            #:with (expand* ...) #'(expand ...)))
 
 (define-syntax-class for-clauses

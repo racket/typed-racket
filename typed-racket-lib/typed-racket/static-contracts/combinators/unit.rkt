@@ -16,10 +16,9 @@
         #:transparent
         #:property prop:combinator-name "unit/sc"
         #:methods gen:sc
-        [(define (sc-map v f) 
-           (match v
-             [(unit-combinator unit-spec)
-              (unit-combinator (unit-spec-sc-map f unit-spec))]))
+        [(define (sc-map v f)
+           (match-define (unit-combinator unit-spec) v)
+           (unit-combinator (unit-spec-sc-map f unit-spec)))
          (define (sc-traverse v f)
            (match v
              [(unit-combinator unit-spec)

@@ -353,6 +353,13 @@
 (def-structural Set ([elem #:covariant])
   [#:mask mask:set])
 
+;;------
+;; Treelist (Immutable)
+;;------
+
+(def-structural TreeList ([elem #:covariant])
+  [#:mask mask:treelist])
+
 ;;------------
 ;; HashTable
 ;;------------

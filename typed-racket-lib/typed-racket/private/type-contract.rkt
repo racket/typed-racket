@@ -42,6 +42,7 @@
  racket/format
  racket/string
  racket/set
+ racket/treelist
  syntax/flatten-begin
  (only-in "../types/abbrev.rkt" -Bottom -Boolean)
  "../static-contracts/instantiate.rkt"
@@ -239,10 +240,11 @@
 (define (change-contract-fixups forms [ctc-cache (make-hash)])
   (with-new-name-tables
    (for/list ((e (in-list forms)))
-     (if (not (has-contract-def-property? e))
-         e
-         (begin (set-box! include-extra-requires? #t)
-                (generate-contract-def e ctc-cache))))))
+     (cond
+       [(not (has-contract-def-property? e)) e]
+       [else
+        (set-box! include-extra-requires? #t)
+        (generate-contract-def e ctc-cache)]))))
 
 ;; TODO: These are probably all in a specific place, which could avoid
 ;;       the big traversal
@@ -554,16 +556,15 @@
         ;; Avoid putting (-> any T) contracts on struct predicates (where Boolean <: T)
         ;; Optimization: if the value is typed, we can assume it's not wrapped
         ;;  in a type-unsafe chaperone/impersonator and use the unsafe contract
-        (let* ([unsafe-spp/sc (flat/sc #'struct-predicate-procedure?)]
-               [safe-spp/sc (flat/sc #'struct-predicate-procedure?/c)]
-               [optimized/sc (if (from-typed? typed-side)
-                                 unsafe-spp/sc
-                                 safe-spp/sc)]
-               [spt-pred-procedure?/sc (flat/sc #'struct-type-property-predicate-procedure?)])
-          (or/sc optimized/sc spt-pred-procedure?/sc (t->sc/fun t)))]
+        (define unsafe-spp/sc (flat/sc #'struct-predicate-procedure?))
+        (define safe-spp/sc (flat/sc #'struct-predicate-procedure?/c))
+        (define optimized/sc (if (from-typed? typed-side) unsafe-spp/sc safe-spp/sc))
+        (define spt-pred-procedure?/sc (flat/sc #'struct-type-property-predicate-procedure?))
+        (or/sc optimized/sc spt-pred-procedure?/sc (t->sc/fun t))]
        [(? Fun? t) (t->sc/fun t)]
        [(? DepFun? t) (t->sc/fun t)]
        [(Set: t) (set/sc (t->sc t))]
+       [(TreeList: t) (treelist/sc (t->sc t))]
        [(Sequence: (list t))
         #:when (subtype t:-Nat t)
         ;; sequence/c is always a wrapper, so avoid it when we just have a number
@@ -835,10 +836,10 @@
            [else (is-flat-type/sc (obj->sc o) sc)])]
         [(NotTypeProp: o t)
          (define sc (t->sc t bound-all-vars))
-         (cond
-           [(not (equal? flat-sym (get-max-contract-kind sc)))
-            (raise-user-error 'type->static-contract/shallow "proposition contract generation not supported for non-flat types")]
-           [else (not-flat-type/sc (obj->sc o) sc)])]
+         (unless (equal? flat-sym (get-max-contract-kind sc))
+           (raise-user-error 'type->static-contract/shallow
+                             "proposition contract generation not supported for non-flat types"))
+         (not-flat-type/sc (obj->sc o) sc)]
         [(LeqProp: (app obj->sc lhs) (app obj->sc rhs))
          (leq/sc lhs rhs)]
         [(AndProp: ps)
@@ -930,6 +931,7 @@
         none/sc
         (make-procedure-arity-flat/sc num-mand-args '() '()))]
      [(Set: _) set?/sc]
+     [(TreeList: _) treelist?/sc] 
      [(or (Sequence: _)
           (SequenceTop:)
           (SequenceDots: _ _ _))
@@ -1165,10 +1167,8 @@
   ;; Match the range of an arr and determine if a contract can be generated
   ;; and call the given thunk or raise an error
   (define (handle-arrow-range arrow proceed)
-    (match arrow
-      [(or (Arrow: _ _ _ rng)
-           (DepFun: _ _ rng))
-       (handle-range rng proceed)]))
+    (match-define (or (Arrow: _ _ _ rng) (DepFun: _ _ rng)) arrow)
+    (handle-range rng proceed))
   (define (handle-range rng proceed)
     (match rng
       [(Values: (list (Result: _
@@ -1267,8 +1267,7 @@
              (when (and (not (empty? kws)))
                (fail #:reason (~a "cannot generate contract for case function type"
                                   " with optional keyword arguments")))
-             (when (ormap (lambda (n-exi)
-                            (> n-exi 0))
+             (when (ormap positive?
                           n-exis)
                (fail #:reason (~a "cannot generate contract for case function type with existentials")))
 
@@ -1287,34 +1286,24 @@
             (handle-arrow-range (first arrows)
                                 (lambda ()
                                   (convert-single-arrow (first arrows))))
-            (case->/sc (map (lambda (arr)
-                              (handle-arrow-range arr (lambda ()
-                                                        (convert-one-arrow-in-many arr))))
-                            arrows)))])]
+            (case->/sc (for/list ([arr (in-list arrows)])
+                         (handle-arrow-range arr (lambda () (convert-one-arrow-in-many arr))))))])]
     [(DepFun/ids: ids dom pre rng)
      (define (continue)
-       (match rng
-         [(Values: (list (Result: rngs _ _) ...))
-          (define (dom-id? id) (member id ids free-identifier=?))
-          (define-values (dom* dom-deps)
-            (for/lists (_1 _2) ([d (in-list dom)])
-              (values (t->sc/neg d)
-                      (filter dom-id? (free-ids d)))))
-          (define pre* (if (TrueProp? pre) #f (t->sc/neg pre)))
-          (define pre-deps (filter dom-id? (free-ids pre)))
-          (define rng* (map t->sc rngs))
-          (define rng-deps (filter dom-id?
-                                   (remove-duplicates
-                                    (apply append (map free-ids rngs))
-                                    free-identifier=?)))
-          (->i/sc (from-typed? typed-side)
-                  ids
-                  dom*
-                  dom-deps
-                  pre*
-                  pre-deps
-                  rng*
-                  rng-deps)]))
+       (match-define (Values: (list (Result: rngs _ _) ...)) rng)
+       (define (dom-id? id)
+         (member id ids free-identifier=?))
+       (define-values (dom* dom-deps)
+         (for/lists (_1 _2) ([d (in-list dom)]) (values (t->sc/neg d) (filter dom-id? (free-ids d)))))
+       (define pre*
+         (if (TrueProp? pre)
+             #f
+             (t->sc/neg pre)))
+       (define pre-deps (filter dom-id? (free-ids pre)))
+       (define rng* (map t->sc rngs))
+       (define rng-deps
+         (filter dom-id? (remove-duplicates (apply append (map free-ids rngs)) free-identifier=?)))
+       (->i/sc (from-typed? typed-side) ids dom* dom-deps pre* pre-deps rng* rng-deps))
      (handle-range rng continue)]))
 
 ;; Generate a contract for a object/class method clause
@@ -1546,11 +1535,16 @@
   (require racket/extflonum)
   (provide nonnegative? nonpositive?
            extflonum? extflzero? extflnonnegative? extflnonpositive?)
-  (define nonnegative? (lambda (x) (>= x 0)))
-  (define nonpositive? (lambda (x) (<= x 0)))
-  (define extflzero? (lambda (x) (extfl= x 0.0t0)))
-  (define extflnonnegative? (lambda (x) (extfl>= x 0.0t0)))
-  (define extflnonpositive? (lambda (x) (extfl<= x 0.0t0))))
+  (define (nonnegative? x)
+    (>= x 0))
+  (define (nonpositive? x)
+    (<= x 0))
+  (define (extflzero? x)
+    (extfl= x 0.0t0))
+  (define (extflnonnegative? x)
+    (extfl>= x 0.0t0))
+  (define (extflnonpositive? x)
+    (extfl<= x 0.0t0)))
 
 (module numeric-contracts racket/base
   (require

@@ -256,12 +256,12 @@
            non-bindings
            expected
            #:before-check-body
-           (λ () (begin (for ([expr (in-list remaining-exprs)]
-                              [results (in-list given-rhs-types)])
-                          (match results
-                            [(list (tc-result: ts fs os) ...)
-                             (tc-expr/check expr (ret ts fs os))]))
-                        (check-thunk))))])))))
+           (λ ()
+             (for ([expr (in-list remaining-exprs)]
+                   [results (in-list given-rhs-types)])
+               (match results
+                 [(list (tc-result: ts fs os) ...) (tc-expr/check expr (ret ts fs os))]))
+             (check-thunk)))])))))
 
 ;; An lr-clause is a
 ;;   (lr-clause (Listof Identifier) Syntax)
@@ -284,8 +284,8 @@
       (if (null? names)
           (values (cons clause non-binding) other-clauses)
           (values non-binding (cons clause other-clauses)))))
-  (define-values (non-binding other-clauses)
-    (values (reverse *non-binding) (reverse *other-clauses)))
+  (define non-binding (reverse *non-binding))
+  (define other-clauses (reverse *other-clauses))
 
   ;; Set up vertices for Tarjan's algorithm, where each letrec-values
   ;; clause is a vertex but mapped in the table for each of the clause names

@@ -183,8 +183,8 @@
 ;; (Syntax -> Type) -> Syntax Any -> Syntax
 ;; See `parse-type/id`. This is a curried generalization.
 (define ((parse/id p) loc datum)
-  (let* ([stx* (datum->syntax loc datum loc loc)])
-    (p stx*)))
+  (define stx* (datum->syntax loc datum loc loc))
+  (p stx*))
 
 (define (parse-literal-alls stx)
   (syntax-parse stx
@@ -831,12 +831,11 @@
          refinement-type]
         [(:Instance^ t)
          (let ([v (do-parse #'t)])
-           (if (not (or (F? v) (Mu? v) (Name? v) (Class? v) (Error? v)))
-               (begin (parse-error #:delayed? #t
-                                   "expected a class type for argument to Instance"
-                                   "given" v)
-                      (make-Instance (Un)))
-               (make-Instance v)))]
+           (cond
+             [(not (or (F? v) (Mu? v) (Name? v) (Class? v) (Error? v)))
+              (parse-error #:delayed? #t "expected a class type for argument to Instance" "given" v)
+              (make-Instance (Un))]
+             [else (make-Instance v)]))]
         [(:Unit^ (:import^ import:id ...)
                  (:export^ export:id ...)
                  (~optional (:init-depend^ init-depend:id ...)
@@ -902,15 +901,16 @@
                                      (k Err)
                                      (remove-duplicates res)))
                        ([ty (in-syntax #'(tys ...))])
-               (let ([t (do-parse ty)])
-                 (match (resolve t)
-                   [(Fun: arrows) (values (append res arrows) err?)]
-                   [_ (if (side-effect-mode? mode)
-                          (values res #t)
-                          (parse-error
-                           #:stx ty
-                           "expected a function type for component of case-> type"
-                           "given" t))]))))
+               (define t (do-parse ty))
+               (match (resolve t)
+                 [(Fun: arrows) (values (append res arrows) err?)]
+                 [_
+                  (if (side-effect-mode? mode)
+                      (values res #t)
+                      (parse-error #:stx ty
+                                   "expected a function type for component of case-> type"
+                                   "given"
+                                   t))])))
            (make-Fun arrows))]
         [(:Rec^ x:id t)
          (let* ([var (syntax-e #'x)])
@@ -1401,8 +1401,7 @@
                       [_ (apply rator args^)])]))]
               [(? Name?)
                (resolve-app-check-error rator args^ stx)
-               (define app (make-App rator args^))
-               app]
+               (make-App rator args^)]
               [(Error:) Err]
               [_ (parse-error "bad syntax in type application: expected a type constructor"
                               "given a type"
@@ -1507,10 +1506,9 @@
   ;; Merge all the non-duplicate entries from the parent types
   (define (merge-clause parent-clause clause)
     (for/fold ([clause clause])
-              ([(k v) (in-dict parent-clause)])
-      (if (dict-has-key? clause k)
-          clause
-          (dict-set clause k v))))
+              ([(k v) (in-dict parent-clause)]
+               #:unless (dict-has-key? clause k))
+      (dict-set clause k v)))
 
   (define (match-parent-type parent-type)
     (define resolved (resolve parent-type))
@@ -1655,12 +1653,12 @@
             ;; of init arguments.
             (define parent-inits (get-parent-inits parent/init-type))
 
-            (define class-type
-              (make-Class row-var
-                          (append given-inits parent-inits)
-                          fields methods augments given-init-rest))
-
-            class-type]
+            (make-Class row-var
+                        (append given-inits parent-inits)
+                        fields
+                        methods
+                        augments
+                        given-init-rest)]
            [else
             ;; Conservatively assume that if there *are* #:implements
             ;; clauses, then the current type alias will be recursive

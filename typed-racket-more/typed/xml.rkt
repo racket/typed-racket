@@ -14,7 +14,7 @@
 
 (define-type XExpr
   (U XML-Misc Cdata Pcdata Positive-Index
-     String Symbol
+     Number String Symbol
      (Pair Symbol (Pair (Listof XExpr-Attribute) (Listof XExpr)))
      (Pair Symbol (Listof XExpr))))
 

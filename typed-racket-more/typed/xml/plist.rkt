@@ -23,4 +23,4 @@
   [plist-value? (-> Any Boolean)]
   [plist-dict? (-> Any Boolean)]
   [read-plist (-> Input-Port Plist-Value)]
-  [write-plist (-> Plist-Dict Output-Port Void)])
+  [write-plist (-> Plist-Value Output-Port Void)])

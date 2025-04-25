@@ -377,10 +377,9 @@ at least theoretically.
 
 ;; quick in-list/rest and in-list-cycle sanity checks
 (module+ test
-  (unless (equal? (for/list ([_ (in-range 0)]
-                             [val (in-list/rest (list 1 2) #f)])
-                    val)
-                  (list))
+  (unless (null? (for/list ([_ (in-range 0)]
+                            [val (in-list/rest (list 1 2) #f)])
+                   val))
     (error 'in-list/rest "broken!"))
   (unless (equal? (for/list ([_ (in-range 2)]
                              [val (in-list/rest (list 1 2) #f)])

@@ -11,11 +11,11 @@
   (define ch (peek-char port))
   (unless (eof-object? ch)
     ;; Consult current readtable:
-    (let-values ([(like-ch/sym proc dispatch-proc) (readtable-mapping (current-readtable) ch)])
-      ;; If like-ch/sym is whitespace, then ch is whitespace
-      (when (and (char? like-ch/sym) (char-whitespace? like-ch/sym))
-        (read-char port)
-        (skip-whitespace port)))))
+    (define-values (like-ch/sym proc dispatch-proc) (readtable-mapping (current-readtable) ch))
+    ;; If like-ch/sym is whitespace, then ch is whitespace
+    (when (and (char? like-ch/sym) (char-whitespace? like-ch/sym))
+      (read-char port)
+      (skip-whitespace port))))
 
 (define (skip-comments read-one port src)
   ;; Recursive read, but skip comments and detect EOF

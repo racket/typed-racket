@@ -122,16 +122,15 @@
                (for/list ([stx (in-list stxs)]
                           [tcr (in-list tcrs)]
                           [a (in-list anns)])
-                 (match tcr
-                   [(tc-result: ty ps o)
-                    (cond
-                      [a
-                       (check-type stx ty a)
-                       (-tc-result a ps o)]
-                      ;; mutated variables get generalized, so that we don't
-                      ;; infer too small a type
-                      [(is-var-mutated? stx) (-tc-result (generalize ty) ps o)]
-                      [else (-tc-result ty ps o)])]))])]))]))
+                 (match-define (tc-result: ty ps o) tcr)
+                 (cond
+                   [a
+                    (check-type stx ty a)
+                    (-tc-result a ps o)]
+                   ;; mutated variables get generalized, so that we don't
+                   ;; infer too small a type
+                   [(is-var-mutated? stx) (-tc-result (generalize ty) ps o)]
+                   [else (-tc-result ty ps o)]))])]))]))
 
 ;; check that e-type is compatible with ty in context of stx
 ;; otherwise, error

@@ -259,8 +259,8 @@
            (λ ()
              (for ([expr (in-list remaining-exprs)]
                    [results (in-list given-rhs-types)])
-               (match results
-                 [(list (tc-result: ts fs os) ...) (tc-expr/check expr (ret ts fs os))]))
+               (match-define (list (tc-result: ts fs os) ...) results)
+               (tc-expr/check expr (ret ts fs os)))
              (check-thunk)))])))))
 
 ;; An lr-clause is a

@@ -462,9 +462,8 @@
   (register-sty! sty names desc))
 
 (define (register-parsed-struct-bindings! ps)
-  (match ps
-    ((parsed-struct sty names desc si)
-     (register-struct-bindings! sty names desc si))))
+  (match-define (parsed-struct sty names desc si) ps)
+  (register-struct-bindings! sty names desc si))
 
 ;; extract the type annotation of prop:procedure value
 (define/cond-contract (extract-proc-ty proc-ty-stx desc fld-names st-name)

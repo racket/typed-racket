@@ -386,6 +386,5 @@
      (make-LExp* (+ c1 c2) (terms-add terms1 terms2))]))
 
 (define (add-path-to-lexp p l)
-  (match l
-    [(LExp: const terms)
-     (make-LExp* const (terms-set terms p (add1 (terms-ref terms p))))]))
+  (match-define (LExp: const terms) l)
+  (make-LExp* const (terms-set terms p (add1 (terms-ref terms p)))))

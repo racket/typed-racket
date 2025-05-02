@@ -245,15 +245,16 @@
                                                           #:when (pair? dom))
                                                  (cons (cdr dom) acc))])
                                      (protect-loop rst dom+)))
+                                 (define ann-ty
+                                   (and (type-annotation fst #:infer #f)
+                                        (get-type fst #:infer #t #:default Univ)))
                                  (define fst-ty
-                                   (let ([ann-ty (and (type-annotation fst #:infer #f)
-                                                      (get-type fst #:infer #t #:default Univ))])
-                                     (if (and ann-ty (not (Error? ann-ty)))
-                                         ann-ty
-                                         (apply Un
-                                                (for/list ([dom (in-list dom*)]
-                                                           #:when (pair? dom))
-                                                  (car dom))))))
+                                   (if (and ann-ty (not (Error? ann-ty)))
+                                       ann-ty
+                                       (apply Un
+                                              (for/list ([dom (in-list dom*)]
+                                                         #:when (pair? dom))
+                                                (car dom)))))
                                  (define-values (ex* fst+)
                                    (if skip-dom?
                                        (values '() #f)
@@ -314,13 +315,12 @@
                                                                          "#%plain-lambda formals"
                                                                          formals
                                                                          args)]))
-                                                (define check*
-                                                  (let ([dom+ (for/fold ([acc '()])
-                                                                        ([dom (in-list dom*)])
-                                                                (if (pair? dom)
-                                                                    (cons (cdr dom) acc)
-                                                                    acc))])
-                                                    (protect-loop rst dom+)))
+                                                (define dom+
+                                                  (for/fold ([acc '()]) ([dom (in-list dom*)])
+                                                    (if (pair? dom)
+                                                        (cons (cdr dom) acc)
+                                                        acc)))
+                                                (define check* (protect-loop rst dom+))
                                                 (define fst-ty
                                                   (if (type-annotation fst #:infer #f)
                                                       (get-type fst #:infer #t #:default Univ)

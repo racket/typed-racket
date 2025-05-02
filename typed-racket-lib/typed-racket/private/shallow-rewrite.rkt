@@ -316,10 +316,10 @@
                                                                          formals
                                                                          args)]))
                                                 (define dom+
-                                                  (for/fold ([acc '()]) ([dom (in-list dom*)])
-                                                    (if (pair? dom)
-                                                        (cons (cdr dom) acc)
-                                                        acc)))
+                                                  (for/fold ([acc '()])
+                                                            ([dom (in-list dom*)]
+                                                             #:when (pair? dom))
+                                                    (cons (cdr dom) acc)))
                                                 (define check* (protect-loop rst dom+))
                                                 (define fst-ty
                                                   (if (type-annotation fst #:infer #f)

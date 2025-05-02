@@ -195,8 +195,8 @@
           (loop (cddr l) (cons (car l) getters) (cons (cadr l) setters)))))
   (match-define (list sty maker pred getters/setters ...)
     (build-struct-names nm flds #f #f nm #:constructor-name maker*))
-  (let-values ([(getters setters) (split getters/setters)])
-    (struct-names nm type-name sty maker extra-maker pred getters setters)))
+  (define-values (getters setters) (split getters/setters))
+  (struct-names nm type-name sty maker extra-maker pred getters setters))
 
 ;; gets the fields of the parent type, if they exist
 ;; Option[Struct-Ty] -> Listof[Type]

@@ -341,10 +341,10 @@
                     [max-cover (covers-how-many? (car candidates))]
                     #:result next)
                    ([c (in-list candidates)])
-           (let ([how-many? (covers-how-many? c)])
-             (if (> how-many? max-cover)
-                 (values c how-many?)
-                 (values next max-cover)))))
+           (define how-many? (covers-how-many? c))
+           (if (> how-many? max-cover)
+               (values c how-many?)
+               (values next max-cover))))
        (loop (set-subtract to-cover (cdr next)) (remove next candidates) (cons next coverage))])))
 
 ;; arr->sexp : arr -> s-expression

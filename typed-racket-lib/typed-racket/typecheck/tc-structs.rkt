@@ -511,28 +511,29 @@
        (match ty
          [(Fun: (list arrs ...))
           (make-Fun
-           (map (lambda (arr)
-                  (Arrow-update
-                   arr
-                   dom
-                   (lambda (doms)
-                     (match (car doms)
-                       [(Name/simple: n)
-                        #:when (free-identifier=? n st-name)
-                        (void)]
-                       [(App: (Name/simple: rator) vars)
-                        #:when (free-identifier=? rator st-name)
-                        (void)]
-                       [(Univ:)
-                        (void)]
-                       [(or (Name/simple: (app syntax-e n)) n)
-                        (tc-error/fields "type mismatch in the first parameter of the function for prop:procedure"
-                                         "expected" (syntax-e st-name)
-                                         "got" n
-                                         #:stx (st-proc-ty-property #'ty-stx))])
-
-                     (cdr doms))))
-                arrs))]
+           (for/list ([arr (in-list arrs)])
+             (Arrow-update
+              arr
+              dom
+              (lambda (doms)
+                (match (car doms)
+                  [(Name/simple: n)
+                   #:when (free-identifier=? n st-name)
+                   (void)]
+                  [(App: (Name/simple: rator) vars)
+                   #:when (free-identifier=? rator st-name)
+                   (void)]
+                  [(Univ:) (void)]
+                  [(or (Name/simple: (app syntax-e n)) n)
+                   (tc-error/fields
+                    "type mismatch in the first parameter of the function for prop:procedure"
+                    "expected"
+                    (syntax-e st-name)
+                    "got"
+                    n
+                    #:stx (st-proc-ty-property #'ty-stx))])
+           
+                (cdr doms)))))]
          [_
           (tc-error/fields "type mismatch"
                            "expected"

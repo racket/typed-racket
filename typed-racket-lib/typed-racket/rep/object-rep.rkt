@@ -313,9 +313,7 @@
   (-> OptObject? (or/c #f exact-integer?))
   (match l
     [(LExp: c terms)
-     (if (hash-empty? terms)
-         c
-         #f)]
+     (and (hash-empty? terms) c)]
     [_ #f]))
 
 (define/cond-contract (in-LExp? obj l)

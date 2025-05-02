@@ -830,10 +830,10 @@
       (match p
         [(TypeProp: o t)
          (define sc (t->sc t bound-all-vars))
-         (cond
-           [(not (equal? flat-sym (get-max-contract-kind sc)))
-            (raise-user-error 'type->static-contract/shallow "proposition contract generation not supported for non-flat types")]
-           [else (is-flat-type/sc (obj->sc o) sc)])]
+         (unless (equal? flat-sym (get-max-contract-kind sc))
+           (raise-user-error 'type->static-contract/shallow
+                             "proposition contract generation not supported for non-flat types"))
+         (is-flat-type/sc (obj->sc o) sc)]
         [(NotTypeProp: o t)
          (define sc (t->sc t bound-all-vars))
          (unless (equal? flat-sym (get-max-contract-kind sc))

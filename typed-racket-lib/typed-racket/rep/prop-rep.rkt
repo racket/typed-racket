@@ -143,8 +143,7 @@
   [#:for-each (f) (for-each f ps)]
   [#:custom-constructor/contract
    (-> (listof (or/c TypeProp? NotTypeProp? LeqProp?)) OrProp?)
-   (let ([ps (sort ps (λ (p q) (unsafe-fx<= (eq-hash-code p)
-                                            (eq-hash-code q))))])
+   (let ([ps (sort ps unsafe-fx<= #:key eq-hash-code)])
      (intern-single-ref!
       orprop-intern-table
       ps

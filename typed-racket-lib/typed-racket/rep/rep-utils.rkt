@@ -398,7 +398,7 @@
      ;; singletons cannot have fields or #:no-provide
      (when (and (attribute singleton)
                 (or (attribute no-provide?-kw)
-                    (> (length (syntax->list #'flds)) 0)))
+                    (positive? (length (syntax->list #'flds)))))
        (raise-syntax-error 'def-rep "singletons cannot have fields or the #:no-provide option"
                            #'var))
      (when (and (attribute base?)

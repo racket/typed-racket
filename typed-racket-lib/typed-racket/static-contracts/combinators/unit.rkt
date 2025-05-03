@@ -20,10 +20,9 @@
            (match-define (unit-combinator unit-spec) v)
            (unit-combinator (unit-spec-sc-map f unit-spec)))
          (define (sc-traverse v f)
-           (match v
-             [(unit-combinator unit-spec)
-              (unit-spec-sc-map f unit-spec)
-              (void)]))
+           (match-define (unit-combinator unit-spec) v)
+           (unit-spec-sc-map f unit-spec)
+           (void))
          (define (sc->contract v f)
            (unit/sc->contract v f))
          (define (sc->constraints v f)
@@ -43,53 +42,41 @@
         #:property prop:sequence unit-spec->list)
 
 (define (unit-spec-sc-map f seq)
-  (match seq
-    [(unit-spec imports exports init-depends invokes)
-     (unit-spec
-      (map (signature-spec-sc-map f) imports)
-      (map (signature-spec-sc-map f) exports)
-      ;; leave init-depends alone since they don't contain contracts
-      init-depends
-      (map (lambda (invoke) (and invoke (f invoke 'covariant))) invokes))]))
+  (match-define (unit-spec imports exports init-depends invokes) seq)
+  (unit-spec (map (signature-spec-sc-map f) imports)
+             (map (signature-spec-sc-map f) exports)
+             ;; leave init-depends alone since they don't contain contracts
+             init-depends
+             (map (lambda (invoke) (and invoke (f invoke 'covariant))) invokes)))
 
 (define ((signature-spec-sc-map f) seq)
-  (match seq
-    [(signature-spec name (list ids ...) (list scs ...))
-     (signature-spec
-      name
-      ids
-      (map (lambda (sc) (and sc (f sc 'invariant))) scs))]))
+  (match-define (signature-spec name (list ids ...) (list scs ...)) seq)
+  (signature-spec name ids (map (lambda (sc) (and sc (f sc 'invariant))) scs)))
 
 
 (define (unit/sc->contract v f)
-  (match v
-    [(unit-combinator 
-      (unit-spec (list imports ...)
-                 (list exports ...)
-                 (list deps ...)
-                 (list invoke/scs ...)))
-     
-     (define (sig-spec->syntax sig-spec)
-       (match sig-spec
-         [(signature-spec name members scs)
-          (define member-stx
-            (map (lambda (id sc) #`(#,id #,(f sc))) members scs))
-          #`(#,name #,@member-stx)]))
-     
-     (define (invokes->contract lst)
-       (cond
-        ;; just a single contract
-        [(= 1 (length lst))
-         #`#,(f (first lst))]
-        ;; values contract
-        [else 
-         #`(values #,@(map f lst))]))
-     
-     #`(unit/c
-        (import #,@(map sig-spec->syntax imports))
-        (export #,@(map sig-spec->syntax exports))
-        (init-depend #,@deps)
-        #,(invokes->contract invoke/scs))]))
+  (match-define (unit-combinator (unit-spec (list imports ...)
+                                            (list exports ...)
+                                            (list deps ...)
+                                            (list invoke/scs ...)))
+    v)
+  (define (sig-spec->syntax sig-spec)
+    (match sig-spec
+      [(signature-spec name members scs)
+       (define member-stx (map (lambda (id sc) #`(#,id #,(f sc))) members scs))
+       #`(#,name #,@member-stx)]))
+
+  (define (invokes->contract lst)
+    (cond
+      ;; just a single contract
+      [(= 1 (length lst)) #`#,(f (first lst))]
+      ;; values contract
+      [else #`(values #,@(map f lst))]))
+
+  #`(unit/c (import #,@(map sig-spec->syntax imports))
+            (export #,@(map sig-spec->syntax exports))
+            (init-depend #,@deps)
+            #,(invokes->contract invoke/scs)))
 
 (define (unit/sc imports exports init-depends invoke)
   (unit-combinator (unit-spec imports exports init-depends invoke)))

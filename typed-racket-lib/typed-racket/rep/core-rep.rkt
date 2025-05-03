@@ -247,7 +247,7 @@
   (-> Result? Result?)
   (match-define (Result: type propset optobject n-existentials) result)
   (cond
-    [(> n-existentials 0)
+    [(positive? n-existentials)
      (define syms (hash-ref type-var-name-table result (build-list n-existentials (lambda _ (gensym)))))
      (define vars (map make-F syms))
      (make-Result (instantiate-type type vars) (instantiate-propset propset vars) optobject n-existentials)]

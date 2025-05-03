@@ -99,9 +99,8 @@
 
 ;; Leq to the internal leq rep
 (define (Leq->leq l)
-  (match l
-    [(LeqProp: (LExp: c1 ts1) (LExp: c2 ts2))
-     (leq (lexp c1 ts1) (lexp c2 ts2))]))
+  (match-define (LeqProp: (LExp: c1 ts1) (LExp: c2 ts2)) l)
+  (leq (lexp c1 ts1) (lexp c2 ts2)))
 
 
 ;; *****************************************************************************
@@ -215,10 +214,8 @@
     [(eqv? a 0) (lexp 0 (make-terms))]
     [(= a 1) exp]
     [else
-     (match exp
-       [(lexp: c h)
-        (lexp (* c a)
-              (terms-scale h a))])]))
+     (match-define (lexp: c h) exp)
+     (lexp (* c a) (terms-scale h a))]))
 
 (module+ test
   (check-equal? (lexp-set (lexp* 17 '(42 x)) 'x 0)
@@ -332,13 +329,15 @@
   (-> lexp? (-> any/c any/c) string?)
   (define vars (terms-vars (lexp-vars e)))
   (define const (lexp-const e))
-  (define term->string
-    (λ (x) (string-append (if (= 1 (lexp-coeff e x))
-                              ""
-                              (number->string (lexp-coeff e x)))
-                          "(" (if pp
-                                  (pp x)
-                                  (~a x)) ")")))
+  (define (term->string x)
+    (string-append (if (= 1 (lexp-coeff e x))
+                       ""
+                       (number->string (lexp-coeff e x)))
+                   "("
+                   (if pp
+                       (pp x)
+                       (~a x))
+                   ")"))
   (cond
     [(terms-empty? vars) (number->string const)]
     [(zero? const)
@@ -487,21 +486,18 @@
   ;; leq2: ... + cx + .... <= ... + dx + ...
   (let-values ([(l1 r1) (leq-lexps leq1)]
                [(l2 r2) (leq-lexps leq2)])
-    (let ([a (lexp-coeff l1 x)] [b (lexp-coeff r1 x)]
-          [c (lexp-coeff l2 x)] [d (lexp-coeff r2 x)])
-      (cond
-        ;; leq1: ax <= lexp1
-        ;; leq2: lexp2 <= dx
-        [(and (eqv? 0 b) (eqv? 0 c))
-         (leq (lexp-scale l2 a)
-              (lexp-scale r1 d))]
-        ;; leq1: lexp1 <= bx
-        ;; leq2: cx <= lexp2
-        [(and (eqv? 0 a) (eqv? 0 d))
-         (leq (lexp-scale l1 c)
-              (lexp-scale r2 b))]
-        [else
-         (error 'leq-join "cannot join ~a and ~a by ~a" leq1 leq2 x)]))))
+    (define a (lexp-coeff l1 x))
+    (define b (lexp-coeff r1 x))
+    (define c (lexp-coeff l2 x))
+    (define d (lexp-coeff r2 x))
+    (cond
+      ;; leq1: ax <= lexp1
+      ;; leq2: lexp2 <= dx
+      [(and (eqv? 0 b) (eqv? 0 c)) (leq (lexp-scale l2 a) (lexp-scale r1 d))]
+      ;; leq1: lexp1 <= bx
+      ;; leq2: cx <= lexp2
+      [(and (eqv? 0 a) (eqv? 0 d)) (leq (lexp-scale l1 c) (lexp-scale r2 b))]
+      [else (error 'leq-join "cannot join ~a and ~a by ~a" leq1 leq2 x)])))
 
 (module+ test
   (check-equal? (leq-join (leq (lexp* '(2 x))
@@ -600,36 +596,31 @@
          (values xlhs xrhs (cons ineq nox))]))))
 
 (module+ test
-  (check-equal? (let-values ([(lt gt no)
-                              (sli-partition (list (leq (lexp* '(2 x) '(4 y) 1)
-                                                        (lexp* '(2 y))))
-                                             'x)])
-                  (list lt gt no))
+  (check-equal? (call-with-values
+                 (λ () (sli-partition (list (leq (lexp* '(2 x) '(4 y) 1) (lexp* '(2 y)))) 'x))
+                 list)
                 (list (list (leq (lexp* '(2 x))
                                  (lexp* '(-2 y) -1)))
                       (list)
                       (list)))
-  (check-equal? (let-values ([(lt gt no)
-                              (sli-partition (list (leq (lexp* '(2 x) '(4 y) 1)
-                                                        (lexp* '(2 y)))
-                                                   (leq (lexp* '(2 x) '(4 y))
-                                                        (lexp* '(2 y) '(42 x))))
-                                             'x)])
-                  (list lt gt no))
+  (check-equal? (call-with-values (λ ()
+                                    (sli-partition (list (leq (lexp* '(2 x) '(4 y) 1) (lexp* '(2 y)))
+                                                         (leq (lexp* '(2 x) '(4 y))
+                                                              (lexp* '(2 y) '(42 x))))
+                                                   'x))
+                                  list)
                 (list (list (leq (lexp* '(2 x))
                                  (lexp* '(-2 y) -1)))
                       (list (leq (lexp* '(2 y))
                                  (lexp* '(40 x))))
                       (list)))
-  (check-equal? (let-values ([(lt gt no)
-                              (sli-partition (list (leq (lexp* '(2 x) '(4 y) -1)
-                                                        (lexp* '(2 y)))
-                                                   (leq (lexp* '(2 x) '(4 y))
-                                                        (lexp* '(2 y) '(42 x)))
-                                                   (leq (lexp* '(2 z) '(4 y))
-                                                        (lexp* '(2 y) '(42 q))))
-                                             'x)])
-                  (list lt gt no))
+  (check-equal? (call-with-values
+                 (λ ()
+                   (sli-partition (list (leq (lexp* '(2 x) '(4 y) -1) (lexp* '(2 y)))
+                                        (leq (lexp* '(2 x) '(4 y)) (lexp* '(2 y) '(42 x)))
+                                        (leq (lexp* '(2 z) '(4 y)) (lexp* '(2 y) '(42 q))))
+                                  'x))
+                 list)
                 (list (list (leq (lexp* '(2 x))
                                  (lexp* '(-2 y) 1)))
                       (list (leq (lexp* '(2 y))

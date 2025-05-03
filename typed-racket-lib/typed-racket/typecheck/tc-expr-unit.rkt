@@ -94,8 +94,8 @@
     (values (tc-expr/t expr) (current-type-error?))))
 
 (define (tc-expr/check/t e t)
-  (match (tc-expr/check e t)
-    [(tc-result1: t) t]))
+  (match-define (tc-result1: t) (tc-expr/check e t))
+  t)
 
 ;; typecheck an expression by passing tr-expr/check a tc-results
 (define/cond-contract (tc-expr/check/type form expected)
@@ -143,8 +143,8 @@
       (dynamic-wind
         (λ () (save-errors!))
         (λ ()
-          (let ([result (tc-expr/check form expected)])
-            (and (not (current-type-error?)) result)))
+          (define result (tc-expr/check form expected))
+          (and (not (current-type-error?)) result))
         (λ () (restore-errors!))))))
 
 (define (tc-expr/check/t? form expected)
@@ -194,7 +194,7 @@
       [t:assert-typecheck-failure
        (cond
          [(tc-expr/check? #'t.body expected)
-          (tc-error/expr #:stx #'t.body (format "Expected a type check error!"))]
+          (tc-error/expr #:stx #'t.body "Expected a type check error!")]
          [else
           (fix-results expected)])]
       ;; data
@@ -317,9 +317,11 @@
               (attribute opt.value))
             (opt-convert fun-type required-pos optional-pos optional-supplied?)]
            [_ #f]))
-       (if conv-type
-           (begin (tc-expr/check/type #'fun conv-type) (fix-results expected))
-           (tc-expr/check form #f))]
+       (cond
+         [conv-type
+          (tc-expr/check/type #'fun conv-type)
+          (fix-results expected)]
+         [else (tc-expr/check form #f)])]
       [(~and _:kw-lambda^
              (let-values ([(f) fun])
                (let-values _

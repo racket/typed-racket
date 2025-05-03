@@ -175,7 +175,8 @@
   ;; this map is used to determine the actual signatures corresponding to the
   ;; given signature tags of the init-depends
   (define tag-map (make-immutable-free-id-table (map cons import-tags import-sigs)))
-  (define lookup-temp (λ (temp) (free-id-table-ref export-temp-internal-map temp #f)))
+  (define (lookup-temp temp)
+    (free-id-table-ref export-temp-internal-map temp #f))
   
   (values (for/list ([sig-id  (in-list import-sigs)]
                      [sig-internal-ids (in-list import-internal-ids)])

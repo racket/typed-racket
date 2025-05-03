@@ -74,10 +74,10 @@
     #:when (attribute type)))
 
 (define (maybe-finish-register-type id)
-  (let ([v (free-id-table-ref the-mapping id)])
-    (if (box? v)
-        (register-type id (unbox v))
-        #f)))
+  (define v (free-id-table-ref the-mapping id))
+  (if (box? v)
+      (register-type id (unbox v))
+      #f))
 
 (define (unregister-type id)
   (free-id-table-remove! the-mapping id))
@@ -91,13 +91,15 @@
    the-mapping
    (lambda (id e)
      (when (box? e)
-       (let ([bnd (identifier-binding id)])
-         (tc-error/delayed #:stx id
-                           "Declaration for `~a' provided, but `~a' ~a"
-                           (syntax-e id) (syntax-e id)
-                           (cond [(eq? bnd 'lexical) "is a lexical binding"] ;; should never happen
-                                 [(not bnd) "has no definition"]
-                                 [else "is defined in another module"])))))))
+       (define bnd (identifier-binding id))
+       (tc-error/delayed #:stx id
+                         "Declaration for `~a' provided, but `~a' ~a"
+                         (syntax-e id)
+                         (syntax-e id)
+                         (cond
+                           [(eq? bnd 'lexical) "is a lexical binding"] ;; should never happen
+                           [(not bnd) "has no definition"]
+                           [else "is defined in another module"]))))))
 
 ;; map over the-mapping, producing a list
 ;; (id type -> T) -> listof[T]

@@ -51,7 +51,7 @@
   (cond
     [(not (and (integer? i-val) (exact? i-val)))
      (tc-error/expr #:stx expr "expected exact integer for ~a index, but got ~a" name i-val)]
-    [(< i-val 0)
+    [(negative? i-val)
      (tc-error/expr #:stx expr "index ~a too small for ~a ~a" i-val name type)]
     [(not (< i-val i-bound))
      (tc-error/expr #:stx expr "index ~a too large for ~a ~a" i-val name type)]))

@@ -1,3 +1,6 @@
+8.17
+- Add support for treelists.
+- Support `#:do` and `#:splice` in `for` forms.
 8.16
 - Add `case-λ` as an alias for `case-lambda`
 - Bug fixes and type updates. 

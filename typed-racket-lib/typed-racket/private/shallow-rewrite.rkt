@@ -239,12 +239,12 @@
                                                           "#%plain-lambda formals"
                                                           #'formals
                                                           args)]))
-                                 (define check*
-                                   (let ([dom+ (for/fold ([acc '()])
-                                                         ([dom (in-list dom*)]
-                                                          #:when (pair? dom))
-                                                 (cons (cdr dom) acc))])
-                                     (protect-loop rst dom+)))
+                                 (define dom+
+                                   (for/fold ([acc '()])
+                                             ([dom (in-list dom*)]
+                                              #:when (pair? dom))
+                                     (cons (cdr dom) acc)))
+                                 (define check* (protect-loop rst dom+))
                                  (define ann-ty
                                    (and (type-annotation fst #:infer #f)
                                         (get-type fst #:infer #t #:default Univ)))

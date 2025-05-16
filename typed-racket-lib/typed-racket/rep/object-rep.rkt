@@ -272,16 +272,12 @@
        (if (Empty? nm)
            (values c ts)
            (values c (terms-set ts p (+ coeff (terms-ref ts p)))))]
-      [(? exact-integer? new-const)
-       (values (+ new-const c) ts)]
-      [(LExp: c* ts*)
-       (values (+ c c*) (add-terms ts ts*))]
+      [(? exact-integer? new-const) (values (+ new-const c) ts)]
+      [(LExp: c* ts*) (values (+ c c*) (add-terms ts ts*))]
       [(list (? exact-integer? l-coeff) (? LExp? l))
-       (match (scale-obj l-coeff l)
-         [(LExp: c* ts*)
-          (values (+ c c*) (add-terms ts ts*))])]
-      [(? Object? p)
-       (values c (terms-set ts p (add1 (terms-ref ts p))))]
+       (match-define (LExp: c* ts*) (scale-obj l-coeff l))
+       (values (+ c c*) (add-terms ts ts*))]
+      [(? Object? p) (values c (terms-set ts p (add1 (terms-ref ts p))))]
       [(? name-ref/c var)
        (define p (-id-path var))
        (values c (terms-set ts p (add1 (terms-ref ts p))))])))

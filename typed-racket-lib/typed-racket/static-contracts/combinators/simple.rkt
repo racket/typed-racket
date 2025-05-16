@@ -35,12 +35,10 @@
 ;;
 ;; Note: does not handle cycles but there shouldn't be any
 (define (stx-equal? s1 s2)
-  (cond [(and (identifier? s1) (identifier? s2))
-         (free-identifier=? s1 s2)]
-        [else
-         (if (and (syntax? s1) (syntax? s2))
-             (equal?/recur (syntax-e s1) (syntax-e s2) stx-equal?)
-             (equal?/recur s1 s2 stx-equal?))]))
+  (cond
+    [(and (identifier? s1) (identifier? s2)) (free-identifier=? s1 s2)]
+    [(and (syntax? s1) (syntax? s2)) (equal?/recur (syntax-e s1) (syntax-e s2) stx-equal?)]
+    [else (equal?/recur s1 s2 stx-equal?)]))
 
 (struct simple-contract static-contract (syntax kind name)
         #:transparent

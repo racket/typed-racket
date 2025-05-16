@@ -32,17 +32,15 @@
 
 
 (define (exn-pred p)
-  (let ([sexp (with-handlers
-                  ([exn:fail? (lambda _ #f)])
-                (call-with-input-file*
-                 p
-                 (lambda (prt)
-                   (read-line prt 'any) (read prt))))])
-    (match sexp
-      [(list-rest 'exn-pred e)
-       (eval `(exn-matches . ,e) (namespace-anchor->namespace a))]
-      [_
-       (exn-matches ".*Type Checker.*" exn:fail:syntax?)])))
+  (define sexp
+    (with-handlers ([exn:fail? (lambda _ #f)])
+      (call-with-input-file* p
+                             (lambda (prt)
+                               (read-line prt 'any)
+                               (read prt)))))
+  (match sexp
+    [(list-rest 'exn-pred e) (eval `(exn-matches . ,e) (namespace-anchor->namespace a))]
+    [_ (exn-matches ".*Type Checker.*" exn:fail:syntax?)]))
 
 (define-runtime-path src-dir ".")
 
@@ -61,21 +59,21 @@
                              (not (set-member? excl (path->string (file-name-from-path p*))))))
 
         (define-values [p*-base p*-name _] (split-path p*))
-        (define prm (list p*-base p*-name
-                          (if (places)
-                              (delay/thread
-                                (begin0 (run-in-other-place p* error?)
-                                        (when (zero? (modulo i 10))
-                                          (eprintf "."))))
-                              (delay
-                                (parameterize ([read-accept-reader #t]
-                                               [current-load-relative-directory p*-base]
-                                               [current-directory p*-base]
-                                               [current-output-port (open-output-nowhere)])
-                                  (begin0 (dr p*-name)
-                                          (when (zero? (modulo i 10))
-                                            (eprintf "."))))))))
-        prm))
+        (list p*-base
+              p*-name
+              (if (places)
+                  (delay/thread
+                    (begin0 (run-in-other-place p* error?)
+                      (when (zero? (modulo i 10))
+                        (eprintf "."))))
+                  (delay
+                    (parameterize ([read-accept-reader #t]
+                                   [current-load-relative-directory p*-base]
+                                   [current-directory p*-base]
+                                   [current-output-port (open-output-nowhere)])
+                      (begin0 (dr p*-name)
+                        (when (zero? (modulo i 10))
+                          (eprintf ".")))))))))
     (define tests
       (for/list ([e prms])
         (match-define (list path p prm) e)
@@ -114,15 +112,16 @@
   (define shootout (collection-path "tests" "racket" "benchmarks" "shootout" "typed"))
   (define common (collection-path "tests" "racket" "benchmarks" "common" "typed"))
   (define (mk dir)
-    (let ((promised-results
-            (for/hash ([file (in-list (directory-list dir))]
-                        #:when (scheme-file? file))
-              (values (path->string file)
-                      (delay/thread (compile-path (build-path dir file)))))))
-      (make-test-suite (path->string dir)
-        (for/list ([(name results) promised-results])
-           (test-suite name
-              (check-not-exn (λ () (force results))))))))
+    (define promised-results
+      (for/hash ([file (in-list (directory-list dir))]
+                 #:when (scheme-file? file))
+        (values (path->string file)
+                (delay/thread
+                  (compile-path (build-path dir file))))))
+    (make-test-suite (path->string dir)
+                     (for/list ([(name results) promised-results])
+                       (test-suite name
+                         (check-not-exn (λ () (force results)))))))
 
 
   (test-suite "Compiling Benchmark tests"
@@ -164,23 +163,19 @@
 
 (define (just-one p*)
   (define-values (path p b) (split-path p*))
+  (define dir (path->string path))
   (define f
-    (let ([dir (path->string path)])
-      (cond [(regexp-match? #rx"fail/" dir )
-             (lambda (p thnk)
-               (define-values (pred info) (exn-pred p))
-               (parameterize ([error-display-handler void])
-                 (with-check-info
-                  (['predicates info])
-                  (check-exn pred thnk))))]
-            [(regexp-match? #rx"succeed/" dir)
-             (lambda (p thnk) (check-not-exn thnk))]
-            [(regexp-match? #rx"optimizer/tests/$" dir)
-             (lambda (p* thnk) (test-opt p))]
-            [(regexp-match? #rx"optimizer/missed-optimizations/$" dir)
-             (lambda (p* thnk) (test-missed-optimization p))]
-            [else
-              (error 'just-one "Unknown test kind for test: ~a" p*)])))
+    (cond
+      [(regexp-match? #rx"fail/" dir)
+       (lambda (p thnk)
+         (define-values (pred info) (exn-pred p))
+         (parameterize ([error-display-handler void])
+           (with-check-info (['predicates info]) (check-exn pred thnk))))]
+      [(regexp-match? #rx"succeed/" dir) (lambda (p thnk) (check-not-exn thnk))]
+      [(regexp-match? #rx"optimizer/tests/$" dir) (lambda (p* thnk) (test-opt p))]
+      [(regexp-match? #rx"optimizer/missed-optimizations/$" dir)
+       (lambda (p* thnk) (test-missed-optimization p))]
+      [else (error 'just-one "Unknown test kind for test: ~a" p*)]))
   (test-suite
    (path->string p)
    (f

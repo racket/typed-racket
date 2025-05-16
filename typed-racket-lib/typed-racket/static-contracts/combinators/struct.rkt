@@ -26,28 +26,23 @@
   #:property prop:combinator-name "struct/sc"
   #:methods gen:sc
     [(define (sc-map v f)
-       (match v
-        [(struct-combinator args name mut?)
-         (struct-combinator (map (λ (a) (f a (if mut? 'invariant 'covariant))) args)
-                            name mut?)]))
+       (match-define (struct-combinator args name mut?) v)
+       (struct-combinator (map (λ (a) (f a (if mut? 'invariant 'covariant))) args) name mut?))
      (define (sc-traverse v f)
-       (match v
-        [(struct-combinator args name mut?)
-         (for-each (λ (a) (f a (if mut? 'invariant 'covariant))) args)
-         (void)]))
+       (match-define (struct-combinator args name mut?) v)
+       (for-each (λ (a) (f a (if mut? 'invariant 'covariant))) args)
+       (void))
      (define (sc->contract v f)
-       (match v
-         [(struct-combinator args name _)
-          #`(struct/c #,name #,@(map f args))]))
+       (match-define (struct-combinator args name _) v)
+       #`(struct/c #,name #,@(map f args)))
      (define (sc->constraints v f)
-       (match v
-        [(struct-combinator args _ mut?)
-         (merge-restricts* (if mut? 'chaperone 'flat)
-                           (map (lambda (a)
-                                  (if (not mut?)
-                                      (add-constraint (f a) 'chaperone)
-                                      (f a)))
-                                args))]))])
+       (match-define (struct-combinator args _ mut?) v)
+       (merge-restricts* (if mut? 'chaperone 'flat)
+                         (map (lambda (a)
+                                (if (not mut?)
+                                    (add-constraint (f a) 'chaperone)
+                                    (f a)))
+                              args)))])
 
 (define (struct/sc name mut? fields)
   (struct-combinator fields name mut?))
@@ -64,21 +59,18 @@
   #:property prop:combinator-name "struct-type/sc"
   #:methods gen:sc
     [(define (sc-map v f)
-       (match v
-         [(struct-type/sc args)
-          (struct-type/sc (map (λ (a) (f a 'covariant)) args))]))
+       (match-define (struct-type/sc args) v)
+       (struct-type/sc (map (λ (a) (f a 'covariant)) args)))
      (define (sc-traverse v f)
-       (match v
-         [(struct-type/sc args)
-          (for-each (λ (a) (f a 'covariant)) args)
-          (void)]))
+       (match-define (struct-type/sc args) v)
+       (for-each (λ (a) (f a 'covariant)) args)
+       (void))
      (define (sc->contract v f)
-       (match v
-         [(struct-type/sc args)
-          #`(struct-type/c #f)]))
+       (match-define (struct-type/sc args) v)
+       #`(struct-type/c #f))
      (define (sc->constraints v f)
-       (match v
-         [(struct-type/sc args) (simple-contract-restrict 'chaperone)]))])
+       (match-define (struct-type/sc args) v)
+       (simple-contract-restrict 'chaperone))])
 
 (define-match-expander struct-type/sc:
   (syntax-parser

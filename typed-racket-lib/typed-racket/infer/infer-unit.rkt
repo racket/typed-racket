@@ -936,14 +936,14 @@
     (hash-union
      (for/hash ([v (in-list Y)]
                 #:unless (hash-has-key? S v))
-       (let ([var (hash-ref idx-hash v variance:const)])
-         (values v
-                 (match var
-                   [(? variance:const?) (i-subst null)]
-                   [(? variance:co?) (i-subst null)]
-                   [(? variance:contra?) (i-subst/starred null Univ)]
-                   ;; TODO figure out if there is a better subst here
-                   [(? variance:inv?) (i-subst null)]))))
+       (define var (hash-ref idx-hash v variance:const))
+       (values v
+               (match var
+                 [(? variance:const?) (i-subst null)]
+                 [(? variance:co?) (i-subst null)]
+                 [(? variance:contra?) (i-subst/starred null Univ)]
+                 ;; TODO figure out if there is a better subst here
+                 [(? variance:inv?) (i-subst null)])))
      S))
   (define (build-subst m)
     (match m

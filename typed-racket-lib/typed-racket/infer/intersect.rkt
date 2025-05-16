@@ -161,52 +161,58 @@
 ;;    If the back pointer is never used, we don't create a μ-type, we just
 ;;    return the result
 (define (resolvable-intersect initial-t1 initial-t2 seen obj additive?)
-  (let ([t1 (if (resolvable? initial-t1)
-                (resolve-once initial-t1)
-                initial-t1)])
-    (cond
-      [(assoc (cons initial-t1 initial-t2) seen)
-       ;; we've seen these types before! -- use the stored symbol
-       ;; as a back pointer with an 'F' type (i.e. a type variable)
-       => (match-lambda
-            [(cons _ record)
-             ;; record that we did indeed use the back
-             ;; pointer by set!-ing the flag
-             (set-mcdr! record #t)
-             (make-F (mcar record))])]
-      ;; if t1 is not a fully defined type, do the simple thing
-      [(not t1) (if additive?
-                    (-unsafe-intersect initial-t1 initial-t2)
-                    initial-t1)]
-      [else
-       (let ([t2 (if (resolvable? initial-t2)
-                     (resolve-once initial-t2)
-                     initial-t2)])
-         (cond
-           ;; if t2 is not a fully defined type, do the simple thing
-           [(not t2) (if additive?
-                         (-unsafe-intersect t1 initial-t2)
-                         t1)]
-           [else
-            ;; we've never seen these types together before! let's gensym a symbol
-            ;; so that if we do encounter them again, we can create a μ type.
-            (define name (gensym 'rec))
-            ;; the 'record' contains the back pointer symbol we may or may not use in
-            ;; the car, and a flag for whether or not we actually used the back pointer
-            ;; in the cdr.
-            (define record (mcons name #f))
-            (define seen* (list* (cons (cons initial-t1 initial-t2) record)
-                                 (cons (cons initial-t2 initial-t1) record)
-                                 seen))
-            (define t (cond
-                        [additive? (internal-intersect t1 t2 seen* obj)]
-                        [else (internal-restrict t1 t2 seen* obj)]))
+  (define t1
+    (if (resolvable? initial-t1)
+        (resolve-once initial-t1)
+        initial-t1))
+  (cond
+    [(assoc (cons initial-t1 initial-t2) seen)
+     ;; we've seen these types before! -- use the stored symbol
+     ;; as a back pointer with an 'F' type (i.e. a type variable)
+     =>
+     (match-lambda
+       [(cons _ record)
+        ;; record that we did indeed use the back
+        ;; pointer by set!-ing the flag
+        (set-mcdr! record #t)
+        (make-F (mcar record))])]
+    ;; if t1 is not a fully defined type, do the simple thing
+    [(not t1)
+     (if additive?
+         (-unsafe-intersect initial-t1 initial-t2)
+         initial-t1)]
+    [else
+     (let ([t2 (if (resolvable? initial-t2)
+                   (resolve-once initial-t2)
+                   initial-t2)])
+       (cond
+         ;; if t2 is not a fully defined type, do the simple thing
+         [(not t2)
+          (if additive?
+              (-unsafe-intersect t1 initial-t2)
+              t1)]
+         [else
+          ;; we've never seen these types together before! let's gensym a symbol
+          ;; so that if we do encounter them again, we can create a μ type.
+          (define name (gensym 'rec))
+          ;; the 'record' contains the back pointer symbol we may or may not use in
+          ;; the car, and a flag for whether or not we actually used the back pointer
+          ;; in the cdr.
+          (define record (mcons name #f))
+          (define seen*
+            (list* (cons (cons initial-t1 initial-t2) record)
+                   (cons (cons initial-t2 initial-t1) record)
+                   seen))
+          (define t
             (cond
-              ;; check if we used the backpointer, if so,
-              ;; make a recursive type using that name
-              [(mcdr record) (make-Mu name t)]
-              ;; otherwise just return the result
-              [else t])]))])))
+              [additive? (internal-intersect t1 t2 seen* obj)]
+              [else (internal-restrict t1 t2 seen* obj)]))
+          (cond
+            ;; check if we used the backpointer, if so,
+            ;; make a recursive type using that name
+            [(mcdr record) (make-Mu name t)]
+            ;; otherwise just return the result
+            [else t])]))]))
 
 
 ;; intersect

@@ -83,8 +83,8 @@
 (define (member-seq-sc-map f seq)
   (match-define (member-seq vals) seq)
   (member-seq (for/list ([v (in-list vals)])
-                (match v
-                  [(member-spec mod id sc) (member-spec mod id (and sc (f sc 'invariant)))]))))
+                (match-define (member-spec mod id sc) v)
+                (member-spec mod id (and sc (f sc 'invariant))))))
 
 ;; TODO make this the correct subset
 (define object-member-spec? member-spec?)

@@ -46,23 +46,21 @@
           (else ;#(keyword<? actual expected)
            (loop expected-kw* (cdr actual-kw*)))))))
 
-(define (shallow-and/c . pred*)
-  (lambda (x)
-    (let loop ((p?* pred*))
-      (if (null? p?*)
+(define ((shallow-and/c . pred*) x)
+  (let loop ([p?* pred*])
+    (if (null? p?*)
         #true
         (if ((car p?*) x)
-          (loop (cdr p?*))
-          #false)))))
+            (loop (cdr p?*))
+            #false))))
 
-(define (shallow-or/c . pred*)
-  (lambda (x)
-    (let loop ((p?* pred*))
-      (if (null? p?*)
+(define ((shallow-or/c . pred*) x)
+  (let loop ([p?* pred*])
+    (if (null? p?*)
         #false
         (if ((car p?*) x)
-          #true
-          (loop (cdr p?*)))))))
+            #true
+            (loop (cdr p?*))))))
 
 (define (shallow-shape-check val pred ty-str ctx)
   (if (pred val)

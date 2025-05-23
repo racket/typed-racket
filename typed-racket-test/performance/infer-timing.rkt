@@ -64,10 +64,8 @@
   ;; once we have a set of props that are true/false based on reaching
   ;; a certain point, this will be more useful
   (define (fx-from-cases . cases)
-    (apply from-cases (map (lambda (x)
-                             (add-unconditional-prop-all-args
-                              x -Fixnum))
-                           (flatten cases))))
+    (apply from-cases (for/list ([x (in-list (flatten cases))])
+                        (add-unconditional-prop-all-args x -Fixnum))))
 
   (define (binop t [r t])
     (t t . -> . r))
@@ -407,7 +405,8 @@
   (displayln `(big ,n))
   (define ty-list (append ts ts))
   (collect-garbage) (collect-garbage) (collect-garbage)
-  (define run (λ () (void (bigcall n ty-list))))
+  (define (run)
+    (void (bigcall n ty-list)))
   (cond [hsbencher
          (define-values (vs t r gc)
            (time-apply run null))

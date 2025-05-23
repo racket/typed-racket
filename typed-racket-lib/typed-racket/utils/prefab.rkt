@@ -60,7 +60,7 @@
              [(list (? number? n) (? vector? mut))
               `(,base-sym ,n (0 #f) ,mut)]
              [(list (and auto (list auto-n _)) (? vector? mut))
-              `(,base-sym ,(- remaining-length auto-n) ,auto ,mut)]
+              (list base-sym (- remaining-length auto-n) auto mut)]
              [(list (? number? n))
               `(,base-sym ,n (0 #f) #())]
              [(list (and auto (list auto-n _)))

@@ -486,21 +486,18 @@
   ;; leq2: ... + cx + .... <= ... + dx + ...
   (let-values ([(l1 r1) (leq-lexps leq1)]
                [(l2 r2) (leq-lexps leq2)])
-    (let ([a (lexp-coeff l1 x)] [b (lexp-coeff r1 x)]
-          [c (lexp-coeff l2 x)] [d (lexp-coeff r2 x)])
-      (cond
-        ;; leq1: ax <= lexp1
-        ;; leq2: lexp2 <= dx
-        [(and (eqv? 0 b) (eqv? 0 c))
-         (leq (lexp-scale l2 a)
-              (lexp-scale r1 d))]
-        ;; leq1: lexp1 <= bx
-        ;; leq2: cx <= lexp2
-        [(and (eqv? 0 a) (eqv? 0 d))
-         (leq (lexp-scale l1 c)
-              (lexp-scale r2 b))]
-        [else
-         (error 'leq-join "cannot join ~a and ~a by ~a" leq1 leq2 x)]))))
+    (define a (lexp-coeff l1 x))
+    (define b (lexp-coeff r1 x))
+    (define c (lexp-coeff l2 x))
+    (define d (lexp-coeff r2 x))
+    (cond
+      ;; leq1: ax <= lexp1
+      ;; leq2: lexp2 <= dx
+      [(and (eqv? 0 b) (eqv? 0 c)) (leq (lexp-scale l2 a) (lexp-scale r1 d))]
+      ;; leq1: lexp1 <= bx
+      ;; leq2: cx <= lexp2
+      [(and (eqv? 0 a) (eqv? 0 d)) (leq (lexp-scale l1 c) (lexp-scale r2 b))]
+      [else (error 'leq-join "cannot join ~a and ~a by ~a" leq1 leq2 x)])))
 
 (module+ test
   (check-equal? (leq-join (leq (lexp* '(2 x))

@@ -64,10 +64,8 @@
   ;; once we have a set of props that are true/false based on reaching
   ;; a certain point, this will be more useful
   (define (fx-from-cases . cases)
-    (apply from-cases (map (lambda (x)
-                             (add-unconditional-prop-all-args
-                              x -Fixnum))
-                           (flatten cases))))
+    (apply from-cases (for/list ([x (in-list (flatten cases))])
+                        (add-unconditional-prop-all-args x -Fixnum))))
 
   (define (binop t [r t])
     (t t . -> . r))

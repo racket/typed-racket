@@ -108,9 +108,7 @@
 ;; the function returns the corresponding structure's type name
 (define/cond-contract (maybe-struct-info-wrapper-type ins)
   (c:-> c:any/c (c:or/c #f identifier?))
-  (if (struct-info-wrapper? ins)
-      (struct-info-wrapper-type ins)
-      #f))
+  (and (struct-info-wrapper? ins) (struct-info-wrapper-type ins)))
 
 ;; create a *-wrapper instance based on sname-is-constr?
 (define/cond-contract (make-struct-info-wrapper* id info type [sname-is-constr? #t])

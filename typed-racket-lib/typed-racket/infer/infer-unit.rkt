@@ -65,34 +65,28 @@
    [indices (listof symbol?)]) #:transparent)
 
 (define (context-add-vars ctx vars)
-  (match ctx
-    [(context V X Y)
-     (context V (append vars X) Y)]))
+  (match-define (context V X Y) ctx)
+  (context V (append vars X) Y))
 
 (define (context-add-var ctx var)
-  (match ctx
-    [(context V X Y)
-     (context V (cons var X) Y)]))
+  (match-define (context V X Y) ctx)
+  (context V (cons var X) Y))
 
 (define (context-add ctx #:bounds [bounds empty] #:vars [vars empty] #:indices [indices empty])
-  (match ctx
-    [(context V X Y)
-     (context (append bounds V) (append vars X) (append indices Y))]))
+  (match-define (context V X Y) ctx)
+  (context (append bounds V) (append vars X) (append indices Y)))
 
 (define (inferable-index? ctx bound)
-  (match ctx
-    [(context _ _ Y)
-     (memq bound Y)]))
+  (match-define (context _ _ Y) ctx)
+  (memq bound Y))
 
 (define ((inferable-var? ctx) var)
-  (match ctx
-    [(context _ X _)
-     (memq var X)]))
+  (match-define (context _ X _) ctx)
+  (memq var X))
 
 (define (empty-cset/context ctx)
-  (match ctx
-    [(context _ X Y)
-     (empty-cset X Y)]))
+  (match-define (context _ X Y) ctx)
+  (empty-cset X Y))
 
 
 
@@ -766,9 +760,8 @@
             (list values -Nat)))
          (define type
            (for/or ([pred-type (in-list possibilities)])
-             (match pred-type
-               [(list pred? type)
-                (and (pred? n) type)])))
+             (match-define (list pred? type) pred-type)
+             (and (pred? n) type)))
          (cgen/seq context (seq (list type) -null-end) ts*)]
         ;; numeric? == #true
         [((Base-bits: #t _) (SequenceSeq: ts*))
@@ -917,16 +910,12 @@
   ;; c : Constaint
   ;; variance : Variance
   (define (constraint->type v variance)
-    (match v
-      [(c S T)
-       (match variance
-         [(? variance:const?) S]
-         [(? variance:co?) S]
-         [(? variance:contra?) T]
-         [(? variance:inv?) (let ([gS (generalize S)])
-                             (if (subtype gS T)
-                                 gS
-                                 S))])]))
+    (match-define (c S T) v)
+    (match variance
+      [(? variance:const?) S]
+      [(? variance:co?) S]
+      [(? variance:contra?) T]
+      [(? variance:inv?) (let ([gS (generalize S)]) (if (subtype gS T) gS S))]))
 
   ;; Since we don't add entries to the empty cset for index variables (since there is no
   ;; widest constraint, due to dcon-exacts), we must add substitutions here if no constraint
@@ -936,47 +925,40 @@
     (hash-union
      (for/hash ([v (in-list Y)]
                 #:unless (hash-has-key? S v))
-       (let ([var (hash-ref idx-hash v variance:const)])
-         (values v
-                 (match var
-                   [(? variance:const?) (i-subst null)]
-                   [(? variance:co?) (i-subst null)]
-                   [(? variance:contra?) (i-subst/starred null Univ)]
-                   ;; TODO figure out if there is a better subst here
-                   [(? variance:inv?) (i-subst null)]))))
+       (define var (hash-ref idx-hash v variance:const))
+       (values v
+               (match var
+                 [(? variance:const?) (i-subst null)]
+                 [(? variance:co?) (i-subst null)]
+                 [(? variance:contra?) (i-subst/starred null Univ)]
+                 ;; TODO figure out if there is a better subst here
+                 [(? variance:inv?) (i-subst null)])))
      S))
   (define (build-subst m)
-    (match m
-      [(cons cmap (dmap dm))
-       (let* ([subst (hash-union
-                      (for/hash ([(k dc) (in-hash dm)])
-                        (define (c->t c) (constraint->type c (hash-ref idx-hash k variance:const)))
-                        (values
-                         k
-                         (match dc
-                           [(dcon fixed #f)
-                            (i-subst (map c->t fixed))]
-                           [(or (dcon fixed rest) (dcon-exact fixed rest))
-                            (i-subst/starred
-                             (map c->t fixed)
-                             (c->t rest))]
-                           [(dcon-dotted fixed dc dbound)
-                            (i-subst/dotted
-                             (map c->t fixed)
-                             (c->t dc)
-                             dbound)])))
-                      (for/hash ([(k v) (in-hash cmap)])
-                        (values k (t-subst (constraint->type v (hash-ref var-hash k variance:const))))))]
-              [subst (for/fold ([subst subst]) ([v (in-list X)])
-                       (let ([entry (hash-ref subst v #f)])
-                         ;; Make sure we got a subst entry for a type var
-                         ;; (i.e. just a type to substitute)
-                         ;; If we don't have one, there are no constraints on this variable
-                         (if (and entry (t-subst? entry))
-                             subst
-                             (hash-set subst v (t-subst Univ)))))])
-         ;; verify that we got all the important variables
-         (extend-idxs subst))]))
+    (match-define (cons cmap (dmap dm)) m)
+    (let* ([subst (hash-union
+                   (for/hash ([(k dc) (in-hash dm)])
+                     (define (c->t c)
+                       (constraint->type c (hash-ref idx-hash k variance:const)))
+                     (values k
+                             (match dc
+                               [(dcon fixed #f) (i-subst (map c->t fixed))]
+                               [(or (dcon fixed rest) (dcon-exact fixed rest))
+                                (i-subst/starred (map c->t fixed) (c->t rest))]
+                               [(dcon-dotted fixed dc dbound)
+                                (i-subst/dotted (map c->t fixed) (c->t dc) dbound)])))
+                   (for/hash ([(k v) (in-hash cmap)])
+                     (values k (t-subst (constraint->type v (hash-ref var-hash k variance:const))))))]
+           [subst (for/fold ([subst subst]) ([v (in-list X)])
+                    (define entry (hash-ref subst v #f))
+                    ;; Make sure we got a subst entry for a type var
+                    ;; (i.e. just a type to substitute)
+                    ;; If we don't have one, there are no constraints on this variable
+                    (if (and entry (t-subst? entry))
+                        subst
+                        (hash-set subst v (t-subst Univ))))])
+      ;; verify that we got all the important variables
+      (extend-idxs subst)))
   (if multiple-substitutions?
       (for/list ([md (in-stream (cset-maps C))])
         (build-subst md))

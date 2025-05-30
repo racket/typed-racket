@@ -9,7 +9,7 @@
     (contract-out
       [rename cross-phase-failure* cross-phase-failure
         (->* (string?) (#:actual any/c #:expected any/c) cross-phase-failure?)]
-      [cross-phase-failure? predicate/c]
+      [cross-phase-failure? (-> any/c boolean?)]
       [cross-phase-failure-message (-> cross-phase-failure? string?)]
       [rename cross-phase-failure-check-infos* cross-phase-failure-check-infos
         (-> cross-phase-failure? (listof check-info?))]))

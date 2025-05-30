@@ -21,7 +21,7 @@
   (define source-code
     (call-with-input-file* (build-path dir file)
       (lambda (in)
-        (read-line in) ; drop the #;#;
+        (read-line in 'any) ; drop the #;#;
         (read in) ; drop the old expected tr log
         (read in) ; drop the old expected output
         (port->string in))))

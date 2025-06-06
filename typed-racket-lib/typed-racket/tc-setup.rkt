@@ -36,15 +36,15 @@
   ;; types are enforced (not no-check etc.),
   ;; PLT_TR_NO_OPTIMIZE is not set, and the
   ;; current code inspector has sufficient privileges
-  (if (and (optimize?)
-           (memq (current-type-enforcement-mode) (list deep shallow))
-           (not (getenv "PLT_TR_NO_OPTIMIZE"))
-           (authorized-code-inspector?))
-      (begin
-        (do-time "Starting optimizer")
-        (begin0 (stx-map optimize-top body)
-          (do-time "Optimized")))
-      body))
+  (cond
+    [(and (optimize?)
+          (memq (current-type-enforcement-mode) (list deep shallow))
+          (not (getenv "PLT_TR_NO_OPTIMIZE"))
+          (authorized-code-inspector?))
+     (do-time "Starting optimizer")
+     (begin0 (stx-map optimize-top body)
+       (do-time "Optimized"))]
+    [else body]))
 
 (define (maybe-shallow-rewrite body-stx ctc-cache)
   (case (current-type-enforcement-mode)

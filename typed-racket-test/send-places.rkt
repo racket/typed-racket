@@ -50,9 +50,9 @@
            (define-values (res-ch res-ch*) (place-channel))
            (place-channel-put enq-ch (vector 'log name dir res-ch*))
            (define res (place-channel-get res-ch))
-           (if (s-exn? res)
-               (raise (deserialize-exn res))
-               res)]
+           (when (s-exn? res)
+             (raise (deserialize-exn res)))
+           res]
           [else
            (generate-log/place name dir)])))
 
@@ -61,8 +61,8 @@
          (define-values (res-ch res-ch*) (place-channel))
          (place-channel-put enq-ch (vector 'compile file res-ch*))
          (define res (place-channel-get res-ch))
-         (if (s-exn? res)
-             (raise (deserialize-exn res))
-             res)]
+         (when (s-exn? res)
+           (raise (deserialize-exn res)))
+         res]
         [else
          (compile-path/place file)]))

@@ -437,10 +437,9 @@
 
 (define (bound-in-this-module id)
   (define binding (identifier-binding id))
-  (if (and (list? binding) (module-path-index? (car binding)))
-      (let-values ([(mp base) (module-path-index-split (car binding))])
-        (not mp))
-      #f))
+  (and (and (list? binding) (module-path-index? (car binding)))
+       (let-values ([(mp base) (module-path-index-split (car binding))])
+         (not mp))))
 
 (define (make-init-code map f)
   (define (bound-f id v)

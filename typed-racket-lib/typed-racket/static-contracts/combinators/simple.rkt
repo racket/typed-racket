@@ -41,6 +41,7 @@
     [else (equal?/recur s1 s2 stx-equal?)]))
 
 (struct simple-contract static-contract (syntax kind name)
+        #:authentic
         #:transparent
         #:methods gen:equal+hash
          [(define (equal-proc s1 s2 recur)

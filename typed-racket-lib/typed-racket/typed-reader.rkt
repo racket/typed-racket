@@ -24,8 +24,8 @@
     (cond
       [(special-comment? v) (loop)]
       [(eof-object? v)
-       (let-values ([(l c p) (port-next-location port)])
-         (raise-read-eof-error "unexpected EOF in type annotation" src l c p 1))]
+       (define-values (l c p) (port-next-location port))
+       (raise-read-eof-error "unexpected EOF in type annotation" src l c p 1)]
       [else v])))
 
 (define (parse port read-one src)

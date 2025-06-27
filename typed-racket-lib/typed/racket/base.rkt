@@ -23,8 +23,7 @@
                     require-typed-signature)
          typed-racket/base-env/base-types
          (except-in typed-racket/base-env/base-types-extra Distinction Unit))
-(provide define-type
-         (all-from-out typed-racket/base-env/prims)
+(provide (all-from-out typed-racket/base-env/prims)
          (all-from-out typed-racket/base-env/base-types)
          (all-from-out typed-racket/base-env/base-types-extra)
          assert defined? with-type for for*
@@ -80,6 +79,7 @@
          Pair)
 
 
+(define-deprecated-alias define-type-alias define-type)
 (define-deprecated-alias case-lambda: case-lambda)
 (define-deprecated-alias struct: struct)
 (define-deprecated-alias define-struct: define-struct)
@@ -104,7 +104,7 @@
 (define-deprecated-alias for/product: for/product)
 (define-deprecated-alias for/sum: for/sum)
 (define-deprecated-alias for/vector: for/vector)
-(define-deprecated-alias for/and: for/and)
+(define-deprecated-alias for*/and: for/and)
 (define-deprecated-alias for*/first: for*/first)
 (define-deprecated-alias for*/flvector: for*/flvector)
 (define-deprecated-alias for*/extflvector: for*/extflvector)
@@ -123,8 +123,6 @@
 (define-deprecated-alias for*/sum: for*/sum)
 (define-deprecated-alias for*/vector: for*/vector)
 (define-deprecated-alias do: do)
-(define-deprecated-alias define-type-alias define-type)
-(define-deprecated-alias define-typed-struct define-struct)
 (define-deprecated-alias Un U)
 (define-deprecated-alias mu Rec)
 (define-deprecated-alias Tuple List)

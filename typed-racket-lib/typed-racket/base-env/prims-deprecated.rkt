@@ -9,8 +9,6 @@
          for:
          for/and:
          for/first:
-         for/flvector:
-         for/extflvector:
          for/fold:
          for/foldr:
          for/hash:
@@ -27,8 +25,6 @@
          for/vector:
          for/and:
          for*/first:
-         for*/flvector:
-         for*/extflvector:
          for*/fold:
          for*/foldr:
          for*/hash:
@@ -61,8 +57,6 @@
 (define-deprecated-alias for: for)
 (define-deprecated-alias for/and: for/and)
 (define-deprecated-alias for/first: for/first)
-(define-deprecated-alias for/flvector: for/flvector)
-(define-deprecated-alias for/extflvector: for/extflvector)
 (define-deprecated-alias for/fold: for/fold)
 (define-deprecated-alias for/foldr: for/foldr)
 (define-deprecated-alias for/hash: for/hash)
@@ -79,8 +73,6 @@
 (define-deprecated-alias for/vector: for/vector)
 (define-deprecated-alias for*/and: for/and)
 (define-deprecated-alias for*/first: for*/first)
-(define-deprecated-alias for*/flvector: for*/flvector)
-(define-deprecated-alias for*/extflvector: for*/extflvector)
 (define-deprecated-alias for*/fold: for*/fold)
 (define-deprecated-alias for*/foldr: for*/foldr)
 (define-deprecated-alias for*/hash: for*/hash)

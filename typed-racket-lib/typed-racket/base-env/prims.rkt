@@ -38,8 +38,6 @@ the typed racket language.
                      for:
                      for/and:
                      for/first:
-                     for/flvector:
-                     for/extflvector:
                      for/fold:
                      for/foldr:
                      for/hash:
@@ -56,8 +54,6 @@ the typed racket language.
                      for/vector:
                      for/and:
                      for*/first:
-                     for*/flvector:
-                     for*/extflvector:
                      for*/fold:
                      for*/foldr:
                      for*/hash:
@@ -103,8 +99,6 @@ the typed racket language.
                      [for: for]
                      [for/list: for/list]
                      [for/vector: for/vector]
-                     [for/flvector: for/flvector]
-                     [for/extflvector: for/extflvector]
                      [for/hash: for/hash]
                      [for/hasheq: for/hasheq]
                      [for/hasheqv: for/hasheqv]
@@ -122,8 +116,6 @@ the typed racket language.
                      [for*/list: for*/list]
                      [for*/lists: for*/lists]
                      [for*/vector: for*/vector]
-                     [for*/flvector: for*/flvector]
-                     [for*/extflvector: for*/extflvector]
                      [for*/hash: for*/hash]
                      [for*/hasheq: for*/hasheq]
                      [for*/hasheqv: for*/hasheqv]

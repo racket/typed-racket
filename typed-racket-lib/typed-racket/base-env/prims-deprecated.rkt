@@ -45,12 +45,7 @@
          for*/vector:
          do:
          define-type-alias
-         define-typed-struct
-         Un
-         mu
-         Tuple
-         Parameter
-         Pair)
+         define-typed-struct)
 
 
 (require racket/deprecation
@@ -101,8 +96,3 @@
 (define-deprecated-alias for*/sum: for*/sum)
 (define-deprecated-alias for*/vector: for*/vector)
 (define-deprecated-alias do: do)
-(define-deprecated-alias Un U)
-(define-deprecated-alias mu Rec)
-(define-deprecated-alias Tuple List)
-(define-deprecated-alias Parameter Parameterof)
-(define-deprecated-alias Pair Pairof)

@@ -52,7 +52,7 @@ the typed racket language.
                      for/product:
                      for/sum:
                      for/vector:
-                     for/and:
+                     for*/and:
                      for*/first:
                      for*/fold:
                      for*/foldr:

@@ -23,7 +23,6 @@
          for/product:
          for/sum:
          for/vector:
-         for/and:
          for*/first:
          for*/fold:
          for*/foldr:
@@ -40,8 +39,7 @@
          for*/sum:
          for*/vector:
          do:
-         define-type-alias
-         define-typed-struct)
+         define-type-alias)
 
 
 (require racket/deprecation

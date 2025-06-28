@@ -27,8 +27,7 @@
          typed-racket/base-env/base-types
          (except-in typed-racket/base-env/base-types-extra Distinction)
 	 (for-syntax (except-in typed-racket/base-env/base-types-extra Distinction)))
-(provide (rename-out [define-type-alias define-type])
-         (all-from-out typed-racket/base-env/prims)
+(provide (all-from-out typed-racket/base-env/prims)
          (all-from-out typed-racket/base-env/prims-deprecated)
          (all-from-out typed-racket/base-env/base-types)
          (all-from-out typed-racket/base-env/base-types-extra)

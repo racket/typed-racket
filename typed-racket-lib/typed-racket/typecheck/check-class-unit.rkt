@@ -689,29 +689,17 @@
                              name-key-or-list))
           (hash-ref parse-info name-key-or-list)))
     (for/list ([m names]) (dict-ref local-table m)))
-  (define-values (localized-method-names
-                  localized-field-pairs
-                  localized-private-field-pairs
-                  localized-inherit-field-pairs
-                  localized-inherit-names
-                  localized-private-methods
-                  localized-override-names
-                  localized-pubment-names
-                  localized-augment-names
-                  localized-inner-names
-                  localized-init-names)
-    (values
-     (localize local-method-table 'method-internals)
-     (localize local-field-table 'field-internals)
-     (localize local-private-field-table 'private-fields)
-     (localize local-inherit-field-table 'inherit-field-internals)
-     (localize local-inherit-table 'inherit-internals)
-     (localize local-private-table 'private-names)
-     (localize local-super-table 'override-internals)
-     (localize local-augment-table 'pubment-internals)
-     (localize local-augment-table 'augment-internals)
-     (localize local-inner-table '(pubment-internals augment-internals))
-     (localize local-init-table 'only-init-internals)))
+  (define localized-method-names (localize local-method-table 'method-internals))
+  (define localized-field-pairs (localize local-field-table 'field-internals))
+  (define localized-private-field-pairs (localize local-private-field-table 'private-fields))
+  (define localized-inherit-field-pairs (localize local-inherit-field-table 'inherit-field-internals))
+  (define localized-inherit-names (localize local-inherit-table 'inherit-internals))
+  (define localized-private-methods (localize local-private-table 'private-names))
+  (define localized-override-names (localize local-super-table 'override-internals))
+  (define localized-pubment-names (localize local-augment-table 'pubment-internals))
+  (define localized-augment-names (localize local-augment-table 'augment-internals))
+  (define localized-inner-names (localize local-inner-table '(pubment-internals augment-internals)))
+  (define localized-init-names (localize local-init-table 'only-init-internals))
   (define localized-field-get-names (map car localized-field-pairs))
   (define localized-field-set-names (map cadr localized-field-pairs))
   (define localized-private-field-get-names (map car localized-private-field-pairs))

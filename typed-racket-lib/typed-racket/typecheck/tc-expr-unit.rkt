@@ -143,8 +143,8 @@
       (dynamic-wind
         (λ () (save-errors!))
         (λ ()
-          (let ([result (tc-expr/check form expected)])
-            (and (not (current-type-error?)) result)))
+          (define result (tc-expr/check form expected))
+          (and (not (current-type-error?)) result))
         (λ () (restore-errors!))))))
 
 (define (tc-expr/check/t? form expected)

@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        racket-variant: ["BC", "CS"]
+        racket-variant: ["CS"]
         enable-contracts: [true, false]
     steps:
       - uses: actions/checkout@v4.2.2

@@ -2889,7 +2889,7 @@
 [simple-form-path (-Pathlike . -> . -Path)]
 [normalize-path (cl->* (-Pathlike [-Pathlike] . ->opt . -Path))]
 [path-get-extension (-SomeSystemPathlike . -> . (-opt -Bytes))]
-[path-has-extension? (-SomeSystemPathlike (Un -String -Bytes) . -> . (-opt -Bytes))]
+[path-has-extension? (-SomeSystemPathlike (Un -String -Bytes) . -> . B)]
 [filename-extension (-SomeSystemPathlike . -> . (-opt -Bytes))]
 [file-name-from-path (-Pathlike . -> . (-opt -Path))]
 [path-only (-SomeSystemPathlike . -> . (-opt -Path))]

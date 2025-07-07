@@ -1632,6 +1632,7 @@
 
         (tc-e (resolve-path "foo") -Path)
         (tc-e (expand-user-path "foo") -Path)
+        (tc-e (path-has-extension? "a.git" ".git") -Boolean)
 
         ;;String Tests
         (tc-e (string? "a") #:ret (tc-ret -Boolean -true-propset))

@@ -13,39 +13,39 @@
 
 ;; two aliases in their own components
 (define example-1
-  (list (cons #'x (list #'x))
-        (cons #'y (list #'y))))
+  (list (list #'x #'x)
+        (list #'y #'y)))
 ;; all one component
 (define example-2
-  (list (cons #'x (list #'x #'y))
-        (cons #'y (list #'x))))
+  (list (list #'x #'x #'y)
+        (list #'y #'x)))
 ;; two components, one with two nodes
 (define example-3
-  (list (cons #'x (list #'y))
-        (cons #'y (list #'x))
-        (cons #'z (list))))
+  (list (list #'x #'y)
+        (list #'y #'x)
+        (list #'z)))
 ;; one with cycles, two that form a line
 (define example-4
-  (list (cons #'x (list #'y))
-        (cons #'y (list #'x))
-        (cons #'a (list #'b))
-        (cons #'b (list))))
+  (list (list #'x #'y)
+        (list #'y #'x)
+        (list #'a #'b)
+        (list #'b)))
 ;; two large cycles
 (define example-5
-  (list (cons #'x (list #'y #'z))
-        (cons #'y (list #'x))
-        (cons #'z (list #'x #'y))
-        (cons #'a (list #'b))
-        (cons #'b (list #'c))
-        (cons #'c (list #'a))))
+  (list (list #'x #'y #'z)
+        (list #'y #'x)
+        (list #'z #'x #'y)
+        (list #'a #'b)
+        (list #'b #'c)
+        (list #'c #'a)))
 ;; check topological order
 (define example-6
-  (list (cons #'a (list #'b))
-        (cons #'d (list))
-        (cons #'c (list #'d #'e))
-        (cons #'b (list #'c))
-        (cons #'e (list #'f))
-        (cons #'f (list))))
+  (list (list #'a #'b)
+        (list #'d)
+        (list #'c #'d #'e)
+        (list #'b #'c)
+        (list #'e #'f)
+        (list #'f)))
 
 ;; helper function for the tests below
 ;; ignores order of ids in the components and the

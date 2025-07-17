@@ -1601,7 +1601,7 @@
 ;; Section 11.1 (Threads)
 
 ;; Section 11.1.1
-[thread (-> (-> Univ) -Thread)]
+[thread (->key (-> Univ) #:keep (Un #f (-val 'results)) #f -Thread)]
 [thread? (unsafe-shallow:make-pred-ty -Thread)]
 [current-thread (-> -Thread)]
 [thread/suspend-to-kill (-> (-> Univ) -Thread)]
@@ -3698,7 +3698,7 @@
       #:replace-permissions?
       Univ
       #f
-   a :T+ #f)))
+      a :T+ #f)))
 (port->lines
  (->optkey [-Input-Port]
            #:line-mode (one-of/c 'linefeed 'return 'return-linefeed 'any 'any-one) #f

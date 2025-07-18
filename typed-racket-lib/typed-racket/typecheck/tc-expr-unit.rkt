@@ -317,9 +317,11 @@
               (attribute opt.value))
             (opt-convert fun-type required-pos optional-pos optional-supplied?)]
            [_ #f]))
-       (if conv-type
-           (begin (tc-expr/check/type #'fun conv-type) (fix-results expected))
-           (tc-expr/check form #f))]
+       (cond
+         [conv-type
+          (tc-expr/check/type #'fun conv-type)
+          (fix-results expected)]
+         [else (tc-expr/check form #f)])]
       [(~and _:kw-lambda^
              (let-values ([(f) fun])
                (let-values _

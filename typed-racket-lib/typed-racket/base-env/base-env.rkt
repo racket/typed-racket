@@ -1601,7 +1601,7 @@
 ;; Section 11.1 (Threads)
 
 ;; Section 11.1.1
-[thread (->key (-> Univ) #:keep (Un #f (-val 'results)) #f -Thread)]
+[thread (->key (-> Univ) #:keep (Un (-val #f) (-val 'results)) #f #:pool Univ #f -Thread)]
 [thread? (unsafe-shallow:make-pred-ty -Thread)]
 [current-thread (-> -Thread)]
 [thread/suspend-to-kill (-> (-> Univ) -Thread)]

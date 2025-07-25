@@ -127,70 +127,60 @@
     [_ result]))
 
 ;;  *
-(define product-function
-  (λ (args-stx result)
-    (match result
-      [(tc-result1: ret-t ps orig-obj)
-       (syntax-parse args-stx
-         [((~var e1 (w/obj+type -Int)) (~var e2 (w/obj+type -Int)))
-          (define product-obj (-obj* (attribute e1.obj) (attribute e2.obj)))
-          (cond
-            [(Object? product-obj)
-             (ret (-refine/fresh x ret-t (-eq (-lexp x) product-obj))
-                  ps
-                  product-obj)]
-            [else result])]
-         [_ result])]
-      [_ result])))
+(define (product-function args-stx result)
+  (match result
+    [(tc-result1: ret-t ps orig-obj)
+     (syntax-parse args-stx
+       [((~var e1 (w/obj+type -Int)) (~var e2 (w/obj+type -Int)))
+        (define product-obj (-obj* (attribute e1.obj) (attribute e2.obj)))
+        (cond
+          [(Object? product-obj)
+           (ret (-refine/fresh x ret-t (-eq (-lexp x) product-obj)) ps product-obj)]
+          [else result])]
+       [_ result])]
+    [_ result]))
 
 ;; make-vector
-(define make-vector-function
-  (λ (args-stx result)
-    (match result
-      [(tc-result1: ret-t ps orig-obj)
-       (syntax-parse args-stx
-         [((~var size (w/obj+type -Int)) . _)
-          (ret (-refine/fresh v ret-t (-eq (-lexp (-vec-len-of (-id-path v)))
-                                           (attribute size.obj)))
-               ps
-               orig-obj)]
-         [_ result])]
-      [_ result])))
+(define (make-vector-function args-stx result)
+  (match result
+    [(tc-result1: ret-t ps orig-obj)
+     (syntax-parse args-stx
+       [((~var size (w/obj+type -Int)) . _)
+        (ret (-refine/fresh v ret-t (-eq (-lexp (-vec-len-of (-id-path v))) (attribute size.obj)))
+             ps
+             orig-obj)]
+       [_ result])]
+    [_ result]))
 
 ;; modulo
-(define modulo-function
-  (λ (args-stx result)
-    (match result
-      [(tc-result1: ret-t ps orig-obj)
-       (syntax-parse args-stx
-         [((~var e1 (w/type -Int)) (~var e2 (w/obj+type -Nat)))
-          (ret (-refine/fresh x ret-t (-lt (-lexp x) (attribute e2.obj)))
-               ps
-               orig-obj)]
-         [_ result])]
-      [_ result])))
+(define (modulo-function args-stx result)
+  (match result
+    [(tc-result1: ret-t ps orig-obj)
+     (syntax-parse args-stx
+       [((~var e1 (w/type -Int)) (~var e2 (w/obj+type -Nat)))
+        (ret (-refine/fresh x ret-t (-lt (-lexp x) (attribute e2.obj))) ps orig-obj)]
+       [_ result])]
+    [_ result]))
 
 ;; random
-(define random-function
-  (λ (args-stx result)
-    (match result
-      [(tc-result1: ret-t ps orig-obj)
-       (syntax-parse args-stx
-         ;; random (1 arg)
-         [((~var e1 (w/obj+type -Nat)))
-          (ret (-refine/fresh x ret-t (-lt (-lexp x) (attribute e1.obj)))
-               ps
-               orig-obj)]
-         ;; random (2 arg)
-         [((~var e1 (w/type -Int)) (~var e2 (w/type -Int)))
-          #:when (or (Object? (attribute e1.obj))
-                     (Object? (attribute e2.obj)))
-          (ret (-refine/fresh x ret-t (-and (-leq (attribute e1.obj) (-lexp x))
-                                            (-lt (-lexp x) (attribute e2.obj))))
-               ps
-               orig-obj)]
-         [_ result])]
-      [_ result])))
+(define (random-function args-stx result)
+  (match result
+    [(tc-result1: ret-t ps orig-obj)
+     (syntax-parse args-stx
+       ;; random (1 arg)
+       [((~var e1 (w/obj+type -Nat)))
+        (ret (-refine/fresh x ret-t (-lt (-lexp x) (attribute e1.obj))) ps orig-obj)]
+       ;; random (2 arg)
+       [((~var e1 (w/type -Int)) (~var e2 (w/type -Int)))
+        #:when (or (Object? (attribute e1.obj)) (Object? (attribute e2.obj)))
+        (ret (-refine/fresh x
+                            ret-t
+                            (-and (-leq (attribute e1.obj) (-lexp x))
+                                  (-lt (-lexp x) (attribute e2.obj))))
+             ps
+             orig-obj)]
+       [_ result])]
+    [_ result]))
 
 ;; add1 / sub1
 (define (add/sub-1-function add?)

@@ -266,20 +266,37 @@
                                 (run-unit-test-suite (or (places) 1))
                                 0))
 
-  (if (and (nightly?) (eq? 'cgc (system-type 'gc)))
-      (printf "Skipping Typed Racket tests.\n")
-      (let ([to-run (cond [(single) (list (single))]
-                          [else
-                           (append (if (int?)        (list (int-tests (excl)))          '())
-                                   (if (gui?)        (list (gui-tests))                 '())
-                                   (if (external?)   (list (external-tests))            '())
-                                   (if (opt?)        (list (optimization-tests))        '())
-                                   (if (missed-opt?) (list (missed-optimization-tests)) '())
-                                   (if (bench?)      (list (compile-benchmarks))        '())
-                                   (if (math?)       (list (compile-math))              '()))])])
-        (unless (and (= unit-test-retcode 0) (= 0 ((exec) to-run)))
-          (eprintf "Typed Racket Tests did not pass.\n")
-          (exit 1)))))
+  (cond
+    [(and (nightly?) (eq? 'cgc (system-type 'gc))) (printf "Skipping Typed Racket tests.\n")]
+    [else
+     (define to-run
+       (cond
+         [(single) (list (single))]
+         [else
+          (append (if (int?)
+                      (list (int-tests (excl)))
+                      '())
+                  (if (gui?)
+                      (list (gui-tests))
+                      '())
+                  (if (external?)
+                      (list (external-tests))
+                      '())
+                  (if (opt?)
+                      (list (optimization-tests))
+                      '())
+                  (if (missed-opt?)
+                      (list (missed-optimization-tests))
+                      '())
+                  (if (bench?)
+                      (list (compile-benchmarks))
+                      '())
+                  (if (math?)
+                      (list (compile-math))
+                      '()))]))
+     (unless (and (= unit-test-retcode 0) (= 0 ((exec) to-run)))
+       (eprintf "Typed Racket Tests did not pass.\n")
+       (exit 1))]))
 
 ;; nightly tests in `run.rkt` for drdr chart continuity
 (module test racket/base)

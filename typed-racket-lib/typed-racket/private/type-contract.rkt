@@ -901,8 +901,8 @@
                 [sc* (remove-duplicates sc*)]
                 [sc* (remove-overlap sc*
                        (list
-                         (cons vector?/sc (list mutable-vector?/sc immutable-vector?/sc))
-                         (cons hash?/sc (list mutable-hash?/sc weak-hash?/sc immutable-hash?/sc))))])
+                         (list vector?/sc mutable-vector?/sc immutable-vector?/sc)
+                         (list hash?/sc mutable-hash?/sc weak-hash?/sc immutable-hash?/sc)))])
            (apply shallow-or/sc sc*))]
         [t (t->sc t bound-all-vars)])]
      [(Intersection: ts raw-prop)

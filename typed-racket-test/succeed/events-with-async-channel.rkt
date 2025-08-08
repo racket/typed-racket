@@ -22,7 +22,7 @@
          (when l ; still something to read
            (intercept l) ; interceptor gets the whole vector
            (clear-events))))
-     (let loop ()
+     (let: loop : Void ()
        (let ([l : (U Log-Receiver-Sync-Result 'stop)
                (sync receiver stop-chan)])
          (cond [(eq? l 'stop)
@@ -103,4 +103,3 @@
     (check-true (andmap (lambda: ([l : Log-Receiver-Sync-Result])
                           (eq? (vector-ref l 0) 'warning))
                         out))))
-

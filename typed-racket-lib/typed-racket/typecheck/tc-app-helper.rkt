@@ -328,23 +328,31 @@
                               msg-rngs)
                       ...))
           _))
-     (let ([fcn-string (name->function-str name)])
-       (if (and (andmap null? msg-doms)
-                (null? argtypes))
-           (tc-error/expr (string-append
-                           "Could not infer types for applying polymorphic "
+     (define fcn-string (name->function-str name))
+     (if (and (andmap null? msg-doms) (null? argtypes))
+         (tc-error/expr
+          (string-append "Could not infer types for applying polymorphic " fcn-string "\n"))
+         (domain-mismatches
+          f-stx
+          args-stx
+          t
+          msg-doms
+          msg-rests
+          msg-rngs
+          argtypes
+          #f
+          #f
+          #:expected expected
+          #:msg-thunk
+          (lambda (dom)
+            (string-append "Polymorphic "
                            fcn-string
-                           "\n"))
-           (domain-mismatches f-stx args-stx t msg-doms msg-rests
-                              msg-rngs argtypes #f #f #:expected expected
-                              #:msg-thunk (lambda (dom)
-                                            (string-append
-                                             "Polymorphic " fcn-string " could not be applied to arguments:\n"
-                                             dom
-                                             (if (not (subset? (apply set-union (seteq) (map fv/list msg-doms))
-                                                               (list->seteq msg-vars)))
-                                                 (string-append "Type Variables: " (stringify msg-vars) "\n")
-                                                 ""))))))]
+                           " could not be applied to arguments:\n"
+                           dom
+                           (if (not (subset? (apply set-union (seteq) (map fv/list msg-doms))
+                                             (list->seteq msg-vars)))
+                               (string-append "Type Variables: " (stringify msg-vars) "\n")
+                               "")))))]
     [(Poly-names:
       msg-vars
       (DepFun: raw-domain _ raw-rng))

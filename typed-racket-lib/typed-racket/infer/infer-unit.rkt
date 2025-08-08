@@ -915,7 +915,8 @@
       [(? variance:const?) S]
       [(? variance:co?) S]
       [(? variance:contra?) T]
-      [(? variance:inv?) (let ([gS (generalize S)]) (if (subtype gS T) gS S))]))
+      [(? variance:inv?) (define gS (generalize S))
+                         (if (subtype gS T) gS S)]))
 
   ;; Since we don't add entries to the empty cset for index variables (since there is no
   ;; widest constraint, due to dcon-exacts), we must add substitutions here if no constraint

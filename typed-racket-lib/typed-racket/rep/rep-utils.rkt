@@ -611,7 +611,8 @@
                   #'(begin)
                   #`(provide #,@non-constr-li)))
             #'(constr-provide nonconstr-provide)])]
-        [struct-def #'(struct var.name parent ... (flds.ids ...)
+        [struct-def (syntax/loc #'var.name
+		      (struct var.name parent ... (flds.ids ...)
                         maybe-transparent ...
                         #:constructor-name constructor-name
                         #:property prop:uid uid-id
@@ -625,7 +626,7 @@
                          Rep-free-idxs-def
                          Rep-for-each-def
                          Rep-fmap-def]
-                        extra-defs ...)])
+                        extra-defs ...))])
        ;; - - - - - - - - - - - - - - -
        ;; macro output
        ;; - - - - - - - - - - - - - - -

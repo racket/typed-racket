@@ -5283,6 +5283,10 @@
           d0)
         (-lst* (-val 2) (-val "abc") (-ivec* (-val 1) (-val "b") (-val 'x)))]
 
+       
+
+       [tc-e (let loop () (loop)) #:ret (-tc-any-results -tt)]
+
        ;; comparisons must correctly account for if the
        ;; #false result was caused by a NaN (see TR Github issue #747)
        ;; less-than
@@ -5718,5 +5722,5 @@
      ([call-with-values (t:-> (t:-> (-values (list -String -String) (list -true-propset -true-propset) (list -empty-obj -empty-obj)))
                               (t:-> -String -String (-values -String -true-propset -empty-obj))
                               (-values -String -true-propset -empty-obj))]))
-   )
+)
   ))

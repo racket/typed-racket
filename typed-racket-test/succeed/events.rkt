@@ -21,7 +21,7 @@
          (when l ; still something to read
            (intercept l) ; interceptor gets the whole vector
            (clear-events))))
-     (let: loop : Void ()
+     (let loop ()
        (let: ([l : (U Log-Receiver-Sync-Result 'stop)
                (sync receiver stop-chan)])
          (cond [(eq? l 'stop)

@@ -797,7 +797,9 @@
 ;; Returns both the tc-results of the function and of the body
 (define (tc/rec-lambda/check formals* body name args return)
   (define formals (syntax->list formals*))
-  (define ft (t:->* args (tc-results->values return)))
+  (define ft (if return
+		 (t:->* args (tc-results->values return))
+		 (t:->* args ManyUniv)))
   (define names (cons name formals))
   (with-extended-lexical-env
     [#:identifiers (cons name formals)

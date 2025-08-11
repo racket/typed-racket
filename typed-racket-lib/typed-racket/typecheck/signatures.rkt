@@ -61,7 +61,7 @@
 
 (define-signature tc-lambda^
   ([cond-contracted tc/lambda (syntax? syntax? syntax? (or/c tc-results/c #f) . -> . full-tc-results/c)]
-   [cond-contracted tc/rec-lambda/check (syntax? syntax? syntax? (listof Type?) tc-results/c . -> .
+   [cond-contracted tc/rec-lambda/check (syntax? syntax? syntax? (listof Type?) (or/c #f tc-results/c) . -> .
                                                  (values full-tc-results/c full-tc-results/c))]))
 
 (define-signature tc-app^

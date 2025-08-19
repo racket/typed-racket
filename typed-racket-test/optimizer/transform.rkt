@@ -21,7 +21,7 @@
   (define source-code
     (call-with-input-file* (build-path dir file)
       (lambda (in)
-        (read-line in) ; drop the #;#;
+        (read-line in 'any) ; drop the #;#;
         (read in) ; drop the old expected tr log
         (read in) ; drop the old expected output
         (port->string in))))
@@ -32,13 +32,12 @@
       (for ((entry new-tr-log))
         (write-stringln entry))
       (write-stringln "END")
-      (if (regexp-match "\n" new-output)
-          (begin
-            (write-stringln "#<<END")
-            (write-stringln new-output)
-            (write-stringln "END"))
-          (begin
-            (write new-output)))
+      (cond
+        [(regexp-match "\n" new-output)
+         (write-stringln "#<<END")
+         (write-stringln new-output)
+         (write-stringln "END")]
+        [else (write new-output)])
           (write-string source-code))))
 
 ;; proc returns the list of tests to be run on each file

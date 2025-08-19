@@ -61,10 +61,9 @@
                                             (list invoke/scs ...)))
     v)
   (define (sig-spec->syntax sig-spec)
-    (match sig-spec
-      [(signature-spec name members scs)
-       (define member-stx (map (lambda (id sc) #`(#,id #,(f sc))) members scs))
-       #`(#,name #,@member-stx)]))
+    (match-define (signature-spec name members scs) sig-spec)
+    (define member-stx (map (lambda (id sc) #`(#,id #,(f sc))) members scs))
+    #`(#,name #,@member-stx))
 
   (define (invokes->contract lst)
     (cond

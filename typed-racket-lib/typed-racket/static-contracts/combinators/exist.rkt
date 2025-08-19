@@ -16,6 +16,7 @@
 
 
 (struct exist-combinator combinator ()
+  #:authentic
   #:transparent
   #:methods gen:sc
   [(define (sc-map v f)

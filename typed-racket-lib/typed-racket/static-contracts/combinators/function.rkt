@@ -23,6 +23,7 @@
                   static-contract?)])
 
 (struct function-combinator combinator (indices mand-kws opt-kws typed-side?)
+        #:authentic
         #:property prop:combinator-name "->/sc"
         #:methods gen:equal+hash [(define (equal-proc a b recur) (function-sc-equal? a b recur))
                                   (define (hash-proc v recur) (function-sc-hash v recur))

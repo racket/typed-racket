@@ -10,9 +10,10 @@
          (for-template racket/base racket/unit)
          (for-syntax racket/base syntax/parse))
 
-(struct signature-spec (name members scs) #:transparent)
+(struct signature-spec (name members scs) #:transparent #:authentic)
 
 (struct unit-combinator combinator ()
+        #:authentic
         #:transparent
         #:property prop:combinator-name "unit/sc"
         #:methods gen:sc
@@ -38,6 +39,7 @@
                      (filter-map (lambda (x) x) invoke)))]))
 
 (struct unit-spec (imports exports init-depends invoke) 
+        #:authentic
         #:transparent
         #:property prop:sequence unit-spec->list)
 

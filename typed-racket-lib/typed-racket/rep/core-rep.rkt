@@ -73,6 +73,7 @@
          (begin (struct name ()
                   #:constructor-name mk
                   #:transparent
+                  #:authentic
                   #:property prop:custom-print-quotable 'never
                   extra ...
                   #:methods gen:custom-write

@@ -184,11 +184,11 @@
 (define value->HT
   (case-lambda
    [(check-element h tycon expected-kt expected-vt)
-    (let* ([kts (hash-map h (lambda (x y) (check-element x expected-kt)))]
-           [vts (hash-map h (lambda (x y) (check-element y expected-vt)))]
-           [kt (apply Un kts)]
-           [vt (apply Un vts)])
-      (tycon (check-below kt expected-kt) (check-below vt expected-vt)))]
+    (define kts (hash-map h (lambda (x y) (check-element x expected-kt))))
+    (define vts (hash-map h (lambda (x y) (check-element y expected-vt))))
+    (define kt (apply Un kts))
+    (define vt (apply Un vts))
+    (tycon (check-below kt expected-kt) (check-below vt expected-vt))]
    [(check-element h tycon)
     (define kt (generalize (apply Un (map check-element (hash-keys h)))))
     (define vt (generalize (apply Un (map check-element (hash-values h)))))

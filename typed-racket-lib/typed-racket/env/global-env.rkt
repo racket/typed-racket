@@ -75,9 +75,7 @@
 
 (define (maybe-finish-register-type id)
   (define v (free-id-table-ref the-mapping id))
-  (if (box? v)
-      (register-type id (unbox v))
-      #f))
+  (and (box? v) (register-type id (unbox v))))
 
 (define (unregister-type id)
   (free-id-table-remove! the-mapping id))

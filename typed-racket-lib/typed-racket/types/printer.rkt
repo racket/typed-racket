@@ -474,8 +474,8 @@
   (match arrows
     [(list) '(case->)]
     [(list a) (arr->sexp a)]
-    [(and arrs (list a b ...))
-     (define cover (cover-case-lambda arrs))
+    [(list a b ...)
+     (define cover (cover-case-lambda arrows))
      (if (> (length cover) 1)
          `(case-> ,@cover)
          (car cover))]))

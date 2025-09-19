@@ -403,9 +403,9 @@
          #:when (= 1 (length dom))
          `(,(type->sexp t) : #:+ ,(type->sexp ft))]
         [(Values: (list (Result: t ps (? Empty?))))
-         (if (print-complex-props?)
-             `(,(type->sexp t) : ,(propset->sexp ps))
-             (list (type->sexp t)))]
+         #:when (print-complex-props?)
+         `(,(type->sexp t) : ,(propset->sexp ps))]
+        [(Values: (list (Result: t ps (? Empty?)))) (list (type->sexp t))]
         [(Values: (list (Result: t ps o)))
          #:when (print-complex-props?)
          `(,(type->sexp t) : ,(propset->sexp ps) ,(object->sexp o))]

@@ -416,22 +416,18 @@
   (let loop ([ft ft])
     (match ft
       [(Fun: arrs)
-       (cond [(= 1 (length arrs))
-              (match-define (Arrow: doms _ _ rng rng-T+) (car arrs))
-              (define-values (mand-args opt-and-rest-args)
-                (split-at doms mand-argc))
-              (define rest-type
-                (and rest? (last opt-and-rest-args)))
-              (define opt-types (take opt-and-rest-args opt-argc))
-              (define opt-types-len (length opt-types))
-              (make-Fun
-               (for/list ([how-many-opt-args (in-range (add1 opt-types-len))])
-                 (-Arrow (append mand-args (take opt-types how-many-opt-args))
-                         rng
-                         #:rest (and (= how-many-opt-args opt-types-len)
-                                     rest-type)
-                         #:T+ rng-T+)))]
-             [else (int-err "unsupported arrs in keyword function type")])]
+       #:when (= 1 (length arrs))
+       (match-define (Arrow: doms _ _ rng rng-T+) (car arrs))
+       (define-values (mand-args opt-and-rest-args) (split-at doms mand-argc))
+       (define rest-type (and rest? (last opt-and-rest-args)))
+       (define opt-types (take opt-and-rest-args opt-argc))
+       (define opt-types-len (length opt-types))
+       (make-Fun (for/list ([how-many-opt-args (in-range (add1 opt-types-len))])
+                   (-Arrow (append mand-args (take opt-types how-many-opt-args))
+                           rng
+                           #:rest (and (= how-many-opt-args opt-types-len) rest-type)
+                           #:T+ rng-T+)))]
+      [(Fun: arrs) (int-err "unsupported arrs in keyword function type")]
       [(Poly-names: names f) (make-Poly names (loop f))]
       [(PolyDots-names: names f) (make-PolyDots names (loop f))]
       [_ (int-err "unsupported keyword function type")])))

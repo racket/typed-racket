@@ -200,11 +200,11 @@
           (match term
             [(? number? n) (* -1 n)]
             [(list '* (? number? n) obj)
-             (if (= -1 n)
-                 obj
-                 `(* ,(* -1 n) ,obj))]
-            [(or (? symbol? obj) (? list? obj)) ;; obj w/ coeff 1
-             (list '* -1 obj)]))
+             #:when (= -1 n)
+             obj]
+            [(list '* (? number? n) obj) `(* ,(* -1 n) ,obj)]
+            ;; obj w/ coeff 1
+            [(or (? symbol? obj) (? list? obj)) (list '* -1 obj)]))
         (cond
           [(null? neg-terms) (cons '+ pos-terms)]
           ;; if we have zero or one positive term t1,
@@ -376,34 +376,29 @@
       (match rng
         [(AnyValues: (? TrueProp?)) '(AnyValues)]
         [(AnyValues: p) `(AnyValues : ,(prop->sexp p))]
-        [(Values: (or (list (Result: t (PropSet: (? TrueProp?) (? TrueProp?)) (? Empty?)))
-                      (list (Result: (and (== -False) t) (PropSet: (? FalseProp?) (? TrueProp?)) (? Empty?)))
-                      (list (Result: (and t (app (λ (t) (overlap? t -False)) #f))
-                                     (PropSet: (? TrueProp?) (? FalseProp?))
-                                     (? Empty?)))))
+        [(Values:
+          (or (list (Result: t (PropSet: (? TrueProp?) (? TrueProp?)) (? Empty?)))
+              (list (Result: (and (== -False) t) (PropSet: (? FalseProp?) (? TrueProp?)) (? Empty?)))
+              (list (Result: (and t (app (λ (t) (overlap? t -False)) #f))
+                             (PropSet: (? TrueProp?) (? FalseProp?))
+                             (? Empty?)))))
          (list (type->sexp t))]
         [(Values: (list (Result: t
-                                 (PropSet:
-                                  (TypeProp: (and o (Path: pth1 (cons 0 0))) ft1)
-                                  (NotTypeProp: (Path: pth2 (cons 0 0)) ft2))
+                                 (PropSet: (TypeProp: (and o (Path: pth1 (cons 0 0))) ft1)
+                                           (NotTypeProp: (Path: pth2 (cons 0 0)) ft2))
                                  (? Empty?))))
          ;; Only print a simple prop for single argument functions,
          ;; since parse-type only accepts simple latent props on single
          ;; argument functions.
-         #:when (and (equal? pth1 pth2)
-                     (equal? ft1 ft2)
-                     (= 1 (length dom)))
+         #:when (and (equal? pth1 pth2) (equal? ft1 ft2) (= 1 (length dom)))
          (if (null? pth1)
              `(,(type->sexp t) : ,(type->sexp ft1))
-             `(,(type->sexp t) : ,(type->sexp ft1) @
-               ,(object->sexp o)))]
+             `(,(type->sexp t) : ,(type->sexp ft1) @ ,(object->sexp o)))]
         ;; Print asymmetric props with only a positive prop as a
         ;; special case (even when complex printing is off) because it's
         ;; useful to users who use functions like `prop`.
         [(Values: (list (Result: t
-                                 (PropSet:
-                                  (TypeProp: (Path: '() (cons 0 0)) ft)
-                                  (? TrueProp?))
+                                 (PropSet: (TypeProp: (Path: '() (cons 0 0)) ft) (? TrueProp?))
                                  (? Empty?))))
          #:when (= 1 (length dom))
          `(,(type->sexp t) : #:+ ,(type->sexp ft))]
@@ -412,9 +407,9 @@
              `(,(type->sexp t) : ,(propset->sexp ps))
              (list (type->sexp t)))]
         [(Values: (list (Result: t ps o)))
-         (if (print-complex-props?)
-             `(,(type->sexp t) : ,(propset->sexp ps) ,(object->sexp o))
-             (list (type->sexp t)))]
+         #:when (print-complex-props?)
+         `(,(type->sexp t) : ,(propset->sexp ps) ,(object->sexp o))]
+        [(Values: (list (Result: t ps o))) (list (type->sexp t))]
         [_ (list (values->sexp rng))]))]
     [else `(Unknown Function Type: ,(struct->vector arr))]))
 
@@ -607,32 +602,31 @@
     ;; (i.e., the fuel is > 0) for the :type form.
     [(app has-name? (? values names))
      (=> fail)
-     (unless (null? ignored-names) (fail))
+     (unless (null? ignored-names)
+       (fail))
      (define fuel (current-print-type-fuel))
-     (cond [(positive? fuel)
-            (parameterize ([current-print-type-fuel (sub1 fuel)])
-              ;; if we still have fuel, print the expanded type and
-              ;; add the name to the ignored list so that the union
-              ;; printer does not try to print with the name.
-              (type->sexp (if (Name? type) (resolve type) type)
-                          (append names ignored-names)))]
-           [else
-            ;; to allow :type to cue the user on unexpanded aliases
-            (when (or (Union? type) (BaseUnion? type)) ; only unions can be expanded
-              (set-box! (current-print-unexpanded)
-                        (cons (car names) (unbox (current-print-unexpanded)))))
-            (car names)])]
+     (cond
+       [(positive? fuel)
+        (parameterize ([current-print-type-fuel (sub1 fuel)])
+          ;; if we still have fuel, print the expanded type and
+          ;; add the name to the ignored list so that the union
+          ;; printer does not try to print with the name.
+          (type->sexp (if (Name? type)
+                          (resolve type)
+                          type)
+                      (append names ignored-names)))]
+       [else
+        ;; to allow :type to cue the user on unexpanded aliases
+        (when (or (Union? type) (BaseUnion? type)) ; only unions can be expanded
+          (set-box! (current-print-unexpanded) (cons (car names) (unbox (current-print-unexpanded)))))
+        (car names)])]
     [(StructType: (Struct: nm _ _ _ _ _ _)) `(StructType ,(syntax-e nm))]
     ;; this case occurs if the contained type is a type variable
     [(StructType: ty) `(Struct-Type ,(t->s ty))]
     [(StructTypeTop:) 'Struct-TypeTop]
     [(StructTop: (Struct: nm _ _ _ _ _ _)) `(Struct ,(syntax-e nm))]
-    [(Prefab: key field-types)
-     `(Prefab ,(abbreviate-prefab-key key)
-              ,@(map t->s field-types))]
-    [(PrefabTop: key)
-     `(PrefabTop ,(abbreviate-prefab-key key)
-                 ,(prefab-key->field-count key))]
+    [(Prefab: key field-types) `(Prefab ,(abbreviate-prefab-key key) ,@(map t->s field-types))]
+    [(PrefabTop: key) `(PrefabTop ,(abbreviate-prefab-key key) ,(prefab-key->field-count key))]
     [(BoxTop:) 'BoxTop]
     [(Weak-BoxTop:) 'Weak-BoxTop]
     [(ChannelTop:) 'ChannelTop]
@@ -643,29 +637,25 @@
     [(Struct-Property: ty pred-id) `(Struct-Property ,(t->s ty))]
     [(Has-Struct-Property: sym) `(Has-Struct-Property ,(syntax-e sym))]
     [(Continuation-Mark-KeyTop:) 'Continuation-Mark-KeyTop]
-    [(App: rator rands)
-     (list* (type->sexp rator) (map type->sexp rands))]
+    [(App: rator rands) (list* (type->sexp rator) (map type->sexp rands))]
     ;; Special cases for lists. Avoid printing with these cases if the
     ;; element type refers to the Mu variable (otherwise it prints the
     ;; type variable with no binding).
-    [(SimpleListof: elem-ty)
-     ;; in the 'elem-ty' type
-     `(Listof ,(t->s elem-ty))]
-    [(SimpleMListof: elem-ty)
-     `(MListof ,(t->s elem-ty))]
-    [(? tuple? t)
-     `(List ,@(map type->sexp (tuple-elems t)))]
-    [(? improper-tuple? t)
-     `(List* ,@(map type->sexp (improper-tuple-elems t)))]
+    ;; in the 'elem-ty' type
+    [(SimpleListof: elem-ty) `(Listof ,(t->s elem-ty))]
+    [(SimpleMListof: elem-ty) `(MListof ,(t->s elem-ty))]
+    [(? tuple? t) `(List ,@(map type->sexp (tuple-elems t)))]
+    [(? improper-tuple? t) `(List* ,@(map type->sexp (improper-tuple-elems t)))]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]
     [(Struct: nm par (list (fld: t _ _) ...) proc _ _ properties)
      `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
         ,(map t->s t)
-        ,@(if proc (list (t->s proc)) null)
+        ,@(if proc
+              (list (t->s proc))
+              null)
         ,@(free-id-set->list properties))]
     [(? Fun?)
-     (parameterize ([current-print-type-fuel
-                     (sub1 (current-print-type-fuel))])
+     (parameterize ([current-print-type-fuel (sub1 (current-print-type-fuel))])
        (case-lambda->sexp type))]
     [(? Arrow?) `(Arrow ,(arr->sexp type))]
     [(Immutable-Vector: e) `(Immutable-Vectorof ,(t->s e))]
@@ -691,13 +681,12 @@
        [(Union-all-flat: (list-no-order (Immutable-Vector: a) (Mutable-Vector: a^)))
         #:when (equal? a a^)
         `(Vectorof ,(t->s a))]
-
+  
        ;; if type is (U Immutable-HashTable Mutable-HashTable Weak-HashTable), use `Vectorof`
        [(Union-all-flat: (list-no-order (Immutable-HashTable: a b)
                                         (Mutable-HashTable: a^ b^)
                                         (Weak-HashTable: a* b*)))
-        #:when (and (equal? a a^) (equal? a^ a*)
-                    (equal? b b^) (equal? b^ b*))
+        #:when (and (equal? a a^) (equal? a^ a*) (equal? b b^) (equal? b^ b*))
         `(HashTable ,(t->s a) ,(t->s b))]
        [(Union-all-flat: ts)
         (define-values (covered remaining) (cover-union type ts ignored-names))
@@ -709,18 +698,20 @@
      (define-values (covered remaining) (cover-union type bs ignored-names))
      (cons 'U (sort (append covered (map t->s remaining)) primitive<=?))]
     [(Refine: raw-ty raw-prop)
-     (with-printable-names 1 names
-       (define ty (instantiate-obj raw-ty names))
-       (define prop (instantiate-obj raw-prop names))
-       `(Refine [,(name-ref->sexp (car names)) : ,ty] ,(prop->sexp prop)))]
-    [(Intersection: elems _)
-     (cons '∩ (sort (map t->s elems) primitive<=?))]
+     (with-printable-names 1
+                           names
+                           (define ty (instantiate-obj raw-ty names))
+                           (define prop (instantiate-obj raw-prop names))
+                           `(Refine [,(name-ref->sexp (car names)) : ,ty] ,(prop->sexp prop)))]
+    [(Intersection: elems _) (cons '∩ (sort (map t->s elems) primitive<=?))]
     ;; format as a string to preserve reader abbreviations and primitive
     ;; values like characters (when `display`ed)
     ;; (comes after Intersection since Val-able will match
     ;;  when an element of an intersection is a val)
-    [(Val-able: v) (cond [(void? v) 'Void]
-                         [else (format "~v" v)])]
+    [(Val-able: v)
+     (cond
+       [(void? v) 'Void]
+       [else (format "~v" v)])]
     [(? Base?) (Base-name type)]
     [(Pair: l r) `(Pairof ,(t->s l) ,(t->s r))]
     [(ListDots: dty dbound) `(List ,(t->s dty) ... ,dbound)]
@@ -730,56 +721,43 @@
        [(eq? nm self-var) "Self"]
        [else nm])]
     [(Param: in out)
-     (if (equal? in out)
-         `(Parameterof ,(t->s in))
-         `(Parameterof ,(t->s in) ,(t->s out)))]
+     #:when (equal? in out)
+     `(Parameterof ,(t->s in))]
+    [(Param: in out) `(Parameterof ,(t->s in) ,(t->s out))]
     [(Mutable-HashTable: k v) `(Mutable-HashTable ,(t->s k) ,(t->s v))]
     [(Mutable-HashTableTop:) 'Mutable-HashTableTop]
     [(Immutable-HashTable: k v) `(Immutable-HashTable ,(t->s k) ,(t->s v))]
     [(Weak-HashTable: k v) `(Weak-HashTable ,(t->s k) ,(t->s v))]
     [(Weak-HashTableTop:) 'Weak-HashTableTop]
-    [(Continuation-Mark-Keyof: rhs)
-     `(Continuation-Mark-Keyof ,(t->s rhs))]
-    [(Prompt-Tagof: body handler)
-     `(Prompt-Tagof ,(t->s body) ,(t->s handler))]
-    [(Poly-names: names body)
-     `(All ,names ,(t->s body))]
+    [(Continuation-Mark-Keyof: rhs) `(Continuation-Mark-Keyof ,(t->s rhs))]
+    [(Prompt-Tagof: body handler) `(Prompt-Tagof ,(t->s body) ,(t->s handler))]
+    [(Poly-names: names body) `(All ,names ,(t->s body))]
     [(PolyDots-names: (list names ... dotted) body)
      `(All ,(append names (list dotted '...)) ,(t->s body))]
     ;; FIXME: should this print constraints too
-    [(PolyRow-names: names body _)
-     `(All (,(car names) #:row) ,(t->s body))]
-    [(Some-names: n body)
-     `(Some ,n ,(t->s body))]
+    [(PolyRow-names: names body _) `(All (,(car names) #:row) ,(t->s body))]
+    [(Some-names: n body) `(Some ,n ,(t->s body))]
     ;; x1 --> ()
-    [(Mu-unsafe:
-      (Syntax: (Union: (== (Un -Number -Boolean -Symbol -String))
-                       ts)))
-     #:when (and (= 4 (length ts))
-                 (member (-vec (make-B 0)) ts)
-                 (member (-box (make-B 0)) ts)
-                 (let ([ts (remove (-box (make-B 0))
-                                   (remove (-vec (make-B 0)) ts))])
-                   (match ts
-                     [(list-no-order (Mu-unsafe:
-                                      (Union: (== -Null)
-                                              (list (Pair: (B: 1) (B: 0)))))
-                                     (Mu-unsafe:
-                                      (Union: (== -Bottom)
-                                              (list-no-order
-                                               (B: 1)
-                                               (Pair: (B: 1) (B: 0))))))
-                      #t]
-                     [_ #f])))
+    [(Mu-unsafe: (Syntax: (Union: (== (Un -Number -Boolean -Symbol -String)) ts)))
+     #:when
+     (and (= 4 (length ts))
+          (member (-vec (make-B 0)) ts)
+          (member (-box (make-B 0)) ts)
+          (let ([ts (remove (-box (make-B 0)) (remove (-vec (make-B 0)) ts))])
+            (match ts
+              [(list-no-order (Mu-unsafe: (Union: (== -Null) (list (Pair: (B: 1) (B: 0)))))
+                              (Mu-unsafe: (Union: (== -Bottom)
+                                                  (list-no-order (B: 1) (Pair: (B: 1) (B: 0))))))
+               #t]
+              [_ #f])))
      'Syntax]
-    [(Mu-maybe-name: (list name) (? Type? body))
-     `(Rec ,name ,(t->s body))]
+    [(Mu-maybe-name: (list name) (? Type? body)) `(Rec ,name ,(t->s body))]
     [(Mu-unsafe: raw-body)
-     (with-printable-names 1 name-ids
-       (let ([names (for/list ([id (in-list name-ids)])
-                      (make-F (syntax-e id)))])
-         `(Rec ,(first names)
-               ,(t->s (instantiate-type raw-body names)))))]
+     (with-printable-names 1
+                           name-ids
+                           (let ([names (for/list ([id (in-list name-ids)])
+                                          (make-F (syntax-e id)))])
+                             `(Rec ,(first names) ,(t->s (instantiate-type raw-body names)))))]
     [(B: idx) `(B ,idx)]
     [(Syntax: t) `(Syntaxof ,(t->s t))]
     [(Instance: (and (? has-name?) cls)) `(Instance ,(t->s cls))]
@@ -788,48 +766,44 @@
     [(ClassTop:) 'ClassTop]
     [(? Class?) (class->sexp type)]
     [(Unit: (list imports ...) (list exports ...) (list init-depends ...) body)
-     `(Unit
-       (import ,@(map signature->sexp imports))
-       (export ,@(map signature->sexp exports))
-       (init-depend ,@(map signature->sexp init-depends))
-       ,(values->sexp body))]
+     `(Unit (import ,@(map signature->sexp imports))
+            (export ,@(map signature->sexp exports))
+            (init-depend ,@(map signature->sexp init-depends))
+            ,(values->sexp body))]
     [(UnitTop:) 'UnitTop]
     [(MPair: s t) `(MPairof ,(t->s s) ,(t->s t))]
-    [(Refinement: parent p?)
-     `(Refinement ,(t->s parent) ,(syntax-e p?))]
-    [(Sequence: ts)
-     `(Sequenceof ,@(map t->s ts))]
-    [(SequenceDots: ts dty dbound)
-     `(Sequenceof ,@(map t->s ts) ,(t->s dty) ... ,dbound)]
+    [(Refinement: parent p?) `(Refinement ,(t->s parent) ,(syntax-e p?))]
+    [(Sequence: ts) `(Sequenceof ,@(map t->s ts))]
+    [(SequenceDots: ts dty dbound) `(Sequenceof ,@(map t->s ts) ,(t->s dty) ... ,dbound)]
     [(SequenceTop:) 'SequenceTop]
     [(Error:) 'Error]
     ;[(fld: t a m) `(fld ,(type->sexp t))]
-    [(Distinction: name sym ty) ; from define-new-subtype
-     name]
+    ; from define-new-subtype
+    [(Distinction: name sym ty) name]
     [(DepFun: raw-dom raw-pre raw-rng)
-     (with-printable-names (length raw-dom) ids
-       (define dom (for/list ([d (in-list raw-dom)])
-                     (instantiate-obj d ids)))
-       (define pre (instantiate-obj raw-pre ids))
-       (define rng (instantiate-obj raw-rng ids))
-       (define (arg-id? id) (member id ids free-identifier=?))
-       (define pre-deps (map name-ref->sexp
-                             (filter arg-id? (free-ids pre))))
-       `(-> ,(for/list ([id (in-list ids)]
-                        [d (in-list dom)])
-               (define deps (map name-ref->sexp
-                                 (filter arg-id? (free-ids d))))
-               `(,(syntax-e id)
-                 :
-                 ,@(if (null? deps)
-                       '()
-                       (list deps))
-                 ,(t->s d)))
-            ,@(cond
-                [(TrueProp? pre) '()]
-                [(null? pre-deps) `(#:pre ,(prop->sexp pre))]
-                [else `(#:pre ,pre-deps ,(prop->sexp pre))])
-            ,(values->sexp rng)))]
+     (with-printable-names (length raw-dom)
+                           ids
+                           (define dom
+                             (for/list ([d (in-list raw-dom)])
+                               (instantiate-obj d ids)))
+                           (define pre (instantiate-obj raw-pre ids))
+                           (define rng (instantiate-obj raw-rng ids))
+                           (define (arg-id? id)
+                             (member id ids free-identifier=?))
+                           (define pre-deps (map name-ref->sexp (filter arg-id? (free-ids pre))))
+                           `(-> ,(for/list ([id (in-list ids)]
+                                            [d (in-list dom)])
+                                   (define deps (map name-ref->sexp (filter arg-id? (free-ids d))))
+                                   `(,(syntax-e id) :
+                                                    ,@(if (null? deps)
+                                                          '()
+                                                          (list deps))
+                                                    ,(t->s d)))
+                                ,@(cond
+                                    [(TrueProp? pre) '()]
+                                    [(null? pre-deps) `(#:pre ,(prop->sexp pre))]
+                                    [else `(#:pre ,pre-deps ,(prop->sexp pre))])
+                                ,(values->sexp rng)))]
     [else `(Unknown Type: ,(struct->vector type))]))
 
 

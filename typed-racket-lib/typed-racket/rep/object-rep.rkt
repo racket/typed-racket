@@ -86,23 +86,18 @@
      [(? identifier?)
       ;; we don't want objects for visibly mutated or top level variables
       (if (or (is-var-mutated? name)
-              (and (not (identifier-binding name))
-                   (not (local-tr-identifier? name))))
+              (and (not (identifier-binding name)) (not (local-tr-identifier? name))))
           -empty-obj
           (let ([name (normalize-id name)])
-            (intern-double-ref!
-             Path-intern-table
-             name elems #:construct (make-Path elems name))))]
-     [(? pair?)
-      (intern-double-ref!
-       Path-intern-table
-       name elems #:construct (make-Path elems name))]
+            (intern-double-ref! Path-intern-table name elems #:construct (make-Path elems name))))]
+     [(? pair?) (intern-double-ref! Path-intern-table name elems #:construct (make-Path elems name))]
      [(Path: elems* name*)
       (let ([elems* (append elems elems*)])
-        (intern-double-ref!
-         Path-intern-table
-         name* elems* #:construct (make-Path elems* name*)))]
-     [(? LExp? l) (if (null? elems) l -empty-obj)]
+        (intern-double-ref! Path-intern-table name* elems* #:construct (make-Path elems* name*)))]
+     [(? LExp? l)
+      #:when (null? elems)
+      l]
+     [(? LExp? l) -empty-obj]
      [_ -empty-obj])])
 
 (define Path-intern-table (make-weak-hash))

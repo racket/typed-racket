@@ -754,61 +754,62 @@
   [(case: DepFun (DepFun: raw-dom1 raw-pre1 raw-rng1))
    (match t2
      [(DepFun: raw-dom2 raw-pre2 raw-rng2)
-      (cond
-        [(not (= (length raw-dom1)
-                 (length raw-dom2)))
-         #f]
-        [else
-         (with-fresh-ids (length raw-dom1) ids
-           (define dom1 (for/list ([d (in-list raw-dom1)])
+      #:when (not (= (length raw-dom1) (length raw-dom2)))
+      #f]
+     [(DepFun: raw-dom2 raw-pre2 raw-rng2)
+      (with-fresh-ids (length raw-dom1)
+                      ids
+                      (define dom1
+                        (for/list ([d (in-list raw-dom1)])
                           (instantiate-obj d ids)))
-           (define pre1 (instantiate-obj raw-pre1 ids))
-           (define rng1 (instantiate-obj raw-rng1 ids))
-           (define dom2 (for/list ([d (in-list raw-dom2)])
+                      (define pre1 (instantiate-obj raw-pre1 ids))
+                      (define rng1 (instantiate-obj raw-rng1 ids))
+                      (define dom2
+                        (for/list ([d (in-list raw-dom2)])
                           (instantiate-obj d ids)))
-           (define pre2 (instantiate-obj raw-pre2 ids))
-           (define rng2 (instantiate-obj raw-rng2 ids))
-           (with-naively-extended-lexical-env
-               [#:identifiers ids
-                #:types dom2
-                #:props (list pre2)]
-             (define A* (for/fold ([A (subval* A rng1 rng2)])
-                                  ([d1 (in-list dom1)]
-                                   [d2 (in-list dom2)]
-                                   [id (in-list ids)]
-                                   #:break (not A))
-                          (subtype* A d2 d1 (-id-path id))))
-             (and (implies-in-env? (lexical-env) pre2 pre1)
-                  A*)))])]
+                      (define pre2 (instantiate-obj raw-pre2 ids))
+                      (define rng2 (instantiate-obj raw-rng2 ids))
+                      (with-naively-extended-lexical-env
+                       [#:identifiers ids #:types dom2 #:props (list pre2)]
+                       (define A*
+                         (for/fold ([A (subval* A rng1 rng2)])
+                                   ([d1 (in-list dom1)]
+                                    [d2 (in-list dom2)]
+                                    [id (in-list ids)]
+                                    #:break (not A))
+                           (subtype* A d2 d1 (-id-path id))))
+                       (and (implies-in-env? (lexical-env) pre2 pre1) A*)))]
      [(Fun: arrows2)
-      (define arity (for/fold ([arity (length raw-dom1)])
-                              ([a2 (in-list arrows2)])
-                      (max arity (length (Arrow-dom a2)))))
-      (with-fresh-ids arity ids
-        (define dom1 (for/list ([d (in-list raw-dom1)])
-                       (instantiate-obj d ids)))
-        (define pre1 (instantiate-obj raw-pre1 ids))
-        (for/fold ([A A])
-                  ([a2 (in-list arrows2)]
-                   #:break (not A))
-          (match-define (Arrow: dom2 rst2 kws2 raw-rng2) a2)
-          (define A* (subtype-seq A (subtypes* dom2 dom1) (kw-subtypes* '() kws2)))
-          (cond
-            [(not A*) #f]
-            [else
-             (define arity (max (length dom1) (length dom2)))
-             (define-values (mapping t2s)
-               (for/lists (_1 _2)
-                          ([idx (in-range arity)] [id (in-list ids)])
-                          (define t (dom+rst-ref dom2 rst2 idx Univ))
-                          (values (list* idx id t) t)))
-             (with-naively-extended-lexical-env [#:identifiers ids #:types t2s]
-                                                (define A-res
-                                                  (subval* A*
-                                                           (instantiate-obj+simplify raw-rng1 mapping)
-                                                           (instantiate-obj raw-rng2 ids)))
-                                                (and (implies-in-env? (lexical-env) -tt pre1)
-                                                     A-res))])))]
+      (define arity
+        (for/fold ([arity (length raw-dom1)]) ([a2 (in-list arrows2)])
+          (max arity (length (Arrow-dom a2)))))
+      (with-fresh-ids arity
+                      ids
+                      (define dom1
+                        (for/list ([d (in-list raw-dom1)])
+                          (instantiate-obj d ids)))
+                      (define pre1 (instantiate-obj raw-pre1 ids))
+                      (for/fold ([A A])
+                                ([a2 (in-list arrows2)]
+                                 #:break (not A))
+                        (match-define (Arrow: dom2 rst2 kws2 raw-rng2) a2)
+                        (define A* (subtype-seq A (subtypes* dom2 dom1) (kw-subtypes* '() kws2)))
+                        (cond
+                          [(not A*) #f]
+                          [else
+                           (define arity (max (length dom1) (length dom2)))
+                           (define-values (mapping t2s)
+                             (for/lists (_1 _2)
+                                        ([idx (in-range arity)] [id (in-list ids)])
+                                        (define t (dom+rst-ref dom2 rst2 idx Univ))
+                                        (values (list* idx id t) t)))
+                           (with-naively-extended-lexical-env
+                            [#:identifiers ids #:types t2s]
+                            (define A-res
+                              (subval* A*
+                                       (instantiate-obj+simplify raw-rng1 mapping)
+                                       (instantiate-obj raw-rng2 ids)))
+                            (and (implies-in-env? (lexical-env) -tt pre1) A-res))])))]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Distinction (Distinction: nm1 id1 t1*))
    (match t2
@@ -1097,30 +1098,33 @@
   [(case: PolyDots (PolyDots: (list ns ... n-dotted) b1))
    (match t2
      [(PolyDots: (list ms ... m-dotted) b2)
-      (cond
-        [(< (length ns) (length ms))
-         (define-values (short-ms rest-ms) (split-at ms (length ns)))
-         ;; substitute ms for ns in b1 to make it look like b2
-         (define subst
-           (hash-set (make-simple-substitution ns (map make-F short-ms))
-                     n-dotted (i-subst/dotted (map make-F rest-ms) (make-F m-dotted) m-dotted)))
-         (subtype* A (subst-all subst b1) b2)]
-        [else
-         (define-values (short-ns rest-ns) (split-at ns (length ms)))
-         ;; substitute ns for ms in b2 to make it look like b1
-         (define subst
-           (hash-set (make-simple-substitution ms (map make-F short-ns))
-                     m-dotted (i-subst/dotted (map make-F rest-ns) (make-F n-dotted) n-dotted)))
-         (subtype* A b1 (subst-all subst b2))])]
+      #:when (< (length ns) (length ms))
+      (define-values (short-ms rest-ms) (split-at ms (length ns)))
+      ;; substitute ms for ns in b1 to make it look like b2
+      (define subst
+        (hash-set (make-simple-substitution ns (map make-F short-ms))
+                  n-dotted
+                  (i-subst/dotted (map make-F rest-ms) (make-F m-dotted) m-dotted)))
+      (subtype* A (subst-all subst b1) b2)]
+     [(PolyDots: (list ms ... m-dotted) b2)
+      (define-values (short-ns rest-ns) (split-at ns (length ms)))
+      ;; substitute ns for ms in b2 to make it look like b1
+      (define subst
+        (hash-set (make-simple-substitution ms (map make-F short-ns))
+                  m-dotted
+                  (i-subst/dotted (map make-F rest-ns) (make-F n-dotted) n-dotted)))
+      (subtype* A b1 (subst-all subst b2))]
      [(Poly: ms b2)
       #:when (<= (length ns) (length ms))
       ;; substitute ms for ns in b1 to make it look like b2
       (define subst
         (hash-set (make-simple-substitution ns (map make-F (take ms (length ns))))
-                  n-dotted (i-subst (map make-F (drop ms (length ns))))))
+                  n-dotted
+                  (i-subst (map make-F (drop ms (length ns))))))
       (subtype* A (subst-all subst b1) b2)]
-     [_ #:when (infer ns (list n-dotted) (list b1) (list t2) Univ)
-        A]
+     [_
+      #:when (infer ns (list n-dotted) (list b1) (list t2) Univ)
+      A]
      [_ (continue<: A t1 t2 obj)])]
   [(case: PolyRow (PolyRow: vs1 b1 c1))
    (match t2
@@ -1312,18 +1316,16 @@
       (for*/or ([b (in-list bs)]
                 [pred (in-value (Base-predicate b))])
         (and (pred val1) A))]
-     [(SequenceTop:)
-      (and (exact-nonnegative-integer? val1) A)]
+     [(SequenceTop:) (and (exact-nonnegative-integer? val1) A)]
      [(Sequence: (list seq-t))
-      (cond
-        [(exact-nonnegative-integer? val1)
-         (define type
-           (for*/or ([pred/type (in-list value-numeric-seq-possibilities)]
-                     [pred? (in-value (car pred/type))]
-                     #:when (pred? val1))
-             (cdr pred/type)))
-         (subtype* A type seq-t)]
-        [else #f])]
+      #:when (exact-nonnegative-integer? val1)
+      (define type
+        (for*/or ([pred/type (in-list value-numeric-seq-possibilities)]
+                  [pred? (in-value (car pred/type))]
+                  #:when (pred? val1))
+          (cdr pred/type)))
+      (subtype* A type seq-t)]
+     [(Sequence: (list seq-t)) #f]
      [(or (? Struct? s1) (NameStruct: s1))
       #:when (not (struct? val1))
       #f]
@@ -1331,9 +1333,7 @@
       #:when (and (exact-integer? val1)
                   (let ([obj (-lexp val1)])
                     (and (subtype* A t1 t2*)
-                         (implies-in-env? (lexical-env)
-                                          (-is-type obj t1)
-                                          (instantiate-obj p* obj)))))
+                         (implies-in-env? (lexical-env) (-is-type obj t1) (instantiate-obj p* obj)))))
       A]
      [_ (continue<: A t1 t2 obj)])]
   [(case: Weak-Box (Weak-Box: elem1))

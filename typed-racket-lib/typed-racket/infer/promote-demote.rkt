@@ -51,28 +51,26 @@
         (if change Univ -Bottom)
         t)))
   (match cur
-    [(app Rep-variances variances) #:when variances 
+    [(app Rep-variances variances)
+     #:when variances
      (define mk (Rep-constructor cur))
-     (apply mk (for/list ([t (in-list (Rep-values cur))]
-                          [v (in-list variances)])
-                 (match v
-                   [(? variance:co?) (co t)]
-                   [(? variance:inv?)
-                    (if (V-in? V t)
-                        (if change Univ -Bottom)
-                        t)]
-                   [(? variance:contra?) (contra t)])))]
+     (apply mk
+            (for/list ([t (in-list (Rep-values cur))]
+                       [v (in-list variances)])
+              (match v
+                [(? variance:co?) (co t)]
+                [(? variance:inv?)
+                 (if (V-in? V t)
+                     (if change Univ -Bottom)
+                     t)]
+                [(? variance:contra?) (contra t)])))]
     [(Unit: imports exports init-depends t)
-     (make-Unit (map co imports)
-                (map contra imports)
-                (map co init-depends)
-                (co t))]
-    [(F: name) (if (memq name V)
-                   (if change Univ -Bottom)
-                   cur)]
+     (make-Unit (map co imports) (map contra imports) (map co init-depends) (co t))]
+    [(F: name)
+     #:when (memq name V)
+     (if change Univ -Bottom)]
+    [(F: name) cur]
     [(Fun: arrs) (make-Fun (filter-map arr-change arrs))]
-    [(Immutable-HeterogeneousVector: elems)
-     (make-Immutable-HeterogeneousVector (change-elems elems))]
-    [(Mutable-HeterogeneousVector: elems)
-     (make-Mutable-HeterogeneousVector (change-elems elems))]
+    [(Immutable-HeterogeneousVector: elems) (make-Immutable-HeterogeneousVector (change-elems elems))]
+    [(Mutable-HeterogeneousVector: elems) (make-Mutable-HeterogeneousVector (change-elems elems))]
     [_ (Rep-fmap cur co)]))

@@ -42,32 +42,42 @@
 
      (when check?
        (define extra-arg-count (- (length t-a) (length dom)))
-       (cond [(and (not rst) (not (eqv? 0 extra-arg-count)))
-              (tc-error/fields "could not apply function"
-                               #:more "wrong number of arguments provided"
-                               "expected" (length dom)
-                               "given" (length t-a)
-                               #:delayed? #t)]
-             [(and rst (negative? extra-arg-count))
-              (tc-error/fields "could not apply function"
-                               #:more "wrong number of arguments provided"
-                               "expected at least" (length dom)
-                               "given" (length t-a)
-                               #:delayed? #t)]
-             [(and (Rest? rst)
-                   (positive? extra-arg-count)
-                   (not (zero? (remainder extra-arg-count (length (Rest-tys rst))))))
-              (cond
-                [(eqv? 2 (length (Rest-tys rst)))
-                 (tc-error/fields "could not apply function"
-                                  #:more "wrong number of rest arguments provided"
-                                  "expected an even number, given" extra-arg-count
-                                  #:delayed? #t)]
-                [else (tc-error/fields "could not apply function"
-                                       #:more "wrong number of rest arguments provided"
-                                       "expected a multiple of " (length (Rest-tys rst))
-                                       "given" extra-arg-count
-                                       #:delayed? #t)])])
+       (cond
+         [(and (not rst) (not (eqv? 0 extra-arg-count)))
+          (tc-error/fields "could not apply function"
+                           #:more "wrong number of arguments provided"
+                           "expected"
+                           (length dom)
+                           "given"
+                           (length t-a)
+                           #:delayed? #t)]
+         [(and rst (negative? extra-arg-count))
+          (tc-error/fields "could not apply function"
+                           #:more "wrong number of arguments provided"
+                           "expected at least"
+                           (length dom)
+                           "given"
+                           (length t-a)
+                           #:delayed? #t)]
+         [(and (Rest? rst)
+               (positive? extra-arg-count)
+               (not (zero? (remainder extra-arg-count (length (Rest-tys rst))))))
+          (cond
+            [(eqv? 2 (length (Rest-tys rst)))
+             (tc-error/fields "could not apply function"
+                              #:more "wrong number of rest arguments provided"
+                              "expected an even number, given"
+                              extra-arg-count
+                              #:delayed? #t)]
+            [else
+             (tc-error/fields "could not apply function"
+                              #:more "wrong number of rest arguments provided"
+                              "expected a multiple of "
+                              (length (Rest-tys rst))
+                              "given"
+                              extra-arg-count
+                              #:delayed? #t)])]
+         [else (void)])
        (match rst
          [(Rest: rst-ts)
           (for ([a (in-syntax args-stx)]

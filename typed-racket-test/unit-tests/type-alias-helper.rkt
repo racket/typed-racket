@@ -13,8 +13,8 @@
 
 ;; two aliases in their own components
 (define example-1
-  (list (cons #'x (list #'x))
-        (cons #'y (list #'y))))
+  (list (list #'x #'x)
+        (list #'y #'y)))
 ;; all one component
 (define example-2
   (list (cons #'x (list #'x #'y))

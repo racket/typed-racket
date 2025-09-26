@@ -60,9 +60,9 @@
               (match v
                 [(? variance:co?) (co t)]
                 [(? variance:inv?)
-                 (if (V-in? V t)
-                     (if change Univ -Bottom)
-                     t)]
+                 #:when (V-in? V t)
+                 (if change Univ -Bottom)]
+                [(? variance:inv?) t]
                 [(? variance:contra?) (contra t)])))]
     [(Unit: imports exports init-depends t)
      (make-Unit (map co imports) (map contra imports) (map co init-depends) (co t))]

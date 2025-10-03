@@ -205,20 +205,19 @@
 
     (list "case-lambda.rkt"
           (lambda (stx)
-            (and
-              (let* ((f0-stx (stx-find
-                               stx
-                               (syntax-predicate
-                                 ((~literal define-values) ((~datum f0)) ((~literal case-lambda) _)))))
-                     (f0-assert (stx-find-shape-check f0-stx))
-                     (f0-match? (shape-check-matches #:expr 'x #:shape 'symbol?  #:type "Symbol")))
-                (f0-match? f0-assert))
-              (let* ((all-assert* (stx-find-shape-check* stx))
-                     (y-pred (shape-check-matches #:expr 'y #:shape 'none/c/proc #:type "Nothing"))
-                     (z-pred (shape-check-matches #:expr 'z #:shape 'none/c/proc #:type "Nothing")))
-                (and
-                  (one-assert-matches y-pred all-assert*)
-                  (one-assert-matches z-pred all-assert*))))))
+            (cond
+              [(let* ([f0-stx (stx-find stx
+                                        (syntax-predicate ((~literal define-values)
+                                                           ((~datum f0))
+                                                           ((~literal case-lambda) _))))]
+                      [f0-assert (stx-find-shape-check f0-stx)]
+                      [f0-match? (shape-check-matches #:expr 'x #:shape 'symbol? #:type "Symbol")])
+                 (f0-match? f0-assert))
+               (define all-assert* (stx-find-shape-check* stx))
+               (define y-pred (shape-check-matches #:expr 'y #:shape 'none/c/proc #:type "Nothing"))
+               (define z-pred (shape-check-matches #:expr 'z #:shape 'none/c/proc #:type "Nothing"))
+               (and (one-assert-matches y-pred all-assert*) (one-assert-matches z-pred all-assert*))]
+              [else #f])))
 
     (list "cdr.rkt"
           no-shape-check?)

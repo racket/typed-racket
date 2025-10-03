@@ -29,12 +29,16 @@
 (define (dom+rst-ref dom rst idx [default dom+rst-ref-failure])
   (match dom
     [(cons t ts)
-     (cond
-       [(zero? idx) t]
-       [else (dom+rst-ref ts rst (sub1 idx) default)])]
-    [_ (match rst
-         [(Rest: rst-ts) (list-ref rst-ts (remainder idx (length rst-ts)))]
-         [_ (if (procedure? default) (default) default)])]))
+     #:when (zero? idx)
+     t]
+    [(cons t ts) (dom+rst-ref ts rst (sub1 idx) default)]
+    [_
+     (match rst
+       [(Rest: rst-ts) (list-ref rst-ts (remainder idx (length rst-ts)))]
+       [_
+        (if (procedure? default)
+            (default)
+            default)])]))
 
 (define (Rest->Type r)
   (match r

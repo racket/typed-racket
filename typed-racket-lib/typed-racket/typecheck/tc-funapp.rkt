@@ -310,15 +310,16 @@
        (match argtys
          [(list) (ret out)]
          [(list t)
-          (if (subtype t in)
-              (ret -Void -true-propset)
-              (tc-error/expr
-               #:return (ret -Void -true-propset)
-               "Wrong argument to parameter - expected ~a and got ~a"
-               in t))]
-         [_ (tc-error/expr
-             "Wrong number of arguments to parameter - expected 0 or 1, got ~a"
-             (length argtys))])]
+          #:when (subtype t in)
+          (ret -Void -true-propset)]
+         [(list t)
+          (tc-error/expr #:return (ret -Void -true-propset)
+                         "Wrong argument to parameter - expected ~a and got ~a"
+                         in
+                         t)]
+         [_
+          (tc-error/expr "Wrong number of arguments to parameter - expected 0 or 1, got ~a"
+                         (length argtys))])]
       [(Distinction: _ _ t)
        (tc/funapp f-stx args-stx t args-res expected)]
       ;; resolve names, polymorphic apps, mu, etc

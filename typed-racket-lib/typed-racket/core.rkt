@@ -50,9 +50,7 @@
                                                   (with-refinements?))
                                               (unless (eq? te-mode deep)
                                                 (raise-arguments-error
-                                                 (string->symbol (format "typed/racket/~a"
-                                                                         (keyword->string
-                                                                          (syntax-e te-attr))))
+                                                 (format-symbol "typed/racket/~a" te-attr)
                                                  "#:with-refinements unsupported")))])
          (tc-module/full te-mode stx pmb-form
           (λ (new-mod pre-before-code pre-after-code)

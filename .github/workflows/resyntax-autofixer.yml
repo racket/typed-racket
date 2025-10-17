@@ -33,6 +33,6 @@ jobs:
         uses: jackfirth/create-resyntax-pull-request@v0.5.1
         with:
           private-key: ${{ secrets.RESYNTAX_APP_PRIVATE_KEY }}
-          max-fixes: '50'
-          max-modified-files: '20'
+          max-fixes: '20'
+          max-modified-files: '10'
           max-modified-lines: '500'

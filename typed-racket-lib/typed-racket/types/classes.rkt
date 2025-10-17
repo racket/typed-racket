@@ -88,7 +88,7 @@
   (match-define (Row: inits fields methods augments _) row)
   ;; check a given clause type (e.g., init, field)
   (define (check-clauses row-dict absence-set)
-    (for ([(name _) (in-dict row-dict)]
+    (for ([name (in-dict-keys row-dict)]
           #:when (member name absence-set))
       (fail name)))
   (check-clauses inits init-absents)

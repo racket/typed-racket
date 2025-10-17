@@ -31,40 +31,39 @@
 (define (parse port read-one src)
   (skip-whitespace port)
   (define name (read-one))
-  (begin0 (begin
-            (skip-whitespace port)
-            (let ([next (read-one)])
-              (case (syntax-e next)
-                ;; type annotation
-                [(:)
+  (skip-whitespace port)
+  (begin0 (let ([next (read-one)])
+            (case (syntax-e next)
+              ;; type annotation
+              [(:)
+               (skip-whitespace port)
+               (type-label-property name (syntax->datum (read-one)))]
+              [(::)
+               (skip-whitespace port)
+               (datum->syntax name `(ann ,name : ,(read-one)))]
+              [(@)
+               (let ([elems (let loop ([es '()])
+                              (skip-whitespace port)
+                              (if (equal? #\} (peek-char port))
+                                  (reverse es)
+                                  (loop (cons (read-one) es))))])
+                 (datum->syntax name `(inst ,name : ,@elems)))]
+              ;; arbitrary property annotation
+              [(PROP)
+               (skip-whitespace port)
+               (let* ([prop-name (syntax-e (read-one))])
                  (skip-whitespace port)
-                 (type-label-property name (syntax->datum (read-one)))]
-                [(::)
-                 (skip-whitespace port)
-                 (datum->syntax name `(ann ,name : ,(read-one)))]
-                [(@)
-                 (let ([elems (let loop ([es '()])
-                                (skip-whitespace port)
-                                (if (equal? #\} (peek-char port))
-                                    (reverse es)
-                                    (loop (cons (read-one) es))))])
-                   (datum->syntax name `(inst ,name : ,@elems)))]
-                ;; arbitrary property annotation
-                [(PROP)
-                 (skip-whitespace port)
-                 (let* ([prop-name (syntax-e (read-one))])
-                   (skip-whitespace port)
-                   (syntax-property name prop-name (read-one)))]
-                ;; otherwise error
-                [else
-                 (let-values ([(l c p) (port-next-location port)])
-                   (raise-read-error (format "typed expression ~a must be followed by :, ::, or @"
-                                             (syntax->datum name))
-                                     src
-                                     l
-                                     c
-                                     p
-                                     1))])))
+                 (syntax-property name prop-name (read-one)))]
+              ;; otherwise error
+              [else
+               (let-values ([(l c p) (port-next-location port)])
+                 (raise-read-error (format "typed expression ~a must be followed by :, ::, or @"
+                                           (syntax->datum name))
+                                   src
+                                   l
+                                   c
+                                   p
+                                   1))]))
     (skip-whitespace port)
     (let ([c (read-char port)])
       (unless (equal? #\} c)

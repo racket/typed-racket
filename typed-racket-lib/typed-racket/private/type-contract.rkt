@@ -409,418 +409,377 @@
               (fail #:reason "proposition contract generation not supported for non-flat types")]
              [else (is-flat-type/sc (obj->sc o) tc)])]
           [(NotTypeProp: o (app t->sc tc))
-           (cond
-             [(not (equal? flat-sym (get-max-contract-kind tc)))
-              (fail #:reason "proposition contract generation not supported for non-flat types")]
-             [else (not-flat-type/sc (obj->sc o) tc)])]
-          [(LeqProp: (app obj->sc lhs) (app obj->sc rhs))
-           (leq/sc lhs rhs)]
+           #:when (not (equal? flat-sym (get-max-contract-kind tc)))
+           (fail #:reason "proposition contract generation not supported for non-flat types")]
+          [(NotTypeProp: o (app t->sc tc)) (not-flat-type/sc (obj->sc o) tc)]
+          [(LeqProp: (app obj->sc lhs) (app obj->sc rhs)) (leq/sc lhs rhs)]
           ;; TODO: check for (<= x y) and (<= y x)
           ;; and generate and = instead of two <=
-          [(AndProp: ps)
-           (and-prop/sc (map prop->sc ps))]
-          [(OrProp: ps)
-           (or-prop/sc (map prop->sc ps))]))
+          [(AndProp: ps) (and-prop/sc (map prop->sc ps))]
+          [(OrProp: ps) (or-prop/sc (map prop->sc ps))]))
       (define (only-untyped sc)
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
             sc))
       (match type
-       ;; Applications of implicit recursive type aliases
-       ;;
-       ;; We special case this rather than just resorting to standard
-       ;; App resolution (see case below) because the resolution process
-       ;; will make type->static-contract infinite loop.
-       [(App: (Name: name _ #f) _)
-        ;; Key with (cons name 'app) instead of just name because the
-        ;; application of the Name is not necessarily the same as the
-        ;; Name type alone
-        (cond
-          ;; when constr is a built-in or non-recursive user-defined type
-          ;; constructor, don't generate a recursive static contract
-          ;; for the resulting type.
-          [(simple-type-constructor? name)
-           (t->sc (resolve-once type))]
-          [(hash-ref recursive-values (cons name 'app) #f)]
-          [else
-           (define name* (generate-temporary name))
-           (recursive-sc (list name*)
-                         (list
-                          (t->sc (resolve-once type)
-                                 #:recursive-values
-                                 (hash-set recursive-values
-                                           (cons name 'app)
-                                           (recursive-sc-use name*))))
-                         (recursive-sc-use name*))])]
-       ;; Implicit recursive aliases
-       [(Name: name-id args #f)
-        (cond [;; recursive references are looked up in a special table
-               ;; that's handled differently by sc instantiation
-               (lookup-name-sc type typed-side)]
-              [else
-               (define rv recursive-values)
-               ;; FIXME: need special treatment for type constructors
-               (define resolved-name (resolve-once type))
-               (register-name-sc type
-                                 (λ () (loop resolved-name 'untyped rv))
-                                 (λ () (loop resolved-name 'typed rv))
-                                 (λ () (loop resolved-name 'both rv)))
-               (lookup-name-sc type typed-side)])]
-       ;; Ordinary type applications or struct type names, just resolve
-       [(or (App: _ _) (Name/struct:)) (t->sc (resolve-once type))]
-       [(Univ:) (only-untyped any/sc)]
-       [(Bottom:) (or/sc)]
-       [(Listof: elem-ty) (listof/sc (t->sc elem-ty))]
-       ;; This comes before Base-ctc to use the Value-style logic
-       ;; for the singleton base types (e.g. -Null, 1, etc)
-       [(Val-able: v)
-        (cond
-          [(eof-object? v)
-           (flat/sc #'eof-object?)]
-          [(void? v)
-           (flat/sc #'void?)]
-          [(and (c:flat-contract? v)
-                ;; numbers used as contracts compare with =, but TR
-                ;; requires an equal? check
-                (not (number? v))
-                ;; regexps don't match themselves when used as contracts
-                (not (or (regexp? v) (byte-regexp? v))))
+        ;; Applications of implicit recursive type aliases
+        ;;
+        ;; We special case this rather than just resorting to standard
+        ;; App resolution (see case below) because the resolution process
+        ;; will make type->static-contract infinite loop.
+        [(App: (Name: name _ #f) _)
+         ;; Key with (cons name 'app) instead of just name because the
+         ;; application of the Name is not necessarily the same as the
+         ;; Name type alone
+         (cond
+           ;; when constr is a built-in or non-recursive user-defined type
+           ;; constructor, don't generate a recursive static contract
+           ;; for the resulting type.
+           [(simple-type-constructor? name) (t->sc (resolve-once type))]
+           [(hash-ref recursive-values (cons name 'app) #f)]
+           [else
+            (define name* (generate-temporary name))
+            (recursive-sc (list name*)
+                          (list (t->sc (resolve-once type)
+                                       #:recursive-values (hash-set recursive-values
+                                                                    (cons name 'app)
+                                                                    (recursive-sc-use name*))))
+                          (recursive-sc-use name*))])]
+        ;; Implicit recursive aliases
+        [(Name: name-id args #f)
+         (cond
+           [;; recursive references are looked up in a special table
+            ;; that's handled differently by sc instantiation
+            (lookup-name-sc type typed-side)]
+           [else
+            (define rv recursive-values)
+            ;; FIXME: need special treatment for type constructors
+            (define resolved-name (resolve-once type))
+            (register-name-sc type
+                              (λ () (loop resolved-name 'untyped rv))
+                              (λ () (loop resolved-name 'typed rv))
+                              (λ () (loop resolved-name 'both rv)))
+            (lookup-name-sc type typed-side)])]
+        ;; Ordinary type applications or struct type names, just resolve
+        [(or (App: _ _) (Name/struct:)) (t->sc (resolve-once type))]
+        [(Univ:) (only-untyped any/sc)]
+        [(Bottom:) (or/sc)]
+        [(Listof: elem-ty) (listof/sc (t->sc elem-ty))]
+        ;; This comes before Base-ctc to use the Value-style logic
+        ;; for the singleton base types (e.g. -Null, 1, etc)
+        [(Val-able: v)
+         (cond
+           [(eof-object? v) (flat/sc #'eof-object?)]
+           [(void? v) (flat/sc #'void?)]
+           [(and (c:flat-contract? v)
+                 ;; numbers used as contracts compare with =, but TR
+                 ;; requires an equal? check
+                 (not (number? v))
+                 ;; regexps don't match themselves when used as contracts
+                 (not (or (regexp? v) (byte-regexp? v))))
             (flat/sc #`(quote #,v))]
-          [else
-           (flat/sc #`(flat-named-contract '#,v (lambda (x) (equal? x '#,v))))])]
-       [(Base-name/contract: sym ctc) (flat/sc ctc)]
-       [(Distinction: _ _ t) ; from define-new-subtype
-        (t->sc t)]
-       [(Refinement: par p?)
-        (and/sc (t->sc par) (flat/sc p?))]
-       [(BaseUnion: bbits nbits)
-        (define numeric (make-BaseUnion #b0 nbits))
-        (define other-scs (map t->sc (bbits->base-types bbits)))
-        (define numeric-sc (numeric-type->static-contract numeric))
-        (if numeric-sc
-            (apply or/sc numeric-sc other-scs)
-            (apply or/sc (append other-scs (map t->sc (nbits->base-types nbits)))))]
-       [(? Union? t)
-        (match (normalize-type t)
-          [(Union-all-flat: elems)
-           ;; merge hash and vector types if they have equal components
-           (let*-values ([(hash-tys elems) (partition hash-type? elems)]
-                         [(vec-tys elems) (partition vector-type? elems)]
-                         [(hvec-tys elems) (partition heterogeneous-vector-type? elems)])
-             (define scs
-               (append
-                 (merge-hash-types hash-tys t->sc (only-untyped hash?/sc))
-                 (merge-vector-types vec-tys t->sc (only-untyped vector?/sc))
-                 (merge-heterogeneous-vector-types hvec-tys t->sc)
-                 (map t->sc elems)))
-             ;; bg: avoid singleton or/sc's, to make unit testing easier
-             (if (and (not (null? scs)) (null? (cdr scs)))
-               (car scs)
-               (apply or/sc scs)))]
-          [t (t->sc t)])]
-       [(Intersection: ts raw-prop)
-        (define-values (impersonators chaperones others)
-          (for/fold ([imps null]
-                     [chaps null]
-                     [flats null])
-                    ([elem (in-list ts)])
-            (define c (t->sc elem))
-            (match (get-max-contract-kind c)
-              [(== flat-sym) (values imps chaps (cons c flats))]
-              [(== chaperone-sym) (values imps (cons c chaps) flats)]
-              [(== impersonator-sym) (values (cons c imps) chaps flats)])))
-        (define prop
-          (cond
-            [(TrueProp? raw-prop) #f]
-            [else (define x (genid))
-                  (define prop (Intersection-prop (-id-path x) type))
-                  (define name (format "~a" `(λ (,(syntax->datum x)) ,prop)))
-                  (flat-named-lambda/sc name
-                                        (id/sc x)
-                                        (prop->sc prop))]))
-        (cond
-          [(> (+ (length impersonators) (length chaperones)) 1)
-           (fail #:reason (~a "Intersection type contract contains"
-                              " more than 1 non-flat contract: "
-                              type))]
-          [(and prop (not (null? impersonators)))
-           (fail #:reason (~a "Cannot logically refine an impersonated value: "
-                              type))]
-          [else
-           (apply and/sc (append others
-                                 chaperones
-                                 (if prop (list prop) '())
-                                 impersonators))])]
-       [(and t (Fun: arrs))
-        #:when (any->bool? arrs)
-        ;; Avoid putting (-> any T) contracts on struct predicates (where Boolean <: T)
-        ;; Optimization: if the value is typed, we can assume it's not wrapped
-        ;;  in a type-unsafe chaperone/impersonator and use the unsafe contract
-        (define unsafe-spp/sc (flat/sc #'struct-predicate-procedure?))
-        (define safe-spp/sc (flat/sc #'struct-predicate-procedure?/c))
-        (define optimized/sc (if (from-typed? typed-side) unsafe-spp/sc safe-spp/sc))
-        (define spt-pred-procedure?/sc (flat/sc #'struct-type-property-predicate-procedure?))
-        (or/sc optimized/sc spt-pred-procedure?/sc (t->sc/fun t))]
-       [(? Fun? t) (t->sc/fun t)]
-       [(? DepFun? t) (t->sc/fun t)]
-       [(Set: t) (set/sc (t->sc t))]
-       [(TreeList: t) (treelist/sc (t->sc t))]
-       [(Sequence: (list t))
-        #:when (subtype t:-Nat t)
-        ;; sequence/c is always a wrapper, so avoid it when we just have a number
-        (or/sc (flat/sc #'exact-nonnegative-integer?)
-               (sequence/sc (t->sc t)))]
-       [(Sequence: ts) (apply sequence/sc (map t->sc ts))]
-       [(SequenceTop:)
-        (only-untyped sequence?/sc)]
-       [(Immutable-HeterogeneousVector: ts)
-        (apply immutable-vector/sc (map t->sc ts))]
-       [(Immutable-Vector: t)
-        (immutable-vectorof/sc (t->sc t))]
-       [(Mutable-HeterogeneousVector: ts)
-        (apply mutable-vector/sc (map t->sc/both ts))]
-       [(Mutable-Vector: t)
-        (mutable-vectorof/sc (t->sc/both t))]
-       [(Mutable-VectorTop:)
-        (only-untyped mutable-vector?/sc)]
-       [(Box: t) (box/sc (t->sc/both t))]
-       [(Pair: t-car t-cdr)
-        ;; look ahead as long as t-cdr is a Pair
-        (define-values [t-last rev-sc*]
-          (let loop ((t t-cdr)
-                     (sc* (list (t->sc t-car))))
-            (match t
-             [(Pair: t-car t-cdr)
-              (loop t-cdr (cons (t->sc t-car) sc*))]
-             [_
-              (values t sc*)])))
-        (if (eq? -Null t-last)
-          (apply list/sc (reverse rev-sc*))
-          (for/fold ((sc-cdr (t->sc t-last)))
-                    ((sc (in-list rev-sc*)))
-            (cons/sc sc sc-cdr)))]
-       [(Async-Channel: t) (async-channel/sc (t->sc t))]
-       [(Promise: t)
-        (promise/sc (t->sc t))]
-       [(Opaque: p?)
-        (flat/sc p?)]
-       [(Continuation-Mark-Keyof: t)
-        (continuation-mark-key/sc (t->sc t))]
-       ;; TODO: this is not quite right for case->
-       [(Prompt-Tagof: s (Fun: (list (Arrow: ts _ _ _))))
-        (prompt-tag/sc (map t->sc ts) (list (t->sc s)))]
-       [(Some: (list n) (? Fun? t-body))
-        (t->sc/fun t-body #:maybe-existential n)]
-       [(F: v)
-        (cond
-          [(string-prefix? (symbol->string v) "self-")
-           (if (not (from-untyped? typed-side))
-               ;; if self is in negative position, we can't generate a contract yet.
-               (fail #:reason "contract generation not supported for Self")
-               any/sc)]
-          [else (triple-lookup
-                 (hash-ref recursive-values v
-                           (λ () (error 'type->static-contract
-                                        "Recursive value lookup failed. ~a ~a" recursive-values v)))
-                 typed-side)])]
-       [(BoxTop:) (only-untyped box?/sc)]
-       [(ChannelTop:) (only-untyped channel?/sc)]
-       [(Async-ChannelTop:) (only-untyped async-channel?/sc)]
-       [(MPairTop:) (only-untyped mpair?/sc)]
-       [(ThreadCellTop:) (only-untyped thread-cell?/sc)]
-       [(ThreadCell: _) (fail #:reason "contract generation not supported for this type")]
-       [(Prompt-TagTop:) (only-untyped prompt-tag?/sc)]
-       [(Continuation-Mark-KeyTop:) (only-untyped continuation-mark-key?/sc)]
-       [(ClassTop:) (only-untyped class?/sc)]
-       [(UnitTop:) (only-untyped unit?/sc)]
-       [(StructTypeTop:) (struct-type/sc null)]
-       ;; TODO Figure out how this should work
-       ;[(StructTop: s) (struct-top/sc s)]
-
-
-       [(? Poly?)
-        (t->sc/poly type fail typed-side recursive-values t->sc)]
-       [(? PolyDots?)
-        (t->sc/polydots type fail typed-side recursive-values t->sc)]
-       [(? PolyRow?)
-        (t->sc/polyrow type fail typed-side recursive-values t->sc)]
-
-       [(Mu: (list n) b)
-        (match-define (and n*s (list untyped-n* typed-n* both-n*)) (generate-temporaries (list n n n)))
-        (define rv
-          (hash-set recursive-values n
-                    (triple (recursive-sc-use untyped-n*)
-                            (recursive-sc-use typed-n*)
-                            (recursive-sc-use both-n*))))
-        (case typed-side
-          [(both) (recursive-sc
-                   (list both-n*)
-                   (list (loop b 'both rv))
-                   (recursive-sc-use both-n*))]
-          [(typed untyped)
-           (define (rec b side rv)
-             (loop b side rv))
-           ;; TODO not fail in cases that don't get used
-           (define untyped (rec b 'untyped rv))
-           (define typed (rec b 'typed rv))
-           (define both (rec b 'both rv))
-
-           (recursive-sc
-            n*s
-            (list untyped typed both)
-            (recursive-sc-use (if (from-typed? typed-side) typed-n* untyped-n*)))]
-          [else (raise-argument-error 'Mu-case typed-side?-str typed-side)])]
-       ;; Don't directly use the class static contract generated for Name,
-       ;; because that will get an #:opaque class contract. This will do the
-       ;; wrong thing for object types since it errors too eagerly.
-       [(Instance: (? Name? t))
-        #:when (Class? (resolve-once t))
-        (cond [(lookup-name-sc type typed-side)]
-              [else
-               (define rv recursive-values)
-               (define resolved (make-Instance (resolve-once t)))
-               (register-name-sc type
-                                 (λ () (loop resolved 'untyped rv))
-                                 (λ () (loop resolved 'typed rv))
-                                 (λ () (loop resolved 'both rv)))
-               (lookup-name-sc type typed-side)])]
-       [(Instance: (Class: _ _ fields methods _ _))
-        (match-define (list (list field-names field-types) ...) fields)
-        (match-define (list (list public-names public-types) ...) methods)
-        (object/sc (from-typed? typed-side)
-                   (append (map (λ (n sc) (member-spec 'method n sc))
-                                public-names (map t->sc/meth public-types))
-                           (map (λ (n sc) (member-spec 'field n sc))
-                                field-names (map t->sc/both field-types))))]
-       [(Class: row-var inits fields publics augments _)
-        (match-define (list (list init-names init-types _) ...) inits)
-        (match-define (list (list field-names field-types) ...) fields)
-        (match-define (list (list public-names public-types) ...) publics)
-        (match-define (list (list augment-names augment-types) ...) augments)
-        (define-values (pubment-names pubment-types)
-          (for/lists (_1 _2) ([name (in-list public-names)]
-                              [type (in-list public-types)]
-                              #:when (memq name augment-names))
-            (values name type)))
-        (define-values (override-names override-types)
-          (for/lists (_1 _2) ([name (in-list public-names)]
-                              [type (in-list public-types)]
-                              #:unless (memq name pubment-names))
-            (values name type)))
-        ;; we need to generate absent clauses for non-opaque class contracts
-        ;; that occur inside of a mixin type
-        (define absents
-          (cond [ ;; row constraints are only mapped when it's a row polymorphic
-                 ;; function in *positive* position (with no sealing)
-                 (and (F? row-var) (lookup-row-constraints (F-n row-var)))
-                 =>
-                 (λ (constraints)
-                   ;; the constraints with no corresponding type/contract need
-                   ;; to be absent
-                   (append (remove* field-names (cadr constraints))
-                           (remove* public-names (caddr constraints))))]
-                [else null]))
-        ;; add a seal/unseal if there was a row variable and the
-        ;; row polymorphic function type was in negative position
-        (define seal/sc
-          (and (F? row-var)
-               (not (lookup-row-constraints (F-n row-var)))
-               (triple-lookup
-                (hash-ref recursive-values (F-n row-var)
-                          (λ () (error 'type->static-contract
-                                       "Recursive value lookup failed. ~a ~a"
-                                       recursive-values (F-n row-var))))
-                typed-side)))
-        (define sc-for-class
-          (class/sc ;; only enforce opaqueness if there's no row variable
-           ;; and we are importing from untyped
-           (and (from-untyped? typed-side) (not row-var))
-           (append
-            (map (λ (n sc) (member-spec 'override n sc))
-                 override-names (map t->sc/meth override-types))
-            (map (λ (n sc) (member-spec 'pubment n sc))
-                 pubment-names (map t->sc/meth pubment-types))
-            (map (λ (n sc) (member-spec 'inner n sc))
-                 augment-names (map t->sc/meth augment-types))
-            (map (λ (n sc) (member-spec 'init n sc))
-                 init-names (map t->sc/neg init-types))
-            (map (λ (n sc) (member-spec 'field n sc))
-                 field-names (map t->sc/both field-types)))
-           absents))
-        (if seal/sc
-            (and/sc seal/sc sc-for-class)
-            sc-for-class)]
-       [(Unit: imports exports init-depends results)
-        (define (traverse sigs)
-          (for/list ([sig (in-list sigs)])
-            (define mapping
-              (map
-               (match-lambda
-                 [(cons id type) (cons id (t->sc type))])
-               (Signature-mapping sig)))
-            (signature-spec (Signature-name sig) (map car mapping) (map cdr mapping))))
-
-        (define imports-specs (traverse imports))
-        (define exports-specs (traverse exports))
-        (define init-depends-ids (map Signature-name init-depends))
-        (match results
-          [(? AnyValues?)
-           (fail #:reason (~a "cannot generate contract for unit type"
-                              " with unknown return values"))]
-          [(Values: (list (Result: rngs _ _) ...))
-           (unit/sc imports-specs exports-specs init-depends-ids (map t->sc rngs))])]
-       [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred? props)
-        (cond
-          [(hash-ref recursive-values nm #f)]
-          [proc (fail #:reason "procedural structs are not supported")]
-          [poly?
-           (struct->recursive-sc #'n* nm flds
-                                           (lambda (ftsc)
-                                             (struct/sc nm (ormap values mut?) ftsc)))]
-          [else (flat/sc #`(flat-named-contract '#,(syntax-e pred?) (lambda (x) (#,pred? x))))])]
-       [(StructType: s)
-        (if (from-untyped? typed-side)
-            (fail #:reason (~a "cannot import structure types from"
-                               "untyped code"))
-            (struct-type/sc null))]
-       [(Struct-Property: s _) (struct-property/sc (t->sc s))]
-       [(Has-Struct-Property: orig-id)
-        (has-struct-property->sc orig-id)]
-       [(Prefab: (and key (list key-sym rst ...)) (list flds ...))
-        (cond
-          [(hash-ref recursive-values key #f)]
-          [else
-           (struct->recursive-sc key-sym key flds
-                                           (lambda (ftsc)
-                                             (prefab/sc key ftsc)))])]
-       [(PrefabTop: key)
-        (flat/sc #`(struct-type-make-predicate
-                    (prefab-key->struct-type (quote #,(abbreviate-prefab-key key))
-                                             #,(prefab-key->field-count key))))]
-       [(Syntax: (? Base:Symbol?)) identifier?/sc]
-       [(Syntax: t)
-        (syntax/sc (t->sc t))]
-       [(Param: in out)
-        (parameter/sc (t->sc in) (t->sc out))]
-       [(Mutable-HashTable: k v)
-        (mutable-hash/sc (t->sc k) (t->sc v))]
-       [(Mutable-HashTableTop:)
-        (only-untyped mutable-hash?/sc)]
-       [(Immutable-HashTable: k v)
-        (immutable-hash/sc (t->sc k) (t->sc v))]
-       [(Weak-HashTable: k v)
-        (weak-hash/sc (t->sc k) (t->sc v))]
-       [(Weak-HashTableTop:)
-        (only-untyped weak-hash?/sc)]
-       [(Channel: t)
-        (channel/sc (t->sc t))]
-       [(Evt: t)
-        (evt/sc (t->sc t))]
-       [(Rest: (list rst-t)) (listof/sc (t->sc rst-t))]
-       [(? Rest? rst) (t->sc (Rest->Type rst))]
-       [(? Prop? rep) (prop->sc rep)]
-       [_
-        (fail #:reason "contract generation not supported for this type")]))))
+           [else (flat/sc #`(flat-named-contract '#,v (lambda (x) (equal? x '#,v))))])]
+        [(Base-name/contract: sym ctc) (flat/sc ctc)]
+        ; from define-new-subtype
+        [(Distinction: _ _ t) (t->sc t)]
+        [(Refinement: par p?) (and/sc (t->sc par) (flat/sc p?))]
+        [(BaseUnion: bbits nbits)
+         (define numeric (make-BaseUnion #b0 nbits))
+         (define other-scs (map t->sc (bbits->base-types bbits)))
+         (define numeric-sc (numeric-type->static-contract numeric))
+         (if numeric-sc
+             (apply or/sc numeric-sc other-scs)
+             (apply or/sc (append other-scs (map t->sc (nbits->base-types nbits)))))]
+        [(? Union? t)
+         (match (normalize-type t)
+           [(Union-all-flat: elems)
+            ;; merge hash and vector types if they have equal components
+            (let*-values ([(hash-tys elems) (partition hash-type? elems)]
+                          [(vec-tys elems) (partition vector-type? elems)]
+                          [(hvec-tys elems) (partition heterogeneous-vector-type? elems)])
+              (define scs
+                (append (merge-hash-types hash-tys t->sc (only-untyped hash?/sc))
+                        (merge-vector-types vec-tys t->sc (only-untyped vector?/sc))
+                        (merge-heterogeneous-vector-types hvec-tys t->sc)
+                        (map t->sc elems)))
+              ;; bg: avoid singleton or/sc's, to make unit testing easier
+              (if (and (not (null? scs)) (null? (cdr scs)))
+                  (car scs)
+                  (apply or/sc scs)))]
+           [t (t->sc t)])]
+        [(Intersection: ts raw-prop)
+         (define-values (impersonators chaperones others)
+           (for/fold ([imps null]
+                      [chaps null]
+                      [flats null])
+                     ([elem (in-list ts)])
+             (define c (t->sc elem))
+             (match (get-max-contract-kind c)
+               [(== flat-sym) (values imps chaps (cons c flats))]
+               [(== chaperone-sym) (values imps (cons c chaps) flats)]
+               [(== impersonator-sym) (values (cons c imps) chaps flats)])))
+         (define prop
+           (cond
+             [(TrueProp? raw-prop) #f]
+             [else
+              (define x (genid))
+              (define prop (Intersection-prop (-id-path x) type))
+              (define name (format "~a" `(λ (,(syntax->datum x)) ,prop)))
+              (flat-named-lambda/sc name (id/sc x) (prop->sc prop))]))
+         (cond
+           [(> (+ (length impersonators) (length chaperones)) 1)
+            (fail #:reason
+                  (~a "Intersection type contract contains" " more than 1 non-flat contract: " type))]
+           [(and prop (not (null? impersonators)))
+            (fail #:reason (~a "Cannot logically refine an impersonated value: " type))]
+           [else
+            (apply and/sc
+                   (append others
+                           chaperones
+                           (if prop
+                               (list prop)
+                               '())
+                           impersonators))])]
+        [(and t (Fun: arrs))
+         #:when (any->bool? arrs)
+         ;; Avoid putting (-> any T) contracts on struct predicates (where Boolean <: T)
+         ;; Optimization: if the value is typed, we can assume it's not wrapped
+         ;;  in a type-unsafe chaperone/impersonator and use the unsafe contract
+         (define unsafe-spp/sc (flat/sc #'struct-predicate-procedure?))
+         (define safe-spp/sc (flat/sc #'struct-predicate-procedure?/c))
+         (define optimized/sc (if (from-typed? typed-side) unsafe-spp/sc safe-spp/sc))
+         (define spt-pred-procedure?/sc (flat/sc #'struct-type-property-predicate-procedure?))
+         (or/sc optimized/sc spt-pred-procedure?/sc (t->sc/fun t))]
+        [(? Fun? t) (t->sc/fun t)]
+        [(? DepFun? t) (t->sc/fun t)]
+        [(Set: t) (set/sc (t->sc t))]
+        [(TreeList: t) (treelist/sc (t->sc t))]
+        [(Sequence: (list t))
+         #:when (subtype t:-Nat t)
+         ;; sequence/c is always a wrapper, so avoid it when we just have a number
+         (or/sc (flat/sc #'exact-nonnegative-integer?) (sequence/sc (t->sc t)))]
+        [(Sequence: ts) (apply sequence/sc (map t->sc ts))]
+        [(SequenceTop:) (only-untyped sequence?/sc)]
+        [(Immutable-HeterogeneousVector: ts) (apply immutable-vector/sc (map t->sc ts))]
+        [(Immutable-Vector: t) (immutable-vectorof/sc (t->sc t))]
+        [(Mutable-HeterogeneousVector: ts) (apply mutable-vector/sc (map t->sc/both ts))]
+        [(Mutable-Vector: t) (mutable-vectorof/sc (t->sc/both t))]
+        [(Mutable-VectorTop:) (only-untyped mutable-vector?/sc)]
+        [(Box: t) (box/sc (t->sc/both t))]
+        [(Pair: t-car t-cdr)
+         ;; look ahead as long as t-cdr is a Pair
+         (define-values (t-last rev-sc*)
+           (let loop ([t t-cdr]
+                      [sc* (list (t->sc t-car))])
+             (match t
+               [(Pair: t-car t-cdr) (loop t-cdr (cons (t->sc t-car) sc*))]
+               [_ (values t sc*)])))
+         (if (eq? -Null t-last)
+             (apply list/sc (reverse rev-sc*))
+             (for/fold ([sc-cdr (t->sc t-last)]) ([sc (in-list rev-sc*)])
+               (cons/sc sc sc-cdr)))]
+        [(Async-Channel: t) (async-channel/sc (t->sc t))]
+        [(Promise: t) (promise/sc (t->sc t))]
+        [(Opaque: p?) (flat/sc p?)]
+        [(Continuation-Mark-Keyof: t) (continuation-mark-key/sc (t->sc t))]
+        ;; TODO: this is not quite right for case->
+        [(Prompt-Tagof: s (Fun: (list (Arrow: ts _ _ _))))
+         (prompt-tag/sc (map t->sc ts) (list (t->sc s)))]
+        [(Some: (list n) (? Fun? t-body)) (t->sc/fun t-body #:maybe-existential n)]
+        [(F: v)
+         (cond
+           [(string-prefix? (symbol->string v) "self-")
+            (if (not (from-untyped? typed-side))
+                ;; if self is in negative position, we can't generate a contract yet.
+                (fail #:reason "contract generation not supported for Self")
+                any/sc)]
+           [else
+            (triple-lookup (hash-ref recursive-values
+                                     v
+                                     (λ ()
+                                       (error 'type->static-contract
+                                              "Recursive value lookup failed. ~a ~a"
+                                              recursive-values
+                                              v)))
+                           typed-side)])]
+        [(BoxTop:) (only-untyped box?/sc)]
+        [(ChannelTop:) (only-untyped channel?/sc)]
+        [(Async-ChannelTop:) (only-untyped async-channel?/sc)]
+        [(MPairTop:) (only-untyped mpair?/sc)]
+        [(ThreadCellTop:) (only-untyped thread-cell?/sc)]
+        [(ThreadCell: _) (fail #:reason "contract generation not supported for this type")]
+        [(Prompt-TagTop:) (only-untyped prompt-tag?/sc)]
+        [(Continuation-Mark-KeyTop:) (only-untyped continuation-mark-key?/sc)]
+        [(ClassTop:) (only-untyped class?/sc)]
+        [(UnitTop:) (only-untyped unit?/sc)]
+        [(StructTypeTop:) (struct-type/sc null)]
+        ;; TODO Figure out how this should work
+        ;[(StructTop: s) (struct-top/sc s)]
+      
+        [(? Poly?) (t->sc/poly type fail typed-side recursive-values t->sc)]
+        [(? PolyDots?) (t->sc/polydots type fail typed-side recursive-values t->sc)]
+        [(? PolyRow?) (t->sc/polyrow type fail typed-side recursive-values t->sc)]
+      
+        [(Mu: (list n) b)
+         (match-define (and n*s (list untyped-n* typed-n* both-n*))
+           (generate-temporaries (list n n n)))
+         (define rv
+           (hash-set recursive-values
+                     n
+                     (triple (recursive-sc-use untyped-n*)
+                             (recursive-sc-use typed-n*)
+                             (recursive-sc-use both-n*))))
+         (case typed-side
+           [(both) (recursive-sc (list both-n*) (list (loop b 'both rv)) (recursive-sc-use both-n*))]
+           [(typed untyped)
+            (define (rec b side rv)
+              (loop b side rv))
+            ;; TODO not fail in cases that don't get used
+            (define untyped (rec b 'untyped rv))
+            (define typed (rec b 'typed rv))
+            (define both (rec b 'both rv))
+      
+            (recursive-sc n*s
+                          (list untyped typed both)
+                          (recursive-sc-use (if (from-typed? typed-side) typed-n* untyped-n*)))]
+           [else (raise-argument-error 'Mu-case typed-side?-str typed-side)])]
+        ;; Don't directly use the class static contract generated for Name,
+        ;; because that will get an #:opaque class contract. This will do the
+        ;; wrong thing for object types since it errors too eagerly.
+        [(Instance: (? Name? t))
+         #:when (Class? (resolve-once t))
+         (cond
+           [(lookup-name-sc type typed-side)]
+           [else
+            (define rv recursive-values)
+            (define resolved (make-Instance (resolve-once t)))
+            (register-name-sc type
+                              (λ () (loop resolved 'untyped rv))
+                              (λ () (loop resolved 'typed rv))
+                              (λ () (loop resolved 'both rv)))
+            (lookup-name-sc type typed-side)])]
+        [(Instance: (Class: _ _ fields methods _ _))
+         (match-define (list (list field-names field-types) ...) fields)
+         (match-define (list (list public-names public-types) ...) methods)
+         (object/sc
+          (from-typed? typed-side)
+          (append
+           (map (λ (n sc) (member-spec 'method n sc)) public-names (map t->sc/meth public-types))
+           (map (λ (n sc) (member-spec 'field n sc)) field-names (map t->sc/both field-types))))]
+        [(Class: row-var inits fields publics augments _)
+         (match-define (list (list init-names init-types _) ...) inits)
+         (match-define (list (list field-names field-types) ...) fields)
+         (match-define (list (list public-names public-types) ...) publics)
+         (match-define (list (list augment-names augment-types) ...) augments)
+         (define-values (pubment-names pubment-types)
+           (for/lists (_1 _2)
+                      ([name (in-list public-names)] [type (in-list public-types)]
+                                                     #:when (memq name augment-names))
+                      (values name type)))
+         (define-values (override-names override-types)
+           (for/lists (_1 _2)
+                      ([name (in-list public-names)] [type (in-list public-types)]
+                                                     #:unless (memq name pubment-names))
+                      (values name type)))
+         ;; we need to generate absent clauses for non-opaque class contracts
+         ;; that occur inside of a mixin type
+         (define absents
+           (cond
+             [;; row constraints are only mapped when it's a row polymorphic
+              ;; function in *positive* position (with no sealing)
+              (and (F? row-var) (lookup-row-constraints (F-n row-var)))
+              =>
+              (λ (constraints)
+                ;; the constraints with no corresponding type/contract need
+                ;; to be absent
+                (append (remove* field-names (cadr constraints))
+                        (remove* public-names (caddr constraints))))]
+             [else null]))
+         ;; add a seal/unseal if there was a row variable and the
+         ;; row polymorphic function type was in negative position
+         (define seal/sc
+           (and (F? row-var)
+                (not (lookup-row-constraints (F-n row-var)))
+                (triple-lookup (hash-ref recursive-values
+                                         (F-n row-var)
+                                         (λ ()
+                                           (error 'type->static-contract
+                                                  "Recursive value lookup failed. ~a ~a"
+                                                  recursive-values
+                                                  (F-n row-var))))
+                               typed-side)))
+         (define sc-for-class
+           (class/sc ;; only enforce opaqueness if there's no row variable
+            ;; and we are importing from untyped
+            (and (from-untyped? typed-side) (not row-var))
+            (append
+             (map (λ (n sc) (member-spec 'override n sc))
+                  override-names
+                  (map t->sc/meth override-types))
+             (map (λ (n sc) (member-spec 'pubment n sc)) pubment-names (map t->sc/meth pubment-types))
+             (map (λ (n sc) (member-spec 'inner n sc)) augment-names (map t->sc/meth augment-types))
+             (map (λ (n sc) (member-spec 'init n sc)) init-names (map t->sc/neg init-types))
+             (map (λ (n sc) (member-spec 'field n sc)) field-names (map t->sc/both field-types)))
+            absents))
+         (if seal/sc
+             (and/sc seal/sc sc-for-class)
+             sc-for-class)]
+        [(Unit: imports exports init-depends results)
+         (define (traverse sigs)
+           (for/list ([sig (in-list sigs)])
+             (define mapping
+               (map (match-lambda
+                      [(cons id type) (cons id (t->sc type))])
+                    (Signature-mapping sig)))
+             (signature-spec (Signature-name sig) (map car mapping) (map cdr mapping))))
+      
+         (define imports-specs (traverse imports))
+         (define exports-specs (traverse exports))
+         (define init-depends-ids (map Signature-name init-depends))
+         (match results
+           [(? AnyValues?)
+            (fail #:reason (~a "cannot generate contract for unit type"
+                               " with unknown return values"))]
+           [(Values: (list (Result: rngs _ _) ...))
+            (unit/sc imports-specs exports-specs init-depends-ids (map t->sc rngs))])]
+        [(Struct: nm par (list (fld: flds acc-ids mut?) ...) proc poly? pred? props)
+         (cond
+           [(hash-ref recursive-values nm #f)]
+           [proc (fail #:reason "procedural structs are not supported")]
+           [poly?
+            (struct->recursive-sc #'n*
+                                  nm
+                                  flds
+                                  (lambda (ftsc) (struct/sc nm (ormap values mut?) ftsc)))]
+           [else (flat/sc #`(flat-named-contract '#,(syntax-e pred?) (lambda (x) (#,pred? x))))])]
+        [(StructType: s)
+         #:when (from-untyped? typed-side)
+         (fail #:reason (~a "cannot import structure types from" "untyped code"))]
+        [(StructType: s) (struct-type/sc null)]
+        [(Struct-Property: s _) (struct-property/sc (t->sc s))]
+        [(Has-Struct-Property: orig-id) (has-struct-property->sc orig-id)]
+        [(Prefab: (and key (list key-sym rst ...)) (list flds ...))
+         (cond
+           [(hash-ref recursive-values key #f)]
+           [else (struct->recursive-sc key-sym key flds (lambda (ftsc) (prefab/sc key ftsc)))])]
+        [(PrefabTop: key)
+         (flat/sc #`(struct-type-make-predicate
+                     (prefab-key->struct-type (quote #,(abbreviate-prefab-key key))
+                                              #,(prefab-key->field-count key))))]
+        [(Syntax: (? Base:Symbol?)) identifier?/sc]
+        [(Syntax: t) (syntax/sc (t->sc t))]
+        [(Param: in out) (parameter/sc (t->sc in) (t->sc out))]
+        [(Mutable-HashTable: k v) (mutable-hash/sc (t->sc k) (t->sc v))]
+        [(Mutable-HashTableTop:) (only-untyped mutable-hash?/sc)]
+        [(Immutable-HashTable: k v) (immutable-hash/sc (t->sc k) (t->sc v))]
+        [(Weak-HashTable: k v) (weak-hash/sc (t->sc k) (t->sc v))]
+        [(Weak-HashTableTop:) (only-untyped weak-hash?/sc)]
+        [(Channel: t) (channel/sc (t->sc t))]
+        [(Evt: t) (evt/sc (t->sc t))]
+        [(Rest: (list rst-t)) (listof/sc (t->sc rst-t))]
+        [(? Rest? rst) (t->sc (Rest->Type rst))]
+        [(? Prop? rep) (prop->sc rep)]
+        [_ (fail #:reason "contract generation not supported for this type")]))))
 
 (define (type->static-contract/shallow orig-type #:typed-side [typed-side? #t])
   (let t->sc ([type orig-type]

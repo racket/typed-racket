@@ -2933,7 +2933,7 @@
 [copy-file (->optkey -Pathlike -Pathlike [(-lst -Symbol)]
 		     #:exists-ok? Univ #f
 		     #:permissions Univ #f
-		     #:replace-permissions Univ #f
+		     #:replace-permissions? Univ #f
 		     -Void)]
 [make-file-or-directory-link (-> -Pathlike -Pathlike -Void)]
 

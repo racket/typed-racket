@@ -56,14 +56,14 @@
                  (syntax-property name prop-name (read-one)))]
               ;; otherwise error
               [else
-               (let-values ([(l c p) (port-next-location port)])
-                 (raise-read-error (format "typed expression ~a must be followed by :, ::, or @"
-                                           (syntax->datum name))
-                                   src
-                                   l
-                                   c
-                                   p
-                                   1))]))
+               (define-values (l c p) (port-next-location port))
+               (raise-read-error (format "typed expression ~a must be followed by :, ::, or @"
+                                         (syntax->datum name))
+                                 src
+                                 l
+                                 c
+                                 p
+                                 1)]))
     (skip-whitespace port)
     (let ([c (read-char port)])
       (unless (equal? #\} c)

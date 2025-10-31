@@ -193,7 +193,7 @@
     [(lexp: c ts)
      (define coeffs (terms-coeffs ts))
      (if (zero? c) coeffs (cons c coeffs))]
-    [_ (error 'lexp-scalars "given invalid lexp ~a" exp)]))
+    [_ (raise-arguments-error 'lexp-scalars "given invalid lexp" "exp" exp)]))
 
 (module+ test
   (check-true (and (equal? (sort (lexp-vars (lexp* 17 '(42 x) '(2 z))) symbol<?)
@@ -497,7 +497,7 @@
       ;; leq1: lexp1 <= bx
       ;; leq2: cx <= lexp2
       [(and (eqv? 0 a) (eqv? 0 d)) (leq (lexp-scale l1 c) (lexp-scale r2 b))]
-      [else (error 'leq-join "cannot join ~a and ~a by ~a" leq1 leq2 x)])))
+      [else (raise-arguments-error 'leq-join "cannot join and by" "leq1" leq1 "leq2" leq2 "x" x)])))
 
 (module+ test
   (check-equal? (leq-join (leq (lexp* '(2 x))

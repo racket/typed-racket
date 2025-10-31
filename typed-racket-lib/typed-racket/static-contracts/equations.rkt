@@ -58,4 +58,7 @@
     values))
 
 (define (variable-ref v)
-  (hash-ref (current-variable-values) v (λ () (error 'variable-ref "No value available: ~a" v))))
+  (hash-ref (current-variable-values) v (λ () (raise-arguments-error 'variable-ref
+                                                                     "No value available"
+                                                                     "v"
+                                                                     v))))

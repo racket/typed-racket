@@ -657,17 +657,22 @@
 
                              (make-struct-info
                                (lambda ()
-                                 #,(if (syntax-e #'parent)
-                                       (let-values (((parent-type-des parent-maker parent-pred
-                                                      parent-sel  parent-mut grand-parent)
-                                                     (apply values
-                                                            (extract-struct-info/checked #'parent))))
-                                         #`(struct-info-list
-                                             (list #,@(map maybe-add-quote-syntax parent-sel))
-                                             (list #,@(map maybe-add-quote-syntax parent-mut))))
-                                       #`(let-values (((new-sels new-muts)
-                                                       (id-drop orig-sels orig-muts num-fields)))
-                                           (struct-info-list new-sels new-muts)))))))
+                                 #,(cond
+                                     [(syntax-e #'parent)
+                                      (define-values (parent-type-des
+                                                      parent-maker
+                                                      parent-pred
+                                                      parent-sel
+                                                      parent-mut
+                                                      grand-parent)
+                                        (apply values (extract-struct-info/checked #'parent)))
+                                      #`(struct-info-list
+                                         (list #,@(map maybe-add-quote-syntax parent-sel))
+                                         (list #,@(map maybe-add-quote-syntax parent-mut)))]
+                                     [else
+                                      #`(let-values ([(new-sels new-muts)
+                                                      (id-drop orig-sels orig-muts num-fields)])
+                                          (struct-info-list new-sels new-muts))])))))
 
                          (define-syntax nm
                               (if id-is-ctor?

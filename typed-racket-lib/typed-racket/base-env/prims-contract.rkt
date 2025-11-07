@@ -385,11 +385,14 @@
    ;; will have added the casted expression's original type to the cast-table, so
    ;; that `(cast-table-ref id)` can get that type here.
    (λ ()
+     (define types (cast-table-ref id))
      (define type-stx
-       (let ([types (cast-table-ref id)])
-         (cond [(not types) #f]
-               [(null? (cdr types)) (car types)]
-               [else (quasisyntax/loc (car types) (U #,@types))])))
+       (cond
+         [(not types) #f]
+         [(null? (cdr types)) (car types)]
+         [else
+          (quasisyntax/loc (car types)
+            (U #,@types))]))
      `#s(contract-def ,type-stx ,flat? ,maker? typed ,te-mode))))
 
 (define define-predicate

@@ -97,27 +97,27 @@
 
 
 (define (env-replace-props e props)
-  (match-let ([(env tys otys _ als) e])
-    (env tys otys props als)))
+  (match-define (env tys otys _ als) e)
+  (env tys otys props als))
 
 (define (env-lookup-id e key fail)
-  (match-let ([(env tys _ _ _) e])
-    (free-id-table-ref tys key (λ () (fail key)))))
+  (match-define (env tys _ _ _) e)
+  (free-id-table-ref tys key (λ () (fail key))))
 
 (define (env-lookup-obj e key fail)
-  (match-let ([(env _ otys _ _) e])
-    (hash-ref otys key (λ () (fail key)))))
+  (match-define (env _ otys _ _) e)
+  (hash-ref otys key (λ () (fail key))))
 
 
 ;; like hash-set, but for the type of an ident in the lexical environment
 (define (env-set-id-type e ident type)
-  (match-let ([(env tys otys ps als) e])
-    (env (free-id-table-set tys ident type) otys ps als)))
+  (match-define (env tys otys ps als) e)
+  (env (free-id-table-set tys ident type) otys ps als))
 
 ;; like hash-set, but for the type of an object in the lexical environment
 (define (env-set-obj-type e obj type)
-  (match-let ([(env tys otys ps als) e])
-    (env tys (hash-set otys obj type) ps als)))
+  (match-define (env tys otys ps als) e)
+  (env tys (hash-set otys obj type) ps als))
 
 ;; extends an environment with types and aliases
 ;; e : the 'env' struct to be updated
@@ -157,6 +157,6 @@
   (env tys otys ps als))
 
 (define (env-lookup-alias e key fail)
-  (match-let ([(env _ _ _ als) e])
-    (free-id-table-ref als key (λ () (fail key)))))
+  (match-define (env _ _ _ als) e)
+  (free-id-table-ref als key (λ () (fail key))))
 

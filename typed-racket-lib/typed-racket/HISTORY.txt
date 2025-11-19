@@ -1,3 +1,5 @@
+9.0
+- improve expected type propagation with keyword argument functions
 8.18
 - Bug fixes and type updates.
 8.17

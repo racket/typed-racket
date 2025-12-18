@@ -23,7 +23,7 @@
 
 ; equations: (hash/c var? (-> value?))
 ; initial-values: (hash/c var? (-> value?))
-(struct equation-set (equations initial-values))
+(struct equation-set (equations initial-values) #:transparent #:authentic)
 
 (define (make-equation-set)
   (equation-set (make-hasheq) (make-hasheq)))

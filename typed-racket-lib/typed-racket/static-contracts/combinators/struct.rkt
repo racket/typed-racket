@@ -22,6 +22,7 @@
  [struct-type/sc (any/c . -> . static-contract?)])
 
 (struct struct-combinator combinator (name mut?)
+  #:authentic
   #:transparent
   #:property prop:combinator-name "struct/sc"
   #:methods gen:sc
@@ -55,6 +56,7 @@
 ;; reflective use.  
 (struct struct-type/sc combinator ()
   #:transparent
+  #:authentic
   #:property prop:combinator-name "struct-type/sc"
   #:methods gen:sc
     [(define (sc-map v f)

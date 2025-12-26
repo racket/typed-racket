@@ -388,7 +388,8 @@
   (filtered-in
     (if WARN-MISSING
       (lambda (str)
-        (when (not (known-string? str)) (printf "WARNING: Missing test for base type '~a'\n" str))
+        (unless (known-string? str)
+          (printf "WARNING: Missing test for base type '~a'\n" str))
         #f)
       (lambda (str) #f))
     typed-racket/base-env/base-types))

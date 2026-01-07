@@ -939,7 +939,11 @@
      [0 -Zero]
      [1 -One]
      [(? (lambda (x) (eq? x unsafe-undefined))) -Unsafe-Undefined]
-     [_ (make-Value val)])])
+     [_ (intern-single-ref! value-intern-table
+                            val
+                            #:construct (make-Value val))])])
+
+(define value-intern-table (make-weak-hash))
 
 
 ;;************************************************************

@@ -8,7 +8,7 @@
 (module ty-foo typed/racket/optional
   (require/typed (submod ".." foo) [prop:hi (Struct-Property (-> Self Any))] #;[#:opaque Hi hi?]  [hi-ref (-> Any (-> Any Void))])
   (struct bar () #:property prop:hi (λ ([self : bar])
-                                      (display (format "instance bar\n" ))))
+                                      (display "instance bar\n")))
   (hi-ref (bar) #;(assert (bar) hi?))
   )
 

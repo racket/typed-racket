@@ -34,6 +34,8 @@ jobs:
       - run: raco setup --check-pkg-deps typed typed-racket typed-racket-test typed-scheme
         env:
           PLT_TR_CONTRACTS: ${{ matrix.enable-contracts }}
+      # Recompile math/plot against new typed-racket before tests (unit tests use math/array)
+      - run: raco setup plot math
       - run: racket -l typed-racket-test -- --unit
       - run: racket -l typed-racket-test -- --int
       - run: racket -l typed-racket-test -- --just typed-racket-test/succeed/cl.rkt
@@ -45,7 +47,6 @@ jobs:
         if: ${{ !matrix.enable-contracts }}
       - run: raco test -em typed-racket-test/test-docs-complete.rkt
         if: ${{ !matrix.enable-contracts }}
-      - run: raco setup plot math
       - run: racket -l typed-racket-test -- --external
       - run: raco make typed-racket-test/external/historical-counterexamples.rkt
       - run: racket -l typed-racket-test/external/historical-counterexamples

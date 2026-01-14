@@ -675,7 +675,8 @@
   (make-type-constr (user-defined-type-op syms res (if (equal? (symbol->string (syntax-e name))
                                                                "Formula")
                                                        #t
-                                                       recursive?))
+                                                       recursive?)
+                                         #f) ; not a poly-struct
                     (length syms)
                     (free-id-table-ref type-op-productivity-map name #f)
                     #:variances

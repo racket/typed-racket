@@ -1,5 +1,6 @@
 #lang racket/base
 (require "../rep/type-constr.rkt"
+         racket/match
          syntax/id-table
          "../env/env-utils.rkt"
          "../private/user-defined-type-constr.rkt"
@@ -25,12 +26,25 @@
   (free-id-table-set! kind-env name type-constr))
 
 
+;; Check if a type constructor is for a polymorphic struct type
+(define (poly-struct-type-constr? constr)
+  (match constr
+    [(TypeConstructor (user-defined-type-op _ _ _ poly-struct?) _ _ _ _)
+     poly-struct?]
+    [_ #f]))
+
 ;; returns true if id refers to a built-in or non-recursive type constructor
+;; that is NOT a polymorphic struct type constructor
+;; (polymorphic struct type constructors should NOT be inlined during parsing
+;; so that App types are created, allowing the printer to show type arguments)
 (define (simple-type-constructor? id)
   (cond
     [(lookup-type-constructor id)
      =>
      (lambda (constr)
-       (not (and (user-defined-type-constr? constr)
-                 (recursive-type-constr? constr))))]
+       (and (not (and (user-defined-type-constr? constr)
+                      (recursive-type-constr? constr)))
+            ;; Don't inline polymorphic struct type constructors
+            ;; so that App types are created for proper printing
+            (not (poly-struct-type-constr? constr))))]
     [else #f]))

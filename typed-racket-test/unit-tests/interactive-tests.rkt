@@ -272,4 +272,59 @@
     (test-form #rx"^$"
       (require 'mod-a))
     (test-form (regexp-quote "Nothing")
-               (:type (Bar Symbol)))))
+               (:type (Bar Symbol)))
+
+    ;; PR 1473 - struct types should print their name, not internal representation
+    ;; Test simple struct type printing
+    (test-form #:fresh
+      #rx"^$"
+      (struct Point ([x : Integer] [y : Integer]))
+      (regexp-quote "Point")
+      (:type Point)
+      (regexp-quote "Point")
+      (ann (Point 1 2) Point))
+
+    ;; Test polymorphic struct type printing
+    ;; PR 1473 - polymorphic structs should print with type arguments
+    (test-form #:fresh
+      #rx"^$"
+      (struct (A) Container ([value : A]))
+      (regexp-quote "(Container Integer)")
+      (ann (Container 42) (Container Integer))
+      (regexp-quote "(Container String)")
+      (ann (Container "hello") (Container String)))
+
+    ;; Test polymorphic struct with multiple type parameters
+    (test-form #:fresh
+      #rx"^$"
+      (struct (A B) Pair ([fst : A] [snd : B]))
+      (regexp-quote "(Pair Integer String)")
+      (ann (Pair 1 "a") (Pair Integer String))
+      (regexp-quote "(Pair Boolean Symbol)")
+      (ann (Pair #t 'x) (Pair Boolean Symbol)))
+
+    ;; Test nested polymorphic struct types
+    (test-form #:fresh
+      #rx"^$"
+      (struct (A) Box ([val : A]))
+      (regexp-quote "(Box (Box Integer))")
+      (ann (Box (Box 1)) (Box (Box Integer))))
+
+    ;; Test struct type with inheritance
+    (test-form #:fresh
+      #rx"^$"
+      (struct Animal ([name : String]))
+      #rx"^$"
+      (struct Dog Animal ([breed : String]))
+      (regexp-quote "Dog")
+      (ann (Dog "Rex" "Labrador") Dog))
+
+    ;; PR 1473 - test that math/array Array types print correctly
+    ;; The original bug reported Array types printing as #(struct:Array ...)
+    ;; instead of (Array Byte) or similar
+    (test-form #:fresh
+      #rx"^$"
+      (require math/array)
+      ;; build-array should show (Array ...) not #(struct:Array ...)
+      (regexp-quote "(Array One)")
+      (build-array #(2) (λ ([i : (Vectorof Index)]) 1)))))

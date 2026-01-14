@@ -67,6 +67,49 @@
 
     (check-prints-as? -Custodian "Custodian")
     (check-prints-as? (make-Opaque #'integer?) "(Opaque integer?)")
+
+    ;; PR 1473 - struct types should print their name, not internal representation
+    ;; Basic struct type printing
+    (check-prints-as? (-struct #'TestStruct #f null #f #t #'test-struct?)
+                      "TestStruct")
+    ;; Struct type with fields should still print just the name
+    (check-prints-as? (-struct #'Point #f
+                               (list (make-fld -Integer #'point-x #f)
+                                     (make-fld -Integer #'point-y #f))
+                               #f #f #'point?)
+                      "Point")
+    ;; Polymorphic struct type (poly? = #t)
+    (check-prints-as? (-struct #'Container #f
+                               (list (make-fld (make-F 'T) #'container-value #f))
+                               #f #t #'container?)
+                      "Container")
+    ;; Struct with parent should print child name
+    (let ([parent-struct (-struct #'Parent #f
+                                  (list (make-fld -String #'parent-name #f))
+                                  #f #f #'parent?)])
+      (check-prints-as? (-struct #'Child parent-struct
+                                 (list (make-fld -Integer #'child-age #f))
+                                 #f #f #'child?)
+                        "Child"))
+    ;; Struct types in polymorphic application should print nicely
+    (check-prints-as? (make-App (-struct #'MyArray #f null #f #t #'my-array?)
+                                (list -Byte))
+                      "(MyArray Byte)")
+    ;; Multiple type arguments
+    (check-prints-as? (make-App (-struct #'Pair #f null #f #t #'pair-struct?)
+                                (list -String -Integer))
+                      "(Pair String Integer)")
+    ;; Nested struct type applications
+    (check-prints-as? (make-App (-struct #'Box #f null #f #t #'box-struct?)
+                                (list (make-App (-struct #'List #f null #f #t #'list-struct?)
+                                                (list -Integer))))
+                      "(Box (List Integer))")
+    ;; StructTop should also print nicely
+    (check-prints-as? (make-StructTop (-struct #'MyStruct #f null #f #f #'my-struct?))
+                      "(Struct MyStruct)")
+    ;; StructType should print the struct name
+    (check-prints-as? (make-StructType (-struct #'TypedStruct #f null #f #f #'typed-struct?))
+                      "(StructType TypedStruct)")
     (check-prints-as? (make-Immutable-Vector -Nat) "(Immutable-Vectorof Nonnegative-Integer)")
     (check-prints-as? (make-Mutable-Vector -Nat) "(Mutable-Vectorof Nonnegative-Integer)")
     (check-prints-as? (make-Vector -Nat) "(Vectorof Nonnegative-Integer)")
@@ -322,4 +365,14 @@
      (-poly (a) (cl->* (-> (-Syntax a) Univ Univ (-Syntax a))
                         (-> (-Syntax Univ) Univ Univ)))
      (string-append "(All (a)\n"
-                    "  (case-> (-> (Syntaxof a) Any Any (Syntaxof a)) (-> (Syntaxof Any) Any Any)))")))))
+                    "  (case-> (-> (Syntaxof a) Any Any (Syntaxof a)) (-> (Syntaxof Any) Any Any)))"))
+
+    ;; PR 1473 - struct types should pretty-print their name
+    (check-pretty-prints-as? (-struct #'SimpleStruct #f null #f #f #'simple-struct?)
+                             "SimpleStruct")
+    (check-pretty-prints-as? (make-App (-struct #'GenericStruct #f null #f #t #'generic-struct?)
+                                       (list -Integer))
+                             "(GenericStruct Integer)")
+    (check-pretty-prints-as? (make-App (-struct #'TwoParams #f null #f #t #'two-params?)
+                                       (list -String -Boolean))
+                             "(TwoParams String Boolean)"))))

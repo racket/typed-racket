@@ -658,11 +658,8 @@
     [(? improper-tuple? t)
      `(List* ,@(map type->sexp (improper-tuple-elems t)))]
     [(Opaque: pred) `(Opaque ,(syntax->datum pred))]
-    [(Struct: nm par (list (fld: t _ _) ...) proc _ _ properties)
-     `#(,(string->symbol (format "struct:~a" (syntax-e nm)))
-        ,(map t->s t)
-        ,@(if proc (list (t->s proc)) null)
-        ,@(free-id-set->list properties))]
+    ;; Print struct types by their name (like Name/struct:), not as internal vectors
+    [(Struct: nm _ _ _ _ _ _) (syntax-e nm)]
     [(? Fun?)
      (parameterize ([current-print-type-fuel
                      (sub1 (current-print-type-fuel))])

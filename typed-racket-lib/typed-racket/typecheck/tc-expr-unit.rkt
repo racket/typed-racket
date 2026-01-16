@@ -283,13 +283,11 @@
          (let-values ([(rcvr-var) rcvr])
            (let-values (((meth-var) (~and find-app (#%plain-app find-method/who _ _ _))))
              (let-values ([(arg-var) args] ...)
-               (if wrapped-object-check
-                   ignore-this-case
-                   (~and core-app
-                         (~or (#%plain-app _ _ _arg-var2 ...)
-                              (let-values ([(_) _] ...)
-                                (#%plain-app (#%plain-app _ _ _ _ _ _)
-                                             _ _ _ ...)))))))))
+               (~and core-app
+                     (~or (#%plain-app _ _ _arg-var2 ...)
+                          (let-values ([(_) _] ...)
+                            (#%plain-app (#%plain-app _ _ _ _ _ _)
+                                         _ _ _ ...))))))))
        (register-ignored! form)
        (tc/send #'find-app #'core-app
                 #'rcvr-var #'rcvr

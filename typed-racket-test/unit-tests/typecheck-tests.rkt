@@ -2754,6 +2754,22 @@
        [tc-e (in-combinations '(1 2 1) 2) (-seq (-lst -PosByte))]
        [tc-e (permutations '(a b c d)) (-lst (-lst (one-of/c 'a 'b 'c 'd)))]
        [tc-e (in-permutations '(a b c d)) (-seq (-lst (one-of/c 'a 'b 'c 'd)))]
+       [tc-e (inclusive-range 1 5) (-lst -PosByte)]
+       [tc-e (inclusive-range 1 5 2) (-lst -PosByte)]
+       [tc-e (inclusive-range 0 10) (-lst -Byte)]
+       ;; Boundary conditions for inclusive-range
+       [tc-e (inclusive-range 5 5) (-lst -PosByte)]        ; single element (start = end)
+       [tc-e (inclusive-range 0 0) (-lst -Byte)]           ; single zero element
+       [tc-e (inclusive-range 0 255) (-lst -Byte)]         ; full byte range
+       [tc-e (inclusive-range 1 1000) (-lst -PosIndex)]    ; index range
+       [tc-e (inclusive-range 0 1000) (-lst -Index)]       ; nonnegative index range
+       [tc-e (inclusive-range -5 5) (-lst -Int)]           ; negative to positive
+       [tc-e (inclusive-range 1 10 3) (-lst -PosByte)]     ; with step, positive
+       [tc-e (inclusive-range 10 1 -1) (-lst -PosByte)]    ; descending range
+       [tc-e (inclusive-range 0.0 1.0 0.5) (-lst -Flonum)] ; flonum range
+       [tc-e (inclusive-range 1/2 5/2 1/2) (-lst -Rat)]    ; rational range
+       [tc-e (inclusive-range 1 100) (-lst -PosByte)]      ; max byte boundary
+       [tc-e (inclusive-range 1 256) (-lst -PosIndex)]     ; beyond byte -> index
 
        ;; test functions which do lookup with the "wrong type", where the
        ;; result type shouldn't be widened to include that type

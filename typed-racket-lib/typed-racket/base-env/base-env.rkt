@@ -166,6 +166,10 @@
 [string-normalize-nfc (-> -String -String)]
 [string-normalize-nfkc (-> -String -String)]
 
+;; grapheme cluster functions
+[string-grapheme-count (->opt -String [-Int -Int] -Index)]
+[string-grapheme-span (->opt -String -Int [-Int] -Index)]
+
 [string-locale=? (->* (list -String -String) -String B)]
 [string-locale<? (->* (list -String -String) -String B)]
 [string-locale>? (->* (list -String -String) -String B)]

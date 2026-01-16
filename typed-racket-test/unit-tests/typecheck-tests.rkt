@@ -1717,7 +1717,23 @@
         (tc-e (string-normalize-nfc "a") -String)
         (tc-e (string-normalize-nfkc "a") -String)
 
-
+        ;; grapheme cluster functions
+        (tc-e (string-grapheme-count "hello") -Index)
+        (tc-e (string-grapheme-count "hello" 0) -Index)
+        (tc-e (string-grapheme-count "hello" 0 3) -Index)
+        (tc-e (string-grapheme-span "hello" 0) -Index)
+        (tc-e (string-grapheme-span "hello" 0 3) -Index)
+        ;; Boundary conditions for grapheme functions
+        (tc-e (string-grapheme-count "") -Index)          ; empty string
+        (tc-e (string-grapheme-count "a") -Index)         ; single char
+        (tc-e (string-grapheme-count "e\u0301") -Index)   ; combining char (é as 2 codepoints, 1 grapheme)
+        (tc-e (string-grapheme-count "hello" 5) -Index)   ; start at end
+        (tc-e (string-grapheme-count "hello" 0 0) -Index) ; empty range
+        (tc-e (string-grapheme-span "" 0) -Index)         ; empty string
+        (tc-e (string-grapheme-span "a" 0) -Index)        ; single char
+        (tc-e (string-grapheme-span "e\u0301" 0) -Index)  ; combining char span
+        (tc-e (string-grapheme-span "hello" 4) -Index)    ; last char
+        (tc-e (string-grapheme-span "hello" 4 5) -Index)  ; single char at end
 
         (tc-e (string-locale=? "a" "a") -Boolean)
         (tc-e (string-locale<? "a" "a") -Boolean)

@@ -2013,6 +2013,12 @@
         (tc-e (treelist-index-of (treelist "a" "b" "c") "b") -Index)
         (tc-e (treelist-index-of (treelist "a" "b" "c") "b" equal?) -Index)
         (tc-e (treelist-sort (treelist "c" "a" "b") string<?) (-treelist -String))
+        ;; Treelist operations accept Integer indices (not just Index)
+        (tc-e (treelist-ref (treelist "a" "b" "c") (ann -1 Integer)) -String)
+        (tc-e (treelist-delete (treelist "a" "b") (ann -1 Integer)) (-treelist -String))
+        (tc-e (treelist-take (treelist "a" "b" "c") (ann 2 Integer)) (-treelist -String))
+        (tc-e (treelist-drop (treelist "a" "b" "c") (ann 1 Integer)) (-treelist -String))
+        (tc-e (treelist-sublist (treelist "a" "b" "c") (ann 0 Integer) (ann 2 Integer)) (-treelist -String))
 
         ;; curryr tests
         (tc-e ((curryr (lambda: ([x : Number] [y : Number]) (- x y)) 1) 5) -Number)

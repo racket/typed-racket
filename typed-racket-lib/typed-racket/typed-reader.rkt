@@ -35,8 +35,13 @@
             (skip-whitespace port)
             (let ([next (read-one)])
               (case (syntax-e next)
-                ;; type annotation
                 [(:)
+                 (unless (identifier? name)
+                   (let-values ([(l c p) (port-next-location port)])
+                     (raise-read-error
+                      (format "#{x : T}: expected an identifier to annotate, given ~a"
+                              (syntax->datum name))
+                      src l c p 1)))
                  (skip-whitespace port)
                  (type-label-property name (syntax->datum (read-one)))]
                 [(::)

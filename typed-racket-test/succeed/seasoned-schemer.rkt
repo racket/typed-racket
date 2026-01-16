@@ -67,7 +67,7 @@
 (define: (scramble [tup : lon]) : lon
   (scramble-b tup '()))
 
-(pick 2 (cons 'a (cons 'd (cons 'c #{'() : (list-of symbol)}))))
+(pick 2 (cons 'a (cons 'd (cons 'c #{'() :: (list-of symbol)}))))
 
 (define: (multirember [a : atom] [l : lat]) : lat
   (letrec ([#{mr : (lat -> lat)}

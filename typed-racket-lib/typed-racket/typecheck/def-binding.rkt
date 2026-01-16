@@ -102,7 +102,11 @@
            ;; has no dependencies.
            #`(begin
                (define-syntax (untyped-id stx)
-                 (tc-error/stx stx "Macro ~a from typed module used in untyped code" 'untyped-id))
+                 (tc-error/stx stx "Macro ~a from typed module used in ~a code"
+                               'untyped-id
+                               (if (eq? (current-type-enforcement-mode) 'shallow)
+                                   "shallow-typed"
+                                   "untyped")))
                (define-syntax export-id
                  (make-typed-renaming #'id #'untyped-id #'untyped-id #'untyped-id)))
            new-id

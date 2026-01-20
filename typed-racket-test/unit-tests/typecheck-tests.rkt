@@ -556,6 +556,45 @@
         (tc-e (flexpt 0.00000000001 100000000000.0) -NonNegFlonum)
         (tc-e (flexpt -2.0 -0.5) -Flonum) ; NaN
 
+        ;; Wraparound fixnum operations (don't error on overflow)
+        (tc-e (fx+/wraparound 1 2) -Fixnum)
+        (tc-e (fx-/wraparound 5 3) -Fixnum)
+        (tc-e (fx*/wraparound 2 3) -Fixnum)
+        (tc-e (fxlshift/wraparound 1 2) -Fixnum)
+        (tc-e (unsafe-fx+/wraparound 1 2) -Fixnum)
+        (tc-e (unsafe-fx-/wraparound 5 3) -Fixnum)
+        (tc-e (unsafe-fx*/wraparound 2 3) -Fixnum)
+        (tc-e (unsafe-fxlshift/wraparound 1 2) -Fixnum)
+        ;; Github issue #1319 - popcount functions
+        ;; Basic tests
+        (tc-e (fxpopcount 7) -Index)
+        (tc-e (fxpopcount32 255) -Index)
+        (tc-e (fxpopcount16 15) -Index)
+        ;; Boundary conditions for popcount
+        (tc-e (fxpopcount 0) -Index)                    ; min input -> 0
+        (tc-e (fxpopcount 1) -Index)                    ; single bit -> 1
+        (tc-e (fxpopcount (most-positive-fixnum)) -Index) ; max input
+        (tc-e (fxpopcount32 0) -Index)                  ; min 32-bit
+        (tc-e (fxpopcount32 #xFFFF) -Index)             ; 16-bit max within 32-bit input
+        (tc-e (fxpopcount16 0) -Index)                  ; min 16-bit
+        (tc-e (fxpopcount16 #xFFFF) -Index)             ; max 16-bit -> 16
+        ;; unsafe variants
+        (tc-e (unsafe-fxpopcount 7) -Index)
+        (tc-e (unsafe-fxpopcount32 255) -Index)
+        (tc-e (unsafe-fxpopcount16 15) -Index)
+        ;; fxrshift/logical - returns Nonnegative-Fixnum (logical shift fills with 0s)
+        (tc-e (fxrshift/logical -1 1) -NonNegFixnum)    ; negative -> positive
+        (tc-e (fxrshift/logical 8 2) -NonNegFixnum)
+        (tc-e (fxrshift/logical 0 0) -NonNegFixnum)     ; zero shift zero
+        (tc-e (fxrshift/logical (most-negative-fixnum) 1) -NonNegFixnum) ; most negative
+        (tc-e (unsafe-fxrshift/logical -1 1) -NonNegFixnum)
+        ;; fixnum bounds
+        (tc-e (most-positive-fixnum) -PosFixnum)
+        (tc-e (most-negative-fixnum) -NegFixnum)
+        ;; Verify bounds are usable in arithmetic
+        (tc-e (+ (most-positive-fixnum) 0) -PosFixnum)
+        (tc-e (+ (most-negative-fixnum) 0) -NegFixnum)
+
         (tc-e (let-values ([(x y) (integer-sqrt/remainder 0)]) (+ x y)) -Zero)
         (tc-e (angle -1) (t:Un -InexactReal -Zero))
         (tc-e (angle 2.3) -Zero)

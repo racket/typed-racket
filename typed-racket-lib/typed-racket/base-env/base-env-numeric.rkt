@@ -1977,6 +1977,32 @@
 [unsafe-fxmin (fxmin-type)]
 [unsafe-fxmax (fxmax-type)]
 
+;; wraparound fixnum operations (don't error on overflow, wrap around instead)
+[fx+/wraparound (-Fixnum -Fixnum . -> . -Fixnum)]
+[fx-/wraparound (-Fixnum -Fixnum . -> . -Fixnum)]
+[fx*/wraparound (-Fixnum -Fixnum . -> . -Fixnum)]
+[fxlshift/wraparound (-Fixnum -Fixnum . -> . -Fixnum)]
+[unsafe-fx+/wraparound (-Fixnum -Fixnum . -> . -Fixnum)]
+[unsafe-fx-/wraparound (-Fixnum -Fixnum . -> . -Fixnum)]
+[unsafe-fx*/wraparound (-Fixnum -Fixnum . -> . -Fixnum)]
+[unsafe-fxlshift/wraparound (-Fixnum -Fixnum . -> . -Fixnum)]
+
+;; logical right shift (fills with 0s instead of sign bit)
+[fxrshift/logical (fx-from-cases (-> -Int -Int -NonNegFixnum))]
+[unsafe-fxrshift/logical (fx-from-cases (-> -Int -Int -NonNegFixnum))]
+
+;; popcount (bit counting)
+[fxpopcount (fx-from-cases (-> -Nat -Index))]
+[fxpopcount32 (fx-from-cases (-> -Nat -Index))]
+[fxpopcount16 (fx-from-cases (-> -Nat -Index))]
+[unsafe-fxpopcount (fx-from-cases (-> -Nat -Index))]
+[unsafe-fxpopcount32 (fx-from-cases (-> -Nat -Index))]
+[unsafe-fxpopcount16 (fx-from-cases (-> -Nat -Index))]
+
+;; fixnum bounds
+[most-positive-fixnum (-> -PosFixnum)]
+[most-negative-fixnum (-> -NegFixnum)]
+
 
 ;; flonum ops
 [flabs (flabs-type 'flonum)]

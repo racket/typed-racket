@@ -1998,6 +1998,11 @@
         (tc-e (treelist-index-of (treelist "a" "b" "c") "b" equal?) -Index)
         (tc-e (treelist-sort (treelist "c" "a" "b") string<?) (-treelist -String))
 
+        ;; curryr tests
+        (tc-e ((curryr (lambda: ([x : Number] [y : Number]) (- x y)) 1) 5) -Number)
+        (tc-e (curryr string-append "!") (t:-> -String -String))
+        (tc-e ((curryr string-append "!") "hello") -String)
+
         ;Syntax
 
         (tc-e (syntax? #'id) #:ret (tc-ret -Boolean -true-propset))

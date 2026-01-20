@@ -8,9 +8,10 @@
 (require racket/sandbox)
 
 (call-with-limits
- 120
- 500
- (λ () (eval '(begin (module a typed/racket
+ 200
+ 1000
+ (λ () (eval '(begin (module a typed/racket/base
+		       (require racket/match)
                        (provide foo bar)
                        (: foo : Any -> Number)
                        (define (foo x)

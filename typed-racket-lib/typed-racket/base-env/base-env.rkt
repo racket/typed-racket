@@ -1288,6 +1288,12 @@
 [curry (-polydots (a c b)
                   (cl->* ((->... (list a) (b b) c :T+ #f) a . -> . (->... '() (b b) c :T+ #f))
                          ((->... (list a) (b b) c :T+ #f) . -> . (a . -> . (->... '() (b b) c :T+ #f) :T+ #f))))]
+;; curryr is like curry but applies arguments from the right
+;; Note: A fully precise type for curryr would require expressing (rest... fixed) -> result
+;; which ->... doesn't support. This handles the common 2-argument case.
+[curryr (-poly (a b c)
+               (cl->* ((a b . -> . c) b . -> . (a . -> . c))
+                      ((a b . -> . c) . -> . (b . -> . (a . -> . c)))))]
 (primitive? (-> Univ B))
 (primitive-closure? (-> Univ B))
 

@@ -217,10 +217,22 @@ at least theoretically.
         (syntax-parse stx
           [(_ head cnt . body)
            (syntax/loc stx (define head . body))]))))
-
 (define-syntax define-struct/cond-contract
   (if enable-contracts?
-      (make-rename-transformer #'define-struct/contract)
+      ;; When contracts are enabled, filter out #:authentic since
+      ;; define-struct/contract doesn't support it
+      (lambda (stx)
+        (syntax-parse stx
+          [(_ hd ([i c] ...) . opts)
+           (define filtered-opts
+             (let loop ([opts (syntax->list #'opts)])
+               (cond
+                 [(null? opts) '()]
+                 [(eq? (syntax-e (car opts)) '#:authentic)
+                  (loop (cdr opts))]
+                 [else (cons (car opts) (loop (cdr opts)))])))
+           (with-syntax ([(opt ...) filtered-opts])
+             #'(define-struct/contract hd ([i c] ...) opt ...))]))
       (syntax-rules ()
         [(_ hd ([i c] ...) . opts)
          (define-struct hd (i ...) . opts)])))

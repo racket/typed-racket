@@ -267,7 +267,7 @@
 ;;   (lr-clause (Listof Identifier) Syntax)
 ;;
 ;; interp. represents a letrec binding
-(struct lr-clause (names expr) #:transparent)
+(struct lr-clause (names expr) #:transparent #:authentic)
 
 ;; get-non-recursive-clauses : (Listof lr-clause) (Listof Identifier) ->
 ;;                             (Listof lr-clause) (Listof lr-clause) (Listof Syntax)

@@ -21,6 +21,7 @@
                                   [obj-types (hash/c Object? Type? #:immutable #t)]
                                   [props (listof Prop?)]
                                   [aliases immutable-free-id-table?])
+  #:authentic
   #:transparent
   #:property prop:custom-write
   (lambda (e prt mode)

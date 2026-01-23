@@ -60,7 +60,7 @@
 ;; desc : struct-desc
 ;; struct-info : struct-info?
 ;; type-only : Boolean
-(struct parsed-struct (sty names desc struct-info) #:transparent)
+(struct parsed-struct (sty names desc struct-info) #:transparent #:authentic)
 
 ;; struct-name : Id  (the identifier for the static struct info,
 ;;                    usually the same as the type-name)
@@ -71,7 +71,7 @@
 ;; predicate : Id
 ;; getters : Listof[Id]
 ;; setters : Listof[Id] or #f
-(struct struct-names (struct-name type-name struct-type constructor extra-constructor predicate getters setters) #:transparent)
+(struct struct-names (struct-name type-name struct-type constructor extra-constructor predicate getters setters) #:transparent #:authentic)
 
 ;; struct-desc holds all the relevant information about a struct type's types
 ;; parent-fields : (Listof Type)
@@ -81,7 +81,7 @@
 ;; parent-mutable: Any
 (struct struct-desc (parent-fields self-fields tvars
                      mutable parent-mutable)
-        #:transparent)
+        #:transparent #:authentic)
 
 (define (struct-desc-all-fields fields)
   (append (struct-desc-parent-fields fields) (struct-desc-self-fields fields)))

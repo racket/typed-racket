@@ -47,7 +47,7 @@
 ;;
 ;; interp. Represents the by-position and by-name initialization
 ;;         arguments respectively provided by the class
-(struct super-init-stxs (by-position by-name) #:transparent)
+(struct super-init-stxs (by-position by-name) #:transparent #:authentic)
 
 ;; time debugging
 (define-syntax do-timing #f)

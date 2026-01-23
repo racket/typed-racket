@@ -37,7 +37,7 @@
 ;; kind*: whether this type constructor can take an arbitrary number of arguments
 ;; productive?: whether this type constructor is productive.
 (struct TypeConstructor (real-trep-constr arity kind*? productive? [variances #:mutable])
-  #:transparent
+  #:transparent #:authentic
   #:property prop:kind #t
   #:property prop:procedure
   (lambda (me . args)

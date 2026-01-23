@@ -162,7 +162,7 @@
 ;; - internal names are the internal renamings of those variables in fully expanded
 ;;   unit syntax, this renaming is performed by the untyped unit macro
 ;; - All references within a unit body use the internal names
-(struct sig-info (name externals internals) #:transparent)
+(struct sig-info (name externals internals) #:transparent #:authentic)
 
 ;; Process the various pieces of the fully expanded unit syntax to produce
 ;; sig-info structures for the unit's imports and exports, and a list of the
@@ -410,7 +410,7 @@
 ;; - export-links : the symbols corresponding to the link-bindings exported
 ;;                  by this unit
 (struct cu-expr-info (expr import-sigs import-links export-sigs export-links)
-  #:transparent)
+  #:transparent #:authentic)
 
 ;; parse-compound-unit : Syntax -> (Values (Listof (Cons Symbol Id))
 ;;                                         (Listof Symbol)

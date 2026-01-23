@@ -182,15 +182,15 @@
 ;; This is a unification of all of the dotted types that exist ListDots, ->..., and ValuesDots.
 ;; This allows for one implementation of the cgen algorithm for dotted types to be shared across all
 ;; of them.
-(struct seq (types end) #:transparent)
-(struct null-end () #:transparent)
+(struct seq (types end) #:transparent #:authentic)
+(struct null-end () #:transparent #:authentic)
 (define -null-end (null-end))
 ;; ts is the pattern of the rest of the seq that can
 ;; occur 0 or more times
 ;; e.g. a rest argument of Num would just be (list Num)
 ;;      a rest arg of (Num Str) would be (list Num Str)
-(struct star-end (ts) #:transparent)
-(struct dotted-end (type bound) #:transparent)
+(struct star-end (ts) #:transparent #:authentic)
+(struct dotted-end (type bound) #:transparent #:authentic)
 
 (define (Values->seq v)
   (match v

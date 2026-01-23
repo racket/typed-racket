@@ -52,7 +52,7 @@
 ;; rest: id or #f
 ;; syntax: syntax? - the improper syntax list of identifiers
 ;; (i.e. (append positional (or id '())) but syntax)
-(struct formals (positional rest syntax) #:transparent)
+(struct formals (positional rest syntax) #:transparent #:authentic)
 
 
 ;; When expanding a keyword or optional lambda, Racket adds into the expanded
@@ -427,7 +427,7 @@
 ;;  [(x y z) ...]      ; ==> (case-arities '(1 2 3) +inf.0)
 ;;  [(x y . rst) ...]  ; ==> (case-arities '(1 2)   2)
 ;;  [l ...])           ; ==> (case-arities '()      0)
-(struct case-arities (fixed-arities rest-pos) #:transparent)
+(struct case-arities (fixed-arities rest-pos) #:transparent #:authentic)
 
 ;; initially, we have seen no fixed arities and it is impossible for
 ;; an argument to be in a rest argument from a previous clause

@@ -18,6 +18,7 @@
 ;; shallow-id : identifier
 ;; optional-id : identifier
 (struct typed-renaming (deep-id untyped-id shallow-id optional-id)
+  #:authentic
   ;; prevent the rename transformer from expanding in
   ;; module-begin context because the typed context flag
   ;; will not be set until the module-begin

@@ -42,13 +42,13 @@
                           variance:const
                           variance:dotted)
   (let ()
-    (define-struct Variance () #:transparent)
-    (define-struct (Covariant Variance) () #:transparent)
-    (define-struct (Contravariant Variance) () #:transparent)
-    (define-struct (Invariant Variance) () #:transparent)
-    (define-struct (Constant Variance) () #:transparent)
+    (define-struct Variance () #:transparent #:authentic)
+    (define-struct (Covariant Variance) () #:transparent #:authentic)
+    (define-struct (Contravariant Variance) () #:transparent #:authentic)
+    (define-struct (Invariant Variance) () #:transparent #:authentic)
+    (define-struct (Constant Variance) () #:transparent #:authentic)
     ;; not really a variance, but is disjoint with the others
-    (define-struct (Dotted Variance) () #:transparent)
+    (define-struct (Dotted Variance) () #:transparent #:authentic)
     (values Variance? (make-Covariant) (make-Contravariant) (make-Invariant) (make-Constant) (make-Dotted))))
 
 (define (variance:co? x) (eq? x variance:co))
@@ -74,9 +74,9 @@
 
 ;;All of these are used internally
 ;;Only combined-frees is used externally
-(struct combined-frees (table computed) #:transparent)
-(struct app-frees (name args) #:transparent)
-(struct remove-frees (inner name) #:transparent)
+(struct combined-frees (table computed) #:transparent #:authentic)
+(struct app-frees (name args) #:transparent #:authentic)
+(struct remove-frees (inner name) #:transparent #:authentic)
 
 
 ;; Base constructors

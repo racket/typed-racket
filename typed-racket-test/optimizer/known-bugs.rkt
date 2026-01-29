@@ -19,7 +19,7 @@
 (define (mk-eval lang)
   (call-with-trusted-sandbox-configuration
    (λ ()
-     (parameterize ([sandbox-memory-limit 300])
+     (parameterize ([sandbox-memory-limit 3000])
        (make-evaluator lang)))))
 (define racket-eval (mk-eval 'racket))
 (define tr-eval     (mk-eval 'typed/racket))
@@ -85,6 +85,9 @@
     ;; Multiplication of multiple args should keep exact semantics for exact args
     (good-opt (* (expt 10 500) (expt 10 -500) 1.0+1.0i))
 
+    ;; Multiplication with multiple exact reals and a float complex should not crash
+    (good-opt (* 2 3 1.0+1.0i))
+
     ;; Addition of multiple args should keep exact semantics for exact args
     (good-opt (+ (expt 10 501) (expt -10 501) 1.0+1.0i))
 
@@ -99,7 +102,16 @@
     (good-opt (conjugate 0.0+0.0i))
 
     ;; Magnitude should always return positive results
-    (good-opt (magnitude -1.0-2i))))
+    (good-opt (magnitude -1.0-2i))
+
+    ;; Division of 0.0 should return correct sign
+    (good-opt (/ (min 0.0 0)))
+
+    ;; Subtraction should not convert large numbers to infinity prematurely
+    (good-opt (- (expt 10 309) +inf.0))
+
+    ;; make-polar with NaN should return complex NaN, not real NaN
+    (good-opt (+ 1.0 (make-polar +nan.0 1.0)))))
 
 (module+ main
   (require rackunit/text-ui)

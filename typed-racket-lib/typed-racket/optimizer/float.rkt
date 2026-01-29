@@ -112,6 +112,31 @@
        (not (subtypeof? stx -SingleFlonum))
        (not (subtypeof? stx -Int))))
 
+;; Check if an expression is a literal infinity
+(define (literal-infinity? a)
+  (syntax-parse a #:literal-sets (kernel-literals)
+    [(#%expression e) (literal-infinity? #'e)]
+    [(quote n) #:when (and (flonum? (syntax-e #'n))
+                           (not (rational? (syntax-e #'n))))
+     #t]
+    [_ #f]))
+
+;; Check whether an expression can be safely converted to flonum without
+;; changing the result (e.g., a large finite number becoming infinity).
+;; When there's an infinity operand, converting a huge exact number first
+;; can change semantics (e.g., huge - inf = -inf, but +inf - inf = nan).
+(define (safe-to-convert? a has-infinity-operand?)
+  (or (subtypeof? a -Fixnum)
+      (syntax-parse a #:literal-sets (kernel-literals)
+        [(#%expression e) (safe-to-convert? #'e has-infinity-operand?)]
+        ;; Quoted flonum - already a float, safe
+        [(quote n) #:when (flonum? (syntax-e #'n)) #t]
+        ;; Quoted real number - check if it converts to a finite float
+        [(quote n) #:when (real? (syntax-e #'n))
+         (rational? (real->double-flonum (syntax-e #'n)))]
+        ;; Non-literal expressions: if there's an infinity operand, be conservative
+        ;; because we can't prove the value won't overflow
+        [_ (not has-infinity-operand?)])))
 
 (define-syntax-class float-opt-expr
   #:commit
@@ -129,7 +154,11 @@
                         ;; for now, accept anything that can be coerced to float
                         ;; finer-grained checking is done below
                         (~between fs:float-arg-expr 2 +inf.0) ...)
-           #:when (let* ([safe-to-opt?
+           #:when (let* ([;; Check if any operand is a literal infinity
+                          has-infinity-operand?
+                          (for/or ([a (in-syntax #'(fs ...))])
+                            (literal-infinity? a))]
+                         [safe-to-opt?
                           ;; For it to be safe, we need:
                           ;; - the result to be a float, in which case coercing args to floats
                           ;;   won't change the result type
@@ -141,11 +170,16 @@
                           ;;   operations into float operations by accident.
                           ;;   (Note: could allow for more args, if not next to each other, but
                           ;;    probably not worth the trouble (most ops have 2 args anyway))
+                          ;; - when there's an infinity operand, be more careful about
+                          ;;   converting exact numbers that might overflow
                           (and (subtypeof? this-syntax -Flonum)
                                (for/and ([a (in-syntax #'(fs ...))])
                                  ;; flonum or provably non-zero
+                                 ;; also need to make sure that coercing to float won't change
+                                 ;; a large finite number to infinity, altering the result
                                  (or (subtypeof? a -Flonum)
-                                     (subtypeof? a (Un -PosReal -NegReal))))
+                                     (and (subtypeof? a (Un -PosReal -NegReal))
+                                          (safe-to-convert? a has-infinity-operand?))))
                                (>= 1
                                    (for/sum ([a (in-syntax #'(fs ...))]
                                              #:when (not (subtypeof? a -Flonum)))

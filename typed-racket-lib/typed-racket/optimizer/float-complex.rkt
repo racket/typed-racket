@@ -208,16 +208,21 @@
                   (define new-imag-id (if both-real?
                                           (mark-as-real (car is))
                                           (car is)))
+                  ;; Helper to convert non-float values to flonum for unsafe ops
+                  (define (maybe-to-float v)
+                    (if (as-non-float v)
+                        #`(real->double-flonum #,v)
+                        v))
                   (loop (car rs) new-imag-id (cdr e1) (cdr e2) (cdr rs) (cdr is)
                         ;; complex multiplication, imag part, then real part (reverse)
                         ;; we eliminate operations on the imaginary parts of reals
                         (list* #`((#,new-imag-id)
                                   #,(cond ((and o-real? e-real?) #'0.0)
-                                          (o-real? #`(unsafe-fl* #,o1 #,(car e2)))
-                                          (e-real? #`(unsafe-fl* #,o2 #,(car e1)))
+                                          (o-real? #`(unsafe-fl* #,(maybe-to-float o1) #,(car e2)))
+                                          (e-real? #`(unsafe-fl* #,o2 #,(maybe-to-float (car e1))))
                                           (else
-                                           #`(unsafe-fl+ (unsafe-fl* #,o2 #,(car e1))
-                                                         (unsafe-fl* #,o1 #,(car e2))))))
+                                           #`(unsafe-fl+ (unsafe-fl* #,o2 #,(maybe-to-float (car e1)))
+                                                         (unsafe-fl* #,(maybe-to-float o1) #,(car e2))))))
                                #`((#,(car rs))
                                   #,(cond [(and o-nf e-nf both-real?)
                                            ;; we haven't seen float operands yet, so

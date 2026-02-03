@@ -270,7 +270,7 @@
       (and (not racket-failed?)
            ;; for NaN, which is not = to itself
            (or (equal? racket-result tr-result)
-               (begin (printf "not same result untyped: ~s typed: ~s\n" racket-result tr-result)
+               (begin (eprintf "not same result untyped: ~s typed: ~s\n" racket-result tr-result)
                       #;(printf "expanded typed code is: ~s\n"
                               (simplify-expanded (tr-eval `(syntax->datum (expand (quote (#%top-interaction . ,sexp)))))))
                       #f)))))

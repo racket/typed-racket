@@ -25,6 +25,11 @@
 (define (safe-arithmetic-shift a b)
   (if (> b 100000) b (arithmetic-shift a b)))
 
+;; expt with large exact exponents can produce numbers with trillions of digits,
+;; e.g. (expt 2 (expt -19 11)) tries to compute 2^(-116490258898219)
+(define (safe-expt a b)
+  (if (> (abs b) 10000) b (expt a b)))
+
 (define-language tr-arith
   [n real]
   ;; randomly generate F, not E, because literal numbers self-evaluate
@@ -151,9 +156,9 @@
      (sinh E*)
      (cosh E*)
      (tanh E*)
-     (expt E* E*)]
+     (safe-expt E* E*)]
   [INEQ < <= >= >]
-  [R n (+ R R) (- R R) (* R R) (expt R R)]
+  [R n (+ R R) (- R R) (* R R) (safe-expt R R)]
   [C (let ([x R] [y R]) (if (INEQ x y) x  #f))
      (let ([x R] [y R]) (if (INEQ x y) #f x))
      (let ([x R] [y R]) (if (INEQ x y) y #f))

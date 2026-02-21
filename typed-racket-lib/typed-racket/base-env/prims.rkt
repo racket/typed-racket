@@ -34,22 +34,51 @@ the typed racket language.
                      def-redirect
                      define-for*-variants with-handlers: with-handlers*: define-for/acc:-variants
                      base-for/flvector: base-for/vector -define -do -let
-                     -let* -let*-values -let-values -let/cc -let/ec -letrec -letrec-values)
+                     -let* -let*-values -let-values -let/cc -let/ec -letrec -letrec-values
+                     for:
+                     for/and:
+                     for/first:
+                     for/fold:
+                     for/foldr:
+                     for/hash:
+                     for/hasheq:
+                     for/hasheqv:
+                     for/hashalw:
+                     for/last:
+                     for/list:
+                     for/lists:
+                     for/set:
+                     for/or:
+                     for/product:
+                     for/sum:
+                     for/vector:
+                     for*/and:
+                     for*/first:
+                     for*/fold:
+                     for*/foldr:
+                     for*/hash:
+                     for*/hasheq:
+                     for*/hasheqv:
+                     for*/hashalw:
+                     for*/last:
+                     for*/list:
+                     for*/lists:
+                     for*/set:
+                     for*/or:
+                     for*/product:
+                     for*/sum:
+                     for*/vector:)
          (all-from-out "top-interaction.rkt")
          (except-out (all-from-out "prims-lambda.rkt") -lambda)
          (all-from-out (submod "prims-contract.rkt" forms))
-         define-type-alias
          define-new-subtype
-         define-typed-struct
-         define-typed-struct/exec
          ann inst row-inst
          :
-         (rename-out [define-typed-struct define-struct:]
-                     [define-typed-struct define-struct]
+         (rename-out [define-typed-struct define-struct]
+                     [define-type-alias define-type]
                      [-lambda lambda]
                      [-lambda λ]
                      [-struct struct]
-                     [-struct struct:]
                      [-define define]
                      [-let let]
                      [-let* let*]
@@ -102,10 +131,8 @@ the typed racket language.
                      [for/set: for/set]
                      [for*/set: for*/set]
                      [-do do]
-                     [-do do:]
                      [with-handlers: with-handlers]
                      [with-handlers*: with-handlers*]
-                     [define-typed-struct/exec define-struct/exec:]
                      [define-typed-struct/exec define-struct/exec]))
 
 (require "colon.rkt"

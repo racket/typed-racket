@@ -16,7 +16,6 @@
                      syntax/parse/pre))
 
 (provide (rename-out [-case-lambda case-lambda]
-                     [-case-lambda case-lambda:]
                      [-case-lambda case-λ]
                      [lambda: λ:])
          pcase-lambda:

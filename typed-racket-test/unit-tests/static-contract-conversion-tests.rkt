@@ -11,8 +11,11 @@
            typed-racket/static-contracts/instantiate
            typed-racket/static-contracts/structures
            typed-racket/static-contracts/combinators
+           typed-racket/static-contracts/combinators/name
            typed-racket/types/abbrev
-           typed-racket/types/numeric-tower))
+           typed-racket/types/numeric-tower
+           typed-racket/rep/type-rep
+           typed-racket/env/type-name-env))
 
 (provide tests)
 (gen-test-main)
@@ -209,4 +212,43 @@
     (t/sc (-set Univ) #:ret any/sc #:optional)
     (t/sc (-HT (-vec -Symbol) (-vec -Symbol)) #:ret any/sc #:optional)
     (t/sc (-unit null null null ManyUniv) #:ret any/sc #:optional))
+
+   ;; When a Name type resolves to a Mu, the name-def SC should be a
+   ;; plain object/sc, not wrapped in recursive-sc.  The single level of
+   ;; recursive-contract comes from extra-defs in instantiate; verifying
+   ;; that the name-def is not itself a recursive-sc ensures no doubling.
+   (test-suite "Name->Mu produces no double recursive-sc"
+    (test-case "recursive class type alias"
+      (phase1-phase0-eval (define name-id (datum->syntax #f 'TestC%))
+                          (define the-type (make-Name name-id 0 #f))
+                          (register-type-name name-id (-mu a (-object #:method [(m (-> a -Void))])))
+                          (with-new-name-tables
+                           (let ()
+                             (define sc (type->static-contract the-type (lambda (#:reason _) #f)))
+                             ;; The top-level SC is just a name reference.
+                             ;; Default typed-side=#t maps to 'typed.
+                             (define typed-name-sc (lookup-name-sc the-type 'typed))
+                             (define both-name-sc (lookup-name-sc the-type 'both))
+                             ;; The name-def SC should be a plain object/sc.
+                             ;; Before the fix, this was a recursive-sc wrapping
+                             ;; the object/sc, which combined with the
+                             ;; recursive-contract from extra-defs produced
+                             ;; double nesting.
+                             (define both-def (lookup-name-def the-type 'both))
+                             (define expected-def
+                               (object/sc #t
+                                          (list (member-spec 'method
+                                                             'm
+                                                             (function/sc #t
+                                                                          (list any/sc both-name-sc)
+                                                                          null
+                                                                          null
+                                                                          null
+                                                                          #f
+                                                                          (list (flat/sc #'void?)))))))
+                             #`(begin
+                                 ;; The top-level result is a name-sc reference
+                                 (check-equal? '#,sc '#,typed-name-sc)
+                                 ;; The name-def is object/sc, not recursive-sc
+                                 (check-equal? '#,both-def '#,expected-def)))))))
    ))

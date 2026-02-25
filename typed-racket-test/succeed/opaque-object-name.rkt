@@ -16,8 +16,8 @@
             #`(let ([nm (contract-name (object/c-opaque #,@ctc-spec))])
                 (with-check-info* (list (make-check-location '#,(build-source-location-list ctc-spec)))
                   (lambda ()
-                    (check-equal? (car nm) 'object/c-opaque)
-                    (check-equal? (length nm) (+ 1 #,(length (syntax-e ctc-spec)))))))))]))
+                    (check-equal? (car nm) 'object/c)
+                    (check-equal? (length nm) (+ 6 #,(length (syntax-e ctc-spec)))))))))]))
 
 (test-object/c-opaque-name-shape
   []

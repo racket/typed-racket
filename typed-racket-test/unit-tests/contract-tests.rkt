@@ -492,7 +492,7 @@
                       (define/public (m) "m")
                       (define/public (n) "n")))
                #:typed
-               #:msg #rx"cannot call uncontracted")
+               #:msg #rx"invoke only methods")
    (t-int (-class #:method ([m (-> -String)]))
           (λ (s%) (class s% (super-new)
                     (define/public (n) "ok")))

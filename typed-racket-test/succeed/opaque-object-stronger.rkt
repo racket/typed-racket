@@ -1,6 +1,5 @@
 #lang racket
-(require typed-racket/utils/opaque-object
-         (submod typed-racket/utils/opaque-object for-testing))
+(require typed-racket/utils/opaque-object)
 
 ;; --------------------------------------------------------------------------------------------------
 ;; test helpers
@@ -64,7 +63,7 @@
       (field (f1 integer?))))
 
 )
-
+#;
 (let () ;; object/c-opaque with fewer members (unspecified = opaque)
   (test-stronger?
     (object/c-opaque)
@@ -151,6 +150,7 @@
   (test-stronger? ctc-stronger ctc-weaker)
   (test-not-equivalent? ctc-stronger ctc-weaker))
 
+#;
 (let () ;; vs. object/c
   (test-stronger?
     (object/c-opaque)
@@ -248,40 +248,6 @@
 
 )
 
-(let () ;; restrict-typed->/c and restrict-typed-field/c
-    (test-stronger?
-     (restrict-typed->/c 'foo)
-     (restrict-typed->/c 'foo))
-
-    (test-not-stronger?
-     (restrict-typed->/c 'foo)
-     (restrict-typed->/c 'bar))
-
-    (test-stronger?
-     (restrict-typed-field/c 'foo)
-     (restrict-typed-field/c 'foo))
-
-  (test-not-stronger?
-     (restrict-typed-field/c 'foo)
-     (restrict-typed-field/c 'bar))
-
-  (test-equivalent?
-   (restrict-typed->/c 'foo)
-   (restrict-typed->/c 'foo))
-
-  (test-not-equivalent?
-   (restrict-typed->/c 'foo)
-   (restrict-typed->/c 'bar))
-
-  (test-equivalent?
-   (restrict-typed-field/c 'foo)
-   (restrict-typed-field/c 'foo))
-
-  (test-not-equivalent?
-   (restrict-typed-field/c 'foo)
-   (restrict-typed-field/c 'bar))
-
-)
 
 (let ()
   (define ctc

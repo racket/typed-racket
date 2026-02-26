@@ -32,6 +32,7 @@
                       static-contract?
                       static-contract?)))]
  [lookup-name-sc (-> Type? symbol? (or/c #f static-contract?))]
+ [lookup-name-def (-> Type? symbol? (or/c #f static-contract?))]
  [register-name-sc (-> Type?
                        (-> static-contract?)
                        (-> static-contract?)
@@ -74,6 +75,15 @@
          [(typed)   (cadr result)]
          [(untyped) (caddr result)]
          [else (raise-argument-error 'lookup-name-sc "side?" typed-side)])))
+
+(define (lookup-name-def type typed-side)
+  (define result (hash-ref (name-defs-table) type #f))
+  (and result
+       (case typed-side
+         [(typed)   (car result)]
+         [(untyped) (cadr result)]
+         [(both)    (caddr result)]
+         [else (raise-argument-error 'lookup-name-def "side?" typed-side)])))
 
 (define (register-name-sc type typed-thunk untyped-thunk both-thunk)
   (define typed-name (generate-temporary))

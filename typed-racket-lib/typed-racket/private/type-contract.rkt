@@ -461,10 +461,25 @@
                (define rv recursive-values)
                ;; FIXME: need special treatment for type constructors
                (define resolved-name (resolve-once type))
+               ;; When the resolved type is a Mu, use the name-sc gen-names
+               ;; for the Mu variable's self-reference instead of letting the
+               ;; Mu case generate a separate recursive-sc.  This avoids
+               ;; double-nested recursive-contract in the output.
+               (define (loop-for-name-sc resolved side rv)
+                 (match resolved
+                   [(Mu: (list n) b)
+                    (loop b
+                          side
+                          (hash-set rv
+                                    n
+                                    (triple (lookup-name-sc type 'untyped)
+                                            (lookup-name-sc type 'typed)
+                                            (lookup-name-sc type 'both))))]
+                   [_ (loop resolved side rv)]))
                (register-name-sc type
-                                 (λ () (loop resolved-name 'untyped rv))
-                                 (λ () (loop resolved-name 'typed rv))
-                                 (λ () (loop resolved-name 'both rv)))
+                                 (λ () (loop-for-name-sc resolved-name 'untyped rv))
+                                 (λ () (loop-for-name-sc resolved-name 'typed rv))
+                                 (λ () (loop-for-name-sc resolved-name 'both rv)))
                (lookup-name-sc type typed-side)])]
        ;; Ordinary type applications or struct type names, just resolve
        [(or (App: _ _) (Name/struct:)) (t->sc (resolve-once type))]

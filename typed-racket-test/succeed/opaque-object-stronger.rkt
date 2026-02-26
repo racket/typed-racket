@@ -63,7 +63,7 @@
       (field (f1 integer?))))
 
 )
-#;
+
 (let () ;; object/c-opaque with fewer members (unspecified = opaque)
   (test-stronger?
     (object/c-opaque)
@@ -150,7 +150,7 @@
   (test-stronger? ctc-stronger ctc-weaker)
   (test-not-equivalent? ctc-stronger ctc-weaker))
 
-#;
+
 (let () ;; vs. object/c
   (test-stronger?
     (object/c-opaque)

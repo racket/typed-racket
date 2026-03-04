@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"cannot read or write.*blaming:.*b\\)")
+(exn-pred #rx"not mutate fields.*blaming:.*b\\)")
 #lang racket/base
 
 ;; Ensure that opaque object contracts prevent access to fields

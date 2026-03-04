@@ -28,6 +28,10 @@
     (error 'opaque-object-equivalent
            "contract ~s is unexpectedly equivalent to ~s" c1 c2)))
 
+(define (test-incomparable? c1 c2)
+  (test-not-stronger? c1 c2)
+  (test-not-stronger? c2 c1))
+
 ;; --------------------------------------------------------------------------------------------------
 ;; stronger? tests
 
@@ -65,7 +69,7 @@
 )
 
 (let () ;; object/c-opaque with fewer members (unspecified = opaque)
-  (test-stronger?
+  (test-incomparable?
     (object/c-opaque)
     (object/c-opaque
       (field (x symbol?))))
@@ -75,21 +79,21 @@
     (object/c-opaque
       (field (x symbol?))))
 
-  (test-stronger?
+  (test-not-stronger?
     (object/c-opaque
       (field (x symbol?)))
     (object/c-opaque
       (field (x symbol?))
       (y (->m none/c none/c))))
 
-  (test-stronger?
+  (test-incomparable?
     (object/c-opaque
       (f (->m void? any/c)))
     (object/c-opaque
       (f (->m void? any/c))
       (g (->m integer? integer? integer?))))
 
-  (test-stronger?
+  (test-incomparable?
     (object/c-opaque
       (field (a integer?))
       (c (-> real? real?)))
@@ -152,19 +156,19 @@
 
 
 (let () ;; vs. object/c
-  (test-stronger?
+  (test-incomparable?
     (object/c-opaque)
     (object/c
       (field (a boolean?))
       (b (->m string? any/c))))
 
-  (test-stronger?
+  (test-incomparable?
     (object/c-opaque
       (field (x any/c))
       (h (->m (-> boolean? boolean? boolean?) integer?)))
     (object/c))
 
-  (test-stronger?
+  (test-incomparable?
     (object/c-opaque
       (field (x integer?))
       (m1 (->m any/c any/c any/c)))
@@ -172,7 +176,7 @@
       (field (x integer?))
       (m1 (->m any/c any/c any/c))))
 
-  (test-stronger?
+  (test-incomparable?
     (object/c-opaque
       (m1 (->m any/c (</c 2))))
     (object/c

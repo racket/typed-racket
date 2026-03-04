@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"uncontracted typed.*blaming: .*opaque-object-contract.rkt")
+(exn-pred #rx"invoke only methods.*blaming: .*opaque-object-contract.rkt")
 #lang racket/base
 
 (module a typed/racket/optional

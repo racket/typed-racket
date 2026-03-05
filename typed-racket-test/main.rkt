@@ -246,7 +246,9 @@
    ["--benchmarks" "compile the typed benchmarks" (bench? #t)]
    ["--math" "compile the math library" (math? #t)]
    ["--just" path "run only this test" (single (just-one path))]
-   ["--nightly" "for the nightly builds" (begin (nightly? #t) (unit? #t) (int? #t) (opt? #t) (missed-opt? #t) (places 1))]
+   ["--nightly" "for the nightly builds" (begin (nightly? #t) (unit? #t)
+                                                (when (eq? 'chez-scheme (system-type 'vm)) (int? #t))
+                                                (opt? #t) (missed-opt? #t) (places 1))]
    ["--all" "run all tests" (begin (unit? #t) (int? #t) (opt? #t) (missed-opt? #t) (bench? #t) (math? #t))]
    ["--guitests" "run the gui-related tests" (gui? #t)]
    ["--timeout" tm "minutes after which the running tests will be printed out" (timeout (string->number tm))]

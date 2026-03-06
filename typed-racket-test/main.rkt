@@ -42,6 +42,8 @@
     [(list-rest 'exn-pred e) (eval `(exn-matches . ,e) (namespace-anchor->namespace a))]
     [_ (exn-matches ".*Type Checker.*" exn:fail:syntax?)]))
 
+(define ci? (and (or (getenv "PLTDRDR") (getenv "CI")) #t))
+
 (define-runtime-path src-dir ".")
 
 (define (mk-tests dir test #:error [error? #f] #:exclude [excl (set)] )
@@ -64,7 +66,7 @@
               (if (places)
                   (delay/thread
                     (begin0 (run-in-other-place p* error?)
-                      (when (zero? (modulo i 10))
+                      (when (and (not ci?) (zero? (modulo i 10)))
                         (eprintf "."))))
                   (delay
                     (parameterize ([read-accept-reader #t]
@@ -72,7 +74,7 @@
                                    [current-directory p*-base]
                                    [current-output-port (open-output-nowhere)])
                       (begin0 (dr p*-name)
-                        (when (zero? (modulo i 10))
+                        (when (and (not ci?) (zero? (modulo i 10)))
                           (eprintf ".")))))))))
     (define tests
       (for/list ([e prms])

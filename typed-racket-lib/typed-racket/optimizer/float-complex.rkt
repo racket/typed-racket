@@ -261,10 +261,19 @@
     #:with scaling-factor (generate-temporary "unboxed-scaling-")
     #:do [(log-unboxing-opt "unboxed unary float complex")]
     #:with (bindings ...)
+      ;; exp(a+bi) = exp(a) * (cos(b) + i*sin(b))
+      ;; When b is ±0.0, sin(b) is ±0.0 and exp(a) may be +inf.0,
+      ;; so sin(b)*exp(a) would produce NaN via IEEE 754 (0*inf=NaN).
+      ;; In Racket: (exp +inf.0+0.0i) = +inf.0+0.0i, (exp +nan.0+0.0i) = +nan.0+0.0i.
+      ;; Guard the zero case to avoid the spurious NaN.
       #`(c.bindings ...
          ((scaling-factor) (unsafe-flexp c.real-binding))
-         ((real-binding) (unsafe-fl* (unsafe-flcos c.imag-binding) scaling-factor))
-         ((imag-binding) (unsafe-fl* (unsafe-flsin c.imag-binding) scaling-factor))))
+         ((real-binding) (if (unsafe-fl= c.imag-binding 0.0)
+                             scaling-factor
+                             (unsafe-fl* (unsafe-flcos c.imag-binding) scaling-factor)))
+         ((imag-binding) (if (unsafe-fl= c.imag-binding 0.0)
+                             c.imag-binding
+                             (unsafe-fl* (unsafe-flsin c.imag-binding) scaling-factor)))))
 
 
   ;; we can eliminate boxing that was introduced by the user

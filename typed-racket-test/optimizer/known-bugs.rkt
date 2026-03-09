@@ -111,7 +111,13 @@
     (good-opt (- (expt 10 309) +inf.0))
 
     ;; make-polar with NaN should return complex NaN, not real NaN
-    (good-opt (+ 1.0 (make-polar +nan.0 1.0)))))
+    (good-opt (+ 1.0 (make-polar +nan.0 1.0)))
+
+    ;; exp with infinite real part and zero imaginary part should not produce NaN
+    ;; (inf * 0 = NaN in IEEE 754, but exp(+inf+0i) = +inf+0i per C99)
+    (good-opt (exp (make-rectangular +inf.0 -0.0)))
+    (good-opt (exp (make-rectangular +inf.0 0.0)))
+    (good-opt (exp (make-rectangular +nan.0 0.0)))))
 
 (module+ main
   (require rackunit/text-ui)

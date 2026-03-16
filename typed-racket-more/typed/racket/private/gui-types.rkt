@@ -73,7 +73,7 @@
                        Any)
                  (List Bytes Integer Integer)))
    [get-argb-pixels
-    (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+    (->* [Exact-Nonnegative-Integer Exact-Nonnegative-Integer Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
          [Any Any #:unscaled? Any]
          Void)]
    [get-backing-scale (-> Positive-Real)]
@@ -491,7 +491,7 @@
   (Class #:implements DC<%>
          (init [bitmap (Option (Instance Bitmap%))])
          [get-argb-pixels
-          (->* [Real Real Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
+          (->* [Exact-Nonnegative-Integer Exact-Nonnegative-Integer Exact-Nonnegative-Integer Bytes]
                [Any Any]
                Void)]
          [get-bitmap (-> (Option (Instance Bitmap%)))]

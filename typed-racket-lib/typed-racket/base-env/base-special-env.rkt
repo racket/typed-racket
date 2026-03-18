@@ -18,6 +18,19 @@
      (module-path-index-join where #f)))
   (syntax-binding-set->syntax s what))
 
+; Like make-template-identifier, but given multiple modules and picks the
+; first module which appears to exist. This is a giant hack and should be
+; removed when no longer necessary, probably late April 2016 or so. See
+; https://github.com/racket/typed-racket/pull/1499
+(define (make-template-identifier* what where-potentials)
+  (define where
+    (for/or ([where (in-list where-potentials)]
+             #:when (module-declared? (module-path-index-join where #f)))
+      where))
+  (make-template-identifier what
+                            (or where
+                                (error 'make-template-identifier* "not found"))))
+
 
 (define-initial-env initialize-special #:default-T+ #true
   ;; make-promise
@@ -38,7 +51,11 @@
   [(make-template-identifier 'all-languages 'string-constants/string-constant)
    (-> (-lst -Symbol))]
   ;; qq-append
-  [(make-template-identifier 'qq-append 'racket/private/qq-and-or)
+  ;; Note that this is being moved between files at present, so TR needs to be aware
+  ;; of both the old and new location. This duplication can be removed April 2026-ish.
+  ;; See https://github.com/racket/racket/pull/5457
+  [(make-template-identifier* 'qq-append '(racket/private/qq-and-or
+                                           racket/private/core-syntax))
    (-poly (a b)
          (cl->*
           (-> (-lst a) -Null (-lst a))

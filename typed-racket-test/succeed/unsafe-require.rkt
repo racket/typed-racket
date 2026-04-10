@@ -17,7 +17,7 @@
   ;; UNSAFE
   ;; primitive error, no blame should be raised
   (with-handlers ([(negate exn:fail:contract:blame?) void])
-    (string-append (foo-x a-foo))))
+    (foo-x a-foo)))
 
 (module c typed/racket
   (require/typed racket/contract/combinator [#:opaque Blame exn:fail:contract:blame?])
@@ -57,6 +57,6 @@
   ;; UNSAFE
   ;; primitive error, no blame should be raised
   (with-handlers ([(negate exn:fail:contract:blame?) void])
-    (string-append (foo-x a-foo))))
+    (foo-x a-foo)))
 
 (require 'b 'c 'd)

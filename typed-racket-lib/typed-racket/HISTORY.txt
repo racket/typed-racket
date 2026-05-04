@@ -1,3 +1,12 @@
+9.2
+- Fix previously-incorrect types of `asin` and `acos`, which may
+  cause existing programs not to type check.
+- Improve printing of polymorphic struct types: show the name with
+  type arguments (e.g. `(Array Byte)`) instead of the internal
+  representation.
+- Other bug fixes and type updates.
+9.1
+- Bug fixes.
 9.0
 - improve expected type propagation with keyword argument functions
 8.18

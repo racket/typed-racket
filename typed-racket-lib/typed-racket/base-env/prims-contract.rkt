@@ -338,10 +338,15 @@
                   (r/t/p lib other-clause ...))]
         [(_ lib (~and clause [#:struct nm:opt-parent
                                        (body:typed-field ...)
-                                       option ...])
+                                       (~alt (~optional (~seq #:extra-constructor-name extra-ctor:id))
+                                             (~optional (~seq #:constructor-name ctor:id))
+                                             (~optional (~seq #:type-name _:id)))
+                                       ...])
             other-clause ...)
          #'(begin (r/t lib clause)
                   (provide (struct-out nm.nm))
+                  (~? (provide extra-ctor))
+                  (~? (provide ctor))
                   (r/t/p lib other-clause ...))]
         [(_ lib (~and clause [#:opaque t:id pred:id])
             other-clause ...)
@@ -353,15 +358,15 @@
 
 (define-values [require-typed-struct/provide require-typed-struct/provide-shallow require-typed-struct/provide-optional]
   (let ()
-    (define (rtsp-maker te-mode)
+    (define ((rtsp-maker te-mode) stx)
       (define/with-syntax r/t/s (case te-mode ((shallow) #'require-typed-struct-shallow) ((optional) #'require-typed-struct-optional) (else #'require-typed-struct)))
-      (syntax-rules ()
-        [(_ (nm par) . rest)
-         (begin (r/t/s (nm par) . rest)
-                (provide (struct-out nm)))]
-        [(_ nm . rest)
-         (begin (r/t/s nm . rest)
-                (provide (struct-out nm)))]))
+      (syntax-parse stx
+        [(_ (~and name (~or nm:id (nm:id _:id))) . rest)
+         #:with (~or (_ ... (~or #:extra-constructor-name #:constructor-name) ctor:id . _) _)
+                #'rest
+         #'(begin (r/t/s name . rest)
+                  (provide (struct-out nm))
+                  (~? (provide ctor)))]))
     (values (rtsp-maker 'guarder) (rtsp-maker 'shallow) (rtsp-maker 'optional))))
 
 ;; Conversion of types to contracts
@@ -591,9 +596,7 @@
                       [internal-maker (generate-temporary #'maker-name)]
                       ;The actual identifier bound to the constructor
                       [real-maker (if (syntax-e #'id-is-ctor?) #'internal-maker #'maker-name)]
-                      [extra-maker (and (attribute input-maker.extra)
-                                        (not (bound-identifier=? #'maker-name #'nm))
-                                        #'maker-name)]
+                      [main-maker (if (syntax-e #'id-is-ctor?) #'nm #'maker-name)]
                       [type (if (stx-null? #'(tvar ...))
                                 #'type
                                 (untyped-struct-poly #'type))]
@@ -608,6 +611,12 @@
                      (when (and (not (attribute unsafe.unsafe?))
                                 (pair? (syntax->list #'(tvar ...))))
                        (tc-error/stx stx "polymorphic structs are not supported when importing from untyped racket"))
+
+                     (define/syntax-parse ((~optional extra-maker:id))
+                       (if (and (attribute input-maker.extra)
+                                (not (bound-identifier=? #'maker-name #'nm)))
+                           (list #'maker-name)
+                           '()))
 
                      (define (maybe-add-quote-syntax stx)
                        (if (and stx (syntax-e stx)) #`(quote-syntax #,stx) stx))
@@ -670,7 +679,9 @@
                                   (make-struct-info-wrapper* #'internal-maker si #'type)
                                   si))
 
-                         (dtsi* (tvar ...) spec type (body ...) #:maker maker-name)
+                         (dtsi* (tvar ...) spec type (body ...)
+                                #:maker main-maker
+                                (~? (~@ #:extra-maker extra-maker)))
                          #,(ignore
                              (with-syntax ((pred-ctc
                                             (case te-mode
@@ -692,11 +703,9 @@
 
                          ;This needs to be a different identifier to meet the specifications
                          ;of struct (the id constructor shouldn't expand to it)
-                         #,(if (syntax-e #'extra-maker)
-                               #`(r/t/te-mode #:internal (maker-name extra-maker) type lib
-                                                #:struct-maker parent
-                                                #,@(if (attribute unsafe.unsafe?) #'(unsafe-kw) #'()))
-                               #'(begin))
+                         (~? (r/t/te-mode #:internal (maker-name extra-maker) type lib
+                                          #:struct-maker parent
+                                          #,@(if (attribute unsafe.unsafe?) #'(unsafe-kw) #'())))
 
                          #,@(if (attribute unsafe.unsafe?)
                                 #'((r/t/te-mode #:internal sel (All (tvar ...) (self-type -> ty)) lib unsafe-kw) ...)

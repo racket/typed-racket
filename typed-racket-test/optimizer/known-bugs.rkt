@@ -117,7 +117,14 @@
     ;; (inf * 0 = NaN in IEEE 754, but exp(+inf+0i) = +inf+0i per C99)
     (good-opt (exp (make-rectangular +inf.0 -0.0)))
     (good-opt (exp (make-rectangular +inf.0 0.0)))
-    (good-opt (exp (make-rectangular +nan.0 0.0)))))
+    (good-opt (exp (make-rectangular +nan.0 0.0)))
+
+    ;; n-ary float-complex subtraction should not coerce huge exact integers
+    ;; to flonum before subtracting: an overflowed +inf.0 combined with
+    ;; another infinity operand would yield NaN instead of the correct +inf.0.
+    (good-opt (- +inf.0 0.0+0.0i
+                 (lcm (exact-round 7) (exact-round 2)
+                      (exact-round -1.7976931348623153e+308))))))
 
 (module+ main
   (require rackunit/text-ui)

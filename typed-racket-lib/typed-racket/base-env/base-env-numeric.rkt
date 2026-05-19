@@ -1741,8 +1741,7 @@
 [acos (from-cases (-One . -> . -Zero)
                   (map unop
                        (list -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
-[asin (from-cases (-Zero . -> . -One)
-                  (map unop
+[asin (from-cases (map unop
                        (list -FloatComplex -SingleFlonumComplex -InexactComplex N)))]
 [atan (from-cases
        (map unop (list -Zero -Flonum -SingleFlonum -InexactReal -Real

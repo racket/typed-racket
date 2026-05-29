@@ -28,12 +28,12 @@
   (filter pair? (map rest tvarss)))
 
 (define (get-poly-tvarss form)
+  (define p (plambda-prop form))
   (define plambda-tvars
-    (let ([p (plambda-prop form)])
-      (match (and p (map syntax-e (syntax->list p)))
-        [#f #f]
-        [(list var ... dvar '...) (list (list var dvar))]
-        [(list id ...) (list id)])))
+    (match (and p (map syntax-e (syntax->list p)))
+      [#f #f]
+      [(list var ... dvar '...) (list (list var dvar))]
+      [(list id ...) (list id)]))
   (define scoped-tvarss
     (for/list ([tvarss (in-list (lookup-scoped-tvar-layer form))])
       (for/list ([tvar (in-list tvarss)])

@@ -596,9 +596,11 @@
        4]
       [else #f]))
   (define t
-    (and f-depth
-         (let ((e (syntax-e post*)))
-           (and (pair? e) (tc-results->type1 (type-of (car e)))))))
+    (cond
+      [f-depth
+       (define e (syntax-e post*))
+       (and (pair? e) (tc-results->type1 (type-of (car e))))]
+      [else #f]))
   (and (Type? t)
        (let loop ((t t)
                   (d f-depth))

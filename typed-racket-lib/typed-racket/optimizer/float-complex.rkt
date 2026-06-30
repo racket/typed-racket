@@ -355,18 +355,29 @@
   (pattern e:number-expr
     #:with e* (generate-temporary)
     #:with (real-binding* imag-binding*) (binding-names)
-    #:with real-binding (if (and (subtypeof? #'e -Real)
-                                 (not (subtypeof? #'e -Flonum)))
-                            ;; values that were originally non-floats (e.g.
-                            ;; rationals or single floats) may need to be
-                            ;; handled specially
-                            (mark-as-non-float #'real-binding* #'e*)
-                            #'real-binding*)
-    #:with imag-binding (if (subtypeof? #'e -Real)
-                            ;; values that were originally reals may need to be
-                            ;; handled specially
-                            (mark-as-real #'imag-binding*)
-                            #'imag-binding*)
+    #:with real-binding
+      (cond
+        [(and (subtypeof? #'e -Real)
+              (not (subtypeof? #'e -Flonum)))
+         ;; values that were originally non-floats (e.g.
+         ;; rationals or single floats) may need to be
+         ;; handled specially
+         (mark-as-non-float #'real-binding* #'e*)]
+        [(subtypeof? #'e -Real) #'real-binding*]
+        [else
+         ;; A general Number can have exact components even when the whole
+         ;; expression is used in Float-Complex arithmetic. Keep the original
+         ;; projections for generic + and - so exact zeros are not coerced to
+         ;; +0.0 before signed-zero-sensitive arithmetic.
+         (mark-as-non-float #'real-binding* #'(real-part e*))])
+    #:with imag-binding
+      (cond
+        [(subtypeof? #'e -Real)
+         ;; values that were originally reals may need to be
+         ;; handled specially
+         (mark-as-real #'imag-binding*)]
+        [else
+         (mark-as-non-float #'imag-binding* #'(imag-part e*))])
     #:do [(log-unboxing-opt
             (if (subtypeof? #'e -Flonum)
                 "float in complex ops"

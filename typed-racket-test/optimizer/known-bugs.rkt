@@ -116,6 +116,26 @@
     ;; make-polar with NaN should return complex NaN, not real NaN
     (good-opt (+ 1.0 (make-polar +nan.0 1.0)))
 
+    ;; Typed Racket #868: float-complex optimization should preserve
+    ;; RacketCS results for signed zero, infinities, and NaNs.
+    (good-opt (- (make-polar -3 0)
+                 (make-polar -1.7976931348623157e+308 -0.0)))
+    (good-opt (/ 2.3454025
+                 (flmin (real->double-flonum 1.797693134862315e+308)
+                        (real->double-flonum -1.2848677e+32))
+                 (make-rectangular +nan.0 0.0)))
+    (good-opt (/ (make-polar 0.0
+                             (max (real->double-flonum 2)
+                                  (real->double-flonum 30.317604)))))
+    (good-opt (/ (make-polar -0.0 -0.0)))
+    (good-opt (/ (make-rectangular (floor 5e-324) -0.0)))
+    (good-opt (/ (* 0.0
+                    (make-rectangular -7 6e-323)
+                    -1.7976931348623155e+308)))
+    (good-opt (/ -5 2/7
+                 (make-polar -0.0
+                             (fltan (real->double-flonum -3.833043e+21)))))
+
     ;; exp with infinite real part and zero imaginary part should not produce NaN
     ;; (inf * 0 = NaN in IEEE 754, but exp(+inf+0i) = +inf+0i per C99)
     (good-opt (exp (make-rectangular +inf.0 -0.0)))

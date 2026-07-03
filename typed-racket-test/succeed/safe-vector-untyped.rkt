@@ -50,13 +50,13 @@
           (vset! vec i 0))))
 
 
-(printf "vector-ref:\n")
+(displayln "vector-ref:")
 (run-reg-ref-test)
-(printf "safe-vector-ref:\n")
+(displayln "safe-vector-ref:")
 (run-safe-ref-test)
-(printf "vector-set!:\n")
+(displayln "vector-set!:")
 (run-reg-set!-test)
-(printf "safe-vector-set!:\n")
+(displayln "safe-vector-set!:")
 (run-safe-set!-test)
 
 ; Example results

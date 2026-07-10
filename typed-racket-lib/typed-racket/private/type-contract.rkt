@@ -409,18 +409,14 @@
               (fail #:reason "proposition contract generation not supported for non-flat types")]
              [else (is-flat-type/sc (obj->sc o) tc)])]
           [(NotTypeProp: o (app t->sc tc))
-           (cond
-             [(not (equal? flat-sym (get-max-contract-kind tc)))
-              (fail #:reason "proposition contract generation not supported for non-flat types")]
-             [else (not-flat-type/sc (obj->sc o) tc)])]
-          [(LeqProp: (app obj->sc lhs) (app obj->sc rhs))
-           (leq/sc lhs rhs)]
+           #:when (not (equal? flat-sym (get-max-contract-kind tc)))
+           (fail #:reason "proposition contract generation not supported for non-flat types")]
+          [(NotTypeProp: o (app t->sc tc)) (not-flat-type/sc (obj->sc o) tc)]
+          [(LeqProp: (app obj->sc lhs) (app obj->sc rhs)) (leq/sc lhs rhs)]
           ;; TODO: check for (<= x y) and (<= y x)
           ;; and generate and = instead of two <=
-          [(AndProp: ps)
-           (and-prop/sc (map prop->sc ps))]
-          [(OrProp: ps)
-           (or-prop/sc (map prop->sc ps))]))
+          [(AndProp: ps) (and-prop/sc (map prop->sc ps))]
+          [(OrProp: ps) (or-prop/sc (map prop->sc ps))]))
       (define (only-untyped sc)
         (if (from-typed? typed-side)
             (and/sc sc any-wrap/sc)
@@ -862,213 +858,171 @@
         [(OrProp: ps)
          (or-prop/sc (map prop->sc ps))]))
     (match type
-     ;; Implicit recursive aliases
-     [(Name: _name-id _args #f)
-      (cond [(lookup-name-sc type 'both) ]
-            [else
-             (define resolved-name (resolve-once type))
-             (register-name-sc type
-                               (λ () (t->sc resolved-name bound-all-vars))
-                               (λ () (t->sc resolved-name bound-all-vars))
-                               (λ () (t->sc resolved-name bound-all-vars)))
-             (lookup-name-sc type 'both)])]
-     ;; Ordinary type applications or struct type names, just resolve
-     [(or (App: _ _)
-          (Name/struct:))
-      (t->sc (resolve-once type) bound-all-vars)]
-     [(Univ:) any/sc]
-     [(Bottom:) (shallow-or/sc)]
-     ;; This comes before Base-ctc to use the Value-style logic
-     ;; for the singleton base types (e.g. -Null, 1, etc)
-     [(Val-able: v)
-      (cond
-       [(eof-object? v)
-        (flat/sc #'eof-object?)]
-       [(void? v)
-        (flat/sc #'void?)]
-       [(or (symbol? v) (boolean? v) (keyword? v) (null? v) (eq? unsafe-undefined v))
-        (flat/sc #`(lambda (x) (eq? x '#,v)))]
-       [(or (number? v) (regexp? v) (byte-regexp? v) (string? v) (bytes? v) (char? v))
-        (flat/sc #`(lambda (x) (equal? x '#,v)))]
-       [else
-        (raise-arguments-error 'type->static-contract/shallow "unexpected Val-able value" "value" v "original type" type)])]
-     [(Base-name/contract: sym ctc) (flat/sc ctc)]
-     [(Distinction: _ _ t) ; from define-new-subtype
-      (t->sc t bound-all-vars)]
-     [(Refinement: par p?)
-      (shallow-and/sc (t->sc par bound-all-vars) (flat/sc p?))]
-     [(BaseUnion: bbits nbits)
-      (define numeric (make-BaseUnion #b0 nbits))
-      (define other-scs
-        (for/list ((base-t (in-list (bbits->base-types bbits))))
-          (t->sc base-t bound-all-vars)))
-      (define numeric-sc (numeric-type->static-contract numeric))
-      (if numeric-sc
-          (apply shallow-or/sc numeric-sc other-scs)
-          (apply shallow-or/sc (append other-scs
-                                         (for/list ((base-t (in-list (nbits->base-types nbits))))
-                                            (t->sc base-t bound-all-vars)))))]
-     [(? Union? t)
-      (match (normalize-type t)
-        [(Union-all-flat: elems)
-         (let* ([sc* (for/list ((e (in-list elems)))
-                       (t->sc e bound-all-vars))]
-                [sc* (remove-duplicates sc*)]
-                [sc* (remove-overlap sc*
-                       (list
-                         (cons vector?/sc (list mutable-vector?/sc immutable-vector?/sc))
-                         (cons hash?/sc (list mutable-hash?/sc weak-hash?/sc immutable-hash?/sc))))])
-           (apply shallow-or/sc sc*))]
-        [t (t->sc t bound-all-vars)])]
-     [(Intersection: ts raw-prop)
-      (define scs
-        (for/list ((t (in-list ts)))
-          (t->sc t bound-all-vars)))
-      (define prop/sc
-        (cond
-          [(TrueProp? raw-prop) #f]
-          [else (define x (genid))
-                (define prop (Intersection-prop (-id-path x) type))
-                (define name (format "~a" `(λ (,(syntax->datum x)) ,prop)))
-                (flat-named-lambda/sc name
-                                      (id/sc x)
-                                      (prop->sc prop))]))
-      (apply shallow-and/sc (append scs (if prop/sc (list prop/sc) '())))]
-     [(Fun: arrows)
-      (if (null? arrows)
-        procedure?/sc
-        (apply shallow-and/sc
-               (for/list ((arr (in-list arrows)))
-                 (arrow->sc/shallow arr typed-side?))))]
-     [(DepFun: raw-dom _ rng)
-      (define num-mand-args (length raw-dom))
-      (if (and (not typed-side?) (arrow-rng-has-prop? rng))
-        none/sc
-        (make-procedure-arity-flat/sc num-mand-args '() '()))]
-     [(Set: _) set?/sc]
-     [(TreeList: _) treelist?/sc] 
-     [(or (Sequence: _)
-          (SequenceTop:)
-          (SequenceDots: _ _ _))
-      sequence?/sc]
-     [(Immutable-HeterogeneousVector: ts)
-      (immutable-vector-length/sc (length ts))]
-     [(Immutable-Vector: _)
-      immutable-vector?/sc]
-     [(Mutable-HeterogeneousVector: ts)
-      (mutable-vector-length/sc (length ts))]
-     [(or (Mutable-Vector: _)
-          (Mutable-VectorTop:))
-      mutable-vector?/sc]
-     [(or (Box: _)
-          (BoxTop:))
-      box?/sc]
-     [(or (Weak-Box: _)
-          (Weak-BoxTop:))
-      weak-box?/sc]
-     [(or (Listof: _)
-          (ListDots: _ _))
-      list?/sc]
-     [(Pair: _ t-cdr)
-      ;; look ahead, try making list/sc
-      (let cdr-loop ((t t-cdr)
-                     (num-elems 1))
-        (match t
-         [(Pair: _ t-cdr)
-          (cdr-loop t-cdr (+ num-elems 1))]
-         [(== -Null)
-          (list-length/sc num-elems)]
-         [_
-          cons?/sc]))]
-     [(or (Async-Channel: _)
-          (Async-ChannelTop:))
-      async-channel?/sc]
-     [(Promise: _)
-      promise?/sc]
-     [(Opaque: p?)
-      (flat/sc p?)]
-     [(or (Continuation-Mark-Keyof: _)
-          (Continuation-Mark-KeyTop:))
-      continuation-mark-key?/sc]
-     [(or (Prompt-Tagof: _ _)
-          (Prompt-TagTop:))
-      prompt-tag?/sc]
-     [(F: v)
-      (if (member v bound-all-vars)
-        none/sc
-        any/sc)]
-     [(or (MPair: _ _)
-          (MPairTop:))
-      mpair?/sc]
-     [(or (ThreadCell: _)
-          (ThreadCellTop:))
-      thread-cell?/sc]
-     [(ClassTop:) class?/sc]
-     [(UnitTop:) unit?/sc]
-     [(or (Poly: vs b)
-          (PolyDots: (list vs ... _) b)
-          (PolyRow: vs b _))
-      (t->sc b (append bound-all-vars vs))]
-     [(Mu: n b)
-      (t->sc b bound-all-vars)]
-     [(Instance: (? Name? t))
-      #:when (Class? (resolve-once t))
-      (cond [(lookup-name-sc type 'both)]
-            [else
-             (define resolved (make-Instance (resolve-once t)))
-             (register-name-sc type
-                               (λ () (t->sc resolved bound-all-vars))
-                               (λ () (t->sc resolved bound-all-vars))
-                               (λ () (t->sc resolved bound-all-vars)))
-             (lookup-name-sc type 'both)])]
-     [(Instance: (Class: _ _ fields methods _ _))
-      (make-object-shape/sc (map car fields) (map car methods))]
-     [(Class: row-var inits fields publics augments _)
-      (make-class-shape/sc (map car inits) (map car fields) (map car publics) (map car augments))]
-     [(Unit: imports exports init-depends results)
-      unit?/sc]
-     [(or (Struct: _ _ _ _ _ pred? _)
-          (StructTop: (Struct: _ _ _ _ _ pred? _)))
-      (flat/sc #`(lambda (x) (#,pred? x)))]
-     [(StructTypeTop:)
-      struct-type?/sc]
-     [(StructType: s)
-      (t->sc s bound-all-vars)]
-     [(Struct-Property: s _)
-      struct-type-property?/sc]
-     [(Has-Struct-Property: orig-id)
-      (has-struct-property->sc orig-id)]
-     [(or (Prefab: key _)
-          (PrefabTop: key))
-      (flat/sc #`(struct-type-make-predicate
-                  (prefab-key->struct-type (quote #,(abbreviate-prefab-key key))
-                                           #,(prefab-key->field-count key))))]
-     [(Syntax: (? Base:Symbol?))
-      identifier?/sc]
-     [(Syntax: t)
-      syntax?/sc]
-     [(Param: in out)
-      parameter?/sc]
-     [(or (Mutable-HashTable: _ _)
-          (Mutable-HashTableTop:))
-      mutable-hash?/sc]
-     [(Immutable-HashTable: _ _)
-      immutable-hash?/sc]
-     [(or (Weak-HashTable: _ _)
-          (Weak-HashTableTop:))
-      weak-hash?/sc]
-     [(or (Channel: _)
-          (ChannelTop:))
-      channel?/sc]
-     [(Evt: t)
-      evt?/sc]
-     [(? Prop? rep) (prop->sc rep)]
-     [(Ephemeron: _)
-      ephemeron?/sc]
-     [(Future: _)
-      future?/sc]
-     [_
-      (raise-arguments-error 'type->static-contract/shallow "contract generation not supported for this type" "type" type "original" orig-type)])))
+      ;; Implicit recursive aliases
+      [(Name: _name-id _args #f)
+       (cond
+         [(lookup-name-sc type 'both)]
+         [else
+          (define resolved-name (resolve-once type))
+          (register-name-sc type
+                            (λ () (t->sc resolved-name bound-all-vars))
+                            (λ () (t->sc resolved-name bound-all-vars))
+                            (λ () (t->sc resolved-name bound-all-vars)))
+          (lookup-name-sc type 'both)])]
+      ;; Ordinary type applications or struct type names, just resolve
+      [(or (App: _ _) (Name/struct:)) (t->sc (resolve-once type) bound-all-vars)]
+      [(Univ:) any/sc]
+      [(Bottom:) (shallow-or/sc)]
+      ;; This comes before Base-ctc to use the Value-style logic
+      ;; for the singleton base types (e.g. -Null, 1, etc)
+      [(Val-able: v)
+       (cond
+         [(eof-object? v) (flat/sc #'eof-object?)]
+         [(void? v) (flat/sc #'void?)]
+         [(or (symbol? v) (boolean? v) (keyword? v) (null? v) (eq? unsafe-undefined v))
+          (flat/sc #`(lambda (x) (eq? x '#,v)))]
+         [(or (number? v) (regexp? v) (byte-regexp? v) (string? v) (bytes? v) (char? v))
+          (flat/sc #`(lambda (x) (equal? x '#,v)))]
+         [else
+          (raise-arguments-error 'type->static-contract/shallow
+                                 "unexpected Val-able value"
+                                 "value"
+                                 v
+                                 "original type"
+                                 type)])]
+      [(Base-name/contract: sym ctc) (flat/sc ctc)]
+      ; from define-new-subtype
+      [(Distinction: _ _ t) (t->sc t bound-all-vars)]
+      [(Refinement: par p?) (shallow-and/sc (t->sc par bound-all-vars) (flat/sc p?))]
+      [(BaseUnion: bbits nbits)
+       (define numeric (make-BaseUnion #b0 nbits))
+       (define other-scs
+         (for/list ([base-t (in-list (bbits->base-types bbits))])
+           (t->sc base-t bound-all-vars)))
+       (define numeric-sc (numeric-type->static-contract numeric))
+       (if numeric-sc
+           (apply shallow-or/sc numeric-sc other-scs)
+           (apply shallow-or/sc
+                  (append other-scs
+                          (for/list ([base-t (in-list (nbits->base-types nbits))])
+                            (t->sc base-t bound-all-vars)))))]
+      [(? Union? t)
+       (match (normalize-type t)
+         [(Union-all-flat: elems)
+          (let* ([sc* (for/list ([e (in-list elems)])
+                        (t->sc e bound-all-vars))]
+                 [sc* (remove-duplicates sc*)]
+                 [sc* (remove-overlap
+                       sc*
+                       (list (cons vector?/sc (list mutable-vector?/sc immutable-vector?/sc))
+                             (cons hash?/sc
+                                   (list mutable-hash?/sc weak-hash?/sc immutable-hash?/sc))))])
+            (apply shallow-or/sc sc*))]
+         [t (t->sc t bound-all-vars)])]
+      [(Intersection: ts raw-prop)
+       (define scs
+         (for/list ([t (in-list ts)])
+           (t->sc t bound-all-vars)))
+       (define prop/sc
+         (cond
+           [(TrueProp? raw-prop) #f]
+           [else
+            (define x (genid))
+            (define prop (Intersection-prop (-id-path x) type))
+            (define name (format "~a" `(λ (,(syntax->datum x)) ,prop)))
+            (flat-named-lambda/sc name (id/sc x) (prop->sc prop))]))
+       (apply shallow-and/sc
+              (append scs
+                      (if prop/sc
+                          (list prop/sc)
+                          '())))]
+      [(Fun: arrows)
+       #:when (null? arrows)
+       procedure?/sc]
+      [(Fun: arrows)
+       (apply shallow-and/sc
+              (for/list ([arr (in-list arrows)])
+                (arrow->sc/shallow arr typed-side?)))]
+      [(DepFun: raw-dom _ rng)
+       (define num-mand-args (length raw-dom))
+       (if (and (not typed-side?) (arrow-rng-has-prop? rng))
+           none/sc
+           (make-procedure-arity-flat/sc num-mand-args '() '()))]
+      [(Set: _) set?/sc]
+      [(TreeList: _) treelist?/sc]
+      [(or (Sequence: _) (SequenceTop:) (SequenceDots: _ _ _)) sequence?/sc]
+      [(Immutable-HeterogeneousVector: ts) (immutable-vector-length/sc (length ts))]
+      [(Immutable-Vector: _) immutable-vector?/sc]
+      [(Mutable-HeterogeneousVector: ts) (mutable-vector-length/sc (length ts))]
+      [(or (Mutable-Vector: _) (Mutable-VectorTop:)) mutable-vector?/sc]
+      [(or (Box: _) (BoxTop:)) box?/sc]
+      [(or (Weak-Box: _) (Weak-BoxTop:)) weak-box?/sc]
+      [(or (Listof: _) (ListDots: _ _)) list?/sc]
+      [(Pair: _ t-cdr)
+       ;; look ahead, try making list/sc
+       (let cdr-loop ([t t-cdr]
+                      [num-elems 1])
+         (match t
+           [(Pair: _ t-cdr) (cdr-loop t-cdr (+ num-elems 1))]
+           [(== -Null) (list-length/sc num-elems)]
+           [_ cons?/sc]))]
+      [(or (Async-Channel: _) (Async-ChannelTop:)) async-channel?/sc]
+      [(Promise: _) promise?/sc]
+      [(Opaque: p?) (flat/sc p?)]
+      [(or (Continuation-Mark-Keyof: _) (Continuation-Mark-KeyTop:)) continuation-mark-key?/sc]
+      [(or (Prompt-Tagof: _ _) (Prompt-TagTop:)) prompt-tag?/sc]
+      [(F: v) (if (member v bound-all-vars) none/sc any/sc)]
+      [(or (MPair: _ _) (MPairTop:)) mpair?/sc]
+      [(or (ThreadCell: _) (ThreadCellTop:)) thread-cell?/sc]
+      [(ClassTop:) class?/sc]
+      [(UnitTop:) unit?/sc]
+      [(or (Poly: vs b) (PolyDots: (list vs ... _) b) (PolyRow: vs b _))
+       (t->sc b (append bound-all-vars vs))]
+      [(Mu: n b) (t->sc b bound-all-vars)]
+      [(Instance: (? Name? t))
+       #:when (Class? (resolve-once t))
+       (cond
+         [(lookup-name-sc type 'both)]
+         [else
+          (define resolved (make-Instance (resolve-once t)))
+          (register-name-sc type
+                            (λ () (t->sc resolved bound-all-vars))
+                            (λ () (t->sc resolved bound-all-vars))
+                            (λ () (t->sc resolved bound-all-vars)))
+          (lookup-name-sc type 'both)])]
+      [(Instance: (Class: _ _ fields methods _ _))
+       (make-object-shape/sc (map car fields) (map car methods))]
+      [(Class: row-var inits fields publics augments _)
+       (make-class-shape/sc (map car inits) (map car fields) (map car publics) (map car augments))]
+      [(Unit: imports exports init-depends results) unit?/sc]
+      [(or (Struct: _ _ _ _ _ pred? _) (StructTop: (Struct: _ _ _ _ _ pred? _)))
+       (flat/sc #`(lambda (x) (#,pred? x)))]
+      [(StructTypeTop:) struct-type?/sc]
+      [(StructType: s) (t->sc s bound-all-vars)]
+      [(Struct-Property: s _) struct-type-property?/sc]
+      [(Has-Struct-Property: orig-id) (has-struct-property->sc orig-id)]
+      [(or (Prefab: key _) (PrefabTop: key))
+       (flat/sc #`(struct-type-make-predicate
+                   (prefab-key->struct-type (quote #,(abbreviate-prefab-key key))
+                                            #,(prefab-key->field-count key))))]
+      [(Syntax: (? Base:Symbol?)) identifier?/sc]
+      [(Syntax: t) syntax?/sc]
+      [(Param: in out) parameter?/sc]
+      [(or (Mutable-HashTable: _ _) (Mutable-HashTableTop:)) mutable-hash?/sc]
+      [(Immutable-HashTable: _ _) immutable-hash?/sc]
+      [(or (Weak-HashTable: _ _) (Weak-HashTableTop:)) weak-hash?/sc]
+      [(or (Channel: _) (ChannelTop:)) channel?/sc]
+      [(Evt: t) evt?/sc]
+      [(? Prop? rep) (prop->sc rep)]
+      [(Ephemeron: _) ephemeron?/sc]
+      [(Future: _) future?/sc]
+      [_
+       (raise-arguments-error 'type->static-contract/shallow
+                              "contract generation not supported for this type"
+                              "type"
+                              type
+                              "original"
+                              orig-type)])))
 
 (define (remove-overlap sc* pattern*)
   (for/fold ((acc sc*))

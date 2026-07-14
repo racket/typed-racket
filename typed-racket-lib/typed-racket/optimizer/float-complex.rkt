@@ -85,23 +85,30 @@
   stx)
 
 (define (n-ary->binary/non-floats op unsafe this-syntax cs)
-  (let loop ([o (stx-car cs)] [cs (stx-cdr cs)])
-    ;; we're guaranteed to hit non-"non-float" operands before
-    ;; we hit the end of the list. otherwise we wouldn't be doing
-    ;; float-complex optimizations
-    (define c1 (stx-car cs))
-    (define o-nf (as-non-float o))
-    (define c1-nf (as-non-float c1))
+  ;; Fold left, using the unsafe op for pairs of known-float operands and
+  ;; the generic op (on un-coerced originals) whenever either side is a
+  ;; non-float. Switching to all-unsafe after the first float pair would
+  ;; be incorrect: a later non-float operand has its real-binding eagerly
+  ;; coerced to flonum, so a huge exact integer becomes +/-inf.0, and
+  ;; combining it with another infinity via unsafe-fl- gives NaN instead
+  ;; of the correct infinity that generic arithmetic produces.
+  (let loop ([o (stx-car cs)] [rest (stx-cdr cs)])
     (cond
-      [(or o-nf c1-nf)
-       ;; can't convert those to floats just yet, or may change
-       ;; the result
+      [(stx-null? rest) o]
+      [else
+       (define c1 (stx-car rest))
+       (define o-nf (as-non-float o))
+       (define c1-nf (as-non-float c1))
        (define new-o
-         (mark-as-non-float (quasisyntax/loc this-syntax
-                              (#,op #,(or o-nf o) #,(or c1-nf c1)))))
-       (if (stx-null? (stx-cdr cs)) new-o (loop new-o (stx-cdr cs)))]
-      ;; we've hit floats, can start coercing
-      [else (n-ary->binary this-syntax unsafe (cons #`(real->double-flonum #,(or o-nf o)) cs))])))
+         (cond
+           [(or o-nf c1-nf)
+            (mark-as-non-float
+             (quasisyntax/loc this-syntax
+               (#,op #,(or o-nf o) #,(or c1-nf c1))))]
+           [else
+            (quasisyntax/loc this-syntax
+              (#,unsafe #,o #,c1))]))
+       (loop new-o (stx-cdr rest))])))
 
 
 

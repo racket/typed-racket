@@ -439,10 +439,9 @@
        ;; --> (ax - bx) <= ...3 + ...4 - ...1 - ...2
        [else
         (define lhs* (lexp 0 (make-terms x (- x-lhs-coeff x-rhs-coeff))))
-        (define rhs*
-          (let ([rhs-c* (- rhs-c lhs-c)]
-                [rhs-h* (terms-subtract rhs-ts lhs-ts)])
-            (lexp rhs-c* (terms-remove rhs-h* x))))
+        (define rhs-c* (- rhs-c lhs-c))
+        (define rhs-h* (terms-subtract rhs-ts lhs-ts))
+        (define rhs* (lexp rhs-c* (terms-remove rhs-h* x)))
         (leq lhs* rhs*)])]))
 
 ; x lhs

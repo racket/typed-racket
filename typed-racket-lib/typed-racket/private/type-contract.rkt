@@ -404,10 +404,9 @@
       (define (prop->sc p)
         (match p
           [(TypeProp: o (app t->sc tc))
-           (cond
-             [(not (equal? flat-sym (get-max-contract-kind tc)))
-              (fail #:reason "proposition contract generation not supported for non-flat types")]
-             [else (is-flat-type/sc (obj->sc o) tc)])]
+           #:when (not (equal? flat-sym (get-max-contract-kind tc)))
+           (fail #:reason "proposition contract generation not supported for non-flat types")]
+          [(TypeProp: o (app t->sc tc)) (is-flat-type/sc (obj->sc o) tc)]
           [(NotTypeProp: o (app t->sc tc))
            #:when (not (equal? flat-sym (get-max-contract-kind tc)))
            (fail #:reason "proposition contract generation not supported for non-flat types")]

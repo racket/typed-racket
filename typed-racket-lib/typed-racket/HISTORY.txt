@@ -1,3 +1,5 @@
+9.3
+- Bug fixes.
 9.2
 - Fix previously-incorrect types of `asin` and `acos`, which may
   cause existing programs not to type check.

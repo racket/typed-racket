@@ -3,7 +3,7 @@
 (module+ test
 
   (require typed/rackunit
-           "../../typed-racket-more/typed/xml.rkt")
+           typed/xml)
 
   (let ([xml-p-i
          (p-i #f #f 'xml "version=\"1.0\" encoding=\"UTF-8\"")])

@@ -90,40 +90,36 @@
            (if rimage
                -SequenceTop
                (make-Sequence
-                (append
-                 (map sub types)
-                 ;; We need to recur first, just to expand out any dotted usages of this.
-                 (let ([expanded (sub dty)])
-                   (for/list ([img (in-list images)])
-                     (substitute img name expanded))))))
+                (append (map sub types)
+                        ;; We need to recur first, just to expand out any dotted usages of this.
+                        (let ([expanded (sub dty)])
+                          (for/list ([img (in-list images)])
+                            (substitute img name expanded))))))
            (make-SequenceDots (map sub types) (sub dty) dbound))]
       [(ValuesDots: types dty dbound)
+       #:when (eq? name dbound)
        (cond
-         [(eq? name dbound)
-          (cond
-            [rimage ManyUniv]
-            [else
-             (make-Values
-              (append
-               (map sub types)
-               ;; We need to recur first, just to expand out any dotted usages of this.
-               (let ([expanded (sub dty)])
-                 (for/list ([img (in-list images)])
-                   (-result (substitute img name expanded))))))])]
-         [else (make-ValuesDots (map sub types) (sub dty) dbound)])]
+         [rimage ManyUniv]
+         [else
+          (make-Values
+           (append (map sub types)
+                   ;; We need to recur first, just to expand out any dotted usages of this.
+                   (let ([expanded (sub dty)])
+                     (for/list ([img (in-list images)])
+                       (-result (substitute img name expanded))))))])]
+      [(ValuesDots: types dty dbound) (make-ValuesDots (map sub types) (sub dty) dbound)]
       [(Arrow: dom (RestDots: dty dbound) kws rng rng-T+)
        #:when (eq? name dbound)
-       (make-Arrow
-        (append
-         (map sub dom)
-         ;; We need to recur first, just to expand out any dotted usages of this.
-         (let ([expanded (sub dty)])
-           (map (λ (img) (substitute img name expanded))
-                images)))
-        (if (Type? rimage) (make-Rest (list rimage)) rimage)
-        (map sub kws)
-        (sub rng)
-        rng-T+)]
+       (make-Arrow (append (map sub dom)
+                           ;; We need to recur first, just to expand out any dotted usages of this.
+                           (let ([expanded (sub dty)])
+                             (map (λ (img) (substitute img name expanded)) images)))
+                   (if (Type? rimage)
+                       (make-Rest (list rimage))
+                       rimage)
+                   (map sub kws)
+                   (sub rng)
+                   rng-T+)]
       [_ (Rep-fmap target sub)])))
 
 ;; implements curly brace substitution from the formalism, with the addition

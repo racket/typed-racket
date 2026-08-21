@@ -201,11 +201,11 @@
 ;; A helper for generate-contract-def/provide that helps inline contract
 ;; expressions when needed to cooperate with the contract system's optimizations
 (define (should-inline-contract?/cache ctc-stx cache)
-  (and (identifier? ctc-stx)
-       (let ([match? (assoc ctc-stx (hash-values cache) free-identifier=?)])
-         (and match?
-              (should-inline-contract? (cdr match?))
-              (cdr match?)))))
+  (cond
+    [(identifier? ctc-stx)
+     (define match? (assoc ctc-stx (hash-values cache) free-identifier=?))
+     (and match? (should-inline-contract? (cdr match?)) (cdr match?))]
+    [else #f]))
 
 ;; The below requires are needed since they provide identifiers that
 ;; may appear in the residual program.

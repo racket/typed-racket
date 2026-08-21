@@ -51,9 +51,9 @@
               ;; arbitrary property annotation
               [(PROP)
                (skip-whitespace port)
-               (let* ([prop-name (syntax-e (read-one))])
-                 (skip-whitespace port)
-                 (syntax-property name prop-name (read-one)))]
+               (define prop-name (syntax-e (read-one)))
+               (skip-whitespace port)
+               (syntax-property name prop-name (read-one))]
               ;; otherwise error
               [else
                (define-values (l c p) (port-next-location port))

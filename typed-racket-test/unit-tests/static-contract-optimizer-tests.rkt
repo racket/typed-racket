@@ -32,13 +32,12 @@
           (make-check-info 'trusted trusted-side)
           (make-check-expected expected))
     (λ ()
-      (let ([opt (optimize argument
-                   #:trusted-positive trusted-positive
-                   #:trusted-negative trusted-negative)])
-        (with-check-info* (list (make-check-actual opt))
-          (lambda ()
-            (unless (equal? opt expected)
-              (fail-check))))))))
+      (define opt
+        (optimize argument #:trusted-positive trusted-positive #:trusted-negative trusted-negative))
+      (with-check-info* (list (make-check-actual opt))
+                        (lambda ()
+                          (unless (equal? opt expected)
+                            (fail-check)))))))
 
 (define-syntax (check-syntax stx)
   (syntax-parse stx

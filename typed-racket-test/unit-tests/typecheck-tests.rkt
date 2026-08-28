@@ -9,7 +9,7 @@
     (contract-out
       [rename cross-phase-failure* cross-phase-failure
         (->* (string?) (#:actual any/c #:expected any/c) cross-phase-failure?)]
-      [cross-phase-failure? predicate/c]
+      [cross-phase-failure? (-> any/c boolean?)]
       [cross-phase-failure-message (-> cross-phase-failure? string?)]
       [rename cross-phase-failure-check-infos* cross-phase-failure-check-infos
         (-> cross-phase-failure? (listof check-info?))]))
@@ -145,9 +145,11 @@
   ;; 2. search `expr` for occurrences of `f`
   ;; 3. check that the type-table entry for `f` matches `t`
   (define (test-type-table expr assoc)
+    (define expr+ (tr-expand expr))
     (define expanded-expr
-      (let ([expr+ (tr-expand expr)])
-        (begin (tc expr+ #f) expr+)))
+      (begin
+        (tc expr+ #f)
+        expr+))
     (define expected-results
       (make-free-id-table assoc))
     (let loop ([x expanded-expr]) ;; loop : any/c -> void?

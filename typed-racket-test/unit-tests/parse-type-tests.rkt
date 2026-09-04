@@ -85,11 +85,9 @@
             (with-check-info (['expected expected] ['actual actual])
               (fail-check "Unequal types")))))]))
 
-(define-syntax pt-tests
-  (syntax-rules ()
-    [(_ nm [elems ...] ...)
-     (test-suite nm
-                 (pt-test elems ...) ...)]))
+(define-syntax-rule (pt-tests nm [elems ...] ...)
+  (test-suite nm
+    (pt-test elems ...) ...))
 
 (define-for-syntax N -Number)
 (define-for-syntax B -Boolean)

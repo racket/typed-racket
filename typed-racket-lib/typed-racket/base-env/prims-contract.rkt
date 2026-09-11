@@ -224,11 +224,12 @@
      (pattern (~seq (~optional (~seq (~and key (~or #:extra-constructor-name #:constructor-name))
                                      name:id))
                     (~optional (~seq #:type-name type:id) #:defaults ([type struct-name])))
-              #:attr ctor-value (if (attribute key) #'(key name)
-                                    (if legacy
-                                        #`(#:extra-constructor-name
-                                           #,(format-id struct-name "make-~a" struct-name))
-                                        #'()))))
+              #:attr ctor-value (cond
+                                  [(attribute key) #'(key name)]
+                                  [legacy
+                                   #`(#:extra-constructor-name
+                                      #,(format-id struct-name "make-~a" struct-name))]
+                                  [else #'()])))
 
   (define-syntax-class (struct-clause legacy)
     #:attributes (nm type (body 1) (constructor-parts 1) (tvar 1))
@@ -389,11 +390,14 @@
    ;; will have added the casted expression's original type to the cast-table, so
    ;; that `(cast-table-ref id)` can get that type here.
    (λ ()
+     (define types (cast-table-ref id))
      (define type-stx
-       (let ([types (cast-table-ref id)])
-         (cond [(not types) #f]
-               [(null? (cdr types)) (car types)]
-               [else (quasisyntax/loc (car types) (U #,@types))])))
+       (cond
+         [(not types) #f]
+         [(null? (cdr types)) (car types)]
+         [else
+          (quasisyntax/loc (car types)
+            (U #,@types))]))
      `#s(contract-def ,type-stx ,flat? ,maker? typed ,te-mode))))
 
 (define define-predicate
@@ -662,17 +666,22 @@
 
                              (make-struct-info
                                (lambda ()
-                                 #,(if (syntax-e #'parent)
-                                       (let-values (((parent-type-des parent-maker parent-pred
-                                                      parent-sel  parent-mut grand-parent)
-                                                     (apply values
-                                                            (extract-struct-info/checked #'parent))))
-                                         #`(struct-info-list
-                                             (list #,@(map maybe-add-quote-syntax parent-sel))
-                                             (list #,@(map maybe-add-quote-syntax parent-mut))))
-                                       #`(let-values (((new-sels new-muts)
-                                                       (id-drop orig-sels orig-muts num-fields)))
-                                           (struct-info-list new-sels new-muts)))))))
+                                 #,(cond
+                                     [(syntax-e #'parent)
+                                      (define-values (parent-type-des
+                                                      parent-maker
+                                                      parent-pred
+                                                      parent-sel
+                                                      parent-mut
+                                                      grand-parent)
+                                        (apply values (extract-struct-info/checked #'parent)))
+                                      #`(struct-info-list
+                                         (list #,@(map maybe-add-quote-syntax parent-sel))
+                                         (list #,@(map maybe-add-quote-syntax parent-mut)))]
+                                     [else
+                                      #`(let-values ([(new-sels new-muts)
+                                                      (id-drop orig-sels orig-muts num-fields)])
+                                          (struct-info-list new-sels new-muts))])))))
 
                          (define-syntax nm
                               (if id-is-ctor?

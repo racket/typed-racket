@@ -449,7 +449,7 @@
                ;; reuses the algorithm used by the Racket runtime
                (let*-values ([(r) (unsafe-flabs c.real-binding)]
                              [(i) (unsafe-flabs c.imag-binding)])
-                 (if (zero? i)
+                 (if (unsafe-fl= i 0.0)
                      r
                      (if (or (unsafe-fl= r +inf.0)(unsafe-fl= i +inf.0))
                          +inf.0

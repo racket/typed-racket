@@ -101,8 +101,10 @@
          (mark-as-non-float (quasisyntax/loc this-syntax
                               (#,op #,(or o-nf o) #,(or c1-nf c1)))))
        (if (stx-null? (stx-cdr cs)) new-o (loop new-o (stx-cdr cs)))]
-      ;; we've hit floats, can start coercing
-      [else (n-ary->binary this-syntax unsafe (cons #`(real->double-flonum #,(or o-nf o)) cs))])))
+      ;; Neither operand is marked as a non-float, so both are already
+      ;; known to produce flonums. A redundant coercion can interfere with
+      ;; unboxing of the intermediate result.
+      [else (n-ary->binary this-syntax unsafe (cons o cs))])))
 
 
 

@@ -13,6 +13,7 @@
          syntax/parse
          syntax/parse/experimental/specialize
          syntax/stx
+         "../env/mvar-env.rkt"
          "../types/numeric-tower.rkt"
          "../types/subtype.rkt"
          "../types/type-table.rkt"
@@ -171,6 +172,26 @@
       #`(c1.bindings ...
          [(real-binding) (unsafe-fl* -1.0 c1.real-binding)]
          [(imag-binding) (unsafe-fl* -1.0 c1.imag-binding)]))
+
+  ;; Squaring a complex number needs only one product for the imaginary part.
+  ;; Restrict this rule to repeated identifiers so that expressions are not
+  ;; evaluated fewer times than they are in the source program.
+  (pattern (#%plain-app op:*^
+                        (~and c1:id c:unboxed-float-complex-opt-expr)
+                        c2:id)
+    #:when (and (free-identifier=? #'c1 #'c2)
+                (not (is-var-mutated? #'c1))
+                (subtypeof? this-syntax -FloatComplex))
+    #:with (real-binding imag-binding) (binding-names)
+    #:with imag-product (generate-temporary "unboxed-imag-product-")
+    #:do [(log-unboxing-opt "unboxed float complex square")]
+    #:with (bindings ...)
+      #`(c.bindings ...
+         [(real-binding)
+          (unsafe-fl- (unsafe-fl* c.real-binding c.real-binding)
+                      (unsafe-fl* c.imag-binding c.imag-binding))]
+         [(imag-product) (unsafe-fl* c.real-binding c.imag-binding)]
+         [(imag-binding) (unsafe-fl+ imag-product imag-product)]))
 
   (pattern (#%plain-app op:*^
                         c1:unboxed-float-complex-opt-expr

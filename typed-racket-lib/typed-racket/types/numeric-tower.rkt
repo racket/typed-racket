@@ -15,9 +15,9 @@
          (for-template racket/base racket/contract/base "numeric-predicates.rkt"))
 
 (provide portable-fixnum? portable-index?
-         -Zero -One -PosByte -Byte -PosIndex -Index
-         -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum -Fixnum
-         -PosInt -Nat -NegInt -NonPosInt -Int
+         -Zero -One -Byte>1 -PosByte -Byte -Index>1 -PosIndex -Index
+         -Fixnum>1 -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum -Fixnum
+         -Int>1 -PosInt -Nat -NegInt -NonPosInt -Int
          -PosRat -NonNegRat -NegRat -NonPosRat -Rat
          -FlonumPosZero -FlonumNegZero -FlonumZero -FlonumNan
          -PosFlonum -NonNegFlonum -NegFlonum -NonPosFlonum -Flonum
@@ -51,15 +51,18 @@
 (define/decl -PosByte (Un -One -Byte>1))
 (define/decl -Byte    (Un -Zero -PosByte))
 
-(define/decl -PosIndex    (Un -One -Byte>1 -PosIndexNotByte))
+(define/decl -Index>1     (Un -Byte>1 -PosIndexNotByte))
+(define/decl -PosIndex    (Un -One -Index>1))
 (define/decl -Index       (Un -Zero -PosIndex))
 
+(define/decl -Fixnum>1     (Un -PosFixnumNotIndex -Index>1))
 (define/decl -PosFixnum    (Un -PosFixnumNotIndex -PosIndex))
 (define/decl -NonNegFixnum (Un -PosFixnum -Zero))
 
 (define/decl -NonPosFixnum (Un -NegFixnum -Zero))
 (define/decl -Fixnum       (Un -NegFixnum -Zero -PosFixnum))
 
+(define/decl -Int>1     (Un -PosIntNotFixnum -Fixnum>1))
 (define/decl -PosInt    (Un -PosIntNotFixnum -PosFixnum))
 (define/decl -NonNegInt (Un -PosInt -Zero))
 (define/decl -Nat -NonNegInt)
@@ -137,6 +140,7 @@
           (BaseUnion-nbits -Byte) (cons 0 255)
           (BaseUnion-nbits -PosByte) (cons 1 255)
           (Base-bits -Byte>1) (cons 2 255)
+          (BaseUnion-nbits -Int>1) (cons 2 #f)
           (BaseUnion-nbits -PosInt) (cons 1 #f)
           (BaseUnion-nbits -Nat) (cons 0 #f)
           (BaseUnion-nbits -NonPosInt) (cons #f 0)
@@ -163,12 +167,15 @@
           (BaseUnion-nbits -Byte) (cons 0 255)
           (BaseUnion-nbits -PosByte) (cons 1 255)
           (Base-bits -Byte>1) (cons 2 255)
+          (BaseUnion-nbits -Int>1) (cons 2 #f)
           (BaseUnion-nbits -PosInt) (cons 1 #f)
           (BaseUnion-nbits -Nat) (cons 0 #f)
           (BaseUnion-nbits -NonPosInt) (cons #f 0)
           (BaseUnion-nbits -NegInt) (cons #f -1)
           (BaseUnion-nbits -Index) (cons 0 #f)
+          (BaseUnion-nbits -Index>1) (cons 2 #f)
           (BaseUnion-nbits -PosIndex) (cons 1 #f)
+          (BaseUnion-nbits -Fixnum>1) (cons 2 #f)
           (BaseUnion-nbits -PosFixnum) (cons 1 #f)
           (BaseUnion-nbits -NonNegFixnum) (cons 0 #f)
           (BaseUnion-nbits -NonPosFixnum) (cons #f 0)
@@ -184,9 +191,10 @@
 
 (define all-bounded-int-types
   ;; relies on numeric bits being eq?
-  (for/hasheq ([t (in-list (list -Zero -One -PosByte -Byte>1 -Byte -PosIndex -Index
-                                 -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum
-                                 -PosInt -Nat -NegInt -NonPosInt))])
+  (for/hasheq ([t (in-list (list -Zero -One -PosByte -Byte>1 -Byte
+                                 -Index>1 -PosIndex -Index
+                                 -Fixnum>1 -PosFixnum -NonNegFixnum -NegFixnum -NonPosFixnum
+                                 -Int>1 -PosInt -Nat -NegInt -NonPosInt))])
     (values (if (BaseUnion? t)
                 (BaseUnion-nbits t)
                 (Base-bits t))

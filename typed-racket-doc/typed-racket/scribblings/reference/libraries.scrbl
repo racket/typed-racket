@@ -52,10 +52,10 @@ The following libraries are included with Typed Racket in the
 @racketfont{typed} collection:
 
 @(define-syntax-rule @defmodule/incl[name rest ...]
-   (list
-      (section #:style '(hidden toc-hidden unnumbered)
-               (string-append "Typed for " (symbol->string 'name)))
-      @defmodule[name rest ...]))
+   (begin
+     (section #:style '(hidden toc-hidden unnumbered)
+              (string-append "Typed for " (symbol->string 'name)))
+     @defmodule[name rest ...]))
 
 @(define-syntax-rule (deftype name . parts)
    (defidform #:kind "type" name . parts))

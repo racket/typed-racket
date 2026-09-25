@@ -267,6 +267,10 @@
     #:do [(log-fl-opt "unary float")]
     #:with opt (syntax/loc this-syntax (let ([tmp f.opt]) (unsafe-fl* tmp tmp))))
 
+  ;; A known fixnum can be converted directly, without the generic integer check.
+  (pattern (#%plain-app op:->float^ n:fixnum-expr)
+    #:do [(log-fl-opt "fixnum to float")]
+    #:with opt #'(unsafe-fx->fl n.opt))
   ;; we can optimize exact->inexact if we know we're giving it an Integer
   (pattern (#%plain-app op:->float^ n:int-expr)
     #:do [(log-fl-opt "int to float")]

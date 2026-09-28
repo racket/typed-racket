@@ -1629,7 +1629,8 @@
 [thread-dead? (-Thread . -> . B)]
 
 ;; Section 11.1.3
-[thread-wait (-Thread . -> . -Void)]
+[thread-wait (cl->* (-Thread . -> . ManyUniv)
+		    (-Thread (-> ManyUniv) . -> . ManyUniv))]
 [thread-dead-evt (-> -Thread (-mu x (-evt x)))]
 [thread-resume-evt (-> -Thread (-mu x (-evt x)))]
 [thread-suspend-evt (-> -Thread (-mu x (-evt x)))]

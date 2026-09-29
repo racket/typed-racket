@@ -147,7 +147,20 @@
     ;; another infinity operand would yield NaN instead of the correct +inf.0.
     (good-opt (- +inf.0 0.0+0.0i
                  (lcm (exact-round 7) (exact-round 2)
-                      (exact-round -1.7976931348623153e+308))))))
+                      (exact-round -1.7976931348623153e+308))))
+
+    ;; exp with a real part just above log(max-flonum) should not overflow
+    ;; when exp(a)*cos(b) or exp(a)*sin(b) is representable
+    (good-opt (exp (make-rectangular 710.0 1.0)))
+    (good-opt (exp (make-rectangular 710.0 -1.0)))
+    (good-opt (exp (make-rectangular 710.0 0.5)))
+    (good-opt (exp (make-rectangular 710.0 3.0)))
+    (good-opt (exp (make-rectangular 710.0 1e-308)))
+    (good-opt (exp (make-rectangular 710.0 -746.0)))
+    (good-opt (exp (make-rectangular +inf.0 1.0)))
+
+    ;; GH issue 969: exp of a complex with a huge magnitude
+    (good-opt (exp (log (make-polar 1.7976931348623153e+308 -1.797693134862315e+308))))))
 
 (module+ test
   (require rackunit/text-ui)

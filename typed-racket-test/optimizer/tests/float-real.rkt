@@ -4,11 +4,11 @@ TR info: float-real.rkt 3:15 (* (ann 2 Integer) 3.2) -- possible exact real arit
 TR info: float-real.rkt 3:7 (assert (* (ann 2 Integer) 3.2) positive?) -- vector of floats
 TR info: float-real.rkt 4:0 (* 2.3 (* (ann 2 Integer) 3.1)) -- possible exact real arith
 TR info: float-real.rkt 4:7 (* (ann 2 Integer) 3.1) -- possible exact real arith
+TR missed opt: float-real.rkt 3:0 (+ 2.3 (assert (* (ann 2 Integer) 3.2) positive?)) -- all args float-arg-expr, result not Float -- caused by: 3:0 (+ 2.3 (assert (* (ann 2 Integer) 3.2) positive?))
 TR missed opt: float-real.rkt 3:15 (* (ann 2 Integer) 3.2) -- all args float-arg-expr, result not Float -- caused by: 3:23 2
 TR missed opt: float-real.rkt 4:0 (* 2.3 (* (ann 2 Integer) 3.1)) -- all args float-arg-expr, result not Float -- caused by: 4:7 (* (ann 2 Integer) 3.1)
 TR missed opt: float-real.rkt 4:7 (* (ann 2 Integer) 3.1) -- all args float-arg-expr, result not Float -- caused by: 4:15 2
 TR opt: float-real.rkt 2:0 (+ 2.3 (ann 3 Positive-Real)) -- binary float
-TR opt: float-real.rkt 3:0 (+ 2.3 (assert (* (ann 2 Integer) 3.2) positive?)) -- binary float
 END
 #<<END
 5.3

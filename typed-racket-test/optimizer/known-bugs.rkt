@@ -109,6 +109,9 @@
 
     ;; Subtraction should not convert large numbers to infinity prematurely
     (good-opt (- (expt 10 309) +inf.0))
+    (good-opt (let ([n (expt 10 309)]
+                    [inf +inf.0])
+                (- n inf)))
 
     ;; make-polar with NaN should return complex NaN, not real NaN
     (good-opt (+ 1.0 (make-polar +nan.0 1.0)))
@@ -118,6 +121,10 @@
     (good-opt (exp (make-rectangular +inf.0 -0.0)))
     (good-opt (exp (make-rectangular +inf.0 0.0)))
     (good-opt (exp (make-rectangular +nan.0 0.0)))))
+
+(module+ test
+  (require rackunit/text-ui)
+  (void (run-tests tests)))
 
 (module+ main
   (require rackunit/text-ui)

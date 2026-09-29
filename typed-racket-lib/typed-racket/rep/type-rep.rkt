@@ -993,12 +993,14 @@
       (match (hash-count elems)
         [0 base]
         [1 #:when (Bottom? base) (hash-iterate-key elems (hash-iterate-first elems))]
-        [_ (intern-double-ref!
+        [_ ;; Retain the weak table's key in every union in its bucket.
+         (let ([elems (hash-ref-key union-intern-table elems elems)])
+           (intern-double-ref!
             union-intern-table
             elems
             base
             ;; now, if we need to build a new union, remove duplicates from 'ts'
-            #:construct (make-Union mask base (remove-duplicates ts) elems))])])])
+            #:construct (make-Union mask base (remove-duplicates ts) elems)))])])])
 
 (define union-intern-table (make-weak-hash))
 
@@ -1136,11 +1138,13 @@
                            ([elem (in-list (Intersection-ts t))])
                    (mask-intersect m (mask elem))))]
   [#:custom-constructor
-   (intern-double-ref!
-    intersection-table
-    elems
-    prop
-    #:construct (make-Intersection (remove-duplicates ts) prop elems))])
+   ;; Retain the weak table's key in every intersection in its bucket.
+   (let ([elems (hash-ref-key intersection-table elems elems)])
+     (intern-double-ref!
+      intersection-table
+      elems
+      prop
+      #:construct (make-Intersection (remove-duplicates ts) prop elems)))])
 
 (define intersection-table (make-weak-hash))
 

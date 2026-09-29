@@ -4,12 +4,21 @@
          typed-racket/rep/type-rep
          typed-racket/types/abbrev
          typed-racket/types/numeric-tower
+         typed-racket/utils/identifier
          rackunit)
 
 (provide tests)
 (gen-test-main)
 
 (define (-opaque x) (make-Opaque x))
+
+(define (union-survives-gc?)
+  (define a (-opaque (genid)))
+  (define b (-opaque (genid)))
+  (void (Un a b))
+  (define live (Un a b -Boolean))
+  (collect-garbage)
+  (eq? live (Un a b -Boolean)))
 
 
 (define-syntax (te-tests stx)
@@ -27,6 +36,7 @@
 
 (define tests
   (te-tests
+   [(union-survives-gc?) #t]
    [-Number -Number]
    [(Un -Number) -Number]
    [(Un -Number -Symbol -Boolean) (Un -Number -Boolean -Symbol)]

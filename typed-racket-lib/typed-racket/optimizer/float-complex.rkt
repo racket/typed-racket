@@ -113,6 +113,18 @@
 
 
 
+;; log of the largest flonum, as in Chez Scheme's `log-omega`
+(define log-max-flonum (log 1.7976931348623157e308))
+
+;; Syntax for ±exp(a + log(|part|)), with the sign of `part`, which is
+;; exp(a)*part without the intermediate overflow of exp(a).
+(define (scaled-part a part)
+  (with-syntax ([a a] [part part] [r (generate-temporary "unboxed-scaled-")])
+    #'(let-values ([(r) (unsafe-flexp (unsafe-fl+ a (unsafe-fllog (unsafe-flabs part))))])
+        (if (unsafe-fl< part 0.0)
+            (unsafe-fl* -1.0 r)
+            r))))
+
 ;; it's faster to take apart a complex number and use unsafe operations on
 ;; its parts than it is to use generic operations
 ;; we keep the real and imaginary parts unboxed as long as we stay within
@@ -287,21 +299,35 @@
                (and (log-missed-complex-expr) #f))
     #:with (real-binding imag-binding) (binding-names)
     #:with scaling-factor (generate-temporary "unboxed-scaling-")
+    #:with cos-b (generate-temporary "unboxed-cos-")
+    #:with sin-b (generate-temporary "unboxed-sin-")
     #:do [(log-unboxing-opt "unboxed unary float complex")]
     #:with (bindings ...)
       ;; exp(a+bi) = exp(a) * (cos(b) + i*sin(b))
-      ;; When b is ±0.0, sin(b) is ±0.0 and exp(a) may be +inf.0,
-      ;; so sin(b)*exp(a) would produce NaN via IEEE 754 (0*inf=NaN).
-      ;; In Racket: (exp +inf.0+0.0i) = +inf.0+0.0i, (exp +nan.0+0.0i) = +nan.0+0.0i.
-      ;; Guard the zero case to avoid the spurious NaN.
+      ;; This follows Racket CS's (Chez Scheme's) algorithm:
+      ;; - When a is at most log(max-flonum), the product is computed directly.
+      ;;   This includes b = ±0.0, since exp(a) is finite and cos(b) = 1.
+      ;; - Otherwise, when b is ±0.0, the result is exp(a) + b*i, which avoids
+      ;;   the spurious NaN from 0*inf when exp(a) is +inf.0. In Racket,
+      ;;   (exp +inf.0+0.0i) = +inf.0+0.0i and (exp +nan.0+0.0i) = +nan.0+0.0i.
+      ;; - Otherwise exp(a) overflows even though exp(a)*cos(b) may not, so
+      ;;   each part is computed as ±exp(a + log(|part|)).
       #`(c.bindings ...
          ((scaling-factor) (unsafe-flexp c.real-binding))
-         ((real-binding) (if (unsafe-fl= c.imag-binding 0.0)
-                             scaling-factor
-                             (unsafe-fl* (unsafe-flcos c.imag-binding) scaling-factor)))
-         ((imag-binding) (if (unsafe-fl= c.imag-binding 0.0)
-                             c.imag-binding
-                             (unsafe-fl* (unsafe-flsin c.imag-binding) scaling-factor)))))
+         ((cos-b) (unsafe-flcos c.imag-binding))
+         ((sin-b) (unsafe-flsin c.imag-binding))
+         ((real-binding)
+          (if (unsafe-fl<= c.real-binding #,log-max-flonum)
+              (unsafe-fl* scaling-factor cos-b)
+              (if (unsafe-fl= c.imag-binding 0.0)
+                  scaling-factor
+                  #,(scaled-part #'c.real-binding #'cos-b))))
+         ((imag-binding)
+          (if (unsafe-fl<= c.real-binding #,log-max-flonum)
+              (unsafe-fl* scaling-factor sin-b)
+              (if (unsafe-fl= c.imag-binding 0.0)
+                  c.imag-binding
+                  #,(scaled-part #'c.real-binding #'sin-b))))))
 
 
   ;; we can eliminate boxing that was introduced by the user

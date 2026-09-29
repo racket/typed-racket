@@ -210,10 +210,13 @@
                       (list #'x))
         (ret (-> Univ Univ : -tt-propset : (make-Path null '(1 . 0)))))
       (check-equal?
-       (abstract-obj (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp #'x)))
-                          -tt-propset
-                          (make-Path null #'x))
-                     (list #'x))
+       (let ([result
+              (abstract-obj (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp #'x)))
+                                 -tt-propset
+                                 (make-Path null #'x))
+                            (list #'x))])
+         (collect-garbage)
+         result)
         (ret (-refine/fresh y -Int (-leq (-lexp y) (-lexp (make-Path null '(1 . 0)))))
              -tt-propset
              (make-Path null '(0 . 0))))

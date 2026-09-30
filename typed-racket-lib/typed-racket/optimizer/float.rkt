@@ -26,7 +26,9 @@
   (mk-unsafe-tbl generic "fl~a" "unsafe-fl~a"))
 
 (define binary-float-ops
-  (mk-float-tbl (list #'+ #'- #'* #'/ #'min #'max #'expt)))
+  (free-id-table-set
+   (mk-float-tbl (list #'+ #'- #'* #'/ #'min #'max #'expt))
+   #'flhypot #'unsafe-flhypot))
 (define binary-float-comps
   (free-id-table-set*
     (mk-float-tbl (list #'= #'<= #'< #'> #'>=))
@@ -319,4 +321,3 @@
      #:do [(log-opt-info "possible exact real arith")]
      #:with opt (syntax/loc this-syntax (op n.opt ...)))
   )
-

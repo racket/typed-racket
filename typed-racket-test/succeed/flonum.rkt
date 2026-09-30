@@ -54,6 +54,7 @@
 (check = (fllog 1.45) (unsafe-fllog 1.45))
 (check = (flexp 1.45) (unsafe-flexp 1.45))
 (check = (flsqrt 1.45) (unsafe-flsqrt 1.45))
+(check = (flhypot 3.0 4.0) (unsafe-flhypot 3.0 4.0))
 (check = (->fl 1) 1.0)
 (check = (unsafe-fx->fl 1) 1.0)
 

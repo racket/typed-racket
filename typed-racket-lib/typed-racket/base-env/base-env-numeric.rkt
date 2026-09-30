@@ -579,6 +579,9 @@
     (fl-type-lambda
       (from-cases (map unop (list -FlPosZero -FlNegZero -FlZero -PosFl))
                   (-Fl . -> . -NonNegFl))))
+  (define flhypot-type
+    (fl-type-lambda
+      (-Fl -Fl . -> . -NonNegFl)))
 
   (define flexpt-type
     (fl-type-lambda
@@ -2028,6 +2031,7 @@
 [fllog (fllog-type 'flonum)]
 [flexp (flexp-type 'flonum)]
 [flsqrt (flsqrt-type 'flonum)]
+[flhypot (flhypot-type 'flonum)]
 [flexpt (flexpt-type 'flonum)]
 [->fl (fx->fl-type 'flonum)]
 [fx->fl (fx->fl-type 'flonum)]
@@ -2072,6 +2076,7 @@
 ;[unsafe-flexpt (flexpt-type 'flonum)]
 ;
 [unsafe-flsqrt (flsqrt-type 'flonum)]
+[unsafe-flhypot (flhypot-type 'flonum)]
 [unsafe-fx->fl (fx->fl-type 'flonum)]
 [unsafe-fl->fx (fl->fx-type 'flonum)]
 [unsafe-make-flrectangular (make-flrectangular-type)]

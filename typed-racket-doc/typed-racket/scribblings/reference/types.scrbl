@@ -824,7 +824,14 @@ delimited continuation functions and continuation mark functions.
   in @racket[type] and @racket[proposition]. Unpacking the existential type
   result is done automatically while checking application of the function.
 
-  @history[#:changed "1.12" @elem{Added @tech[#:key "Some"]{existential type results}}]
+  @history[#:changed "1.12" @elem{Added @tech[#:key "Some"]{existential type results}}
+           #:changed "1.16" @elem{Added the @racket[(: symbolic-object type)],
+                                  @racket[(! symbolic-object type)], @racket[not],
+                                  @racket[when], @racket[unless], and @racket[if]
+                                  propositions, the @racket[(depth arg)] symbolic
+                                  object, and propositions in @racket[Values]
+                                  results and @racket[AnyValues]; the
+                                  @racket[#:object] form is no longer ignored.}]
 }
 
 @;; This is a trick to get a reference to ->* in another manual
@@ -957,7 +964,8 @@ function.
 Each result may also include latent propositions and an object using the same
 @racket[(type : #:+ proposition #:- proposition #:object symbolic-object)]
 syntax as function ranges.
-@ex[(values 1 2 3)]}
+@ex[(values 1 2 3)]
+@history[#:changed "1.16" @elem{Added latent propositions and objects in results.}]}
 Note that a type variable cannot be instantiated with a @racket[(Values ....)]
 type. For example, the type @racket[(All (A) (-> A))] describes a thunk that
 returns exactly one value.

@@ -603,7 +603,9 @@ The type @racket[t] may also describe the propositions and object of
 @racket[e]'s result, using the @racket[result] syntax of function ranges (see
 @racket[->]), as in @racket[(Boolean : #:+ (: x String) #:- (! x String))].
 Outside a function type, such propositions must name their subjects
-explicitly.}
+explicitly.
+
+@history[#:changed "1.16" @elem{Added propositions and objects in @racket[t].}]}
 
 @defform/none[#{e :: t}]{A reader abbreviation for @racket[(ann e t)].
 

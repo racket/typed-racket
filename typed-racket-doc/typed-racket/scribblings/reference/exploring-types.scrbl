@@ -53,6 +53,9 @@ module's error messages show, use the @racket[#:print-propositions] language
 option:
 
 @racketmod[typed/racket #:print-propositions]
+
+@history[#:changed "1.16" @elem{Added the @racket[#:verbose] option and the
+                                @racket[#:print-propositions] language option.}]
 }
 
 @defform[(:query-type/args f t ...)]{Given a function @racket[f] and argument

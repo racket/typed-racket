@@ -597,7 +597,13 @@ syntax will be disabled.}
 
 @defform[(ann e t)]{Ensure that @racket[e] has type @racket[t], or
 some subtype.  The entire expression has type @racket[t].
-This is legal only in expression contexts.}
+This is legal only in expression contexts.
+
+The type @racket[t] may also describe the propositions and object of
+@racket[e]'s result, using the @racket[result] syntax of function ranges (see
+@racket[->]), as in @racket[(Boolean : #:+ (: x String) #:- (! x String))].
+Outside a function type, such propositions must name their subjects
+explicitly.}
 
 @defform/none[#{e :: t}]{A reader abbreviation for @racket[(ann e t)].
 

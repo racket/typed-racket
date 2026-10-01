@@ -58,19 +58,28 @@
   (provide
     :type-impl :print-type-impl :query-type/args-impl :query-type/result-impl :kind-impl)
 
+  (define (with-type-printing verbose? type-form? thunk)
+    (parameterize ([current-print-type-fuel
+                    (cond
+                      [verbose? +inf.0]
+                      [type-form? 1]
+                      [else (current-print-type-fuel)])]
+                   ;; This makes sure unions are totally flat for the
+                   ;; infinite fuel case. If fuel that's not 0, 1, or +inf.0
+                   ;; is ever used, more may need to be done.
+                   [current-type-names
+                    (if verbose? '() (current-type-names))]
+                   [current-print-unexpanded (box '())]
+                   [print-complex-props? (or verbose? (print-complex-props?))])
+      (thunk)))
+
   ;; this one doesn't quite fit the pattern of the next three REPL operations, so
   ;; this one isn't defined with a macro as below
   (define (:type-impl stx)
     (syntax-parse stx
       [(_ (~optional (~and #:verbose verbose-kw)) ty:expr)
-       (parameterize ([current-print-type-fuel
-                       (if (attribute verbose-kw) +inf.0 1)]
-                      ;; This makes sure unions are totally flat for the
-                      ;; infinite fuel case. If fuel that's not 0, 1, or +inf.0
-                      ;; is ever used, more may need to be done.
-                      [current-type-names
-                       (if (attribute verbose-kw) '() (current-type-names))]
-                      [current-print-unexpanded (box '())])
+       (with-type-printing (attribute verbose-kw) #t
+        (λ ()
          (define type (pretty-format-rep (match (parse-type #'ty)
                                            [(? App? ty) (resolve ty)]
                                            [ty ty])))
@@ -80,7 +89,7 @@
                          ""
                          (format "[can expand further: ~a]"
                                  (string-join (map ~a unexpanded)))))
-         #`(display #,(format "~a\n~a" type cue)))]
+         #`(display #,(format "~a\n~a" type cue))))]
       [form
        (raise-syntax-error #f "must be applied to exactly one argument" #'form)]))
 
@@ -103,18 +112,22 @@
              [form
               (raise-syntax-error #f err #'form)]))]))
 
-  ;; TODO what should be done with stx
-  ;; Prints the _entire_ type. May be quite large.
-  (define-repl-op :print-type-impl (_ e) #'e
-    (λ (type)
-      #`(displayln
-         #,(pretty-format-rep
-            (match type
-              [(tc-result1: t f o) t]
-              [(tc-results: (list (tc-result: ts) ...) _)
-               (-values ts)]
-              [(tc-any-results: f) (-AnyValues f)]))))
-    "must be applied to exactly one argument")
+  (define (:print-type-impl stx)
+    (syntax-parse stx
+      [(_ (~optional (~and #:verbose verbose-kw)) e:expr)
+       (define result
+         (tc-expr (local-expand #'e 'expression (list #'module*))))
+       (with-type-printing (attribute verbose-kw) #f
+        (λ ()
+          #`(displayln
+             #,(pretty-format-rep
+                (match result
+                  [(tc-result1: t f o) t]
+                  [(tc-results: (list (tc-result: ts) ...) _)
+                   (-values ts)]
+                  [(tc-any-results: f) (-AnyValues f)])))))]
+      [form
+       (raise-syntax-error #f "must be applied to exactly one argument" #'form)]))
 
   ;; given a function and input types, display the result type
   (define-repl-op :query-type/args-impl (_ op arg-type ...)

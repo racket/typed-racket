@@ -41,7 +41,7 @@
                  pretty-format-rep print-values print-result)))
 (provide-printer)
 
-(provide print-complex-props? type-output-sexpr-tweaker
+(provide print-complex-props? call-showing-hidden-props type-output-sexpr-tweaker
          current-print-type-fuel current-print-unexpanded)
 
 
@@ -53,6 +53,21 @@
 
 (define type-output-sexpr-tweaker (make-parameter values))
 (define print-complex-props? (make-parameter #f))
+
+;; call-showing-hidden-props : (Listof Any) (-> A) -> A
+;; Calls `thunk` with latent propositions printed if printing any of `vs`
+;; would otherwise hide some. Error messages pass the expected types, so
+;; that propositions an expected type demands, which can cause a mismatch
+;; by themselves, are shown.
+(define (call-showing-hidden-props vs thunk)
+  (define (hides-props? v)
+    (and (Rep? v)
+         (not (equal? (format "~a" v)
+                      (parameterize ([print-complex-props? #t])
+                        (format "~a" v))))))
+  (parameterize ([print-complex-props? (or (print-complex-props?)
+                                           (ormap hides-props? vs))])
+    (thunk)))
 
 ;; this parameter controls how far down the type to expand type names
 ;; interp. 0 -> don't expand
@@ -409,11 +424,11 @@
          `(,(type->sexp t) : #:+ ,(type->sexp ft))]
         [(Values: (list (Result: t ps (? Empty?))))
          (if (print-complex-props?)
-             `(,(type->sexp t) : ,(propset->sexp ps))
+             `(,(type->sexp t) : ,@(propset->latent-sexps ps))
              (list (type->sexp t)))]
         [(Values: (list (Result: t ps o)))
          (if (print-complex-props?)
-             `(,(type->sexp t) : ,(propset->sexp ps) ,(object->sexp o))
+             `(,(type->sexp t) : ,@(propset->latent-sexps ps) #:object ,(object->sexp o))
              (list (type->sexp t)))]
         [_ (list (values->sexp rng))]))]
     [else `(Unknown Function Type: ,(struct->vector arr))]))
@@ -531,9 +546,10 @@
               (or 'none (PropSet: (? TrueProp?) (? TrueProp?)))
               (or 'none (? Empty?)))
      (type->sexp t)]
-    [(Result: t ps (? Empty?)) `(,(type->sexp t) : ,(propset->sexp ps))]
+    [(Result: t ps (? Empty?)) `(,(type->sexp t) : ,@(propset->latent-sexps ps))]
     [(Result: t ps lo) `(,(type->sexp t) :
-                         ,(propset->sexp ps) :
+                         ,@(propset->latent-sexps ps)
+                         #:object
                          ,(object->sexp lo))]
     [else `(Unknown Result: ,(struct->vector res))]))
 
@@ -541,8 +557,14 @@
 ;; convert a prop set to an s-expression that can be printed
 (define (propset->sexp ps)
   (match ps
-    [(PropSet: thn els) `(,(prop->sexp thn) \| ,(prop->sexp els))]
+    [(? PropSet?) (propset->latent-sexps ps)]
     [else `(Unknown PropSet: ,(struct->vector ps))]))
+
+(define (propset->latent-sexps ps)
+  (match ps
+    [(PropSet: thn els)
+     `(#:+ ,(prop->sexp thn) #:- ,(prop->sexp els))]
+    [else `(#:+ (Unknown PropSet: ,(struct->vector ps)))]))
 
 ;; values->sexp : SomeValues -> S-expression
 ;; convert a values to an s-expression that can be printed

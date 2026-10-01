@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"type mismatch")
+(exn-pred #rx"expected: \\(-> Any Boolean : #:\\+ Bot")
 #lang typed/racket
 
 ;; Same shape as subst-empty-obj-negative-prop.rkt, but the variable the

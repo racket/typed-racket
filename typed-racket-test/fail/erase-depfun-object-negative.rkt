@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"type mismatch")
+(exn-pred #rx"expected: \\(-> Any Any : #:\\+ Bot #:- Bot")
 #lang typed/racket
 
 ;; A function type in a negative position that promises to return x

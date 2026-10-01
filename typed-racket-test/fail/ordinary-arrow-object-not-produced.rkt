@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"expected: \\(-> Any Any\\)")
+(exn-pred #rx"expected: \\(-> Any Any : #:\\+ Top #:- Top #:object z\\)")
 #lang typed/racket
 
 (let ([z : Any 1])

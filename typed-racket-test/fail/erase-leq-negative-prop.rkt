@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"type mismatch")
+(exn-pred #rx"expected: \\(-> Any Boolean : #:\\+ Bot")
 #lang typed/racket #:with-refinements
 
 ;; A linear inequality about x in a negative position must erase to Bot

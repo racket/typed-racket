@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"Wrong function argument type")
+(exn-pred #rx"expected \\(-> Any Boolean : #:\\+ Bot")
 #lang typed/racket
 
 ;; Keyword argument types are a negative position too: when x goes out

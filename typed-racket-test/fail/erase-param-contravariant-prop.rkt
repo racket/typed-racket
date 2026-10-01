@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"Wrong argument to parameter")
+(exn-pred #rx"expected \\(-> Any Boolean : #:\\+ Bot")
 #lang typed/racket
 
 ;; The values a parameter accepts are a contravariant (negative)

@@ -64,7 +64,6 @@
          instantiate-propset
          instantiate-obj
          abstract-obj
-         substitute-names
          set-struct-property-pred!
          variances-in-type
          DepFun/ids:
@@ -1705,19 +1704,6 @@
        (make-Path (map rec flds)
                   (transform nm lvl))]
       [_ (Rep-fmap rep rec)])))
-
-;; simple substitution mapping identifiers to
-;; identifiers (or objects)
-;; pre: (= (length names) (length names-or-objs))
-(define (substitute-names rep names names-or-objs)
-  (let subst ([rep rep])
-    (match rep
-      [(Path: flds (? identifier? name))
-       (make-Path (map subst flds)
-                  (match (index-of names name free-identifier=?)
-                    [#f name]
-                    [idx (list-ref names-or-objs idx)]))]
-      [_ (Rep-fmap rep subst)])))
 
 ;;************************************************************
 ;; Smart Constructors/Destructors for Type Binders

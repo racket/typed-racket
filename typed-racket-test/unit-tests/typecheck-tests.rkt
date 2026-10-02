@@ -146,10 +146,8 @@
   ;; 3. check that the type-table entry for `f` matches `t`
   (define (test-type-table expr assoc)
     (define expr+ (tr-expand expr))
-    (define expanded-expr
-      (begin
-        (tc expr+ #f)
-        expr+))
+    (tc expr+ #f)
+    (define expanded-expr expr+)
     (define expected-results
       (make-free-id-table assoc))
     (let loop ([x expanded-expr]) ;; loop : any/c -> void?

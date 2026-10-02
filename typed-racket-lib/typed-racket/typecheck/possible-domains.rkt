@@ -156,20 +156,18 @@
   (match t
     ;; function type, prune if possible.
     [(Fun: (list (Arrow: doms rests _ rngs rngs-T+) ...))
-     (match-let ([(list pdoms rngs rests)
-                  (possible-domains doms rests rngs
-                                    (and expected (ret expected))
-                                    permissive?)])
-       (if (= (length pdoms) (length doms))
-           ;; pruning didn't improve things, return the original
-           ;; (Note: pruning may have reordered clauses, so may not be `equal?' to
-           ;;  the original, which may confuse `:print-type''s pruning detection)
-           t
-           ;; pruning helped, return pruned type
-           (make-Fun (for/list ([pdom (in-list pdoms)]
-                                [rst (in-list rests)]
-                                [rng (in-list rngs)]
-                                [T+ (in-list rngs-T+)])
-                       (make-Arrow pdom rst null rng T+)))))]
+     (match-define (list pdoms rngs rests)
+       (possible-domains doms rests rngs (and expected (ret expected)) permissive?))
+     (if (= (length pdoms) (length doms))
+         ;; pruning didn't improve things, return the original
+         ;; (Note: pruning may have reordered clauses, so may not be `equal?' to
+         ;;  the original, which may confuse `:print-type''s pruning detection)
+         t
+         ;; pruning helped, return pruned type
+         (make-Fun (for/list ([pdom (in-list pdoms)]
+                              [rst (in-list rests)]
+                              [rng (in-list rngs)]
+                              [T+ (in-list rngs-T+)])
+                     (make-Arrow pdom rst null rng T+))))]
     ;; not a function type. keep as is.
     [_ t]))

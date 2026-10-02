@@ -36,16 +36,16 @@
         (list #'y #'x)
         (list #'z #'x #'y)
         (list #'a #'b)
-        (cons #'b (list #'c))
-        (cons #'c (list #'a))))
+        (list #'b #'c)
+        (list #'c #'a)))
 ;; check topological order
 (define example-6
-  (list (cons #'a (list #'b))
-        (cons #'d (list))
-        (cons #'c (list #'d #'e))
-        (cons #'b (list #'c))
-        (cons #'e (list #'f))
-        (cons #'f (list))))
+  (list (list #'a #'b)
+        (list #'d)
+        (list #'c #'d #'e)
+        (list #'b #'c)
+        (list #'e #'f)
+        (list #'f)))
 
 ;; helper function for the tests below
 ;; ignores order of ids in the components and the

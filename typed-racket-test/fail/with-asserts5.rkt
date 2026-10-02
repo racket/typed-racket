@@ -3,5 +3,5 @@
 #lang typed/racket
 
 (let ([x 1] [y "2"])
-  (with-asserts ([x string?])
+  (with-asserts ([y (not/p (not/p integer?))])
     x))

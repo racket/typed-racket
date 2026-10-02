@@ -734,28 +734,44 @@ the typed racket language.
          [_ rhs]))
      (quasisyntax/loc stx (define #,defined-id #,rhs*))]))
 
-(define-syntax (with-asserts stx)
-  (define-syntax-class with-asserts-clause
-    [pattern [x:id]
-             #:with cond-clause
-             (syntax/loc #'x
-               [(not x)
-                (error "Assertion failed")])]
-    [pattern [x:id pred]
-             #:with cond-clause
-             (syntax/loc #'x
-               [(not (pred x))
-                (error "Assertion failed")])])
-   (syntax-parse stx
-     [(_ (c:with-asserts-clause ...) body:expr ...+)
-      (syntax-property
-       (quasisyntax/loc stx
-         (cond c.cond-clause
-               ...
-               [else #,(syntax-property
-                        #'(begin body ...)
-                        'feature-profile:TR-dynamic-check 'antimark)]))
-       'feature-profile:TR-dynamic-check #t)]))
+(define-syntax with-asserts
+  (let ()
+    (define (pred-parser stx)
+      (syntax-parse stx
+        #:datum-literals (not/p)
+        [(not/p (not/p p)) (pred-parser #'p)]
+        [_ stx]))
+    (define assert-parser
+      (syntax-parser
+        #:datum-literals (not/p)
+        [[x (not/p p)] #'(p x)]
+        [[x p] #'(not (p x))]))
+    (define-syntax-class with-asserts-clause
+      [pattern [x:id]
+               #:with cond-clause
+               (syntax/loc #'x
+                 [(not x)
+                  (raise-arguments-error 'with-asserts
+                   (format "Assertion ~s failed" '(assert x (not/p not))))])]
+      [pattern [x:id p]
+               #:with cond-clause
+               (with-syntax ([p (pred-parser #'p)])
+                 (quasisyntax/loc #'x
+                   [#,(assert-parser #'[x p])
+                    (raise-arguments-error 'with-asserts
+                     (format "Assertion ~s failed" '(assert x p)))]))])
+    (λ (stx)
+      (syntax-parse stx
+        [(_ (c:with-asserts-clause ...) body:expr ...+)
+         (syntax-property
+          (quasisyntax/loc stx
+            (cond c.cond-clause
+                  ...
+                  [else
+                   #,(syntax-property
+                      #'(begin body ...)
+                      'feature-profile:TR-dynamic-check 'antimark)]))
+          'feature-profile:TR-dynamic-check #t)]))))
 
 (define-syntax (typecheck-fail stx)
   (syntax-parse stx

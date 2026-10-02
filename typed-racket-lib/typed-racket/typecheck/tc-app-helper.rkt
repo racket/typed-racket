@@ -16,6 +16,7 @@
          "../types/utils.rkt"
          "../types/subtype.rkt"
          "../types/type-table.rkt"
+         (only-in "../types/printer.rkt" call-showing-hidden-props)
          "../env/lexical-env.rkt"
          "tc-envops.rkt"
          (except-in "../types/abbrev.rkt"
@@ -199,6 +200,16 @@
                            ;; if it's a dependent function, pass the argument identifiers so we
                            ;; can report those in the error message
                            #:arg-names [arg-names '()])
+  ;; the domains may demand latent propositions that are not printed
+  ;; by default
+  (call-showing-hidden-props
+   (apply append doms)
+   (λ ()
+     (domain-mismatches* f-stx args-stx ty doms rests rngs arg-tys tail-ty tail-bound
+                         expected return msg-thunk arg-names))))
+
+(define (domain-mismatches* f-stx args-stx ty doms rests rngs arg-tys tail-ty tail-bound
+                            expected return msg-thunk arg-names)
   (define arguments-str
     (stringify-args arg-tys tail-ty))
   (cond

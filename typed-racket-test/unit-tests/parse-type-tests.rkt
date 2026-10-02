@@ -18,6 +18,7 @@
            typed-racket/types/numeric-tower
            typed-racket/types/resolve
            typed-racket/types/prop-ops
+           typed-racket/types/tc-result
            (submod typed-racket/base-env/base-types initialize)
            (rename-in typed-racket/types/abbrev
                       [Un t:Un] [-> t:->] [->* t:->*]))
@@ -93,7 +94,7 @@
 (define-for-syntax B -Boolean)
 (define-for-syntax Sym -Symbol)
 
-(define tests
+(define type-tests
   (pt-tests
    "parse-type tests"
    [FAIL UNBOUND]
@@ -214,13 +215,34 @@
     (make-pred-ty -Number)]
    [(-> Any Boolean : #:+ (Number @ 0) #:- (! Number @ 0))
     (make-pred-ty -Number)]
+   [(Any -> Boolean : #:+ (: (0 0) Number) #:- (! (0 0) Number))
+    (make-pred-ty -Number)]
+   [(Any -> Boolean : #:+ (and Number (! Integer)) #:- (or Integer (! Number)))
+    (t:->* (list Univ) -Boolean
+           : (-PS (-and (-is-type 0 -Number)
+                        (-not-type 0 -Int))
+                  (-or (-is-type 0 -Int)
+                       (-not-type 0 -Number))))]
    [(Any -> Boolean : #:+ (! Number @ 0) #:- (Number @ 0))
     (t:->* (list Univ) -Boolean : (-PS (-not-type 0 -Number) (-is-type 0 -Number)))]
    [(-> Any Boolean : #:+ (! Number @ 0) #:- (Number @ 0))
     (t:->* (list Univ) -Boolean : (-PS (-not-type 0 -Number) (-is-type 0 -Number)))]
+   [(-> Any Any : #:object not-mutated-var)
+    (t:->* (list Univ) Univ : (-PS -tt -tt) : (-id-path #'not-mutated-var))]
+   [(-> Any Any : #:object (0 0))
+    (t:->* (list Univ) Univ : (-PS -tt -tt) : (-arg-path 0 0))]
    [(-> Any (-> Any Boolean : #:+ (Number @ 1 0) #:- (! Number @ 1 0)))
     (t:-> Univ
           (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 0) -Number) (-not-type (cons 1 0) -Number))))]
+   [(-> Any (-> Any Boolean : #:+ (Number @ (1 0)) #:- (! Number @ (1 0))))
+    (t:-> Univ
+          (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 0) -Number) (-not-type (cons 1 0) -Number))))]
+   [(-> Any (-> Any Boolean : #:+ (: (1 0) Number) #:- (! (1 0) Number)))
+    (t:-> Univ
+          (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 0) -Number) (-not-type (cons 1 0) -Number))))]
+   [(-> Any (-> Any Any : #:object (1 0)))
+    (t:-> Univ
+          (t:->* (list Univ) Univ : (-PS -tt -tt) : (-arg-path 0 1)))]
    [(-> Any Any (-> Any Boolean : #:+ (Number @ 1 1) #:- (! Number @ 1 1)))
     (t:-> Univ Univ
           (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 1) -Number) (-not-type (cons 1 1) -Number))))]
@@ -247,13 +269,63 @@
    [FAIL (Any -> Any #:object 0) #:msg "expected the identifier `:'"]
    [FAIL (-> Any Any #:+ (String @ x)) #:msg "expected the identifier `:'"]
    [FAIL (-> Any Boolean : #:+ (Number @ 1 0) #:- (! Number @ 1 0))
-         #:msg "Index 1 used in"]
+         #:msg "index \\(1 0\\) used in a proposition"]
    [FAIL (-> Any (-> Any Boolean : #:+ (Number @ 1 1) #:- (! Number @ 1 1)))
-         #:msg "larger than argument length"]
+         #:msg "has only 1 argument"]
+   ;; legacy propositions nested inside new-style connectives
+   [(-> Any Any Boolean : #:+ (and (Number @ 0) (String @ 1)))
+    (t:-> Univ Univ -Boolean : (-PS (-and (-is-type 0 -Number) (-is-type 1 -String)) -tt))]
+   [(-> Any Boolean : #:+ (or (! Number @ 0) (Integer @ 0)))
+    (t:-> Univ -Boolean : (-PS (-or (-not-type 0 -Number) (-is-type 0 -Int)) -tt))]
+   ;; a bare natural number object is the legacy notation for an argument
+   [(-> Any Any : #:object 0)
+    (t:->* (list Univ) Univ : (-PS -tt -tt) : (-arg-path 0 0))]
+   [FAIL (-> Any Any : #:object 1)
+         #:msg "has only 1 argument"]
+   ;; index objects must refer to an argument of an enclosing function type
+   [FAIL (-> Any Boolean : #:+ (: (3 7) String))
+         #:msg "only within 1 enclosing function type"]
+   [FAIL (-> Any Boolean : #:+ (: (0 5) String))
+         #:msg "has only 1 argument"]
+   [FAIL (-> Any (Refine [n : Any] (: (0 0) String)))
+         #:msg "refers to the variable of a Refine type"]
+   [(-> Any (Refine [n : Any] (: (1 0) String)))
+    (t:-> Univ (-refine/fresh n Univ (-is-type (cons 1 0) -String)))]
+   ;; a function type in a domain is not underneath the enclosing
+   ;; function's binder, so it cannot refer to that function's arguments
+   [FAIL (-> (-> Any Boolean : #:+ (: (1 0) String)) Any)
+         #:msg "only within 1 enclosing function type"]
+   [FAIL (-> ([x : (-> Any Boolean : #:+ (: (1 0) String))]) Any)
+         #:msg "may not be used in the argument types of a dependent function"]
+   ;; paths over index objects use the arguments' types
+   [(-> (Pairof Any Any) Boolean : #:+ (: (car (0 0)) Number))
+    (t:-> (-pair Univ Univ) -Boolean
+          : (-PS (-is-type (-car-of (-arg-path 0 0)) -Number) -tt))]
+   [FAIL (-> Any Boolean : #:+ (: (car (0 0)) Number))
+         #:msg "car expects a pair"]
+   ;; errors inside a recognized proposition are reported as such, not
+   ;; as errors parsing a type
+   [FAIL (-> Any Boolean : #:+ (and (: (car (0 0)) Number)))
+         #:msg "car expects a pair"]
+   [FAIL (-> Boolean : #:+ String)
+         #:msg "needs a default subject"]
+   [FAIL (-> Any Any : #:object mutated-var)
+         #:msg "may not reference identifiers that are mutated"]
+   [FAIL (-> Any Any : #:object unbound)
+         #:msg "may not reference identifiers that are unbound"]
 
 
    [(Any -> Boolean : #:+ (Symbol @ not-mutated-var))
     (t:-> Univ -Boolean : (-PS (-is-type (-id-path #'not-mutated-var) -Symbol) -tt))]
+   [(Any -> Boolean : #:+ (: not-mutated-var Symbol) #:- (! not-mutated-var Symbol))
+    (t:-> Univ -Boolean
+          : (-PS (-is-type (-id-path #'not-mutated-var) -Symbol)
+                 (-not-type (-id-path #'not-mutated-var) -Symbol)))]
+   [(Any -> Boolean : #:+ (and (: not-mutated-var Symbol) (! not-mutated-var String)))
+    (t:-> Univ -Boolean
+          : (-PS (-and (-is-type (-id-path #'not-mutated-var) -Symbol)
+                       (-not-type (-id-path #'not-mutated-var) -String))
+                 -tt))]
    [FAIL (Any -> Boolean : #:+ (Symbol @ mutated-var))
          #:msg "may not reference identifiers that are mutated"]
    [(Any -> Boolean : #:+ (! Symbol @ not-mutated-var))
@@ -307,11 +379,14 @@
     (->optkey -Integer [-String] #:bar -Integer #t #:foo -Integer #f -Void)]
    [(->* (#:bar Integer Integer) (#:foo Integer String) Void)
     (->optkey -Integer [-String] #:bar -Integer #t #:foo -Integer #f -Void)]
-   [(->* (Any (-> Any Boolean : #:+ (String @ 1 0))) Void)
-    (t:-> Univ (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 0) -String) -tt))
-          -Void)]
-   [FAIL (->* (Any (-> Any Boolean : #:+ (String @ 2 0))) Void)
-         #:msg "Index 2 used in"]
+   ;; the domains of a function type are not underneath its binder, so a
+   ;; function type in a domain cannot refer to the outer arguments
+   [FAIL (->* (Any (-> Any Boolean : #:+ (String @ 1 0))) Void)
+         #:msg "index \\(1 0\\) used in a proposition"]
+   [(->* (Any) (-> Any Boolean : #:+ (String @ 1 0)))
+    (t:-> Univ (t:->* (list Univ) -Boolean : (-PS (-is-type (cons 1 0) -String) -tt)))]
+   [FAIL (->* (Any) (-> Any Boolean : #:+ (String @ 2 0)))
+         #:msg "index \\(2 0\\) used in a proposition"]
 
    [(Opaque foo?) (make-Opaque #'foo?)]
    ;; PR 14122
@@ -372,6 +447,7 @@
 
    [(Some (X) (-> Number (-> X Number) : X)) (-some (X) (t:-> -Number (t:-> X -Number) : (-PS (-is-type 0 X) (-not-type 0 X))))]
    [(-> Number (Some (X) (-> X Number) : #:+ X)) (t:-> -Number (-some-res (X) (t:-> X -Number) : #:+ X))]
+   [(-> Number (Some (X) (-> X Number) : #:+ (: (0 0) X))) (t:-> -Number (-some-res (X) (t:-> X -Number) : #:+ X))]
 
    ;;; Classes
    [(Class) (-class)]
@@ -520,6 +596,7 @@
    [(Refine [x : Number] Top) -Number]
    [(Refine [x : Number] Bot) -Bottom]
    ;; simplify props about subject
+   [(Refine [x : Any] String) -String]
    [(Refine [x : Any] (: x String)) -String]
    [(Refine [x : Integer] (: x Integer)) -Int]
    [(Refine [x : Integer] (: x Symbol)) -Bottom]
@@ -682,8 +759,22 @@
     (t:-> Univ -Boolean : (-PS (-is-type (cons 0 0) -Int) -tt))]
    [(-> ([x : Any])
         Boolean
+        #:+ Integer)
+    (t:-> Univ -Boolean : (-PS (-is-type (cons 0 0) -Int) -tt))]
+   [(-> ([x : Any])
+        Boolean
+        #:+ (and Number (! Integer)))
+    (t:-> Univ -Boolean : (-PS (-and (-is-type (cons 0 0) -Number)
+                                      (-not-type (cons 0 0) -Int))
+                               -tt))]
+   [(-> ([x : Any])
+        Boolean
         #:- (! x Integer))
     (t:-> Univ -Boolean : (-PS -tt (-not-type (cons 0 0) -Int)))]
+   [(-> ([x : Any])
+        Boolean
+        #:- Integer)
+    (t:-> Univ -Boolean : (-PS -tt (-is-type (cons 0 0) -Int)))]
    [(-> ([x : Any])
         Boolean
         #:+ (: x Integer)
@@ -700,6 +791,17 @@
           : (-PS (-is-type (cons 0 0) -Int)
                  (-is-type (cons 0 1) -Int))
           : (-id-path (cons 0 0)))]
+   [(-> ([x : Any])
+        #:pre (x) Number
+        Boolean)
+    (make-DepFun (list Univ)
+                 (-is-type (cons 0 0) -Number)
+                 (-values -Boolean))]
+   [FAIL (-> ([x : Any]
+              [y : Any])
+             Boolean
+             #:+ Integer)
+         #:msg "needs a default subject"]
    ;; simple dependencies
    [(-> ([v : (Vectorof Any)]
          [i : (v) (Refine [n : Integer] (<= n (vector-length v)))])
@@ -902,6 +1004,80 @@
              Any)]
    [FAIL (-> ([x : Integer]
               [y : Integer])
-             (Refine [x : Univ] (<= x 42)))]))
+             (Refine [x : Univ] (<= x 42)))]
 
-;; FIXME - add tests for parse-values-type, parse-tc-results
+   ;; Values and AnyValues proposition syntax
+   [(-> Any (AnyValues : (: (0 0) String)))
+    (t:-> Univ (-AnyValues (-is-type (cons 0 0) -String)))]
+   [(-> Any (values (String : #:+ (: (0 0) String) #:- Top)))
+    (t:-> Univ (-values (-result -String (-PS (-is-type (cons 0 0) -String) -tt))))]
+   [(-> Any (values (String : #:+ String #:- Top #:object (0 0))))
+    (t:-> Univ (-values (-result -String (-PS (-is-type 0 -String) -tt) (-arg-path 0 0))))]
+   ;; as elsewhere in a range, a bare type refers to the first argument
+   [(-> Any (AnyValues : String))
+    (t:-> Univ (-AnyValues (-is-type (cons 0 0) -String)))]
+   [FAIL (-> (AnyValues : String))
+         #:msg "needs a default subject"]
+   [(-> Any Any (values (Boolean : #:+ (: (0 1) String)) Any))
+    (t:-> Univ Univ (-values (list (-result -Boolean (-PS (-is-type (cons 0 1) -String) -tt))
+                                   (-result Univ))))]
+   ;; a single-valued range of a dependent function keeps the result's
+   ;; propositions and object
+   [(-> ([x : Any]) (values (Boolean : #:+ (: x String))))
+    (t:-> Univ -Boolean : (-PS (-is-type (cons 0 0) -String) -tt))]
+   [(-> ([x : Any]) (values (Boolean : #:+ (: x String))) #:- (! x Number))
+    (t:-> Univ -Boolean : (-PS (-is-type (cons 0 0) -String) (-not-type (cons 0 0) -Number)))]
+   [(-> ([x : Any]) (values (Any : #:object x)))
+    (t:-> Univ Univ : (-PS -tt -tt) : (-arg-path 0 0))]
+   [FAIL (-> ([x : Any] [y : Any]) (values (Any : #:object x)) #:object y)
+         #:msg "specifies its object twice"]))
+
+(define-syntax (tcr-test stx)
+  (syntax-parse stx
+    [(_ (~datum FAIL) s:expr #:msg msg:expr)
+     (quasisyntax/loc stx
+       (test-case #,(format "~a" (syntax->datum #'s))
+         (define actual-message
+           (phase1-phase0-eval
+             (with-handlers ([exn:fail:syntax? (lambda (exn) #`#,(exn-message exn))])
+               (parameterize ([delay-errors? #f])
+                 (parse-tc-results (quote-syntax s)))
+               #'#f)))
+         (unless (and actual-message (regexp-match? msg actual-message))
+           (with-check-info (['expected msg] ['actual actual-message])
+             (fail-check "parse-tc-results did not raise the expected error")))))]
+    [(_ s:expr val:expr)
+     (quasisyntax/loc stx
+       (test-case #,(format "~a" (syntax->datum #'s))
+         (define-values (expected actual same?)
+           (phase1-phase0-eval
+             (parameterize ([delay-errors? #f])
+               (define expected val)
+               (define actual (parse-tc-results (quote-syntax s)))
+               #`(values #,expected #,actual #,(equal? actual expected)))))
+         (unless same?
+           (with-check-info (['expected expected] ['actual actual])
+             (fail-check "Unequal tc-results")))))]))
+
+;; expected types of expressions, as written in ann
+(define tc-results-tests
+  (test-suite
+   "parse-tc-results tests"
+   (tcr-test String (ret -String #f #f))
+   (tcr-test (values String Symbol) (ret (list -String -Symbol) (list #f #f) (list #f #f)))
+   (tcr-test (Boolean : #:+ (: not-mutated-var String))
+             (ret -Boolean (-PS (-is-type (-id-path #'not-mutated-var) -String) -tt)))
+   (tcr-test (Any : #:object not-mutated-var)
+             (ret Univ -tt-propset (-id-path #'not-mutated-var)))
+   (tcr-test (AnyValues : (: not-mutated-var String))
+             (-tc-any-results (-is-type (-id-path #'not-mutated-var) -String)))
+   ;; outside any function type, there is no default subject and no
+   ;; argument for an index to refer to
+   (tcr-test FAIL (Boolean : #:+ String) #:msg "needs a default subject")
+   (tcr-test FAIL (Any : #:object 0) #:msg "only within 0 enclosing function types")
+   (tcr-test FAIL (Boolean : #:+ (: (0 0) String)) #:msg "only within 0 enclosing function types")))
+
+(define tests
+  (test-suite "parse-type"
+              type-tests
+              tc-results-tests))

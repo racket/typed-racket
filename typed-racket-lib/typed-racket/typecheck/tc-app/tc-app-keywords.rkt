@@ -15,6 +15,7 @@
          "../../types/type-table.rkt"
          "../../rep/type-rep.rkt"
          "../../utils/tc-utils.rkt"
+         (only-in "../../types/printer.rkt" call-showing-hidden-props)
          "../../infer/infer.rkt"
          (for-label racket/base)
          ;; adjusted -1 since it's provided for-syntax
@@ -112,9 +113,12 @@
                      (loop kws-rest (cdr actuals) form-rest)
                      ;; failure
                      (and error?
-                          (tc-error/delayed
-                           "Wrong function argument type, expected ~a, got ~a for keyword argument ~a"
-                           t (car actuals) k)
+                          (call-showing-hidden-props
+                           (list t)
+                           (λ ()
+                             (tc-error/delayed
+                              "Wrong function argument type, expected ~a, got ~a for keyword argument ~a"
+                              t (car actuals) k)))
                           (loop kws-rest (cdr actuals) form-rest)))]
                 [req? ;; this keyword argument was required
                  (if error?

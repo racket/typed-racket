@@ -1,5 +1,5 @@
 #;
-(exn-pred #rx"Proposition's object index 3 is larger than argument length 1")
+(exn-pred #rx"index \\(0 3\\) refers to argument 3, but the function type has only 1 argument")
 #lang typed/racket
 
 ;; This test ensures that a filter object like '3' is

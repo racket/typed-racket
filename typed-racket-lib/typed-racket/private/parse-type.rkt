@@ -111,15 +111,75 @@
      => cdr]
     [else #f]))
 
-;; current-arities : Parameter<(Listof Natural)>
-;; Represents the stack of function arities in the potentially
-;; nested function type being parsed. The stack does not include the
-;; innermost function (since syntax classes can check that locally)
-(define current-arities (make-parameter null))
+;; A Binder is one of
+;;  - (binder (Listof (U Type #f)) (U Object #f)): a function type whose
+;;    range (or latent propositions) is being parsed, with the types of
+;;    its arguments (#f where unknown) and the default subject of bare
+;;    type propositions, if any
+;;  - 'refinement: the proposition of a Refine type
+;;  - 'opaque: the argument types of a dependent function, which may or
+;;    may not end up underneath the function's binder
+(struct binder (arg-types default-subject) #:transparent)
 
-(define-syntax-rule (with-arity arity e ...)
-  (parameterize ([current-arities (cons arity (current-arities))])
+;; current-binders : Parameter<(Listof Binder)>
+;; The binders enclosing the position being parsed, innermost first.
+;; These are exactly the binders that increase the De Bruijn level of
+;; objects (see instantiate-obj+simplify), so the object (depth idx)
+;; refers to argument idx of the binder at position depth.
+(define current-binders (make-parameter null))
+
+(define-syntax-rule (with-binder b e ...)
+  (parameterize ([current-binders (cons b (current-binders))])
     e ...))
+
+;; with-function-binder : (Listof Type) e ... -> Any
+;; parses e ... underneath a function type with the given argument types,
+;; whose first argument is the default subject of bare type propositions
+(define-syntax-rule (with-function-binder arg-types e ...)
+  (let ([tys arg-types])
+    (with-binder (binder tys (and (pair? tys) (-arg-path 0)))
+      e ...)))
+
+;; the default subject of a bare type proposition at the current position
+(define (current-default-subject)
+  (match (current-binders)
+    [(cons (binder _ default) _) default]
+    [_ #f]))
+
+;; check-index-object : natural natural -> (U String #f)
+;; Returns an error message if (depth idx) does not refer to an argument
+;; of an enclosing function type
+(define (check-index-object depth idx)
+  (define binders (current-binders))
+  (cond
+    [(for/or ([b (in-list binders)] [_ (in-range (add1 depth))])
+       (eq? b 'opaque))
+     "index objects may not be used in the argument types of a dependent function; refer to arguments by name"]
+    [(>= depth (length binders))
+     (format "index (~a ~a) used in a proposition, but the use is only within ~a enclosing function type~a"
+             depth idx (length binders) (if (= 1 (length binders)) "" "s"))]
+    [else
+     (match (list-ref binders depth)
+       ['refinement
+        (format "index (~a ~a) refers to the variable of a Refine type; refer to it by name"
+                depth idx)]
+       [(binder tys _)
+        (and (>= idx (length tys))
+             (format "index (~a ~a) refers to argument ~a, but the function type has only ~a argument~a"
+                     depth idx idx (length tys) (if (= 1 (length tys)) "" "s")))])]))
+
+;; lookup-symbolic-obj-type : Object -> Type
+;; the type of the value an object denotes, including objects that refer
+;; to arguments of enclosing function types
+(define (lookup-symbolic-obj-type obj)
+  (match obj
+    [(Path: flds (cons depth idx))
+     (define ty
+       (match (list-ref (current-binders) depth)
+         [(binder tys _) (or (list-ref tys idx) Univ)]
+         [_ Univ]))
+     (or (path-type flds ty) Univ)]
+    [_ (lookup-obj-type/lexical obj)]))
 
 
 (define-literal-syntax-class #:for-label car)
@@ -349,9 +409,12 @@
            #:attr type (do-parse #'t)
            #:attr path '()))
 
-(define (parse-prop stx do-parse mode)
+;; parse-prop : Syntax (Syntax -> Type) Mode (U Object #f) -> Prop
+;; parses a proposition; a bare type `t` stands for (: default-subject t)
+(define (parse-prop stx do-parse mode [default-subject (current-default-subject)])
   (syntax-parse stx
-    [(~var p (proposition do-parse mode)) (attribute p.val)]))
+    [(~var p (proposition do-parse mode default-subject))
+     (attribute p.val)]))
 
 (define int-comps (list (cons '<= -leq)
                         (cons '< -lt)
@@ -359,35 +422,52 @@
                         (cons '> -gt)
                         (cons '= -eq)))
 
-(define-syntax-class (proposition do-parse mode)
+(define-syntax-class (proposition do-parse mode default-subject)
   #:description "proposition"
   #:attributes (val)
   (pattern :Top^ #:attr val -tt)
   (pattern :Bot^ #:attr val -ff)
-  (pattern (:colon^ (~var o (symbolic-object mode)) t:expr)
+  ;; legacy syntax, e.g. (Number @ 0), (! Number @ car 1 0), (Number @ x)
+  (pattern (t:expr :@ ~! pe:legacy-path-elem ... o:legacy-prop-obj)
+           #:attr val (-is-type (-acc-path (attribute pe.val) (attribute o.obj))
+                                (do-parse #'t)))
+  (pattern (:! t:expr :@ ~! pe:legacy-path-elem ... o:legacy-prop-obj)
+           #:attr val (-not-type (-acc-path (attribute pe.val) (attribute o.obj))
+                                 (do-parse #'t)))
+  (pattern (:colon^ ~! (~var o (symbolic-object mode)) t:expr)
            #:attr val (-is-type (attribute o.val) (do-parse #'t)))
-  (pattern (:! (~var o (symbolic-object mode)) t:expr)
+  (pattern (~and (_ _ _) (:! ~! (~var o (symbolic-object mode)) t:expr))
            #:attr val (-not-type (attribute o.val) (do-parse #'t)))
-  (pattern (:and^ (~var p (proposition do-parse mode)) ...)
+  (pattern (:! ~! t:expr)
+           #:fail-unless default-subject
+           "a proposition of the form (! type) needs a default subject; use (! object type)"
+           #:attr val (-not-type default-subject (do-parse #'t)))
+  (pattern (:and^ ~! (~var p (proposition do-parse mode default-subject)) ...)
            #:attr val (apply -and (attribute p.val)))
-  (pattern (:or^ (~var p (proposition do-parse mode)) ...)
+  (pattern (:or^ ~! (~var p (proposition do-parse mode default-subject)) ...)
            #:attr val (apply -or (attribute p.val)))
-  (pattern (:unless^ (~var p1 (proposition do-parse mode)) (~var p2 (proposition do-parse mode)))
+  (pattern (:unless^ ~!
+                     (~var p1 (proposition do-parse mode default-subject))
+                     (~var p2 (proposition do-parse mode default-subject)))
            #:attr val (-or (attribute p1.val) (attribute p2.val)))
-  (pattern (:when^ (~var p1 (proposition do-parse mode)) (~var p2 (proposition do-parse mode)))
+  (pattern (:when^ ~!
+                   (~var p1 (proposition do-parse mode default-subject))
+                   (~var p2 (proposition do-parse mode default-subject)))
            #:attr val (-or (negate-prop (attribute p1.val))
                            (-and (attribute p1.val) (attribute p2.val))))
-  (pattern (:if^ (~var p1 (proposition do-parse mode))
-                 (~var p2 (proposition do-parse mode))
-                 (~var p3 (proposition do-parse mode)))
+  (pattern (:if^ ~!
+                 (~var p1 (proposition do-parse mode default-subject))
+                 (~var p2 (proposition do-parse mode default-subject))
+                 (~var p3 (proposition do-parse mode default-subject)))
            #:attr val (let ([tst (attribute p1.val)]
                             [thn (attribute p2.val)]
                             [els (attribute p3.val)])
                         (-or (-and tst thn)
                              (-and (negate-prop tst) els))))
-  (pattern (:not^ (~var p (proposition do-parse mode)))
+  (pattern (:not^ ~! (~var p (proposition do-parse mode default-subject)))
            #:attr val (negate-prop (attribute p.val)))
   (pattern ((~and comp (~or :<=^ :<^ :>=^ :>^ :=^))
+            ~!
             (~var obj0 (inequality-symbolic-object mode))
             (~var obj1 (inequality-symbolic-object mode))
             (~var objs (inequality-symbolic-object mode))
@@ -403,15 +483,19 @@
                   (loop (cons (mk lhs rhs) ps)
                         rhs
                         os)]
-                 [_ (apply -and ps)])))))
-
+                 [_ (apply -and ps)]))))
+  ;; a bare type is a proposition about the default subject
+  (pattern t:expr
+           #:fail-unless default-subject
+           "a type used as a proposition needs a default subject; use (: object type)"
+           #:attr val (-is-type default-subject (do-parse #'t))))
 
 (define-syntax-class (inequality-symbolic-object mode)
   #:description "symbolic object in an inequality"
   #:attributes (val)
   (pattern (~var o (symbolic-object mode))
            #:do [(define obj (attribute o.val))
-                 (define obj-ty (lookup-obj-type/lexical obj))]
+                 (define obj-ty (lookup-symbolic-obj-type obj))]
            #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty -Int)))
            (format "terms in linear constraints must be integers, got ~a for ~a"
@@ -440,6 +524,11 @@
 (define-syntax-class (symbolic-object-w/o-lexp mode)
   #:description "symbolic object"
   #:attributes (val)
+  ;; argument idx of the enclosing function type depth binders out
+  (pattern (depth:nat idx:nat)
+           #:do [(define msg (check-index-object (syntax-e #'depth) (syntax-e #'idx)))]
+           #:fail-when msg msg
+           #:attr val (-arg-path (syntax-e #'idx) (syntax-e #'depth)))
   (pattern i:id
            #:fail-unless (or (identifier-binding #'i)
                              (local-term-id #'i))
@@ -451,7 +540,7 @@
                         [local-id (lookup-alias/lexical local-id)]))
   (pattern (:car^ ~! (~var o (symbolic-object-w/o-lexp mode)))
            #:do [(define obj (attribute o.val))
-                 (define obj-ty (lookup-obj-type/lexical obj))]
+                 (define obj-ty (lookup-symbolic-obj-type obj))]
            #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty (-pair Univ Univ))))
            (format "car expects a pair, but got ~a for ~a"
@@ -459,7 +548,7 @@
            #:attr val (-car-of (attribute o.val)))
   (pattern (:cdr^ ~! (~var o (symbolic-object-w/o-lexp mode)))
            #:do [(define obj (attribute o.val))
-                 (define obj-ty (lookup-obj-type/lexical obj))]
+                 (define obj-ty (lookup-symbolic-obj-type obj))]
            #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty (-pair Univ Univ))))
            (format "cdr expects a pair, but got ~a for ~a"
@@ -467,7 +556,7 @@
            #:attr val (-cdr-of (attribute o.val)))
   (pattern (:vector-length^ ~! (~var o (symbolic-object-w/o-lexp mode)))
            #:do [(define obj (attribute o.val))
-                 (define obj-ty (lookup-obj-type/lexical obj))]
+                 (define obj-ty (lookup-symbolic-obj-type obj))]
            #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty -VectorTop)))
            (format "vector-length expects a vector, but got ~a for ~a"
@@ -487,7 +576,7 @@
            #:attr val (-lexp (list (syntax->datum #'coeff) (attribute l.val))))
   (pattern (~var o (symbolic-object-w/o-lexp mode))
            #:do [(define obj (attribute o.val))
-                 (define obj-ty (lookup-obj-type/lexical obj))]
+                 (define obj-ty (lookup-symbolic-obj-type obj))]
            #:fail-when (and (not (side-effect-mode? mode))
                             (not (subtype obj-ty -Int)))
            (format "terms in linear expressions must be integers, got ~a for ~a"
@@ -508,30 +597,8 @@
               (scale-obj -1 term)))]))
 
 
-;; old + deprecated
-(define-syntax-class (legacy-prop doms do-parse)
-  #:description "proposition"
-  #:attributes (prop)
-  (pattern :Top^ #:attr prop -tt)
-  (pattern :Bot^ #:attr prop -ff)
-  ;; Here is wrong check
-  (pattern (t:expr :@ ~! pe:legacy-path-elem ... (~var o (legacy-prop-obj doms)))
-           #:attr prop (-is-type (-acc-path (attribute pe.val) (attribute o.obj)) (do-parse #'t)))
-  ;; Here is wrong check
-  (pattern (:! t:expr :@ ~! pe:legacy-path-elem ... (~var o (legacy-prop-obj doms)))
-           #:attr prop (-not-type (-acc-path (attribute pe.val) (attribute o.obj)) (do-parse #'t)))
-  (pattern (:! t:expr)
-           #:attr prop (-not-type 0 (do-parse #'t)))
-  (pattern ((~datum and) (~var p (legacy-prop doms do-parse)) ...)
-           #:attr prop (apply -and (attribute p.prop)))
-  (pattern ((~datum or) (~var p (legacy-prop doms do-parse)) ...)
-           #:attr prop (apply -or (attribute p.prop)))
-  (pattern ((~literal implies) (~var p1 (legacy-prop doms do-parse)) (~var p2 (legacy-prop doms do-parse)))
-           #:attr prop (-or (negate-prop (attribute p1.prop)) (attribute p2.prop)))
-  (pattern t:expr
-           #:attr prop (-is-type 0 (do-parse #'t))))
-
-(define-splicing-syntax-class (legacy-prop-obj doms)
+;; the object of a legacy proposition such as (Number @ 1 0)
+(define-splicing-syntax-class legacy-prop-obj
   #:description "prop object"
   #:attributes (obj)
   (pattern i:id
@@ -540,32 +607,13 @@
            #:fail-when (is-var-mutated? #'i)
            "Propositions for predicates may not reference identifiers that are mutated"
            #:attr obj (-id-path #'i))
-  (pattern idx:nat
-           #:do [(define arg (syntax-e #'idx))]
-           #:fail-unless (< arg (length doms))
-           (format "Proposition's object index ~a is larger than argument length ~a"
-                   arg (length doms))
-           #:attr obj (-arg-path arg 0))
-  (pattern (~seq depth-idx:nat idx:nat)
-           #:do [(define arg (syntax-e #'idx))
-                 (define depth (syntax-e #'depth-idx))]
-           #:fail-unless (<= depth (length (current-arities)))
-           (format "Index ~a used in a proposition, but the use is only within ~a enclosing functions"
-                   depth (length (current-arities)))
-           #:do [(define actual-arg
-                   (if (zero? depth)
-                       (length doms)
-                       (list-ref (current-arities) (sub1 depth))))]
-           #:fail-unless (< arg actual-arg)
-           (format "Proposition's object index ~a is larger than argument length ~a"
-                   depth actual-arg)
-           #:attr obj (-arg-path arg (syntax-e #'depth-idx))))
+  (pattern (~or* (~seq depth:nat idx:nat)
+                 (depth:nat idx:nat)
+                 (~seq idx:nat (~peek-not _) (~bind [depth #'0])))
+           #:do [(define msg (check-index-object (syntax-e #'depth) (syntax-e #'idx)))]
+           #:fail-when msg msg
+           #:attr obj (-arg-path (syntax-e #'idx) (syntax-e #'depth))))
 
-
-(define-syntax-class legacy-object
-  #:attributes (object)
-  (pattern e:expr
-           #:attr object -empty-obj))
 
 (define-syntax-class self
   #:attributes (type)
@@ -573,11 +621,11 @@
            #:attr type -Self))
 
 (define-syntax-class existential-type-result
-  #:attributes (vars t prop-type)
+  #:attributes (vars t prop-stx)
   (pattern (:Some^ (x:id ...) t)
-           #:attr prop-type #f
+           #:attr prop-stx #f
            #:attr vars (syntax->list #'(x ...)))
-  (pattern (:Some^ (x:id ...) t :colon^ #:+ prop-type:expr)
+  (pattern (:Some^ (x:id ...) t :colon^ #:+ prop-stx:expr)
            #:attr vars (syntax->list #'(x ...))))
 
 (define-splicing-syntax-class sp-arg
@@ -589,14 +637,35 @@
            #:attr type #'i
            #:attr pred? #'p))
 
-(define-splicing-syntax-class (legacy-full-latent doms do-parse)
+(define-splicing-syntax-class latent-stxes
   #:description "latent propositions and object"
-  (pattern (~seq (~optional (~seq #:+ (~var p+ (legacy-prop doms do-parse)) ...+) #:defaults ([(p+.prop 1) null]))
-                 (~optional (~seq #:- (~var p- (legacy-prop doms do-parse)) ...+) #:defaults ([(p-.prop 1) null]))
-                 (~optional (~seq #:object o:legacy-object)))
-           #:attr positive (apply -and (attribute p+.prop))
-           #:attr negative (apply -and (attribute p-.prop))
-           #:attr object (or (attribute o.object) -empty-obj)))
+  #:attributes ((p+ 1) (p- 1) object-stx)
+  (pattern (~seq (~optional (~seq #:+ p+:expr ...+) #:defaults ([(p+ 1) null]))
+                 (~optional (~seq #:- p-:expr ...+) #:defaults ([(p- 1) null]))
+                 (~optional (~seq #:object o:expr)))
+           #:attr object-stx (attribute o)))
+
+;; parses the latent propositions of a function range at the current
+;; position, which is underneath the function's binder
+(define (latent-stxes->propset p+ p- do-parse mode)
+  (-PS (apply -and
+              (for/list ([p-stx (in-list p+)])
+                (parse-prop p-stx do-parse mode)))
+       (apply -and
+              (for/list ([p-stx (in-list p-)])
+                (parse-prop p-stx do-parse mode)))))
+
+;; parses the object of a function range; a bare natural number n is the
+;; legacy notation for the function's argument n, i.e. (0 n)
+(define (latent-stxes->object object-stx mode)
+  (cond
+    [(not object-stx) -empty-obj]
+    [(exact-nonnegative-integer? (syntax-e object-stx))
+     (define idx (syntax-e object-stx))
+     (define msg (check-index-object 0 idx))
+     (when msg (parse-error #:stx object-stx msg))
+     (-arg-path idx 0)]
+    [else (parse-obj object-stx mode)]))
 
 (define (parse-types stx-list)
   (stx-map parse-type stx-list))
@@ -823,7 +892,8 @@
              [#:identifiers (list x-local)
               #:types (list t)]
              (with-local-term-names (list (cons #'x x-local))
-               (parse-prop #'prop do-parse mode))))
+               (with-binder 'refinement
+                 (parse-prop #'prop do-parse mode (-id-path x-local))))))
          ;; build the refinement type!
          (define refinement-type (-refine x-local t p))
          ;; record the name for printing purposes
@@ -1024,7 +1094,8 @@
                   [#:identifiers dep-local-ids
                    #:types dep-local-types]
                   (with-local-term-names (map cons dep-ids dep-local-ids)
-                    (do-parse (list-ref (attribute args.type-stx) idx)))))
+                    (with-binder 'opaque
+                      (do-parse (list-ref (attribute args.type-stx) idx))))))
               (hash-set! arg-type-dict idx idx-type))
 
             (define (abstract rep)
@@ -1051,7 +1122,16 @@
                   (with-local-term-names (map cons
                                               in-scope-arg-names
                                               in-scope-arg-local-names)
-                    (abstract (parse-prop #'pre-stx do-parse mode))))))
+                    ;; a bare type refers to the only argument in scope, if any
+                    (define default-pre-obj
+                      (and (= 1 (length in-scope-arg-local-names))
+                           (-id-path (car in-scope-arg-local-names))))
+                    (with-binder (binder dom default-pre-obj)
+                      (abstract (parse-prop #'pre-stx do-parse mode)))))))
+            ;; a bare type in the range refers to the only argument, if any
+            (define default-rng-obj
+              (and (= 1 (length arg-local-idents))
+                   (-id-path (car arg-local-idents))))
             ;; now type check the range
             (with-extended-lexical-env
               [#:identifiers arg-local-idents
@@ -1059,18 +1139,25 @@
               (with-local-term-names (map cons
                                           arg-idents
                                           arg-local-idents)
-                (match (parse-values-type #'rng-type do-parse do-parse-multi)
-                  ;; single value'd return type, propositions/objects allowed
-                  [(Values: (list (Result: rng-t _ _)))
-                   (define rng-ps (-PS (or (and (attribute rng-p+)
-                                                (parse-prop #'rng-p+ do-parse mode))
-                                           -tt)
-                                       (or (and (attribute rng-p-)
-                                                (parse-prop #'rng-p- do-parse mode))
-                                           -tt)))
+               (with-binder (binder dom default-rng-obj)
+                (match (parse-values-type #'rng-type do-parse do-parse-multi mode)
+                  ;; single value'd return type, propositions/objects allowed,
+                  ;; either in the result itself or after the range
+                  [(Values: (list (Result: rng-t (PropSet: res-p+ res-p-) res-o)))
+                   (when (and (attribute rng-o) (not (Empty? res-o)))
+                     (parse-error #:stx #'rng-o
+                                  "the range of a dependent function specifies its object twice"))
+                   (define rng-ps (-PS (-and res-p+
+                                             (or (and (attribute rng-p+)
+                                                      (parse-prop #'rng-p+ do-parse mode))
+                                                 -tt))
+                                       (-and res-p-
+                                             (or (and (attribute rng-p-)
+                                                      (parse-prop #'rng-p- do-parse mode))
+                                                 -tt))))
                    (define rng-obj (or (and (attribute rng-o)
                                             (parse-obj #'rng-o mode))
-                                       -empty-obj))
+                                       res-o))
                    (define abstracted-rng-t (abstract rng-t))
                    (define abstracted-rng-ps (abstract rng-ps))
                    (define abstracted-rng-obj (abstract rng-obj))
@@ -1109,58 +1196,63 @@
                       (make-DepFun
                        abstracted-dom
                        abstracted-pre-prop
-                       abstracted-rng-vals)])])))])]
+                       abstracted-rng-vals)])]))))])]
         ;; curried function notation
         [((~and dom:non-keyword-ty (~not :->^)) ...
                                                 :->^
                                                 (~and (~seq rest-dom ...) (~seq (~or _ (~between :->^ 1 +inf.0)) ...)))
-         (define doms (syntax->list #'(dom ...)))
-         (with-arity (length doms)
-           (let ([doms (for/list ([d (in-list doms)])
-                         (do-parse d))])
-             (make-Fun
-              (list (-Arrow doms (do-parse (syntax/loc stx (rest-dom ...))))))))]
+         (define doms (for/list ([d (in-list (syntax->list #'(dom ...)))])
+                        (do-parse d)))
+         (make-Fun
+          (list (-Arrow doms
+                        (with-function-binder doms
+                          (do-parse (syntax/loc stx (rest-dom ...)))))))]
         [(~or (:->^ dom rng :colon^ (~var latent (legacy-simple-latent-prop do-parse)))
               (dom :->^ rng :colon^ (~var latent (legacy-simple-latent-prop do-parse))))
          ;; use do-parse instead of parse-values-type because we need to add the props from the pred-ty
-         (with-arity 1
-           (make-pred-ty (list (do-parse #'dom)) (do-parse #'rng) (attribute latent.type)
-                         (-acc-path (attribute latent.path) (-arg-path 0))))]
+         (define dom-ty (do-parse #'dom))
+         (make-pred-ty (list dom-ty)
+                       (with-function-binder (list dom-ty) (do-parse #'rng))
+                       (attribute latent.type)
+                       (-acc-path (attribute latent.path) (-arg-path 0)))]
         [(~or (:->^ dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rest:non-keyword-ty ddd:star rng)
               (dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rest:non-keyword-ty ddd:star :->^ rng))
-         (with-arity (length (syntax->list #'(dom ...)))
-           (make-Fun
-            (list (-Arrow
-                   (do-parse-multi #'(dom ...))
-                   (parse-values-type #'rng do-parse do-parse-multi)
-                   #:rest (do-parse #'rest)
-                   #:kws (map force (attribute kws.Keyword))))))]
+         (define doms (do-parse-multi #'(dom ...)))
+         (make-Fun
+          (list (-Arrow
+                 doms
+                 (with-function-binder doms
+                   (parse-values-type #'rng do-parse do-parse-multi mode))
+                 #:rest (do-parse #'rest)
+                 #:kws (map force (attribute kws.Keyword)))))]
         [(~or (:->^ dom:non-keyword-ty ... rest:non-keyword-ty :ddd/bound rng)
               (dom:non-keyword-ty ... rest:non-keyword-ty :ddd/bound :->^ rng))
-         (with-arity (length (syntax->list #'(dom ...)))
-           (let* ([bnd (syntax-e #'bound)])
-             (unless (bound-index? bnd)
-               (parse-error
-                #:stx #'bound
-                "used a type variable not bound with ... as a bound on a ..."
-                "variable" bnd))
-             (make-Fun
-              (list
-               (make-arr-dots (do-parse-multi #'(dom ...))
-                              (parse-values-type #'rng do-parse do-parse-multi)
-                              (extend-tvars (list bnd)
-                                            (do-parse #'rest))
-                              bnd)))))]
+         (let* ([bnd (syntax-e #'bound)])
+           (unless (bound-index? bnd)
+             (parse-error
+              #:stx #'bound
+              "used a type variable not bound with ... as a bound on a ..."
+              "variable" bnd))
+           (define doms (do-parse-multi #'(dom ...)))
+           (make-Fun
+            (list
+             (make-arr-dots doms
+                            (with-function-binder doms
+                              (parse-values-type #'rng do-parse do-parse-multi mode))
+                            (extend-tvars (list bnd)
+                                          (do-parse #'rest))
+                            bnd))))]
         [(~or (:->^ dom:non-keyword-ty ... rest:non-keyword-ty _:ddd rng)
               (dom:non-keyword-ty ... rest:non-keyword-ty _:ddd :->^ rng))
-         (with-arity (length (syntax->list #'(dom ...)))
-           (let ([var (infer-index stx)])
-             (make-Fun
-              (list
-               (make-arr-dots (do-parse-multi #'(dom ...))
-                              (parse-values-type #'rng do-parse do-parse-multi)
-                              (extend-tvars (list var) (do-parse #'rest))
-                              var)))))]
+         (let ([var (infer-index stx)])
+           (define doms (do-parse-multi #'(dom ...)))
+           (make-Fun
+            (list
+             (make-arr-dots doms
+                            (with-function-binder doms
+                              (parse-values-type #'rng do-parse do-parse-multi mode))
+                            (extend-tvars (list var) (do-parse #'rest))
+                            var))))]
         #| ;; has to be below the previous one
         [(dom:expr ... :->^ rng)
         (->* (do-parse-multi #'(dom ...))
@@ -1172,10 +1264,12 @@
                                      (define syms (map syntax-e (attribute rng.vars)))
                                      (extend-tvars syms
                                                    (cond
-                                                     [(attribute rng.prop-type)
+                                                     [(attribute rng.prop-stx)
                                                       (make-ExitentialResult syms
                                                                              (do-parse (attribute rng.t))
-                                                                             (-PS (-is-type 0 (do-parse (attribute rng.prop-type)))
+                                                                             (-PS (parse-prop (attribute rng.prop-stx)
+                                                                                              do-parse
+                                                                                              mode)
                                                                                   -tt)
                                                                              -empty-obj)]
                                                      [else
@@ -1183,60 +1277,63 @@
         [(~or (:->^ dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... rng)
               (dom:non-keyword-ty ... (~var kws (keyword-tys do-parse)) ... :->^ rng))
 
-         (define doms (syntax->list #'(dom ...)))
-         (with-arity (length doms)
-           (let ([doms (for/list ([d (in-list doms)])
-                         (do-parse d))])
-             (make-Fun
-              (list (-Arrow doms
-                            (parameterize ([parsing-existential-rng? #t])
-                              (parse-values-type #'rng do-parse do-parse-multi))
-                            #:kws (map force (attribute kws.Keyword)))))))]
+         (define doms (for/list ([d (in-list (syntax->list #'(dom ...)))])
+                        (do-parse d)))
+         (make-Fun
+          (list (-Arrow doms
+                        (with-function-binder doms
+                          (parameterize ([parsing-existential-rng? #t])
+                            (parse-values-type #'rng do-parse do-parse-multi mode)))
+                        #:kws (map force (attribute kws.Keyword)))))]
         ;; This case needs to be at the end because it uses cut points to give good error messages.
         [(~or (:->^ ~! dom:non-keyword-ty ... rng:expr
-                    :colon^ (~var latent (legacy-full-latent (syntax->list #'(dom ...)) do-parse)))
+                    :colon^ (~var latent latent-stxes))
               (dom:non-keyword-ty ... :->^ rng:expr
-                                  ~! :colon^ (~var latent (legacy-full-latent (syntax->list #'(dom ...)) do-parse))))
+                                  ~! :colon^ (~var latent latent-stxes)))
          ;; use do-parse instead of parse-values-type because we need to add the props from the pred-ty
-         (with-arity (length (syntax->list #'(dom ...)))
-           (->* (do-parse-multi #'(dom ...) (add1 current-level))
+         (define doms (do-parse-multi #'(dom ...) (add1 current-level)))
+         (with-function-binder doms
+           (->* doms
                 (do-parse #'rng (add1 current-level))
-                : (-PS (attribute latent.positive) (attribute latent.negative))
-                : (attribute latent.object)))]
+                : (latent-stxes->propset (attribute latent.p+) (attribute latent.p-)
+                                         do-parse mode)
+                : (latent-stxes->object (attribute latent.object-stx) mode)))]
         ;; like ->* below but w/ a #:rest-pat present
         [(:->*^ (~var mand (->*-args #t do-parse))
                 (~optional (~var opt (->*-args #f do-parse))
                            #:defaults ([opt.doms null] [opt.kws null]))
                 #:rest-star (rest-types-stx:non-keyword-ty ...)
                 rng)
-         (with-arity (length (attribute mand.doms))
-           (define doms (map do-parse (attribute mand.doms)))
-           (define opt-doms (map do-parse (attribute opt.doms)))
-           (define rest-tys (stx-map do-parse #'(rest-types-stx ...)))
-           (cond
-             [(< (length rest-tys) 1)
-              (opt-fn doms opt-doms (parse-values-type #'rng do-parse do-parse-multi)
-                      #:kws (map force (append (attribute mand.kws)
-                                               (attribute opt.kws))))]
-             [else
-              (opt-fn doms opt-doms (parse-values-type #'rng  do-parse do-parse-multi)
-                      #:rest (make-Rest rest-tys)
-                      #:kws (map force (append (attribute mand.kws)
-                                               (attribute opt.kws))))]))]
+         (define doms (map do-parse (attribute mand.doms)))
+         (define opt-doms (map do-parse (attribute opt.doms)))
+         (define rest-tys (stx-map do-parse #'(rest-types-stx ...)))
+         ;; only the mandatory arguments are present in every arity
+         (define rng-ty (with-function-binder doms
+                          (parse-values-type #'rng do-parse do-parse-multi mode)))
+         (cond
+           [(< (length rest-tys) 1)
+            (opt-fn doms opt-doms rng-ty
+                    #:kws (map force (append (attribute mand.kws)
+                                             (attribute opt.kws))))]
+           [else
+            (opt-fn doms opt-doms rng-ty
+                    #:rest (make-Rest rest-tys)
+                    #:kws (map force (append (attribute mand.kws)
+                                             (attribute opt.kws))))])]
         [(:->*^ (~var mand (->*-args #t do-parse))
                 (~optional (~var opt (->*-args #f do-parse))
                            #:defaults ([opt.doms null] [opt.kws null]))
                 rest:optional->*-rest
                 rng)
-         (with-arity (length (attribute mand.doms))
-           (define doms (map do-parse (attribute mand.doms)))
-           (define opt-doms (map do-parse (attribute opt.doms)))
-           (opt-fn doms opt-doms (parse-values-type #'rng do-parse
-                                                    do-parse-multi)
-                   #:rest (and (attribute rest.type)
-                               (make-Rest (list (do-parse (attribute rest.type)))))
-                   #:kws (map force (append (attribute mand.kws)
-                                            (attribute opt.kws)))))]
+         (define doms (map do-parse (attribute mand.doms)))
+         (define opt-doms (map do-parse (attribute opt.doms)))
+         (opt-fn doms opt-doms (with-function-binder doms
+                                 (parse-values-type #'rng do-parse
+                                                    do-parse-multi))
+                 #:rest (and (attribute rest.type)
+                             (make-Rest (list (do-parse (attribute rest.type)))))
+                 #:kws (map force (append (attribute mand.kws)
+                                          (attribute opt.kws))))]
         [:->^
          (parse-error #:delayed? #t "incorrect use of -> type constructor")
          Err]
@@ -1449,8 +1546,12 @@
                                                  INIT-LEVEL)))))
          #:mode #f))
 
-(define-syntax-rule (define-parse-container-type fname pattern maker maker^ [lhs rhs] ...)
-  (define (fname stx do-parse do-parse-multi)
+;; The generated parser's arguments are the syntax to parse, the parsers
+;; for one type and for a list of types, and the parsing mode. Without
+;; dots, `parse-elems` parses the elements.
+(define-syntax-rule (define-parse-container-type fname pattern maker maker^ parse-elems
+                      [lhs rhs] ...)
+  (define (fname stx do-parse do-parse-multi [mode #f])
     (parameterize ([current-orig-stx stx])
       (syntax-parse stx
         [(pattern tys (... ...) dty :ddd/bound)
@@ -1470,8 +1571,12 @@
                                 (do-parse #'dty))
                   var))]
         [(pattern tys (... ...))
-         (maker^ (do-parse-multi #'(tys (... ...))))]
-        [lhs (rhs do-parse do-parse-multi)] ...))))
+         (maker^ (parse-elems #'(tys (... ...)) do-parse do-parse-multi mode))]
+        [lhs (rhs do-parse do-parse-multi mode)] ...))))
+
+;; the elements of a container type that holds types
+(define (parse-type-elems stxs do-parse do-parse-multi mode)
+  (do-parse-multi stxs))
 
 ;; Syntax -> Type
 ;; Parse a (List ...) type
@@ -1480,21 +1585,44 @@
 (define-parse-container-type parse-list-type :List^
                               (lambda (tys dtys var)
                                 (-Tuple* tys (make-ListDots dtys var)))
-                              -Tuple)
+                              -Tuple
+                              parse-type-elems)
 
 ;; Syntax -> Type
 ;; Parse a (Sequenceof ...) type
 (define-parse-container-type parse-sequence-type :Sequenceof^ -seq-dots (lambda (args)
-                                                                           (apply -seq args)))
+                                                                           (apply -seq args))
+                              parse-type-elems)
+
+;; parse-result-type : Syntax (Syntax -> Type) Mode -> Result
+;; Parses one value of a Values type in a function's range, which may
+;; have latent propositions and an object: (type : #:+ prop #:- prop #:object obj)
+(define (parse-result-type stx do-parse mode)
+  (syntax-parse stx
+    [(t:expr :colon^ (~var latent latent-stxes))
+     (-result (do-parse #'t)
+              (latent-stxes->propset (attribute latent.p+)
+                                     (attribute latent.p-)
+                                     do-parse
+                                     mode)
+              (latent-stxes->object (attribute latent.object-stx) mode))]
+    [t
+     (-result (do-parse #'t))]))
 
 ;; Syntax -> Type
 ;; Parse a (Values ...) or AnyValues type
 (define-parse-container-type parse-values-type (~or :Values^ :values^)
                               -values-dots
                               -values
+                              (lambda (stxs do-parse do-parse-multi mode)
+                                           (for/list ([r-stx (in-list (syntax->list stxs))])
+                                             (parse-result-type r-stx do-parse mode)))
+                              [(:AnyValues^ :colon^ prop:expr)
+                               (lambda (do-parse _ mode)
+                                 (-AnyValues (parse-prop #'prop do-parse mode)))]
                               [:AnyValues^ (lambda _ ManyUniv)]
                               [t
-                               (lambda (do-parse _)
+                               (lambda (do-parse . _)
                                  (-values (list (do-parse #'t))))])
 
 ;;; Utilities for (Class ...) type parsing
@@ -1735,15 +1863,30 @@
     (parse-error "class member conflicts with row variable constraints"
                  "conflicting name" conflicting-name)))
 
+;; parse-tc-results : Syntax -> tc-results
+;; Parses the expected type of an expression. Propositions here are not
+;; underneath any function type, so they have no default subject.
 (define (parse-tc-results stx)
+  (define (parse-tc-result stx)
+    (syntax-parse stx
+      [(_ :colon^ . _)
+       (match-define (Result: t ps o) (parse-result-type stx parse-type #f))
+       (values t ps o)]
+      [t
+       (values (parse-type #'t) #f #f)]))
   (syntax-parse stx
-    [((~or :Values^ :values^) t ...)
-     (define empties (stx-map (λ (x) #f) #'(t ...)))
-     (ret (parse-types #'(t ...))
-          empties
-          empties)]
+    [((~or :Values^ :values^) r ...)
+     (define-values (types props objs)
+       (for/lists (_1 _2 _3)
+                  ([r-stx (in-list (syntax->list #'(r ...)))])
+         (parse-tc-result r-stx)))
+     (ret types props objs)]
+    [(:AnyValues^ :colon^ prop:expr)
+     (-tc-any-results (parse-prop #'prop parse-type #f))]
     [:AnyValues^ (-tc-any-results #f)]
-    [t (ret (parse-type #'t) #f #f)]))
+    [r
+     (define-values (t ps o) (parse-tc-result #'r))
+     (ret t ps o)]))
 
 (define parse-type/id (parse/id parse-type))
 

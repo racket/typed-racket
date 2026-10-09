@@ -224,11 +224,12 @@
      (pattern (~seq (~optional (~seq (~and key (~or #:extra-constructor-name #:constructor-name))
                                      name:id))
                     (~optional (~seq #:type-name type:id) #:defaults ([type struct-name])))
-              #:attr ctor-value (if (attribute key) #'(key name)
-                                    (if legacy
-                                        #`(#:extra-constructor-name
-                                           #,(format-id struct-name "make-~a" struct-name))
-                                        #'()))))
+              #:attr ctor-value (cond
+                                  [(attribute key) #'(key name)]
+                                  [legacy
+                                   #`(#:extra-constructor-name
+                                      #,(format-id struct-name "make-~a" struct-name))]
+                                  [else #'()])))
 
   (define-syntax-class (struct-clause legacy)
     #:attributes (nm type (body 1) (constructor-parts 1) (tvar 1))

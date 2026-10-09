@@ -42,12 +42,13 @@
              (skip-whitespace port)
              (datum->syntax name `(ann ,name : ,(read-one)))]
             [(@)
-             (let ([elems (let loop ([es '()])
-                            (skip-whitespace port)
-                            (if (equal? #\} (peek-char port))
-                                (reverse es)
-                                (loop (cons (read-one) es))))])
-               (datum->syntax name `(inst ,name : ,@elems)))]
+             (define elems
+               (let loop ([es '()])
+                 (skip-whitespace port)
+                 (if (equal? #\} (peek-char port))
+                     (reverse es)
+                     (loop (cons (read-one) es)))))
+             (datum->syntax name `(inst ,name : ,@elems))]
             ;; arbitrary property annotation
             [(PROP)
              (skip-whitespace port)

@@ -13,14 +13,13 @@
 
 Typed Racket provides some additional utility functions to facilitate typed programming.
 
-@defform*/subs[[(assert val maybe-pred)]
-               ([pred (code:line predicate)
-                      (code:line (not/p pred))]
-                [maybe-pred code:blank
-                            (code:line pred)])]{
-Verifies that the argument satisfies the constraint. If no predicate
+@defproc*[
+([(assert [v (U #f A)]) A]
+ [(assert [v A] [p? (A -> Any : B)]) B])]{
+Verifies that the argument satisfies the constraint.  If no predicate
 is provided, simply checks that the value is not
-@racket[#f].
+@racket[#f]. On failure, raises an @racket[exn:fail:contract] exception
+whose message includes the assertion and the failing value.
 
 See also the @racket[cast] form.
 }
@@ -32,18 +31,15 @@ x
 (define: y : (U String Symbol) "hello")
 y
 (assert y string?)
-(eval:error (assert y boolean?))
-(eval:error (assert y (not/p string?)))
-(assert y (not/p (not/p string?)))
-(assert y (not/p boolean?))]
+(eval:error (assert y boolean?))]
 
 @defform*/subs[[(with-asserts ([id maybe-pred] ...) body ...+)]
-               ([pred (code:line predicate)
-                      (code:line (not/p pred))]
-                [maybe-pred code:blank
-                            (code:line pred)])]{
+              ([maybe-pred code:blank
+                           (code:line predicate)])]{
 Guard the body with assertions. If any of the assertions fail, the
-program errors. These assertions behave like @racket[assert].
+program raises an @racket[exn:fail:contract] exception whose message
+identifies the first failed assertion and its value. These assertions
+behave like @racket[assert].
 }
 
 

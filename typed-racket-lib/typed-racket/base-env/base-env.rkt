@@ -1065,7 +1065,7 @@
                               [(-Mutable-HashTableTop) -Mutable-HashTableTop]
                               [((-Weak-HT a b)) (-Weak-HT a b)]
                               [(-Weak-HashTableTop) -Weak-HashTableTop]
-                              [((-HT a b)) (-HT a b)]))]
+                              [((-HT a b)) (Un (-Mutable-HT a b) (-Weak-HT a b))]))]
 [eq-hash-code (-> Univ -Fixnum)]
 [eqv-hash-code (-> Univ -Fixnum)]
 [equal-hash-code (-> Univ -Fixnum)]

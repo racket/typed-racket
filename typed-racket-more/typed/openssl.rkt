@@ -26,6 +26,8 @@
          #:private-key SSL-Private-Key
          #:certificate-chain (Option Path-String))
         SSL-Client-Context)]
+  [supported-client-protocols (-> (Listof SSL-Protocol))]
+  [ssl-max-client-protocol (-> (Option SSL-Protocol))]
   )
 
 ;;;; 2: TCP-like Server Procedures
@@ -48,6 +50,13 @@
          #:private-key SSL-Private-Key
          #:certificate-chain (Option Path-String))
         SSL-Server-Context)]
+  [ssl-addresses
+   (case->
+    (-> (U Port SSL-Listener) (Values String String))
+    (-> (U Port SSL-Listener) #t (Values String Index String Index)))]
+
+  [supported-server-protocols (-> (Listof SSL-Protocol))]
+  [ssl-max-server-protocol (-> (Option SSL-Protocol))]
   )
 
 ;;;; 3: SSL Wrapper Interface
@@ -75,7 +84,7 @@
   [ssl-default-verify-sources (Parameterof (Listof SSL-Verify-Source))]
   [ssl-load-default-verify-sources! (-> SSL-Context Void)]
   [ssl-load-verify-root-certificates!
-   (-> (U SSL-Context SSL-Listener Port) Path-String Void)]
+   (-> (U SSL-Context SSL-Listener) Path-String Void)]
   [ssl-set-ciphers! (-> SSL-Context String Void)]
   [ssl-seal-context! (-> SSL-Context Void)]
   [ssl-load-certificate-chain!
@@ -87,6 +96,11 @@
         Void)]
   [ssl-load-suggested-certificate-authorities!
    (-> (U SSL-Context SSL-Listener) Path-String Void)]
+  [ssl-set-server-name-identification-callback!
+   (-> SSL-Server-Context (-> String (Option SSL-Server-Context)) Void)]
+  [ssl-set-server-alpn!
+   (->* (SSL-Server-Context (Listof Bytes)) (Boolean) Void)]
+  [ssl-set-keylogger! (-> SSL-Context (Option Logger) Void)]
   )
 
 ;;;; 5: Peer Verification
@@ -106,5 +120,10 @@
    (-> Port String Boolean)]  ;; XXX SSL-Port
   [ssl-peer-subject-name (-> Port (Option Bytes))] ;; XXX SSL-Port
   [ssl-peer-issuer-name  (-> Port (Option Bytes))] ;; XXX SSL-Port
+  [ssl-default-channel-binding (-> Port (List Symbol Bytes))]
+  [ssl-channel-binding
+   (-> Port (U 'tls-exporter 'tls-unique 'tls-server-end-point) Bytes)]
+  [ssl-get-alpn-selected (-> Port (Option Bytes))]
+  [ssl-protocol-version (-> Port (Option SSL-Protocol))]
   )
 

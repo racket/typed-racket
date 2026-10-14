@@ -137,7 +137,7 @@
     (check-prints-as? (-poly (a) (-> a -Void)) "(All (a) (-> a Void))")
     (check-prints-as? (-> -Input-Port (make-Values (list (-result -String -true-propset)
                                                          (-result -String -true-propset))))
-                      "(-> Input-Port (values (String : (Top | Bot)) (String : (Top | Bot))))")
+                      "(-> Input-Port (values (String : #:+ Top #:- Bot) (String : #:+ Top #:- Bot)))")
     (check-prints-as? (make-pred-ty -String)
                       "(-> Any Boolean : String)")
     (check-prints-as? (asym-pred Univ -Boolean (-PS (-is-type 0 -String) -tt))
@@ -181,6 +181,8 @@
     (check-prints-as? (-AnyValues -tt) "AnyValues")
     (check-prints-as? (-AnyValues (-is-type '(0 . 0) -String))
                       "(AnyValues : (: (0 0) String))")
+    (check-prints-as? (-values -String (-PS (-is-type '(0 . 0) -String) -tt) -empty-obj)
+                      "(String : #:+ (: (0 0) String) #:- Top)")
 
     (check-prints-as?
      (make-Fun (list (-Arrow (list Univ) #:rest Univ -String)

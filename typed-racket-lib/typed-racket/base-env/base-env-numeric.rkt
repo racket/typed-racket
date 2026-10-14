@@ -134,8 +134,8 @@
        (-Nat -Nat . -> . -NonNegFixnum)
        (commutative-binop -NegInt -One -NonPosFixnum)
        (commutative-binop -NegInt -NonPosInt -NegFixnum)
-       (-NonPosInt -NonPosInt . -> . -NonPosFixnum)
-       (-Int -Int . -> . -Fixnum))))
+       (varop -NonPosInt -NonPosFixnum)
+       (varop -Int -Fixnum))))
   (define fx--type
     (lambda ()
       (fx-from-cases

@@ -184,7 +184,8 @@ and the @racket[URL] and @racket[Path/Param] types from
 
 @deftype[SSL-Protocol]{
   Describes an SSL protocol, is an alias for
-  @racket[(U 'auto 'sslv2-or-v3 'sslv2 'sslv3 'tls 'tls11 'tls12)].
+  @racket[(U 'secure 'auto 'sslv2-or-v3 'sslv2 'sslv3
+             'tls 'tls11 'tls12 'tls13)].
 }
 @deftogether[(@deftype[SSL-Server-Context]
               @deftype[SSL-Client-Context])]{
@@ -197,6 +198,18 @@ and the @racket[URL] and @racket[Path/Param] types from
 @deftype[SSL-Verify-Source]{
   Describes a verification source usable by @racket[ssl-load-verify-source!]
   and the @racket[ssl-default-verify-sources] parameter.
+}
+
+@deftype[SSL-Private-Key]{
+  Describes a private key usable by the @racket[#:private-key] argument of
+  @racket[ssl-make-client-context] and @racket[ssl-make-server-context].
+}
+
+@defmodule/incl[typed/openssl/libcrypto]
+@defmodule/incl[typed/openssl/libssl]
+@deftype[FFILib]{
+  Describes a foreign library, as produced by @racket[libcrypto] and
+  @racket[libssl].
 }
 
 @defmodule/incl[typed/openssl/md5]

@@ -32,7 +32,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install Racket
-        uses: Bogdanp/setup-racket@v1.15
+        uses: Bogdanp/setup-racket@v1.16
         with:
           version: current
           packages: resyntax

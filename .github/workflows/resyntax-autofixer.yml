@@ -17,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7.0.0
       - name: Install Racket
-        uses: Bogdanp/setup-racket@v1.15
+        uses: Bogdanp/setup-racket@v1.16
         with:
           version: current
           local_catalogs: $GITHUB_WORKSPACE

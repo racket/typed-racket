@@ -42,7 +42,7 @@
 (define-literal-syntax-class make-polar)
 (define-literal-syntax-class exp)
 
-(define-literal-syntax-class make-rectangular^ (make-rectangular unsafe-make-flrectangular))
+(define-literal-syntax-class make-rectangular^ (make-rectangular make-flrectangular unsafe-make-flrectangular))
 (define-literal-syntax-class real-part^ (real-part flreal-part unsafe-flreal-part))
 (define-literal-syntax-class imag-part^ (imag-part flimag-part unsafe-flimag-part))
 (define-merged-syntax-class projection^ (real-part^ imag-part^))

@@ -84,9 +84,11 @@
   (define lift-id
     (stx-find stx
               (syntax-parser
-                #:datum-literals (define-values let-values #%app)
+                #:datum-literals (define-values let-values #%app if)
                 [(define-values (name:id)
-                   (let-values ([(:id) (#%app fcp:id lift:id)])
+                   (let-values ([(:id) (if (#%app proc?:id lift:id)
+                                          _:id
+                                          (#%app fcp:id _:id))])
                      _))
                  #:when (eq? (syntax-e #'name) pred-name)
                  #'lift]

@@ -433,7 +433,10 @@
               "Type ~a could not be converted to a predicate because it contains free variables."
               type)))
          #`(#,(external-check-property #'#%expression check-valid-type)
-            #,(ignore-some/expr #`(flat-contract-predicate #,name) #'(Any -> Boolean : ty)))]))
+            #,(ignore-some/expr #`(if (procedure? #,name)
+                                    #,name
+                                    (flat-contract-predicate #,name))
+                                #'(Any -> Boolean : ty)))]))
     (values (mp-maker deep)
             #;(mp-maker shallow) 
             #;(mp-maker optional))))

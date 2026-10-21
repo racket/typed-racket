@@ -49,6 +49,9 @@
 (def-path-elem PrefabPE ([key prefab-key?] [idx natural-number/c])
   #:base)
 
+(def-path-elem RealPartPE () [#:singleton -real-part])
+(def-path-elem ImagPartPE () [#:singleton -imag-part])
+
 (def-path-elem VecLenPE () [#:singleton -vec-len])
 
 ; path elements which do not correspond to a field

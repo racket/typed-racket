@@ -1572,17 +1572,22 @@
                    (-InexactReal -InexactReal . -> . -InexactComplex)
                    (-Real -Real . -> . N))]
 [real-part (from-cases
-            (map unop all-real-types)
-            (-ExactNumber . -> . -Rat)
-            (-FloatComplex . -> . -Flonum)
-            (-SingleFlonumComplex . -> . -SingleFlonum)
-            (-InexactComplex . -> . -InexactReal)
-            (N . -> . -Real))]
-[imag-part (cl->* (-Real . -> . -Zero)
-                  (-ExactNumber . -> . -Rat)
-                  (-FloatComplex . -> . -Flonum)
-                  (-InexactComplex . -> . -InexactReal)
-                  (N . -> . -Real))]
+            (for/list ([t (in-list all-real-types)])
+              (->acc (list t) t (list -real-part)))
+            (for/list ([(number parts) (in-hash numeric-component-types)]
+                       #:unless (member number all-real-types))
+              (->acc (list number) (car parts) (list -real-part)))
+            (->acc (list -ExactNumber) -Rat (list -real-part))
+            (->acc (list -InexactComplex) -InexactReal (list -real-part))
+            (->acc (list N) -Real (list -real-part)))]
+[imag-part (from-cases
+            (->acc (list -Real) -Zero (list -imag-part))
+            (for/list ([(number parts) (in-hash numeric-component-types)]
+                       #:unless (member number all-real-types))
+              (->acc (list number) (cdr parts) (list -imag-part)))
+            (->acc (list -ExactNumber) -Rat (list -imag-part))
+            (->acc (list -InexactComplex) -InexactReal (list -imag-part))
+            (->acc (list N) -Real (list -imag-part)))]
 [magnitude (from-cases abs-cases
                        (-FloatComplex . -> . -NonNegFlonum)
                        (-SingleFlonumComplex . -> . -NonNegSingleFlonum)

@@ -15,6 +15,8 @@
          "resolve.rkt"
          "subtype.rkt"
          "subtract.rkt"
+         "overlap.rkt"
+         "numeric-tower.rkt"
          (rename-in "abbrev.rkt"
                     [-> -->]
                     [->* -->*]
@@ -40,6 +42,16 @@
       ;; (i.e. there is some field access we'll try and traverse)
       [(cons path-elem rst)
        (match* ((resolve t) path-elem)
+         [(_ (and pe (or (RealPartPE:) (ImagPartPE:))))
+          (define component-t (update -Real rst))
+          (intersect
+           t
+           (apply Un
+                  (for/list ([(number parts) (in-hash numeric-component-types)]
+                             #:when (overlap? component-t (if (RealPartPE? pe)
+                                                             (car parts)
+                                                             (cdr parts))))
+                    number)))]
          ;; pair ops
          [((Pair: t s) (CarPE:))
           (rebuild -pair (update t rst) s)]

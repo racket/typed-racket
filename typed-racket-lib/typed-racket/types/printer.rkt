@@ -271,6 +271,8 @@
                     [maybe-accessor-id
                      (list (syntax-e maybe-accessor-id) sexp)]
                     [else (list 'prefab-ref sexp idx)])]
+                 [(RealPartPE:) (list 'real-part sexp)]
+                 [(ImagPartPE:) (list 'imag-part sexp)]
                  [(VecLenPE:) (list 'vector-length sexp)]
                  [(SyntaxPE:) (list 'syntax-e sexp)]
                  [_ `((Invalid Path-Element: ,(struct->vector pe)) ,sexp)])

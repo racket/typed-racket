@@ -116,11 +116,11 @@
   [-Bytes Bytes #'bytes? bytes?]
   [-Base-Regexp
    Base-Regexp
-   #'(and/c regexp? (not/c pregexp?))
+   #'(lambda (x) (and (regexp? x) (not (pregexp? x))))
    (compose/and regexp? (¬ pregexp?))]
   [-PRegexp PRegexp #'pregexp? pregexp?]
   [-Byte-Base-Regexp Byte-Base-Regexp
-                     #'(and/c byte-regexp? (not/c byte-pregexp?))
+                     #'(lambda (x) (and (byte-regexp? x) (not (byte-pregexp? x))))
                      (compose/and byte-regexp? (¬ byte-pregexp?))]
   [-Byte-PRegexp Byte-PRegexp #'byte-pregexp? byte-pregexp?]
   [-Keyword Keyword #'keyword? keyword?]
@@ -136,7 +136,7 @@
    module-path-index?]
   [-OtherSystemPath
    OtherSystemPath
-   #'(and/c path-for-some-system? (not/c path?))
+   #'(lambda (x) (and (path-for-some-system? x) (not (path? x))))
    (compose/and path-for-some-system? (¬ path?))]
   [-Cont-Mark-Set
    Continuation-Mark-Set
@@ -153,8 +153,8 @@
    compiled-module-expression?]
   [-Compiled-Non-Module-Expression
    Compiled-Non-Module-Expression
-   #'(and/c compiled-expression?
-            (not/c  compiled-module-expression?))
+   #'(lambda (x)
+       (and (compiled-expression? x) (not (compiled-module-expression? x))))
    (compose/and compiled-expression?
                 (¬ compiled-module-expression?))]
   [-Pretty-Print-Style-Table
@@ -187,7 +187,7 @@
   [-Log-Receiver Log-Receiver #'log-receiver? log-receiver?]
   [-Place Place #'place? place?]
   [-Base-Place-Channel
-   Base-Place-Channel #'(and/c place-channel? (not/c place?))
+   Base-Place-Channel #'(lambda (x) (and (place-channel? x) (not (place? x))))
    (compose/and place-channel? (¬ place?))]
   [-Will-Executor Will-Executor #'will-executor? will-executor?]
   [-Environment-Variables
@@ -209,7 +209,7 @@
   ;; they return #f for number?
   [-ExtFlonumNan
    ExtFlonum-Nan
-   #'(and/c extflonum? (lambda (x) (eqv? x +nan.t)))
+   #'(lambda (x) (and (extflonum? x) (eqv? x +nan.t)))
    (λ (x) (and (extflonum? x) (eqv? x +nan.t)))]
   [-ExtFlonumPosZero
    ExtFlonum-Positive-Zero
@@ -221,10 +221,10 @@
    (λ (x) (eqv? x -0.0t0))]
   [-NegExtFlonumNoNan
    Negative-ExtFlonum-No-NaN
-   #'(and/c extflonum? (λ (x) (extfl<= x 0.0t0)))
+   #'(lambda (x) (and (extflonum? x) (extfl<= x 0.0t0)))
    (λ (x) (and (extflonum? x) (extfl<= x 0.0t0)))]
   [-PosExtFlonumNoNan
    Positive-ExtFlonum-No-NaN
-   #'(and/c extflonum? (λ (x) (extfl>= x 0.0t0)))
+   #'(lambda (x) (and (extflonum? x) (extfl>= x 0.0t0)))
    (λ (x) (and (extflonum? x) (extfl>= x 0.0t0)))]
   [-Dead-Code Dead-Code #'(make-none/c 'dead-code/c) (λ (v) #f)])

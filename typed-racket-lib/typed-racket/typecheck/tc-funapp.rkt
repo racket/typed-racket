@@ -5,6 +5,7 @@
          (prefix-in c: (contract-req))
          (for-syntax syntax/parse racket/base)
          "../utils/tc-utils.rkt"
+         (only-in "../types/printer.rkt" call-showing-hidden-props)
          "../utils/identifier.rkt"
          "../env/tvar-env.rkt"
          "../env/lexical-env.rkt"
@@ -313,10 +314,13 @@
           #:when (subtype t in)
           (ret -Void -true-propset)]
          [(list t)
-          (tc-error/expr #:return (ret -Void -true-propset)
-                         "Wrong argument to parameter - expected ~a and got ~a"
-                         in
-                         t)]
+          (call-showing-hidden-props
+           (list in)
+           (λ ()
+             (tc-error/expr #:return (ret -Void -true-propset)
+                            "Wrong argument to parameter - expected ~a and got ~a"
+                            in
+                            t)))]
          [_
           (tc-error/expr "Wrong number of arguments to parameter - expected 0 or 1, got ~a"
                          (length argtys))])]

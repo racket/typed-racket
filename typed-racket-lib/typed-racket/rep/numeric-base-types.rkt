@@ -99,48 +99,48 @@
    (λ (n) (and (byte? n) (> n 1)))]
   [-PosIndexNotByte
    Positive-Index-Not-Byte
-   #'(and/c index? positive? (not/c byte?))
+   #'(lambda (x) (and (index? x) (positive? x) (not (byte? x))))
    (λ (x) (and (portable-index? x)
                (positive? x)
                (not (byte? x))))]
   [-PosFixnumNotIndex
    Positive-Fixnum-Not-Index
-   #'(and/c fixnum? positive? (not/c index?))
+   #'(lambda (x) (and (fixnum? x) (positive? x) (not (index? x))))
    (λ (x) (and (portable-fixnum? x)
                (positive? x)
                (not (portable-index? x))))]
   [-NegFixnum
    Negative-Fixnum
-   #'(and/c fixnum? negative?)
+   #'(lambda (x) (and (fixnum? x) (negative? x)))
    (λ (x) (and (portable-fixnum? x)
                (negative? x)))]
   [-PosIntNotFixnum
    Positive-Integer-Not-Fixnum
-   #'(and/c exact-integer? positive? (not/c fixnum?))
+   #'(lambda (x) (and (exact-integer? x) (positive? x) (not (fixnum? x))))
    (λ (x) (and (exact-integer? x)
                (positive? x)
                (not (portable-fixnum? x))))]
   [-NegIntNotFixnum
    Negative-Integer-Not-Fixnum
-   #'(and/c exact-integer? negative? (not/c fixnum?))
+   #'(lambda (x) (and (exact-integer? x) (negative? x) (not (fixnum? x))))
    (λ (x) (and (exact-integer? x)
                (negative? x)
                (not (portable-fixnum? x))))]
   [-PosRatNotInt
    Positive-Rational-Not-Integer
-   #'(and/c exact-rational? positive? (not/c integer?))
+   #'(lambda (x) (and (exact-rational? x) (positive? x) (not (integer? x))))
    (λ (x) (and (exact-rational? x)
                (positive? x)
                (not (exact-integer? x))))]
   [-NegRatNotInt
    Negative-Rational-Not-Integer
-   #'(and/c exact-rational? negative? (not/c integer?))
+   #'(lambda (x) (and (exact-rational? x) (negative? x) (not (integer? x))))
    (λ (x) (and (exact-rational? x)
                (negative? x)
                (not (exact-integer? x))))]
   [-FlonumNan
    Float-Nan
-   #'(and/c flonum? (lambda (x) (eqv? x +nan.0)))
+   #'(lambda (x) (and (flonum? x) (eqv? x +nan.0)))
    (λ (x) (and (flonum? x) (eqv? x +nan.0)))]
   [-FlonumPosZero
    Float-Positive-Zero
@@ -152,15 +152,15 @@
    (λ (x) (eqv? x -0.0))]
   [-PosFlonumNoNan
    Positive-Float-No-NaN
-   #'(and/c flonum? positive?)
+   #'(lambda (x) (and (flonum? x) (positive? x)))
    (λ (x) (and (flonum? x) (positive? x)))]
   [-NegFlonumNoNan
    Negative-Float-No-NaN
-   #'(and/c flonum? negative?)
+   #'(lambda (x) (and (flonum? x) (negative? x)))
    (λ (x) (and (flonum? x) (negative? x)))]
   [-SingleFlonumNan
    Single-Flonum-Nan
-   #'(and/c single-flonum? (lambda (x) (eqv? x +nan.f)))
+   #'(lambda (x) (and (single-flonum? x) (eqv? x +nan.f)))
    (λ (x) (and (single-flonum? x) (eqv? x +nan.f)))]
   [-SingleFlonumPosZero ; disjoint from Flonum 0s
    Single-Flonum-Positive-Zero
@@ -173,33 +173,31 @@
    (λ (x) (and (single-flonum? x) (eqv? x (real->single-flonum -0.0f0))))]
   [-PosSingleFlonumNoNan
    Positive-Single-Flonum-No-Nan
-   #'(and/c single-flonum? positive?)
+   #'(lambda (x) (and (single-flonum? x) (positive? x)))
    (λ (x) (and (single-flonum? x) (positive? x)))]
   [-NegSingleFlonumNoNan
    Negative-Single-Flonum-No-Nan
-   #'(and/c single-flonum? negative?)
+   #'(lambda (x) (and (single-flonum? x) (negative? x)))
    (λ (x) (and (single-flonum? x) (negative? x)))]
   [-ExactImaginary
    Exact-Imaginary
-   #'(and/c number?
-            (not/c real?)
-            (λ (x)
-              (and
-               (eqv? 0 (real-part x))
-               (exact? (imag-part x)))))
+   #'(lambda (x)
+       (and (number? x)
+            (not (real? x))
+            (eqv? 0 (real-part x))
+            (exact? (imag-part x))))
    (λ (x) (and (number? x)
                (not (real? x))
                (eqv? 0 (real-part x))
                (exact? (imag-part x))))]
   [-ExactComplex
    Exact-Complex
-   #'(and/c number?
-            (not/c real?)
-            (lambda (x)
-              (and
-               (not (eqv? 0 (real-part x)))
-               (exact? (real-part x))
-               (exact? (imag-part x)))))
+   #'(lambda (x)
+       (and (number? x)
+            (not (real? x))
+            (not (eqv? 0 (real-part x)))
+            (exact? (real-part x))
+            (exact? (imag-part x))))
    (λ (x) (and (number? x)
                (not (real? x))
                (not (eqv? 0 (real-part x)))
@@ -207,40 +205,36 @@
                (exact? (imag-part x))))]
   [-FloatImaginary
    Float-Imaginary
-   #'(and/c number?
-            (λ (x)
-              (and (flonum? (imag-part x))
-                   (eqv? 0 (real-part x)))))
+   #'(lambda (x)
+       (and (number? x) (flonum? (imag-part x)) (eqv? 0 (real-part x))))
    (λ (x)
      (and (number? x)
           (flonum? (imag-part x))
           (eqv? 0 (real-part x))))]
   [-SingleFlonumImaginary
    Single-Flonum-Imaginary
-   #'(and/c number?
-            (λ (x)
-              (and (single-flonum? (imag-part x))
-                   (eqv? 0 (real-part x)))))
+   #'(lambda (x)
+       (and (number? x) (single-flonum? (imag-part x)) (eqv? 0 (real-part x))))
    (λ (x)
      (and (number? x)
           (single-flonum? (imag-part x))
           (eqv? 0 (real-part x))))]
   [-FloatComplex
    Float-Complex
-   #'(and/c number?
-            (lambda (x)
-              (and (flonum? (imag-part x))
-                   (flonum? (real-part x)))))
+   #'(lambda (x)
+       (and (number? x)
+            (flonum? (imag-part x))
+            (flonum? (real-part x))))
    (λ (x)
      (and (number? x)
           (flonum? (imag-part x))
           (flonum? (real-part x))))]
   [-SingleFlonumComplex
    Single-Flonum-Complex
-   #'(and/c number?
-            (λ (x)
-              (and (single-flonum? (imag-part x))
-                   (single-flonum? (real-part x)))))
+   #'(lambda (x)
+       (and (number? x)
+            (single-flonum? (imag-part x))
+            (single-flonum? (real-part x))))
    (λ (x)
      (and (number? x)
           (single-flonum? (imag-part x))

@@ -554,7 +554,7 @@
                                (list prop)
                                '())
                            impersonators))])]
-        [(and t (Fun: arrs))
+        [(Fun: arrs)
          #:when (any->bool? arrs)
          ;; Avoid putting (-> any T) contracts on struct predicates (where Boolean <: T)
          ;; Optimization: if the value is typed, we can assume it's not wrapped
@@ -563,7 +563,7 @@
          (define safe-spp/sc (flat/sc #'struct-predicate-procedure?/c))
          (define optimized/sc (if (from-typed? typed-side) unsafe-spp/sc safe-spp/sc))
          (define spt-pred-procedure?/sc (flat/sc #'struct-type-property-predicate-procedure?))
-         (or/sc optimized/sc spt-pred-procedure?/sc (t->sc/fun t))]
+         (or/sc optimized/sc spt-pred-procedure?/sc (t->sc/fun type))]
         [(? Fun? t) (t->sc/fun t)]
         [(? DepFun? t) (t->sc/fun t)]
         [(Set: t) (set/sc (t->sc t))]

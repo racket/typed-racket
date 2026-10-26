@@ -3,6 +3,7 @@
 #| Datatypes used by typed/openssl, based on the untyped openssl module. |#
 
 (provide SSL-Protocol
+         SSL-Private-Key
          SSL-Client-Context ssl-client-context?
          SSL-Server-Context ssl-server-context?
          SSL-Context
@@ -12,7 +13,12 @@
          )
 
 (define-type SSL-Protocol
-  (U 'auto 'sslv2-or-v3 'sslv2 'sslv3 'tls 'tls11 'tls12))
+  (U 'secure 'auto 'sslv2-or-v3 'sslv2 'sslv3 'tls 'tls11 'tls12 'tls13))
+
+(define-type SSL-Private-Key
+  (Option (U (List 'pem Path-String)
+             (List 'pem-data Bytes)
+             (List 'der Path-String))))
 
 (require/opaque-type SSL-Client-Context ssl-client-context? openssl)
 
@@ -39,5 +45,5 @@
   (U Path-String
      (List 'directory Path-String)
      (List 'win32-store String)
-     (List 'macosx-keychain Path-String)))
+     (List 'macosx-keychain (Option Path-String))))
 

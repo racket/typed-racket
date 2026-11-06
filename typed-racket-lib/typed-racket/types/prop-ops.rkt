@@ -107,9 +107,11 @@
 ;; so it would return #t
 (define (updates/pos-to-bot? pes1 t1 pes2 t2)
   (define (check pes1 t1 pes2 t2 prefix-len)
-    (and (equal? pes1 (drop pes2 prefix-len))
-         (let ([prefix (take pes2 prefix-len)])
-           (Bottom? (update t1 t2 #t prefix)))))
+    (cond
+      [(equal? pes1 (drop pes2 prefix-len))
+       (define prefix (take pes2 prefix-len))
+       (Bottom? (update t1 t2 #t prefix))]
+      [else #f]))
   (define len1 (length pes1))
   (define len2 (length pes2))
   (cond
@@ -131,11 +133,12 @@
 (define (updates/neg-to-bot? pes1 t1+ pes2 t2-)
   (define len1 (length pes1))
   (define len2 (length pes2))
-  (and (<= len1 len2)
-       (let ([prefix-len (- len2 len1)])
-         (and (equal? pes1 (drop pes2 prefix-len))
-              (let ([prefix (take pes2 prefix-len)])
-                (Bottom? (update t1+ t2- #f prefix)))))))
+  (cond
+    [(<= len1 len2)
+     (define prefix-len (- len2 len1))
+     (and (equal? pes1 (drop pes2 prefix-len))
+          (let ([prefix (take pes2 prefix-len)]) (Bottom? (update t1+ t2- #f prefix))))]
+    [else #f]))
 
 ;; like atomic-contradiction? but it tries a little
 ;; harder, reasoning about how paths overlap

@@ -135,12 +135,9 @@
     (λ (type)
       (match type
         [(tc-result1: (and t (? Fun?)) f o)
-         (let ([cleaned (cleanup-type t (parse-type #'desired-type) #f)])
-           #`(display
-              #,(match cleaned
-                  [(Fun: '())
-                   "Desired return type not in the given function's range.\n"]
-                  [(Fun: _)
-                   (pretty-format-rep cleaned)])))]
+         (define cleaned (cleanup-type t (parse-type #'desired-type) #f))
+         #`(display #,(match cleaned
+                        [(Fun: '()) "Desired return type not in the given function's range.\n"]
+                        [(Fun: _) (pretty-format-rep cleaned)]))]
         [_ (error (format "~a: not a function" (syntax->datum #'op)))]))
     "must be applied to exactly two arguments"))

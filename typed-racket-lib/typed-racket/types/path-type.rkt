@@ -10,6 +10,7 @@
          "../utils/prefab.rkt"
          "../typecheck/renamer.rkt"
          "../types/subtype.rkt"
+         "../types/overlap.rkt"
          "../types/resolve.rkt"
          "../types/numeric-tower.rkt"
          "../types/kw-types.rkt"
@@ -41,6 +42,18 @@
       [(t (list)) t]
 
       ;; -- non-empty path beyond here --
+
+      [(_ (cons (and pe (or (RealPartPE:) (ImagPartPE:))) rst))
+       #:when (subtype t -Number)
+       (define real? (RealPartPE? pe))
+       (define part-t
+         (if (subtype t -Real)
+             (if real? t -Zero)
+             (apply Un
+                    (for/list ([(number parts) (in-hash numeric-component-types)]
+                               #:when (overlap? t number))
+                      (if real? (car parts) (cdr parts))))))
+       (path-type rst part-t (hash))]
 
       ;; pair ops
       [((Pair: t s) (cons (CarPE:) rst))

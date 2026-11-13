@@ -2302,6 +2302,35 @@
                       (fsemaphore-post s))
               -Void]
 
+        [tc-e (real-part (ann 1.0+2.0i Float-Complex)) -Flonum]
+        [tc-e (imag-part (ann 1.0+2.0i Float-Complex)) -Flonum]
+        [tc-e (real-part (ann 0+2i Exact-Imaginary)) -Zero]
+        [tc-e (let ([x (ann 42 Fixnum)]) (real-part x)) -Fixnum]
+        [tc-e (let ([x (ann 42 Fixnum)]) (imag-part x)) -Zero]
+        [tc-e (let ()
+                (: float-complex? (Any -> Boolean : Float-Complex))
+                (define (float-complex? x)
+                  (and (number? x)
+                       (flonum? (real-part x))
+                       (flonum? (imag-part x))))
+                (void))
+              -Void]
+        [tc-e (let ()
+                (: float-complex? (Any -> Boolean : Float-Complex))
+                (define (float-complex? x)
+                  (and (number? x)
+                       (let ([r (real-part x)] [i (imag-part x)])
+                         (and (flonum? i) (flonum? r)))))
+                (void))
+              -Void]
+        [tc-e (let ([x (ann 1.0+2.0i Number)])
+                (if (and (flonum? (real-part (real-part x)))
+                         (flonum? (imag-part x)))
+                    (ann x Float-Complex)
+                    0.0)
+                (void))
+              -Void]
+
         ;Random Numbers
         (tc-e (make-pseudo-random-generator) -Pseudo-Random-Generator)
         (tc-e (let: ((pg : Pseudo-Random-Generator (make-pseudo-random-generator)))

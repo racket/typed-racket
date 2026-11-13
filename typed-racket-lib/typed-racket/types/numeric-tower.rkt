@@ -32,6 +32,7 @@
          -PosInfinity -NegInfinity
          -ExactImaginary -FloatImaginary -SingleFlonumImaginary -InexactImaginary -Imaginary
          -ExactNumber -ExactComplex -FloatComplex -SingleFlonumComplex -InexactComplex -Number
+         numeric-component-types
          has-int-provable-range?
          int-type->provable-range
          int-type->known-bounds
@@ -126,6 +127,19 @@
 (define/decl -InexactComplex (Un -FloatComplex -SingleFlonumComplex))
 (define/decl -Complex (Un -Real -Imaginary -ExactComplex -InexactComplex))
 (define/decl -Number -Complex)
+
+;; Mapping from various kinds of numbers to the types of the real and imaginary parts.
+;; Each entry should be disjoint.
+(define numeric-component-types
+  (hash -Rat (cons -Rat -Zero)
+        -Flonum (cons -Flonum -Zero)
+        -SingleFlonum (cons -SingleFlonum -Zero)
+        -ExactImaginary (cons -Zero -Rat)
+        -ExactComplex (cons -Rat -Rat)
+        -FloatImaginary (cons -Zero -Flonum)
+        -SingleFlonumImaginary (cons -Zero -SingleFlonum)
+        -FloatComplex (cons -Flonum -Flonum)
+        -SingleFlonumComplex (cons -SingleFlonum -SingleFlonum)))
 
 
 ;; i.e. if we can prove an int is in this range,

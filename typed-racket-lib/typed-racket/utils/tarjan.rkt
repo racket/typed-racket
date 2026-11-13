@@ -71,7 +71,7 @@
   (define index 0)
   (define stack (make-queue))
   (define sccs '())
-  (for ([(key vtx) (in-dict vertices)]
+  (for ([vtx (in-dict-values vertices)]
         #:unless (vertex-index vtx))
     (strongly-connected vtx))
   sccs)

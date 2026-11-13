@@ -271,7 +271,7 @@
                                 0))
 
   (cond
-    [(and (nightly?) (eq? 'cgc (system-type 'gc))) (printf "Skipping Typed Racket tests.\n")]
+    [(and (nightly?) (eq? 'cgc (system-type 'gc))) (displayln "Skipping Typed Racket tests.")]
     [else
      (define to-run
        (cond

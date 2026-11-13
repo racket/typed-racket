@@ -601,21 +601,20 @@
          (prompt-tag/sc (map t->sc ts) (list (t->sc s)))]
         [(Some: (list n) (? Fun? t-body)) (t->sc/fun t-body #:maybe-existential n)]
         [(F: v)
-         (cond
-           [(string-prefix? (symbol->string v) "self-")
-            (if (not (from-untyped? typed-side))
-                ;; if self is in negative position, we can't generate a contract yet.
-                (fail #:reason "contract generation not supported for Self")
-                any/sc)]
-           [else
-            (triple-lookup (hash-ref recursive-values
-                                     v
-                                     (λ ()
-                                       (error 'type->static-contract
-                                              "Recursive value lookup failed. ~a ~a"
-                                              recursive-values
-                                              v)))
-                           typed-side)])]
+         #:when (string-prefix? (symbol->string v) "self-")
+         (if (not (from-untyped? typed-side))
+             ;; if self is in negative position, we can't generate a contract yet.
+             (fail #:reason "contract generation not supported for Self")
+             any/sc)]
+        [(F: v)
+         (triple-lookup (hash-ref recursive-values
+                                  v
+                                  (λ ()
+                                    (error 'type->static-contract
+                                           "Recursive value lookup failed. ~a ~a"
+                                           recursive-values
+                                           v)))
+                        typed-side)]
         [(BoxTop:) (only-untyped box?/sc)]
         [(ChannelTop:) (only-untyped channel?/sc)]
         [(Async-ChannelTop:) (only-untyped async-channel?/sc)]

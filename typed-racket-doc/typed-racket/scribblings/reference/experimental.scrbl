@@ -55,23 +55,27 @@ by logical propositions. These propositions can mention
 certain program terms, allowing a program's types to depend
 on the values of terms.
 
-@defform[#:literals (Refine : Top Bot ! and or when
+@defform[#:literals (Refine : Top Bot ! and or not when
                             unless if < <= = > >= car cdr
                             vector-length + *)
          (Refine [id : type] proposition)
          #:grammar
          ([proposition Top
            Bot
+           type
+           (! type)
            (: symbolic-object type)
            (! symbolic-object type)
            (and proposition ...)
            (or proposition ...)
+           (not proposition)
            (when proposition proposition)
            (unless proposition proposition)
            (if proposition proposition proposition)
            (linear-comp symbolic-object symbolic-object)]
           [linear-comp < <= = >= >]
           [symbolic-object exact-integer
+           (depth arg)
            symbolic-path
            (+ symbolic-object ...)
            (- symbolic-object ...)
@@ -80,7 +84,9 @@ on the values of terms.
            (path-elem symbolic-path)]
           [path-elem car
            cdr
-           vector-length])]{@racket[(Refine [v : t] p)] is a
+           vector-length]
+          [depth exact-nonnegative-integer]
+          [arg exact-nonnegative-integer])]{@racket[(Refine [v : t] p)] is a
  refinement of type @racket[t] with logical proposition
  @racket[p], or in other words it describes any value
  @racket[v] of type @racket[t] for which the logical
@@ -89,7 +95,12 @@ on the values of terms.
  @ex[(ann 42 (Refine [n : Integer] (= n 42)))]
 
  Note: The identifier in a refinement type is in scope
- inside the proposition, but not the type.
+ inside the proposition, but not the type. A bare @racket[type] proposition
+ is shorthand for @racket[(: id type)], and @racket[(! type)] is shorthand
+ for @racket[(! id type)]. The symbolic object @racket[(depth arg)] refers to
+ an argument of an enclosing function type (see @racket[->]); for the purpose
+ of counting @racket[depth], the refinement is itself a scope, but its
+ variable must be referred to by name.
 
 }
 
@@ -185,7 +196,21 @@ A function's range may depend on any of its arguments.
 The grammar of supported propositions and symbolic objects
 (i.e. @racket[prop] and @racket[obj]) is the same as
 the @racket[proposition] and @racket[symbolic-object] grammars
-from @racket[Refine]'s syntax.
+from @racket[Refine]'s syntax. A bare @racket[type] proposition is about the
+only argument in scope, if there is exactly one: for a precondition, the
+arguments in scope are those in its dependency list, and for the range, all of
+the function's arguments. Otherwise, write @racket[(: id type)] or
+@racket[(! id type)] to name the argument explicitly. A single-valued range
+may also be written with the @racket[result] syntax of @racket[->], as in
+@racket[(values (Boolean : #:+ (: x String)))]; propositions given there and
+after the range are combined.
+
+This form can express predicates over an outer argument in a curried function:
+
+@ex[#:label #f
+ (: double-num? (-> ([x : Any])
+                    (-> ([y : Any]) Boolean #:+ (: x Number))))
+ (define ((double-num? x) y) (number? x))]
 
 For example, here is a dependently typed version of
 Racket's @racket[vector-ref] which eliminates vector

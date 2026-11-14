@@ -14,7 +14,7 @@
          "../types/resolve.rkt"
          "../utils/tc-utils.rkt"
          "../rep/type-rep.rkt"
-         (only-in "../types/printer.rkt" pretty-format-rep))
+         (only-in "../types/printer.rkt" pretty-format-rep call-showing-hidden-props))
 
 (provide/cond-contract [expected-but-got
                         (--> (-or/c Type? string?)
@@ -30,9 +30,14 @@
 ;; Type errors with "type mismatch", arguments may be types or other things
 ;; like the length of a list of types
 (define (type-mismatch t1 t2 [more #f])
-  (define t1* (if (Type? t1) (pretty-format-rep t1 #:indent 12) t1))
-  (define t2* (if (Type? t2) (pretty-format-rep t2 #:indent 9) t2))
-  (tc-error/fields "type mismatch" #:more more "expected" t1* "given" t2* #:delayed? #t))
+  ;; the expected type may demand latent propositions that are not
+  ;; printed by default
+  (call-showing-hidden-props
+   (list t1)
+   (λ ()
+     (define t1* (if (Type? t1) (pretty-format-rep t1 #:indent 12) t1))
+     (define t2* (if (Type? t2) (pretty-format-rep t2 #:indent 9) t2))
+     (tc-error/fields "type mismatch" #:more more "expected" t1* "given" t2* #:delayed? #t))))
 
 ;; expected-but-got : (U Type String) (U Type String) -> Void
 ;;

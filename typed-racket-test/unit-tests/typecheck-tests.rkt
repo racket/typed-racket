@@ -2611,6 +2611,22 @@
            (if (f 'dummy) (add1 x) 2))
          (t:-> Univ -Integer : -true-propset)]
 
+        [tc-e
+         (let ([z : Any 1])
+           ((lambda: ([f : (Any -> Any : #:object z)])
+              (if (number? (f 0))
+                  (+ z 1)
+                  0))
+            (lambda: ([x : Any]) z)))
+         -Number]
+
+        [tc-e
+         (let ([z : Any 1])
+           ((lambda: ([f : (Any -> Boolean : #:+ (: z Number))])
+              (if (f 0) (+ z 1) 0))
+            (lambda: ([x : Any]) (number? z))))
+         -Number]
+
         ;; This test ensures that curried predicates have
         ;; the correct props so that they can be used for
         ;; occurrence typing.
@@ -2649,6 +2665,26 @@
           (if (g "foo") (symbol->string b) "str")
           (void))
         ;; type doesn't really matter, just make sure it typechecks
+        -Void]
+
+       [tc-e
+        (let ()
+          (: double-num? (-> ([x : Any])
+                             (-> ([y : Any]) Boolean #:+ (: x Number))))
+          (define ((double-num? x) y) (number? x))
+          (: use (-> Any Any Number))
+          (define (use x y)
+            (if ((double-num? x) y)
+                (+ x 1)
+                0))
+          (void))
+        -Void]
+
+       [tc-e
+        (let ()
+          (: double-num?/pos (-> Any (-> Any Boolean : #:+ (: (1 0) Number))))
+          (define ((double-num?/pos x) y) (number? x))
+          (void))
         -Void]
 
        ;; Unit test for PR 13298. Should raise an unbound id error

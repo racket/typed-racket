@@ -1,3 +1,21 @@
+9.4
+- Fix unsound erasure of propositions about variables that go out of
+  scope or are substituted away. Propositions in negative positions
+  (function domains), and types whose invariant parameters mention
+  such variables, are now handled soundly, which may cause existing
+  programs not to type check.
+- Fix unsound elimination of type variables during inference for types
+  with invariant parameters, such as `Boxof` and mutable hash tables, and
+  for function types whose propositions mention the variables.
+- Ordinary function types accept the same propositions as dependent
+  function types and `Refine`, such as `(: (0 1) String)`, along with
+  the legacy `@` forms at any depth. `#:object` is no longer ignored.
+- Results in `Values` ranges and in `ann` may have latent propositions
+  and objects.
+- Types print propositions in the syntax that parses them, and type
+  error messages show propositions when they explain a mismatch.
+- Add `:print-type #:verbose` and the `#:print-propositions` language
+  option.
 9.3
 - Bug fixes.
 9.2

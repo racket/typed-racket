@@ -150,6 +150,8 @@
       (:type Byte))
     (test-form (regexp-quote "(U 0 1 Byte-Larger-Than-One")
       (:type #:verbose Byte))
+    (test-form (regexp-quote "#:+ (: (0 1) String)")
+      (:type #:verbose (-> Any Any Boolean : #:+ (: (0 1) String))))
     (test-form-exn #rx":type.*applied to arguments"
       :type)
     (test-form-exn #rx":type.*only valid at the top-level"
@@ -163,6 +165,14 @@
 
     (test-form #rx"Positive-Index"
       (:print-type (+ 1 1)))
+    ;; #:verbose expands type aliases
+    (test-form (regexp-quote "Exact-Complex")
+      (:print-type #:verbose number?))
+    ;; and prints latent propositions and objects
+    (test-form (regexp-quote "#:+ (: (0 0) String) #:- (! (0 0) String)")
+      (:print-type #:verbose (lambda ([x : Any] [y : Any]) (string? x))))
+    (test-form (regexp-quote "#:object (0 1)")
+      (:print-type #:verbose (lambda ([x : Any] [y : Any]) y)))
 
     (test-form #rx"\\*"
       (:kind Number))
@@ -224,6 +234,8 @@
       (:print-type))
     (test-form-exn #rx"exactly one argument"
       (:print-type 1 2))
+    (test-form-exn #rx"exactly one argument"
+      (:print-type #:verbose))
 
     (test-form (regexp-quote "(-> 4 Zero Zero)")
       (:query-type/args * 4 0))

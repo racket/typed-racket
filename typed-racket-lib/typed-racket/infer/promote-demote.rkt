@@ -3,10 +3,12 @@
 (require "../utils/utils.rkt"
          "../rep/type-rep.rkt"
          "../rep/values-rep.rkt"
+         "../rep/prop-rep.rkt"
          "../rep/rep-utils.rkt"
          "../rep/free-variance.rkt"
          "../types/abbrev.rkt"
          "../types/utils.rkt"
+         "../types/variance.rkt"
          (prefix-in c: (contract-req))
          racket/list racket/match)
 (provide/cond-contract
@@ -17,62 +19,64 @@
   (for/or ([e (in-list (append-map fv ts))])
     (memq e V)))
 
-;; get-propset : SomeValues -> PropSet
-;; extract prop sets out of the range of a function type
-(define (get-propsets rng)
-  (match rng
-    [(AnyValues: p) (list (-PS p p))]
-    [(Values: (list (Result: _ propsets _) ...)) propsets]
-    [(ValuesDots: (list (Result: _ propsets _) ...) _ _) propsets]))
-
-
+;; var-promote : Type (Listof Symbol) -> Type
+;; var-demote : Type (Listof Symbol) -> Type
+;; The least supertype (greatest subtype) of T that does not mention the
+;; type variables V, as in Pierce and Turner's "Local Type Inference".
+;; Variables are replaced by Univ or Bottom according to the variance of
+;; their position. A type that mentions V in an invariant position has no
+;; such supertype (subtype) of the same shape, so it is replaced as a
+;; whole by its top type (Bottom); replacing just the variable, say from
+;; (Boxof X) to (Boxof Any), would give an unrelated type.
 (define (var-promote T V)
   (var-change V T #t))
 (define (var-demote T V)
   (var-change V T #f))
 
-
-
 (define (var-change V cur change)
   (define (co t) (var-change V t change))
   (define (contra t) (var-change V t (not change)))
-  ;; arr? -> (or/c #f arr?)
-  ;; Returns the changed arr or #f if there is no arr above it
-  (define (arr-change arr)
-    (match-define (Arrow: dom rst kws rng rng-T+) arr)
-    (cond
-      [(apply V-in? V (get-propsets rng)) #f]
-      [(and (RestDots? rst) (memq (RestDots-nm rst) V))
-       (make-Arrow (map contra dom) (contra (RestDots-ty rst)) (map contra kws) (co rng) rng-T+)]
-      [else (make-Arrow (map contra dom) (and rst (contra rst)) (map contra kws) (co rng) rng-T+)]))
-  (define (change-elems ts)
-    (for/list ([t (in-list ts)])
-      (if (V-in? V t)
-        (if change Univ -Bottom)
-        t)))
+  (define (mentions-V? t) (V-in? V t))
+  ;; the replacement for all of `cur`, which mentions V invariantly
+  (define (give-up) (if change (top-of cur) -Bottom))
+  ;; changes the parts of `cur` with the given variances
+  (define (change-parts mk parts variances)
+    (if (for/or ([t (in-list parts)]
+                 [v (in-list variances)])
+          (and (not (or (variance:co? v) (variance:contra? v) (variance:const? v)))
+               (mentions-V? t)))
+        (give-up)
+        (apply mk (for/list ([t (in-list parts)]
+                             [v (in-list variances)])
+                    (cond
+                      [(variance:contra? v) (contra t)]
+                      [(variance:co? v) (co t)]
+                      [else t])))))
   (match cur
-    [(app Rep-variances variances) #:when variances 
-     (define mk (Rep-constructor cur))
-     (apply mk (for/list ([t (in-list (Rep-values cur))]
-                          [v (in-list variances)])
-                 (match v
-                   [(? variance:co?) (co t)]
-                   [(? variance:inv?)
-                    (if (V-in? V t)
-                        (if change Univ -Bottom)
-                        t)]
-                   [(? variance:contra?) (contra t)])))]
-    [(Unit: imports exports init-depends t)
-     (make-Unit (map co imports)
-                (map contra imports)
-                (map co init-depends)
-                (co t))]
     [(F: name) (if (memq name V)
                    (if change Univ -Bottom)
                    cur)]
-    [(Fun: arrs) (make-Fun (filter-map arr-change arrs))]
-    [(Immutable-HeterogeneousVector: elems)
-     (make-Immutable-HeterogeneousVector (change-elems elems))]
-    [(Mutable-HeterogeneousVector: elems)
-     (make-Mutable-HeterogeneousVector (change-elems elems))]
+    ;; the domain is contravariant; propositions in the range that
+    ;; mention V are weakened (when promoting) or strengthened (when
+    ;; demoting) like any other type in the range
+    [(Arrow: dom rst kws rng rng-T+)
+     (make-Arrow (map contra dom)
+                 (if (and (RestDots? rst) (memq (RestDots-nm rst) V))
+                     (contra (RestDots-ty rst))
+                     (and rst (contra rst)))
+                 (map contra kws)
+                 (co rng)
+                 rng-T+)]
+    [(DepFun: dom pre rng)
+     (make-DepFun (map contra dom) (contra pre) (co rng))]
+    ;; the type in a NotTypeProp is underneath a negation
+    [(NotTypeProp: obj t) (-not-type obj (contra t))]
+    [(app Rep-variances (? pair? variances))
+     (change-parts (Rep-constructor cur) (Rep-values cur) variances)]
+    [(App: rator rands)
+     (change-parts (λ rands (make-App rator rands))
+                   rands
+                   (or (app-variances rator rands)
+                       (map (λ (_) variance:inv) rands)))]
+    [(? invariant-type?) (if (mentions-V? cur) (give-up) cur)]
     [_ (Rep-fmap cur co)]))

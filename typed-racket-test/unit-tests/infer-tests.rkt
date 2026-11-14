@@ -14,6 +14,7 @@
   typed-racket/types/substitute
   typed-racket/types/numeric-tower
   typed-racket/types/utils
+  typed-racket/types/subtype
   typed-racket/types/abbrev)
 
 (provide tests)
@@ -91,7 +92,12 @@
          #,(syntax/loc stx
              (check-equal? promoted P "Promoted value doesn't match expected."))
          #,(syntax/loc stx
-             (check-equal? demoted D "Demoted value doesn't match expected.")))))))
+             (check-equal? demoted D "Demoted value doesn't match expected."))
+         ;; demotion and promotion must give a subtype and a supertype
+         #,(syntax/loc stx
+             (check-true (subtype demoted S-v) "Demoted value is not a subtype."))
+         #,(syntax/loc stx
+             (check-true (subtype S-v promoted) "Promoted value is not a supertype.")))))))
 
 (define pd-tests
   (test-suite
@@ -100,27 +106,31 @@
    (pd-t (-v a) () (-v a) (-v a))
    (pd-t (-v a) (a) -Bottom Univ)
    (pd-t (-v a) (b) (-v a) (-v a))
-   (pd-t (-vec (-v a)) (a) (-vec -Bottom) (-vec Univ))
-   (pd-t (-mvec (-lst (-v a))) (a) (-mvec -Bottom) (-mvec Univ))
+   ;; a type that mentions a in an invariant position is replaced as a
+   ;; whole by its top type (or Bottom)
+   (pd-t (-vec (-v a)) (a) (-ivec -Bottom) (Un (-ivec Univ) -Mutable-VectorTop))
+   (pd-t (-mvec (-lst (-v a))) (a) -Bottom -Mutable-VectorTop)
    (pd-t (-ivec (-lst (-v a))) (a) (-ivec (-lst -Bottom)) (-ivec (-lst Univ)))
    (pd-t (-vec (-v a)) (b) (-vec (-v a)) (-vec (-v a)))
 
-   (pd-t (-box (-v a)) (a) (-box -Bottom) (-box Univ))
-   (pd-t (-box (-lst (-v a))) (a) (-box -Bottom) (-box Univ))
+   (pd-t (-box (-v a)) (a) -Bottom -BoxTop)
+   (pd-t (-box (-lst (-v a))) (a) -Bottom -BoxTop)
    (pd-t (-box (-v a)) (b) (-box (-v a)) (-box (-v a)))
 
-   (pd-t (-channel (-v a)) (a) (-channel -Bottom) (-channel Univ))
-   (pd-t (-channel (-lst (-v a))) (a) (-channel -Bottom) (-channel Univ))
+   (pd-t (-channel (-v a)) (a) -Bottom -ChannelTop)
+   (pd-t (-channel (-lst (-v a))) (a) -Bottom -ChannelTop)
    (pd-t (-channel (-v a)) (b) (-channel (-v a)) (-channel (-v a)))
 
-   (pd-t (-thread-cell (-v a)) (a) (-thread-cell -Bottom) (-thread-cell Univ))
-   (pd-t (-thread-cell (-lst (-v a))) (a) (-thread-cell -Bottom) (-thread-cell Univ))
+   (pd-t (-thread-cell (-v a)) (a) -Bottom -ThreadCellTop)
+   (pd-t (-thread-cell (-lst (-v a))) (a) -Bottom -ThreadCellTop)
    (pd-t (-thread-cell (-v a)) (b) (-thread-cell (-v a)) (-thread-cell (-v a)))
 
-   (pd-t (-HT (-v a) (-v a)) (a) (-HT -Bottom -Bottom) (-HT Univ Univ))
+   (pd-t (-HT (-v a) (-v a)) (a)
+         (-Immutable-HT -Bottom -Bottom)
+         (Un (-Immutable-HT Univ Univ) -Mutable-HashTableTop -Weak-HashTableTop))
    (pd-t (-HT (-lst (-v a)) (-lst (-v a))) (a)
-         (Un (-Immutable-HT (-lst -Bottom) (-lst -Bottom)) (-Mutable-HT -Bottom -Bottom) (-Weak-HT -Bottom -Bottom))
-         (Un (-Immutable-HT (-lst Univ) (-lst Univ)) (-Mutable-HT Univ Univ) (-Weak-HT Univ Univ)))
+         (-Immutable-HT (-lst -Bottom) (-lst -Bottom))
+         (Un (-Immutable-HT (-lst Univ) (-lst Univ)) -Mutable-HashTableTop -Weak-HashTableTop))
    (pd-t (-HT (-v a) (-v a)) (b) (-HT (-v a) (-v a)) (-HT (-v a) (-v a)))
 
    (pd-t (-Param (-v a) (-v b)) (a b) (-Param Univ -Bottom) (-Param -Bottom Univ))
@@ -131,6 +141,13 @@
    (pd-t (->* (list (-lst (-v a))) (-lst (-v a)) (-lst (-v a))) (a)
          (->* (list (-lst Univ)) (-lst Univ) (-lst -Bottom))
          (->* (list (-lst -Bottom)) (-lst -Bottom) (-lst Univ)))
+
+   ;; propositions about a are strengthened when demoting and weakened
+   ;; when promoting, rather than dropping the function's case
+   (pd-t (-> Univ -Boolean : (-PS (-is-type 0 (-v a)) (-not-type 0 (-v a)))) (a)
+         (make-Fun (list (-Arrow (list Univ)
+                                 (make-Values (list (make-Result -Boolean -ff-propset -empty-obj))))))
+         (-> Univ -Boolean))
 
    (pd-t (->key #:a (-lst (-v a)) #t #:b (-lst (-v a)) #f -Symbol) (a)
          (->key #:a (-lst Univ) #t #:b (-lst Univ) #f -Symbol)

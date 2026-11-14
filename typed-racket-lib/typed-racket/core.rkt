@@ -9,6 +9,7 @@
          racket/match racket/syntax
          syntax/flatten-begin
          "types/utils.rkt"
+         "types/printer.rkt"
          "types/abbrev.rkt"
          "types/generalize.rkt"
          "typecheck/provide-handling.rkt"
@@ -37,6 +38,8 @@
               (~optional
                (~and #:with-refinements refinement-reasoning?))
               (~optional
+               (~and #:print-propositions print-propositions?))
+              (~optional
                (~and #:no-delay-errors no-delay-errors?)))
          ...
          forms ...)
@@ -51,7 +54,9 @@
                                               (unless (eq? te-mode deep)
                                                 (raise-arguments-error
                                                  (format-symbol "typed/racket/~a" te-attr)
-                                                 "#:with-refinements unsupported")))])
+                                                 "#:with-refinements unsupported")))]
+                      [print-complex-props? (or (attribute print-propositions?)
+                                                (print-complex-props?))])
          (tc-module/full te-mode stx pmb-form
           (λ (new-mod pre-before-code pre-after-code)
             (define ctc-cache (make-hash))
@@ -116,4 +121,3 @@
     ((#:shallow) shallow)
     ((#:optional) optional)
     (else (error (format "Internal Typed Racket Error: unknown type enforcement mode ~s~n" stx)))))
-

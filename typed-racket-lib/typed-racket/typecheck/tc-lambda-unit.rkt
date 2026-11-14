@@ -805,5 +805,5 @@
     [#:identifiers (cons name formals)
      #:types (cons ft args)]
     (values
-     (erase-identifiers (ret ft) names)
-     (erase-identifiers (tc-body/check body return) names))))
+     (erase-identifiers (ret ft) names (cons ft args))
+     (erase-identifiers (tc-body/check body return) names (cons ft args)))))

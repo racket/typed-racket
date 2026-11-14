@@ -131,11 +131,13 @@
    tc-results/c)
   (define-values (idents types aliased-objs props)
     (consolidate-bound-ids-info bound-idss bound-resultss))
-  (define ids-to-erase
-    (for/list ([id (in-list idents)]
-               [obj (in-list aliased-objs)]
-               #:when (Empty? obj))
-      id))
+  (define-values (ids-to-erase types-to-erase)
+    (for/lists (_1 _2)
+               ([id (in-list idents)]
+                [type (in-list types)]
+                [obj (in-list aliased-objs)]
+                #:when (Empty? obj))
+      (values id type)))
   (define props^
     (let ([any-res (-tc-any-results #f)])
       (for/fold ([res null])
@@ -165,7 +167,8 @@
        (pre-body-thunk)
        ;; typecheck the body
        (tc-body/check body expected))
-     ids-to-erase)))
+     ids-to-erase
+     types-to-erase)))
 
 (define (tc-expr/maybe-expected/t e names)
   (syntax-parse names
@@ -360,9 +363,10 @@
                                                 (register-ignored! (lr-clause-expr cl)))
                                               (cdr clauses))
                                     (k #t))
-               (substitute-names (loop (cdr clauses))
-                                 names
-                                 os)))])))
+               (substitute-identifiers (loop (cdr clauses))
+                                       names
+                                       os
+                                       ts)))])))
 
 ;; this is so match can provide us with a syntax property to
 ;; say that this binding is only called in tail position

@@ -740,12 +740,16 @@ the typed racket language.
              #:with cond-clause
              (syntax/loc #'x
                [(not x)
-                (error "Assertion failed")])]
+                (raise-arguments-error 'with-asserts
+                 (format "Assertion ~s failed" '(assert x))
+                 "given" x)])]
     [pattern [x:id pred]
              #:with cond-clause
              (syntax/loc #'x
                [(not (pred x))
-                (error "Assertion failed")])])
+                (raise-arguments-error 'with-asserts
+                 (format "Assertion ~s failed" '(assert x pred))
+                 "given" x)])])
    (syntax-parse stx
      [(_ (c:with-asserts-clause ...) body:expr ...+)
       (syntax-property

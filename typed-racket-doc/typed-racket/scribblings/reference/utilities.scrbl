@@ -18,7 +18,8 @@ Typed Racket provides some additional utility functions to facilitate typed prog
  [(assert [v A] [p? (A -> Any : B)]) B])]{
 Verifies that the argument satisfies the constraint.  If no predicate
 is provided, simply checks that the value is not
-@racket[#f].
+@racket[#f]. On failure, raises an @racket[exn:fail:contract] exception
+whose message includes the assertion and the failing value.
 
 See also the @racket[cast] form.
 }
@@ -36,7 +37,9 @@ y
               ([maybe-pred code:blank
                            (code:line predicate)])]{
 Guard the body with assertions. If any of the assertions fail, the
-program errors. These assertions behave like @racket[assert].
+program raises an @racket[exn:fail:contract] exception whose message
+identifies the first failed assertion and its value. These assertions
+behave like @racket[assert].
 }
 
 

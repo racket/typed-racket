@@ -44,6 +44,7 @@
   "metafunction-tests.rkt"
   "generalize-tests.rkt"
   "prims-tests.rkt"
+  "assert-tests.rkt"
   "tooltip-tests.rkt"
   "prefab-tests.rkt"
   "json-tests.rkt"

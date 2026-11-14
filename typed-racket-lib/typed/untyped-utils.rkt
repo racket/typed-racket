@@ -29,46 +29,52 @@
   (stx-map (lambda (id) ((make-syntax-introducer) id)) ids))
 
 (define-syntax (require/untyped-contract stx)
-  (syntax-parse stx #:literals (begin)
-    [(_ (begin form ...) from-module-spec:expr [name:id T:expr] ...)
-     (with-syntax* ([(typed-name ...)  (generate-temporaries #'(name ...))]
-                    [(untyped-name ...)  (freshen #'(name ...))]
-                    [(untyped2-name ...)  (generate-temporaries #'(name ...))]
-                    [(untyped3-name ...)  (generate-temporaries #'(name ...))]
-                    [(macro-name ...)  (generate-temporaries #'(name ...))]
-                    [typed-module  (generate-temporary #'typed-module)]
-                    [untyped-module  (generate-temporary #'untyped-module)]
-                    [*racket/base (datum->syntax #'from-module-spec 'racket/base)]
-                    [*typed/racket/base (datum->syntax #'from-module-spec
-                                                       'typed/racket/base)]
-                    [*require (datum->syntax #'from-module-spec
-                                             'require)]
-                    [from-module-spec-for-submod
-                      (syntax-parse #'from-module-spec #:literals (submod)
-                        [(submod (~and base (~or "." "..")) elem ...)
-                         (syntax/loc #'from-module-spec (submod base ".." elem ...))]
-                        [x #'x])])
-       (syntax/loc stx
-         (begin
-           (module typed-module *typed/racket/base ; to bind in `T`s
-             (*require typed/racket/base) ; to bind introduced `begin`, etc.
-             (begin form ...)
-             (require (only-in from-module-spec-for-submod
-                               [name untyped2-name] ...))
-             (provide untyped-name ...)
-             (: untyped-name T) ...
-             (define untyped-name untyped2-name) ...)
-           
-           (module untyped-module *racket/base
-             (*require racket/base)
-             (require typed/untyped-utils
-                      (only-in from-module-spec-for-submod
-                               [name typed-name] ...)
-                      (only-in (submod ".." typed-module)
-                               [untyped-name untyped3-name] ...))
-             (provide macro-name ...)
-             (define-typed/untyped-identifier macro-name typed-name untyped3-name) ...)
-           
-           (require (rename-in (submod "." untyped-module) [macro-name name] ...)))))]
-    [(_ from-module-spec:expr [name:id T:expr] ...)
-     (syntax/loc stx (require/untyped-contract (begin) from-module-spec [name T] ...))]))
+  (syntax-parse stx #:literals (begin quote)
+                [(_ (begin form ...) from-module-spec:expr language-spec:id [name:id T:expr] ...)
+                 (with-syntax* ([(typed-name ...)  (generate-temporaries #'(name ...))]
+                                [(untyped-name ...)  (freshen #'(name ...))]
+                                [(untyped2-name ...)  (generate-temporaries #'(name ...))]
+                                [(untyped3-name ...)  (generate-temporaries #'(name ...))]
+                                [(macro-name ...)  (generate-temporaries #'(name ...))]
+                                [typed-module  (generate-temporary #'typed-module)]
+                                [untyped-module  (generate-temporary #'untyped-module)]
+                                [*racket/base (datum->syntax #'from-module-spec 'racket/base
+                                                             )]
+                                [*typed/racket (datum->syntax #'from-module-spec (syntax-e #'language-spec)
+                                                              )]
+                                [*require (datum->syntax #'from-module-spec 'require)]
+                                [*language-spec (datum->syntax #'_ (syntax-e #'language-spec)
+                                                               )]
+                                [from-module-spec-for-submod
+                                 (syntax-parse #'from-module-spec #:literals (submod)
+                                               [(submod (~and base (~or "." "..")) elem ...)
+                                                (syntax/loc #'from-module-spec (submod base ".." elem ...))]
+                                               [x #'x])])
+                   (syntax/loc stx
+                     (begin
+                       (module typed-module *typed/racket ; to bind in `T`s
+                         (*require *language-spec) ; to bind introduced `begin`, etc.
+                         (begin form ...)
+                         (require (only-in from-module-spec-for-submod
+                                           [name untyped2-name] ...))
+                         (provide untyped-name ...)
+                         (: untyped-name T) ...
+                         (define untyped-name untyped2-name) ...)
+                       
+                       (module untyped-module *racket/base
+                         (*require racket/base)
+                         (require typed/untyped-utils
+                                  (only-in from-module-spec-for-submod
+                                           [name typed-name] ...)
+                                  (only-in (submod ".." typed-module)
+                                           [untyped-name untyped3-name] ...))
+                         (provide macro-name ...)
+                         (define-typed/untyped-identifier macro-name typed-name untyped3-name) ...)
+                       
+                       (require (rename-in (submod "." untyped-module) [macro-name name] ...)))))]
+                [(_ from-module-spec:expr language-spec:id [name:id T:expr] ...)
+                 (syntax/loc stx (require/untyped-contract (begin) from-module-spec language-spec [name T] ...))]
+                [(_ (begin form ...) from-module-spec:expr [name:id T:expr] ...)
+                 (syntax/loc stx (require/untyped-contract (begin form ...) from-module-spec typed/racket/base [name T] ...))]
+                [(_ from-module-spec:expr [name:id T:expr] ...)
+                 (syntax/loc stx (require/untyped-contract (begin) from-module-spec typed/racket/base [name T] ...))]))

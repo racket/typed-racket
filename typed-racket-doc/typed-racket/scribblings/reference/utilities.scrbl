@@ -110,8 +110,9 @@ syntax transformers that must expand differently in typed and untyped contexts.
 @history[#:changed "1.14"
          @elem{The module moved from @tt{typed-racket-more} to @tt{typed-racket-lib}.}]
 
-@defform*/subs[[(require/untyped-contract maybe-begin module [name subtype] ...)]
-               ([maybe-begin code:blank (code:line (begin expr ...))])]{
+@defform*/subs[[(require/untyped-contract maybe-begin module maybe-language-spec [name subtype] ...)]
+               ([maybe-begin code:blank (code:line (begin expr ...))]
+	       [maybe-language-spec identifier?])]{
 Use this form to import typed identifiers whose types cannot be converted into
 contracts, but have @emph{subtypes} that can be converted into contracts.
 
@@ -129,6 +130,17 @@ it can be imported and used in untyped code this way:
               [negate  (-> Integer Integer)])]
 The type @racket[(-> Integer Integer)] is converted into the contract used
 for @racket[negate].
+
+Additionally, if the defining module for the imported identifier uses a Typed Racket
+variant such as Shallow Typed Racket, @racket[require/untyped-contract] can be directed
+to use the appropriate language by providing a language specification:
+@racketblock[(require/untyped-contract
+              "my-numerics.rkt"
+	      typed/racket/shallow
+              [negate  (-> Integer Integer)])]
+The type @racket[(-> Integer Integer)] is then expanded to a contract in the context of the
+chosen language variant. Omitting the language specification uses the default @racket[typed/racket/base]
+language as the expansion context.
 
 The @racket[require/untyped-contract] form expands into a submodule
 with language @racketmodname[typed/racket/base]. Identifiers used in

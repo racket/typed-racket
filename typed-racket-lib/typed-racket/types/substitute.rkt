@@ -86,16 +86,16 @@
             (make-Pair (substitute img name expanded) t))]
          [else (make-ListDots (sub dty) dbound)])]
       [(SequenceDots: types dty dbound)
-       (if (eq? name dbound)
-           (if rimage
-               -SequenceTop
-               (make-Sequence
-                (append (map sub types)
-                        ;; We need to recur first, just to expand out any dotted usages of this.
-                        (let ([expanded (sub dty)])
-                          (for/list ([img (in-list images)])
-                            (substitute img name expanded))))))
-           (make-SequenceDots (map sub types) (sub dty) dbound))]
+       #:when (eq? name dbound)
+       (if rimage
+           -SequenceTop
+           (make-Sequence
+            (append (map sub types)
+                    ;; We need to recur first, just to expand out any dotted usages of this.
+                    (let ([expanded (sub dty)])
+                      (for/list ([img (in-list images)])
+                        (substitute img name expanded))))))]
+      [(SequenceDots: types dty dbound) (make-SequenceDots (map sub types) (sub dty) dbound)]
       [(ValuesDots: types dty dbound)
        #:when (eq? name dbound)
        (cond

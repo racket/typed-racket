@@ -115,15 +115,10 @@
 (define-syntax-rule (t-int arg ...)
   (t-int/check arg ... check-not-exn))
 
-(define (check-re re loc)
-  (λ (thunk)
-    (with-check-info* (list (make-check-location loc))
-                      (lambda ()
-      (check-exn
-       (λ (e)
-         (and (exn:fail? e)
-              (regexp-match? re (exn-message e))))
-       thunk)))))
+(define ((check-re re loc) thunk)
+  (with-check-info*
+   (list (make-check-location loc))
+   (lambda () (check-exn (λ (e) (and (exn:fail? e) (regexp-match? re (exn-message e)))) thunk))))
 
 ;; (t-int/fail type (-> any any) any #:msg regexp)
 ;; Like t-int, but checks failing cases. Takes a regexp for checking

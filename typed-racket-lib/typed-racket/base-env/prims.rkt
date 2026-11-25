@@ -376,13 +376,10 @@ the typed racket language.
          stx
        (begin (define-syntax name (define-for-variant #'untyped-name)) ...))]))
 
-;; for/first: and for/and:'s expansions
-;; can't currently be handled by the typechecker.
 (define-for-variants
   (for/list: for/list)
   (for/and: for/and)
-  (for/or: for/or)
-  (for/first: for/first))
+  (for/or: for/or))
 
 ;; Unlike with the above, the inferencer can handle any number of #:when
 ;; clauses with these 3.
@@ -466,8 +463,7 @@ the typed racket language.
               ...))]))
 (define-for*-variants
   (for*/and: for*/and)
-  (for*/or: for*/or)
-  (for*/first: for*/first))
+  (for*/or: for*/or))
 
 ;; Like for/lists:, for/fold: and for/foldr:, the inferencer can handle these correctly.
 (define-syntaxes (for*/lists:)
@@ -559,6 +555,43 @@ the typed racket language.
   (for*/list: for*/fold: for*/list #t (lambda (x y) (cons y x)) null reverse)
   (for/product: for/fold: for/product #f * 1 #%expression)
   (for*/product: for*/fold: for*/product #t * 1 #%expression))
+
+(define-for-syntax (define-for/acc:-break-variant for*? for/folder: for/folder op break-op initial final)
+  (lambda (stx)
+    (syntax-parse stx #:literals (:)
+                  [(_ a1:optional-standalone-annotation*
+                      clause:for-clauses
+                      a2:optional-standalone-annotation*
+                      c ...) ; c is not always an expression, can be a break-clause
+                   (define a.ty (or (attribute a2.ty)
+                                    (attribute a1.ty)))
+                   (cond
+                     [a.ty
+                      ;; ty has to include exact 0, exact 1, null (sum/product/list respectively),
+                      ;; the initial value of the accumulator
+                      ;; (to be consistent with Racket semantics).
+                      ;; We can't just change the initial value to be 0.0 if we expect a
+                      ;; Float result. This is problematic in some cases e.g:
+                      ;; (for/sum: : Float ([i : Float '(1.1)] #:when (zero? (random 1))) i)
+                      (quasisyntax/loc stx
+                        (#,final
+                         (#,for/folder: : #,a.ty ([acc : #,a.ty #,initial])
+                          (clause.expand ... ...)
+                          #:break (#,break-op acc #,initial)
+                          (let ([new (let () c ...)])
+                            (#,op acc new)))))]
+                     ;; With no annotation, try our luck with the core form.
+                     ;; Exact base cases cause problems, thus the additional
+                     ;; annotation on the accumulator above.
+                     [for*? ((define-for*-variant for/folder) stx)]
+                     [else ((define-for-variant for/folder) stx)])])))
+
+(define-syntax for/first:
+  (define-for/acc:-break-variant
+    #f 'for/fold: 'for/first 'begin (λ (x y) (not (equal? x y))) #f '#%expression))
+(define-syntax for*/first:
+  (define-for/acc:-break-variant
+    #t 'for*/fold: 'for*/first 'begin (λ (x y) (not (equal? x y))) #f '#%expression))
 
 ;; originally, we made the mistake of providing these by default in typed/racket/base
 ;; so now we have this trickery here
